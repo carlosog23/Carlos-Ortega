@@ -602,7 +602,7 @@ async function leerPDF(file){const L=await pdfjs();const doc=await L.getDocument
   for(const l of lines){const r=re.exec(l);if(!r)continue;const dob=`${r[7]}-${r[6].padStart(2,"0")}-${r[5].padStart(2,"0")}`;
     g.alumnos.push({no:+r[1],curp:r[2],raw:r[3],nombre:nombreLegible(r[3]),sexo:r[4],dob,rep:false})}
   return g}
-function avisosAlumno(a){const w=[],ci=curpInfo(a.curp);if(!ci)w.push("CURP con formato raro");else{if(ci.dob!==a.dob)w.push("la fecha de la CURP no coincide");if(ci.sexo!==a.sexo&&ci.sexo!=="X")w.push("el sexo de la CURP no coincide")}return w}
+function avisosAlumno(a){const w=[],ci=curpInfo(a.curp);if(!ci)w.push("CURP con formato raro");else{const fd=x=>{const[y,m,d]=x.split("-");return`${+d}/${+m}/${y}`};if(ci.dob!==a.dob)w.push(`la CURP indica nacimiento el ${fd(ci.dob)} y el reporte dice ${fd(a.dob)} (la edad se calculó con la del reporte: ${edadAl(a.dob,ED.corte)} años; con la de la CURP serían ${edadAl(ci.dob,ED.corte)})`);if(ci.sexo!==a.sexo&&ci.sexo!=="X")w.push(`la CURP indica sexo ${ci.sexo} y el reporte dice ${a.sexo}`)}return w}
 function conteo(alumnos){const c={};for(const s of["H","M"])for(const r of[0,1]){c[s+r]={};EDADES.forEach(e=>c[s+r][e]=0)}let fuera=0;
   for(const a of alumnos){const e=edadAl(a.dob,ED.corte);if(e<5||e>15){fuera++;continue}c[a.sexo+(a.rep?1:0)][e]++}return{c,fuera}}
 const sumRow=o=>EDADES.reduce((t,e)=>t+o[e],0);
