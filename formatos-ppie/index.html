@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}</style></head><body>
-<title>Formatos Zona 050</title>
+<title>Gestión Escolar Zona 050</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -78,6 +78,15 @@ textarea{min-height:130px;resize:vertical}
  .acts{display:flex;flex-direction:column;gap:10px}
 .act{display:flex;align-items:center;justify-content:center;gap:10px;font-size:18px;min-height:56px}
 .act .ic{font-size:20px;line-height:1}
+.sup{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;background:var(--card);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.sup-t{font-weight:700;font-size:15px}
+.sup-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;font-size:14px}
+.sup-g span{min-width:0;overflow-wrap:anywhere}
+.sup-g i{display:block;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sup-g a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--muted)}
+.sup-n{font-size:13px;color:var(--muted);font-style:italic;border-top:1px solid var(--line);padding-top:7px}
+@media (max-width:380px){.sup-g{grid-template-columns:minmax(0,1fr)}}
+.soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 </style>
 
@@ -273,7 +282,8 @@ ANEXOS.L={name:"Licencia económica con goce de sueldo (permiso económico)",pre
  sizes:{"Etiqueta responsable":9.3,"Firma: leyenda":8.3},derive:{}};
 const ARCHIVO={L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
-const GTIT={Personal:"Trámites del personal"};
+const GTIT={Personal:"Laboral · Trámites del personal",Docente:"Protección escolar (PPIE) · Lo llena: Docente",Dirección:"Protección escolar (PPIE) · Lo llena: Dirección",Todos:"Protección escolar (PPIE) · Lo llena: Todos","Jefatura de Nivel":"Protección escolar (PPIE) · Lo llena: Jefatura de Nivel"};
+const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos y canalizaciones."],["Comunicación con familias","Recados, citatorios, avisos y autorizaciones."],["Dirección","Oficios, actas administrativas y entrega de documentación."]];
 
 /* ---------- almacenamiento local (solo en este dispositivo) ---------- */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
@@ -366,12 +376,22 @@ function setBar(html){if(!html){bar.hidden=true;barIn.innerHTML="";return}bar.hi
 function home(){S.view="home";setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
   app.innerHTML=`<header class="brand"><div class="logos"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
-   <div><div class="eyebrow">Supervisión Escolar Zona 050</div><h1>Formatos de la Zona 050</h1></div></header>
-   <p class="muted">Elija el formato, conteste las preguntas y descargue el PDF en el formato oficial, listo para imprimir o enviar.</p>
+   <div><div class="eyebrow">Supervisión Escolar Zona 050</div><h1>Gestión Escolar Zona 050</h1></div></header>
+   <section class="sup" aria-label="Datos de la Supervisión">
+    <div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div>
+    <div class="sup-g">
+     <span><i>C.C.T.</i>02FIZ0094X</span><span><i>Sede</i>Camalú, San Quintín, B.C. · C.P. 22910</span>
+     <span><i>Teléfono</i><a href="tel:6161655622">616 165 5622</a></span><span><i>Correo</i><a href="mailto:supervision050sep@gmail.com">supervision050sep@gmail.com</a></span>
+     <span><i>Turno</i>Matutino-vespertino</span><span><i>Delegación</i>San Quintín · ISEP</span>
+    </div>
+    <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>
+   </section>
+   <p class="muted">Elija el formato, conteste las preguntas y obtenga el PDF en el formato oficial, listo para imprimir, guardar o enviar.</p>
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
    ${GRUPOS.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);return`<div class="group-title">${GTIT[g]||"Lo llena: "+g}</div><div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")}
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»</p>`;
+   ${PRONTO.map(([t,d])=>`<div class="group-title">${t}</div><div class="soon"><b>En preparación.</b> ${d}</div>`).join("")}
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a supervision050sep@gmail.com</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;
   app.querySelectorAll(".anexo").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));window.scrollTo(0,0)}
 
