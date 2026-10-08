@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}</style></head><body>
-<title>Formatos PPIE Zona 050</title>
+<title>Formatos Zona 050</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -224,8 +224,56 @@ const ANEXOS={
      {id:"com",label:"Comunicación con otras instancias",type:"lines",to:lst("Comunicación con otras instancias",2)},{id:"jef",label:"Nombre de la o el titular de la Jefatura de Nivel",to:"Nombre del titular de la Jefatura de Nivel"}]}],
   derive:{}}
 };
-const ARCHIVO={A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
-const GRUPOS=["Docente","Dirección","Todos","Jefatura de Nivel"];
+
+/* ---------- Licencia económica con goce de sueldo ---------- */
+const SUP_NOMBRE="Mtro. Carlos Gabriel Ortega Gutiérrez";
+const CARGOS_050=["Director","Director","Director","Directora","Encargado de despacho","Director","Encargada de despacho","Directora","Director","Directora","Encargado de despacho","Encargado de despacho","Encargado de despacho","Encargado de despacho"];
+const CENTROS=ESCUELAS_050.map((e,i)=>{const m=e[4].match(/^(.*?),?\s*C\.P\.\s*(\d{5})/);const cargo=CARGOS_050[i];
+  return{label:"Esc. Prim. "+e[0],nombre:"Escuela Primaria "+e[0],cct:e[1],mun:e[2],dir:m?m[1]:e[4],cp:m?m[2]:"",resp:(/a$|Encargada/.test(cargo)?"Mtra. ":"Mtro. ")+e[5],cargo}});
+CENTROS.push({label:"Supervisión Escolar Zona 050",nombre:"Supervisión Escolar Zona 050",cct:"02FIZ0094X",mun:"San Quintín",dir:"Camalú, San Quintín",cp:"22910",tel:"616 165 5622",resp:SUP_NOMBRE,cargo:"Supervisor Escolar"});
+const CARGOS_RESP=["Director","Directora","Encargado de despacho","Encargada de despacho","Supervisor Escolar"];
+const LEYENDA={"Director":"DEL DIRECTOR","Directora":"DE LA DIRECTORA","Encargado de despacho":"DEL ENCARGADO DE DESPACHO","Encargada de despacho":"DE LA ENCARGADA DE DESPACHO","Supervisor Escolar":"DEL SUPERVISOR ESCOLAR"};
+function addWeekdays(iso,n){const p=parseDate(iso);if(!p)return"";const d=new Date(p.y,p.m-1,p.d);let k=0;while(k<n){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)k++}return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function wireLicDias(g){const upd=()=>{const n=+(document.querySelector('input[name="f_dias"]:checked')?.value||0);const del=g("del").value;if(!n||!del)return;
+    const al=addWeekdays(del,n-1);g("al").value=al;g("rean").value=addWeekdays(al,1)};
+  document.querySelectorAll('input[name="f_dias"]').forEach(r=>r.addEventListener("change",upd));g("del").addEventListener("change",upd)}
+function wireLicCentro(g){const apply=()=>{const i=g("centro").value;const dirSolicita=document.querySelector('input[name="f_quien"]:checked')?.value?.startsWith("El director");
+    if(i!==""&&i!=="otra"){const c=CENTROS[+i];g("cnombre").value=c.nombre;g("ccct").value=c.cct;g("cdir").value=c.dir;g("cmun").value=c.mun;g("ccp").value=c.cp;if(c.tel)g("ctel").value=c.tel;
+      g("resp").value=c.resp;g("rcargo").value=c.cargo}
+    if(dirSolicita){g("resp").value=SUP_NOMBRE;g("rcargo").value="Supervisor Escolar"}
+    else if(i!==""&&i!=="otra"&&g("rcargo").value==="Supervisor Escolar"&&CENTROS[+i].cargo!=="Supervisor Escolar"){const c=CENTROS[+i];g("resp").value=c.resp;g("rcargo").value=c.cargo}};
+  g("centro").addEventListener("change",()=>{if(g("centro").value==="otra"){["cnombre","ccct","cdir","cmun","ccp","ctel","resp"].forEach(k=>g(k).value="");g("rcargo").value=""}apply()});
+  document.querySelectorAll('input[name="f_quien"]').forEach(r=>r.addEventListener("change",apply))}
+ANEXOS.L={name:"Licencia económica con goce de sueldo",pref:"Licencia",who:"La persona que solicita",grupo:"Personal",
+ use:"Art. 52, fracc. III: hasta 3 días, 3 veces al año, separadas cuando menos por un mes.",
+ steps:[
+  {title:"Fecha de la solicitud",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"larga",to:"Fecha"},{id:"folio",label:"No. de folio",opt:true,help:"Lo asigna la Supervisión; déjelo vacío si no lo tiene.",to:"No. de folio"}]},
+  {title:"Datos de quien solicita",fields:[{id:"nom",label:"Nombre(s)",to:"Nombre(s)"},{id:"pat",label:"Apellido paterno",to:"Apellido paterno",half:true},{id:"mat",label:"Apellido materno",to:"Apellido materno",half:true},
+    {id:"calle",label:"Domicilio: calle o avenida",to:"Domicilio: calle"},{id:"num",label:"Número",to:"Domicilio: número",half:true},{id:"col",label:"Colonia",to:"Domicilio: colonia",half:true},
+    {id:"tel",label:"Teléfono",type:"tel",to:"Teléfono"},{id:"rfc",label:"RFC",to:"RFC"},
+    {id:"puesto",label:"Puesto",to:"Puesto",chips:["Docente frente a grupo","Director(a)","Encargado(a) de despacho","Docente de Educación Física","Asesor(a) técnico pedagógico","Intendente","Personal de apoyo"]},
+    {id:"claves",label:"Clave(s) presupuestal(es)",to:"Clave(s)"},
+    {id:"ingreso",label:"Fecha de ingreso a la SEP",type:"date",fmt:"partesAnio",noToday:true,to:["Ingreso: día","Ingreso: mes","Ingreso: año"]}]},
+  {title:"Días de licencia",wire:wireLicDias,fields:[{id:"dias",label:"Días solicitados",type:"choice",options:["1","2","3"],help:"El artículo permite hasta 3 días por ocasión."},
+    {id:"del",label:"Periodo del",type:"date",fmt:"larga",to:"Periodo del"},{id:"al",label:"Al",type:"date",fmt:"larga",noToday:true,to:"Periodo al",help:"Se calcula solo en días hábiles (lunes a viernes). Corríjalo si hay un día festivo."},
+    {id:"rean",label:"Fecha de reanudación de labores",type:"date",fmt:"partesAnio",noToday:true,to:["Reanudación: día","Reanudación: mes","Reanudación: año"]}]},
+  {title:"Datos del centro de trabajo",wire:wireLicCentro,fields:[
+    {id:"centro",label:"Centro de trabajo",type:"pick",help:"Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.",
+      options:CENTROS.map((c,i)=>({label:c.label+" · "+c.cct,value:String(i)})).concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
+      preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct);return i>=0?String(i):(p.cct?"otra":"")}},
+    {id:"quien",label:"¿Quién solicita la licencia?",type:"choice",options:["Personal de la escuela (autoriza el director o E.D.)","El director o encargado de despacho (autoriza el Supervisor)"]},
+    {id:"cnombre",label:"Nombre del centro de trabajo",pre:"escuela",to:"Centro: nombre"},{id:"ccct",label:"Clave",pre:"cct",to:"Centro: clave",half:true},{id:"ctel",label:"Teléfono",type:"tel",pre:"telefono",opt:true,to:"Centro: teléfono",half:true},
+    {id:"cdir",label:"Dirección",pre:"domicilio",to:"Centro: dirección"},{id:"cmun",label:"Municipio",type:"select",options:MUNIS,pre:"municipio",to:"Centro: municipio",half:true},{id:"ccp",label:"C. P.",to:"Centro: C.P.",half:true},
+    {id:"resp",label:"Nombre de quien autoriza",help:"Director(a) o E.D. de la escuela; si quien solicita es el directivo, autoriza el Supervisor Escolar.",preFn:p=>p.director||""},
+    {id:"rcargo",label:"Cargo de quien autoriza",type:"select",options:CARGOS_RESP}]},
+  {title:"Observaciones",fields:[{id:"obs",label:"Observaciones",type:"box",opt:true,to:"Observaciones"}]}],
+ compute:v=>{const c=v.rcargo||"";return{"Etiqueta responsable":c==="Supervisor Escolar"?"NOMBRE DEL SUPERVISOR ESCOLAR:":"NOMBRE DEL DIRECTOR O E.D.:",
+   "Nombre del responsable":v.resp||"","Firma: nombre de quien autoriza":v.resp||"","Firma: leyenda":"NOMBRE Y FIRMA "+(LEYENDA[c]||"DEL DIRECTOR O E.D."),
+   "Firma: nombre del interesado":[v.nom,v.pat,v.mat].filter(Boolean).join(" ").trim(),"Días solicitados":v.dias||""}},
+ sizes:{"Etiqueta responsable":9.3,"Firma: leyenda":8.3},derive:{}};
+const ARCHIVO={L:"Licencia economica con goce de sueldo",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
+const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
+const GTIT={Personal:"Trámites del personal"};
 
 /* ---------- almacenamiento local (solo en este dispositivo) ---------- */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
@@ -245,7 +293,7 @@ function fmtDate(v,fmt){const p=parseDate(v);if(!p)return fmt.startsWith("partes
   if(fmt==="corta")return`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`;return v}
 function fmtTime(v,fmt){if(!v)return fmt==="hm"?["",""]:"";const[h,m]=v.split(":");return fmt==="hm"?[h,m]:`${h}:${m} hrs.`}
 function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function preValue(f){if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date")return today();return""}
+function preValue(f){if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date"&&!f.noToday)return today();return""}
 
 /* ---------- medición de texto con la fuente del PDF ---------- */
 let HELV=null,HELVB=null;const okChar=new Map();
@@ -265,7 +313,7 @@ function layoutLines(text,widths){for(const s of [10,9.5,9,8.5,8]){const l=wrapW
   const l=wrapWidths(text,widths,8);return{size:8,lines:l,over:true}}
 function layoutBox(text,w,h){for(const s of [10,9.5,9,8.5,8,7.5,7]){const lh=s*1.2;const n=Math.floor((h-4)/lh);const l=wrapWidths(text,[w-6],s);if(l.length<=n)return{size:s,lines:l,over:false,cap:n}}
   const s=7,lh=s*1.2,n=Math.floor((h-4)/lh);return{size:s,lines:wrapWidths(text,[w-6],s),over:true,cap:n}}
-function fitSingle(text,w){const t=clean(text).replace(/\n/g," ");if(!t)return{size:10,text:t,over:false};let s=10;const full=W(t,10);if(full>w-2)s=Math.max(6,Math.floor((w-2)/full*10*2)/2);return{size:s,text:t,over:W(t,s)>w-1}}
+function fitSingle(text,w,mx=10){const t=clean(text).replace(/\n/g," ");if(!t)return{size:mx,text:t,over:false};let s=mx;const full=W(t,mx);if(full>w-2)s=Math.max(6,Math.floor((w-2)/full*mx*2)/2);return{size:s,text:t,over:W(t,s)>w-1}}
 
 /* ---------- geometría de los campos (se lee del PDF oficial) ---------- */
 const cache={};
@@ -289,6 +337,7 @@ function plan(L){const A=ANEXOS[L],v=S.vals,out={single:{},lines:[],box:{},check
     else if(f.type==="check"){if(val)out.checks.push(f.to)}
     else out.single[f.to]=val||""}
   for(const[n,id]of Object.entries(A.derive||{}))out.single[n]=v[id]||"";
+  if(A.compute)Object.assign(out.single,A.compute(v));
   return out}
 function problems(L,geo){const p=plan(L),issues=[];
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);if(r.over)issues.push(`«${g.label}» no cabe en los ${g.to.length} renglones del formato. Resuma el texto.`)}
@@ -302,7 +351,7 @@ async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const
   const pages=doc.getPages(),ink=PDFLib.rgb(0,0,0),p=plan(L);
   const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const w=helv.widthOfTextAtSize(text,size);
     let x=g.x+1.5;if(g.q===1)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:helv,color:ink})};
-  for(const[n,t]of Object.entries(p.single)){if(!geo[n]||!t)continue;const r=fitSingle(t,geo[n].width);put(n,r.text,r.size)}
+  for(const[n,t]of Object.entries(p.single)){if(!geo[n]||!t)continue;const r=fitSingle(t,geo[n].width,(ANEXOS[L].sizes||{})[n]||10);put(n,r.text,r.size)}
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);r.lines.slice(0,g.to.length).forEach((t,i)=>put(g.to[i],t,r.size))}
   for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];const r=layoutBox(b.text,g.width,g.height);const lh=r.size*1.2;
     r.lines.slice(0,r.cap).forEach((t,i)=>pages[g.page].drawText(t,{x:g.x+3,y:g.y+g.height-2-r.size-(i*lh),size:r.size,font:helv,color:ink}))}
@@ -317,11 +366,11 @@ function setBar(html){if(!html){bar.hidden=true;barIn.innerHTML="";return}bar.hi
 function home(){S.view="home";setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
   app.innerHTML=`<header class="brand"><div class="logos"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
-   <div><div class="eyebrow">Zona Escolar 050 · PPIE 2026</div><h1>Formatos PPIE</h1></div></header>
+   <div><div class="eyebrow">Supervisión Escolar Zona 050</div><h1>Formatos de la Zona 050</h1></div></header>
    <p class="muted">Elija el formato, conteste las preguntas y descargue el PDF en el formato oficial, listo para imprimir o enviar.</p>
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
-   ${GRUPOS.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);return`<div class="group-title">Lo llena: ${g}</div><div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")}
+   ${GRUPOS.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);return`<div class="group-title">${GTIT[g]||"Lo llena: "+g}</div><div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")}
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;
   app.querySelectorAll(".anexo").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));window.scrollTo(0,0)}
@@ -329,6 +378,7 @@ function home(){S.view="home";setBar("");
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
   const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
   if(f.type==="choice"){const options=f.options.map(o=>typeof o==="string"?o:o.label);return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${options.map((o,i)=>`<label class="opt ${val===o?"on":""}"><input type="radio" name="${id}" id="${id}_${i}" value="${esc(o)}" ${val===o?"checked":""}>${esc(o)}</label>`).join("")}</div></div>`}
+  if(f.type==="pick")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option value="${esc(o.value)}" ${val===o.value?"selected":""}>${esc(o.label)}</option>`).join("")}</select></div>`;
   if(f.type==="select")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option ${val===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
   if(f.type==="checks"){const sel=val?.sel||[];return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${f.options.map((o,i)=>`<label class="opt ${sel.includes(o.to)?"on":""}"><input type="checkbox" id="${id}_${i}" data-to="${esc(o.to)}" ${sel.includes(o.to)?"checked":""}>${esc(o.label)}</label>`).join("")}</div>
      ${f.other?`<div class="field"><label for="${id}_otro">Otro (especifique)</label><input type="text" id="${id}_otro" value="${esc(val?.otro||"")}" placeholder="Déjelo vacío si no aplica"></div>`:""}</div>`}
@@ -357,7 +407,7 @@ function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A
   const fields=st.fields;let html="",halfBuf=[];
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
   for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
-  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Anexo ${S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref?A.pref:"Anexo "+S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
    <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
    <form class="card" id="frm" novalidate>${html}</form>`;
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
@@ -368,21 +418,22 @@ function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A
   document.getElementById("salir").onclick=()=>{readStep();home()};
   document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)home();else{S.step--;stepView()}};
   document.getElementById("next").onclick=()=>{readStep();if(S.step===n-1)reviewView();else{S.step++;stepView()}};
+  if(st.wire)st.wire(k=>document.getElementById("f_"+k));
   meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
 
 function showVal(f){const v=S.vals[f.id];
   if(f.type==="date")return v?fmtDate(v,"larga"):"";if(f.type==="time")return v?fmtTime(v,"hrs"):"";
   if(f.type==="checks"){const l=(v?.sel||[]).map(t=>f.options.find(o=>o.to===t)?.label);if(v?.otro)l.push("Otro: "+v.otro);return l.join("\n")}
-  if(f.type==="check")return v?"Sí":"";return v||""}
+  if(f.type==="check")return v?"Sí":"";if(f.type==="pick")return(f.options.find(o=>o.value===v)||{}).label||"";return v||""}
 async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=await loadForm(S.letra);await fonts();const issues=problems(S.letra,geo);
   const missing=[];A.steps.forEach(st=>st.fields.forEach(f=>{if(!f.opt&&!showVal(f))missing.push(f.label)}));
-  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Anexo ${S.letra} · Revisión</div><h2>${esc(A.name)}</h2></div></div>
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref||"Anexo "+S.letra} · Revisión</div><h2>${esc(A.name)}</h2></div></div>
    <div class="progress" aria-hidden="true"><i style="width:100%"></i></div>
    ${issues.length?`<div class="alert"><b>Corrija antes de descargar:</b><br>${issues.map(esc).join("<br>")}</div>`:""}
    ${missing.length?`<div class="alert"><b>Sin llenar:</b> ${missing.map(esc).join(", ")}.<br>Puede descargar así y llenarlo a mano después.</div>`:""}
    ${A.steps.map((st,i)=>`<section class="card"><div class="top" style="justify-content:space-between"><h3>${esc(st.title)}</h3><button class="btn link" data-step="${i}">Editar</button></div>
      <div class="review">${st.fields.map(f=>{const t=showVal(f);return`<div class="rv"><span>${esc(f.label)}</span><span${t?"":' class="empty"'}>${t?esc(t):"Sin llenar"}</span></div>`}).join("")}</div></section>`).join("")}
-   <section class="card"><h3>¿Qué desea hacer con el formato?</h3><p class="muted" style="font-size:15px">Se genera el PDF en el formato oficial del Anexo ${S.letra}. Las firmas y sellos se hacen a mano.</p>
+   <section class="card"><h3>¿Qué desea hacer con el formato?</h3><p class="muted" style="font-size:15px">Se genera el PDF en el formato oficial${A.pref?"":" del Anexo "+S.letra}. Las firmas y sellos se hacen a mano.</p>
     <div class="acts">
      <button class="btn primary act" data-act="print" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
      <button class="btn primary act" data-act="share" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
@@ -403,7 +454,7 @@ let OUT=null;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
 async function prepararPDF(){if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
-  const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||"").split(",")[0].trim().slice(0,40);
+  const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||[S.vals.nom,S.vals.pat,S.vals.mat].filter(Boolean).join(" ")||"").split(",")[0].trim().slice(0,40);
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
   const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:S.letra,filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
@@ -422,7 +473,7 @@ function tryPrintFrame(o){return new Promise(res=>{try{const u=URL.createObjectU
   let done=false;fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();done=true;res(true)}catch(e){res(false)}},300)};document.body.appendChild(fr);setTimeout(()=>{if(!done)res(false)},6000);setTimeout(()=>{fr.remove();URL.revokeObjectURL(u)},120000)}catch(e){res(false)}})}
 async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
   try{const o=await prepararPDF();
-    if(act==="share"){const r=await tryShare(o,`${ARCHIVO[S.letra]} (PPIE 2026)`);
+    if(act==="share"){const r=await tryShare(o,`${ARCHIVO[S.letra]}`);
       if(r===true)say("ok","<b>Listo.</b> El formato se envió por la aplicación que eligió.");
       else if(r==="cancel")say("warn","<b>Envío cancelado.</b> Toque el botón de nuevo cuando quiera.");
       else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
