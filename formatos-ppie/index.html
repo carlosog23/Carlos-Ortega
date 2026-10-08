@@ -86,6 +86,16 @@ textarea{min-height:130px;resize:vertical}
 .sup-g a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--muted)}
 .sup-n{font-size:13px;color:var(--muted);font-style:italic;border-top:1px solid var(--line);padding-top:7px}
 @media (max-width:380px){.sup-g{grid-template-columns:minmax(0,1fr)}}
+.secs{display:flex;flex-direction:column;gap:10px}
+.sec{display:flex;gap:14px;align-items:center;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 14px;color:var(--ink);font:inherit;cursor:pointer;min-height:80px}
+.sec:hover{border-color:var(--accent)}
+.sec:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sec .sic{flex:none;width:52px;height:52px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center}
+.sec .sic svg{width:28px;height:28px;fill:none;stroke:var(--accent-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sec.off .sic{background:var(--accent-soft)}.sec.off .sic svg{stroke:var(--accent)}
+.sec b{display:block;font-size:18px}.sec .ds{display:block;font-size:14px;color:var(--muted)}
+.sec .cnt{display:block;font-size:13px;font-weight:700;color:var(--accent);margin-top:3px}.sec.off .cnt{color:var(--muted);font-weight:400;font-style:italic}
+.sec .chev{flex:none;margin-left:auto;font-size:28px;color:var(--muted);line-height:1}
 .soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 </style>
@@ -288,7 +298,7 @@ const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos 
 /* ---------- almacenamiento local (solo en este dispositivo) ---------- */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 let perfil=store.get("ppie-perfil",{});
-const S={view:"home",letra:null,step:0,vals:{}};
+const S={view:"home",letra:null,step:0,vals:{},sec:null};
 
 /* ---------- utilidades ---------- */
 const app=document.getElementById("app"),bar=document.getElementById("bar"),barIn=document.getElementById("barIn");
@@ -386,13 +396,39 @@ function home(){S.view="home";setBar("");
     </div>
     <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>
    </section>
-   <p class="muted">Elija el formato, conteste las preguntas y obtenga el PDF en el formato oficial, listo para imprimir, guardar o enviar.</p>
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
-   ${GRUPOS.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);return`<div class="group-title">${GTIT[g]||"Lo llena: "+g}</div><div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")}
-   ${PRONTO.map(([t,d])=>`<div class="group-title">${t}</div><div class="soon"><b>En preparación.</b> ${d}</div>`).join("")}
+   <div class="group-title">¿Qué necesita hacer?</div>
+   <div class="secs">${SECCIONES.map(x=>{const n=secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
+     return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
+      <span class="cnt">${n?`${n} formato${n>1?"s":""}`:"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a supervision050sep@gmail.com</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;
+  app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
+
+const ICON={
+ work:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></svg>',
+ shield:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+ book:'<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/></svg>',
+ chat:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>',
+ school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
+const SECCIONES=[
+ {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos y trámites del personal.",grupos:["Personal"]},
+ {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
+ {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Planeación, actas de CTE, seguimiento de alumnos y canalizaciones.",grupos:[]},
+ {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
+ {id:"direccion",icon:"school",title:"Dirección",desc:"Oficios, actas administrativas y entrega de documentación.",grupos:[]}];
+const GLBL={Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
+function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo))}
+function goBack(){if(S.sec)sectionView(S.sec);else home()}
+function sectionView(id){const x=SECCIONES.find(z=>z.id===id);S.view="section";S.sec=id;setBar("");
+  const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
+  const body=x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
+     return`${GLBL[g]?`<div class="group-title">${GLBL[g]}</div>`:""}<div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")
+   :`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a supervision050sep@gmail.com.</div>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>${esc(x.title)}</h2></div></div>
+   <p class="muted">${esc(x.desc)}</p>${body}`;
+  document.getElementById("salir").onclick=()=>{S.sec=null;home()};
   app.querySelectorAll(".anexo").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));window.scrollTo(0,0)}
 
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
@@ -435,8 +471,8 @@ function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>{if(i.type==="radio")app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked));else i.closest(".opt").classList.toggle("on",i.checked)}));
   app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{document.getElementById(c.dataset.for).value=c.dataset.v});
   app.querySelectorAll(".chip[data-fill]").forEach(c=>c.onclick=()=>{const f=fields.find(x=>x.id===c.dataset.fill);const set=f.fillChips[+c.dataset.i].set;for(const[k,v]of Object.entries(set)){const el=document.getElementById("f_"+k);if(el)el.value=v}});
-  document.getElementById("salir").onclick=()=>{readStep();home()};
-  document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)home();else{S.step--;stepView()}};
+  document.getElementById("salir").onclick=()=>{readStep();goBack()};
+  document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)goBack();else{S.step--;stepView()}};
   document.getElementById("next").onclick=()=>{readStep();if(S.step===n-1)reviewView();else{S.step++;stepView()}};
   if(st.wire)st.wire(k=>document.getElementById("f_"+k));
   meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
@@ -463,7 +499,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
     <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
   setBar(`<button class="btn ghost" id="prev">Anterior</button><button class="btn ghost" id="inicio">Inicio</button>`);
   app.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;stepView()});
-  document.getElementById("salir").onclick=home;document.getElementById("inicio").onclick=home;
+  document.getElementById("salir").onclick=goBack;document.getElementById("inicio").onclick=()=>{S.sec=null;home()};
   document.getElementById("prev").onclick=()=>{S.step=A.steps.length-1;stepView()};
   document.getElementById("nuevo").onclick=()=>{store.del("ppie-draft-"+S.letra);openAnexo(S.letra)};
   OUT=null;if(!issues.length)prepararPDF().catch(()=>{});
