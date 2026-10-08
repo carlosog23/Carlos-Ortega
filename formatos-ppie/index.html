@@ -514,7 +514,8 @@ async function prepararPDF(){if(OUT&&OUT.letra===S.letra)return OUT;const bytes=
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
   const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:S.letra,filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
-function say(kind,html){document.getElementById("msg").innerHTML=`<div class="${kind==="ok"?"okmsg":"alert"}">${html}</div>`;document.getElementById("msg").scrollIntoView({behavior:"smooth",block:"center"})}
+function say(kind,html){if(kind==="ok"&&S.letra){store.del("ppie-draft-"+S.letra);html+=`<br><span style="font-size:14px">Se quitó el borrador de este formato. Mientras siga en esta pantalla puede volver a imprimirlo o enviarlo.</span>`}
+  document.getElementById("msg").innerHTML=`<div class="${kind==="ok"?"okmsg":"alert"}">${html}</div>`;document.getElementById("msg").scrollIntoView({behavior:"smooth",block:"center"})}
 let DL;async function getDL(){if(DL!==undefined)return DL;try{DL=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){DL=null}return DL}
 async function tryShare(o,text){if(!navigator.share||!navigator.canShare)return false;try{if(!navigator.canShare({files:[o.file]}))return false;await navigator.share({files:[o.file],title:o.filename,text});return true}catch(e){if(e&&e.name==="AbortError")return"cancel";return false}}
 let TOP=false;try{TOP=window.top===window.self}catch(e){TOP=false}
