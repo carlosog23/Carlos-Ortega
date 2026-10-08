@@ -387,7 +387,7 @@ ANEXOS.P={name:"Actualización de datos personales (expediente)",pref:"Datos per
     {id:"calle",label:"Domicilio particular / calle",to:"Calle"},{id:"num",label:"Núm. ext/int",to:"Número",half:true},{id:"cp",label:"C.P.",to:"C.P.",half:true},
     {id:"col",label:"Fraccionamiento / colonia",to:"Colonia"},{id:"mun",label:"Municipio de residencia",type:"select",options:MUNIS,pre:"municipio",to:"Municipio",half:true},{id:"ent",label:"Entidad",preFn:()=>"Baja California",to:"Entidad",half:true},
     {id:"telcasa",label:"Teléfono de casa",type:"tel",opt:true,to:"Teléfono de casa",half:true},{id:"cel",label:"Celular (con clave lada)",type:"tel",to:"Celular",half:true},
-    {id:"cinst",label:"Correo institucional",opt:true,to:"Correo institucional"},{id:"cpers",label:"Correo personal",to:"Correo personal"}]},
+    {id:"cinst",label:"Correo institucional",type:"email",ph:"nombre.apellido@bcedu.mx",help:"Obligatorio. Debe terminar en bcedu.mx.",chips:["@bcedu.mx"],chipAppend:true,to:"Correo institucional"},{id:"cpers",label:"Correo personal",type:"email",to:"Correo personal"}]},
   {title:"Datos laborales y familiares",fields:[
     {id:"fing",label:"Fecha de ingreso",type:"date",noToday:true},{id:"grado",label:"Último grado de estudios / especialidad",to:"Último grado de estudios",chips:["Licenciatura en Educación Primaria","Maestría","Doctorado","Normal Básica"]},
     {id:"status",label:"Status",to:"Status",chips:["Titulado","Cursando","Pasante","Otro"]},
@@ -401,7 +401,8 @@ ANEXOS.P={name:"Actualización de datos personales (expediente)",pref:"Datos per
    "Fecha de nacimiento":dmy(v.fnac),"Fecha de ingreso":dmy(v.fing),"Nombre del interesado":[v.nom,v.pat,v.mat].filter(Boolean).join(" ")};
    if(p){const d=String(p.d).padStart(2,"0"),m=String(p.m).padStart(2,"0");Object.assign(r,{"Llenado día 1":d[0],"Llenado día 2":d[1],"Llenado mes 1":m[0],"Llenado mes 2":m[1],"Llenado año":String(p.y)})}
    return r},
- sizes:{"Encabezado escuela":8.5,"Encabezado clave":8.5,"Encabezado zona":8.5,"Encabezado ciclo":8.5},bold:["Encabezado escuela","Encabezado clave","Encabezado zona","Encabezado ciclo"],circle:["Sexo F","Sexo M"],derive:{}};
+ sizes:{"Encabezado escuela":8.5,"Encabezado clave":8.5,"Encabezado zona":8.5,"Encabezado ciclo":8.5},bold:["Encabezado escuela","Encabezado clave","Encabezado zona","Encabezado ciclo"],circle:["Sexo F","Sexo M"],upper:true,noUpper:["Correo institucional","Correo personal"],
+ validate:v=>{const c=(v.cinst||"").trim();return!c?["Falta el correo institucional (es obligatorio)."]:/^[^@\s]+@([a-z0-9-]+\.)*bcedu\.mx$/i.test(c)?[]:[`El correo institucional «${c}» debe terminar en bcedu.mx.`]},derive:{}};
 
 const ARCHIVO={P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
@@ -473,8 +474,9 @@ function plan(L){const A=ANEXOS[L],v=S.vals,out={single:{},lines:[],box:{},check
     else if(f.to)out.single[f.to]=val||""}
   for(const[n,id]of Object.entries(A.derive||{}))out.single[n]=v[id]||"";
   if(A.compute)Object.assign(out.single,A.compute(v));
+  if(A.upper){const no=new Set(A.noUpper||[]);for(const k of Object.keys(out.single))if(!no.has(k)&&typeof out.single[k]==="string")out.single[k]=out.single[k].toLocaleUpperCase("es-MX");for(const k of no)if(out.single[k])out.single[k]=out.single[k].trim().toLowerCase()}
   return out}
-function problems(L,geo){const p=plan(L),issues=[...(p.over||[])];
+function problems(L,geo){const p=plan(L),issues=[...(p.over||[]),...(ANEXOS[L].validate?ANEXOS[L].validate(S.vals):[])];
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);if(r.over)issues.push(`«${g.label}» no cabe en los ${g.to.length} renglones del formato. Resuma el texto.`)}
   for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];if(layoutBox(b.text,g.width,g.height).over)issues.push(`«${b.label}» no cabe en el recuadro del formato. Resuma el texto.`)}
   for(const[n,t]of Object.entries(p.single)){if(!t||!geo[n])continue;if(fitSingle(t,geo[n].width).over)issues.push(`«${n}» es demasiado largo para su espacio en el formato. Abrévielo.`)}
@@ -576,10 +578,10 @@ function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="mu
      ${f.other?`<div class="field"><label for="${id}_otro">Otro (especifique)</label><input type="text" id="${id}_otro" value="${esc(val?.otro||"")}" placeholder="Déjelo vacío si no aplica"></div>`:""}</div>`}
   if(f.type==="check")return`<div class="field"><div class="opts"><label class="opt ${val?"on":""}"><input type="checkbox" id="${id}" ${val?"checked":""}>${esc(f.text||f.label)}</label></div>${help}</div>`;
   if(f.type==="lines"||f.type==="box"){const short=f.short;return`<div class="field">${lab}${help}${short?`<input type="text" id="${id}" value="${esc(val||"")}">`:`<textarea id="${id}" rows="${f.type==="box"?5:Math.min(9,Math.max(3,f.to.length+1))}">${esc(val||"")}</textarea>`}<div class="meter" id="${id}_m"></div></div>`}
-  const type=f.type==="date"?"date":f.type==="time"?"time":f.type==="tel"?"tel":"text";
+  const type=f.type==="date"?"date":f.type==="time"?"time":f.type==="tel"?"tel":f.type==="email"?"email":"text";
   const chips=f.chips?`<div class="chips">${f.chips.map(c=>`<button type="button" class="chip" data-for="${id}" data-v="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:"";
   const fill=f.fillChips?`<div class="chips">${f.fillChips.map((c,i)=>`<button type="button" class="chip" data-fill="${f.id}" data-i="${i}">${esc(c.label)}</button>`).join("")}</div>`:"";
-  return`<div class="field">${lab}${help}<input type="${type}" id="${id}" value="${esc(val||"")}" ${f.ph?`placeholder="${esc(f.ph)}"`:""} ${type==="tel"?'inputmode="tel"':""} autocomplete="off">${chips}${fill}</div>`}
+  return`<div class="field">${lab}${help}<input type="${type}" id="${id}" value="${esc(val||"")}" ${f.ph?`placeholder="${esc(f.ph)}"`:""} ${type==="tel"?'inputmode="tel"':""}${type==="email"?' inputmode="email" autocapitalize="none" spellcheck="false"':""} autocomplete="off">${chips}${fill}</div>`}
 
 function readStep(){const st=ANEXOS[S.letra].steps[S.step];for(const f of st.fields){const id=`f_${f.id}`;
   if(f.type==="choice"){const r=app.querySelector(`input[name="${id}"]:checked`);S.vals[f.id]=r?r.value:""}
@@ -605,12 +607,14 @@ function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";co
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
   document.getElementById("frm").onsubmit=e=>{e.preventDefault()};
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>{if(i.type==="radio")app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked));else i.closest(".opt").classList.toggle("on",i.checked)}));
-  app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{document.getElementById(c.dataset.for).value=c.dataset.v});
+  app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{const el=document.getElementById(c.dataset.for);const f=fields.find(x=>"f_"+x.id===c.dataset.for);if(f&&f.chipAppend){el.value=el.value.replace(/@.*$/,"")+c.dataset.v;el.focus()}else el.value=c.dataset.v});
   app.querySelectorAll(".chip[data-fill]").forEach(c=>c.onclick=()=>{const f=fields.find(x=>x.id===c.dataset.fill);const set=f.fillChips[+c.dataset.i].set;for(const[k,v]of Object.entries(set)){const el=document.getElementById("f_"+k);if(el)el.value=v}});
   document.getElementById("salir").onclick=()=>{readStep();goBack()};
   document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)goBack();else{S.step--;stepView()}};
   document.getElementById("next").onclick=()=>{readStep();if(S.step===n-1)reviewView();else{S.step++;stepView()}};
   if(st.wire)st.wire(k=>document.getElementById("f_"+k));
+  if(A.upper)app.querySelectorAll('#frm input[type=text]').forEach(el=>{el.style.textTransform="uppercase";el.addEventListener("change",()=>{el.value=el.value.toLocaleUpperCase("es-MX")})});
+  app.querySelectorAll('#frm input[type=email]').forEach(el=>el.addEventListener("change",()=>{el.value=el.value.trim().toLowerCase()}));
   fields.filter(f=>f.type==="chars").forEach(f=>{const el=document.getElementById("f_"+f.id),m=document.getElementById("f_"+f.id+"_c");const upd=()=>{el.value=el.value.toUpperCase().replace(/\s+/g,"");const n=el.value.length,t=f.to.length;m.className="meter"+(n&&n!==t?" over":"");m.innerHTML=`<span>${n===t?"Completo":n?"Faltan "+(t-n)+" caracteres":""}</span><span>${n} de ${t}</span>`;if(f.onFull&&n===t)f.onFull(el.value)};el.addEventListener("input",upd);upd()});
   fields.filter(f=>f.type==="photo").forEach(f=>wirePhoto("f_"+f.id));
   meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
