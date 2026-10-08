@@ -396,7 +396,7 @@ ANEXOS.P={name:"Actualización de datos personales (expediente)",pref:"Datos per
     {id:"afil",label:"No. de afiliación (ISSSTECALI / ISSSTE)",to:"No. de afiliación"}]},
   {title:"Fotografía",fields:[
     {id:"foto",label:"Fotografía tamaño infantil",type:"photo",opt:true,help:"Opcional. Póngase de frente, con fondo claro y buena luz. Si toma foto, se agrega al formato en un recuadro junto a la afiliación."}]}],
- compute:v=>{const p=parseDate(v.fllenado);const r={"Encabezado escuela":(v.escuela||"").toUpperCase(),"Encabezado clave":v.cct?`CLAVE: ${v.cct.toUpperCase()}`:"",
+ compute:v=>{const p=parseDate(v.fllenado);const r={"Encabezado escuela":(v.escuela||"").toUpperCase().replace(/\s*ZONA\s*(ESCOLAR\s*)?(NO\.?\s*)?050\s*$/,"").trim(),"Encabezado clave":v.cct?`CLAVE: ${v.cct.toUpperCase()}`:"",
    "Encabezado zona":`ZONA ESCOLAR 050${v.turno?", TURNO: "+v.turno.toUpperCase():""}`,"Encabezado ciclo":v.ciclo?`CICLO ESCOLAR ${v.ciclo}`:"",
    "Fecha de nacimiento":dmy(v.fnac),"Fecha de ingreso":dmy(v.fing),"Nombre del interesado":[v.nom,v.pat,v.mat].filter(Boolean).join(" ")};
    if(p){const d=String(p.d).padStart(2,"0"),m=String(p.m).padStart(2,"0");Object.assign(r,{"Llenado día 1":d[0],"Llenado día 2":d[1],"Llenado mes 1":m[0],"Llenado mes 2":m[1],"Llenado año":String(p.y)})}
