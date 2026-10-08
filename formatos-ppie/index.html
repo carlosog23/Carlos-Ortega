@@ -113,6 +113,13 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .phf{width:125px;height:150px;border:1.5px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--field);color:var(--muted);font-size:14px;flex:none}
 .phf img{width:100%;height:100%;object-fit:cover}
 .phb{display:flex;flex-direction:column;gap:8px;flex:1;min-width:170px}.phb.row{flex-direction:row}
+.ed{display:flex;flex-direction:column;gap:10px;align-items:center}
+.edf{position:relative;width:min(100%,280px);aspect-ratio:5/6;overflow:hidden;border-radius:6px;background:#222;touch-action:none;cursor:grab;user-select:none}
+.edf img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;pointer-events:none}
+.edg{position:absolute;inset:0;pointer-events:none;border:2px solid #fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
+ background:linear-gradient(to right,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%),linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,.45) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.45) 66.6%,transparent 66.8%)}
+.edz{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;color:var(--muted);width:min(100%,320px)}.edz input{flex:1;accent-color:var(--accent)}
+.ed .phb.row{width:100%;flex-wrap:wrap}.ed .phb.row .btn{flex:1}
 .live{position:relative;border-radius:10px;overflow:hidden;background:#000}
 .live video{display:block;width:100%;max-height:60vh;object-fit:cover}
 .live .frame{position:absolute;left:50%;top:6%;height:76%;aspect-ratio:5/6;transform:translateX(-50%);border:2px dashed rgba(255,255,255,.85);border-radius:6px;pointer-events:none}
@@ -319,10 +326,33 @@ function recortarFoto(src){return new Promise((ok,no)=>{const im=new Image();im.
     const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,W,H);x.drawImage(im,sx,sy,sw,sh,0,0,W,H);ok(c.toDataURL("image/jpeg",0.86))};im.onerror=()=>no(new Error("No se pudo leer la imagen"));im.src=src})}
 function wirePhoto(id){const inp=document.getElementById(id),pv=document.getElementById(id+"_pv"),del=document.getElementById(id+"_del"),msg=document.getElementById(id+"_m");
   const live=document.getElementById(id+"_live"),vid=document.getElementById(id+"_vid");let stream=null;
-  const set=async src=>{try{const d=await recortarFoto(src);inp.value=d;pv.innerHTML=`<img src="${d}" alt="Fotografía">`;del.hidden=false;msg.textContent="Foto lista. Se recorta al tamaño infantil (2.5 × 3 cm).";readStep()}catch(e){msg.textContent=e.message}};
+  const ed=document.getElementById(id+"_ed"),box=document.getElementById(id+"_box"),img=document.getElementById(id+"_img"),zoom=document.getElementById(id+"_zoom"),adj=document.getElementById(id+"_adj");
+  const E={src:null,iw:0,ih:0,z:1,x:0,y:0,rot:0};
+  const dims=()=>{const r=E.rot%180!==0;return{w:r?E.ih:E.iw,h:r?E.iw:E.ih}};
+  const base=()=>{const b=box.getBoundingClientRect(),d=dims();return Math.max(b.width/d.w,b.height/d.h)};
+  const clamp=()=>{const b=box.getBoundingClientRect(),d=dims(),k=base()*E.z,w=d.w*k,h=d.h*k;E.x=Math.min(0,Math.max(b.width-w,E.x));E.y=Math.min(0,Math.max(b.height-h,E.y))};
+  const draw=()=>{clamp();const k=base()*E.z;img.style.width=E.iw*k+"px";img.style.height=E.ih*k+"px";const d=dims();
+    img.style.transform=`translate(${E.x}px,${E.y}px) translate(${d.w*k/2}px,${d.h*k/2}px) rotate(${E.rot}deg) translate(${-E.iw*k/2}px,${-E.ih*k/2}px)`};
+  const center=()=>{const b=box.getBoundingClientRect(),d=dims(),k=base()*E.z;E.x=(b.width-d.w*k)/2;E.y=(b.height-d.h*k)*0.3};
+  const set=src=>new Promise(ok=>{const im=new Image();im.onload=()=>{const M=1400,f=Math.min(1,M/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*f);c.height=Math.round(im.naturalHeight*f);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      E.src=c.toDataURL("image/jpeg",0.9);E.iw=c.width;E.ih=c.height;E.z=1;E.rot=0;zoom.value=1;S._fotoOrig=S._fotoOrig||{};S._fotoOrig[id]=E.src;img.src=E.src;ed.hidden=false;
+      requestAnimationFrame(()=>{center();draw();ed.scrollIntoView({behavior:"smooth",block:"center"})});ok()};im.onerror=()=>{msg.textContent="No se pudo leer la imagen.";ok()};im.src=src});
+  let drag=null;
+  box.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,ox:E.x,oy:E.y};box.setPointerCapture(e.pointerId)});
+  box.addEventListener("pointermove",e=>{if(!drag)return;E.x=drag.ox+e.clientX-drag.x;E.y=drag.oy+e.clientY-drag.y;draw()});
+  box.addEventListener("pointerup",()=>drag=null);box.addEventListener("pointercancel",()=>drag=null);
+  zoom.oninput=()=>{const b=box.getBoundingClientRect(),cx=b.width/2,cy=b.height/2,old=E.z;E.z=+zoom.value;const f=E.z/old;E.x=cx-(cx-E.x)*f;E.y=cy-(cy-E.y)*f;draw()};
+  box.addEventListener("wheel",e=>{e.preventDefault();zoom.value=Math.min(4,Math.max(1,E.z*(e.deltaY<0?1.06:1/1.06)));zoom.oninput()},{passive:false});
+  document.getElementById(id+"_rot").onclick=()=>{E.rot=(E.rot+90)%360;E.z=1;zoom.value=1;center();draw()};
+  document.getElementById(id+"_ecan").onclick=()=>{ed.hidden=true};
+  document.getElementById(id+"_eok").onclick=()=>{const b=box.getBoundingClientRect(),W=500,H=600,f=W/b.width,k=base()*E.z,d=dims();
+    const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,W,H);x.scale(f,f);
+    x.translate(E.x+d.w*k/2,E.y+d.h*k/2);x.rotate(E.rot*Math.PI/180);x.drawImage(img,-E.iw*k/2,-E.ih*k/2,E.iw*k,E.ih*k);
+    const out=c.toDataURL("image/jpeg",0.86);inp.value=out;pv.innerHTML=`<img src="${out}" alt="Fotografía">`;del.hidden=false;adj.hidden=false;ed.hidden=true;msg.textContent="Foto lista (tamaño infantil, 2.5 × 3 cm).";readStep()};
+  adj.onclick=()=>{const o=(S._fotoOrig||{})[id]||inp.value;if(o)set(o)};
   const fromFile=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);set(u).finally(()=>setTimeout(()=>URL.revokeObjectURL(u),3000));e.target.value=""};
   document.getElementById(id+"_cam").onchange=fromFile;document.getElementById(id+"_gal").onchange=fromFile;
-  del.onclick=()=>{inp.value="";pv.innerHTML="<span>Sin foto</span>";del.hidden=true;msg.textContent="";readStep()};
+  del.onclick=()=>{inp.value="";pv.innerHTML="<span>Sin foto</span>";del.hidden=true;adj.hidden=true;ed.hidden=true;msg.textContent="";readStep()};
   const stop=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}live.hidden=true};
   document.getElementById(id+"_web").onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){msg.textContent="Este navegador no permite usar la cámara aquí. Use «Tomar foto» o «Elegir de la galería».";return}
     try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:960}},audio:false});vid.srcObject=stream;live.hidden=false;live.scrollIntoView({behavior:"smooth",block:"center"})}
@@ -534,6 +564,11 @@ function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="mu
       <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Elegir de la galería<input type="file" accept="image/*" id="${id}_gal" hidden></label>
       <button type="button" class="btn link" id="${id}_del" ${val?"":"hidden"}>Quitar foto</button></div></div>
     <div id="${id}_live" class="live" hidden><video id="${id}_vid" playsinline autoplay muted></video><div class="frame"></div><div class="phb row"><button type="button" class="btn primary" id="${id}_snap">Capturar</button><button type="button" class="btn ghost" id="${id}_stop">Cancelar</button></div></div>
+    <div id="${id}_ed" class="ed" hidden><p class="help"><b>Acomode la foto:</b> arrástrela con el dedo o el mouse y use la barra para acercar o alejar. Lo que queda dentro del marco es lo que se imprime.</p>
+     <div class="edf" id="${id}_box"><img id="${id}_img" alt="" draggable="false"><div class="edg"></div></div>
+     <label class="edz">Alejar<input type="range" id="${id}_zoom" min="1" max="4" step="0.01" value="1">Acercar</label>
+     <div class="phb row"><button type="button" class="btn ghost" id="${id}_rot">↻ Girar</button><button type="button" class="btn ghost" id="${id}_ecan">Cancelar</button><button type="button" class="btn primary" id="${id}_eok">Usar esta foto</button></div></div>
+    <button type="button" class="btn link" id="${id}_adj" ${val?"":"hidden"}>Ajustar recorte</button>
     <div id="${id}_m" class="help"></div></div>`;
   if(f.type==="pick")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option value="${esc(o.value)}" ${val===o.value?"selected":""}>${esc(o.label)}</option>`).join("")}</select></div>`;
   if(f.type==="select")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option ${val===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
