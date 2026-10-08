@@ -579,7 +579,7 @@ function perfilView(){S.view="perfil";
 
 /* ---------- Estadística de edades (inicio de ciclo) ---------- */
 const ED={grupos:[],corte:null};
-(function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=d.grupos||[];ED.corte=d.corte||null}})();
+(function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=(d.grupos||[]).map(g=>({...g,alumnos:g.alumnos.map(desdeCurp)}));ED.corte=d.corte||null}})();
 function edSave(){store.set("ppie-edades",{grupos:ED.grupos,corte:ED.corte})}
 function corteDefault(){const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-09-01`}
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
@@ -600,9 +600,10 @@ async function leerPDF(file){const L=await pdfjs();const doc=await L.getDocument
   if(m=/Grado:\s*(\d)/.exec(txt))g.grado=m[1];if(m=/Grupo:\s*([A-Z0-9])/.exec(txt))g.grupo=m[1];
   const re=/^(\d{1,3})\s+([A-Z][A-Z0-9]{17})\s+(.+?)\s+([HM])\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
   for(const l of lines){const r=re.exec(l);if(!r)continue;const dob=`${r[7]}-${r[6].padStart(2,"0")}-${r[5].padStart(2,"0")}`;
-    g.alumnos.push({no:+r[1],curp:r[2],raw:r[3],nombre:nombreLegible(r[3]),sexo:r[4],dob,rep:false})}
+    g.alumnos.push(desdeCurp({no:+r[1],curp:r[2],raw:r[3],nombre:nombreLegible(r[3]),sexo:r[4],dob,rep:false}))}
   return g}
-function avisosAlumno(a){const w=[],ci=curpInfo(a.curp);if(!ci)w.push("CURP con formato raro");else{const fd=x=>{const[y,m,d]=x.split("-");return`${+d}/${+m}/${y}`};if(ci.dob!==a.dob)w.push(`la CURP indica nacimiento el ${fd(ci.dob)} y el reporte dice ${fd(a.dob)} (la edad se calculó con la del reporte: ${edadAl(a.dob,ED.corte)} años; con la de la CURP serían ${edadAl(ci.dob,ED.corte)})`);if(ci.sexo!==a.sexo&&ci.sexo!=="X")w.push(`la CURP indica sexo ${ci.sexo} y el reporte dice ${a.sexo}`)}return w}
+function desdeCurp(a){const ci=curpInfo(a.curp);if(ci){a.dob=ci.dob;if(ci.sexo!=="X")a.sexo=ci.sexo}return a}
+function avisosAlumno(a){return[];const w=[],ci=curpInfo(a.curp);if(!ci)w.push("CURP con formato raro");else{const fd=x=>{const[y,m,d]=x.split("-");return`${+d}/${+m}/${y}`};if(ci.dob!==a.dob)w.push(`la CURP indica nacimiento el ${fd(ci.dob)} y el reporte dice ${fd(a.dob)} (la edad se calculó con la del reporte: ${edadAl(a.dob,ED.corte)} años; con la de la CURP serían ${edadAl(ci.dob,ED.corte)})`);if(ci.sexo!==a.sexo&&ci.sexo!=="X")w.push(`la CURP indica sexo ${ci.sexo} y el reporte dice ${a.sexo}`)}return w}
 function conteo(alumnos){const c={};for(const s of["H","M"])for(const r of[0,1]){c[s+r]={};EDADES.forEach(e=>c[s+r][e]=0)}let fuera=0;
   for(const a of alumnos){const e=edadAl(a.dob,ED.corte);if(e<5||e>15){fuera++;continue}c[a.sexo+(a.rep?1:0)][e]++}return{c,fuera}}
 const sumRow=o=>EDADES.reduce((t,e)=>t+o[e],0);
@@ -616,7 +617,7 @@ function edadesView(){S.view="edades";S.letra=null;if(!ED.corte)ED.corte=corteDe
   const gs=[...ED.grupos].sort((a,b)=>(a.grado+a.grupo).localeCompare(b.grado+b.grupo));const todos=gs.flatMap(g=>g.alumnos);
   const grados=[...new Set(gs.map(g=>g.grado))].sort();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Estadística</div><h2>Edades de los alumnos</h2></div></div>
-   <p class="muted">Suba el <b>Reporte de inscripción/reinscripción</b> (PDF) de cada grupo. La edad se calcula en años cumplidos a la fecha de corte, igual que el Excel de estadística.</p>
+   <p class="muted">Suba el <b>Reporte de inscripción/reinscripción</b> (PDF) de cada grupo. La fecha de nacimiento y el sexo se toman de la <b>CURP</b>, y la edad se calcula en años cumplidos a la fecha de corte, igual que el Excel de estadística.</p>
    <section class="card"><div class="field"><label for="corte">Fecha de corte</label><input type="date" id="corte" value="${ED.corte}"><p class="help">Normalmente el 1 de septiembre del ciclo que inicia.</p></div>
     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de grupo(s)<input type="file" id="pdfs" accept="application/pdf,.pdf" multiple hidden></label>
     <div id="msg"></div></section>
