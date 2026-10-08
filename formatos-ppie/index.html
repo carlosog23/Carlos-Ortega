@@ -651,7 +651,7 @@ function edadesView(){S.view="edades";S.letra=null;if(!ED.corte)ED.corte=corteDe
   const x=document.getElementById("xls");if(x)x.onclick=()=>excelEdades(x);window.scrollTo(0,0)}
 
 async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
-  try{await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();await wb.xlsx.load(await(await fetch("formatos/estadistica_edades.xlsx")).arrayBuffer());
+  try{await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();const b64=(await(await fetch("formatos/estadistica_edades.b64.txt")).text()).trim();const bin=Uint8Array.from(atob(b64),ch=>ch.charCodeAt(0));await wb.xlsx.load(bin.buffer);
     const sh=n=>wb.worksheets.find(w=>w.name.trim()===n);const corte=new Date(ED.corte+"T00:00:00Z");const problemas=[];
     const keep=(cell,res)=>{const f=cell.formula;if(f)cell.value={formula:f,result:res}};
     wb.worksheets.forEach(w=>{const L=[];w.eachRow(r=>r.eachCell(c=>{if(c.type===ExcelJS.ValueType.Formula)L.push([c,c.formula])}));L.forEach(([c,f])=>c.value={formula:f})});
