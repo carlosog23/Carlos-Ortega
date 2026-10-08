@@ -109,6 +109,14 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .alr{display:flex;align-items:center;gap:10px;padding:6px 4px;font-weight:400;font-size:14px;border-bottom:1px solid var(--line)}
 .alr:last-child{border-bottom:0}.alr input{width:20px;height:20px;accent-color:var(--accent);flex:none}
 .alr .an{flex:1;min-width:0}.alr .ae{flex:none;color:var(--muted);font-size:13px}
+.ph{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.phf{width:125px;height:150px;border:1.5px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--field);color:var(--muted);font-size:14px;flex:none}
+.phf img{width:100%;height:100%;object-fit:cover}
+.phb{display:flex;flex-direction:column;gap:8px;flex:1;min-width:170px}.phb.row{flex-direction:row}
+.live{position:relative;border-radius:10px;overflow:hidden;background:#000}
+.live video{display:block;width:100%;max-height:60vh;object-fit:cover}
+.live .frame{position:absolute;left:50%;top:6%;height:76%;aspect-ratio:5/6;transform:translateX(-50%);border:2px dashed rgba(255,255,255,.85);border-radius:6px;pointer-events:none}
+.live .phb{padding:10px;background:rgba(0,0,0,.6)}
 .soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 </style>
@@ -303,7 +311,69 @@ ANEXOS.L={name:"Licencia económica con goce de sueldo (permiso económico)",pre
    "Nombre del responsable":v.resp||"","Firma: nombre de quien autoriza":v.resp||"","Firma: leyenda":"NOMBRE Y FIRMA "+(LEYENDA[c]||"DEL DIRECTOR O E.D."),
    "Firma: nombre del interesado":[v.nom,v.pat,v.mat].filter(Boolean).join(" ").trim(),"Días solicitados":v.dias||""}},
  sizes:{"Etiqueta responsable":9.3,"Firma: leyenda":8.3},derive:{}};
-const ARCHIVO={L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
+
+
+/* ---------- Fotografía (cámara del celular o cámara web) ---------- */
+function recortarFoto(src){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const W=500,H=600,r=W/H;let sw=im.naturalWidth,sh=im.naturalHeight,sx=0,sy=0;
+    if(sw/sh>r){const nw=sh*r;sx=(sw-nw)/2;sw=nw}else{const nh=sw/r;sy=Math.max(0,(sh-nh)*0.35);sh=nh}
+    const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,W,H);x.drawImage(im,sx,sy,sw,sh,0,0,W,H);ok(c.toDataURL("image/jpeg",0.86))};im.onerror=()=>no(new Error("No se pudo leer la imagen"));im.src=src})}
+function wirePhoto(id){const inp=document.getElementById(id),pv=document.getElementById(id+"_pv"),del=document.getElementById(id+"_del"),msg=document.getElementById(id+"_m");
+  const live=document.getElementById(id+"_live"),vid=document.getElementById(id+"_vid");let stream=null;
+  const set=async src=>{try{const d=await recortarFoto(src);inp.value=d;pv.innerHTML=`<img src="${d}" alt="Fotografía">`;del.hidden=false;msg.textContent="Foto lista. Se recorta al tamaño infantil (2.5 × 3 cm).";readStep()}catch(e){msg.textContent=e.message}};
+  const fromFile=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);set(u).finally(()=>setTimeout(()=>URL.revokeObjectURL(u),3000));e.target.value=""};
+  document.getElementById(id+"_cam").onchange=fromFile;document.getElementById(id+"_gal").onchange=fromFile;
+  del.onclick=()=>{inp.value="";pv.innerHTML="<span>Sin foto</span>";del.hidden=true;msg.textContent="";readStep()};
+  const stop=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}live.hidden=true};
+  document.getElementById(id+"_web").onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){msg.textContent="Este navegador no permite usar la cámara aquí. Use «Tomar foto» o «Elegir de la galería».";return}
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:960}},audio:false});vid.srcObject=stream;live.hidden=false;live.scrollIntoView({behavior:"smooth",block:"center"})}
+    catch(e){msg.textContent="No se pudo abrir la cámara. Revise que el navegador tenga permiso para usarla, o use «Tomar foto» o «Elegir de la galería»."}};
+  document.getElementById(id+"_snap").onclick=()=>{const c=document.createElement("canvas");c.width=vid.videoWidth;c.height=vid.videoHeight;const x=c.getContext("2d");x.translate(c.width,0);x.scale(-1,1);x.drawImage(vid,0,0);stop();set(c.toDataURL("image/jpeg",0.92))};
+  document.getElementById(id+"_stop").onclick=stop;
+  S._stopCam=stop}
+
+/* ---------- Actualización de datos personales (expediente) ---------- */
+const lstN=(b,n)=>Array.from({length:n},(_,i)=>`${b} ${i+1}`);
+function cicloActual(){const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-${y+1}`}
+function dmy(v){const p=parseDate(v);return p?`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`:""}
+function wireActEscuela(g){g("centro").addEventListener("change",()=>{const i=g("centro").value;if(i===""||i==="otra"){if(i==="otra")["escuela","cct","telesc"].forEach(k=>g(k).value="");return}
+  const c=CENTROS[+i];g("escuela").value=c.nombre;g("cct").value=c.cct;if(c.tel)g("telesc").value=c.tel})}
+ANEXOS.P={name:"Actualización de datos personales (expediente)",pref:"Datos personales",who:"Cada trabajador(a)",grupo:"Personal",
+ use:"Para el expediente y el Sistema Integral de Recursos Humanos. Incluye opción de fotografía.",
+ steps:[
+  {title:"Centro de trabajo",wire:wireActEscuela,fields:[
+    {id:"centro",label:"Centro de trabajo",type:"pick",options:CENTROS.map((c,i)=>({label:c.label+" · "+c.cct,value:String(i)})).concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
+      preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct);return i>=0?String(i):(p.cct?"otra":"")},help:"Al elegirlo se llenan el nombre y la clave."},
+    {id:"escuela",label:"Nombre de la escuela",pre:"escuela"},{id:"cct",label:"Clave",pre:"cct",half:true},{id:"turno",label:"Turno",type:"select",options:["Matutino","Vespertino","Tiempo completo","Matutino-vespertino"],pre:"turno",half:true},
+    {id:"ciclo",label:"Ciclo escolar",preFn:()=>cicloActual(),half:true},{id:"fllenado",label:"Fecha de llenado",type:"date",half:true},
+    {id:"telesc",label:"Teléfono de la escuela",type:"tel",pre:"telefono",opt:true,to:"Teléfono de la escuela"}]},
+  {title:"Datos personales",fields:[
+    {id:"pat",label:"Apellido paterno",to:"Apellido paterno",half:true},{id:"mat",label:"Apellido materno",to:"Apellido materno",half:true},{id:"nom",label:"Nombre(s)",to:"Nombre(s)"},
+    {id:"curp",label:"CURP (18 caracteres)",type:"chars",to:lstN("CURP",18),help:"Al escribirla completa se llenan solos la fecha de nacimiento y el sexo.",
+      onFull:v=>{const ci=curpInfo(v);if(!ci)return;const fn=document.getElementById("f_fnac");if(fn)fn.value=ci.dob;const r=document.querySelector(`input[name="f_sexo"][value="${ci.sexo==="M"?"Mujer (F)":"Hombre (M)"}"]`);if(r){r.click()}}},
+    {id:"rfc",label:"RFC (10 caracteres: 4 letras y 6 números)",type:"chars",to:lstN("RFC",10)},{id:"homo",label:"Homoclave (3 caracteres)",type:"chars",to:lstN("Homoclave",3),opt:true},
+    {id:"fnac",label:"Fecha de nacimiento",type:"date",noToday:true,half:true},{id:"lugar",label:"Lugar de nacimiento (Estado / ciudad)",to:"Lugar de nacimiento",half:true},
+    {id:"sexo",label:"Sexo",type:"choice",options:[{label:"Mujer (F)",to:"Sexo F"},{label:"Hombre (M)",to:"Sexo M"}]}]},
+  {title:"Domicilio y contacto",fields:[
+    {id:"calle",label:"Domicilio particular / calle",to:"Calle"},{id:"num",label:"Núm. ext/int",to:"Número",half:true},{id:"cp",label:"C.P.",to:"C.P.",half:true},
+    {id:"col",label:"Fraccionamiento / colonia",to:"Colonia"},{id:"mun",label:"Municipio de residencia",type:"select",options:MUNIS,pre:"municipio",to:"Municipio",half:true},{id:"ent",label:"Entidad",preFn:()=>"Baja California",to:"Entidad",half:true},
+    {id:"telcasa",label:"Teléfono de casa",type:"tel",opt:true,to:"Teléfono de casa",half:true},{id:"cel",label:"Celular (con clave lada)",type:"tel",to:"Celular",half:true},
+    {id:"cinst",label:"Correo institucional",opt:true,to:"Correo institucional"},{id:"cpers",label:"Correo personal",to:"Correo personal"}]},
+  {title:"Datos laborales y familiares",fields:[
+    {id:"fing",label:"Fecha de ingreso",type:"date",noToday:true},{id:"grado",label:"Último grado de estudios / especialidad",to:"Último grado de estudios",chips:["Licenciatura en Educación Primaria","Maestría","Doctorado","Normal Básica"]},
+    {id:"status",label:"Status",to:"Status",chips:["Titulado","Cursando","Pasante","Otro"]},
+    {id:"civil",label:"Estado civil",to:"Estado civil",chips:["Soltero(a)","Casado(a)","Unión libre","Divorciado(a)","Viudo(a)"]},
+    {id:"hijos",label:"Número de hijos",to:"Número de hijos",half:true,ph:"0"},{id:"guard",label:"Hijos en guardería",to:"Hijos en guardería",half:true,ph:"0"},
+    {id:"afil",label:"No. de afiliación (ISSSTECALI / ISSSTE)",to:"No. de afiliación"}]},
+  {title:"Fotografía",fields:[
+    {id:"foto",label:"Fotografía tamaño infantil",type:"photo",opt:true,help:"Opcional. Póngase de frente, con fondo claro y buena luz. Si toma foto, se agrega al formato en un recuadro junto a la afiliación."}]}],
+ compute:v=>{const p=parseDate(v.fllenado);const r={"Encabezado escuela":(v.escuela||"").toUpperCase(),"Encabezado clave":v.cct?`CLAVE: ${v.cct.toUpperCase()}`:"",
+   "Encabezado zona":`ZONA ESCOLAR 050${v.turno?", TURNO: "+v.turno.toUpperCase():""}`,"Encabezado ciclo":v.ciclo?`CICLO ESCOLAR ${v.ciclo}`:"",
+   "Fecha de nacimiento":dmy(v.fnac),"Fecha de ingreso":dmy(v.fing),"Nombre del interesado":[v.nom,v.pat,v.mat].filter(Boolean).join(" ")};
+   if(p){const d=String(p.d).padStart(2,"0"),m=String(p.m).padStart(2,"0");Object.assign(r,{"Llenado día 1":d[0],"Llenado día 2":d[1],"Llenado mes 1":m[0],"Llenado mes 2":m[1],"Llenado año":String(p.y)})}
+   return r},
+ sizes:{"Encabezado escuela":8.5,"Encabezado clave":8.5,"Encabezado zona":8.5,"Encabezado ciclo":8.5},bold:["Encabezado escuela","Encabezado clave","Encabezado zona","Encabezado ciclo"],circle:["Sexo F","Sexo M"],derive:{}};
+
+const ARCHIVO={P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
 const GTIT={Personal:"Laboral · Trámites del personal",Docente:"Protección escolar (PPIE) · Lo llena: Docente",Dirección:"Protección escolar (PPIE) · Lo llena: Dirección",Todos:"Protección escolar (PPIE) · Lo llena: Todos","Jefatura de Nivel":"Protección escolar (PPIE) · Lo llena: Jefatura de Nivel"};
 const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos y canalizaciones."],["Comunicación con familias","Recados, citatorios, avisos y autorizaciones."],["Dirección","Oficios, actas administrativas y entrega de documentación."]];
@@ -368,11 +438,13 @@ function plan(L){const A=ANEXOS[L],v=S.vals,out={single:{},lines:[],box:{},check
     else if(f.type==="checks"){(val?.sel||[]).forEach(n=>out.checks.push(n));if(f.other&&val?.otro){out.checks.push(f.other.cb);out.single[f.other.to]=val.otro}}
     else if(f.type==="choice"){const o=f.options.find(o=>o.label===val);if(o)out.checks.push(o.to)}
     else if(f.type==="check"){if(val)out.checks.push(f.to)}
-    else out.single[f.to]=val||""}
+    else if(f.type==="chars"){const t=clean(String(val||"")).toUpperCase().replace(/\s+/g,"");f.to.forEach((n,i)=>out.single[n]=t[i]||"");if(t.length>f.to.length)out.over=(out.over||[]).concat(`«${f.label}» tiene ${t.length} caracteres y el formato solo tiene ${f.to.length} casillas.`)}
+    else if(f.type==="photo"){out.photo=val||""}
+    else if(f.to)out.single[f.to]=val||""}
   for(const[n,id]of Object.entries(A.derive||{}))out.single[n]=v[id]||"";
   if(A.compute)Object.assign(out.single,A.compute(v));
   return out}
-function problems(L,geo){const p=plan(L),issues=[];
+function problems(L,geo){const p=plan(L),issues=[...(p.over||[])];
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);if(r.over)issues.push(`«${g.label}» no cabe en los ${g.to.length} renglones del formato. Resuma el texto.`)}
   for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];if(layoutBox(b.text,g.width,g.height).over)issues.push(`«${b.label}» no cabe en el recuadro del formato. Resuma el texto.`)}
   for(const[n,t]of Object.entries(p.single)){if(!t||!geo[n])continue;if(fitSingle(t,geo[n].width).over)issues.push(`«${n}» es demasiado largo para su espacio en el formato. Abrévielo.`)}
@@ -382,16 +454,20 @@ function problems(L,geo){const p=plan(L),issues=[];
 async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const doc=await PDFLib.PDFDocument.load(bytes);
   const helv=await doc.embedFont(PDFLib.StandardFonts.Helvetica),bold=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
   const pages=doc.getPages(),ink=PDFLib.rgb(0,0,0),p=plan(L);
-  const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const w=helv.widthOfTextAtSize(text,size);
-    let x=g.x+1.5;if(g.q===1)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:helv,color:ink})};
+  const BOLD=new Set(ANEXOS[L].bold||[]);
+  const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const ft=BOLD.has(n)?bold:helv;const w=ft.widthOfTextAtSize(text,size);
+    let x=g.x+1.5;if(g.q===1)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:ft,color:ink})};
+  if(p.photo&&geo.Foto){try{const img=await doc.embedJpg(p.photo);const g=geo.Foto;pages[g.page].drawImage(img,{x:g.x,y:g.y,width:g.width,height:g.height});
+    pages[g.page].drawRectangle({x:g.x,y:g.y,width:g.width,height:g.height,borderColor:ink,borderWidth:0.8})}catch(e){console.warn("foto",e)}}
   for(const[n,t]of Object.entries(p.single)){if(!geo[n]||!t)continue;const r=fitSingle(t,geo[n].width,(ANEXOS[L].sizes||{})[n]||10);put(n,r.text,r.size)}
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);r.lines.slice(0,g.to.length).forEach((t,i)=>put(g.to[i],t,r.size))}
   for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];const r=layoutBox(b.text,g.width,g.height);const lh=r.size*1.2;
     r.lines.slice(0,r.cap).forEach((t,i)=>pages[g.page].drawText(t,{x:g.x+3,y:g.y+g.height-2-r.size-(i*lh),size:r.size,font:helv,color:ink}))}
-  for(const n of p.checks){const g=geo[n];if(!g)continue;const s=Math.min(g.width,g.height)*1.05;const w=bold.widthOfTextAtSize("X",s);
+  const CIRC=new Set(ANEXOS[L].circle||[]);
+  for(const n of p.checks){const g=geo[n];if(!g)continue;if(CIRC.has(n)){pages[g.page].drawEllipse({x:g.x+g.width/2,y:g.y+g.height/2,xScale:g.width/2+5,yScale:g.height/2+4,borderColor:ink,borderWidth:1.3});continue}const s=Math.min(g.width,g.height)*1.05;const w=bold.widthOfTextAtSize("X",s);
     pages[g.page].drawText("X",{x:g.x+(g.width-w)/2,y:g.y+(g.height-s*0.72)/2,size:s,font:bold,color:ink})}
   const form=doc.getForm();for(const f of form.getFields())form.removeField(f);
-  doc.setTitle(`${ARCHIVO[L]} - PPIE 2026`);doc.setProducer("Formatos PPIE Zona 050");
+  doc.setTitle(`${ARCHIVO[L]}`);doc.setProducer("Gestión Escolar Zona 050");
   return await doc.save()}
 
 /* ---------- pantallas ---------- */
@@ -450,6 +526,15 @@ function sectionView(id){const x=SECCIONES.find(z=>z.id===id);S.view="section";S
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
   const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
   if(f.type==="choice"){const options=f.options.map(o=>typeof o==="string"?o:o.label);return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${options.map((o,i)=>`<label class="opt ${val===o?"on":""}"><input type="radio" name="${id}" id="${id}_${i}" value="${esc(o)}" ${val===o?"checked":""}>${esc(o)}</label>`).join("")}</div></div>`}
+  if(f.type==="chars")return`<div class="field">${lab}${help}<input type="text" id="${id}" value="${esc(val||"")}" maxlength="${f.to.length}" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,Menlo,Consolas,monospace"><div class="meter" id="${id}_c"></div></div>`;
+  if(f.type==="photo")return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<input type="hidden" id="${id}" value="${esc(val||"")}">
+    <div class="ph"><div class="phf" id="${id}_pv">${val?`<img src="${val}" alt="Fotografía">`:`<span>Sin foto</span>`}</div>
+     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">📷 Tomar foto<input type="file" accept="image/*" capture="user" id="${id}_cam" hidden></label>
+      <button type="button" class="btn ghost" id="${id}_web">Usar cámara web</button>
+      <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Elegir de la galería<input type="file" accept="image/*" id="${id}_gal" hidden></label>
+      <button type="button" class="btn link" id="${id}_del" ${val?"":"hidden"}>Quitar foto</button></div></div>
+    <div id="${id}_live" class="live" hidden><video id="${id}_vid" playsinline autoplay muted></video><div class="frame"></div><div class="phb row"><button type="button" class="btn primary" id="${id}_snap">Capturar</button><button type="button" class="btn ghost" id="${id}_stop">Cancelar</button></div></div>
+    <div id="${id}_m" class="help"></div></div>`;
   if(f.type==="pick")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option value="${esc(o.value)}" ${val===o.value?"selected":""}>${esc(o.label)}</option>`).join("")}</select></div>`;
   if(f.type==="select")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option ${val===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
   if(f.type==="checks"){const sel=val?.sel||[];return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${f.options.map((o,i)=>`<label class="opt ${sel.includes(o.to)?"on":""}"><input type="checkbox" id="${id}_${i}" data-to="${esc(o.to)}" ${sel.includes(o.to)?"checked":""}>${esc(o.label)}</label>`).join("")}</div>
@@ -475,7 +560,7 @@ async function meters(){const{geo}=await loadForm(S.letra);await fonts();const s
       else{const g=geo[f.to];const r=layoutBox(t,g.width,g.height);m.className="meter"+(r.over?" over":"");m.innerHTML=`<span>${r.over?"No cabe en el recuadro: resuma el texto":"Cabe en el recuadro"}</span><span>${t.length} caracteres</span>`}};
     el.addEventListener("input",upd);upd()}}
 
-function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A.steps.length;
+function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A.steps.length;
   const fields=st.fields;let html="",halfBuf=[];
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
   for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
@@ -491,12 +576,14 @@ function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A
   document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)goBack();else{S.step--;stepView()}};
   document.getElementById("next").onclick=()=>{readStep();if(S.step===n-1)reviewView();else{S.step++;stepView()}};
   if(st.wire)st.wire(k=>document.getElementById("f_"+k));
+  fields.filter(f=>f.type==="chars").forEach(f=>{const el=document.getElementById("f_"+f.id),m=document.getElementById("f_"+f.id+"_c");const upd=()=>{el.value=el.value.toUpperCase().replace(/\s+/g,"");const n=el.value.length,t=f.to.length;m.className="meter"+(n&&n!==t?" over":"");m.innerHTML=`<span>${n===t?"Completo":n?"Faltan "+(t-n)+" caracteres":""}</span><span>${n} de ${t}</span>`;if(f.onFull&&n===t)f.onFull(el.value)};el.addEventListener("input",upd);upd()});
+  fields.filter(f=>f.type==="photo").forEach(f=>wirePhoto("f_"+f.id));
   meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
 
 function showVal(f){const v=S.vals[f.id];
   if(f.type==="date")return v?fmtDate(v,"larga"):"";if(f.type==="time")return v?fmtTime(v,"hrs"):"";
   if(f.type==="checks"){const l=(v?.sel||[]).map(t=>f.options.find(o=>o.to===t)?.label);if(v?.otro)l.push("Otro: "+v.otro);return l.join("\n")}
-  if(f.type==="check")return v?"Sí":"";if(f.type==="pick")return(f.options.find(o=>o.value===v)||{}).label||"";return v||""}
+  if(f.type==="check")return v?"Sí":"";if(f.type==="photo")return v?"Sí (se incluye en el formato)":"";if(f.type==="pick")return(f.options.find(o=>o.value===v)||{}).label||"";return v||""}
 async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=await loadForm(S.letra);await fonts();const issues=problems(S.letra,geo);
   const missing=[];A.steps.forEach(st=>st.fields.forEach(f=>{if(!f.opt&&!showVal(f))missing.push(f.label)}));
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref||"Anexo "+S.letra} · Revisión</div><h2>${esc(A.name)}</h2></div></div>
