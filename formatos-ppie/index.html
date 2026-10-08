@@ -96,6 +96,19 @@ textarea{min-height:130px;resize:vertical}
 .sec b{display:block;font-size:18px}.sec .ds{display:block;font-size:14px;color:var(--muted)}
 .sec .cnt{display:block;font-size:13px;font-weight:700;color:var(--accent);margin-top:3px}.sec.off .cnt{color:var(--muted);font-weight:400;font-style:italic}
 .sec .chev{flex:none;margin-left:auto;font-size:28px;color:var(--muted);line-height:1}
+.tw{overflow-x:auto;margin:0 -4px}
+.mx{border-collapse:collapse;font-size:13px;min-width:100%}
+.mx th,.mx td{border:1px solid var(--line);padding:5px 6px;text-align:center;white-space:nowrap}
+.mx thead th{background:var(--accent-soft);color:var(--accent)}
+.mx tbody th{text-align:left;font-weight:700;background:var(--card)}
+.mx td{color:var(--muted)}.mx td.nz{color:var(--ink);font-weight:700}.mx td.tot{font-weight:700;color:var(--ink);background:var(--accent-soft)}
+.mx tr.sub th,.mx tr.sub td{border-top:2px solid var(--accent)}
+details.card>summary{cursor:pointer;list-style:none;font-size:16px}details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[open]>summary::before{content:"▾ "}
+.al{display:flex;flex-direction:column;gap:4px;max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px}
+.alr{display:flex;align-items:center;gap:10px;padding:6px 4px;font-weight:400;font-size:14px;border-bottom:1px solid var(--line)}
+.alr:last-child{border-bottom:0}.alr input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.alr .an{flex:1;min-width:0}.alr .ae{flex:none;color:var(--muted);font-size:13px}
 .soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 </style>
@@ -411,25 +424,28 @@ const ICON={
  shield:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
  book:'<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/></svg>',
  chat:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>',
+ chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>',
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos y trámites del personal.",grupos:["Personal"]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
+ {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Planeación, actas de CTE, seguimiento de alumnos y canalizaciones.",grupos:[]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
  {id:"direccion",icon:"school",title:"Dirección",desc:"Oficios, actas administrativas y entrega de documentación.",grupos:[]}];
 const GLBL={Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
-function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo))}
+function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
 function sectionView(id){const x=SECCIONES.find(z=>z.id===id);S.view="section";S.sec=id;setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
-  const body=x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
+  const tools=(x.tools||[]).map(t=>`<div class="anexos"><button class="anexo tool" data-t="${t.id}"><span class="letra">${t.letra}</span><span class="tx"><b>${esc(t.name)}</b><span class="ds">${esc(t.use)}</span></span></button></div>`).join("");
+  const body=tools?tools:x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
      return`${GLBL[g]?`<div class="group-title">${GLBL[g]}</div>`:""}<div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")
    :`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a supervision050sep@gmail.com.</div>`;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>${esc(x.title)}</h2></div></div>
    <p class="muted">${esc(x.desc)}</p>${body}`;
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
-  app.querySelectorAll(".anexo").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));window.scrollTo(0,0)}
+  app.querySelectorAll(".anexo:not(.tool)").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));app.querySelectorAll(".anexo.tool").forEach(b=>b.onclick=()=>edadesView());window.scrollTo(0,0)}
 
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
   const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
@@ -560,6 +576,110 @@ function perfilView(){S.view="perfil";
     if(v===""){["escuela","cct","localidad","domicilio","director","telefono"].forEach(k=>set(k,""));set("municipio","");return}
     const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
   document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
+
+/* ---------- Estadística de edades (inicio de ciclo) ---------- */
+const ED={grupos:[],corte:null};
+(function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=d.grupos||[];ED.corte=d.corte||null}})();
+function edSave(){store.set("ppie-edades",{grupos:ED.grupos,corte:ED.corte})}
+function corteDefault(){const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-09-01`}
+const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
+let _libs={};
+function loadScript(src){return _libs[src]||(_libs[src]=new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>{delete _libs[src];no(new Error("No se pudo cargar "+src))};document.head.appendChild(s)}))}
+async function pdfjs(){await loadScript("lib/pdf.min.js");const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc=new URL("lib/pdf.worker.min.js",location.href).href;return L}
+function edadAl(dob,corte){const[a,b,c]=dob.split("-").map(Number),[y,m,d]=corte.split("-").map(Number);let e=y-a;if(m<b||(m===b&&d<c))e--;return e}
+function curpInfo(c){const m=/^[A-Z][AEIOUX][A-Z]{2}(\d{2})(\d{2})(\d{2})([HMX])/.exec(c||"");if(!m)return null;const yy=+m[1],mm=+m[2],dd=+m[3];
+  const cent=/^[A-Z]$/.test(c[16])?2000:1900;return{dob:`${cent+yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`,sexo:m[4]}}
+function nombreLegible(raw){const[ap,rest]=raw.split("*");const[p,m]=(ap||"").split("/").map(x=>x.trim());return[p,m,(rest||"").trim()].filter(Boolean).join(" ").replace(/\s+/g," ")}
+async function leerPDF(file){const L=await pdfjs();const doc=await L.getDocument({data:await file.arrayBuffer()}).promise;const lines=[];
+  for(let p=1;p<=doc.numPages;p++){const tc=await(await doc.getPage(p)).getTextContent();const rows=[];
+    for(const it of tc.items){if(!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let r=rows.find(r=>Math.abs(r.y-y)<3);if(!r){r={y,items:[]};rows.push(r)}r.items.push({x,s:it.str,w:it.width})}
+    rows.sort((a,b)=>b.y-a.y);for(const r of rows){r.items.sort((a,b)=>a.x-b.x);let t="",end=null;for(const i of r.items){if(end!==null&&i.x-end>1.5)t+=" ";t+=i.s;end=i.x+i.w}lines.push(t.replace(/\s+/g," ").trim())}}
+  const txt=lines.join("\n");const g={escuela:"",cct:"",turno:"",grado:"",grupo:"",alumnos:[],archivo:file.name};
+  let m;if(m=/Escuela:\s*(.+)/.exec(txt))g.escuela=m[1].replace(/\s*Clave.*$/,"").trim();
+  if(m=/Clave CT:\s*([0-9A-Z]{10})/.exec(txt))g.cct=m[1];if(m=/Turno:\s*([A-Z])/.exec(txt))g.turno=m[1];
+  if(m=/Grado:\s*(\d)/.exec(txt))g.grado=m[1];if(m=/Grupo:\s*([A-Z0-9])/.exec(txt))g.grupo=m[1];
+  const re=/^(\d{1,3})\s+([A-Z][A-Z0-9]{17})\s+(.+?)\s+([HM])\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  for(const l of lines){const r=re.exec(l);if(!r)continue;const dob=`${r[7]}-${r[6].padStart(2,"0")}-${r[5].padStart(2,"0")}`;
+    g.alumnos.push({no:+r[1],curp:r[2],raw:r[3],nombre:nombreLegible(r[3]),sexo:r[4],dob,rep:false})}
+  return g}
+function avisosAlumno(a){const w=[],ci=curpInfo(a.curp);if(!ci)w.push("CURP con formato raro");else{if(ci.dob!==a.dob)w.push("la fecha de la CURP no coincide");if(ci.sexo!==a.sexo&&ci.sexo!=="X")w.push("el sexo de la CURP no coincide")}return w}
+function conteo(alumnos){const c={};for(const s of["H","M"])for(const r of[0,1]){c[s+r]={};EDADES.forEach(e=>c[s+r][e]=0)}let fuera=0;
+  for(const a of alumnos){const e=edadAl(a.dob,ED.corte);if(e<5||e>15){fuera++;continue}c[a.sexo+(a.rep?1:0)][e]++}return{c,fuera}}
+const sumRow=o=>EDADES.reduce((t,e)=>t+o[e],0);
+function matrizHTML(alumnos){const{c,fuera}=conteo(alumnos);const filas=[["Hombres","Nuevo ingreso","H0"],["","Repetidores","H1"],["Mujeres","Nuevo ingreso","M0"],["","Repetidores","M1"]];
+  const sub={};EDADES.forEach(e=>sub[e]=c.H0[e]+c.H1[e]+c.M0[e]+c.M1[e]);
+  return`<div class="tw"><table class="mx"><thead><tr><th></th><th></th>${EDADES.map(e=>`<th>${e}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+   ${filas.map(([a,b,k])=>`<tr><th>${a}</th><th>${b}</th>${EDADES.map(e=>`<td class="${c[k][e]?"nz":""}">${c[k][e]}</td>`).join("")}<td class="tot">${sumRow(c[k])}</td></tr>`).join("")}
+   <tr class="sub"><th colspan="2">Subtotal</th>${EDADES.map(e=>`<td class="${sub[e]?"nz":""}">${sub[e]}</td>`).join("")}<td class="tot">${sumRow(sub)}</td></tr></tbody></table></div>
+   <p class="help">Edades en años cumplidos al ${fmtDate(ED.corte,"larga")}.${fuera?` <b>${fuera} alumno(s) fuera del rango de 5 a 15 años.</b>`:""}</p>`}
+function edadesView(){S.view="edades";S.letra=null;if(!ED.corte)ED.corte=corteDefault();setBar("");
+  const gs=[...ED.grupos].sort((a,b)=>(a.grado+a.grupo).localeCompare(b.grado+b.grupo));const todos=gs.flatMap(g=>g.alumnos);
+  const grados=[...new Set(gs.map(g=>g.grado))].sort();
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Estadística</div><h2>Edades de los alumnos</h2></div></div>
+   <p class="muted">Suba el <b>Reporte de inscripción/reinscripción</b> (PDF) de cada grupo. La edad se calcula en años cumplidos a la fecha de corte, igual que el Excel de estadística.</p>
+   <section class="card"><div class="field"><label for="corte">Fecha de corte</label><input type="date" id="corte" value="${ED.corte}"><p class="help">Normalmente el 1 de septiembre del ciclo que inicia.</p></div>
+    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de grupo(s)<input type="file" id="pdfs" accept="application/pdf,.pdf" multiple hidden></label>
+    <div id="msg"></div></section>
+   ${gs.length?`<div class="group-title">Concentrado de la escuela · ${todos.length} alumnos</div><section class="card">${matrizHTML(todos)}
+     <div class="acts"><button class="btn primary act" id="xls">⬇ Descargar Excel de estadística</button></div>
+     <p class="help">Se llena el Excel oficial de estadística (de seis a doce grupos): CURP, nombre y repetidor en cada grupo; las edades y concentrados se calculan solos.</p></section>
+    ${grados.length>1?grados.map(gr=>`<details class="card"><summary><b>Concentrado de ${gr}°</b> · ${gs.filter(g=>g.grado===gr).reduce((t,g)=>t+g.alumnos.length,0)} alumnos</summary>${matrizHTML(gs.filter(g=>g.grado===gr).flatMap(g=>g.alumnos))}</details>`).join(""):""}
+    <div class="group-title">Grupos</div>
+    ${gs.map(g=>{const k=gs.indexOf(g);const av=g.alumnos.map(a=>[a,avisosAlumno(a)]).filter(x=>x[1].length);
+      return`<details class="card" ${gs.length===1?"open":""}><summary><b>${g.grado}° «${g.grupo}»</b> · ${g.alumnos.length} alumnos · ${g.alumnos.filter(a=>a.sexo==="H").length} H / ${g.alumnos.filter(a=>a.sexo==="M").length} M${av.length?` · <span class="draft">${av.length} por revisar</span>`:""}</summary>
+       <p class="help">${esc(g.escuela)} · ${esc(g.cct)} · Turno ${esc(g.turno)}</p>${matrizHTML(g.alumnos)}
+       ${av.length?`<div class="alert"><b>Revise:</b><br>${av.map(([a,w])=>`${a.no}. ${esc(a.nombre)}: ${w.join(", ")}.`).join("<br>")}</div>`:""}
+       <p class="help">Marque los alumnos que <b>repiten</b> el grado:</p>
+       <div class="al">${g.alumnos.map((a,i)=>`<label class="alr"><input type="checkbox" data-g="${k}" data-i="${i}" ${a.rep?"checked":""}><span class="an">${a.no}. ${esc(a.nombre)}</span><span class="ae">${a.sexo} · ${edadAl(a.dob,ED.corte)} años</span></label>`).join("")}</div>
+       <button class="btn link" data-del="${k}">Quitar este grupo</button></details>`}).join("")}
+    <button class="btn link" id="borrar">Borrar todos los grupos</button>`
+   :`<div class="soon">Aún no hay grupos. Puede subir varios PDF a la vez (uno por grupo).</div>`}
+   <p class="foot">Los datos de los alumnos se quedan solo en este dispositivo.</p>`;
+  ED.grupos=gs;
+  document.getElementById("salir").onclick=goBack;
+  document.getElementById("corte").onchange=e=>{if(e.target.value){ED.corte=e.target.value;edSave();edadesView()}};
+  document.getElementById("pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const msgs=[];
+    for(const f of files){try{const g=await leerPDF(f);if(!g.alumnos.length){msgs.push(`«${esc(f.name)}»: no se encontraron alumnos. ¿Es el Reporte de inscripción?`);continue}
+        const i=ED.grupos.findIndex(x=>x.grado===g.grado&&x.grupo===g.grupo&&x.cct===g.cct);
+        if(i>=0){const prev=ED.grupos[i];g.alumnos.forEach(a=>{const p=prev.alumnos.find(x=>x.curp===a.curp);if(p)a.rep=p.rep});ED.grupos[i]=g;msgs.push(`${g.grado}° «${g.grupo}» actualizado (${g.alumnos.length} alumnos).`)}
+        else{ED.grupos.push(g);msgs.push(`${g.grado}° «${g.grupo}» agregado (${g.alumnos.length} alumnos).`)}}
+      catch(err){msgs.push(`«${esc(f.name)}»: no se pudo leer (${esc(err.message||err)}).`)}}
+    edSave();edadesView();const m=document.getElementById("msg");if(m)m.innerHTML=`<div class="okmsg">${msgs.join("<br>")}</div>`};
+  app.querySelectorAll(".alr input").forEach(c=>c.onchange=()=>{ED.grupos[+c.dataset.g].alumnos[+c.dataset.i].rep=c.checked;edSave();const op=[...app.querySelectorAll("details")].map(d=>d.open);edadesView();[...app.querySelectorAll("details")].forEach((d,i)=>d.open=op[i])});
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ED.grupos.splice(+b.dataset.del,1);edSave();edadesView()});
+  const br=document.getElementById("borrar");if(br)br.onclick=()=>{if(br.dataset.ok){ED.grupos=[];edSave();edadesView()}else{br.dataset.ok=1;br.textContent="Toque otra vez para confirmar"}};
+  const x=document.getElementById("xls");if(x)x.onclick=()=>excelEdades(x);window.scrollTo(0,0)}
+
+async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
+  try{await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();await wb.xlsx.load(await(await fetch("formatos/estadistica_edades.xlsx")).arrayBuffer());
+    const sh=n=>wb.worksheets.find(w=>w.name.trim()===n);const corte=new Date(ED.corte+"T00:00:00Z");const problemas=[];
+    const keep=(cell,res)=>{const f=cell.formula;if(f)cell.value={formula:f,result:res}};
+    wb.worksheets.forEach(w=>{const L=[];w.eachRow(r=>r.eachCell(c=>{if(c.type===ExcelJS.ValueType.Formula)L.push([c,c.formula])}));L.forEach(([c,f])=>c.value={formula:f})});
+    wb.worksheets.forEach(w=>{const c=w.getCell("J5");if(c.value instanceof Date)c.value=corte});
+    const tot={};const add=(key,k,e)=>{tot[key]=tot[key]||{};tot[key][k]=tot[key][k]||{};tot[key][k][e]=(tot[key][k][e]||0)+1};
+    for(const g of ED.grupos){const w=sh(`${g.grado} ${g.grupo}`);if(!w){problemas.push(`${g.grado}° «${g.grupo}» no tiene hoja en el Excel (solo hay grupos A y B).`);continue}
+      if(g.alumnos.length>40)problemas.push(`${g.grado}° «${g.grupo}» tiene más de 40 alumnos; solo caben 40.`);
+      g.alumnos.slice(0,40).forEach((a,i)=>{const r=7+i;const e=edadAl(a.dob,ED.corte);const[y,m,d]=a.dob.split("-");
+        w.getCell("B"+r).value=a.curp;w.getCell("C"+r).value=a.raw.replace(/\s*\/\s*/," ").replace(/\s*\*\s*/," ").replace(/\s+/g," ").trim();w.getCell("L"+r).value=a.rep?"SI":"NO";
+        keep(w.getCell("F"+r),a.curp[10]);keep(w.getCell("G"+r),a.curp.substr(8,2));keep(w.getCell("H"+r),a.curp.substr(6,2));keep(w.getCell("I"+r),2000+ +a.curp.substr(4,2));
+        keep(w.getCell("J"+r),new Date(Date.UTC(+y,+m-1,+d)));keep(w.getCell("K"+r),e);
+        if(e>=5&&e<=15){const k=a.sexo+(a.rep?1:0);add(`${g.grado} ${g.grupo}`,k,e);add(`G${g.grado}`,k,e);add("ALL",k,e)}})}
+    const fill=(w,key,c0)=>{if(!w)return;const t=tot[key]||{};const rows={7:"H0",8:"H1",10:"M0",11:"M1"};
+      EDADES.forEach((e,j)=>{let sub=0;for(const[r,k]of Object.entries(rows)){const v=(t[k]||{})[e]||0;sub+=v;keep(w.getRow(+r).getCell(c0+j),v)}keep(w.getRow(13).getCell(c0+j),sub)});
+      for(const r of[7,8,10,11,13]){let s=0;EDADES.forEach((e,j)=>{const v=w.getRow(r).getCell(c0+j).result;s+=+(v||0)});keep(w.getRow(r).getCell(c0+EDADES.length),s)}};
+    for(const gr of["1","2","3","4","5","6"])for(const gp of["A","B"])fill(sh(`${gr} ${gp}`),`${gr} ${gp}`,15);
+    const conc={"1":"Concen 1ro","2":"Concen 2do.","3":"Concen 3ro.","4":"Concen 4to.","5":"Concen 5to.","6":"Concen 6to"};
+    for(const[gr,n]of Object.entries(conc))fill(sh(n),`G${gr}`,3);
+    const cc=sh("Concentrado");if(cc){for(let j=0;j<=EDADES.length;j++){const cell=cc.getRow(11).getCell(3+j);const f=cell.formula;if(f&&!/'1 B'/.test(f)){const col=String.fromCharCode(79+j);
+        cell.value={formula:"SUM("+["1","2","3","4","5","6"].flatMap(g=>[`'${g} A${g==="3"?" ":""}'!${col}11`,`'${g} B'!${col}11`]).join(",")+")"}}}fill(cc,"ALL",3)}
+    wb.calcProperties.fullCalcOnLoad=true;
+    const buf=await wb.xlsx.writeBuffer();const esc0=(ED.grupos[0]?.escuela||"Escuela").replace(/[\\/:*?"<>|]/g,"");
+    const filename=`Estadistica de edades - ${esc0} - corte ${ED.corte}.xlsx`;const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const o={filename,blob,file:new File([blob],filename,{type:blob.type})};const g=await trySave(o,false);
+    const extra=problemas.length?`<br><b>Atención:</b> ${problemas.map(esc).join(" ")}`:"";
+    if(g===true||g==="anchor"||g==="shared")say("ok",`<b>Excel listo.</b> Ábralo para revisar y entregar.${extra}`);else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
+  catch(e){say("warn",`<b>No se pudo generar el Excel.</b> (${esc(e.message||e)})`)}
+  finally{btn.disabled=false;btn.innerHTML=label}}
 
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else home();
 </script>
