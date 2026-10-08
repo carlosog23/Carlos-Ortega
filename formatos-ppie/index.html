@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}</style></head><body>
+<title>Formatos PPIE Zona 050</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+/* Layout: una columna tipo app de teléfono; pantallas Inicio → Pasos → Revisión. Guinda ISEP como único acento. */
+:root{
+  --bg:#F4F5F7; --card:#FFFFFF; --ink:#1B1D22; --muted:#5B606B; --line:#D9DCE2; --field:#FFFFFF;
+  --accent:#8C2232; --accent-ink:#FFFFFF; --accent-soft:#F6E9EC; --ok:#1E7A46; --warn:#A4541A; --warn-soft:#FBEFE5;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15171B; --card:#1F2228; --ink:#ECEDF0; --muted:#A3A8B3; --line:#363A43; --field:#16181D;
+  --accent:#D9677A; --accent-ink:#1B0B0F; --accent-soft:#3A2228; --ok:#5CC48A; --warn:#E59A5E; --warn-soft:#3A2A1E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171B; --card:#1F2228; --ink:#ECEDF0; --muted:#A3A8B3; --line:#363A43; --field:#16181D;
+  --accent:#D9677A; --accent-ink:#1B0B0F; --accent-soft:#3A2228; --ok:#5CC48A; --warn:#E59A5E; --warn-soft:#3A2A1E; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;padding-inline:16px}
+.wrap{max-width:620px;margin:0 auto;padding-block:16px 110px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
+h1{font-size:34px} h2{font-size:26px} h3{font-size:20px}
+p{margin:0}
+.muted{color:var(--muted)}
+.brand{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.logos{display:flex;align-items:center;gap:8px;background:#fff;border-radius:10px;padding:6px 10px;flex:none}
+.logos img{height:64px;width:auto}
+.eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.group-title{font-family:var(--display);font-size:20px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.anexos{display:flex;flex-direction:column;gap:10px}
+.anexo{display:flex;gap:14px;align-items:center;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink);font:inherit;cursor:pointer;min-height:64px}
+.anexo:hover{border-color:var(--accent)}
+.letra{flex:none;width:48px;height:48px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:30px;font-weight:700}
+.anexo .tx{display:block;min-width:0}
+.anexo b{display:block;font-size:17px}
+.anexo .ds{display:block;font-size:14px;color:var(--muted)}
+.draft{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.btn{font:inherit;font-weight:700;border-radius:12px;padding:12px 18px;min-height:50px;cursor:pointer;border:2px solid transparent}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.link{background:none;border:0;color:var(--accent);padding:8px 0;min-height:auto;text-decoration:underline}
+.btn:focus-visible,.anexo:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.top{display:flex;align-items:center;gap:10px}
+.top .back{font:inherit;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;width:44px;height:44px;cursor:pointer;flex:none;font-size:20px}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px}
+label,.lbl{font-weight:700}
+.help{font-size:14px;color:var(--muted)}
+input[type=text],input[type=date],input[type=time],input[type=tel],textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);min-height:50px}
+textarea{min-height:130px;resize:vertical}
+.meter{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.meter.over{color:var(--warn);font-weight:700}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--field);min-height:48px;font-weight:400}
+.opt input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar .in{max-width:620px;margin:0 auto;display:flex;gap:10px}
+.bar .btn{flex:1}
+.review{display:flex;flex-direction:column;gap:6px}
+.rv{display:grid;grid-template-columns:minmax(0,40%) minmax(0,1fr);gap:10px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rv span:first-child{color:var(--muted)}
+.rv span:last-child{white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{color:var(--muted);font-style:italic}
+.alert{border-radius:10px;padding:12px 14px;background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn)}
+.alert b{color:var(--warn)}
+.okmsg{border-radius:10px;padding:12px 14px;border:1px solid var(--ok);color:var(--ink)}
+.okmsg b{color:var(--ok)}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:420px){.row2{grid-template-columns:minmax(0,1fr)}}
+ .acts{display:flex;flex-direction:column;gap:10px}
+.act{display:flex;align-items:center;justify-content:center;gap:10px;font-size:18px;min-height:56px}
+.act .ic{font-size:20px;line-height:1}
+.foot{font-size:13px;color:var(--muted);text-align:center}
+</style>
+
+<div class="wrap" id="app"><p class="muted">Cargando…</p></div>
+<div class="bar" id="bar" hidden><div class="in" id="barIn"></div></div>
+
+<script>
+const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const ESCUELAS_050=[
+ ["Belisario Domínguez","02DPR0210Z","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Luis Ángel Bandala Guerrero"],
+ ["Josefa Ortiz de Domínguez","02DPR0150B","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Carlos Gustavo Domínguez Figueroa"],
+ ["Niños Héroes","02DPR0862Z","San Quintín","Camalú","Blvd. Cochimí, Ampliación Capricornio, Camalú, C.P. 22910","José Feliciano Gutiérrez Valdez"],
+ ["13 de Septiembre","02DPR0077J","San Quintín","Camalú","Blvd. Cochimí, Ampliación Capricornio, Camalú, C.P. 22910","Cecilia Gómez Martínez"],
+ ["Pdte. Adolfo López Mateos","02DPR0379E","San Quintín","Ej. Mesa de San Jacinto","Av. Fundadores, Ej. Mesa de San Jacinto, C.P. 22915","Gilberto Medina Araujo"],
+ ["Emiliano Zapata","02DPR0425Z","San Quintín","Ej. Rubén Jaramillo","Av. Lázaro Cárdenas, Ej. Rubén Jaramillo, C.P. 22915","Juan Carlos Chávez Bermúdez"],
+ ["Margarita Maza de Juárez","02DPR0378F","San Quintín","Hacienda Sinaloa","Hacienda Sinaloa, C.P. 22914","Adriana Valentina Zavala Cruz"],
+ ["Maximino Virgen Flores","02DPR0684N","Ensenada","Lic. Gustavo Díaz Ordaz","Calle Diamante, Lic. Gustavo Díaz Ordaz, C.P. 22916","Citlali Shugey Nepita Anaya"],
+ ["José Vasconcelos","02DPR0014Y","Ensenada","Héroes de Chapultepec","Av. Revolución, Pob. Héroes de Chapultepec, C.P. 22909","Jesús González Urdiano"],
+ ["James S. Yglesias","02DPR0593W","Ensenada","Punta Colonet","Calle Benito Juárez, Punta Colonet, C.P. 22909","Lorena Valdez Rivera"],
+ ["Luis Donaldo Colosio Murrieta","02DPR0882N","Ensenada","Punta Colonet","Calle Benito Juárez, Punta Colonet, C.P. 22909","Efraín López Alvarado"],
+ ["Narciso Mendoza","02DPR0012Z","Ensenada","Ej. Benito Juárez","Calle Primera, Ej. Benito Juárez, C.P. 22907","Armando Calderón Hernández"],
+ ["Ignacio Allende","02DPR0556S","Ensenada","Ej. Alfredo V. Bonfil","Carr. Transpeninsular km 120, Ej. Alfredo V. Bonfil, C.P. 22905","Jesús Aarón Montero Meléndrez"],
+ ["José Ma. Pino Suárez","02DPR0382S","Ensenada","Ej. Rodolfo Sánchez Taboada","Ej. Rodolfo Sánchez Taboada, C.P. 22793","Armando Urzúa Osuna"]];
+const MUNIS=["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quintín","Tecate","Tijuana"];
+const PERFIL=[
+ {id:"escuela",label:"Nombre de la escuela",ph:"Escuela Primaria Federal …"},
+ {id:"cct",label:"Clave del Centro de Trabajo (CCT)",ph:"02DPR…"},
+ {id:"localidad",label:"Localidad",ph:"Ej. Camalú"},
+ {id:"municipio",label:"Municipio",type:"select",options:["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quintín","Tecate","Tijuana"]},
+ {id:"domicilio",label:"Domicilio de la escuela",ph:"Calle, número, colonia o ejido"},
+ {id:"telefono",label:"Teléfono de la escuela",type:"tel",opt:true},
+ {id:"turno",label:"Turno",type:"choice",options:["Matutino","Vespertino","Tiempo completo"]},
+ {id:"nivel",label:"Nivel",def:"Primaria"},
+ {id:"subsistema",label:"Subsistema",def:"Federalizado"},
+ {id:"director",label:"Nombre de la o el titular de la Dirección"},
+ {id:"minombre",label:"Mi nombre (quien llena los formatos)"},
+ {id:"micargo",label:"Mi cargo",ph:"Ej. Docente de 4° B, Director(a)"}
+];
+const SIT_E=["Abuso sexual","Violación","Hostigamiento sexual","Maltrato en el ámbito familiar","Maltrato en el ámbito comunitario","Maltrato en el ámbito escolar","Uso de drogas lícitas o ilícitas|Uso de drogas","Portación de drogas lícitas o ilícitas|Portación de drogas","Venta de drogas lícitas o ilícitas|Venta de drogas","Amenaza o atentado","Amenaza de bomba","Portación de arma"];
+const IND_F=["Corto tiempo de atención para las actividades solicitadas durante la clase","Interrumpe el trabajo de sus compañeros","Dificultad para concluir las actividades en los tiempos establecidos","Dificultades para el seguimiento de reglas","Baja tolerancia a la frustración","Dificultades para trabajar de manera colaborativa con sus compañeros","Dificultades en la socialización","Conducta desafiante"];
+const lst=(base,n)=>Array.from({length:n},(_,i)=>`${base} ${i+1}`);
+const opts=a=>a.map(s=>{const[l,t]=s.split("|");return{label:l,to:t||l}});
+
+const ANEXOS={
+ A:{name:"Acuse de conocimiento del PPIE",who:"Cada persona que firma de enterada",grupo:"Todos",use:"Al inicio del ciclo, el personal y las familias firman que conocen el Programa.",
+  steps:[
+   {title:"Lugar y fecha",fields:[{id:"lugar",label:"Lugar",pre:"localidad",to:"Lugar"},{id:"fecha",label:"Fecha",type:"date",fmt:"partes1",to:["Día","Mes","Año"]}]},
+   {title:"¿Quién firma?",fields:[{id:"nombre",label:"Nombre completo de la persona",to:"Nombre de la persona"},
+     {id:"calidad",label:"En calidad de",to:"En calidad de",chips:["Director(a)","Docente","Asesor(a) técnico pedagógico","Personal de apoyo","Madre de familia","Padre de familia","Responsable del cuidado familiar"]},
+     {id:"alumno",label:"Nombre de la alumna o alumno, grado y grupo",help:"Solo si firma una madre, padre o responsable del cuidado familiar.",opt:true,to:"Nombre de la alumna o alumno, grado y grupo"}]},
+   {title:"Escuela",fields:[{id:"escuela",label:"Nombre del centro escolar",pre:"escuela",to:"Nombre del centro escolar"},{id:"cct",label:"Clave del Centro de Trabajo (CCT)",pre:"cct",to:"Clave del Centro de Trabajo"}]}],
+  derive:{"Nombre (firma)":"nombre"}},
+ B:{name:"Acta de hechos",who:"Titular de la Dirección",grupo:"Dirección",use:"En toda incidencia formal y siempre que se activó el 911.",
+  steps:[
+   {title:"Lugar, fecha y hora",fields:[{id:"municipio",label:"Municipio",type:"select",options:MUNIS,pre:"municipio",to:"Municipio"},{id:"fecha",label:"Fecha",type:"date",fmt:"partesAnio",to:["Día","Mes","Año"]},{id:"hora",label:"Hora en que se levanta el acta",type:"time",fmt:"hm",to:["Horas","Minutos"]}]},
+   {title:"Escuela y responsable",fields:[{id:"escuela",label:"Escuela",pre:"escuela",to:"Escuela"},{id:"ubicada",label:"Ubicada en",pre:"domicilio",to:"Ubicada en"},
+     {id:"suscribe",label:"Nombre de la o el titular de la Dirección",pre:"director",to:"Nombre de quien suscribe"},{id:"cct",label:"Clave del Centro de Trabajo",pre:"cct",to:"CCT"},
+     {id:"nivel",label:"Nivel",pre:"nivel",to:"Nivel"},{id:"subsistema",label:"Subsistema",pre:"subsistema",to:"Subsistema"}]},
+   {title:"Alumna o alumno",fields:[{id:"alumno",label:"Nombre completo, grado y grupo",to:"Alumna o alumno (nombre completo, grado y grupo)"},
+     {id:"virtud",label:"Se encuentra en la dirección en virtud de que…",type:"lines",to:lst("En virtud de que",2)}]},
+   {title:"Narración de los hechos",fields:[{id:"narracion",label:"Narración de hechos",type:"lines",to:lst("Narración de hechos",6),
+     help:"Breve y concisa: día, fecha y hora aproximada; quién se percató del hecho; nombre completo, grado y grupo del alumno; hasta el momento en que la persona involucrada está en la dirección o en el sitio de mayor discreción."}]},
+   {title:"Conclusión",fields:[{id:"procede",label:"En virtud de lo anterior, se procede a…",type:"lines",to:["Se procede a 1","Se procede a 2"]},
+     {id:"cdia",label:"El acta se concluye el día",type:"date",fmt:"diaMes",to:"Concluye día"},{id:"chora",label:"A las",type:"time",fmt:"hrs",to:"Concluye hora"}]}],
+  derive:{"Nombre del titular de la Dirección":"suscribe"}},
+ C:{name:"Bitácora de atención y seguimiento",who:"Titular de la Dirección con la familia",grupo:"Dirección",use:"Para registrar los compromisos acordados con la familia.",
+  steps:[
+   {title:"Datos generales",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"larga",to:"Fecha"},{id:"alumno",label:"Nombre de la alumna o alumno",type:"lines",short:true,to:["Nombre de la alumna o alumno","Nombre de la alumna o alumno (continuación)"]},
+     {id:"grado",label:"Grado y grupo",ph:"Ej. 4° B",to:"Grado y grupo"},{id:"madre",label:"Nombre de la madre, padre o responsable del cuidado familiar",to:"Madre, padre o responsable"}]},
+   {title:"Situación y compromisos",fields:[{id:"desc",label:"Descripción de la situación",type:"box",to:"Descripción de la situación"},{id:"casa",label:"Compromisos en casa",type:"box",to:"Compromisos en casa"},{id:"esc",label:"Compromisos en la escuela",type:"box",to:"Compromisos en la escuela"}]},
+   {title:"Reunión y firmas",fields:[{id:"presente",label:"¿La o el docente estuvo presente durante la reunión?",type:"choice",options:[{label:"Sí",to:"Docente presente: Sí"},{label:"No",to:"Docente presente: No"}]},
+     {id:"testigo",label:"Nombre del testigo",to:"Nombre testigo",opt:true},{id:"titular",label:"Nombre de la o el titular de la Dirección",pre:"director",to:"Nombre titular de la Dirección"}]}],
+  derive:{"Nombre madre, padre o responsable":"madre"}},
+ D:{name:"Registro de incidencias",who:"Docente",grupo:"Docente",use:"El mismo día en que se detecta la situación; se entrega a la Dirección.",
+  steps:[
+   {title:"Datos generales",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"larga",to:"Fecha"},{id:"alumno",label:"Nombre de la alumna o alumno",to:"Nombre de la alumna o alumno"},{id:"grado",label:"Grado y grupo",ph:"Ej. 4° B",to:"Grado y grupo"}]},
+   {title:"Tipo de incidencia",fields:[{id:"tipo",label:"Marque lo que corresponda",type:"checks",options:opts(["Accidente","Conducta inadecuada","Inasistencias","Falta de higiene","Inasistencia a reunión convocada","Enfermedad","Incumplimiento de tareas o materiales","Pediculosis","Retardo","Alimento o refrigerio"]),other:{cb:"Otro",to:"Otro (especifique)"}}]},
+   {title:"Familia",fields:[{id:"madre",label:"Madre, padre o responsable que recibe la información",to:"Madre, padre o responsable que recibe la información"}]},
+   {title:"Descripción y acuerdos",fields:[{id:"desc",label:"Descripción de la situación",type:"lines",to:lst("Descripción de la situación",4),help:"Escriba lo que vio o escuchó, sin opiniones. Use las palabras de la alumna o alumno entre comillas."},
+     {id:"rec",label:"Recomendaciones y/o acuerdos establecidos",type:"lines",to:lst("Recomendaciones y acuerdos",4)}]},
+   {title:"Observaciones y firmas",fields:[{id:"obs",label:"Observaciones",type:"box",opt:true,to:"Observaciones"},{id:"docente",label:"Nombre de la o el docente responsable",pre:"minombre",to:"Nombre docente responsable"},{id:"testigo",label:"Nombre del testigo",opt:true,to:"Nombre testigo"}]}],
+  derive:{"Nombre responsable del cuidado familiar":"madre"}},
+ E:{name:"Informe de incidencia",who:"Docente",grupo:"Docente",use:"Para informar a la Dirección de riesgo sexual, maltrato, drogas, amenazas o armas.",
+  steps:[
+   {title:"Lugar y fecha",fields:[{id:"lugar",label:"Lugar",pre:"localidad",to:"Lugar"},{id:"fecha",label:"Fecha",type:"date",fmt:"partes1",to:["Día","Mes","Año"]}]},
+   {title:"Quién informa",fields:[{id:"suscribe",label:"Nombre de quien informa",pre:"minombre",to:"Nombre de quien suscribe"},{id:"calidad",label:"En calidad de",pre:"micargo",to:"En calidad de"},
+     {id:"escuela",label:"Escuela",pre:"escuela",to:"Escuela"},{id:"clave",label:"Clave",pre:"cct",to:"Clave"},{id:"alumno",label:"Nombre de la alumna o alumno involucrado",to:"Alumna o alumno"}]},
+   {title:"Presunta situación de riesgo",fields:[{id:"sit",label:"Marque lo que corresponda",type:"checks",options:opts(SIT_E),other:{cb:"Otro",to:"Otro (especifique)"}}]},
+   {title:"Descripción",fields:[{id:"desc",label:"Descripción de la situación",type:"lines",to:lst("Descripción de la situación",6),help:"Ante una revelación de abuso sexual solo pregunte: ¿cuándo?, ¿dónde? y ¿quién? No investigue."},{id:"obs",label:"Observaciones",type:"box",opt:true,to:"Observaciones"}]},
+   {title:"Firmas",fields:[{id:"titular",label:"Nombre de la o el titular de la Dirección",pre:"director",to:"Nombre del titular de la Dirección"}]}],
+  derive:{"Nombre de quien elabora el informe":"suscribe"}},
+ F:{name:"Canalización para atención psicológica",who:"Titular de la Dirección",grupo:"Dirección",use:"Para solicitar a la familia una valoración o atención psicológica.",
+  steps:[
+   {title:"Lugar y fecha",fields:[{id:"lugar",label:"Lugar",pre:"localidad",to:"Lugar"},{id:"fecha",label:"Fecha",type:"date",fmt:"partes1",to:["Día","Mes","Año"]}]},
+   {title:"Escuela",fields:[{id:"suscribe",label:"Nombre de la o el directivo que suscribe",pre:"director",to:"Nombre de quien suscribe"},{id:"escuela",label:"Escuela",pre:"escuela",to:"Escuela"},
+     {id:"cct",label:"Clave del Centro de Trabajo",pre:"cct",to:"CCT"},{id:"ubicada",label:"Ubicada en",pre:"domicilio",to:"Ubicada en"}]},
+   {title:"Alumna o alumno",fields:[{id:"alumno",label:"Nombre de la alumna o alumno",to:"Alumna o alumno"},{id:"grado",label:"Grado que cursa",ph:"Ej. 4°",to:"Grado"},
+     {id:"particip",label:"Víctima o partícipe de…",help:"Situación identificada, por ejemplo: acoso escolar.",to:"Víctima o partícipe de"}]},
+   {title:"Indicadores observados",fields:[{id:"ind",label:"Marque los indicadores observados",type:"checks",options:IND_F.map((l,i)=>({label:l,to:`Indicador ${i+1}`})),other:{cb:"Indicador 9",to:"Otro indicador"}}]},
+   {title:"Observaciones y firmas",fields:[{id:"obs",label:"Observaciones",type:"box",opt:true,to:"Observaciones"},{id:"madre",label:"Nombre de la madre, padre o responsable que recibe",to:"Nombre madre, padre o responsable"}]}],
+  derive:{"Nombre titular de la Dirección":"suscribe"}},
+ G:{name:"Ficha de canalización a DANNARD",who:"Titular de la Dirección",grupo:"Dirección",use:"Para canalizar a DANNARD; se entrega a la familia y se envía copia a dannard@fgebc.gob.mx.",
+  steps:[
+   {title:"Lugar y fecha",fields:[{id:"lugar",label:"Lugar",pre:"localidad",to:"Lugar"},{id:"fecha",label:"Fecha",type:"date",fmt:"partes1",to:["Día","Mes","Año"]}]},
+   {title:"Institución de procedencia",fields:[{id:"inst",label:"Institución de procedencia",pre:"escuela",to:"Institución de procedencia"},{id:"domi",label:"Domicilio",pre:"domicilio",to:"Domicilio de la institución"},
+     {id:"enlace",label:"Nombre y cargo de la persona de enlace",type:"lines",short:true,preFn:p=>p.director?`${p.director}, Director(a)`:"",to:["Persona de enlace 1","Persona de enlace 2"]},{id:"tels",label:"Teléfonos",type:"tel",pre:"telefono",to:"Teléfonos"}]},
+   {title:"Niña, niño o adolescente",fields:[{id:"fhechos",label:"Fecha en que sucedieron los hechos",type:"date",fmt:"larga",to:"Fecha de los hechos"},{id:"nna",label:"Nombre del niño, niña o adolescente canalizado",to:"Nombre del niño, niña o adolescente"},
+     {id:"rol",label:"Participa como",type:"choice",options:[{label:"Víctima",to:"Víctima"},{label:"Agresor",to:"Agresor"}]},
+     {id:"edad",label:"Edad",to:"Edad",half:true},{id:"grado",label:"Grado",to:"Grado",half:true},{id:"grupo",label:"Grupo",to:"Grupo",half:true},{id:"turno",label:"Turno",pre:"turno",to:"Turno",half:true},
+     {id:"domnna",label:"Domicilio",to:"Domicilio"},{id:"madre",label:"Nombre de madre, padre o responsable del cuidado familiar",to:"Madre, padre o responsable"},{id:"telc",label:"Teléfonos de contacto",type:"tel",to:"Teléfonos de contacto"}]},
+   {title:"Narración de los hechos",fields:[{id:"narr",label:"Narración de los hechos",type:"lines",to:lst("Narración de los hechos",8)}]}],
+  derive:{}},
+ H:{name:"Referencia a IPEBC / CECOSAMA",who:"Titular de la Dirección",grupo:"Dirección",use:"Conducta suicida o crisis de salud mental: referencia para atención especializada.",
+  steps:[
+   {title:"Centro escolar",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"larga",to:"Fecha"},{id:"escuela",label:"Nombre de la escuela",pre:"escuela",to:"Nombre de la escuela"},{id:"cct",label:"Clave del centro de trabajo",pre:"cct",to:"Clave del centro de trabajo"},
+     {id:"titular",label:"Titular de la Dirección o responsable del centro escolar",pre:"director",to:"Titular de la Dirección"}]},
+   {title:"Persona referida",fields:[{id:"nombre",label:"Nombre completo",to:"Nombre completo"},{id:"edad",label:"Edad",to:"Edad",half:true},{id:"sexo",label:"Sexo",to:"Sexo",half:true,chips:["Mujer","Hombre"]},
+     {id:"madre",label:"Madre, padre o responsable del cuidado familiar",help:"En caso de ser menor de 18 años.",to:"Madre, padre o responsable"},
+     {id:"derecho",label:"Derechohabiencia",to:"Derechohabiencia",chips:["IMSS","ISSSTE","IMSS-Bienestar","Ninguna"]},{id:"mun",label:"Municipio",type:"select",options:MUNIS,pre:"municipio",to:"Municipio"},
+     {id:"tel1",label:"Teléfono 1",type:"tel",to:"Teléfono 1",half:true},{id:"tel2",label:"Teléfono 2",type:"tel",opt:true,to:"Teléfono 2",half:true}]},
+   {title:"Unidad a donde se refiere",fields:[{id:"unidad",label:"Unidad de atención",to:"Unidad de atención",fillChips:[
+       {label:"IPEBC Ensenada",set:{unidad:"Instituto de Psiquiatría del Estado de B.C. (IPEBC) Ensenada",telu:"(646) 178-8577"}},
+       {label:"CECOSAMA Vicente Guerrero",set:{unidad:"CECOSAMA Vicente Guerrero",telu:"(616) 166-2747"}},
+       {label:"CECOSAMA Maneadero",set:{unidad:"CECOSAMA Maneadero",telu:"(646) 154-9572"}}]},
+     {id:"diru",label:"Dirección",to:"Dirección de la unidad"},{id:"telu",label:"Teléfono",type:"tel",to:"Teléfono de la unidad",half:true},{id:"horario",label:"Horario de atención",to:"Horario de atención",half:true}]},
+   {title:"Motivo de referencia",fields:[{id:"c100",label:"Código 100",type:"check",to:"Código 100",text:"Marcar Código 100"},{id:"motivo",label:"Motivo de referencia",type:"box",to:"Motivo de referencia"},
+     {id:"coment",label:"Comentarios",type:"lines",opt:true,to:lst("Comentarios",4)}]}],
+  derive:{}},
+ I:{name:"Reporte a la PPNNA de posibles casos de maltrato",who:"Jefatura de Nivel",grupo:"Jefatura de Nivel",use:"La Jefatura de Nivel reporta a la Procuraduría con el expediente que remite la Supervisión.",
+  steps:[
+   {title:"Datos del reporte",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"corta",to:"Fecha del reporte",half:true},{id:"hora",label:"Hora",type:"time",fmt:"hrs",to:"Hora",half:true},{id:"num",label:"No. de reporte",opt:true,to:"No. de reporte"}]},
+   {title:"Escuela o centro",fields:[{id:"esc",label:"Nombre de la escuela o el centro",pre:"escuela",to:"Nombre de la escuela o el centro"},{id:"nivel",label:"Nivel educativo",pre:"nivel",to:"Nivel educativo",half:true},{id:"turno",label:"Turno",pre:"turno",to:"Turno",half:true},
+     {id:"domi",label:"Domicilio",pre:"domicilio",to:"Domicilio de la escuela"},{id:"dir",label:"Persona con funciones de dirección",pre:"director",to:"Persona con funciones de dirección"},{id:"tel",label:"Teléfono",type:"tel",pre:"telefono",to:"Teléfono de la escuela"}]},
+   {title:"Niña, niño o adolescente",fields:[{id:"nna",label:"Nombre",to:"Nombre de la NNA"},{id:"edad",label:"Edad",to:"Edad",half:true},{id:"gen",label:"Género",to:"Género",half:true},
+     {id:"grado",label:"Grado escolar",to:"Grado escolar",half:true},{id:"grupo",label:"Grupo",to:"Grupo",half:true},{id:"curp",label:"CURP",to:"CURP"},{id:"domnna",label:"Domicilio",to:"Domicilio de la NNA"}]},
+   {title:"Tipo de maltrato",fields:[{id:"tipo",label:"Tipo de maltrato",type:"checks",options:[{label:"Maltrato físico",to:"Maltrato físico"},{label:"Maltrato emocional",to:"Maltrato emocional"}],other:{cb:"Otro tipo de maltrato",to:"Otro tipo (especifique)"}},
+     {id:"ambito",label:"Ámbito en el que ocurrió",type:"checks",options:[{label:"Escolar",to:"Ámbito escolar"},{label:"Familiar",to:"Ámbito familiar"},{label:"Comunitario",to:"Ámbito comunitario"}]},
+     {id:"finc",label:"Fecha del incidente",type:"date",fmt:"corta",to:"Fecha del incidente",half:true},{id:"lugar",label:"Lugar",to:"Lugar",half:true},
+     {id:"desc",label:"Descripción detallada de los hechos",type:"lines",to:lst("Descripción de los hechos",7)}]},
+   {title:"Persona a la que se atribuyen los hechos",fields:[{id:"pn",label:"Nombre",to:"Persona: nombre"},{id:"pe",label:"Edad",to:"Persona: edad",half:true},{id:"pg",label:"Género",to:"Persona: género",half:true},
+     {id:"pes",label:"Escolaridad",to:"Persona: escolaridad"},{id:"pc",label:"Cargo",help:"Cuando se trate de una persona servidora pública.",opt:true,to:"Persona: cargo"},
+     {id:"po",label:"Ocupación",help:"Cuando el hecho haya ocurrido en el ámbito familiar o comunitario.",opt:true,to:"Persona: ocupación"},{id:"pr",label:"Relación con la víctima",to:"Relación con la víctima"}]},
+   {title:"Acciones realizadas",fields:[{id:"med",label:"Medidas implementadas",type:"lines",to:lst("Medidas implementadas",2)},{id:"notif",label:"¿Se notificó a la madre, padre o persona tutora de la posible víctima?",type:"lines",to:lst("Notificación a la familia",2)},
+     {id:"com",label:"Comunicación con otras instancias",type:"lines",to:lst("Comunicación con otras instancias",2)},{id:"jef",label:"Nombre de la o el titular de la Jefatura de Nivel",to:"Nombre del titular de la Jefatura de Nivel"}]}],
+  derive:{}}
+};
+const ARCHIVO={A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
+const GRUPOS=["Docente","Dirección","Todos","Jefatura de Nivel"];
+
+/* ---------- almacenamiento local (solo en este dispositivo) ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let perfil=store.get("ppie-perfil",{});
+const S={view:"home",letra:null,step:0,vals:{}};
+
+/* ---------- utilidades ---------- */
+const app=document.getElementById("app"),bar=document.getElementById("bar"),barIn=document.getElementById("barIn");
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function parseDate(v){if(!v)return null;const[y,m,d]=v.split("-").map(Number);return{y,m,d}}
+function fmtDate(v,fmt){const p=parseDate(v);if(!p)return fmt.startsWith("partes")?["","",""]:"";
+  const mes=MESES[p.m-1];
+  if(fmt==="partes1")return[String(p.d),mes,String(p.y).slice(-1)];
+  if(fmt==="partesAnio")return[String(p.d),mes,String(p.y)];
+  if(fmt==="larga")return`${p.d} de ${mes} de ${p.y}`;
+  if(fmt==="diaMes")return`${p.d} de ${mes}`;
+  if(fmt==="corta")return`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`;return v}
+function fmtTime(v,fmt){if(!v)return fmt==="hm"?["",""]:"";const[h,m]=v.split(":");return fmt==="hm"?[h,m]:`${h}:${m} hrs.`}
+function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function preValue(f){if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date")return today();return""}
+
+/* ---------- medición de texto con la fuente del PDF ---------- */
+let HELV=null,HELVB=null;const okChar=new Map();
+async function fonts(){if(HELV)return;const d=await PDFLib.PDFDocument.create();HELV=await d.embedFont(PDFLib.StandardFonts.Helvetica);HELVB=await d.embedFont(PDFLib.StandardFonts.HelveticaBold)}
+function clean(t){t=String(t??"").replace(/\r/g,"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/\t/g," ");let o="";
+  for(const ch of t){if(ch==="\n"){o+=ch;continue}if(!okChar.has(ch)){let ok=true;try{HELV.widthOfTextAtSize(ch,10)}catch(e){ok=false}okChar.set(ch,ok)}o+=okChar.get(ch)?ch:""}return o}
+const W=(t,s)=>HELV.widthOfTextAtSize(t,s);
+function wrapWidths(text,widths,size){/* reparte el texto en renglones de anchos dados */
+  const out=[];let li=0;const paras=clean(text).split("\n");
+  for(let pi=0;pi<paras.length;pi++){const words=paras[pi].split(/ +/).filter(Boolean);let cur="";
+    if(!words.length){if(pi<paras.length-1){out.push("");li++}continue}
+    for(const w of words){const wd=widths[Math.min(li,widths.length-1)];const cand=cur?cur+" "+w:w;
+      if(W(cand,size)<=wd)cur=cand;else{if(cur){out.push(cur);li++}cur=w;while(W(cur,size)>widths[Math.min(li,widths.length-1)]){/* palabra muy larga */let k=cur.length;while(k>1&&W(cur.slice(0,k),size)>widths[Math.min(li,widths.length-1)])k--;out.push(cur.slice(0,k));li++;cur=cur.slice(k)}}}
+    out.push(cur);li++}
+  return out}
+function layoutLines(text,widths){for(const s of [10,9.5,9,8.5,8]){const l=wrapWidths(text,widths,s);if(l.length<=widths.length)return{size:s,lines:l,over:false}}
+  const l=wrapWidths(text,widths,8);return{size:8,lines:l,over:true}}
+function layoutBox(text,w,h){for(const s of [10,9.5,9,8.5,8,7.5,7]){const lh=s*1.2;const n=Math.floor((h-4)/lh);const l=wrapWidths(text,[w-6],s);if(l.length<=n)return{size:s,lines:l,over:false,cap:n}}
+  const s=7,lh=s*1.2,n=Math.floor((h-4)/lh);return{size:s,lines:wrapWidths(text,[w-6],s),over:true,cap:n}}
+function fitSingle(text,w){const t=clean(text).replace(/\n/g," ");if(!t)return{size:10,text:t,over:false};let s=10;const full=W(t,10);if(full>w-2)s=Math.max(6,Math.floor((w-2)/full*10*2)/2);return{size:s,text:t,over:W(t,s)>w-1}}
+
+/* ---------- geometría de los campos (se lee del PDF oficial) ---------- */
+const cache={};
+async function loadForm(L){if(cache[L])return cache[L];const bytes=await (await fetch(`formatos/${L}.pdf`)).arrayBuffer();
+  const doc=await PDFLib.PDFDocument.load(bytes);const pages=doc.getPages();const geo={};
+  for(const f of doc.getForm().getFields()){const name=f.getName().slice(2);const wd=f.acroField.getWidgets()[0];const r=wd.getRectangle();
+    const ref=doc.context.getObjectRef(wd.dict);let pi=0;pages.forEach((p,i)=>{const a=p.node.Annots();if(a&&a.asArray().some(x=>x===ref))pi=i});
+    let q=0;try{q=f.acroField.getQuadding()||0}catch(e){}
+    geo[name]={...r,page:pi,cb:f instanceof PDFLib.PDFCheckBox,q}}
+  cache[L]={bytes,geo};return cache[L]}
+
+/* ---------- convertir respuestas en contenido del formato ---------- */
+function plan(L){const A=ANEXOS[L],v=S.vals,out={single:{},lines:[],box:{},checks:[]};
+  for(const st of A.steps)for(const f of st.fields){const val=v[f.id];
+    if(f.type==="date"){const r=fmtDate(val,f.fmt);if(Array.isArray(f.to))f.to.forEach((n,i)=>out.single[n]=r[i]);else out.single[f.to]=r}
+    else if(f.type==="time"){const r=fmtTime(val,f.fmt);if(Array.isArray(f.to))f.to.forEach((n,i)=>out.single[n]=r[i]);else out.single[f.to]=r}
+    else if(f.type==="lines")out.lines.push({id:f.id,label:f.label,to:f.to,text:val||""});
+    else if(f.type==="box")out.box[f.to]={id:f.id,label:f.label,text:val||""};
+    else if(f.type==="checks"){(val?.sel||[]).forEach(n=>out.checks.push(n));if(f.other&&val?.otro){out.checks.push(f.other.cb);out.single[f.other.to]=val.otro}}
+    else if(f.type==="choice"){const o=f.options.find(o=>o.label===val);if(o)out.checks.push(o.to)}
+    else if(f.type==="check"){if(val)out.checks.push(f.to)}
+    else out.single[f.to]=val||""}
+  for(const[n,id]of Object.entries(A.derive||{}))out.single[n]=v[id]||"";
+  return out}
+function problems(L,geo){const p=plan(L),issues=[];
+  for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);if(r.over)issues.push(`«${g.label}» no cabe en los ${g.to.length} renglones del formato. Resuma el texto.`)}
+  for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];if(layoutBox(b.text,g.width,g.height).over)issues.push(`«${b.label}» no cabe en el recuadro del formato. Resuma el texto.`)}
+  for(const[n,t]of Object.entries(p.single)){if(!t||!geo[n])continue;if(fitSingle(t,geo[n].width).over)issues.push(`«${n}» es demasiado largo para su espacio en el formato. Abrévielo.`)}
+  return issues}
+
+/* ---------- generar el PDF oficial ---------- */
+async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const doc=await PDFLib.PDFDocument.load(bytes);
+  const helv=await doc.embedFont(PDFLib.StandardFonts.Helvetica),bold=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const pages=doc.getPages(),ink=PDFLib.rgb(0,0,0),p=plan(L);
+  const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const w=helv.widthOfTextAtSize(text,size);
+    let x=g.x+1.5;if(g.q===1)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:helv,color:ink})};
+  for(const[n,t]of Object.entries(p.single)){if(!geo[n]||!t)continue;const r=fitSingle(t,geo[n].width);put(n,r.text,r.size)}
+  for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);r.lines.slice(0,g.to.length).forEach((t,i)=>put(g.to[i],t,r.size))}
+  for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];const r=layoutBox(b.text,g.width,g.height);const lh=r.size*1.2;
+    r.lines.slice(0,r.cap).forEach((t,i)=>pages[g.page].drawText(t,{x:g.x+3,y:g.y+g.height-2-r.size-(i*lh),size:r.size,font:helv,color:ink}))}
+  for(const n of p.checks){const g=geo[n];if(!g)continue;const s=Math.min(g.width,g.height)*1.05;const w=bold.widthOfTextAtSize("X",s);
+    pages[g.page].drawText("X",{x:g.x+(g.width-w)/2,y:g.y+(g.height-s*0.72)/2,size:s,font:bold,color:ink})}
+  const form=doc.getForm();for(const f of form.getFields())form.removeField(f);
+  doc.setTitle(`${ARCHIVO[L]} - PPIE 2026`);doc.setProducer("Formatos PPIE Zona 050");
+  return await doc.save()}
+
+/* ---------- pantallas ---------- */
+function setBar(html){if(!html){bar.hidden=true;barIn.innerHTML="";return}bar.hidden=false;barIn.innerHTML=html}
+function home(){S.view="home";setBar("");
+  const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
+  app.innerHTML=`<header class="brand"><div class="logos"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
+   <div><div class="eyebrow">Zona Escolar 050 · PPIE 2026</div><h1>Formatos PPIE</h1></div></header>
+   <p class="muted">Elija el formato, conteste las preguntas y descargue el PDF en el formato oficial, listo para imprimir o enviar.</p>
+   <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
+    <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
+   ${GRUPOS.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);return`<div class="group-title">Lo llena: ${g}</div><div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")}
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»</p>`;
+  document.getElementById("perfilBtn").onclick=perfilView;
+  app.querySelectorAll(".anexo").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));window.scrollTo(0,0)}
+
+function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
+  const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
+  if(f.type==="choice"){const options=f.options.map(o=>typeof o==="string"?o:o.label);return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${options.map((o,i)=>`<label class="opt ${val===o?"on":""}"><input type="radio" name="${id}" id="${id}_${i}" value="${esc(o)}" ${val===o?"checked":""}>${esc(o)}</label>`).join("")}</div></div>`}
+  if(f.type==="select")return`<div class="field">${lab}${help}<select id="${id}"><option value="">Elija…</option>${f.options.map(o=>`<option ${val===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
+  if(f.type==="checks"){const sel=val?.sel||[];return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<div class="opts">${f.options.map((o,i)=>`<label class="opt ${sel.includes(o.to)?"on":""}"><input type="checkbox" id="${id}_${i}" data-to="${esc(o.to)}" ${sel.includes(o.to)?"checked":""}>${esc(o.label)}</label>`).join("")}</div>
+     ${f.other?`<div class="field"><label for="${id}_otro">Otro (especifique)</label><input type="text" id="${id}_otro" value="${esc(val?.otro||"")}" placeholder="Déjelo vacío si no aplica"></div>`:""}</div>`}
+  if(f.type==="check")return`<div class="field"><div class="opts"><label class="opt ${val?"on":""}"><input type="checkbox" id="${id}" ${val?"checked":""}>${esc(f.text||f.label)}</label></div>${help}</div>`;
+  if(f.type==="lines"||f.type==="box"){const short=f.short;return`<div class="field">${lab}${help}${short?`<input type="text" id="${id}" value="${esc(val||"")}">`:`<textarea id="${id}" rows="${f.type==="box"?5:Math.min(9,Math.max(3,f.to.length+1))}">${esc(val||"")}</textarea>`}<div class="meter" id="${id}_m"></div></div>`}
+  const type=f.type==="date"?"date":f.type==="time"?"time":f.type==="tel"?"tel":"text";
+  const chips=f.chips?`<div class="chips">${f.chips.map(c=>`<button type="button" class="chip" data-for="${id}" data-v="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:"";
+  const fill=f.fillChips?`<div class="chips">${f.fillChips.map((c,i)=>`<button type="button" class="chip" data-fill="${f.id}" data-i="${i}">${esc(c.label)}</button>`).join("")}</div>`:"";
+  return`<div class="field">${lab}${help}<input type="${type}" id="${id}" value="${esc(val||"")}" ${f.ph?`placeholder="${esc(f.ph)}"`:""} ${type==="tel"?'inputmode="tel"':""} autocomplete="off">${chips}${fill}</div>`}
+
+function readStep(){const st=ANEXOS[S.letra].steps[S.step];for(const f of st.fields){const id=`f_${f.id}`;
+  if(f.type==="choice"){const r=app.querySelector(`input[name="${id}"]:checked`);S.vals[f.id]=r?r.value:""}
+  else if(f.type==="checks"){S.vals[f.id]={sel:f.options.filter((o,i)=>document.getElementById(`${id}_${i}`).checked).map(o=>o.to),otro:f.other?document.getElementById(`${id}_otro`).value.trim():""}}
+  else if(f.type==="check")S.vals[f.id]=document.getElementById(id).checked;
+  else S.vals[f.id]=document.getElementById(id).value}
+  store.set("ppie-draft-"+S.letra,{vals:S.vals,step:S.step})}
+
+async function meters(){const{geo}=await loadForm(S.letra);await fonts();const st=ANEXOS[S.letra].steps[S.step];
+  for(const f of st.fields){if(f.type!=="lines"&&f.type!=="box")continue;const el=document.getElementById(`f_${f.id}`),m=document.getElementById(`f_${f.id}_m`);if(!el||!m)continue;
+    const upd=()=>{const t=el.value;if(f.type==="lines"){const widths=f.to.map(n=>geo[n].width-3);const r=layoutLines(t,widths);const used=t?Math.min(r.lines.length,99):0;
+        m.className="meter"+(r.over?" over":"");m.innerHTML=`<span>${r.over?"No cabe: resuma el texto":f.to.length>1?"Se acomoda en los renglones del formato":"Cabe en el formato"}</span><span>${used} de ${f.to.length} renglones</span>`}
+      else{const g=geo[f.to];const r=layoutBox(t,g.width,g.height);m.className="meter"+(r.over?" over":"");m.innerHTML=`<span>${r.over?"No cabe en el recuadro: resuma el texto":"Cabe en el recuadro"}</span><span>${t.length} caracteres</span>`}};
+    el.addEventListener("input",upd);upd()}}
+
+function stepView(){S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A.steps.length;
+  const fields=st.fields;let html="",halfBuf=[];
+  const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
+  for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Anexo ${S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
+   <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
+   <form class="card" id="frm" novalidate>${html}</form>`;
+  setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
+  document.getElementById("frm").onsubmit=e=>{e.preventDefault()};
+  app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>{if(i.type==="radio")app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked));else i.closest(".opt").classList.toggle("on",i.checked)}));
+  app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{document.getElementById(c.dataset.for).value=c.dataset.v});
+  app.querySelectorAll(".chip[data-fill]").forEach(c=>c.onclick=()=>{const f=fields.find(x=>x.id===c.dataset.fill);const set=f.fillChips[+c.dataset.i].set;for(const[k,v]of Object.entries(set)){const el=document.getElementById("f_"+k);if(el)el.value=v}});
+  document.getElementById("salir").onclick=()=>{readStep();home()};
+  document.getElementById("prev").onclick=()=>{readStep();if(S.step===0)home();else{S.step--;stepView()}};
+  document.getElementById("next").onclick=()=>{readStep();if(S.step===n-1)reviewView();else{S.step++;stepView()}};
+  meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
+
+function showVal(f){const v=S.vals[f.id];
+  if(f.type==="date")return v?fmtDate(v,"larga"):"";if(f.type==="time")return v?fmtTime(v,"hrs"):"";
+  if(f.type==="checks"){const l=(v?.sel||[]).map(t=>f.options.find(o=>o.to===t)?.label);if(v?.otro)l.push("Otro: "+v.otro);return l.join("\n")}
+  if(f.type==="check")return v?"Sí":"";return v||""}
+async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=await loadForm(S.letra);await fonts();const issues=problems(S.letra,geo);
+  const missing=[];A.steps.forEach(st=>st.fields.forEach(f=>{if(!f.opt&&!showVal(f))missing.push(f.label)}));
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Anexo ${S.letra} · Revisión</div><h2>${esc(A.name)}</h2></div></div>
+   <div class="progress" aria-hidden="true"><i style="width:100%"></i></div>
+   ${issues.length?`<div class="alert"><b>Corrija antes de descargar:</b><br>${issues.map(esc).join("<br>")}</div>`:""}
+   ${missing.length?`<div class="alert"><b>Sin llenar:</b> ${missing.map(esc).join(", ")}.<br>Puede descargar así y llenarlo a mano después.</div>`:""}
+   ${A.steps.map((st,i)=>`<section class="card"><div class="top" style="justify-content:space-between"><h3>${esc(st.title)}</h3><button class="btn link" data-step="${i}">Editar</button></div>
+     <div class="review">${st.fields.map(f=>{const t=showVal(f);return`<div class="rv"><span>${esc(f.label)}</span><span${t?"":' class="empty"'}>${t?esc(t):"Sin llenar"}</span></div>`}).join("")}</div></section>`).join("")}
+   <section class="card"><h3>¿Qué desea hacer con el formato?</h3><p class="muted" style="font-size:15px">Se genera el PDF en el formato oficial del Anexo ${S.letra}. Las firmas y sellos se hacen a mano.</p>
+    <div class="acts">
+     <button class="btn primary act" data-act="print" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
+     <button class="btn primary act" data-act="share" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button>
+    </div>
+    <div id="msg"></div>
+    <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
+  setBar(`<button class="btn ghost" id="prev">Anterior</button><button class="btn ghost" id="inicio">Inicio</button>`);
+  app.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;stepView()});
+  document.getElementById("salir").onclick=home;document.getElementById("inicio").onclick=home;
+  document.getElementById("prev").onclick=()=>{S.step=A.steps.length-1;stepView()};
+  document.getElementById("nuevo").onclick=()=>{store.del("ppie-draft-"+S.letra);openAnexo(S.letra)};
+  OUT=null;if(!issues.length)prepararPDF().catch(()=>{});
+  app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));window.scrollTo(0,0)}
+
+/* ---------- imprimir, enviar, guardar ---------- */
+let OUT=null;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isAndroid=/Android/i.test(navigator.userAgent);
+async function prepararPDF(){if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
+  const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||"").split(",")[0].trim().slice(0,40);
+  const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
+  const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
+  const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:S.letra,filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
+function say(kind,html){document.getElementById("msg").innerHTML=`<div class="${kind==="ok"?"okmsg":"alert"}">${html}</div>`;document.getElementById("msg").scrollIntoView({behavior:"smooth",block:"center"})}
+let DL;async function getDL(){if(DL!==undefined)return DL;try{DL=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){DL=null}return DL}
+async function tryShare(o,text){if(!navigator.share||!navigator.canShare)return false;try{if(!navigator.canShare({files:[o.file]}))return false;await navigator.share({files:[o.file],title:o.filename,text});return true}catch(e){if(e&&e.name==="AbortError")return"cancel";return false}}
+let TOP=false;try{TOP=window.top===window.self}catch(e){TOP=false}
+function anchorSave(o){try{const u=URL.createObjectURL(o.blob);const a=document.createElement("a");a.href=u;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return"anchor"}catch(e){return false}}
+/* Orden: 1) navegador directo  2) menú de compartir del teléfono  3) descarga de Claude (solo miembros)  4) enlace para abrir el PDF */
+async function trySave(o,share=true){if(TOP)return anchorSave(o);
+  if(share){const r=await tryShare(o,"");if(r===true)return"shared";if(r==="cancel")return"cancel"}
+  const dl=await getDL();if(dl){try{await dl.save({filename:o.filename,data:o.blob});return true}catch(e){if(e&&e.code==="declined")return"cancel";if(e&&e.code==="rate_limited")return"busy"}}
+  return"link"}
+function linkMsg(o){const u=URL.createObjectURL(o.blob);say("warn",`<b>Toque el botón para abrir el PDF</b> y desde ahí imprimirlo, guardarlo o enviarlo.<br><a class="btn primary" style="display:inline-flex;margin-top:10px;text-decoration:none;align-items:center" href="${u}" target="_blank" rel="noopener" download="${esc(o.filename)}">Abrir el PDF</a>`)}
+function tryPrintFrame(o){return new Promise(res=>{try{const u=URL.createObjectURL(o.blob);const fr=document.createElement("iframe");fr.style.cssText="position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";fr.src=u;
+  let done=false;fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();done=true;res(true)}catch(e){res(false)}},300)};document.body.appendChild(fr);setTimeout(()=>{if(!done)res(false)},6000);setTimeout(()=>{fr.remove();URL.revokeObjectURL(u)},120000)}catch(e){res(false)}})}
+async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
+  try{const o=await prepararPDF();
+    if(act==="share"){const r=await tryShare(o,`${ARCHIVO[S.letra]} (PPIE 2026)`);
+      if(r===true)say("ok","<b>Listo.</b> El formato se envió por la aplicación que eligió.");
+      else if(r==="cancel")say("warn","<b>Envío cancelado.</b> Toque el botón de nuevo cuando quiera.");
+      else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
+    else if(act==="print"){
+      if(isIOS){const r=await tryShare(o,"");if(r===true){say("ok","<b>Listo.</b>");return}if(r==="cancel"){say("warn","<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
+      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok","<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>.");return}
+      const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
+      if(g===true||g==="anchor")say("ok",isIOS?"<b>PDF listo.</b> En el menú que aparece elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o desde <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b> para imprimir.");
+      else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
+    else{const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
+      if(g===true||g==="anchor")say("ok",isIOS?"<b>Listo.</b> En el menú elija <b>Guardar en Archivos</b>.":"<b>PDF guardado</b> en <b>Descargas</b>.");
+      else if(g==="cancel")say("warn","<b>Guardado cancelado.</b>");else if(g==="busy")say("warn","Ya hay una ventana abierta; respóndala primero.");else linkMsg(o)}}
+  catch(e){say("warn",`<b>No se pudo generar el PDF.</b> Intente de nuevo. (${esc(e&&(e.code||e.message)||e)})`)}
+  finally{btn.disabled=false;btn.innerHTML=label}}
+
+function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d?d.vals:{};S.step=d?Math.min(d.step,ANEXOS[L].steps.length-1):0;stepView();loadForm(L).catch(()=>{})}
+
+function perfilView(){S.view="perfil";
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Datos de mi escuela</h2></div></div>
+   <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos a mano.</p>
+    <select id="selEsc"><option value="">Otra escuela (llenar a mano)</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
+   <form class="card" id="frm" novalidate>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>`;
+  setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
+  app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked))));
+  document.getElementById("salir").onclick=home;document.getElementById("cancel").onclick=home;
+  document.getElementById("selEsc").onchange=e=>{const v=e.target.value;const set=(k,x)=>{const el=document.getElementById("f_"+k);if(el)el.value=x};
+    if(v===""){["escuela","cct","localidad","domicilio","director","telefono"].forEach(k=>set(k,""));set("municipio","");return}
+    const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
+  document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
+
+if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else home();
+</script>
+
+</body></html>
