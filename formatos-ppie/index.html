@@ -135,7 +135,7 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .nd-h .tx{display:block;min-width:0;flex:1}.nd-h b{display:block;font-size:16px;line-height:1.3}.nd-h .ds{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .nd-h .chev{flex:none;color:var(--muted);font-size:18px}.nd-h:focus-visible,.lib:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 .nd-b{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px;font-size:15px}
-.chip.tag{cursor:default;font-size:13px;background:var(--bg)}.chip.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:13px;background:var(--bg)}.chip.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 .cats,.grados{gap:8px}.grados .chip{min-width:52px;font-size:16px;padding:8px 14px}
 .libs{display:flex;flex-direction:column}.lib{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:15px;min-height:48px}
 .lib:last-child{border-bottom:0}.lib .chev{color:var(--accent);font-size:22px;flex:none}
@@ -587,7 +587,7 @@ function docHTML(d){const open=NV.abierto===d.id;const cat=(NORMAS.categorias.fi
   const pend=d.pendiente?`<div class="soon"><b>Documento por agregar.</b> No está publicado en internet; la Supervisión lo subirá a la app.</div>`:"";
   return`<article class="nd ${open?"on":""}"><button class="nd-h" data-doc="${esc(d.id)}" aria-expanded="${open}"><span class="tx"><b>${esc(d.titulo)}</b><span class="ds">${esc(cat)}${d.pendiente?' · <span class="draft">Por agregar</span>':""}</span></span><span class="chev" aria-hidden="true">${open?"▾":"▸"}</span></button>
    ${open?`<div class="nd-b"><p>${esc(d.regula)}</p>${d.temas?`<div class="chips">${d.temas.map(t=>`<span class="chip tag">${esc(t)}</span>`).join("")}</div>`:""}
-    ${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div></div>`:""}</article>`}
+    ${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div>${d.secciones?`<div><p class="help" style="margin-bottom:6px"><b>Ir directo a:</b></p><div class="chips">${d.secciones.map(x=>`<a class="chip" href="${esc((d.links[0]||{}).u)}#page=${x.p}" target="_blank" rel="noopener">${esc(x.t)}</a>`).join("")}</div></div>`:""}</div>`:""}</article>`}
 async function normasView(){S.view="normas";S.sec="normas";setBar("");
   if(!NORMAS){app.innerHTML=`<p class="muted">Cargando…</p>`;await cargarNormas();if(S.view!=="normas")return}
   if(!NORMAS){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><h2>Normatividad</h2></div><div class="alert"><b>No se pudo cargar la lista.</b> Revise su conexión a internet.</div>`;document.getElementById("salir").onclick=()=>{S.sec=null;home()};return}
