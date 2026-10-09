@@ -140,6 +140,7 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .libs{display:flex;flex-direction:column}.lib{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:15px;min-height:48px}
 .lib:last-child{border-bottom:0}.lib .chev{color:var(--accent);font-size:22px;flex:none}
 .nd-b a.btn{text-decoration:none;font-size:16px;text-align:left}.help a{color:var(--accent)}
+.ndimg{display:block;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.ndimg img{display:block;width:100%;height:auto}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .adminlink{align-self:center;font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
@@ -587,7 +588,7 @@ function docHTML(d){const open=NV.abierto===d.id;const cat=(NORMAS.categorias.fi
   const pend=d.pendiente?`<div class="soon"><b>Documento por agregar.</b> No está publicado en internet; la Supervisión lo subirá a la app.</div>`:"";
   return`<article class="nd ${open?"on":""}"><button class="nd-h" data-doc="${esc(d.id)}" aria-expanded="${open}"><span class="tx"><b>${esc(d.titulo)}</b><span class="ds">${esc(cat)}${d.pendiente?' · <span class="draft">Por agregar</span>':""}</span></span><span class="chev" aria-hidden="true">${open?"▾":"▸"}</span></button>
    ${open?`<div class="nd-b"><p>${esc(d.regula)}</p>${d.temas?`<div class="chips">${d.temas.map(t=>`<span class="chip tag">${esc(t)}</span>`).join("")}</div>`:""}
-    ${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div>${d.secciones?`<div><p class="help" style="margin-bottom:6px"><b>Ir directo a:</b></p><div class="chips">${d.secciones.map(x=>`<a class="chip" href="${esc((d.links[0]||{}).u)}#page=${x.p}" target="_blank" rel="noopener">${esc(x.t)}</a>`).join("")}</div></div>`:""}</div>`:""}</article>`}
+    ${d.imagen?`<a href="${esc(d.imagen)}" target="_blank" rel="noopener" class="ndimg"><img src="${esc(d.imagen)}" alt="${esc(d.titulo)}" loading="lazy" onerror="this.parentNode.hidden=true"></a>`:""}${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div>${d.secciones?`<div><p class="help" style="margin-bottom:6px"><b>Ir directo a:</b></p><div class="chips">${d.secciones.map(x=>`<a class="chip" href="${esc((d.links[0]||{}).u)}#page=${x.p}" target="_blank" rel="noopener">${esc(x.t)}</a>`).join("")}</div></div>`:""}</div>`:""}</article>`}
 async function normasView(){S.view="normas";S.sec="normas";setBar("");
   if(!NORMAS){app.innerHTML=`<p class="muted">Cargando…</p>`;await cargarNormas();if(S.view!=="normas")return}
   if(!NORMAS){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><h2>Normatividad</h2></div><div class="alert"><b>No se pudo cargar la lista.</b> Revise su conexión a internet.</div>`;document.getElementById("salir").onclick=()=>{S.sec=null;home()};return}
