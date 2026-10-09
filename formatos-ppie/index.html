@@ -51,7 +51,7 @@ p{margin:0}
 .field{display:flex;flex-direction:column;gap:6px}
 label,.lbl{font-weight:700}
 .help{font-size:14px;color:var(--muted)}
-input[type=text],input[type=date],input[type=time],input[type=tel],input[type=email],input[type=url],input[type=password],textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);min-height:50px}
+input[type=text],input[type=date],input[type=time],input[type=tel],input[type=email],input[type=url],input[type=password],input[type=search],textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);min-height:50px}
 textarea{min-height:130px;resize:vertical}
 .meter{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 .meter.over{color:var(--warn);font-weight:700}
@@ -129,6 +129,18 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .emer-t{font-family:var(--display);font-size:23px;line-height:1.1}
 .emer-n{display:flex;flex-direction:column;gap:8px}.emer-n a.btn{text-decoration:none;font-size:22px;letter-spacing:.03em}
 .emer .help a{color:var(--accent);font-weight:700}
+.nds{display:flex;flex-direction:column;gap:10px}
+.nd{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}.nd.on{border-color:var(--accent)}
+.nd-h{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:14px;color:var(--ink);font:inherit;cursor:pointer;min-height:56px}
+.nd-h .tx{display:block;min-width:0;flex:1}.nd-h b{display:block;font-size:16px;line-height:1.3}.nd-h .ds{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.nd-h .chev{flex:none;color:var(--muted);font-size:18px}.nd-h:focus-visible,.lib:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.nd-b{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px;font-size:15px}
+.chip.tag{cursor:default;font-size:13px;background:var(--bg)}.chip.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.cats,.grados{gap:8px}.grados .chip{min-width:52px;font-size:16px;padding:8px 14px}
+.libs{display:flex;flex-direction:column}.lib{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:15px;min-height:48px}
+.lib:last-child{border-bottom:0}.lib .chev{color:var(--accent);font-size:22px;flex:none}
+.nd-b a.btn{text-decoration:none;font-size:16px;text-align:left}.help a{color:var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .adminlink{align-self:center;font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 </style>
@@ -556,6 +568,52 @@ async function seguroAdminView(){S.view="admin";setBar("");const tok=store.get("
     finally{b.disabled=false;b.textContent="Guardar y publicar";m.scrollIntoView({behavior:"smooth",block:"center"})}};
   window.scrollTo(0,0)}
 
+/* ---------- Normatividad: consulta de leyes, reglamentos, acuerdos, protocolos y libros de texto ---------- */
+let NORMAS=null;
+async function cargarNormas(){if(NORMAS)return NORMAS;try{const r=await fetch("formatos/normatividad.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;NORMAS=await r.json();store.set("normas-cache",NORMAS)}
+  catch(e){NORMAS=store.get("normas-cache",null)}return NORMAS}
+const LT="https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=primaria&ciclo=2026&clave=";
+const GRADOS_TXT=["Primer","Segundo","Tercer","Cuarto","Quinto","Sexto"];
+function librosGrado(g){const t=GRADOS_TXT[g-1]+" grado",p="P"+g,fase=g<=2?3:g<=4?4:5,cf="P"+(g<=2?1:g<=4?3:5);
+  const al=[["Nuestros saberes: Libro para alumnos, maestros y familia","SDA"],["Múltiples lenguajes","MLA"],["Proyectos de Aula","PAA"],["Proyectos Escolares","PEA"],["Proyectos Comunitarios","PCA"]];
+  if(g<=2)al.push(["Múltiples lenguajes. Trazos y palabras","TPA"],["Múltiples lenguajes. Trazos y números","TNA"]);
+  return{alumno:al.map(([n,c])=>({t:`${n}. ${t}`,u:LT+p+c})),maestro:[{t:`Un libro sin recetas, para la maestra y el maestro. Fase ${fase}`,u:LT+cf+"LPM"}]}}
+const LIBROS_MULTI=[{t:"Cartografía de México y el mundo. Multigrado",u:LT+"P0CMA"},{t:"Nuestros saberes: México, grandeza y diversidad. Multigrado",u:LT+"P0SHA"}];
+const NV={cat:"todos",q:"",grado:1,abierto:null};
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+function docHTML(d){const open=NV.abierto===d.id;const cat=(NORMAS.categorias.find(c=>c.id===d.cat)||{}).nombre||"";
+  const links=(d.links||[]).map(l=>`<a class="btn primary act" href="${esc(l.u)}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">📄</span>${esc(l.t)}</a>`).join("");
+  const app=d.app?`<button class="btn ghost act" data-goapp="${esc(d.app)}">Abrir los formatos en esta app</button>`:"";
+  const pend=d.pendiente?`<div class="soon"><b>Documento por agregar.</b> No está publicado en internet; la Supervisión lo subirá a la app.</div>`:"";
+  return`<article class="nd ${open?"on":""}"><button class="nd-h" data-doc="${esc(d.id)}" aria-expanded="${open}"><span class="tx"><b>${esc(d.titulo)}</b><span class="ds">${esc(cat)}${d.pendiente?' · <span class="draft">Por agregar</span>':""}</span></span><span class="chev" aria-hidden="true">${open?"▾":"▸"}</span></button>
+   ${open?`<div class="nd-b"><p>${esc(d.regula)}</p>${d.temas?`<div class="chips">${d.temas.map(t=>`<span class="chip tag">${esc(t)}</span>`).join("")}</div>`:""}
+    ${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div></div>`:""}</article>`}
+async function normasView(){S.view="normas";S.sec="normas";setBar("");
+  if(!NORMAS){app.innerHTML=`<p class="muted">Cargando…</p>`;await cargarNormas();if(S.view!=="normas")return}
+  if(!NORMAS){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><h2>Normatividad</h2></div><div class="alert"><b>No se pudo cargar la lista.</b> Revise su conexión a internet.</div>`;document.getElementById("salir").onclick=()=>{S.sec=null;home()};return}
+  const cats=[{id:"todos",nombre:"Todos"},...NORMAS.categorias,{id:"libros",nombre:"Libros de texto"}];
+  let body="";
+  if(NV.cat==="libros"){const L=librosGrado(NV.grado);const li=x=>`<a class="lib" href="${esc(x.u)}" target="_blank" rel="noopener"><span>${esc(x.t)}</span><span class="chev" aria-hidden="true">›</span></a>`;
+    body=`<div class="chips grados">${[1,2,3,4,5,6].map(g=>`<button class="chip ${NV.grado===g?"sel":""}" data-grado="${g}">${g}°</button>`).join("")}</div>
+     <section class="card"><h3>Libros del alumno · ${NV.grado}°</h3><div class="libs">${L.alumno.map(li).join("")}</div></section>
+     <section class="card"><h3>Libro para la maestra y el maestro</h3><div class="libs">${L.maestro.map(li).join("")}</div></section>
+     <section class="card"><h3>Multigrado (todos los grados)</h3><div class="libs">${LIBROS_MULTI.map(li).join("")}</div></section>
+     <p class="help">Ciclo escolar 2026-2027. Los libros se abren en el lector oficial de la CONALITEG, donde también se pueden descargar. <a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver el catálogo completo</a>.</p>`}
+  else{const q=norm(NV.q);const docs=NORMAS.documentos.filter(d=>(NV.cat==="todos"||d.cat===NV.cat)&&(!q||norm([d.titulo,d.regula,(d.temas||[]).join(" ")].join(" ")).includes(q)));
+    body=docs.length?`<div class="nds">${docs.map(docHTML).join("")}</div>`:`<div class="soon">No hay documentos que coincidan con «${esc(NV.q)}».</div>`}
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>Normatividad</h2></div></div>
+   <p class="muted">Leyes, reglamentos, acuerdos, protocolos y libros de texto que aplican al personal del ISEP. Cada documento abre la versión oficial.</p>
+   ${NV.cat!=="libros"?`<div class="field"><label for="nq" class="sr">Buscar</label><input type="search" id="nq" placeholder="Buscar: licencias, evaluación, ISSSTE, protección civil…" value="${esc(NV.q)}" autocomplete="off"></div>`:""}
+   <div class="chips cats">${cats.map(c=>`<button class="chip ${NV.cat===c.id?"sel":""}" data-cat="${c.id}">${esc(c.nombre)}</button>`).join("")}</div>
+   ${body}<p class="foot">Lista revisada el ${fmtDate(NORMAS.actualizado,"larga")}. ¿Falta un documento? Escriba a supervision050sep@gmail.com</p>`;
+  document.getElementById("salir").onclick=()=>{S.sec=null;home()};
+  app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{NV.cat=b.dataset.cat;NV.abierto=null;normasView()});
+  app.querySelectorAll("[data-grado]").forEach(b=>b.onclick=()=>{NV.grado=+b.dataset.grado;normasView()});
+  app.querySelectorAll("[data-doc]").forEach(b=>b.onclick=()=>{NV.abierto=NV.abierto===b.dataset.doc?null:b.dataset.doc;const y=b.getBoundingClientRect().top;normasView().then(()=>{const nb=app.querySelector(`[data-doc="${b.dataset.doc}"]`);if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)})});
+  app.querySelectorAll("[data-goapp]").forEach(b=>b.onclick=()=>sectionView(b.dataset.goapp));
+  const nq=document.getElementById("nq");if(nq){nq.oninput=()=>{NV.q=nq.value;const pos=nq.selectionStart;normasView().then(()=>{const n=document.getElementById("nq");if(n){n.focus();n.setSelectionRange(pos,pos)}})}}
+  if(S._normScroll===undefined)window.scrollTo(0,0)}
+
 const ARCHIVO={S:"Aviso de accidente - Seguro escolar",P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
 const GTIT={Personal:"Laboral · Trámites del personal",Docente:"Protección escolar (PPIE) · Lo llena: Docente",Dirección:"Protección escolar (PPIE) · Lo llena: Dirección",Todos:"Protección escolar (PPIE) · Lo llena: Todos","Jefatura de Nivel":"Protección escolar (PPIE) · Lo llena: Jefatura de Nivel"};
@@ -673,9 +731,9 @@ function home(){S.view="home";setBar("");
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
    <div class="group-title">¿Qué necesita hacer?</div>
-   <div class="secs">${SECCIONES.map(x=>{const n=secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
+   <div class="secs">${SECCIONES.map(x=>{const n=x.count?x.count():secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
-      <span class="cnt">${n?`${n} formato${n>1?"s":""}`:"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
+      <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a supervision050sep@gmail.com</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;
   app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
@@ -686,12 +744,14 @@ const ICON={
  book:'<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/></svg>',
  chat:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>',
  chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>',
+ law:'<svg viewBox="0 0 24 24"><path d="M12 3v17M7 20h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>',
  cross:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7.5v9M7.5 12h9"/></svg>',
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos y trámites del personal.",grupos:["Personal"]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
+ {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Planeación, actas de CTE, seguimiento de alumnos y canalizaciones.",grupos:[]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
@@ -699,7 +759,7 @@ const SECCIONES=[
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
-function sectionView(id){const x=SECCIONES.find(z=>z.id===id);S.view="section";S.sec=id;setBar("");
+function sectionView(id){const x=SECCIONES.find(z=>z.id===id);if(x.view)return x.view();S.view="section";S.sec=id;setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
   const tools=(x.tools||[]).map(t=>`<div class="anexos"><button class="anexo tool" data-t="${t.id}"><span class="letra">${t.letra}</span><span class="tx"><b>${esc(t.name)}</b><span class="ds">${esc(t.use)}</span></span></button></div>`).join("");
   const body=tools?tools:x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
