@@ -569,6 +569,11 @@ async function seguroAdminView(){S.view="admin";setBar("");const tok=store.get("
     finally{b.disabled=false;b.textContent="Guardar y publicar";m.scrollIntoView({behavior:"smooth",block:"center"})}};
   window.scrollTo(0,0)}
 
+const CORREO_URL="https://sites.google.com/bcedu.mx/correo-edubc";
+function correoCard(){return`<section class="card" aria-label="Correo institucional"><div><h3>Correo institucional (@bcedu.mx)</h3>
+   <p class="muted" style="font-size:15px">¿Olvidó su contraseña o su cuenta está desactivada? Solicite el restablecimiento o la reactivación en el formulario oficial.</p></div>
+   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CORREO_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">✉️</span>Solicitar restablecimiento o reactivación</a></div>
+   <p class="help">Se abre el sitio oficial «Reactivación y/o restablecimiento de contraseña del Correo Institucional».</p></section>`}
 /* ---------- Normatividad: consulta de leyes, reglamentos, acuerdos, protocolos y libros de texto ---------- */
 let NORMAS=null;
 async function cargarNormas(){if(NORMAS)return NORMAS;try{const r=await fetch("formatos/normatividad.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;NORMAS=await r.json();store.set("normas-cache",NORMAS)}
@@ -750,7 +755,7 @@ const ICON={
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
- {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos y trámites del personal.",grupos:["Personal"]},
+ {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
@@ -769,7 +774,7 @@ function sectionView(id){const x=SECCIONES.find(z=>z.id===id);if(x.view)return x
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>${esc(x.title)}</h2></div></div>
    <p class="muted">${esc(x.desc)}</p>${x.intro?x.intro():""}${body}${x.admin?`<button class="btn link adminlink" id="adminSeg">Supervisión: actualizar teléfonos</button>`:""}`;
   if(x.admin)document.getElementById("adminSeg").onclick=seguroAdminView;
-  if(x.intro&&!SEGURO)cargarSeguro().then(r=>{if(r&&S.view==="section"&&S.sec===id)sectionView(id)});
+  if(x.id==="seguro"&&!SEGURO)cargarSeguro().then(r=>{if(r&&S.view==="section"&&S.sec===id)sectionView(id)});
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
   app.querySelectorAll(".anexo:not(.tool)").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));app.querySelectorAll(".anexo.tool").forEach(b=>b.onclick=()=>edadesView());window.scrollTo(0,0)}
 
