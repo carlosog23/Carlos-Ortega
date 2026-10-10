@@ -763,7 +763,7 @@ const SECCIONES=[
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Planeación, actas de CTE, seguimiento de alumnos y canalizaciones.",grupos:[]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
- {id:"direccion",icon:"school",title:"Dirección",desc:"Libro de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
+ {id:"direccion",icon:"school",title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -876,7 +876,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
 let OUT=null;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
-async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
+async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(S.view==="firmas")return prepararFirmas();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
   const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||[S.vals.nom,S.vals.pat,S.vals.mat].filter(Boolean).join(" ")||"").split(",")[0].trim().slice(0,40);
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
@@ -903,7 +903,7 @@ async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.t
       else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
     else if(act==="print"){
       if(isIOS){const r=await tryShare(o,"");if(r===true){say("ok","<b>Listo.</b>");return}if(r==="cancel"){say("warn","<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
-      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"?" en orientación <b>horizontal</b>":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
+      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"?" en orientación <b>horizontal</b>":S.view==="firmas"?" en orientación <b>vertical</b>":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
       const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
       if(g===true||g==="anchor")say("ok",isIOS?"<b>PDF listo.</b> En el menú que aparece elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o desde <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b> para imprimir.");
       else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
@@ -1033,9 +1033,268 @@ async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.
   catch(e){say("warn",`<b>No se pudo generar el Excel.</b> (${esc(e.message||e)})`)}
   finally{btn.disabled=false;btn.innerHTML=label}}
 
+/* ---------- Logo de la escuela (lo comparten el libro de visitas y el de firmas) ---------- */
+const LOGO_KEY="logo-escuela";let LOGO_ESC,LOGO_ORIG=null;
+function logoGet(){if(LOGO_ESC===undefined)LOGO_ESC=store.get(LOGO_KEY,null)||store.get("libro-visitas-logo",null);return LOGO_ESC}
+function logoSet(u){LOGO_ESC=u||null;store.del("libro-visitas-logo");if(!u){store.del(LOGO_KEY);return true}try{localStorage.setItem(LOGO_KEY,JSON.stringify(u));return true}catch(e){return false}}
+function imgLoad(src){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>no(new Error("No se pudo leer la imagen. Use un archivo JPG o PNG."));im.src=src})}
+function lienzo(w,h){const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c}
+function tieneAlfa(c){const d=c.getContext("2d").getImageData(0,0,c.width,c.height).data;for(let i=3;i<d.length;i+=16)if(d[i]<245)return true;return false}
+function aURL(c){return tieneAlfa(c)?c.toDataURL("image/png"):c.toDataURL("image/jpeg",0.93)}
+async function logoDesdeArchivo(file){const u=URL.createObjectURL(file);try{const im=await imgLoad(u);const M=1600,f=Math.min(1,M/Math.max(im.naturalWidth,im.naturalHeight));
+  const c=lienzo(im.naturalWidth*f,im.naturalHeight*f);const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,c.width,c.height);return aURL(c)}finally{URL.revokeObjectURL(u)}}
+function logoCalidad(im){const m=Math.max(im.naturalWidth,im.naturalHeight);return{w:im.naturalWidth,h:im.naturalHeight,cal:m<350?"baja":m<700?"media":"buena"}}
+/* Mejora con inteligencia artificial (ESRGAN) que corre en el propio navegador: no se envía nada a internet */
+async function mejorarLogo(src,prog){const im=await imgLoad(src);const w=im.naturalWidth,h=im.naturalHeight,m=Math.max(w,h);const scale=m<=260?4:2;
+  const orig=lienzo(w,h);orig.getContext("2d").drawImage(im,0,0);const alfa=tieneAlfa(orig);
+  const base=lienzo(w,h),bx=base.getContext("2d");bx.fillStyle="#fff";bx.fillRect(0,0,w,h);bx.drawImage(im,0,0);const inp=await imgLoad(base.toDataURL("image/png"));
+  await loadScript("lib/tf.min.js");await loadScript("lib/upscaler.min.js");await loadScript(`lib/esrgan/x${scale}/def.min.js`);
+  const def=window[`ESRGANSlim${scale}x`];const up=new Upscaler({model:{...def,path:new URL(`lib/esrgan/x${scale}/model.json`,location.href).href}});
+  try{const out=await up.upscale(inp,{output:"base64",patchSize:64,padding:6,progress:p=>prog&&prog(p)});
+    const oi=await imgLoad(out);const W=oi.naturalWidth,H=oi.naturalHeight;const r=lienzo(W,H),rx=r.getContext("2d");rx.drawImage(oi,0,0);
+    if(alfa){const a=lienzo(W,H),ax=a.getContext("2d");ax.imageSmoothingQuality="high";ax.drawImage(im,0,0,W,H);const ad=ax.getImageData(0,0,W,H).data,rd=rx.getImageData(0,0,W,H);
+      for(let i=3;i<rd.data.length;i+=4)rd.data[i]=ad[i];rx.putImageData(rd,0,0)}
+    else{/* limpia el borde que deja el modelo cuando el fondo es claro */const B=3*scale,id=rx.getImageData(0,0,W,H),d=id.data;
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x>=B&&x<W-B&&y>=B&&y<H-B)continue;const i=(y*W+x)*4;if(d[i]+d[i+1]+d[i+2]>600){d[i]=d[i+1]=d[i+2]=255}}rx.putImageData(id,0,0)}
+    return aURL(r)}finally{try{up.dispose()}catch(e){}}}
+async function embedLogo(doc){const L=logoGet();if(!L)return null;try{return L.startsWith("data:image/png")?await doc.embedPng(L):await doc.embedJpg(L)}catch(e){return null}}
+function logoWidgetHTML(){const L=logoGet();
+  return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Si no sube uno, se usa el logo de la Zona 050.</p>
+   <div class="ph"><div class="phf lvlogo" id="lg_pv">${L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
+    <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lg_file" hidden></label>
+     <button type="button" class="btn ghost" id="lg_up" ${L?"":"hidden"}>✨ Mejorar calidad</button>
+     <button type="button" class="btn link" id="lg_undo" hidden>Deshacer la mejora</button>
+     <button type="button" class="btn link" id="lg_del" ${L?"":"hidden"}>Quitar logo</button></div></div>
+   <div class="help" id="lg_m"></div></section>`}
+function wireLogo(onChange){const g=id=>document.getElementById(id);
+  const info=async extra=>{const L=logoGet();if(!L){g("lg_m").innerHTML=extra||"";return}try{const i=logoCalidad(await imgLoad(L));
+    g("lg_m").innerHTML=`Tamaño: ${i.w} × ${i.h} px · Calidad <b>${i.cal}</b>${i.cal==="buena"?".":LOGO_ORIG?". Si aún se ve borroso, puede mejorarlo otra vez.":". Toque <b>«Mejorar calidad»</b> para que se vea nítido al imprimir."}${extra?"<br>"+extra:""}`}catch(e){}};
+  const show=extra=>{const L=logoGet();g("lg_pv").innerHTML=L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>";g("lg_up").hidden=!L;g("lg_del").hidden=!L;g("lg_undo").hidden=!LOGO_ORIG;OUT=null;info(extra);onChange&&onChange()};
+  const guardar=(u,extra)=>{const ok=logoSet(u);show(ok?extra:(extra?extra+" ":"")+"<b>Ojo:</b> el logo es grande y no cupo en la memoria del navegador; se usará mientras no cierre esta página.")};
+  g("lg_file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("lg_m").textContent="Procesando…";
+    try{LOGO_ORIG=null;guardar(await logoDesdeArchivo(f),"Logo listo.")}catch(err){g("lg_m").textContent=err.message}};
+  g("lg_up").onclick=async()=>{const b=g("lg_up"),L=logoGet();if(!L)return;const q=logoCalidad(await imgLoad(L));
+    if(q.cal==="buena"){info("Su logo ya tiene buena resolución; no necesita mejorarse.");return}
+    b.disabled=true;b.textContent="Mejorando… 0%";g("lg_m").textContent="Mejorando el logo con inteligencia artificial en este equipo. Puede tardar de unos segundos a un minuto; no cierre la página.";
+    try{const out=await mejorarLogo(L,p=>{b.textContent=`Mejorando… ${Math.round(p*100)}%`});LOGO_ORIG=L;guardar(out,"<b>Logo mejorado.</b> Compárelo; si no le gusta, toque «Deshacer la mejora».")}
+    catch(err){g("lg_m").innerHTML=`<b>No se pudo mejorar el logo.</b> Revise su conexión e intente de nuevo. (${esc(err.message||err)})`}
+    finally{b.disabled=false;b.textContent="✨ Mejorar calidad"}};
+  g("lg_undo").onclick=()=>{const o=LOGO_ORIG;LOGO_ORIG=null;guardar(o,"Se restauró el logo original.")};
+  g("lg_del").onclick=()=>{LOGO_ORIG=null;guardar(null,"")};
+  info()}
+
+/* ---------- Libro de firmas (registro de asistencia del personal) ---------- */
+const LF_KEY="libro-firmas";let LF=null,CAL=null;
+async function cargarCal(){if(CAL)return CAL;try{const r=await fetch("formatos/calendario.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;CAL=await r.json();store.set("cal-cache",CAL)}catch(e){CAL=store.get("cal-cache",null)}return CAL}
+const DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const dOf=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const fechaLarga=s=>{const d=dOf(s);return`${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`};
+const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`};
+function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
+function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
+function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,
+    portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
+  if(i>=0)lfFromZona(o,i);else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.lugar=[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", ")}
+  return o}
+function lfEventos(){const ev={};(CAL?.eventos||[]).forEach(([a,b,t])=>{for(let d=dOf(a);isoD(d)<=b;d.setDate(d.getDate()+1)){const k=isoD(d);(ev[k]=ev[k]||[]).push(t)}});
+  const out={};for(const[k,v]of Object.entries(ev))out[k]=v.join(" · ");for(const[k,v]of Object.entries(LF.ed||{})){if(v)out[k]=v;else delete out[k]}return out}
+const esSusp=t=>/suspensi[oó]n de labores/i.test(t||"");
+function lfDias(){if(!CAL)return[];const ev=lfEventos(),vac=CAL.vacaciones||[],out=[];let n=0;
+  for(let d=dOf(CAL.inicio);isoD(d)<=CAL.fin;d.setDate(d.getDate()+1)){const k=isoD(d),w=d.getDay();if(w===0||w===6)continue;if(vac.some(([a,b])=>k>=a&&k<=b))continue;
+    if(!LF.susp&&esSusp(ev[k]))continue;n++;out.push({f:k,no:n,ev:ev[k]||""})}return out}
+function lfSel(){const D=lfDias();const a=LF.desde||CAL?.inicio||"",b=LF.hasta||CAL?.fin||"";return D.filter(x=>x.f>=a&&x.f<=b)}
+function lfProblemas(v){const p=[];if(!CAL)p.push("No se pudo cargar el calendario oficial. Revise su conexión.");if(!v.nombre.trim())p.push("Escriba el nombre de la escuela.");
+  if(CAL&&!lfSel().length)p.push("El periodo elegido no tiene días hábiles.");const b=Number(v.blancas);if(!Number.isInteger(b)||b<0||b>50)p.push("Las hojas en blanco deben ser de 0 a 50.");return p}
+
+/* textos de las hojas de normatividad (sin logos del Gobierno ni de la SE) */
+const LF_NORMAS=[
+ {titulo:null,bloques:[
+  {p:[{t:"Con base en la Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII; Artículo 47, Fracción III, y las Condiciones Generales de Trabajo del Personal de la SEP, Artículos 25 y 80, en donde la autoridad correspondiente cumplirá y hará cumplir dicha normatividad haciendo las observaciones a quien le corresponda, se integra el presente registro, considerando lo siguiente:"}],a:"j",after:12},
+  {p:[{t:"1. Los directivos, personal docente, administrativo y de intendencia anotarán su nombre y firmarán en el orden de llegada al centro de trabajo, anotando la hora de su ingreso.",b:1}],a:"j",after:4},
+  {p:[{t:"2. Transcurridos los 10 minutos de tolerancia se deberá trazar una línea roja a partir del último firmante en el registro de asistencia."}],a:"j",after:4},
+  {p:[{t:"3. Transcurridos los 30 minutos después de la hora de entrada, la autoridad correspondiente resguardará el registro de asistencia y anotará, en caso de requerirse, el nombre del trabajador ausente y en observaciones «falta injustificada». En caso de que el trabajador muestre documentos que justifiquen su inasistencia, la autoridad inmediata hará las observaciones que correspondan."}],a:"j",after:4},
+  {p:[{t:"4. Firma de salida. El registro de asistencia se deberá instalar en un lugar visible para que el personal que labora en el centro de trabajo firme indicando su hora de salida."}],a:"j",after:16},
+  {p:[{t:"RECOMENDACIONES GENERALES",b:1}],a:"c",after:10},
+  {p:[{t:"De acuerdo con la Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII, las autoridades educativas deberán tener acceso a este Registro de Asistencia. El resguardo será responsabilidad de la autoridad inmediata del centro de trabajo que corresponda."}],a:"j",after:16},
+  {p:[{t:"ANEXOS",b:1}],a:"c",after:10},
+  {p:[{t:"Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII y Artículo 47, Fracción III; y Condiciones Generales de Trabajo del Personal de la SEP, Artículo 25, Fracción II, y Artículo 80."}],a:"j",after:0}]},
+ {titulo:null,bloques:[
+  {p:[{t:"LEY DE RESPONSABILIDADES DE LOS SERVIDORES PÚBLICOS DEL ESTADO DE BAJA CALIFORNIA",b:1}],a:"c",after:2,s:11.5},
+  {p:[{t:"Publicada en el Periódico Oficial No. 40, de fecha 29 de agosto de 2003, Sección II",b:1}],a:"c",after:12,s:10.5},
+  {p:[{t:"TÍTULO TERCERO",b:1}],a:"c",after:8,s:10.5},
+  {p:[{t:"RESPONSABILIDAD ADMINISTRATIVA",b:1}],a:"c",after:1,s:10.5},{p:[{t:"CAPÍTULO I",b:1}],a:"c",after:1,s:10.5},
+  {p:[{t:"OBLIGACIONES Y PROHIBICIONES DEL SERVIDOR PÚBLICO",b:1}],a:"c",after:16,s:10.5},
+  {p:[{t:"ARTÍCULO 46.-",b:1},{t:"Todo servidor público debe desempeñar su función, empleo, cargo o comisión observando siempre los principios de Legalidad, Honradez, Lealtad, Imparcialidad y Eficiencia, actuando dentro del orden jurídico, respetando en todo momento la Constitución Política de los Estados Unidos Mexicanos, la Constitución Política del Estado Libre y Soberano de Baja California y las Leyes, Decretos y Acuerdos que de una y otra emanen."}],a:"j",after:12},
+  {p:[{t:"FRACCIÓN XII.-",b:1},{t:"Atender con diligencia las instrucciones, requerimientos y resoluciones que reciba de los Síndicos Procuradores, el Órgano de Control o de la Dirección, según sea el caso, conforme a la competencia y facultades de éstos; proporcionando oportunamente los datos, la información y los documentos relacionados con la Administración y ejercicio de las Finanzas Públicas, y no obstaculizar la práctica de visitas, inspecciones o auditorías y el acceso a los archivos, que le requieran las autoridades en las formas, términos y condiciones señaladas por la normatividad aplicable."}],a:"j",after:12},
+  {p:[{t:"ARTÍCULO 47.-",b:1},{t:"Los servidores públicos, en el desempeño de sus funciones, empleos o comisiones, estarán sujetos a las prohibiciones siguientes:"}],a:"j",after:12},
+  {p:[{t:"FRACCIÓN III.-",b:1},{t:"Autorizar a un subordinado a no asistir sin causa justificada a sus labores, así como otorgar indebidamente licencias, permisos o comisiones con goce parcial o total de sueldo y otras percepciones."}],a:"j",after:0}]},
+ {titulo:null,s:9.6,bloques:[
+  {p:[{t:"REGLAMENTO DE LAS CONDICIONES GENERALES DE TRABAJO DEL PERSONAL DE LA SECRETARÍA DE EDUCACIÓN PÚBLICA",b:1}],a:"c",after:10,s:10.5},
+  {p:[{t:"CAPÍTULO IV",b:1}],a:"c",after:2,s:10.5},{p:[{t:"DE LOS DERECHOS Y OBLIGACIONES DE LOS TRABAJADORES",b:1}],a:"c",after:10,s:10.5},
+  {p:[{t:"Artículo 25.",b:1},{t:"Son obligaciones de los trabajadores:"}],a:"j",after:5},
+  {p:[{t:"Fracción II.-",b:1},{t:"Asistir con puntualidad al desempeño de sus labores y cumplir con las disposiciones que se dicten para comprobarla."}],a:"j",after:10},
+  {p:[{t:"CAPÍTULO XIII",b:1}],a:"c",after:8,s:10.5},
+  {p:[{t:"Artículo 80.",b:1},{t:"La falta de puntualidad en la asistencia a las labores a que se refiere la fracción II del artículo 25 estará sujeta a las siguientes normas:"}],a:"j",after:6},
+  ...[["a)","Todo empleado que se presente a sus labores después de transcurridos los 10 minutos de tolerancia que concede este Reglamento, pero sin que el retardo exceda de 20 minutos, dará origen a la aplicación de una nota mala por cada 2 retardos en un mes."],
+   ["b)","El empleado que se presente a sus labores después de que hayan transcurrido los primeros 20 minutos siguientes a los 10 de tolerancia, pero sin exceder de 30, dará lugar a una nota mala por cada retardo."],
+   ["c)","Transcurridos los 30 minutos de que habla el inciso anterior, después de la hora fijada para la iniciación de las labores, no se permitirá a ningún empleado registrar su asistencia, por considerar el caso como falta injustificada, y el trabajador no tendrá derecho a percibir el salario correspondiente."],
+   ["d)","El empleado que acumule 5 notas malas por los retardos en que incurra, computados en los términos de los incisos anteriores, dará lugar a un día de suspensión de sus labores y sueldo."],
+   ["e)","El empleado que haya acumulado 7 suspensiones en el término de un año motivadas por impuntualidad en la asistencia dará lugar a que se solicite del Tribunal de Arbitraje la terminación de los efectos de su nombramiento, de acuerdo con el artículo 44, fracción V, inciso (i) del Estatuto."],
+   ["f)","La falta del trabajador a sus labores, que no se justifique por medio de licencia legalmente concedida, lo priva del derecho de reclamar el salario correspondiente a la jornada o jornadas de trabajo no desempeñadas."],
+   ["g)","Sin perjuicio de lo establecido en el inciso que antecede, cuando las faltas sean consecutivas se impondrán al empleado: por 2 faltas, el importe del salario correspondiente y amonestación por escrito; por 3 faltas, el importe del salario que deje de devengar durante los días faltados y un día de suspensión; por 4 faltas, el importe del salario correspondiente a los días que deje de concurrir y 2 de suspensión, sin perjuicio de la facultad concedida a la Secretaría por el artículo 44, fracción V, inciso (b) del Estatuto."],
+   ["h)","Si las faltas no son consecutivas, se observarán las siguientes reglas: hasta 4 faltas en 2 meses, se amonestará al empleado por escrito sin derecho a cobrar el importe de los días no trabajados; hasta por 6 faltas en dos meses, se le impondrán hasta tres días de suspensión sin derecho a cobrar el importe del salario correspondiente a los días no laborados injustificadamente, ni el de los relativos a la suspensión; por 13 a 18 en seis meses, 7 días de suspensión también sin derecho a cobrar el salario de los días no laborados, ni los relativos a la suspensión, y sin perjuicio de aplicar el inciso (i), fracción V del artículo 44 del Estatuto."]]
+   .map(([l,t])=>({p:[{t:l},{t}],a:"j",after:3,ind:16,lab:l}))]}];
+
+async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocument,StandardFonts,rgb}=PDFLib;
+  const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
+  const C={ink:rgb(0,0,0),gu:rgb(.43,.12,.2),gray:rgb(.75,.75,.75),hd:rgb(.75,.75,.75),red:rgb(.86,.08,.08),mid:rgb(.3,.3,.32)};
+  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
+  const logo=await embedLogo(doc);const es050=String(v.zona||"").trim()==="050";const escLogo=logo||(es050?zona:null);
+  const PW=612,PH=792,Y=t=>PH-t,up=t=>t.toLocaleUpperCase("es-MX");
+  const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),lugar=clean(v.lugar.trim()),ciclo=clean(CAL?.ciclo||"");
+  const fit=(t,font,size,maxW,min=6)=>{let s=size;while(s>min&&font.widthOfTextAtSize(t,s)>maxW)s-=0.25;return s};
+  const img=(pg,im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:Y(top)-h+(h-ih)/2,width:iw,height:ih})};
+  const ctr=(pg,t,top,size,font,color=C.ink,cx=PW/2,maxW=520)=>{const s=fit(t,font,size,maxW);const w=font.widthOfTextAtSize(t,s);pg.drawText(t,{x:cx-w/2,y:Y(top),size:s,font,color});return{w,s}};
+  const hline=(pg,x1,x2,top,th=0.8,color=C.ink)=>pg.drawLine({start:{x:x1,y:Y(top)},end:{x:x2,y:Y(top)},thickness:th,color});
+
+  /* Portada */
+  if(v.portada){const pg=doc.addPage([PW,PH]);
+    img(pg,isep,214,8,184,136);pg.drawRectangle({x:0,y:Y(126),width:205,height:11,color:C.gray});pg.drawRectangle({x:407,y:Y(126),width:205,height:11,color:C.gray});
+    ctr(pg,`Registro de Asistencia del Personal adscrito a la ${tipo}`,178,12,F.b,C.ink,PW/2,540);
+    ctr(pg,nombre,262,50,F.b,C.ink,PW/2,540);
+    if(cct)ctr(pg,`CLAVE: ${cct}`,296,14,F.b);
+    if(zn)ctr(pg,`Zona Escolar ${zn}`,314,11,F.r,C.mid);
+    img(pg,escLogo||isep,186,336,240,250);
+    ctr(pg,"CICLO ESCOLAR",666,34,F.r);hline(pg,170,442,674,2.4,C.gu);
+    pg.drawRectangle({x:0,y:Y(718),width:150,height:12,color:C.gray});pg.drawRectangle({x:462,y:Y(718),width:150,height:12,color:C.gray});
+    ctr(pg,ciclo,730,48,F.b,C.ink,PW/2,300)}
+
+  /* Normatividad */
+  if(v.normas){const hojas=preview?LF_NORMAS.slice(0,1):LF_NORMAS;const X0=58,WW=PW-116;
+    for(const H of hojas){let pg=doc.addPage([PW,PH]);
+      const cab=p=>{img(p,isep,48,30,104,62);img(p,es050?zona:escLogo,PW-48-74,26,74,70);ctr(p,"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS",52,10.5,F.b,C.ink,PW/2,330);ctr(p,"DE BAJA CALIFORNIA",65,10.5,F.b,C.ink,PW/2,330);
+        if(zn)ctr(p,`SUPERVISIÓN ESCOLAR ZONA ${zn}`,79,10,F.b,C.gu,PW/2,330);hline(p,48,PW-48,104,1,C.gu);return 128};
+      let top=cab(pg);const base=H.s||10.8;
+      for(const bl of H.bloques){const s=bl.s||base,lh=s*1.52,ind=bl.ind||0;let segs=bl.p;
+        let L=lvWrap(bl.lab?segs.slice(1):segs,WW-ind,s);
+        if(top+L.length*lh>PH-50){pg=doc.addPage([PW,PH]);top=cab(pg)}
+        if(bl.lab)pg.drawText(bl.lab,{x:X0,y:Y(top+s*0.85),size:s,font:F.r,color:C.ink});
+        L.forEach((ln,i)=>{const y=Y(top+s*0.85+i*lh);const lw=ln.reduce((a,w)=>a+w.ww,0)+F.r.widthOfTextAtSize(" ",s)*(ln.length-1);
+          let x=X0+ind,gap=F.r.widthOfTextAtSize(" ",s);if(bl.a==="c")x=X0+(WW-lw)/2;else if(bl.a==="j"&&i<L.length-1&&ln.length>1)gap+=(WW-ind-lw)/(ln.length-1);
+          ln.forEach(w=>{pg.drawText(w.w,{x,y,size:s,font:w.b?F.b:F.r,color:C.ink});x+=w.ww+gap})});
+        top+=L.length*lh+(bl.after||0)}}}
+
+  /* Hojas diarias */
+  const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
+  const hT=201.6,hB=237.6,bT=246,bB=628.6,fl=+v.filas||19,rh=(bB-bT)/fl;
+  const dia=(d)=>{const pg=doc.addPage([PW,PH]);
+    pg.drawRectangle({x:492.5,y:Y(65),width:72,height:24,borderColor:C.ink,borderWidth:0.8});ctr(pg,d?`No. ${d.no}`:"No.",57,10.5,F.b,C.red,528.5,66);
+    ctr(pg,`Registro de Asistencia del Personal adscrito a la ${tipo}`,62,8.6,F.b,C.ink,306,300);
+    img(pg,isep,62,68,108,70);if(escLogo)img(pg,escLogo,478,68,82,70);
+    ctr(pg,nombre,80,15,F.b,C.ink,306,290);if(cct)ctr(pg,`CLAVE: ${cct}`,96,10,F.b,C.ink,306);if(zn)ctr(pg,`Zona ${zn}`,111,10,F.r,C.ink,306);
+    ctr(pg,"CICLO ESCOLAR",128,12,F.r,C.ink,306);hline(pg,228,385,135,1.2,C.gu);ctr(pg,ciclo,151,14,F.b,C.ink,306);
+    const pre=`${lugar?lugar+" ":""}a `;const s1=11;pg.drawText(pre,{x:59,y:Y(176),size:s1,font:F.r,color:C.ink});
+    if(d)pg.drawText(fechaLarga(d.f)+".",{x:59+F.r.widthOfTextAtSize(pre,s1)+2,y:Y(176),size:s1,font:F.b,color:C.ink});else hline(pg,59+F.r.widthOfTextAtSize(pre,s1)+2,400,177,0.6);
+    pg.drawRectangle({x:X[0],y:Y(hB),width:X[7]-X[0],height:hB-hT,color:C.hd,borderColor:C.ink,borderWidth:0.7});
+    X.forEach(x=>pg.drawLine({start:{x,y:Y(hT)},end:{x,y:Y(hB)},thickness:0.7,color:C.ink}));
+    HD.forEach((ls,i)=>{const cx=(X[i]+X[i+1])/2,s=8,lh=9.4;const t0=(hT+hB)/2-(ls.length*lh)/2+s*0.8;ls.forEach((l,j)=>{const w=F.b.widthOfTextAtSize(l,s);pg.drawText(l,{x:cx-w/2,y:Y(t0+j*lh),size:s,font:F.b,color:C.ink})})});
+    for(let r=0;r<=fl;r++)hline(pg,X[0],X[7],bT+r*rh,0.7);X.forEach(x=>pg.drawLine({start:{x,y:Y(bT)},end:{x,y:Y(bB)},thickness:0.7,color:C.ink}));
+    for(let r=0;r<fl;r++){const t=`${r+1}.`;const w=F.r.widthOfTextAtSize(t,9);pg.drawText(t,{x:(X[0]+X[1])/2-w/2,y:Y(bT+r*rh+rh/2+3.2),size:9,font:F.r,color:C.ink})}
+    pg.drawText("Observaciones:",{x:49,y:Y(646),size:10,font:F.r,color:C.ink});hline(pg,49,589,662,0.6);hline(pg,49,589,681,0.6);
+    if(v.recuadro){pg.drawRectangle({x:48,y:Y(754),width:267,height:64,borderColor:C.ink,borderWidth:0.8});
+      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],255,9.5);L.slice(0,5).forEach((ln,i)=>{const t=ln.map(w=>w.w).join(" ");ctr(pg,t,701+i*11.5,9.5,F.b,C.ink,181.5,255)})}}
+    hline(pg,358.6,560,752,0.8);if(v.dirnom.trim())ctr(pg,clean(v.dirnom.trim()),746,9.5,F.r,C.ink,459.3,200);ctr(pg,clean(v.firma.trim()||"Director del plantel"),765,11,F.b,C.ink,459.3,200)};
+  let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
+  lista.forEach(dia);
+  const nb=preview?Math.min(1,+v.blancas||0):(+v.blancas||0);for(let i=0;i<nb;i++)dia(null);
+  doc.setTitle(`Libro de firmas - ${tipo} ${nombre} - ${ciclo}`);doc.setProducer("Gestión Escolar Zona 050");doc.setAuthor("Supervisión Escolar Zona 050");
+  return await doc.save()}
+
+async function prepararFirmas(){if(OUT&&OUT.letra==="firmas")return OUT;const bytes=await lfPDF(false);const DS=lfSel();
+  const rango=(LF.desde||LF.hasta)&&DS.length?` - ${DS[0].f} al ${DS[DS.length-1].f}`:"";
+  const filename=`Libro de firmas - ${LF.tipo} ${LF.nombre} - ${CAL?.ciclo||""}${rango}.pdf`.replace(/[\\/:*?"<>|«»]/g,"").replace(/\s+/g," ");
+  const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:"firmas",filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
+
+async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("");OUT=null;
+  if(!CAL){app.innerHTML=`<p class="muted">Cargando el calendario oficial…</p>`;await cargarCal();if(S.view!=="firmas")return}
+  const v=LF;v.ed=v.ed||{};const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
+  const ev=CAL?lfEventos():{};const evList=Object.keys(ev).sort();const nEd=Object.keys(v.ed).length;
+  const vacs=(CAL?.vacaciones||[]).map(([a,b,t])=>`${esc(t)}: ${fechaCorta(a)} al ${fechaCorta(b)}`).join("<br>");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de firmas del personal</h2></div></div>
+   <p class="muted">Registro de asistencia del personal: una hoja por cada día hábil del ciclo escolar, con la fecha ya escrita y las fechas importantes del calendario oficial en el recuadro de abajo.</p>
+   ${CAL?"":`<div class="alert"><b>No se pudo cargar el calendario oficial.</b> Revise su conexión y vuelva a entrar.</div>`}
+   <section class="card"><h3>Escuela</h3>
+    <div class="field"><label for="lf_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+     <select id="lf_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
+    <div class="field"><label for="lf_tipo">Tipo de escuela</label><input type="text" id="lf_tipo" value="${esc(v.tipo)}" autocomplete="off"></div>
+    <div class="field"><label for="lf_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="lf_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label for="lf_cct">Clave (C.C.T.)</label><input type="text" id="lf_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
+     <div class="field"><label for="lf_zona">Zona escolar</label><input type="text" id="lf_zona" value="${esc(v.zona)}" inputmode="numeric" autocomplete="off"></div></div>
+    <div class="field"><label for="lf_lugar">Lugar (va antes de la fecha)</label><p class="help">Ejemplo: «${esc(v.lugar||"Camalú, San Quintín, Baja California")} a lunes, 24 de agosto de 2026».</p><input type="text" id="lf_lugar" value="${esc(v.lugar)}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label for="lf_firma">Firma de abajo</label><input type="text" id="lf_firma" value="${esc(v.firma)}" autocomplete="off"></div>
+     <div class="field"><label for="lf_dirnom">Nombre sobre la firma <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="lf_dirnom" value="${esc(v.dirnom)}" autocomplete="off"></div></div>
+    <div class="chips">${["Director del plantel","Directora del plantel","Encargado de despacho","Encargada de despacho"].map(c=>`<button type="button" class="chip" data-firma="${esc(c)}">${esc(c)}</button>`).join("")}</div></section>
+   ${logoWidgetHTML()}
+   ${CAL?`<section class="card"><h3>Calendario oficial ${esc(CAL.ciclo)}</h3>
+    <p class="help">Calendario escolar de ${esc(CAL.entidad)} cargado por la Supervisión Escolar Zona 050. Del ${fechaLarga(CAL.inicio)} al ${fechaLarga(CAL.fin)}; no se incluyen sábados, domingos ni vacaciones.</p>
+    <p class="help">${vacs}</p>
+    <details class="card" style="padding:12px"><summary><b>Fechas importantes del recuadro</b> · ${evList.length} días${nEd?` · <span class="draft">${nEd} cambio(s) de la escuela</span>`:""}</summary>
+     <p class="help">Puede corregir el texto de un día, borrarlo, o agregar una fecha propia de la escuela (por ejemplo, un festival). Los cambios solo aplican en este dispositivo.</p>
+     <div class="al" id="lf_evs">${evList.map(k=>`<div class="alr" style="flex-wrap:wrap"><span class="ae" style="min-width:96px">${fechaCorta(k)}</span><input type="text" data-ev="${k}" value="${esc(ev[k])}" style="flex:1;min-width:160px;min-height:40px;padding:6px 10px"><button type="button" class="btn link" data-evdel="${k}" aria-label="Quitar">Quitar</button></div>`).join("")}</div>
+     <div class="row2"><div class="field"><label for="lf_nf">Fecha</label><input type="date" id="lf_nf" min="${CAL.inicio}" max="${CAL.fin}"></div><div class="field"><label for="lf_nt">Texto</label><input type="text" id="lf_nt" placeholder="Ej. Festival del Día de las Madres"></div></div>
+     <button type="button" class="btn ghost" id="lf_add">Agregar fecha</button>
+     ${nEd?`<button type="button" class="btn link" id="lf_reset">Volver a las fechas oficiales</button>`:""}</details></section>`:""}
+   <section class="card"><h3>Hojas del libro</h3>
+    <div class="row2"><div class="field"><label for="lf_desde">Desde</label><input type="date" id="lf_desde" value="${esc(v.desde||CAL?.inicio||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div>
+     <div class="field"><label for="lf_hasta">Hasta</label><input type="date" id="lf_hasta" value="${esc(v.hasta||CAL?.fin||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div></div>
+    <p class="help">Para todo el ciclo deje las fechas como están. Si lo imprime por partes (por ejemplo, por mes), el número de hoja sigue la numeración del ciclo completo.</p>
+    <div class="row2"><div class="field"><label for="lf_filas">Renglones por hoja</label><select id="lf_filas">${[15,16,17,18,19,20,21,22].map(n=>`<option ${+v.filas===n?"selected":""}>${n}</option>`).join("")}</select></div>
+     <div class="field"><label for="lf_blancas">Hojas en blanco al final</label><input type="number" id="lf_blancas" min="0" max="50" step="1" inputmode="numeric" value="${esc(v.blancas)}"></div></div>
+    <p class="help">Las hojas en blanco llevan número y fecha vacíos, para días extra o reposiciones.</p>
+    <div id="lf_res"></div></section>
+   <section class="card"><h3>Opciones</h3><div class="opts">
+    ${chk("lf_portada",v.portada,"Incluir portada")}${chk("lf_normas",v.normas,"Incluir hojas de normatividad (lineamientos, Ley de Responsabilidades y Condiciones Generales de Trabajo)")}
+    ${chk("lf_recuadro",v.recuadro,"Poner las fechas importantes en el recuadro de abajo")}${chk("lf_susp",v.susp,"Incluir hojas de los días de suspensión de labores docentes")}</div></section>
+   <section class="card"><h3>Vista previa</h3><p class="help">Muestra la portada, la primera hoja de normatividad, el primer día y un día con fecha importante.</p>
+    <button class="btn ghost" id="lf_prev">Ver vista previa</button><div id="lf_pvw" class="lvpv"></div></section>
+   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>vertical</b>.</p>
+    <div class="acts">
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+    <div id="msg"></div></section>
+   <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;
+    v.desde=g("lf_desde").value===CAL?.inicio?"":g("lf_desde").value;v.hasta=g("lf_hasta").value===CAL?.fin?"":g("lf_hasta").value;v.filas=+g("lf_filas").value;v.blancas=g("lf_blancas").value;
+    v.portada=g("lf_portada").checked;v.normas=g("lf_normas").checked;v.recuadro=g("lf_recuadro").checked;v.susp=g("lf_susp").checked;store.set(LF_KEY,v);OUT=null;resumen()};
+  const resumen=()=>{const p=lfProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
+    if(p.length){g("lf_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
+    const DS=lfSel(),nb=+v.blancas||0,tot=DS.length+nb+(v.portada?1:0)+(v.normas?LF_NORMAS.length:0);
+    g("lf_res").innerHTML=`<div class="okmsg"><b>${DS.length} días hábiles</b> · hojas No. ${DS[0].no} a ${DS[DS.length-1].no}<br><span style="font-size:14px">Del ${fechaLarga(DS[0].f)} al ${fechaLarga(DS[DS.length-1].f)}. ${tot} páginas en total.</span></div>`};
+  app.querySelectorAll("input,select").forEach(el=>{if(["lf_sel","lg_file","lf_nf","lf_nt"].includes(el.id)||el.dataset.ev)return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"||el.type==="date"?"change":"input",leer)});
+  app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
+  app.querySelectorAll("[data-firma]").forEach(b=>b.onclick=()=>{g("lf_firma").value=b.dataset.firma;leer()});
+  g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);store.set(LF_KEY,v);lfView()};
+  const reRender=()=>{store.set(LF_KEY,v);const open=app.querySelector("details")?.open;const y=window.scrollY;lfView().then(()=>{const d=app.querySelector("details");if(d)d.open=open;window.scrollTo(0,y)})};
+  app.querySelectorAll("[data-ev]").forEach(i=>i.addEventListener("change",()=>{const k=i.dataset.ev,t=i.value.trim();const of=(()=>{const s=v.ed;v.ed={};const o=lfEventos()[k]||"";v.ed=s;return o})();if(t===of)delete v.ed[k];else v.ed[k]=t;reRender()}));
+  app.querySelectorAll("[data-evdel]").forEach(b=>b.onclick=()=>{v.ed[b.dataset.evdel]="";reRender()});
+  if(g("lf_add"))g("lf_add").onclick=()=>{const f=g("lf_nf").value,t=g("lf_nt").value.trim();if(!f||!t){g("lf_nt").focus();return}v.ed[f]=t;reRender()};
+  if(g("lf_reset"))g("lf_reset").onclick=()=>{v.ed={};reRender()};
+  wireLogo();
+  g("lf_prev").onclick=async()=>{const b=g("lf_prev"),box=g("lf_pvw");if(lfProblemas(v).length){resumen();return}b.disabled=true;b.textContent="Preparando…";
+    try{const bytes=await lfPDF(true);const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;box.innerHTML="";
+      for(let i=1;i<=pdf.numPages;i++){const pgp=await pdf.getPage(i);const vp=pgp.getViewport({scale:1.6});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;box.appendChild(c);await pgp.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
+      b.textContent="Actualizar vista previa"}
+    catch(err){box.innerHTML=`<div class="alert"><b>No se pudo mostrar la vista previa.</b> (${esc(err.message||err)})</div>`;b.textContent="Ver vista previa"}finally{b.disabled=false}};
+  app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
+  g("salir").onclick=goBack;resumen();window.scrollTo(0,0)}
+
 /* ---------- Libro de registro de visitas (Dirección) ---------- */
-const LV_KEY="libro-visitas",LV_LOGO="libro-visitas-logo";
-let LV=null,LVLOGO;const LVIMG={};
+const LV_KEY="libro-visitas";
+let LV=null;const LVIMG={};
 const lvPad=n=>String(n).padStart(3,"0");
 function lvFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, Baja California.`}
 function lvInit(){const s=store.get(LV_KEY,null);if(s)return s;
@@ -1050,12 +1309,6 @@ function lvProblemas(v){const p=[];if(!v.nombre.trim())p.push("Escriba el nombre
   const n=Number(v.hojas);if(!Number.isInteger(n)||n<1||n>500)p.push("El número de hojas debe ser entre 1 y 500.");
   if(!(parseInt(v.folio)>=1))p.push("El folio inicial debe ser 1 o mayor.");return p}
 
-/* imagen subida → PNG reducido (se guarda solo en este dispositivo) */
-function lvLogoDesdeArchivo(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file);const im=new Image();
-  im.onload=()=>{const M=700,f=Math.min(1,M/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.naturalWidth*f));c.height=Math.max(1,Math.round(im.naturalHeight*f));
-    c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/png"))};
-  im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("No se pudo leer la imagen. Use un archivo JPG o PNG."))};im.src=u})}
-
 /* ---- texto enriquecido para el PDF ---- */
 function lvWrap(segs,width,size,indent=0){const words=[];segs.forEach(s=>clean(s.t).split(/ +/).filter(Boolean).forEach(w=>words.push({w,b:!!s.b,c:s.c})));
   const sp=HELV.widthOfTextAtSize(" ",size),lines=[];let cur=[],cw=0;
@@ -1069,7 +1322,7 @@ async function lvPDF(preview){await fonts();const v=LV,R=lvRango(v);const{PDFDoc
   const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
   const C={g:rgb(.106,.302,.18),gu:rgb(.43,.12,.2),gold:rgb(.69,.55,.24),gray:rgb(.33,.33,.36),red:rgb(.86,.08,.08),ink:rgb(0,0,0),hd:rgb(.75,.75,.75),white:rgb(1,1,1),cream:rgb(.90,.88,.83),tg:rgb(.18,.49,.31),tr:rgb(.70,.16,.20),lgold:rgb(.93,.86,.62)};
   const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
-  let logo=null;if(LVLOGO){try{logo=await doc.embedPng(LVLOGO)}catch(e){logo=null}}
+  const logo=await embedLogo(doc);
   const es050=String(v.zona||"").trim()==="050";const escLogo=logo||(es050?zona:null);
   const PW=792,PH=612,Y=t=>PH-t;
   const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),ubic=clean(v.ubic.trim()),ciclo=v.ciclo?clean(v.cicloTxt.trim()):"";
@@ -1157,7 +1410,7 @@ async function prepararLibro(){if(OUT&&OUT.letra==="libro")return OUT;const byte
   const filename=`Libro de visitas - ${LV.tipo} ${LV.nombre} - folios ${lvPad(R.f0)} al ${lvPad(R.f1)}.pdf`.replace(/[\\/:*?"<>|«»]/g,"").replace(/\s+/g," ");
   const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:"libro",filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
 
-function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();if(LVLOGO===undefined)LVLOGO=store.get(LV_LOGO,null);setBar("");OUT=null;const v=LV;
+function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=null;const v=LV;
   const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de registro de visitas</h2></div></div>
    <p class="muted">Genere el libro listo para imprimir: portada, hoja de bienvenida para quien visita la escuela y hojas foliadas para el registro, como lo pide el protocolo de acceso a las escuelas.</p>
@@ -1170,10 +1423,7 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();if(LVLOGO===und
     <div class="row2"><div class="field"><label for="lv_cct">C.C.T.</label><input type="text" id="lv_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
      <div class="field"><label for="lv_zona">Zona escolar</label><input type="text" id="lv_zona" value="${esc(v.zona)}" inputmode="numeric" autocomplete="off"></div></div>
     <div class="field"><label for="lv_ubic">Ubicación (pie de página)</label><input type="text" id="lv_ubic" value="${esc(v.ubic)}" placeholder="Localidad, municipio, Baja California." autocomplete="off"></div></section>
-   <section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada, en la bienvenida y en cada hoja foliada. Si no sube uno, se usa el logo de la Zona 050. Mejor si es PNG con fondo blanco o transparente.</p>
-    <div class="ph"><div class="phf lvlogo" id="lv_pv">${LVLOGO?`<img src="${LVLOGO}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
-     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lv_logo" hidden></label>
-      <button type="button" class="btn link" id="lv_logodel" ${LVLOGO?"":"hidden"}>Quitar logo</button></div></div><div class="help" id="lv_logom"></div></section>
+   ${logoWidgetHTML()}
    <section class="card"><h3>Hojas del libro</h3>
     <div class="field"><label for="lv_hojas">Número de hojas de registro</label><p class="help">Cada hoja lleva su folio. La portada y la bienvenida no cuentan.</p>
      <input type="number" id="lv_hojas" min="1" max="500" step="1" inputmode="numeric" value="${esc(v.hojas)}">
@@ -1202,7 +1452,7 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();if(LVLOGO===und
   const resumen=()=>{const p=lvProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
     if(p.length){g("lv_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
     const R=lvRango(v);g("lv_res").innerHTML=`<div class="okmsg"><b>Folios ${lvPad(R.f0)} al ${lvPad(R.f1)}</b> · registros del ${R.r0.toLocaleString("es-MX")} al ${R.r1.toLocaleString("es-MX")}<br><span style="font-size:14px">${R.pags} páginas en total${R.n>150?" · El PDF puede tardar unos segundos en prepararse.":""}</span></div>`};
-  app.querySelectorAll("input,select").forEach(el=>{if(el.id==="lv_sel"||el.id==="lv_logo")return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",leer)});
+  app.querySelectorAll("input,select").forEach(el=>{if(el.id==="lv_sel"||el.id==="lg_file")return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",leer)});
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
   g("lv_ciclo").addEventListener("change",()=>{g("lv_cicloF").hidden=!g("lv_ciclo").checked;if(g("lv_ciclo").checked&&!g("lv_cicloTxt").value){g("lv_cicloTxt").value=cicloActual();leer()}});
   app.querySelectorAll("[data-tipo]").forEach(b=>b.onclick=()=>{g("lv_tipo").value=b.dataset.tipo;leer()});
@@ -1210,10 +1460,7 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();if(LVLOGO===und
   g("lv_sel").onchange=()=>{const s=g("lv_sel").value;leer();v.sel=s;
     if(s==="otra"){v.nombre="";v.cct="";v.ubic="";v.zona="";v.tipo="Escuela Primaria"}else if(s!=="")lvFromZona(v,+s);
     store.set(LV_KEY,v);lvView()};
-  g("lv_logo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("lv_logom").textContent="Procesando…";
-    try{LVLOGO=await lvLogoDesdeArchivo(f);store.set(LV_LOGO,LVLOGO);g("lv_pv").innerHTML=`<img src="${LVLOGO}" alt="Logo de la escuela">`;g("lv_logodel").hidden=false;g("lv_logom").textContent="Logo listo.";OUT=null}
-    catch(err){g("lv_logom").textContent=err.message}};
-  g("lv_logodel").onclick=()=>{LVLOGO=null;store.del(LV_LOGO);g("lv_pv").innerHTML="<span>Sin logo</span>";g("lv_logodel").hidden=true;g("lv_logom").textContent="";OUT=null};
+  wireLogo();
   g("lv_prev").onclick=async()=>{const b=g("lv_prev"),box=g("lv_pvw");if(lvProblemas(v).length){resumen();return}b.disabled=true;b.textContent="Preparando…";
     try{const bytes=await lvPDF(true);const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;box.innerHTML="";
       for(let i=1;i<=pdf.numPages;i++){const pgp=await pdf.getPage(i);const vp=pgp.getViewport({scale:1.6});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;box.appendChild(c);await pgp.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
