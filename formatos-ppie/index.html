@@ -143,6 +143,25 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .ndimg{display:block;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.ndimg img{display:block;width:100%;height:auto}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .adminlink{align-self:center;font-size:14px}
+.calhead{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.calhead div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.calhead i{display:block;font-style:normal;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.calhead b{font-size:16px}
+@media (max-width:560px){.calhead{grid-template-columns:minmax(0,1fr)}}
+.callist{display:flex;flex-direction:column}
+.calrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
+.calrow:first-child{border-top:0}
+.calrow .f{font-weight:600;font-size:15px}.calrow .t{font-size:15px}
+.calrow .t::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:var(--k,var(--muted));vertical-align:0}
+.calrow.hoy{background:var(--accent-soft,rgba(30,90,200,.08));border-radius:8px;padding-left:8px;padding-right:8px}
+@media (max-width:560px){.calrow{grid-template-columns:minmax(0,1fr);gap:2px}}
+.calleg{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--muted)}
+.calleg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--k)}
+.caled{display:grid;grid-template-columns:150px 150px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+.caled:first-of-type{border-top:0}
+.caled label{font-size:12px;color:var(--muted)}.caled input{width:100%}
+.caled .del{min-height:44px;padding:0 12px}
+@media (max-width:640px){.caled{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.caled .tx,.caled .del{grid-column:1/-1}}
 .foot{font-size:13px;color:var(--muted);text-align:center}
 .homebtn{margin-left:auto;flex:none;font:inherit;font-size:15px;font-weight:700;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;min-height:44px;padding:0 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
 .homebtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -449,7 +468,7 @@ function wirePhoto(id){const inp=document.getElementById(id),pv=document.getElem
 
 /* ---------- Actualización de datos personales (expediente) ---------- */
 const lstN=(b,n)=>Array.from({length:n},(_,i)=>`${b} ${i+1}`);
-function cicloActual(){const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-${y+1}`}
+function cicloActual(){try{const c=CAL||store.get("cal-cache",null);if(c&&/^\d{4}-\d{4}$/.test(c.ciclo||""))return c.ciclo}catch(e){}const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-${y+1}`}
 function dmy(v){const p=parseDate(v);return p?`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`:""}
 function wireActEscuela(g){g("centro").addEventListener("change",()=>{const i=g("centro").value;if(i===""||i==="otra"){if(i==="otra")["escuela","cct","telesc"].forEach(k=>g(k).value="");return}
   const c=CENTROS[+i];g("escuela").value=c.nombre;g("cct").value=c.cct;if(c.tel)g("telesc").value=c.tel})}
@@ -589,9 +608,9 @@ ANEXOS.S={name:"Aviso de accidente (seguro escolar)",pref:"Seguro escolar",who:"
 
 /* Pantalla de la Supervisión para actualizar los teléfonos (guarda en GitHub) */
 const ghHdr=t=>({Authorization:"Bearer "+t,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"});
-const ghURL=()=>`https://api.github.com/repos/${REPO_SEG.owner}/${REPO_SEG.repo}/contents/${REPO_SEG.path}`;
+const ghURL=(path=REPO_SEG.path)=>`https://api.github.com/repos/${REPO_SEG.owner}/${REPO_SEG.repo}/contents/${path}`;
 const b64enc=s=>btoa(unescape(encodeURIComponent(s))),b64dec=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
-async function ghLeer(t){const r=await fetch(ghURL()+"?ref="+REPO_SEG.branch+"&t="+Date.now(),{headers:ghHdr(t),cache:"no-store"});if(!r.ok){const e=new Error("http "+r.status);e.status=r.status;throw e}const j=await r.json();return{sha:j.sha,data:JSON.parse(b64dec(j.content))}}
+async function ghLeer(t,path){const r=await fetch(ghURL(path)+"?ref="+REPO_SEG.branch+"&t="+Date.now(),{headers:ghHdr(t),cache:"no-store"});if(!r.ok){const e=new Error("http "+r.status);e.status=r.status;throw e}const j=await r.json();return{sha:j.sha,data:JSON.parse(b64dec(j.content))}}
 function adminTop(){return`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Solo Supervisión</div><h2>Teléfonos del seguro escolar</h2></div></div>`}
 async function seguroAdminView(){S.view="admin";setBar("");const tok=store.get("gh-token","");
   if(!tok){app.innerHTML=`${adminTop()}<section class="card"><p>Esta pantalla es solo para la Supervisión Escolar. Lo que guarde aquí lo verán todas las escuelas.</p>
@@ -655,14 +674,14 @@ function librosGrado(g){const t=GRADOS_TXT[g-1]+" grado",p="P"+g,fase=g<=2?3:g<=
 const LIBROS_MULTI=[{t:"Cartografía de México y el mundo. Multigrado",u:LT+"P0CMA"},{t:"Nuestros saberes: México, grandeza y diversidad. Multigrado",u:LT+"P0SHA"}];
 const NV={cat:"todos",q:"",grado:1,abierto:null};
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
-function docHTML(d){const open=NV.abierto===d.id;const cat=(NORMAS.categorias.find(c=>c.id===d.cat)||{}).nombre||"";
+function docHTML(d){if(d.id==="calendario"&&CAL)d=calDoc(d);const open=NV.abierto===d.id;const cat=(NORMAS.categorias.find(c=>c.id===d.cat)||{}).nombre||"";
   const links=(d.links||[]).map(l=>`<a class="btn primary act" href="${esc(l.u)}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">📄</span>${esc(l.t)}</a>`).join("");
   const app=d.app?`<button class="btn ghost act" data-goapp="${esc(d.app)}">Abrir los formatos en esta app</button>`:"";
   const pend=d.pendiente?`<div class="soon"><b>Documento por agregar.</b> No está publicado en internet; la Supervisión lo subirá a la app.</div>`:"";
   return`<article class="nd ${open?"on":""}"><button class="nd-h" data-doc="${esc(d.id)}" aria-expanded="${open}"><span class="tx"><b>${esc(d.titulo)}</b><span class="ds">${esc(cat)}${d.pendiente?' · <span class="draft">Por agregar</span>':""}</span></span><span class="chev" aria-hidden="true">${open?"▾":"▸"}</span></button>
    ${open?`<div class="nd-b"><p>${esc(d.regula)}</p>${d.temas?`<div class="chips">${d.temas.map(t=>`<span class="chip tag">${esc(t)}</span>`).join("")}</div>`:""}
     ${d.imagen?`<a href="${esc(d.imagen)}" target="_blank" rel="noopener" class="ndimg"><img src="${esc(d.imagen)}" alt="${esc(d.titulo)}" loading="lazy" onerror="this.parentNode.hidden=true"></a>`:""}${d.nota?`<div class="alert">${esc(d.nota)}</div>`:""}${pend}<div class="acts">${links}${app}</div>${d.secciones?`<div><p class="help" style="margin-bottom:6px"><b>Ir directo a:</b></p><div class="chips">${d.secciones.map(x=>`<a class="chip" href="${esc((d.links[0]||{}).u)}#page=${x.p}" target="_blank" rel="noopener">${esc(x.t)}</a>`).join("")}</div></div>`:""}</div>`:""}</article>`}
-async function normasView(){S.view="normas";S.sec="normas";setBar("");
+async function normasView(){S.view="normas";S.sec="normas";setBar("");if(!CAL)cargarCal().then(c=>{if(c&&S.view==="normas")normasView()});
   if(!NORMAS){app.innerHTML=`<p class="muted">Cargando…</p>`;await cargarNormas();if(S.view!=="normas")return}
   if(!NORMAS){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><h2>Normatividad</h2></div><div class="alert"><b>No se pudo cargar la lista.</b> Revise su conexión a internet.</div>`;document.getElementById("salir").onclick=()=>{S.sec=null;home()};return}
   const cats=[{id:"todos",nombre:"Todos"},...NORMAS.categorias,{id:"libros",nombre:"Libros de texto"}];
@@ -672,7 +691,7 @@ async function normasView(){S.view="normas";S.sec="normas";setBar("");
      <section class="card"><h3>Libros del alumno · ${NV.grado}°</h3><div class="libs">${L.alumno.map(li).join("")}</div></section>
      <section class="card"><h3>Libro para la maestra y el maestro</h3><div class="libs">${L.maestro.map(li).join("")}</div></section>
      <section class="card"><h3>Multigrado (todos los grados)</h3><div class="libs">${LIBROS_MULTI.map(li).join("")}</div></section>
-     <p class="help">Ciclo escolar 2026-2027. Los libros se abren en el lector oficial de la CONALITEG, donde también se pueden descargar. <a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver el catálogo completo</a>.</p>`}
+     <p class="help">Ciclo escolar ${esc(cicloActual())}. Los libros se abren en el lector oficial de la CONALITEG, donde también se pueden descargar. <a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver el catálogo completo</a>.</p>`}
   else{const q=norm(NV.q);const docs=NORMAS.documentos.filter(d=>(NV.cat==="todos"||d.cat===NV.cat)&&(!q||norm([d.titulo,d.regula,(d.temas||[]).join(" ")].join(" ")).includes(q)));
     body=docs.length?`<div class="nds">${docs.map(docHTML).join("")}</div>`:`<div class="soon">No hay documentos que coincidan con «${esc(NV.q)}».</div>`}
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>Normatividad</h2></div></div>
@@ -820,9 +839,11 @@ const ICON={
  chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>',
  law:'<svg viewBox="0 0 24 24"><path d="M12 3v17M7 20h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>',
  cross:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7.5v9M7.5 12h9"/></svg>',
+ cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>',
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
+ {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
@@ -998,7 +1019,7 @@ function perfilView(){S.view="perfil";
 const ED={grupos:[],corte:null};
 (function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=(d.grupos||[]).map(g=>({...g,alumnos:g.alumnos.map(desdeCurp)}));ED.corte=d.corte||null}})();
 function edSave(){store.set("ppie-edades",{grupos:ED.grupos,corte:ED.corte})}
-function corteDefault(){const t=new Date();const y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return`${y}-09-01`}
+function corteDefault(){return cicloActual().slice(0,4)+"-09-01"}
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
 function loadScript(src){return _libs[src]||(_libs[src]=new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>{delete _libs[src];no(new Error("No se pudo cargar "+src))};document.head.appendChild(s)}))}
@@ -1536,10 +1557,120 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=
   app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
   g("salir").onclick=goBack;resumen();window.scrollTo(0,0)}
 
+/* ---------- Calendario escolar oficial: rige todo lo que genera la app ---------- */
+const REPO_CALP="formatos-ppie/formatos/calendario.json";
+const CAL_TIPOS=["Consejo Técnico Escolar Fase Intensiva","Consejo Técnico Escolar Sesión Ordinaria","Suspensión de labores docentes","Jornada de concientización sobre la gravedad del abuso sexual y el maltrato infantil","Registro y comunicación de los resultados de evaluación","Preinscripción a preescolar, primer grado de primaria y primer grado de secundaria","Reforzamiento de aprendizaje","Ceremonias de clausura","Día conmemorativo","Inicio de ciclo escolar","Fin de clases del ciclo escolar"];
+const CAL_COL=[[/vacacion/i,"#7a1f4b","Vacaciones"],[/suspensi/i,"#2d2d2d","Suspensión de labores"],[/fase intensiva/i,"#e46aa8","CTE fase intensiva"],[/consejo t[eé]cnico/i,"#7d3c98","CTE sesión ordinaria"],[/registro y comunicaci/i,"#9aa0a6","Registro de resultados"],[/preinscrip/i,"#b07a3e","Preinscripción"],[/reforzamiento/i,"#6b6f76","Reforzamiento"],[/clausura/i,"#e0b800","Clausura"],[/inicio|fin de clases/i,"#111","Inicio y fin"],[/concientizaci/i,"#888","Jornada de concientización"],[/conmemorativ/i,"#1a5fb4","Día conmemorativo"]];
+const calColor=t=>(CAL_COL.find(([r])=>r.test(t||""))||[0,"var(--muted)"])[1];
+const calRango=(a,b)=>a===b?fechaCorta(a):`${fechaCorta(a)} al ${fechaCorta(b)}`;
+function calItems(c=CAL){return[...(c.eventos||[]).map(([a,b,t])=>({a,b,t})),...(c.vacaciones||[]).map(([a,b,t])=>({a,b,t:t||"Vacaciones",vac:1}))].sort((x,y)=>x.a<y.a?-1:x.a>y.a?1:x.b<y.b?-1:1)}
+const calRow=(x,hoy)=>`<div class="calrow ${hoy&&x.a<=hoy&&x.b>=hoy?"hoy":""}" style="--k:${x.vac?"#7a1f4b":calColor(x.t)}"><span class="f">${esc(calRango(x.a,x.b))}</span><span class="t">${esc(x.t)}</span></div>`;
+function calDoc(d){const c=CAL;return{...d,titulo:`Calendario Escolar ${c.ciclo} de Educación Básica de ${c.entidad||"Baja California"}`,
+  regula:`Calendario oficial que rige legal y formalmente el ciclo escolar ${c.ciclo}: del ${fechaLarga(c.inicioClases||c.inicio)} al ${fechaLarga(c.fin)}. Marca sesiones de Consejo Técnico Escolar, suspensiones de labores, vacaciones y periodos de evaluación.`,
+  temas:[`Inicio de clases: ${fechaCorta(c.inicioClases||c.inicio)}`,`Fin de clases: ${fechaCorta(c.fin)}`,...(c.vacaciones||[]).map(([a,b,t])=>`${t||"Vacaciones"}: ${calRango(a,b)}`)],
+  imagen:c.imagen||d.imagen,links:c.imagen?[{t:"Ver el calendario en tamaño completo",u:c.imagen}]:d.links,app:"calendario"}}
+
+async function calView(){S.view="calendario";S.sec="calendario";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>Calendario escolar oficial</h2></div></div>`;
+  if(!CAL){app.innerHTML=top+`<p class="muted">Cargando el calendario oficial…</p>`;document.getElementById("salir").onclick=()=>{S.sec=null;home()};await cargarCal();if(S.view!=="calendario")return}
+  if(!CAL){app.innerHTML=top+`<div class="alert"><b>No se pudo cargar el calendario.</b> Revise su conexión a internet.</div><button class="btn link adminlink" id="calAdm">Supervisión: actualizar el calendario</button>`;
+    document.getElementById("salir").onclick=()=>{S.sec=null;home()};document.getElementById("calAdm").onclick=calAdminView;return}
+  const hoy=today(),it=calItems(),prox=it.filter(x=>x.b>=hoy).slice(0,5);
+  const meses=[];it.forEach(x=>{const k=x.a.slice(0,7);let m=meses.find(z=>z.k===k);if(!m){m={k,x:[]};meses.push(m)}m.x.push(x)});
+  const usados=CAL_COL.filter(([r])=>it.some(x=>!x.vac&&r.test(x.t)));
+  app.innerHTML=top+`
+   <p class="muted">Este es el calendario oficial de ${esc(CAL.entidad||"Baja California")}, que nos rige legal y formalmente. Todo lo que genera la app toma sus fechas de aquí: el ciclo escolar de los formatos, los días del libro de firmas y la fecha de corte de la estadística.</p>
+   ${CAL.verificado===false?`<div class="alert"><b>Fechas por confirmar.</b> La Supervisión aún no ha cotejado estas fechas con el calendario oficial.</div>`:""}
+   <section class="card"><h3>Ciclo escolar ${esc(CAL.ciclo)}</h3>
+    <div class="calhead"><div><i>Inicio de clases</i><b>${esc(fechaCorta(CAL.inicioClases||CAL.inicio))}</b></div><div><i>Fin de clases</i><b>${esc(fechaCorta(CAL.fin))}</b></div><div><i>Labores del personal desde</i><b>${esc(fechaCorta(CAL.inicio))}</b></div></div>
+    ${CAL.imagen?`<a class="btn primary" href="${esc(CAL.imagen)}" target="_blank" rel="noopener">Ver el calendario oficial (imagen)</a>`:""}
+    <p class="help">Publicado por la Supervisión Escolar Zona 050${CAL.actualizado?` · actualizado el ${esc(fechaLarga(CAL.actualizado))}`:""}.</p></section>
+   ${prox.length?`<section class="card"><h3>Próximas fechas</h3><div class="callist">${prox.map(x=>calRow(x,hoy)).join("")}</div></section>`:""}
+   <section class="card"><h3>Todas las fechas del ciclo</h3>
+    <div class="calleg"><span style="--k:#7a1f4b">Vacaciones</span>${usados.map(([,k,n])=>`<span style="--k:${k}">${esc(n)}</span>`).join("")}</div>
+    ${meses.map(m=>{const d=dOf(m.k+"-01");return`<div class="group-title">${esc(MESES[d.getMonth()])} ${d.getFullYear()}</div><div class="callist">${m.x.map(x=>calRow(x,hoy)).join("")}</div>`}).join("")}</section>
+   <button class="btn link adminlink" id="calAdm">Supervisión: actualizar el calendario</button>`;
+  document.getElementById("salir").onclick=()=>{S.sec=null;home()};document.getElementById("calAdm").onclick=calAdminView;window.scrollTo(0,0)}
+
+/* Pantalla de la Supervisión para cargar el calendario de cada ciclo (guarda en GitHub) */
+let CA=null;
+function calAdminTop(){return`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Solo Supervisión</div><h2>Actualizar el calendario oficial</h2></div></div>`}
+async function calAdminView(){S.view="caladmin";S.sec="calendario";setBar("");const tok=store.get("gh-token","");
+  if(!tok){app.innerHTML=`${calAdminTop()}<section class="card"><p>Esta pantalla es solo para la Supervisión Escolar. Lo que guarde aquí lo verán todas las escuelas y se usará en todo lo que genera la app.</p>
+     <div class="field"><label for="tk">Clave de acceso</label><input type="password" id="tk" autocomplete="off" spellcheck="false"><p class="help">Es el token de GitHub de la Supervisión (la misma clave de los teléfonos del seguro). Se guarda solo en este equipo.</p></div>
+     <button class="btn primary" id="entrar">Entrar</button><div id="msg"></div></section>`;
+    document.getElementById("salir").onclick=calView;
+    document.getElementById("entrar").onclick=async()=>{const t=document.getElementById("tk").value.trim();const m=document.getElementById("msg");if(!t)return;m.innerHTML=`<p class="help">Verificando…</p>`;
+      try{await ghLeer(t,REPO_CALP);store.set("gh-token",t);CA=null;calAdminView()}catch(e){m.innerHTML=`<div class="alert"><b>No se pudo entrar.</b> ${e.status===401||e.status===403||e.status===404?"La clave no es válida o no tiene acceso al repositorio.":"Revise su conexión a internet."}</div>`}};
+    window.scrollTo(0,0);return}
+  if(!CA){app.innerHTML=`${calAdminTop()}<p class="muted">Cargando el calendario vigente…</p>`;document.getElementById("salir").onclick=calView;
+    try{const r=await ghLeer(tok,REPO_CALP);CA={sha:r.sha,d:JSON.parse(JSON.stringify(r.data)),img:null}}
+    catch(e){if(e.status===401||e.status===403){store.del("gh-token");return calAdminView()}
+      app.innerHTML=`${calAdminTop()}<div class="alert"><b>No se pudo leer el calendario.</b> Revise su conexión e intente de nuevo.</div>`;document.getElementById("salir").onclick=calView;return}}
+  const d=CA.d;d.eventos=d.eventos||[];d.vacaciones=d.vacaciones||[];
+  const row=(k,i,[a,b,t])=>`<div class="caled" data-k="${k}" data-i="${i}"><div><label>Desde</label><input type="date" class="ca" value="${esc(a||"")}"></div><div><label>Hasta</label><input type="date" class="cb" value="${esc(b||"")}"></div>
+    <div class="tx"><label>Qué se marca</label><input type="text" class="ct" value="${esc(t||"")}" list="calTipos" autocomplete="off"></div><button type="button" class="btn ghost del" data-del="${k}:${i}" aria-label="Quitar esta fecha">Quitar</button></div>`;
+  app.innerHTML=`${calAdminTop()}
+   <p class="muted">Cada ciclo escolar, capture aquí las fechas del calendario oficial de Baja California y toque <b>Guardar y publicar</b>. Desde ese momento, todas las escuelas usarán estas fechas en los libros de firmas, el ciclo escolar de los formatos y la estadística.</p>
+   <datalist id="calTipos">${CAL_TIPOS.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
+   <section class="card"><h3>Ciclo escolar</h3>
+    <div class="row2"><div class="field"><label for="c_ciclo">Ciclo escolar</label><input type="text" id="c_ciclo" value="${esc(d.ciclo||"")}" placeholder="2027-2028" inputmode="numeric" autocomplete="off"></div>
+     <div class="field"><label for="c_ent">Entidad</label><input type="text" id="c_ent" value="${esc(d.entidad||"Baja California")}" autocomplete="off"></div></div>
+    <div class="row2"><div class="field"><label for="c_ini">Inicio de labores del personal</label><p class="help">Primer día del libro de firmas (normalmente el CTE fase intensiva).</p><input type="date" id="c_ini" value="${esc(d.inicio||"")}"></div>
+     <div class="field"><label for="c_inc">Inicio de clases</label><p class="help">Primer día de clases con alumnos.</p><input type="date" id="c_inc" value="${esc(d.inicioClases||"")}"></div></div>
+    <div class="field"><label for="c_fin">Fin de clases</label><input type="date" id="c_fin" value="${esc(d.fin||"")}"></div>
+    <button type="button" class="btn ghost" id="c_nuevo">Empezar un ciclo escolar nuevo</button></section>
+   <section class="card"><h3>Imagen oficial del calendario</h3>
+    <p class="help">Es la que verán las escuelas al consultar el calendario. Puede subir la imagen o el PDF oficial, o pegar el enlace de la página de la Secretaría.</p>
+    <div class="field"><label for="c_img">Enlace de la imagen</label><input type="url" id="c_img" value="${esc(d.imagen||"")}" autocomplete="off"></div>
+    <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${CA.img?`Archivo elegido: ${esc(CA.img.name)}`:"Subir la imagen o el PDF oficial"}<input type="file" id="c_file" accept="image/*,application/pdf" hidden></label></section>
+   <section class="card"><h3>Vacaciones</h3><p class="help">Estos días no se incluyen en el libro de firmas.</p>
+    <div>${d.vacaciones.map((v,i)=>row("vacaciones",i,v)).join("")||'<p class="help">Sin periodos capturados.</p>'}</div>
+    <button type="button" class="btn ghost" id="addVac">+ Agregar periodo de vacaciones</button></section>
+   <section class="card"><h3>Fechas importantes</h3><p class="help">Consejo Técnico, suspensiones, evaluación, clausura y días conmemorativos. Las que digan «Suspensión de labores docentes» se omiten del libro de firmas. Para un solo día, ponga la misma fecha en «Desde» y «Hasta».</p>
+    <div>${d.eventos.map((v,i)=>row("eventos",i,v)).join("")||'<p class="help">Sin fechas capturadas.</p>'}</div>
+    <button type="button" class="btn ghost" id="addEv">+ Agregar fecha</button></section>
+   <div id="msg"></div>
+   <button class="btn link" id="salirSes">Cerrar la sesión de Supervisión en este equipo</button>`;
+  setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="guardar">Guardar y publicar</button>`);
+  const g=id=>document.getElementById(id);
+  const leer=()=>{d.ciclo=g("c_ciclo").value.trim();d.entidad=g("c_ent").value.trim();d.inicio=g("c_ini").value;d.inicioClases=g("c_inc").value;d.fin=g("c_fin").value;d.imagen=g("c_img").value.trim();
+    app.querySelectorAll(".caled").forEach(r=>{const a=r.querySelector(".ca").value,b=r.querySelector(".cb").value||a,t=r.querySelector(".ct").value.trim();d[r.dataset.k][+r.dataset.i]=[a,b,t]})};
+  app.querySelectorAll(".caled .ca").forEach(x=>x.addEventListener("change",()=>{const b=x.closest(".caled").querySelector(".cb");if(!b.value||b.value<x.value)b.value=x.value}));
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{leer();const[k,i]=b.dataset.del.split(":");d[k].splice(+i,1);calAdminView()});
+  g("addVac").onclick=()=>{leer();d.vacaciones.push(["","","Vacaciones"]);calAdminView()};
+  g("addEv").onclick=()=>{leer();d.eventos.push(["","",""]);calAdminView()};
+  g("c_file").onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>20e6){g("msg").innerHTML=`<div class="alert"><b>El archivo es muy grande.</b> Use uno de menos de 20 MB.</div>`;return}leer();CA.img=f;calAdminView()};
+  g("c_nuevo").onclick=()=>{leer();const y=Number((d.ciclo||"").slice(0,4))||new Date().getFullYear();
+    if(!confirm(`Se borrarán las fechas capturadas para empezar el ciclo ${y+1}-${y+2}. Lo publicado no cambia hasta que toque «Guardar y publicar». ¿Continuar?`))return;
+    CA.d={ciclo:`${y+1}-${y+2}`,entidad:d.entidad||"Baja California",inicio:"",inicioClases:"",fin:"",imagen:"",vacaciones:[["","","Vacaciones de invierno"],["","","Vacaciones de primavera"]],eventos:[]};CA.img=null;calAdminView()};
+  g("salir").onclick=g("cancel").onclick=()=>{CA=null;calView()};
+  g("salirSes").onclick=()=>{store.del("gh-token");CA=null;calView()};
+  g("guardar").onclick=async e=>{const btn=e.currentTarget,m=g("msg");leer();const p=[];
+    if(!/^\d{4}-\d{4}$/.test(d.ciclo)||Number(d.ciclo.slice(5))!==Number(d.ciclo.slice(0,4))+1)p.push("Escriba el ciclo escolar como 2027-2028.");
+    if(!d.inicio||!d.fin)p.push("Faltan las fechas de inicio de labores y fin de clases.");else if(d.inicio>d.fin)p.push("El inicio de labores es posterior al fin de clases.");
+    if(d.inicioClases&&d.inicio&&d.inicioClases<d.inicio)p.push("El inicio de clases es antes del inicio de labores.");
+    ["vacaciones","eventos"].forEach(k=>d[k].forEach(([a,b,t],i)=>{const n=k==="vacaciones"?"Vacaciones":"Fecha importante";if(!a)p.push(`${n} ${i+1}: falta la fecha.`);else if(b<a)p.push(`${n} ${i+1}: «Hasta» es antes de «Desde».`);if(!t)p.push(`${n} ${i+1}: falta escribir qué se marca.`)}));
+    if(p.length){m.innerHTML=`<div class="alert"><b>Revise lo siguiente:</b><br>${p.map(esc).join("<br>")}</div>`;m.scrollIntoView({behavior:"smooth",block:"center"});return}
+    btn.disabled=true;btn.textContent="Publicando…";
+    const put=async(path,content,msg)=>{let sha=null;try{sha=(await fetch(ghURL(path)+"?ref="+REPO_SEG.branch+"&t="+Date.now(),{headers:ghHdr(tok),cache:"no-store"}).then(r=>r.ok?r.json():null)||{}).sha||null}catch(e){}
+      const r=await fetch(ghURL(path),{method:"PUT",headers:{...ghHdr(tok),"Content-Type":"application/json"},body:JSON.stringify({message:msg,content,branch:REPO_SEG.branch,...(sha?{sha}:{})})});
+      if(!r.ok){const er=new Error("http "+r.status);er.status=r.status;throw er}return r.json()};
+    try{if(CA.img){btn.textContent="Subiendo la imagen…";const ext=(CA.img.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+        const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(",")[1]);fr.onerror=no;fr.readAsDataURL(CA.img)});
+        const name=`calendario-oficial-${d.ciclo}.${ext}`;await put("formatos-ppie/formatos/"+name,b64,`Calendario escolar ${d.ciclo}: imagen oficial`);d.imagen="formatos/"+name;CA.img=null;btn.textContent="Publicando…"}
+      const ord=k=>d[k].sort((x,y)=>x[0]<y[0]?-1:x[0]>y[0]?1:x[1]<y[1]?-1:1);ord("vacaciones");ord("eventos");
+      const nuevo={...d,fuente:d.fuente&&CAL&&CAL.ciclo===d.ciclo?d.fuente:`Calendario Escolar ${d.ciclo} de Educación Básica de ${d.entidad||"Baja California"}, capturado por la Supervisión Escolar Zona 050`,verificado:true,actualizado:today()};
+      const r=await put(REPO_CALP,b64enc(JSON.stringify(nuevo,null,2)+"\n"),`Calendario escolar ${nuevo.ciclo}: actualiza fechas (${nuevo.actualizado})`);
+      CA.sha=r.content.sha;CA.d=nuevo;CAL=JSON.parse(JSON.stringify(nuevo));store.set("cal-cache",CAL);
+      calAdminView().then(()=>{const mm=g("msg");if(mm){mm.innerHTML=`<div class="okmsg"><b>Guardado y publicado.</b> En uno o dos minutos todas las escuelas verán el calendario ${esc(nuevo.ciclo)}.</div>`;mm.scrollIntoView({behavior:"smooth",block:"center"})}})}
+    catch(er){m.innerHTML=`<div class="alert"><b>No se pudo guardar.</b> ${er.status===401||er.status===403?"La clave ya no es válida o no tiene permiso para escribir. Cierre la sesión y entre con una clave nueva.":"Revise su conexión e intente de nuevo."}</div>`;btn.disabled=false;btn.textContent="Guardar y publicar";m.scrollIntoView({behavior:"smooth",block:"center"})}};
+  window.scrollTo(0,0)}
+
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
@@ -1547,7 +1678,7 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
   if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
-if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([cargarSeguro(),new Promise(r=>setTimeout(r,2500))]).finally(home);
+if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(home);
 </script>
 
 </body></html>
