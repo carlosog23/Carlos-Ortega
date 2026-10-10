@@ -674,10 +674,10 @@ function curpRevisar(v){const c=String(v||"").toUpperCase().replace(/\s/g,"");
   if(!c)return{c,ok:false,msg:""};if(c.length<18)return{c,ok:false,msg:18-c.length===1?"Falta 1 carácter (la CURP tiene 18).":`Faltan ${18-c.length} caracteres (la CURP tiene 18).`};
   if(!CURP_RE.test(c))return{c,ok:false,msg:"La CURP no tiene el formato correcto. Revise letras y números."};
   const ci=curpInfo(c);const[y,m,d]=ci.dob.split("-");const dat=`nacimiento ${+d}/${+m}/${y} · ${ci.sexo==="H"?"hombre":ci.sexo==="M"?"mujer":"no binario"}`;
-  if(curpDV(c)!==+c[17])return{c,ok:true,warn:true,msg:`Formato correcto (${dat}), pero el último dígito no coincide con el cálculo de verificación. Revise que no haya un carácter mal escrito; si está seguro, continúe.`};
+  if(curpDV(c)!==+c[17])return{c,ok:false,msg:"La CURP tiene un error: el último dígito no corresponde con el resto de la clave. Revise letra por letra; suele ser una O por un 0 o una letra cambiada."};
   return{c,ok:true,msg:`Formato correcto · ${dat}`}}
 function curpInput(el){const p=el.selectionStart;el.value=el.value.toUpperCase().replace(/[^A-Z0-9Ñ]/g,"").slice(0,18);try{el.setSelectionRange(p,p)}catch(e){}
-  const r=curpRevisar(el.value),box=el.closest(".card");box.querySelector(".curpmsg").innerHTML=r.msg?`<span class="${r.ok&&!r.warn?"okmsg":"alert"}" style="display:block;padding:8px 12px">${esc(r.msg)}</span>`:"";
+  const r=curpRevisar(el.value),box=el.closest(".card");box.querySelector(".curpmsg").innerHTML=r.msg?`<span class="${r.ok?"okmsg":"alert"}" style="display:block;padding:8px 12px">${esc(r.msg)}</span>`:"";
   box.querySelector(".curpcopy").disabled=!r.ok}
 function curpCopiarAbrir(btn){const el=btn.closest(".card").querySelector(".curpin");const r=curpRevisar(el.value);if(!r.ok)return;
   el.value=r.c;el.focus();el.select();try{document.execCommand("copy")}catch(_){}try{navigator.clipboard.writeText(r.c).catch(()=>{})}catch(_){}
