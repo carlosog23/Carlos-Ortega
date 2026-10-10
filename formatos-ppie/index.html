@@ -51,7 +51,7 @@ p{margin:0}
 .field{display:flex;flex-direction:column;gap:6px}
 label,.lbl{font-weight:700}
 .help{font-size:14px;color:var(--muted)}
-input[type=text],input[type=date],input[type=time],input[type=tel],input[type=email],input[type=url],input[type=password],input[type=search],textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);min-height:50px}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=tel],input[type=email],input[type=url],input[type=password],input[type=search],textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);min-height:50px}
 textarea{min-height:130px;resize:vertical}
 .meter{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 .meter.over{color:var(--warn);font-weight:700}
@@ -144,6 +144,8 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .adminlink{align-self:center;font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
+.phf.lvlogo{background:#fff}.phf.lvlogo img{object-fit:contain;padding:6px}
+.lvpv{display:flex;flex-direction:column;gap:12px}.lvpv canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -761,7 +763,7 @@ const SECCIONES=[
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Planeación, actas de CTE, seguimiento de alumnos y canalizaciones.",grupos:[]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
- {id:"direccion",icon:"school",title:"Dirección",desc:"Oficios, actas administrativas y entrega de documentación.",grupos:[]}];
+ {id:"direccion",icon:"school",title:"Dirección",desc:"Libro de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -776,7 +778,7 @@ function sectionView(id){const x=SECCIONES.find(z=>z.id===id);if(x.view)return x
   if(x.admin)document.getElementById("adminSeg").onclick=seguroAdminView;
   if(x.id==="seguro"&&!SEGURO)cargarSeguro().then(r=>{if(r&&S.view==="section"&&S.sec===id)sectionView(id)});
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
-  app.querySelectorAll(".anexo:not(.tool)").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));app.querySelectorAll(".anexo.tool").forEach(b=>b.onclick=()=>edadesView());window.scrollTo(0,0)}
+  app.querySelectorAll(".anexo:not(.tool)").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));app.querySelectorAll(".anexo.tool").forEach(b=>b.onclick=()=>{const t=(x.tools||[]).find(t=>t.id===b.dataset.t);if(t&&t.open)t.open();else edadesView()});window.scrollTo(0,0)}
 
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
   const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
@@ -874,7 +876,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
 let OUT=null;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
-async function prepararPDF(){if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
+async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
   const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||[S.vals.nom,S.vals.pat,S.vals.mat].filter(Boolean).join(" ")||"").split(",")[0].trim().slice(0,40);
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
@@ -895,13 +897,13 @@ function tryPrintFrame(o){return new Promise(res=>{try{const u=URL.createObjectU
   let done=false;fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();done=true;res(true)}catch(e){res(false)}},300)};document.body.appendChild(fr);setTimeout(()=>{if(!done)res(false)},6000);setTimeout(()=>{fr.remove();URL.revokeObjectURL(u)},120000)}catch(e){res(false)}})}
 async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
   try{const o=await prepararPDF();
-    if(act==="share"){const r=await tryShare(o,`${ARCHIVO[S.letra]}`);
+    if(act==="share"){const r=await tryShare(o,ARCHIVO[S.letra]||o.filename);
       if(r===true)say("ok","<b>Listo.</b> El formato se envió por la aplicación que eligió.");
       else if(r==="cancel")say("warn","<b>Envío cancelado.</b> Toque el botón de nuevo cuando quiera.");
       else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
     else if(act==="print"){
       if(isIOS){const r=await tryShare(o,"");if(r===true){say("ok","<b>Listo.</b>");return}if(r==="cancel"){say("warn","<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
-      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
+      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"?" en orientación <b>horizontal</b>":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
       const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
       if(g===true||g==="anchor")say("ok",isIOS?"<b>PDF listo.</b> En el menú que aparece elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o desde <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b> para imprimir.");
       else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
@@ -1030,6 +1032,196 @@ async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.
     if(g===true||g==="anchor"||g==="shared")say("ok",`<b>Excel listo.</b> Ábralo para revisar y entregar.${extra}`);else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
   catch(e){say("warn",`<b>No se pudo generar el Excel.</b> (${esc(e.message||e)})`)}
   finally{btn.disabled=false;btn.innerHTML=label}}
+
+/* ---------- Libro de registro de visitas (Dirección) ---------- */
+const LV_KEY="libro-visitas",LV_LOGO="libro-visitas-logo";
+let LV=null,LVLOGO;const LVIMG={};
+const lvPad=n=>String(n).padStart(3,"0");
+function lvFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, Baja California.`}
+function lvInit(){const s=store.get(LV_KEY,null);if(s)return s;
+  const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:"050",ubic:"",hojas:100,filas:14,folio:1,ciclo:true,cicloTxt:cicloActual(),portada:true,bienv:true};
+  if(i>=0)lvFromZona(o,i);
+  else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.ubic=[perfil.localidad,perfil.municipio].filter(Boolean).join(", ")+(perfil.municipio?", Baja California.":"")}
+  return o}
+function lvRango(v){const f0=Math.max(1,parseInt(v.folio)||1),n=parseInt(v.hojas)||0,fl=parseInt(v.filas)||14;
+  return{f0,f1:f0+n-1,r0:(f0-1)*fl+1,r1:(f0+n-1)*fl,n,fl,pags:n+(v.portada?1:0)+(v.bienv?1:0)}}
+function lvProblemas(v){const p=[];if(!v.nombre.trim())p.push("Escriba el nombre de la escuela.");
+  const n=Number(v.hojas);if(!Number.isInteger(n)||n<1||n>500)p.push("El número de hojas debe ser entre 1 y 500.");
+  if(!(parseInt(v.folio)>=1))p.push("El folio inicial debe ser 1 o mayor.");return p}
+
+/* imagen subida → PNG reducido (se guarda solo en este dispositivo) */
+function lvLogoDesdeArchivo(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file);const im=new Image();
+  im.onload=()=>{const M=700,f=Math.min(1,M/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.naturalWidth*f));c.height=Math.max(1,Math.round(im.naturalHeight*f));
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/png"))};
+  im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("No se pudo leer la imagen. Use un archivo JPG o PNG."))};im.src=u})}
+
+/* ---- texto enriquecido para el PDF ---- */
+function lvWrap(segs,width,size,indent=0){const words=[];segs.forEach(s=>clean(s.t).split(/ +/).filter(Boolean).forEach(w=>words.push({w,b:!!s.b,c:s.c})));
+  const sp=HELV.widthOfTextAtSize(" ",size),lines=[];let cur=[],cw=0;
+  for(const x of words){const ww=(x.b?HELVB:HELV).widthOfTextAtSize(x.w,size);const lim=width-(lines.length?indent:0);
+    if(cur.length&&cw+sp+ww>lim){lines.push(cur);cur=[];cw=0}cw+=(cur.length?sp:0)+ww;cur.push({...x,ww})}
+  if(cur.length)lines.push(cur);return lines}
+
+async function lvBytes(u){if(!LVIMG[u])LVIMG[u]=new Uint8Array(await(await fetch(u)).arrayBuffer());return LVIMG[u]}
+
+async function lvPDF(preview){await fonts();const v=LV,R=lvRango(v);const{PDFDocument,StandardFonts,rgb}=PDFLib;
+  const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
+  const C={g:rgb(.106,.302,.18),gu:rgb(.43,.12,.2),gold:rgb(.69,.55,.24),gray:rgb(.33,.33,.36),red:rgb(.86,.08,.08),ink:rgb(0,0,0),hd:rgb(.75,.75,.75),white:rgb(1,1,1),cream:rgb(.90,.88,.83),tg:rgb(.18,.49,.31),tr:rgb(.70,.16,.20),lgold:rgb(.93,.86,.62)};
+  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
+  let logo=null;if(LVLOGO){try{logo=await doc.embedPng(LVLOGO)}catch(e){logo=null}}
+  const es050=String(v.zona||"").trim()==="050";const escLogo=logo||(es050?zona:null);
+  const PW=792,PH=612,Y=t=>PH-t;
+  const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),ubic=clean(v.ubic.trim()),ciclo=v.ciclo?clean(v.cicloTxt.trim()):"";
+  const up=t=>t.toLocaleUpperCase("es-MX");
+  const fit=(t,font,size,maxW,min=6)=>{let s=size;while(s>min&&font.widthOfTextAtSize(t,s)>maxW)s-=0.25;return s};
+  const img=(pg,im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:Y(top)-h+(h-ih)/2,width:iw,height:ih})};
+  const ctr=(pg,t,top,size,font,color,cx=PW/2,maxW=640)=>{const s=fit(t,font,size,maxW);const w=font.widthOfTextAtSize(t,s);pg.drawText(t,{x:cx-w/2,y:Y(top),size:s,font,color});return{w,s}};
+  const ctrSegs=(pg,segs,top,size,cx=PW/2)=>{const ws=segs.map(s=>(s.b?F.b:F.r).widthOfTextAtSize(s.t,size));let x=cx-ws.reduce((a,b)=>a+b,0)/2;segs.forEach((s,i)=>{pg.drawText(s.t,{x,y:Y(top),size,font:s.b?F.b:F.r,color:s.c});x+=ws[i]})};
+  const marco=pg=>{pg.drawRectangle({x:20,y:20,width:PW-40,height:PH-40,borderColor:C.g,borderWidth:2.6});pg.drawRectangle({x:25,y:25,width:PW-50,height:PH-50,borderColor:C.g,borderWidth:0.8})};
+  const regla=(pg,top)=>{pg.drawLine({start:{x:36,y:Y(top)},end:{x:PW-36,y:Y(top)},thickness:1.4,color:C.gold});pg.drawLine({start:{x:36,y:Y(top+2.6)},end:{x:PW-36,y:Y(top+2.6)},thickness:0.5,color:C.gold})};
+  const rich=(pg,segs,x,top,width,size,lh,color,indent=0)=>{const L=lvWrap(segs,width,size,indent);L.forEach((ln,i)=>{let cx=x+(i?indent:0);const y=Y(top+size*0.85+i*lh);
+      ln.forEach((w,j)=>{if(j)cx+=F.r.widthOfTextAtSize(" ",size);pg.drawText(w.w,{x:cx,y,size,font:w.b?F.b:F.r,color:w.c||color});cx+=w.ww})});return L.length*lh};
+  const escNom=`${tipo} «${nombre}»`;
+
+  /* Portada */
+  if(v.portada){const pg=doc.addPage([PW,PH]);marco(pg);
+    img(pg,isep,66,40,96,74);if(es050)img(pg,zona,632,36,94,82);else if(logo)img(pg,logo,640,38,80,78);
+    ctr(pg,"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",66,9.5,F.b,C.g,PW/2,440);
+    if(zn)ctr(pg,`Supervisión Escolar Zona ${zn} · Educación Primaria Federalizada`,80,8.5,F.b,C.gu,PW/2,440);
+    if(es050)ctr(pg,"Camalú, San Quintín, Baja California",92,7.8,F.r,C.gray);
+    regla(pg,136);
+    img(pg,escLogo||isep,PW/2-95,156,190,190);
+    ctr(pg,"LIBRO DE REGISTRO DE VISITAS",384,26,F.b,C.g,PW/2,680);
+    ctr(pg,up(escNom),410,15,F.b,C.gu,PW/2,680);
+    if(cct)ctr(pg,`C.C.T. ${cct}`,429,10.5,F.b,C.gray);
+    [[C.tg,0],[C.cream,1],[C.tr,2]].forEach(([c,i])=>pg.drawRectangle({x:262+i*89.3,y:Y(444),width:89.3,height:4,color:c}));
+    ctrSegs(pg,[{t:"Folios del ",c:C.gray},{t:lvPad(R.f0),b:1,c:C.red},{t:" al ",c:C.gray},{t:lvPad(R.f1),b:1,c:C.red},{t:`  ·  Registros de visita del ${R.r0} al ${R.r1}`,c:C.gray}],468,9.5);
+    let t=488;if(ciclo){ctr(pg,`Ciclo escolar ${ciclo}`,t,10,F.b,C.g);t+=18}
+    if(ubic)ctr(pg,ubic.replace(/\.$/,""),t,8,F.r,C.gray)}
+
+  /* Hoja de bienvenida */
+  if(v.bienv){const pg=doc.addPage([PW,PH]);marco(pg);
+    img(pg,isep,60,40,96,66);if(escLogo)img(pg,escLogo,640,36,84,74);
+    ctr(pg,up(escNom),60,10,F.b,C.gu,PW/2,440);
+    ctr(pg,[cct&&`C.C.T. ${cct}`,zn&&`Zona Escolar ${zn}`].filter(Boolean).join(" · "),74,8,F.r,C.gray);
+    regla(pg,112);
+    ctr(pg,"REGISTRO DE VISITAS: CUIDAMOS JUNTOS A NUESTRAS NIÑAS Y NIÑOS",146,17,F.b,C.g,PW/2,700);
+    let top=160;
+    top+=rich(pg,[{t:"Bienvenida, bienvenido a nuestra escuela. De acuerdo con el"},{t:"protocolo de acceso a las escuelas,",b:1,c:C.g},{t:"toda persona que entra al plantel —madres, padres, tutores, familiares, autoridades, proveedores o cualquier visitante— debe anotarse en este libro. No es un trámite más: es una de las formas más sencillas y efectivas de proteger a las niñas y los niños que estudian aquí."}],38,top,PW-76,10.5,13.6,C.ink)+14;
+    const col=(x,w,tit,items,num)=>{let t=top;pg.drawText(tit,{x,y:Y(t+11),size:11.5,font:F.b,color:C.gu});t+=17;pg.drawLine({start:{x,y:Y(t)},end:{x:x+w,y:Y(t)},thickness:0.6,color:C.gold});t+=7;
+      items.forEach((it,i)=>{if(num)pg.drawText(`${i+1}.`,{x,y:Y(t+8.1),size:9.5,font:F.b,color:C.gu});else pg.drawRectangle({x:x+1,y:Y(t+7.6),width:3.6,height:3.6,color:C.gold});
+        t+=rich(pg,it,x+12,t,w-12,9.5,12.2,C.ink)+5.5});return t};
+    const b1=col(52,326,"¿Por qué es importante registrarse?",[
+      [{t:"Seguridad.",b:1,c:C.g},{t:"La escuela sabe en todo momento quién está dentro del plantel y a qué vino."}],
+      [{t:"Protección de la niñez.",b:1,c:C.g},{t:"Evita que personas no autorizadas tengan contacto con las alumnas y los alumnos."}],
+      [{t:"Emergencias.",b:1,c:C.g},{t:"Si ocurre un sismo, un incendio u otra emergencia, el registro ayuda a saber quién está en la escuela para ponerlo a salvo."}],
+      [{t:"Confianza.",b:1,c:C.g},{t:"Cada visita queda por escrito, lo que da tranquilidad a las familias y al personal."}]]);
+    const b2=col(412,326,"¿Qué te pedimos?",[
+      [{t:"Preséntate con el personal de la escuela y di el motivo de tu visita."}],
+      [{t:"Escribe tus datos completos con letra clara: fecha, nombre, hora de entrada, teléfono y motivo."}],
+      [{t:"Muestra una identificación si se te solicita."}],
+      [{t:"Espera la autorización antes de pasar y permanece solo en las áreas indicadas."}],
+      [{t:"Al salir, anota tu hora de salida y firma."}]],true);
+    top=Math.max(b1,b2)+10;
+    ctr(pg,"Los datos que anotas en este libro se usan únicamente para el control de acceso y la seguridad de la escuela.",top+8,8,F.r,C.gray);top+=22;
+    pg.drawRectangle({x:120,y:Y(top+50),width:PW-240,height:50,color:C.g});
+    ctr(pg,"Registrarte no es desconfianza: es cuidar a nuestras niñas y niños.",top+22,13.5,F.b,C.white,PW/2,530);
+    ctr(pg,"Gracias por tu apoyo y comprensión.",top+39,8.5,F.r,C.lgold);top+=50;
+    const fin=Math.min(top+30,PH-62);ctr(pg,"Atentamente",fin,9,F.r,C.gray);ctr(pg,`Dirección de la ${escNom}`,fin+16,10,F.b,C.g,PW/2,640)}
+
+  /* Hojas foliadas */
+  const X=[69,97,168.5,332.6,374.4,458.6,607.7,650.2,748.8];
+  const HD=[["No."],["Fecha"],["Nombre completo"],["Hora de","entrada"],["Número","Teléfono"],["Motivo de la visita"],["Hora de","salida"],["Firma"]];
+  const enc=["LIBRO DE REGISTRO DE VISITAS",up(escNom.replace(/[«»]/g,"")),cct&&`C.C.T. ${cct}`,zn&&`ZONA ESCOLAR ${zn}`].filter(Boolean);
+  const hT=113,hH=46,bodyT=hT+hH,bodyB=531,rh=(bodyB-bodyT)/R.fl,lw=0.7;
+  const nHojas=preview?Math.min(1,R.n):R.n;
+  for(let h=0;h<nHojas;h++){const pg=doc.addPage([PW,PH]);const folio=R.f0+h;
+    img(pg,isep,66,12,96,72);if(escLogo)img(pg,escLogo,664,10,82,66);
+    let t=24;enc.forEach(l=>{ctr(pg,l,t,9.6,F.b,C.ink,PW/2-6,470);t+=11.4});
+    if(ciclo){const r=ctr(pg,`CICLO ESCOLAR ${ciclo}`,t,9.6,F.b,C.ink,PW/2-6,470);pg.drawLine({start:{x:PW/2-6-r.w/2-2,y:Y(t+2)},end:{x:PW/2-6+r.w/2+2,y:Y(t+2)},thickness:0.6,color:C.tr})}
+    pg.drawRectangle({x:651.6,y:Y(105),width:97.2,height:25,borderColor:C.ink,borderWidth:lw});
+    pg.drawText("FOLIO: ",{x:658,y:Y(97),size:11,font:F.b,color:C.ink});pg.drawText(lvPad(folio),{x:658+F.b.widthOfTextAtSize("FOLIO: ",11),y:Y(97),size:11,font:F.b,color:C.red});
+    pg.drawRectangle({x:X[0],y:Y(bodyT),width:X[8]-X[0],height:hH,color:C.hd});
+    HD.forEach((ls,i)=>{const cx=(X[i]+X[i+1])/2,w=X[i+1]-X[i]-4;const s=ls.reduce((m,l)=>Math.min(m,fit(l,F.b,8.5,w)),8.5);const t0=hT+hH/2-(ls.length*s*1.15)/2+s*0.8;
+      ls.forEach((l,j)=>{const lw2=F.b.widthOfTextAtSize(l,s);pg.drawText(l,{x:cx-lw2/2,y:Y(t0+j*s*1.15),size:s,font:F.b,color:C.ink})})});
+    for(let r=0;r<=R.fl;r++){const y=Y(bodyT+r*rh);pg.drawLine({start:{x:X[0],y},end:{x:X[8],y},thickness:lw,color:C.ink})}
+    pg.drawLine({start:{x:X[0],y:Y(hT)},end:{x:X[8],y:Y(hT)},thickness:lw,color:C.ink});
+    X.forEach(x=>pg.drawLine({start:{x,y:Y(hT)},end:{x,y:Y(bodyB)},thickness:lw,color:C.ink}));
+    for(let r=0;r<R.fl;r++){const n=String((folio-1)*R.fl+r+1);const s=fit(n,F.b,7,X[1]-X[0]-4,5);pg.drawText(n,{x:X[0]+3,y:Y(bodyT+r*rh+8.5),size:s,font:F.b,color:C.ink})}
+    ctr(pg,`${tipo} ${nombre}`,556,9,F.r,C.ink);if(ubic)ctr(pg,ubic,568,9,F.r,C.ink)}
+  doc.setTitle(`Libro de registro de visitas - ${tipo} ${nombre}`);doc.setProducer("Gestión Escolar Zona 050");doc.setAuthor("Supervisión Escolar Zona 050");
+  return await doc.save()}
+
+async function prepararLibro(){if(OUT&&OUT.letra==="libro")return OUT;const bytes=await lvPDF(false);const R=lvRango(LV);
+  const filename=`Libro de visitas - ${LV.tipo} ${LV.nombre} - folios ${lvPad(R.f0)} al ${lvPad(R.f1)}.pdf`.replace(/[\\/:*?"<>|«»]/g,"").replace(/\s+/g," ");
+  const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:"libro",filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
+
+function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();if(LVLOGO===undefined)LVLOGO=store.get(LV_LOGO,null);setBar("");OUT=null;const v=LV;
+  const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de registro de visitas</h2></div></div>
+   <p class="muted">Genere el libro listo para imprimir: portada, hoja de bienvenida para quien visita la escuela y hojas foliadas para el registro, como lo pide el protocolo de acceso a las escuelas.</p>
+   <section class="card"><h3>Escuela</h3>
+    <div class="field"><label for="lv_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+     <select id="lv_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
+    <div class="field"><label for="lv_tipo">Tipo de escuela</label><input type="text" id="lv_tipo" value="${esc(v.tipo)}" autocomplete="off">
+     <div class="chips">${["Escuela Primaria","Escuela Primaria Federal","Jardín de Niños","Escuela Secundaria"].map(c=>`<button type="button" class="chip" data-tipo="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>
+    <div class="field"><label for="lv_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="lv_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label for="lv_cct">C.C.T.</label><input type="text" id="lv_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
+     <div class="field"><label for="lv_zona">Zona escolar</label><input type="text" id="lv_zona" value="${esc(v.zona)}" inputmode="numeric" autocomplete="off"></div></div>
+    <div class="field"><label for="lv_ubic">Ubicación (pie de página)</label><input type="text" id="lv_ubic" value="${esc(v.ubic)}" placeholder="Localidad, municipio, Baja California." autocomplete="off"></div></section>
+   <section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada, en la bienvenida y en cada hoja foliada. Si no sube uno, se usa el logo de la Zona 050. Mejor si es PNG con fondo blanco o transparente.</p>
+    <div class="ph"><div class="phf lvlogo" id="lv_pv">${LVLOGO?`<img src="${LVLOGO}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
+     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lv_logo" hidden></label>
+      <button type="button" class="btn link" id="lv_logodel" ${LVLOGO?"":"hidden"}>Quitar logo</button></div></div><div class="help" id="lv_logom"></div></section>
+   <section class="card"><h3>Hojas del libro</h3>
+    <div class="field"><label for="lv_hojas">Número de hojas de registro</label><p class="help">Cada hoja lleva su folio. La portada y la bienvenida no cuentan.</p>
+     <input type="number" id="lv_hojas" min="1" max="500" step="1" inputmode="numeric" value="${esc(v.hojas)}">
+     <div class="chips">${[25,50,100,150,200].map(n=>`<button type="button" class="chip" data-h="${n}">${n} hojas</button>`).join("")}</div></div>
+    <div class="row2"><div class="field"><label for="lv_filas">Registros por hoja</label><select id="lv_filas">${[10,12,14,16,18].map(n=>`<option ${+v.filas===n?"selected":""}>${n}</option>`).join("")}</select></div>
+     <div class="field"><label for="lv_folio">Folio inicial</label><input type="number" id="lv_folio" min="1" step="1" inputmode="numeric" value="${esc(v.folio)}"></div></div>
+    <p class="help">Deje el folio inicial en 1. Cámbielo solo si este libro continúa uno anterior (por ejemplo, 101).</p>
+    <div id="lv_res"></div></section>
+   <section class="card"><h3>Opciones</h3>
+    <div class="opts">${chk("lv_ciclo",v.ciclo,"Poner el ciclo escolar")}</div>
+    <div class="field" id="lv_cicloF" ${v.ciclo?"":"hidden"}><label for="lv_cicloTxt">Ciclo escolar</label><input type="text" id="lv_cicloTxt" value="${esc(v.cicloTxt)}" autocomplete="off"><p class="help">Si el libro durará más de un ciclo, desactive esta opción.</p></div>
+    <div class="opts">${chk("lv_portada",v.portada,"Incluir portada")}${chk("lv_bienv",v.bienv,"Incluir hoja de bienvenida (por qué registrarse y qué se pide a quien visita)")}</div></section>
+   <section class="card"><h3>Vista previa</h3><p class="help">Muestra la portada, la bienvenida y la primera hoja foliada.</p>
+    <button class="btn ghost" id="lv_prev">Ver vista previa</button><div id="lv_pvw" class="lvpv"></div></section>
+   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>horizontal</b>, a una sola cara.</p>
+    <div class="acts">
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+    <div id="msg"></div></section>
+   <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{v.tipo=g("lv_tipo").value;v.nombre=g("lv_nombre").value;v.cct=g("lv_cct").value.toUpperCase();v.zona=g("lv_zona").value;v.ubic=g("lv_ubic").value;
+    v.hojas=g("lv_hojas").value;v.filas=+g("lv_filas").value;v.folio=g("lv_folio").value;v.ciclo=g("lv_ciclo").checked;v.cicloTxt=g("lv_cicloTxt").value;v.portada=g("lv_portada").checked;v.bienv=g("lv_bienv").checked;
+    store.set(LV_KEY,v);OUT=null;resumen()};
+  const resumen=()=>{const p=lvProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
+    if(p.length){g("lv_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
+    const R=lvRango(v);g("lv_res").innerHTML=`<div class="okmsg"><b>Folios ${lvPad(R.f0)} al ${lvPad(R.f1)}</b> · registros del ${R.r0.toLocaleString("es-MX")} al ${R.r1.toLocaleString("es-MX")}<br><span style="font-size:14px">${R.pags} páginas en total${R.n>150?" · El PDF puede tardar unos segundos en prepararse.":""}</span></div>`};
+  app.querySelectorAll("input,select").forEach(el=>{if(el.id==="lv_sel"||el.id==="lv_logo")return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"?"change":"input",leer)});
+  app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
+  g("lv_ciclo").addEventListener("change",()=>{g("lv_cicloF").hidden=!g("lv_ciclo").checked;if(g("lv_ciclo").checked&&!g("lv_cicloTxt").value){g("lv_cicloTxt").value=cicloActual();leer()}});
+  app.querySelectorAll("[data-tipo]").forEach(b=>b.onclick=()=>{g("lv_tipo").value=b.dataset.tipo;leer()});
+  app.querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{g("lv_hojas").value=b.dataset.h;leer()});
+  g("lv_sel").onchange=()=>{const s=g("lv_sel").value;leer();v.sel=s;
+    if(s==="otra"){v.nombre="";v.cct="";v.ubic="";v.zona="";v.tipo="Escuela Primaria"}else if(s!=="")lvFromZona(v,+s);
+    store.set(LV_KEY,v);lvView()};
+  g("lv_logo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("lv_logom").textContent="Procesando…";
+    try{LVLOGO=await lvLogoDesdeArchivo(f);store.set(LV_LOGO,LVLOGO);g("lv_pv").innerHTML=`<img src="${LVLOGO}" alt="Logo de la escuela">`;g("lv_logodel").hidden=false;g("lv_logom").textContent="Logo listo.";OUT=null}
+    catch(err){g("lv_logom").textContent=err.message}};
+  g("lv_logodel").onclick=()=>{LVLOGO=null;store.del(LV_LOGO);g("lv_pv").innerHTML="<span>Sin logo</span>";g("lv_logodel").hidden=true;g("lv_logom").textContent="";OUT=null};
+  g("lv_prev").onclick=async()=>{const b=g("lv_prev"),box=g("lv_pvw");if(lvProblemas(v).length){resumen();return}b.disabled=true;b.textContent="Preparando…";
+    try{const bytes=await lvPDF(true);const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;box.innerHTML="";
+      for(let i=1;i<=pdf.numPages;i++){const pgp=await pdf.getPage(i);const vp=pgp.getViewport({scale:1.6});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;box.appendChild(c);await pgp.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
+      b.textContent="Actualizar vista previa"}
+    catch(err){box.innerHTML=`<div class="alert"><b>No se pudo mostrar la vista previa.</b> (${esc(err.message||err)})</div>`;b.textContent="Ver vista previa"}
+    finally{b.disabled=false}};
+  app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
+  g("salir").onclick=goBack;resumen();window.scrollTo(0,0)}
 
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([cargarSeguro(),new Promise(r=>setTimeout(r,2500))]).finally(home);
 </script>
