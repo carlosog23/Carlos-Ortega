@@ -2,14 +2,14 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}</style></head><body>
 <title>Gestión Escolar Zona 050</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Montserrat:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 /* Layout: una columna tipo app de teléfono; pantallas Inicio → Pasos → Revisión. Guinda ISEP como único acento. */
 :root{
   --bg:#F4F5F7; --card:#FFFFFF; --ink:#1B1D22; --muted:#5B606B; --line:#D9DCE2; --field:#FFFFFF;
   --accent:#8C2232; --accent-ink:#FFFFFF; --accent-soft:#F6E9EC; --ok:#1E7A46; --warn:#A4541A; --warn-soft:#FBEFE5;
-  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --display:"Montserrat","Segoe UI",system-ui,sans-serif; --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#15171B; --card:#1F2228; --ink:#ECEDF0; --muted:#A3A8B3; --line:#363A43; --field:#16181D;
@@ -150,6 +150,55 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .resume .ri{flex:none;font-size:22px;color:var(--accent)}.resume b{display:block}.resume span.ds{display:block;font-size:14px;color:var(--muted)}
 .phf.lvlogo{background:#fff}.phf.lvlogo img{object-fit:contain;padding:6px}
 .lvpv{display:flex;flex-direction:column;gap:12px}.lvpv canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* ===== Diseño institucional (membrete ISEP): banda guinda con filete dorado; todo lo demás sobrio ===== */
+:root{--bg:#F2F3F5;--line:#DCDFE5;--gold:#B8913A;--band:#6E1A2E;--band-ink:#FFFFFF;--band-soft:rgba(255,255,255,.78);--shadow:0 1px 2px rgba(20,24,33,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13151A;--line:#30343D;--gold:#C9A657;--band:#4A1220;--shadow:none}}
+:root[data-theme="dark"]{--bg:#13151A;--line:#30343D;--gold:#C9A657;--band:#4A1220;--shadow:none}
+body{font-size:16.5px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;gap:14px}
+h1,h2,h3{line-height:1.15;letter-spacing:-.01em}
+h1{font-size:28px;font-weight:700} h2{font-size:21px;font-weight:700} h3{font-size:17px;font-weight:600}
+.eyebrow{font-family:var(--display);font-size:12.5px;letter-spacing:0;text-transform:none;font-weight:600;color:var(--accent)}
+.group-title{font-size:15px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted);margin:10px 2px -4px}
+.card{border-radius:12px;box-shadow:var(--shadow)}
+.btn{border-radius:10px;font-family:var(--body)}
+/* banda del inicio */
+html,body{overflow-x:clip}
+.band{margin:-16px calc(50% - 50vw) 0;background:var(--band);color:var(--band-ink);border-bottom:3px solid var(--gold);padding:20px 16px 22px}
+.band-in{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:16px}
+.seal{flex:none;display:flex;align-items:center;gap:6px;background:#fff;border-radius:10px;padding:6px 8px}
+.seal img{height:54px;width:auto;display:block}
+.band-k{font-size:13.5px;color:var(--band-soft);margin:0 0 4px}
+.band h1{color:var(--band-ink);font-size:clamp(24px,6.4vw,32px)}
+@media (max-width:400px){.band-in{flex-direction:column;align-items:flex-start;gap:12px}.seal img{height:48px}}
+/* ficha de la supervisión */
+.sup{border-left:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px}
+.sup-t{font-family:var(--display);font-weight:600;font-size:14.5px}
+.sup-g i{letter-spacing:0;text-transform:none;font-size:12px}
+.sup-n{font-style:normal;color:var(--ink);font-weight:700;border-top:1px solid var(--line)}
+/* secciones como un índice */
+.secs{gap:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.sec{border:0;border-radius:0;border-top:1px solid var(--line);padding:14px 14px;min-height:76px;background:transparent}
+.sec:first-child{border-top:0}
+.sec:hover{background:var(--accent-soft);border-color:var(--line)}
+.sec .sic{width:44px;height:44px;border-radius:10px}
+.sec .sic svg{width:24px;height:24px}
+.sec b{font-family:var(--display);font-weight:600;font-size:16.5px}
+.sec .cnt{font-weight:600}
+.sec .chev{font-size:24px}
+@media (min-width:760px){.secs{display:grid;grid-template-columns:1fr 1fr}.sec{border-top:1px solid var(--line)}.sec:nth-child(-n+2){border-top:0}.sec:nth-child(odd){border-right:1px solid var(--line)}}
+/* formatos y herramientas */
+.anexo{border-radius:12px;box-shadow:var(--shadow);min-height:68px}
+.anexo b{font-family:var(--display);font-weight:600;font-size:16px}
+.letra{width:44px;height:44px;border-radius:10px;font-family:var(--display);font-size:20px;font-weight:700}
+/* barra superior fija en las pantallas internas */
+.top{position:sticky;top:0;z-index:5;margin:-16px calc(50% - 50vw) 0;padding:10px max(16px,calc(50vw - 340px));background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .back{width:42px;height:42px;border-radius:10px}
+.top h2{font-size:19px}
+.homebtn{min-height:42px;font-family:var(--display);font-weight:600;font-size:14px}
+.resume{border-radius:12px}
+.foot{line-height:1.6}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -729,8 +778,8 @@ async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const
 function setBar(html){if(!html){bar.hidden=true;barIn.innerHTML="";return}bar.hidden=false;barIn.innerHTML=html}
 function home(){S.view="home";setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
-  app.innerHTML=`<header class="brand"><div class="logos"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
-   <div><h1>Gestión Escolar Zona 050</h1></div></header>
+  app.innerHTML=`<header class="band brand"><div class="band-in"><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
+   <div><p class="band-k">Instituto de Servicios Educativos y Pedagógicos de Baja California</p><h1>Gestión Escolar</h1></div></div></header>
    <section class="sup" aria-label="Datos de la Supervisión">
     <div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div>
     <div class="sup-g">
