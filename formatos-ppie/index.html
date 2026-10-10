@@ -862,11 +862,13 @@ const ICON={
  law:'<svg viewBox="0 0 24 24"><path d="M12 3v17M7 20h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>',
  cross:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7.5v9M7.5 12h9"/></svg>',
  cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>',
+money:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg>',
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
  {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
+{id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
@@ -1818,10 +1820,95 @@ async function accAdminView(nuevo){S.view="accadmin";S.letra=null;setBar("");con
     try{await accGuardar(tok,x=>{x.generacion=(x.generacion||1)+1},"Control de acceso: anula todos los enlaces");accAdminView()}catch(er){bt.disabled=false;fallo(er)}};
   window.scrollTo(0,0)}
 
+/* ---------- Salario anual: calcula el neto del año a partir de los talones de pago (para la declaración patrimonial) ----------
+   Todo se procesa en este dispositivo; los talones no se suben a internet. */
+let SAL=null;
+(function(){const d=store.get("ppie-salario",null);SAL=d&&Array.isArray(d.recibos)?d:{recibos:[]}})();
+function salSave(){store.set("ppie-salario",SAL)}
+const salMoney=n=>(n==null||isNaN(n))?"—":"$"+Number(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+const salNum=s=>{if(s==null)return null;const n=parseFloat(String(s).replace(/[^0-9.]/g,""));return isNaN(n)?null:n};
+async function salTexto(file){const L=await pdfjs();const doc=await L.getDocument({data:await file.arrayBuffer()}).promise;const lines=[];
+  for(let p=1;p<=doc.numPages;p++){const tc=await(await doc.getPage(p)).getTextContent();const rows=[];
+    for(const it of tc.items){if(!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let r=rows.find(r=>Math.abs(r.y-y)<3);if(!r){r={y,items:[]};rows.push(r)}r.items.push({x,s:it.str,w:it.width})}
+    rows.sort((a,b)=>b.y-a.y);for(const r of rows){r.items.sort((a,b)=>a.x-b.x);let t="",end=null;for(const i of r.items){if(end!==null&&i.x-end>1.5)t+=" ";t+=i.s;end=i.x+i.w}lines.push(t.replace(/\s+/g," ").trim())}}
+  return lines}
+function salParse(lines){const txt=lines.join("\n");const A="\\$?\\s*([\\d,]+\\.\\d{2})";
+  const pick=res=>{for(const re of res){const m=txt.match(re);if(m)return salNum(m[1])}return null};
+  let neto=pick([new RegExp("neto\\s*a\\s*(?:pagar|recibir|dep[oó]sitar)\\s*:?\\s*"+A,"i"),new RegExp("(?:importe|total|pago|sueldo)\\s*neto\\s*:?\\s*"+A,"i"),new RegExp("l[ií]quido(?:\\s*a\\s*pagar)?\\s*:?\\s*"+A,"i"),new RegExp("\\bneto\\b\\s*:?\\s*"+A,"i")]);
+  let bruto=pick([new RegExp("total\\s*(?:de\\s*)?percepciones\\s*:?\\s*"+A,"i"),new RegExp("total\\s*(?:de\\s*)?ingresos?\\s*:?\\s*"+A,"i"),new RegExp("\\bpercepciones\\b\\s*:?\\s*"+A,"i")]);
+  let ded=pick([new RegExp("total\\s*(?:de\\s*)?deducciones\\s*:?\\s*"+A,"i"),new RegExp("\\bdeducciones\\b\\s*:?\\s*"+A,"i")]);
+  if(neto==null&&bruto!=null&&ded!=null)neto=+(bruto-ded).toFixed(2);
+  if(ded==null&&bruto!=null&&neto!=null)ded=+(bruto-neto).toFixed(2);
+  if(bruto==null&&neto!=null&&ded!=null)bruto=+(neto+ded).toFixed(2);
+  let periodo="",m;
+  if(m=txt.match(/per[ií]odo\s*(?:de\s*pago)?\s*:?\s*([^\n]{3,45})/i))periodo=m[1].trim();
+  else if(m=txt.match(/\b(\d{1,2}\/\d{1,2}\/\d{4})\b[^\n]{0,20}?\b(\d{1,2}\/\d{1,2}\/\d{4})\b/))periodo=m[1]+" al "+m[2];
+  else if(m=txt.match(/quincena\s*(?:n[o\u00ba\u00b0]?\.?)?\s*:?\s*(\d{1,3})\b/i))periodo="Quincena "+m[1];
+  else if(m=txt.match(/\b(\d{1,2}\/\d{1,2}\/\d{4})\b/))periodo=m[1];
+  return{periodo,bruto,ded,neto}}
+const salTot=k=>SAL.recibos.reduce((t,r)=>t+(Number(r[k])||0),0);
+const salCompletos=()=>SAL.recibos.filter(r=>r.neto!=null&&!isNaN(r.neto)).length;
+function salView(){S.view="salario";S.letra=null;setBar("");
+  const rec=SAL.recibos;
+  const fila=(r,i)=>`<details class="card" data-i="${i}"><summary><b>${esc(r.periodo||r.archivo||("Recibo "+(i+1)))}</b> · Neto ${salMoney(r.neto)}${(r.neto==null)?' · <span class="draft">por capturar</span>':""}</summary>
+     <div class="row2"><div class="field"><label>Periodo o quincena</label><input type="text" class="s_per" value="${esc(r.periodo||"")}" autocomplete="off"></div>
+      <div class="field"><label>Percepciones (bruto)</label><input type="text" inputmode="decimal" class="s_bru" value="${r.bruto!=null?r.bruto:""}" autocomplete="off"></div></div>
+     <div class="row2"><div class="field"><label>Deducciones</label><input type="text" inputmode="decimal" class="s_ded" value="${r.ded!=null?r.ded:""}" autocomplete="off"></div>
+      <div class="field"><label>Neto (líquido)</label><input type="text" inputmode="decimal" class="s_net" value="${r.neto!=null?r.neto:""}" autocomplete="off"></div></div>
+     ${r.archivo?`<p class="help">Tomado de: ${esc(r.archivo)}</p>`:""}
+     <button type="button" class="btn link" data-del="${i}">Quitar este recibo</button></details>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Laboral</div><h2>Cálculo de salario anual</h2></div></div>
+   <p class="muted">Suba sus <b>talones de pago en PDF</b> y la app suma las percepciones, las deducciones y el <b>neto del año</b>, para su declaración patrimonial. Lea cada dato y corríjalo si hace falta.</p>
+   <section class="card">
+    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir talones de pago (PDF)<input type="file" id="s_pdfs" accept="application/pdf,.pdf" multiple hidden></label>
+    <button type="button" class="btn ghost" id="s_manual">Agregar un recibo a mano</button>
+    <div id="s_msg"></div>
+    <p class="help">Puede subir varios a la vez. Suba todos los del año (por ejemplo, las 24 quincenas) para obtener el total anual.</p></section>
+   ${rec.length?`
+   <section class="card sumcard">
+    <h3>Totales del año · ${rec.length} recibo${rec.length>1?"s":""}${salCompletos()<rec.length?` <span class="draft">(${rec.length-salCompletos()} por capturar)</span>`:""}</h3>
+    <div class="calhead"><div><i>Percepciones (bruto anual)</i><b>${salMoney(salTot("bruto"))}</b></div><div><i>Deducciones del año</i><b>${salMoney(salTot("ded"))}</b></div><div><i>Neto anual (líquido)</i><b>${salMoney(salTot("neto"))}</b></div></div>
+    <div class="acts"><button class="btn primary act" id="s_xls">⬇ Descargar Excel del cálculo</button></div>
+    <p class="help">Para la declaración patrimonial se suele pedir el <b>ingreso neto anual</b> del cargo público. Verifique estas cifras contra sus talones antes de declararlas.</p></section>
+   <div class="group-title">Recibos</div>
+   ${rec.map(fila).join("")}
+   <button class="btn link" id="s_borrar">Borrar todos los recibos</button>`
+   :`<div class="soon">Aún no hay recibos. Suba sus talones de pago en PDF o agregue uno a mano.</div>`}
+   <p class="foot">Sus talones y las cifras se quedan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const g=id=>document.getElementById(id);
+  g("salir").onclick=goBack;
+  g("s_manual").onclick=()=>{SAL.recibos.push({periodo:"",bruto:null,ded:null,neto:null,archivo:""});salSave();salView()};
+  const guardarEdits=()=>{app.querySelectorAll("details[data-i]").forEach(d=>{const i=+d.dataset.i,r=SAL.recibos[i];if(!r)return;
+    r.periodo=d.querySelector(".s_per").value.trim();r.bruto=salNum(d.querySelector(".s_bru").value);r.ded=salNum(d.querySelector(".s_ded").value);r.neto=salNum(d.querySelector(".s_net").value)})};
+  app.querySelectorAll("details[data-i] input").forEach(inp=>inp.onchange=()=>{const op=[...app.querySelectorAll("details[data-i]")].map(d=>d.open);guardarEdits();salSave();salView();[...app.querySelectorAll("details[data-i]")].forEach((d,i)=>d.open=op[i])});
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{SAL.recibos.splice(+b.dataset.del,1);salSave();salView()});
+  g("s_pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const m=g("s_msg");m.innerHTML=`<p class="help">Leyendo ${files.length} archivo(s)…</p>`;const msgs=[];
+    for(const f of files){try{const lines=await salTexto(f);const p=salParse(lines);
+      SAL.recibos.push({periodo:p.periodo||"",bruto:p.bruto,ded:p.ded,neto:p.neto,archivo:f.name});
+      msgs.push(p.neto!=null?`${esc(f.name)}: neto ${salMoney(p.neto)}${p.periodo?` · ${esc(p.periodo)}`:""}.`:`${esc(f.name)}: no se encontró el neto; captúrelo a mano.`)}
+      catch(err){msgs.push(`${esc(f.name)}: no se pudo leer (${esc(err.message||err)}).`)}}
+    salSave();salView();const mm=g("s_msg");if(mm)mm.innerHTML=`<div class="okmsg">${msgs.join("<br>")}</div>`};
+  const br=g("s_borrar");if(br)br.onclick=()=>{if(br.dataset.ok){SAL.recibos=[];salSave();salView()}else{br.dataset.ok=1;br.textContent="Toque otra vez para confirmar"}};
+  const xl=g("s_xls");if(xl)xl.onclick=()=>salExcel(xl);
+  window.scrollTo(0,0)}
+async function salExcel(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("Salario anual");
+    ws.columns=[{header:"Periodo / quincena",key:"p",width:28},{header:"Percepciones",key:"b",width:16},{header:"Deducciones",key:"d",width:16},{header:"Neto",key:"n",width:16},{header:"Archivo",key:"a",width:34}];
+    ws.getRow(1).font={bold:true};
+    SAL.recibos.forEach(r=>ws.addRow({p:r.periodo||"",b:r.bruto??null,d:r.ded??null,n:r.neto??null,a:r.archivo||""}));
+    const tr=ws.addRow({p:"TOTAL ANUAL",b:salTot("bruto"),d:salTot("ded"),n:salTot("neto"),a:""});tr.font={bold:true};
+    ["b","d","n"].forEach(k=>ws.getColumn(k).numFmt='"$"#,##0.00');
+    ws.addRow({});ws.addRow({p:`${SAL.recibos.length} recibo(s) · generado el ${fmtDate(today(),"larga")}`});
+    ws.addRow({p:"Cifras para apoyo de la declaración patrimonial. Verifíquelas contra sus talones oficiales."});
+    const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`Salario anual - ${today()}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){const m=document.getElementById("s_msg");if(m)m.innerHTML=`<div class="alert"><b>No se pudo generar el Excel.</b> ${esc(e.message||e)}</div>`}
+  finally{btn.disabled=false;btn.textContent=t}}
+
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
