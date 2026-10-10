@@ -1879,8 +1879,9 @@ function salView(){S.view="salario";S.letra=null;setBar("");
    <section class="card">
     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir comprobantes (PDF)<input type="file" id="s_pdfs" accept="application/pdf,.pdf" multiple hidden></label>
     <button type="button" class="btn ghost" id="s_manual">Agregar un comprobante a mano</button>
+    ${rec.length?`<button type="button" class="btn link" id="s_nuevo">↺ Empezar un cálculo nuevo (borra los comprobantes)</button>`:""}
     <div id="s_msg"></div>
-    <p class="help">Puede subir varios a la vez. Si sube un comprobante repetido, la app lo descarta.</p></section>
+    <p class="help">Puede subir varios a la vez. Si sube un comprobante repetido, la app lo descarta.${rec.length?" Los comprobantes se guardan en este dispositivo; use «Empezar un cálculo nuevo» para borrarlos.":""}</p></section>
    ${rec.length?`
    <section class="card sumcard">
     <h3>Ingreso neto anual${claves.length>1?` · ${claves.length} escuelas`:""}</h3>
@@ -1891,8 +1892,7 @@ function salView(){S.view="salario";S.letra=null;setBar("");
       <div class="calhead"><div><i>Percepciones</i><b>${salMoney(totPerc)}</b></div><div><i>ISR + seguridad social</i><b>${salMoney(totDesc)}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(totNeto)}</b></div></div></div>`:""}
     <div class="acts"><button class="btn primary act" id="s_xls">⬇ Descargar Excel del cálculo</button></div></section>
    <div class="group-title">Comprobantes · ${rec.length}</div>
-   ${rec.map(fila).join("")}
-   <button class="btn link" id="s_borrar">Borrar todos los comprobantes</button>`
+   ${rec.map(fila).join("")}`
    :`<div class="soon">Aún no hay comprobantes. Suba sus CFDI de nómina en PDF o agregue uno a mano.</div>`}
    <p class="foot">Sus comprobantes y las cifras se quedan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -1912,7 +1912,7 @@ function salView(){S.view="salario";S.letra=null;setBar("");
       msgs.push(`${esc(f.name)}: ${partes.join(", ")||"no se encontraron talones"}.`)}
       catch(err){msgs.push(`${esc(f.name)}: no se pudo leer (${esc(err.message||err)}).`)}}
     salSave();salView();const mm=g("s_msg");if(mm)mm.innerHTML=`<div class="okmsg"><b>${nuevos} agregado(s)${rep?`, ${rep} repetido(s) omitido(s)`:""}.</b><br>${msgs.join("<br>")}</div>`};
-  const br=g("s_borrar");if(br)br.onclick=()=>{if(br.dataset.ok){SAL.recibos=[];salSave();salView()}else{br.dataset.ok=1;br.textContent="Toque otra vez para confirmar"}};
+  const nv=g("s_nuevo");if(nv)nv.onclick=()=>{if(confirm("¿Empezar un cálculo nuevo? Se borrarán todos los comprobantes cargados. Esta acción no se puede deshacer.")){SAL.recibos=[];salSave();salView()}};
   const xl=g("s_xls");if(xl)xl.onclick=()=>salExcel(xl);
   window.scrollTo(0,0)}
 async function salExcel(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
