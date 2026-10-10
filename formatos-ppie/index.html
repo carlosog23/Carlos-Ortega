@@ -144,6 +144,10 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .adminlink{align-self:center;font-size:14px}
 .foot{font-size:13px;color:var(--muted);text-align:center}
+.homebtn{margin-left:auto;flex:none;font:inherit;font-size:15px;font-weight:700;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;min-height:44px;padding:0 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.homebtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.resume{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:14px;padding:12px 14px;cursor:pointer;min-height:60px}
+.resume .ri{flex:none;font-size:22px;color:var(--accent)}.resume b{display:block}.resume span.ds{display:block;font-size:14px;color:var(--muted)}
 .phf.lvlogo{background:#fff}.phf.lvlogo img{object-fit:contain;padding:6px}
 .lvpv{display:flex;flex-direction:column;gap:12px}.lvpv canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 </style>
@@ -1469,6 +1473,17 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=
     finally{b.disabled=false}};
   app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
   g("salir").onclick=goBack;resumen();window.scrollTo(0,0)}
+
+/* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
+let ULTIMA=null;
+const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView()};
+function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
+function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
+new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
+  if(!REABRIR[S.view])return;const t=app.querySelector(".top");const h2=t&&t.querySelector("h2");
+  ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
+  if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([cargarSeguro(),new Promise(r=>setTimeout(r,2500))]).finally(home);
 </script>
