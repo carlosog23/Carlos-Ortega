@@ -265,6 +265,7 @@ const MUNIS=["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quint�
 const PERFIL=[
  {id:"escuela",label:"Nombre de la escuela",ph:"Escuela Primaria Federal …"},
  {id:"cct",label:"Clave del Centro de Trabajo (CCT)",ph:"02DPR…"},
+ {id:"zona",label:"Zona escolar",def:"050"},
  {id:"localidad",label:"Localidad",ph:"Ej. Camalú"},
  {id:"municipio",label:"Municipio",type:"select",options:["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quintín","Tecate","Tijuana"]},
  {id:"domicilio",label:"Domicilio de la escuela",ph:"Calle, número, colonia o ejido"},
@@ -1033,13 +1034,15 @@ function perfilView(){S.view="perfil";
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Datos de mi escuela</h2></div></div>
    <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos a mano.</p>
     <select id="selEsc"><option value="">Otra escuela (llenar a mano)</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
-   <form class="card" id="frm" novalidate>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>`;
+   <form class="card" id="frm" novalidate>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>
+   ${logoWidgetHTML()}`;
   setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked))));
+  wireLogo();
   document.getElementById("salir").onclick=home;document.getElementById("cancel").onclick=home;
   document.getElementById("selEsc").onchange=e=>{const v=e.target.value;const set=(k,x)=>{const el=document.getElementById("f_"+k);if(el)el.value=x};
     if(v===""){["escuela","cct","localidad","domicilio","director","telefono"].forEach(k=>set(k,""));set("municipio","");return}
-    const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
+    const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("zona","050");set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
   document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
 
 /* ---------- Estadística de edades (inicio de ciclo) ---------- */
@@ -1224,7 +1227,7 @@ const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.ge
 function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
 function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
 function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
-  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,
     portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
   if(i>=0)lfFromZona(o,i);else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.lugar=[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", ")}
   return o}
@@ -1429,7 +1432,7 @@ const lvPad=n=>String(n).padStart(3,"0");
 function lvFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, Baja California.`}
 function lvInit(){const s=store.get(LV_KEY,null);if(s)return s;
   const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
-  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:"050",ubic:"",hojas:100,filas:14,folio:1,ciclo:true,cicloTxt:cicloActual(),portada:true,bienv:true};
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",ubic:"",hojas:100,filas:14,folio:1,ciclo:true,cicloTxt:cicloActual(),portada:true,bienv:true};
   if(i>=0)lvFromZona(o,i);
   else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.ubic=[perfil.localidad,perfil.municipio].filter(Boolean).join(", ")+(perfil.municipio?", Baja California.":"")}
   return o}
