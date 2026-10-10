@@ -666,7 +666,7 @@ function correoCard(){return`<section class="card" aria-label="Correo institucio
    <p class="muted" style="font-size:15px">¿Olvidó su contraseña o su cuenta está desactivada? Solicite el restablecimiento o la reactivación en el formulario oficial.</p></div>
    <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CORREO_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">✉️</span>Solicitar restablecimiento o reactivación</a></div>
    <p class="help">Se abre el sitio oficial «Reactivación y/o restablecimiento de contraseña del Correo Institucional».</p></section>`}
-/* ---------- CURP: revisar, copiar y descargar en el sitio oficial (gob.mx pide verificación de seguridad) ---------- */
+/* ---------- CURP: descarga en el sitio oficial (gob.mx no acepta la CURP desde otra página y pide verificación de seguridad) ---------- */
 const CURP_URL="https://www.gob.mx/curp/";
 const CURP_RE=/^[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HMX](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[0-9A-Z]\d$/;
 function curpDV(c){const D="0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";let s=0;for(let i=0;i<17;i++)s+=D.indexOf(c[i])*(18-i);return(10-s%10)%10}
@@ -676,19 +676,10 @@ function curpRevisar(v){const c=String(v||"").toUpperCase().replace(/\s/g,"");
   const ci=curpInfo(c);const[y,m,d]=ci.dob.split("-");const dat=`nacimiento ${+d}/${+m}/${y} · ${ci.sexo==="H"?"hombre":ci.sexo==="M"?"mujer":"no binario"}`;
   if(curpDV(c)!==+c[17])return{c,ok:false,msg:"La CURP tiene un error: el último dígito no corresponde con el resto de la clave. Revise letra por letra; suele ser una O por un 0 o una letra cambiada."};
   return{c,ok:true,msg:`Formato correcto · ${dat}`}}
-function curpInput(el){const p=el.selectionStart;el.value=el.value.toUpperCase().replace(/[^A-Z0-9Ñ]/g,"").slice(0,18);try{el.setSelectionRange(p,p)}catch(e){}
-  const r=curpRevisar(el.value),box=el.closest(".card");box.querySelector(".curpmsg").innerHTML=r.msg?`<span class="${r.ok?"okmsg":"alert"}" style="display:block;padding:8px 12px">${esc(r.msg)}</span>`:"";
-  box.querySelector(".curpcopy").disabled=!r.ok}
-function curpCopiarAbrir(btn){const el=btn.closest(".card").querySelector(".curpin");const r=curpRevisar(el.value);if(!r.ok)return;
-  el.value=r.c;el.focus();el.select();try{document.execCommand("copy")}catch(_){}try{navigator.clipboard.writeText(r.c).catch(()=>{})}catch(_){}
-  const w=window.open(CURP_URL,"_blank");if(w)try{w.opener=null}catch(_){}
-  btn.textContent="CURP copiada · pegue en gob.mx";setTimeout(()=>{btn.innerHTML='<span class="ic" aria-hidden="true">🪪</span>Copiar CURP y abrir gob.mx'},4000);if(!w)location.href=CURP_URL}
-function curpCard(){return`<section class="card" aria-label="Consulta y descarga de CURP"><div><h3>Consulta y descarga de CURP</h3>
-   <p class="muted" style="font-size:15px">La CURP certificada se descarga en el sitio oficial de gob.mx. Escriba aquí la CURP para revisar que esté bien escrita; la app la copia y abre el sitio para que solo la pegue.</p></div>
-   <div class="field"><label>CURP</label><input type="text" class="curpin" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="18 caracteres" oninput="curpInput(this)" style="text-transform:uppercase;letter-spacing:.1em;font-family:ui-monospace,Menlo,Consolas,monospace"><div class="curpmsg"></div></div>
-   <div class="acts"><button type="button" class="btn primary act curpcopy" disabled onclick="curpCopiarAbrir(this)"><span class="ic" aria-hidden="true">🪪</span>Copiar CURP y abrir gob.mx</button>
-    <a class="btn ghost act" style="text-decoration:none" href="${CURP_URL}" target="_blank" rel="noopener">No sé la CURP: buscarla con mis datos</a></div>
-   <p class="help">En gob.mx pegue la CURP (o capture nombre, fecha y lugar de nacimiento), complete la verificación de seguridad y toque «Descargar PDF». La CURP que escriba aquí no se guarda ni se envía a ningún lado.</p></section>`}
+function curpCard(){return`<section class="card" aria-label="Descarga de CURP"><div><h3>Descarga de CURP</h3>
+   <p class="muted" style="font-size:15px">Consulte y descargue la CURP certificada en el sitio oficial de gob.mx.</p></div>
+   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CURP_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">🪪</span>Descargar CURP en gob.mx</a></div>
+   <p class="help">Escriba la CURP (o busque con nombre, fecha y lugar de nacimiento), complete la verificación de seguridad y toque «Descargar PDF».</p></section>`}
 /* ---------- Normatividad: consulta de leyes, reglamentos, acuerdos, protocolos y libros de texto ---------- */
 let NORMAS=null;
 async function cargarNormas(){if(NORMAS)return NORMAS;try{const r=await fetch("formatos/normatividad.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;NORMAS=await r.json();store.set("normas-cache",NORMAS)}
