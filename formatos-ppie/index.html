@@ -835,8 +835,8 @@ function home(){S.view="home";setBar("");
    <div class="secs">${SECCIONES.map(x=>{const n=x.count?x.count():secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
       <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a></p>`;
-  document.getElementById("perfilBtn").onclick=perfilView;
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>${accPie()}<br><button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button></p>`;
+  document.getElementById("perfilBtn").onclick=perfilView;document.getElementById("accAdm").onclick=()=>accAdminView();
   app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
 
 const ICON={
@@ -1691,10 +1691,123 @@ async function calAdminView(){S.view="caladmin";S.sec="calendario";setBar("");co
     catch(er){m.innerHTML=`<div class="alert"><b>No se pudo guardar.</b> ${er.status===401||er.status===403?"La clave ya no es válida o no tiene permiso para escribir. Cierre la sesión y entre con una clave nueva.":"Revise su conexión e intente de nuevo."}</div>`;btn.disabled=false;btn.textContent="Guardar y publicar";m.scrollIntoView({behavior:"smooth",block:"center"})}};
   window.scrollTo(0,0)}
 
+/* ---------- Control de acceso por enlaces con caducidad (personal o escuela completa) ----------
+   acceso.json guarda solo la huella (SHA-256) de cada enlace, nunca el enlace mismo.
+   Un enlace es válido si: existe, no está anulado, no ha vencido y es de la generación vigente.
+   «Anular todos» sube la generación. Es una barrera para controlar la difusión, no un candado de servidor. */
+const REPO_ACCP="formatos-ppie/formatos/acceso.json";
+let ACC=null,ACC_YO=null;
+const sha256=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const nuevoToken=()=>{const a=new Uint8Array(18);crypto.getRandomValues(a);return btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+const appURL=()=>location.origin+location.pathname;
+function accEstado(e,gen){if(!e)return"no";if(e.anulado)return"anulado";if(e.gen!==gen)return"anulado";if(e.vence<today())return"vencido";return"vigente"}
+async function accesoGate(){
+  const m=(location.hash||"").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/);
+  if(m){store.set("acc-token",m[1]);history.replaceState(null,"",location.pathname+location.search)}
+  try{const r=await fetch("formatos/acceso.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;ACC=await r.json();store.set("acc-cache",ACC)}catch(e){ACC=store.get("acc-cache",null)}
+  if(!ACC||!ACC.activo)return true;
+  if(store.get("gh-token",""))return true; // la Supervisión siempre entra
+  const tok=store.get("acc-token","");if(!tok)return false;
+  const h=await sha256(tok);const e=(ACC.enlaces||[]).find(x=>x.h===h);ACC_YO=e||null;
+  return accEstado(e,ACC.generacion)==="vigente"}
+addEventListener("hashchange",()=>{if(/acceso=/.test(location.hash))accesoGate().then(ok=>ok?home():bloqueoView())});
+function bloqueoView(){S.view="bloqueo";setBar("");const e=ACC_YO,st=e?accEstado(e,ACC.generacion):"no";
+  app.innerHTML=`<header class="band brand"><div class="band-in"><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div>
+   <div><p class="band-k">Supervisión Escolar Zona No. 050</p><h1>Gestión Escolar</h1></div></div></header>
+   <section class="card"><h3>${st==="vencido"?"Su enlace de acceso ya venció":st==="anulado"?"Su enlace de acceso ya no es válido":"Se necesita un enlace de acceso"}</h3>
+    <p>${st==="vencido"?`El acceso estuvo vigente hasta el ${esc(fechaLarga(e.vence))}.`:st==="anulado"?"La Supervisión Escolar renovó los enlaces de acceso.":"Esta herramienta está en fase de pilotaje y por ahora se usa con un enlace que entrega la Supervisión Escolar."}
+     Para solicitar un enlace, escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>.</p>
+    <div class="field"><label for="pegar">¿Ya tiene un enlace? Péguelo aquí</label><input type="url" id="pegar" autocomplete="off"></div>
+    <button class="btn primary" id="usar">Entrar con este enlace</button><div id="msg"></div></section>
+   <button class="btn link adminlink" id="sup">Soy Supervisión</button>`;
+  document.getElementById("usar").onclick=async()=>{const v=document.getElementById("pegar").value.trim();const mm=v.match(/acceso=([A-Za-z0-9_-]{10,})/);
+    if(!mm){document.getElementById("msg").innerHTML=`<div class="alert">Ese texto no parece un enlace de acceso. Copie el enlace completo que le enviaron.</div>`;return}
+    store.set("acc-token",mm[1]);if(await accesoGate())home();else bloqueoView()};
+  document.getElementById("sup").onclick=accAdminView;window.scrollTo(0,0)}
+function accPie(){if(!ACC||!ACC.activo||!ACC_YO)return"";const e=ACC_YO;
+  return`<br>Acceso ${e.tipo==="escuela"?"de la escuela":"de"} ${esc(e.tipo==="escuela"?e.escuela:e.nombre)} · vigente hasta el ${esc(fechaLarga(e.vence))}`}
+
+let AA=null;
+function accAdminTop(){return`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Solo Supervisión</div><h2>Control de acceso</h2></div></div>`}
+const accSalir=()=>{AA=null;if(ACC&&ACC.activo&&!store.get("gh-token","")){accesoGate().then(ok=>ok?home():bloqueoView())}else home()};
+async function accLeer(tok){const r=await ghLeer(tok,REPO_ACCP);AA={sha:r.sha,d:r.data};AA.d.enlaces=AA.d.enlaces||[];return AA}
+async function accGuardar(tok,cambio,msg){ // relee, aplica el cambio y publica; reintenta una vez si alguien guardó antes
+  for(let k=0;k<2;k++){await accLeer(tok);cambio(AA.d);AA.d.actualizado=today();
+    const r=await fetch(ghURL(REPO_ACCP),{method:"PUT",headers:{...ghHdr(tok),"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64enc(JSON.stringify(AA.d,null,2)+"\n"),sha:AA.sha,branch:REPO_SEG.branch})});
+    if(r.ok){AA.sha=(await r.json()).content.sha;ACC=JSON.parse(JSON.stringify(AA.d));store.set("acc-cache",ACC);return}
+    if(r.status!==409&&r.status!==422){const er=new Error("http "+r.status);er.status=r.status;throw er}}
+  throw new Error("conflicto")}
+async function accAdminView(nuevo){S.view="accadmin";S.letra=null;setBar("");const tok=store.get("gh-token","");
+  if(!tok){app.innerHTML=`${accAdminTop()}<section class="card"><p>Esta pantalla es solo para la Supervisión Escolar.</p>
+     <div class="field"><label for="tk">Clave de acceso</label><input type="password" id="tk" autocomplete="off" spellcheck="false"><p class="help">La misma clave de la Supervisión (token de GitHub). Se guarda solo en este equipo.</p></div>
+     <button class="btn primary" id="entrar">Entrar</button><div id="msg"></div></section>`;
+    document.getElementById("salir").onclick=accSalir;
+    document.getElementById("entrar").onclick=async()=>{const t=document.getElementById("tk").value.trim();const m=document.getElementById("msg");if(!t)return;m.innerHTML=`<p class="help">Verificando…</p>`;
+      try{await ghLeer(t,REPO_ACCP);store.set("gh-token",t);accAdminView()}catch(e){m.innerHTML=`<div class="alert"><b>No se pudo entrar.</b> ${e.status===401||e.status===403||e.status===404?"La clave no es válida o no tiene acceso al repositorio.":"Revise su conexión a internet."}</div>`}};
+    window.scrollTo(0,0);return}
+  app.innerHTML=`${accAdminTop()}<p class="muted">Cargando…</p>`;document.getElementById("salir").onclick=accSalir;
+  try{await accLeer(tok)}catch(e){if(e.status===401||e.status===403){store.del("gh-token");return accAdminView()}
+    app.innerHTML=`${accAdminTop()}<div class="alert"><b>No se pudo leer el control de acceso.</b> Revise su conexión.</div>`;document.getElementById("salir").onclick=accSalir;return}
+  const d=AA.d,gen=d.generacion;const fin=(CAL&&CAL.fin)||"";
+  const vig=d.enlaces.filter(e=>accEstado(e,gen)==="vigente").length;
+  const lista=[...d.enlaces].sort((a,b)=>a.creado<b.creado?1:-1);
+  const estTxt={vigente:"Vigente",vencido:"Vencido",anulado:"Anulado"};
+  app.innerHTML=`${accAdminTop()}
+   <p class="muted">Aquí crea los enlaces para entrar a la app, ya sea para una persona o para toda una escuela, con fecha de vencimiento. Puede anular uno o todos en cualquier momento.</p>
+   ${nuevo?`<section class="card okcard"><h3>Enlace creado</h3><p class="help">Para ${esc(nuevo.e.tipo==="escuela"?"la escuela "+nuevo.e.escuela:nuevo.e.nombre+(nuevo.e.escuela?" ("+nuevo.e.escuela+")":""))} · vigente hasta el ${esc(fechaLarga(nuevo.e.vence))}.</p>
+     <input type="text" id="lnk" value="${esc(nuevo.url)}" readonly onclick="this.select()">
+     <div class="acts"><button class="btn primary act" id="copiar">Copiar enlace</button><a class="btn ghost act" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Enlace de acceso a Gestión Escolar Zona 050 (vigente hasta el ${fechaLarga(nuevo.e.vence)}):\n${nuevo.url}`)}">Enviar por WhatsApp</a></div>
+     <div class="alert"><b>Guárdelo o envíelo ahora.</b> Por seguridad, la app no guarda el enlace completo y no se podrá volver a mostrar. Si se pierde, cree otro.</div></section>`:""}
+   <section class="card"><h3>Estado</h3>
+    <p>${d.activo?`<b>El control de acceso está activo.</b> Solo entra quien tenga un enlace vigente (${vig} vigente${vig===1?"":"s"}).`:`<b>El control de acceso está apagado.</b> Cualquiera con la dirección de la app puede entrar. Cree y reparta los enlaces antes de activarlo.`}</p>
+    <button class="btn ${d.activo?"ghost":"primary"}" id="toggle">${d.activo?"Apagar el control de acceso":"Activar el control de acceso"}</button></section>
+   <section class="card"><h3>Crear enlace</h3>
+    <div class="opts" id="tipoOpts"><label class="opt on"><input type="radio" name="tipo" value="persona" checked><span><b>Personal</b><br><span class="muted" style="font-size:14px">Para una sola persona</span></span></label>
+     <label class="opt"><input type="radio" name="tipo" value="escuela"><span><b>Escuela completa</b><br><span class="muted" style="font-size:14px">Un enlace para todo el personal de una escuela</span></span></label></div>
+    <div class="field" id="fNom"><label for="a_nom">Nombre de la persona</label><input type="text" id="a_nom" autocomplete="off"></div>
+    <div class="field"><label for="a_esc">Escuela <span class="muted" style="font-weight:400" id="escOpt">(opcional)</span></label>
+     <select id="a_esc"><option value="">Elija…</option>${ESCUELAS_050.map(e=>`<option value="${esc(e[0]+" · "+e[1])}">${esc(e[0])} · ${esc(e[1])}</option>`).join("")}<option value="otra">Otra escuela o dependencia (escribirla)</option></select>
+     <input type="text" id="a_otra" placeholder="Nombre y C.C.T." autocomplete="off" hidden style="margin-top:8px"></div>
+    <div class="field"><label for="a_dias">Vigencia</label>
+     <div class="chips">${[[7,"7 días"],[15,"15 días"],[30,"30 días"],[90,"3 meses"]].map(([n,t])=>`<button type="button" class="chip ${n===30?"sel":""}" data-dias="${n}">${t}</button>`).join("")}${fin?`<button type="button" class="chip" data-hasta="${fin}">Hasta fin de ciclo</button>`:""}</div>
+     <input type="date" id="a_vence" style="margin-top:8px"><p class="help">El enlace funciona hasta este día, inclusive.</p></div>
+    <div class="field"><label for="a_nota">Nota <span class="muted" style="font-weight:400">(opcional, solo la ve la Supervisión)</span></label><input type="text" id="a_nota" autocomplete="off"></div>
+    <button class="btn primary" id="crear">Crear enlace</button><div id="msg"></div></section>
+   <section class="card"><h3>Enlaces entregados</h3>
+    ${lista.length?`<div class="callist">${lista.map(e=>{const st=accEstado(e,gen);return`<div class="calrow" style="--k:${st==="vigente"?"#1a7f37":st==="vencido"?"#9aa0a6":"#b42318"}"><span class="f">${estTxt[st]}<br><span class="muted" style="font-weight:400;font-size:13px">hasta ${esc(fechaCorta(e.vence))}</span></span>
+      <span class="t">${e.tipo==="escuela"?`<b>Escuela:</b> ${esc(e.escuela)}`:`<b>${esc(e.nombre)}</b>${e.escuela?` · ${esc(e.escuela)}`:""}`}${e.nota?`<br><span class="muted" style="font-size:13px">${esc(e.nota)}</span>`:""}
+      ${st==="vigente"?`<br><button type="button" class="btn link" data-anular="${e.h}" style="padding:4px 0">Anular este enlace</button>`:""}</span></div>`}).join("")}</div>`:`<p class="help">Aún no ha creado enlaces.</p>`}
+    ${vig?`<button class="btn ghost" id="anularTodo">Anular todos los enlaces vigentes</button><p class="help">Úselo si el acceso se difundió a personas no autorizadas. Todos dejan de funcionar de inmediato, incluso en los teléfonos donde ya estaban guardados; después cree enlaces nuevos solo para quien corresponda.</p>`:""}</section>
+   <button class="btn link" id="salirSes">Cerrar la sesión de Supervisión en este equipo</button>`;
+  const g=id=>document.getElementById(id);const msg=(h)=>{g("msg").innerHTML=h;g("msg").scrollIntoView({behavior:"smooth",block:"center"})};
+  const setVence=v=>{g("a_vence").value=v};const dmas=n=>{const x=new Date();x.setDate(x.getDate()+n-1);return isoD(x)};setVence(dmas(30));
+  app.querySelectorAll("[data-dias],[data-hasta]").forEach(c=>c.onclick=()=>{app.querySelectorAll("[data-dias],[data-hasta]").forEach(z=>z.classList.remove("sel"));c.classList.add("sel");setVence(c.dataset.hasta||dmas(+c.dataset.dias))});
+  g("a_vence").onchange=()=>app.querySelectorAll("[data-dias],[data-hasta]").forEach(z=>z.classList.remove("sel"));
+  const tipo=()=>app.querySelector('input[name=tipo]:checked').value;
+  app.querySelectorAll('input[name=tipo]').forEach(r=>r.onchange=()=>{app.querySelectorAll("#tipoOpts .opt").forEach(l=>l.classList.toggle("on",l.querySelector("input").checked));const es=tipo()==="escuela";g("fNom").hidden=es;g("escOpt").hidden=es});
+  g("a_esc").onchange=()=>{g("a_otra").hidden=g("a_esc").value!=="otra"};
+  g("salir").onclick=accSalir;g("salirSes").onclick=()=>{store.del("gh-token");accSalir()};
+  if(g("copiar"))g("copiar").onclick=async()=>{try{await navigator.clipboard.writeText(nuevo.url);g("copiar").textContent="¡Copiado!"}catch(e){g("lnk").select();document.execCommand("copy");g("copiar").textContent="¡Copiado!"}};
+  const fallo=er=>msg(`<div class="alert"><b>No se pudo guardar.</b> ${er.status===401||er.status===403?"La clave ya no es válida o no tiene permiso para escribir.":"Revise su conexión e intente de nuevo."}</div>`);
+  g("toggle").onclick=async e=>{const on=!d.activo;if(on&&!vig&&!confirm("No hay enlaces vigentes. Si activa el control, nadie más que la Supervisión podrá entrar. ¿Activar de todos modos?"))return;
+    const bt=e.currentTarget;bt.disabled=true;try{await accGuardar(tok,x=>{x.activo=on},`Control de acceso: ${on?"activado":"apagado"}`);accAdminView()}catch(er){bt.disabled=false;fallo(er)}};
+  g("crear").onclick=async e=>{const t=tipo(),nombre=g("a_nom").value.trim(),sv=g("a_esc").value,escuela=sv==="otra"?g("a_otra").value.trim():sv,vence=g("a_vence").value,nota=g("a_nota").value.trim();
+    const p=[];if(t==="persona"&&!nombre)p.push("Escriba el nombre de la persona.");if(t==="escuela"&&!escuela)p.push("Elija la escuela.");if(!vence)p.push("Elija la vigencia.");else if(vence<today())p.push("La fecha de vencimiento ya pasó.");
+    if(p.length)return msg(`<div class="alert">${p.join("<br>")}</div>`);
+    const b=e.currentTarget;b.disabled=true;b.textContent="Creando…";const token=nuevoToken(),h=await sha256(token);
+    const ent={h,tipo:t,nombre:t==="persona"?nombre:"",escuela,vence,nota,creado:new Date().toISOString(),gen:0};
+    try{await accGuardar(tok,x=>{ent.gen=x.generacion;x.enlaces.push(ent)},`Control de acceso: nuevo enlace (${t==="escuela"?"escuela":"personal"})`);accAdminView({e:ent,url:appURL()+"#acceso="+token})}
+    catch(er){b.disabled=false;b.textContent="Crear enlace";fallo(er)}};
+  app.querySelectorAll("[data-anular]").forEach(b=>b.onclick=async()=>{if(!confirm("¿Anular este enlace? Dejará de funcionar de inmediato."))return;b.disabled=true;
+    try{await accGuardar(tok,x=>{const e=x.enlaces.find(z=>z.h===b.dataset.anular);if(e)e.anulado=today()},"Control de acceso: anula un enlace");accAdminView()}catch(er){b.disabled=false;fallo(er)}});
+  if(g("anularTodo"))g("anularTodo").onclick=async e=>{if(!confirm(`Se anularán los ${vig} enlaces vigentes y dejarán de funcionar de inmediato. ¿Continuar?`))return;const bt=e.currentTarget;bt.disabled=true;
+    try{await accGuardar(tok,x=>{x.generacion=(x.generacion||1)+1},"Control de acceso: anula todos los enlaces");accAdminView()}catch(er){bt.disabled=false;fallo(er)}};
+  window.scrollTo(0,0)}
+
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
@@ -1702,7 +1815,7 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
   if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
-if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(home);
+if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?home():bloqueoView(),()=>home()));
 </script>
 
 </body></html>
