@@ -1837,7 +1837,7 @@ async function salTexto(file){const L=await pdfjs();const doc=await L.getDocumen
     for(const it of tc.items){if(!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let r=rows.find(r=>Math.abs(r.y-y)<3);if(!r){r={y,items:[]};rows.push(r)}r.items.push({x,s:it.str,w:it.width})}
     rows.sort((a,b)=>b.y-a.y);for(const r of rows){r.items.sort((a,b)=>a.x-b.x);let t="",end=null;for(const i of r.items){if(end!==null&&i.x-end>1.5)t+=" ";t+=i.s;end=i.x+i.w}lines.push(t.replace(/\s+/g," ").trim())}}
   return lines}
-function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nombre:"",nomina:"",fechaPago:"",periodo:"",perc:null,isr:null,seg:null};
+function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nombre:"",nomina:"",fechaPago:"",periodo:"",perc:null,isr:null,seg:null,pen:null};
   let m;
   if(m=txt.match(/\b([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\b/i))r.folio=m[1].toUpperCase();
   if(m=txt.match(/\b(\d{2}[A-Z]{3}\d{4}[A-Z0-9])\b/))r.cct=m[1];
@@ -1850,27 +1850,30 @@ function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nom
   if(r.isr==null&&r.perc!=null)r.isr=0;
   if(m=txt.match(/seguro\s+de\s+salud\s+([\d,]+\.\d{2})/i))r.seg=salNum(m[1]);
   if(r.seg==null&&r.perc!=null)r.seg=0;
+  if(m=txt.match(/pensiones\s+y\s+otras\s+prestaciones\s+([\d,]+\.\d{2})/i))r.pen=salNum(m[1]);
+  if(r.pen==null&&r.perc!=null)r.pen=0;
   return r}
 function salBloques(lines){const idx=[];lines.forEach((l,i)=>{if(/entidad\s+federativa/i.test(l))idx.push(i)});
   if(idx.length<=1)return[salParse(lines)];
   const out=[];for(let k=0;k<idx.length;k++){const blk=lines.slice(idx[k],idx[k+1]??lines.length);const r=salParse(blk);if(r.perc!=null||r.folio)out.push(r)}return out}
-const salNeto=r=>r.perc==null?null:+(r.perc-(Number(r.isr)||0)-(Number(r.seg)||0)).toFixed(2); // neto = percepciones − ISR − seguro de salud
+const salNeto=r=>r.perc==null?null:+(r.perc-(Number(r.isr)||0)-(Number(r.seg)||0)-(Number(r.pen)||0)).toFixed(2); // neto = percepciones − ISR − seguro de salud − pensiones ISSSTE
 function salGrupos(){const g={};SAL.recibos.forEach((r,i)=>{const k=r.cct||"—";(g[k]=g[k]||{cct:r.cct,recibos:[]}).recibos.push({...r,_i:i})});return g}
 const salSum=(arr,f)=>arr.reduce((t,r)=>t+(Number(f(r))||0),0);
 function salView(){S.view="salario";S.letra=null;setBar("");
   const rec=SAL.recibos,grupos=salGrupos(),claves=Object.keys(grupos);
-  const totPerc=salSum(rec,r=>r.perc),totDesc=salSum(rec,r=>(Number(r.isr)||0)+(Number(r.seg)||0)),totNeto=salSum(rec,salNeto);
+  const salDesc=r=>(Number(r.isr)||0)+(Number(r.seg)||0)+(Number(r.pen)||0);const totPerc=salSum(rec,r=>r.perc),totDesc=salSum(rec,salDesc),totNeto=salSum(rec,salNeto);
   const fila=(r,i)=>`<details class="card" data-i="${i}"><summary><b>${esc(r.nombre||r.nomina||"Comprobante")}</b>${r.nombre&&r.nomina?" · "+esc(r.nomina):""}${r.periodo?" · "+esc(r.periodo):""} · Neto ${salMoney(salNeto(r))}</summary>
      <div class="field"><label>Escuela (centro de trabajo)</label><input type="text" class="s_cct" value="${esc(r.cct||"")}" autocomplete="off" style="text-transform:uppercase"><p class="help">${esc(salEscuela(r.cct))}</p></div>
      <div class="field"><label>Percepciones (bruto)</label><input type="text" inputmode="decimal" class="s_perc" value="${r.perc!=null?r.perc:""}" autocomplete="off"></div>
      <div class="row2"><div class="field"><label>ISR</label><input type="text" inputmode="decimal" class="s_isr" value="${r.isr!=null?r.isr:""}" autocomplete="off"></div>
       <div class="field"><label>Seguro de salud</label><input type="text" inputmode="decimal" class="s_seg" value="${r.seg!=null?r.seg:""}" autocomplete="off"></div></div>
-     <p class="help">Ingreso neto (percepciones − ISR − seguro de salud): <b>${salMoney(salNeto(r))}</b>${r.archivo?` · ${esc(r.archivo)}`:""}</p>
+     <div class="field"><label>Pensiones del ISSSTE</label><input type="text" inputmode="decimal" class="s_pen" value="${r.pen!=null?r.pen:""}" autocomplete="off"></div>
+     <p class="help">Ingreso neto (percepciones − ISR − seguro de salud − pensiones): <b>${salMoney(salNeto(r))}</b>${r.archivo?` · ${esc(r.archivo)}`:""}</p>
      <button type="button" class="btn link" data-del="${i}">Quitar este comprobante</button></details>`;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Laboral</div><h2>Cálculo de salario anual</h2></div></div>
    <p class="muted">Suba sus <b>comprobantes de nómina (CFDI) en PDF</b> de todo el año. La app los separa por escuela (centro de trabajo), descarta los repetidos y calcula el <b>ingreso neto anual</b> para la declaración patrimonial.</p>
    <details class="card"><summary><b>¿Cómo se calcula el ingreso anual neto?</b></summary>
-    <p>Se suman <b>todas las percepciones del año</b> (sueldo, aguinaldo, bonos, compensaciones y demás prestaciones) y se les resta el <b>ISR</b> y el <b>seguro de salud</b> (cuota obligatoria de seguridad social).</p>
+    <p>Se suman <b>todas las percepciones del año</b> (sueldo, aguinaldo, bonos, compensaciones y demás prestaciones) y se les resta el <b>ISR</b> y las <b>cuotas obligatorias de seguridad social</b> (seguro de salud y pensiones del ISSSTE).</p>
     <p><b>No se restan</b> los créditos ni préstamos (FOVISSSTE, ISSSTE, bancarios o de nómina), las cuotas sindicales, ni los seguros y otros descuentos personales: ese dinero sigue siendo parte de su ingreso.</p>
     <p class="help">Por eso el ingreso neto que se declara no es igual al dinero que le llega al banco: los préstamos y créditos no disminuyen el ingreso declarado. Criterio del instructivo de la declaración patrimonial de Baja California.</p></details>
    <section class="card">
@@ -1882,10 +1885,10 @@ function salView(){S.view="salario";S.letra=null;setBar("");
    <section class="card sumcard">
     <h3>Ingreso neto anual${claves.length>1?` · ${claves.length} escuelas`:""}</h3>
     ${claves.map(k=>{const g=grupos[k];return`<div class="escbox"><div class="escname">${esc(salEscuela(g.cct))}${g.cct?` <span class="muted" style="font-weight:400">· ${esc(g.cct)}</span>`:""}</div>
-      <div class="calhead"><div><i>Percepciones</i><b>${salMoney(salSum(g.recibos,r=>r.perc))}</b></div><div><i>ISR + seguro de salud</i><b>${salMoney(salSum(g.recibos,r=>(Number(r.isr)||0)+(Number(r.seg)||0)))}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(salSum(g.recibos,salNeto))}</b></div></div>
+      <div class="calhead"><div><i>Percepciones</i><b>${salMoney(salSum(g.recibos,r=>r.perc))}</b></div><div><i>ISR + seguridad social</i><b>${salMoney(salSum(g.recibos,salDesc))}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(salSum(g.recibos,salNeto))}</b></div></div>
       <p class="help">${g.recibos.length} comprobante(s)</p></div>`}).join("")}
     ${claves.length>1?`<div class="escbox tot"><div class="escname">TOTAL DE TODAS LAS ESCUELAS</div>
-      <div class="calhead"><div><i>Percepciones</i><b>${salMoney(totPerc)}</b></div><div><i>ISR + seguro de salud</i><b>${salMoney(totDesc)}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(totNeto)}</b></div></div></div>`:""}
+      <div class="calhead"><div><i>Percepciones</i><b>${salMoney(totPerc)}</b></div><div><i>ISR + seguridad social</i><b>${salMoney(totDesc)}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(totNeto)}</b></div></div></div>`:""}
     <div class="acts"><button class="btn primary act" id="s_xls">⬇ Descargar Excel del cálculo</button></div></section>
    <div class="group-title">Comprobantes · ${rec.length}</div>
    ${rec.map(fila).join("")}
@@ -1894,9 +1897,9 @@ function salView(){S.view="salario";S.letra=null;setBar("");
    <p class="foot">Sus comprobantes y las cifras se quedan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   g("salir").onclick=goBack;
-  g("s_manual").onclick=()=>{SAL.recibos.push({folio:"",cct:"",nombre:"",nomina:"",periodo:"",perc:null,isr:null,seg:null,archivo:""});salSave();salView()};
+  g("s_manual").onclick=()=>{SAL.recibos.push({folio:"",cct:"",nombre:"",nomina:"",periodo:"",perc:null,isr:null,seg:null,pen:null,archivo:""});salSave();salView()};
   const guardarEdits=()=>{app.querySelectorAll("details[data-i]").forEach(d=>{const i=+d.dataset.i,r=SAL.recibos[i];if(!r)return;
-    r.cct=d.querySelector(".s_cct").value.trim().toUpperCase();r.perc=salNum(d.querySelector(".s_perc").value);r.isr=salNum(d.querySelector(".s_isr").value);r.seg=salNum(d.querySelector(".s_seg").value)})};
+    r.cct=d.querySelector(".s_cct").value.trim().toUpperCase();r.perc=salNum(d.querySelector(".s_perc").value);r.isr=salNum(d.querySelector(".s_isr").value);r.seg=salNum(d.querySelector(".s_seg").value);r.pen=salNum(d.querySelector(".s_pen").value)})};
   app.querySelectorAll("details[data-i] input").forEach(inp=>inp.onchange=()=>{const op=[...app.querySelectorAll("details[data-i]")].map(d=>d.open);guardarEdits();salSave();salView();[...app.querySelectorAll("details[data-i]")].forEach((d,i)=>d.open=op[i])});
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{SAL.recibos.splice(+b.dataset.del,1);salSave();salView()});
   g("s_pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const m=g("s_msg");m.innerHTML=`<p class="help">Leyendo ${files.length} archivo(s)…</p>`;const msgs=[];let nuevos=0,rep=0;
@@ -1914,15 +1917,15 @@ function salView(){S.view="salario";S.letra=null;setBar("");
   window.scrollTo(0,0)}
 async function salExcel(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
   try{await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("Salario anual");
-    ws.columns=[{key:"a",width:30},{key:"b",width:16},{key:"c",width:16},{key:"d",width:16},{key:"e",width:18}];
-    const h=ws.addRow(["Escuela / comprobante","Percepciones","ISR","Seguro de salud","Ingreso neto"]);h.font={bold:true};
+    ws.columns=[{key:"a",width:30},{key:"b",width:15},{key:"c",width:13},{key:"d",width:15},{key:"e",width:15},{key:"f",width:16}];
+    const h=ws.addRow(["Escuela / comprobante","Percepciones","ISR","Seguro de salud","Pensiones ISSSTE","Ingreso neto"]);h.font={bold:true};
     const grupos=salGrupos();Object.keys(grupos).forEach(k=>{const g=grupos[k];
       const er=ws.addRow([salEscuela(g.cct)+(g.cct?" ("+g.cct+")":"")]);er.font={bold:true};
-      g.recibos.forEach(r=>ws.addRow([`  ${r.nomina||"Comprobante"}${r.periodo?" "+r.periodo:""}`,r.perc??null,r.isr??null,r.seg??null,salNeto(r)]));
-      const sr=ws.addRow(["  Subtotal "+salEscuela(g.cct),salSum(g.recibos,r=>r.perc),salSum(g.recibos,r=>r.isr),salSum(g.recibos,r=>r.seg),salSum(g.recibos,salNeto)]);sr.font={italic:true,bold:true}});
-    const rec=SAL.recibos;const tr=ws.addRow(["TOTAL DE TODAS LAS ESCUELAS",salSum(rec,r=>r.perc),salSum(rec,r=>r.isr),salSum(rec,r=>r.seg),salSum(rec,salNeto)]);tr.font={bold:true};
-    ["b","c","d","e"].forEach(c=>ws.getColumn(c).numFmt='"$"#,##0.00');
-    ws.addRow([]);ws.addRow([`Ingreso neto = percepciones − ISR − seguro de salud. Generado el ${fmtDate(today(),"larga")}.`]);
+      g.recibos.forEach(r=>ws.addRow([`  ${r.nombre||r.nomina||"Comprobante"}${r.periodo?" "+r.periodo:""}`,r.perc??null,r.isr??null,r.seg??null,r.pen??null,salNeto(r)]));
+      const sr=ws.addRow(["  Subtotal "+salEscuela(g.cct),salSum(g.recibos,r=>r.perc),salSum(g.recibos,r=>r.isr),salSum(g.recibos,r=>r.seg),salSum(g.recibos,r=>r.pen),salSum(g.recibos,salNeto)]);sr.font={italic:true,bold:true}});
+    const rec=SAL.recibos;const tr=ws.addRow(["TOTAL DE TODAS LAS ESCUELAS",salSum(rec,r=>r.perc),salSum(rec,r=>r.isr),salSum(rec,r=>r.seg),salSum(rec,r=>r.pen),salSum(rec,salNeto)]);tr.font={bold:true};
+    ["b","c","d","e","f"].forEach(c=>ws.getColumn(c).numFmt='"$"#,##0.00');
+    ws.addRow([]);ws.addRow([`Ingreso neto = percepciones − ISR − seguro de salud − pensiones ISSSTE. Generado el ${fmtDate(today(),"larga")}.`]);
     const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`Salario anual - ${today()}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){const m=document.getElementById("s_msg");if(m)m.innerHTML=`<div class="alert"><b>No se pudo generar el Excel.</b> ${esc(e.message||e)}</div>`}
