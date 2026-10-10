@@ -1837,11 +1837,12 @@ async function salTexto(file){const L=await pdfjs();const doc=await L.getDocumen
     for(const it of tc.items){if(!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let r=rows.find(r=>Math.abs(r.y-y)<3);if(!r){r={y,items:[]};rows.push(r)}r.items.push({x,s:it.str,w:it.width})}
     rows.sort((a,b)=>b.y-a.y);for(const r of rows){r.items.sort((a,b)=>a.x-b.x);let t="",end=null;for(const i of r.items){if(end!==null&&i.x-end>1.5)t+=" ";t+=i.s;end=i.x+i.w}lines.push(t.replace(/\s+/g," ").trim())}}
   return lines}
-function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nomina:"",fechaPago:"",periodo:"",perc:null,isr:null,seg:null};
+function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nombre:"",nomina:"",fechaPago:"",periodo:"",perc:null,isr:null,seg:null};
   let m;
   if(m=txt.match(/\b([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\b/i))r.folio=m[1].toUpperCase();
   if(m=txt.match(/\b(\d{2}[A-Z]{3}\d{4}[A-Z0-9])\b/))r.cct=m[1];
   if(m=txt.match(/\b(EXTRAORDINARIA|ORDINARIA)\b/i))r.nomina=m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase();
+  if(m=txt.match(/baja california\s+([A-ZÑÁÉÍÓÚ][A-ZÑÁÉÍÓÚ .]{4,}?)\s+(?:ORDINARIA|EXTRAORDINARIA)\b/i))r.nombre=m[1].replace(/\s+/g," ").trim();
   if(m=txt.match(/(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/)){
     r.fechaPago=m[1];r.periodo=m[2]+" al "+m[3];r.perc=salNum(m[4])}
   if(m=txt.match(/impuesto\s+sobre\s+la\s+renta\s+([\d,]+\.\d{2})/i))r.isr=salNum(m[1]);
@@ -1850,13 +1851,16 @@ function salParse(lines){const txt=lines.join("\n");const r={folio:"",cct:"",nom
   if(m=txt.match(/seguro\s+de\s+salud\s+([\d,]+\.\d{2})/i))r.seg=salNum(m[1]);
   if(r.seg==null&&r.perc!=null)r.seg=0;
   return r}
+function salBloques(lines){const idx=[];lines.forEach((l,i)=>{if(/entidad\s+federativa/i.test(l))idx.push(i)});
+  if(idx.length<=1)return[salParse(lines)];
+  const out=[];for(let k=0;k<idx.length;k++){const blk=lines.slice(idx[k],idx[k+1]??lines.length);const r=salParse(blk);if(r.perc!=null||r.folio)out.push(r)}return out}
 const salNeto=r=>r.perc==null?null:+(r.perc-(Number(r.isr)||0)-(Number(r.seg)||0)).toFixed(2); // neto = percepciones − ISR − seguro de salud
 function salGrupos(){const g={};SAL.recibos.forEach((r,i)=>{const k=r.cct||"—";(g[k]=g[k]||{cct:r.cct,recibos:[]}).recibos.push({...r,_i:i})});return g}
 const salSum=(arr,f)=>arr.reduce((t,r)=>t+(Number(f(r))||0),0);
 function salView(){S.view="salario";S.letra=null;setBar("");
   const rec=SAL.recibos,grupos=salGrupos(),claves=Object.keys(grupos);
   const totPerc=salSum(rec,r=>r.perc),totDesc=salSum(rec,r=>(Number(r.isr)||0)+(Number(r.seg)||0)),totNeto=salSum(rec,salNeto);
-  const fila=(r,i)=>`<details class="card" data-i="${i}"><summary><b>${esc(r.nomina||"Comprobante")}${r.periodo?" · "+esc(r.periodo):""}</b> · Neto ${salMoney(salNeto(r))}</summary>
+  const fila=(r,i)=>`<details class="card" data-i="${i}"><summary><b>${esc(r.nombre||r.nomina||"Comprobante")}</b>${r.nombre&&r.nomina?" · "+esc(r.nomina):""}${r.periodo?" · "+esc(r.periodo):""} · Neto ${salMoney(salNeto(r))}</summary>
      <div class="field"><label>Escuela (centro de trabajo)</label><input type="text" class="s_cct" value="${esc(r.cct||"")}" autocomplete="off" style="text-transform:uppercase"><p class="help">${esc(salEscuela(r.cct))}</p></div>
      <div class="field"><label>Percepciones (bruto)</label><input type="text" inputmode="decimal" class="s_perc" value="${r.perc!=null?r.perc:""}" autocomplete="off"></div>
      <div class="row2"><div class="field"><label>ISR</label><input type="text" inputmode="decimal" class="s_isr" value="${r.isr!=null?r.isr:""}" autocomplete="off"></div>
@@ -1886,16 +1890,19 @@ function salView(){S.view="salario";S.letra=null;setBar("");
    <p class="foot">Sus comprobantes y las cifras se quedan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   g("salir").onclick=goBack;
-  g("s_manual").onclick=()=>{SAL.recibos.push({folio:"",cct:"",nomina:"",periodo:"",perc:null,isr:null,seg:null,archivo:""});salSave();salView()};
+  g("s_manual").onclick=()=>{SAL.recibos.push({folio:"",cct:"",nombre:"",nomina:"",periodo:"",perc:null,isr:null,seg:null,archivo:""});salSave();salView()};
   const guardarEdits=()=>{app.querySelectorAll("details[data-i]").forEach(d=>{const i=+d.dataset.i,r=SAL.recibos[i];if(!r)return;
     r.cct=d.querySelector(".s_cct").value.trim().toUpperCase();r.perc=salNum(d.querySelector(".s_perc").value);r.isr=salNum(d.querySelector(".s_isr").value);r.seg=salNum(d.querySelector(".s_seg").value)})};
   app.querySelectorAll("details[data-i] input").forEach(inp=>inp.onchange=()=>{const op=[...app.querySelectorAll("details[data-i]")].map(d=>d.open);guardarEdits();salSave();salView();[...app.querySelectorAll("details[data-i]")].forEach((d,i)=>d.open=op[i])});
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{SAL.recibos.splice(+b.dataset.del,1);salSave();salView()});
   g("s_pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const m=g("s_msg");m.innerHTML=`<p class="help">Leyendo ${files.length} archivo(s)…</p>`;const msgs=[];let nuevos=0,rep=0;
-    for(const f of files){try{const lines=await salTexto(f);const p=salParse(lines);
-      if(p.folio&&SAL.recibos.some(x=>x.folio&&x.folio===p.folio)){rep++;msgs.push(`${esc(f.name)}: comprobante repetido (ya estaba); se omitió.`);continue}
-      SAL.recibos.push({...p,archivo:f.name});nuevos++;
-      msgs.push(p.perc!=null?`${esc(f.name)}: ${esc(salEscuela(p.cct))} · neto ${salMoney(salNeto(p))}.`:`${esc(f.name)}: no se encontraron las cifras; captúrelas a mano.`)}
+    for(const f of files){try{const lines=await salTexto(f);const bloques=salBloques(lines);let nf=0,rf=0,sin=0;
+      for(const p of bloques){
+        if(p.folio&&SAL.recibos.some(x=>x.folio&&x.folio===p.folio)){rf++;rep++;continue}
+        if(p.perc==null){sin++;continue}
+        SAL.recibos.push({...p,archivo:f.name});nf++;nuevos++}
+      const partes=[];if(nf)partes.push(`${nf} talón(es) leído(s)`);if(rf)partes.push(`${rf} repetido(s) omitido(s)`);if(sin)partes.push(`${sin} sin cifras`);
+      msgs.push(`${esc(f.name)}: ${partes.join(", ")||"no se encontraron talones"}.`)}
       catch(err){msgs.push(`${esc(f.name)}: no se pudo leer (${esc(err.message||err)}).`)}}
     salSave();salView();const mm=g("s_msg");if(mm)mm.innerHTML=`<div class="okmsg"><b>${nuevos} agregado(s)${rep?`, ${rep} repetido(s) omitido(s)`:""}.</b><br>${msgs.join("<br>")}</div>`};
   const br=g("s_borrar");if(br)br.onclick=()=>{if(br.dataset.ok){SAL.recibos=[];salSave();salView()}else{br.dataset.ok=1;br.textContent="Toque otra vez para confirmar"}};
