@@ -147,6 +147,8 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .calhead div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .calhead i{display:block;font-style:normal;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .calhead b{font-size:16px}
+.calhead.edcorte{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:560px){.calhead.edcorte{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.calhead{grid-template-columns:minmax(0,1fr)}}
 .callist{display:flex;flex-direction:column}
 .calrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -1016,10 +1018,25 @@ function perfilView(){S.view="perfil";
   document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
 
 /* ---------- Estadística de edades (inicio de ciclo) ---------- */
-const ED={grupos:[],corte:null};
-(function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=(d.grupos||[]).map(g=>({...g,alumnos:g.alumnos.map(desdeCurp)}));ED.corte=d.corte||null}})();
-function edSave(){store.set("ppie-edades",{grupos:ED.grupos,corte:ED.corte})}
-function corteDefault(){return cicloActual().slice(0,4)+"-09-01"}
+const ED={grupos:[],corte:null,ciclo:null,ok:false};
+(function(){const d=store.get("ppie-edades",null);if(d){ED.grupos=(d.grupos||[]).map(g=>({...g,alumnos:g.alumnos.map(desdeCurp)}));ED.ciclo=/^\d{4}-\d{4}$/.test(d.ciclo||"")?d.ciclo:null}})();
+function edSave(){store.set("ppie-edades",{grupos:ED.grupos,ciclo:ED.ciclo,corte:ED.corte})}
+/* REGLA FIJA (no modificar): la edad para estadística se calcula SIEMPRE al 1 de septiembre del año en que inicia el ciclo.
+   Ciclo 2026-2027 → 1 de septiembre de 2026; ciclo 2028-2029 → 1 de septiembre de 2028. Vale para todo el ciclo y no depende del calendario. */
+const corteDe=c=>`${String(c).slice(0,4)}-09-01`;
+function corteDefault(){return corteDe(cicloActual())}
+function edCicloView(){S.view="edades";S.letra=null;setBar("");
+  const base=Number((ED.ciclo||cicloActual()).slice(0,4)),act=Number(cicloActual().slice(0,4));const ys=[...new Set([act-1,act,act+1,base])].sort();let sel=base;
+  const op=y=>`<label class="opt ${y===sel?"on":""}"><input type="radio" name="edc" value="${y}" ${y===sel?"checked":""}><span><b>Ciclo ${y}-${y+1}</b><br><span class="muted" style="font-size:14px">Edad al 1 de septiembre de ${y}</span></span></label>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Estadística</div><h2>Edades de los alumnos</h2></div></div>
+   <section class="card"><h3>¿De qué ciclo escolar es la estadística?</h3>
+    <p class="help">Antes de calcular, confirme el ciclo. La edad de los alumnos se calcula <b>siempre al 1 de septiembre del año en que inicia el ciclo</b>, y esa fecha se usa durante todo el ciclo.</p>
+    <div class="opts" id="edOpts">${ys.map(op).join("")}</div>
+    <button class="btn primary" id="edOk">Confirmar ciclo y continuar</button></section>`;
+  document.getElementById("salir").onclick=goBack;
+  app.querySelectorAll('input[name=edc]').forEach(r=>r.onchange=()=>{app.querySelectorAll("#edOpts .opt").forEach(l=>l.classList.toggle("on",l.querySelector("input").checked))});
+  document.getElementById("edOk").onclick=()=>{const y=Number(app.querySelector('input[name=edc]:checked').value);ED.ciclo=`${y}-${y+1}`;ED.corte=corteDe(ED.ciclo);ED.ok=true;edSave();edadesView()};
+  window.scrollTo(0,0)}
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
 function loadScript(src){return _libs[src]||(_libs[src]=new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>{delete _libs[src];no(new Error("No se pudo cargar "+src))};document.head.appendChild(s)}))}
@@ -1051,12 +1068,13 @@ function matrizHTML(alumnos){const{c,fuera}=conteo(alumnos);const filas=[["Hombr
    ${filas.map(([a,b,k])=>`<tr><th>${a}</th><th>${b}</th>${EDADES.map(e=>`<td class="${c[k][e]?"nz":""}">${c[k][e]}</td>`).join("")}<td class="tot">${sumRow(c[k])}</td></tr>`).join("")}
    <tr class="sub"><th colspan="2">Subtotal</th>${EDADES.map(e=>`<td class="${sub[e]?"nz":""}">${sub[e]}</td>`).join("")}<td class="tot">${sumRow(sub)}</td></tr></tbody></table></div>
    <p class="help">Edades en años cumplidos al ${fmtDate(ED.corte,"larga")}.${fuera?` <b>${fuera} alumno(s) fuera del rango de 5 a 15 años.</b>`:""}</p>`}
-function edadesView(){S.view="edades";S.letra=null;if(!ED.corte)ED.corte=corteDefault();setBar("");
+function edadesView(){if(!ED.ok||!ED.ciclo)return edCicloView();ED.corte=corteDe(ED.ciclo);S.view="edades";S.letra=null;setBar("");
   const gs=[...ED.grupos].sort((a,b)=>(a.grado+a.grupo).localeCompare(b.grado+b.grupo));const todos=gs.flatMap(g=>g.alumnos);
   const grados=[...new Set(gs.map(g=>g.grado))].sort();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Estadística</div><h2>Edades de los alumnos</h2></div></div>
    <p class="muted">Suba el <b>Reporte de inscripción/reinscripción</b> (PDF) de cada grupo. La fecha de nacimiento y el sexo se toman de la <b>CURP</b>, y la edad se calcula en años cumplidos a la fecha de corte, igual que el Excel de estadística.</p>
-   <section class="card"><div class="field"><label for="corte">Fecha de corte</label><input type="date" id="corte" value="${ED.corte}"><p class="help">Normalmente el 1 de septiembre del ciclo que inicia.</p></div>
+   <section class="card"><div class="calhead edcorte"><div><i>Ciclo escolar</i><b>${esc(ED.ciclo)}</b></div><div><i>Fecha que se usa para calcular la edad</i><b>${esc(fmtDate(ED.corte,"larga"))}</b></div></div>
+    <p class="help">Regla fija: la edad se calcula al 1 de septiembre del año en que inicia el ciclo y no se modifica durante el ciclo. <button type="button" class="btn link" id="edCambiar" style="display:inline;padding:0">Cambiar ciclo</button></p>
     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de grupo(s)<input type="file" id="pdfs" accept="application/pdf,.pdf" multiple hidden></label>
     <div id="msg"></div></section>
    ${gs.length?`<div class="group-title">Concentrado de la escuela · ${todos.length} alumnos</div><section class="card">${matrizHTML(todos)}
@@ -1076,7 +1094,7 @@ function edadesView(){S.view="edades";S.letra=null;if(!ED.corte)ED.corte=corteDe
    <p class="foot">Los datos de los alumnos se quedan solo en este dispositivo.</p>`;
   ED.grupos=gs;
   document.getElementById("salir").onclick=goBack;
-  document.getElementById("corte").onchange=e=>{if(e.target.value){ED.corte=e.target.value;edSave();edadesView()}};
+  document.getElementById("edCambiar").onclick=()=>{ED.ok=false;edCicloView()};
   document.getElementById("pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const msgs=[];
     for(const f of files){try{const g=await leerPDF(f);if(!g.alumnos.length){msgs.push(`«${esc(f.name)}»: no se encontraron alumnos. ¿Es el Reporte de inscripción?`);continue}
         const i=ED.grupos.findIndex(x=>x.grado===g.grado&&x.grupo===g.grupo&&x.cct===g.cct);
@@ -1579,7 +1597,7 @@ async function calView(){S.view="calendario";S.sec="calendario";S.letra=null;set
   const meses=[];it.forEach(x=>{const k=x.a.slice(0,7);let m=meses.find(z=>z.k===k);if(!m){m={k,x:[]};meses.push(m)}m.x.push(x)});
   const usados=CAL_COL.filter(([r])=>it.some(x=>!x.vac&&r.test(x.t)));
   app.innerHTML=top+`
-   <p class="muted">Este es el calendario oficial de ${esc(CAL.entidad||"Baja California")}, que nos rige legal y formalmente. Todo lo que genera la app toma sus fechas de aquí: el ciclo escolar de los formatos, los días del libro de firmas y la fecha de corte de la estadística.</p>
+   <p class="muted">Este es el calendario oficial de ${esc(CAL.entidad||"Baja California")}, que nos rige legal y formalmente. Todo lo que genera la app toma sus fechas de aquí: el ciclo escolar de los formatos, los días del libro de firmas y el ciclo de la estadística de edades.</p>
    ${CAL.verificado===false?`<div class="alert"><b>Fechas por confirmar.</b> La Supervisión aún no ha cotejado estas fechas con el calendario oficial.</div>`:""}
    <section class="card"><h3>Ciclo escolar ${esc(CAL.ciclo)}</h3>
     <div class="calhead"><div><i>Inicio de clases</i><b>${esc(fechaCorta(CAL.inicioClases||CAL.inicio))}</b></div><div><i>Fin de clases</i><b>${esc(fechaCorta(CAL.fin))}</b></div><div><i>Labores del personal desde</i><b>${esc(fechaCorta(CAL.inicio))}</b></div></div>
