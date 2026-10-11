@@ -2053,6 +2053,7 @@ let PM=null;
 (function(){const d=store.get("ppie-pmce",null);if(d&&d.aspectos)PM=d})();
 function pmSave(){store.set("ppie-pmce",PM)}
 const PM_AMBITOS=["Escolar","Aula","Comunitario","Contexto regional"];
+const PM_ASPECTOS=["Aprovechamiento académico","Asistencia de los educandos","Prácticas docentes y directivas","Formación docente","Avance de los planes y programas educativos","Participación de la comunidad","Desempeño de la autoridad escolar","Infraestructura","Equipamiento","Carga administrativa"];
 function pmAccion(){return{accion:"",responsable:"",periodo:"",recursos:"",evidencias:""}}
 function pmAspecto(){return{aspecto:"",ambitos:"",prioridad:"",problematica:"",objetivo:"",meta:"",acciones:[pmAccion()]}}
 function dxResumen(){const d=store.get("ppie-dx",null);if(!d)return"";const cur=d.secs?d:(d.nivel?d[d.nivel]:null);if(!cur||!cur.secs)return"";const out=[];
@@ -2076,9 +2077,11 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
     <textarea class="pm_lect" rows="6" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
    <div class="group-title">Aspectos de atención (por orden de prioridad)</div>
    ${PM.aspectos.map((a,ai)=>`<section class="card pmasp" data-ai="${ai}">
-     <div class="row2"><div class="field"><label>Aspecto de atención</label><input type="text" class="pm_a" data-f="aspecto" value="${esc(a.aspecto)}" autocomplete="off" placeholder="Ej. Aprovechamiento académico"></div>
-      <div class="field"><label>Nivel de prioridad</label><input type="text" inputmode="numeric" class="pm_a" data-f="prioridad" value="${esc(a.prioridad)}" autocomplete="off" placeholder="1 = más urgente"></div></div>
-     <div class="field"><label>Ámbitos</label><input type="text" class="pm_a" data-f="ambitos" value="${esc(a.ambitos)}" autocomplete="off" placeholder="Escolar, Aula, Comunitario…"></div>
+     <div class="row2"><div class="field"><label>Aspecto de atención</label>
+       <select class="pm_aspecto">${PM_ASPECTOS.map(o=>`<option value="${esc(o)}" ${a.aspecto===o?"selected":""}>${esc(o)}</option>`).join("")}<option value="__otro__" ${(a.aspecto&&!PM_ASPECTOS.includes(a.aspecto))?"selected":""}>Otro…</option></select>
+       <input type="text" class="pm_aspecto_otro" value="${esc(a.aspecto&&!PM_ASPECTOS.includes(a.aspecto)?a.aspecto:"")}" placeholder="Escriba el aspecto" autocomplete="off" style="margin-top:8px" ${(a.aspecto&&!PM_ASPECTOS.includes(a.aspecto))?"":"hidden"}></div>
+      <div class="field"><label>Nivel de prioridad</label><select class="pm_prioridad"><option value="">—</option>${Array.from({length:10},(_,i)=>i+1).map(n=>`<option value="${n}" ${String(a.prioridad)===String(n)?"selected":""}>${n}</option>`).join("")}</select></div></div>
+     <div class="field"><label>Ámbitos</label><p class="help">Marque los que apliquen.</p><div class="chips">${PM_AMBITOS.map(o=>`<label class="opt ${(a.ambitos||"").split(/,\s*/).includes(o)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="pm_amb" value="${esc(o)}" ${(a.ambitos||"").split(/,\s*/).includes(o)?"checked":""}>${esc(o)}</label>`).join("")}</div></div>
      <div class="field"><label>Necesidad o situación problemática detectada</label><textarea class="pm_a" data-f="problematica" rows="2">${esc(a.problematica)}</textarea></div>
      <div class="row2"><div class="field"><label>Objetivo</label><textarea class="pm_a" data-f="objetivo" rows="2">${esc(a.objetivo)}</textarea></div>
       <div class="field"><label>Meta</label><textarea class="pm_a" data-f="meta" rows="2">${esc(a.meta)}</textarea></div></div>
@@ -2098,10 +2101,16 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
    <p class="foot">El PMC se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll(".pm_d").forEach(i=>PM[i.dataset.k]=i.value);const lt=app.querySelector(".pm_lect");if(lt)PM.lectura=lt.value;
-    app.querySelectorAll(".pmasp").forEach(sec=>{const ai=+sec.dataset.ai,a=PM.aspectos[ai];sec.querySelectorAll(":scope > .field .pm_a, :scope > .row2 .pm_a").forEach(i=>a[i.dataset.f]=i.value);
+    app.querySelectorAll(".pmasp").forEach(sec=>{const ai=+sec.dataset.ai,a=PM.aspectos[ai];
+      const asel=sec.querySelector(".pm_aspecto");a.aspecto=asel.value==="__otro__"?sec.querySelector(".pm_aspecto_otro").value:asel.value;
+      a.prioridad=sec.querySelector(".pm_prioridad").value;
+      a.ambitos=[...sec.querySelectorAll(".pm_amb:checked")].map(c=>c.value).join(", ");
+      sec.querySelectorAll(".pm_a").forEach(i=>a[i.dataset.f]=i.value);
       sec.querySelectorAll(".pmacc").forEach(cc=>{const ci=+cc.dataset.ci,c=a.acciones[ci];cc.querySelectorAll(".pm_c").forEach(i=>c[i.dataset.f]=i.value)})});dxSaveQuiet()};
   function dxSaveQuiet(){pmSave()}
-  app.querySelectorAll(".pm_d,.pm_lect,.pm_a,.pm_c").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".pm_d,.pm_lect,.pm_a,.pm_c,.pm_aspecto,.pm_aspecto_otro,.pm_prioridad,.pm_amb").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".pm_amb").forEach(c=>c.addEventListener("change",()=>c.closest(".opt").classList.toggle("on",c.checked)));
+  app.querySelectorAll(".pm_aspecto").forEach(sl=>sl.addEventListener("change",()=>{const o=sl.closest(".field").querySelector(".pm_aspecto_otro");o.hidden=sl.value!=="__otro__";if(sl.value!=="__otro__")o.value=""}));
   app.querySelectorAll(".pmaddc").forEach(b=>b.onclick=()=>{leer();PM.aspectos[+b.dataset.ai].acciones.push(pmAccion());pmSave();pmView()});
   app.querySelectorAll(".pmdelc").forEach(b=>b.onclick=()=>{leer();PM.aspectos[+b.dataset.ai].acciones.splice(+b.dataset.ci,1);pmSave();pmView()});
   app.querySelectorAll(".pmdela").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar este aspecto completo?"))return;leer();PM.aspectos.splice(+b.dataset.ai,1);pmSave();pmView()});
