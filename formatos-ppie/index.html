@@ -124,6 +124,12 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .live video{display:block;width:100%;max-height:60vh;object-fit:cover}
 .live .frame{position:absolute;left:50%;top:6%;height:76%;aspect-ratio:5/6;transform:translateX(-50%);border:2px dashed rgba(255,255,255,.85);border-radius:6px;pointer-events:none}
 .live .phb{padding:10px;background:rgba(0,0,0,.6)}
+.fw{margin-top:6px}
+.fw_pad{position:relative;border:2px dashed var(--line);border-radius:12px;background:#fff;height:150px;overflow:hidden}
+.fw_pad canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.fw_hint{position:absolute;left:14px;bottom:10px;color:#9aa5b5;font-size:13px;pointer-events:none}
+.fw_pv{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px;display:flex;align-items:center;justify-content:center;min-height:90px}
+.fw_pv img{max-height:90px;max-width:100%}
 .soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .emer{border:2px solid var(--accent);background:var(--accent-soft);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .emer-t{font-family:var(--display);font-size:23px;line-height:1.1}
@@ -878,7 +884,7 @@ const SECCIONES=[
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
- {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
+ {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
@@ -2514,8 +2520,172 @@ async function plPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
 
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
+/* ---------- Recados para las familias: aviso, citatorio, permiso, felicitación, recordatorio, reporte ---------- */
+/* Firma digital del docente: se dibuja en el celular o se sube una imagen; se guarda en este dispositivo. */
+const FIRMA_KEY="firma-docente";let FIRMA_D;
+function firmaGet(){if(FIRMA_D===undefined)FIRMA_D=store.get(FIRMA_KEY,null);return FIRMA_D}
+function firmaSet(u){FIRMA_D=u||null;if(!u){store.del(FIRMA_KEY);return true}try{localStorage.setItem(FIRMA_KEY,JSON.stringify(u));return true}catch(e){return false}}
+let RC=null;
+(function(){const d=store.get("ppie-recado",null);if(d&&d.tipo)RC=d})();
+function rcSave(){store.set("ppie-recado",RC)}
+const RC_TIPOS=["Aviso","Citatorio","Autorización / permiso","Felicitación","Recordatorio (tarea o material)","Reporte de conducta"];
+const RC_SALUDO="Estimado padre, madre o tutor:";
+const RC_TEXTO={
+ "Aviso":"Por este medio le informo lo siguiente, y le pido tomarlo en cuenta:",
+ "Citatorio":"Por este medio le solicito atentamente acudir a una entrevista para conversar sobre el desempeño y los avances de su hijo(a), así como para acordar acciones de apoyo que favorezcan su aprendizaje.",
+ "Autorización / permiso":"Por este medio solicito su autorización para lo siguiente. En caso de estar de acuerdo, le pido firmar el acuse de esta nota:",
+ "Felicitación":"Con mucho gusto le comparto una felicitación para su hijo(a) por lo siguiente:",
+ "Recordatorio (tarea o material)":"Le recuerdo amablemente el siguiente pendiente de su hijo(a):",
+ "Reporte de conducta":"Por este medio le comparto una situación relacionada con la conducta de su hijo(a), con el fin de atenderla juntos:"
+};
+function rcNuevo(){return{tipo:"Aviso",alumno:"",grado:"",grupo:"",dirigido:"Padre, madre o tutor",fecha:fmtDate(today(),"larga"),asunto:"",mensaje:"",
+  cdia:"",chora:"",clugar:"",cquien:"",acuse:true,usarFirma:true,firma:perfil.minombre||perfil.director||"",cargo:"Docente del grupo"}}
+function rcEscuela(){return{nombre:perfil.escuela||"Escuela Primaria",cct:perfil.cct||"",lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),zona:perfil.zona||"050"}}
+const rcGG=()=>[RC.grado&&RC.grado+"°",RC.grupo&&"«"+RC.grupo+"»"].filter(Boolean).join(" ");
+function rcView(){S.view="recado";S.letra=null;setBar("");
+  if(!RC)RC=rcNuevo();
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Comunicación con familias</div><h2>Recados, avisos y autorizaciones</h2></div></div>`;
+  const esCita=RC.tipo==="Citatorio";
+  app.innerHTML=top+`
+   <p class="muted">Responda las preguntas y descargue el recado listo para imprimir o enviar. Lleva el logo de la escuela y los datos del perfil. Puede agregar su <b>firma digital</b>.</p>
+   <section class="card"><div class="field"><label>Tipo de recado</label>
+     <select id="rc_tipo">${RC_TIPOS.map(t=>`<option value="${esc(t)}" ${RC.tipo===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div>
+    <div class="row2"><div class="field"><label>Nombre del alumno(a)</label><input type="text" id="rc_alumno" value="${esc(RC.alumno)}" autocomplete="off"></div>
+     <div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div></div>
+    <div class="row2"><div class="field"><label>Grado</label><input type="text" id="rc_grado" value="${esc(RC.grado)}" autocomplete="off"></div>
+     <div class="field"><label>Grupo</label><input type="text" id="rc_grupo" value="${esc(RC.grupo)}" autocomplete="off"></div></div>
+    <div class="field"><label>Fecha del recado</label><input type="text" id="rc_fecha" value="${esc(RC.fecha)}" autocomplete="off"></div>
+    <div class="field"><label>Asunto <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="rc_asunto" value="${esc(RC.asunto)}" autocomplete="off"></div>
+    <div class="field"><label>Mensaje</label><p class="help">Escriba lo que quiere comunicar. El recado ya incluye un saludo y una frase de introducción según el tipo.</p><textarea id="rc_mensaje" rows="4">${esc(RC.mensaje)}</textarea></div></section>
+   <section class="card" id="rc_citabox" ${esCita?"":"hidden"}><h3>Datos de la cita</h3>
+    <div class="row2"><div class="field"><label>Día</label><input type="text" id="rc_cdia" value="${esc(RC.cdia)}" placeholder="martes 14 de octubre de 2026" autocomplete="off"></div>
+     <div class="field"><label>Hora</label><input type="text" id="rc_chora" value="${esc(RC.chora)}" placeholder="12:30 p. m." autocomplete="off"></div></div>
+    <div class="row2"><div class="field"><label>Lugar</label><input type="text" id="rc_clugar" value="${esc(RC.clugar)}" autocomplete="off"></div>
+     <div class="field"><label>Le atenderá</label><input type="text" id="rc_cquien" value="${esc(RC.cquien)}" autocomplete="off"></div></div></section>
+   <section class="card"><h3>Firma y acuse</h3>
+    <div class="row2"><div class="field"><label>Firma (nombre)</label><input type="text" id="rc_firma" value="${esc(RC.firma)}" autocomplete="off"></div>
+     <div class="field"><label>Cargo</label><input type="text" id="rc_cargo" value="${esc(RC.cargo)}" autocomplete="off"></div></div>
+    ${firmaWidgetHTML()}
+    <label class="opt ${RC.usarFirma?"on":""}" style="display:inline-flex;margin-top:4px"><input type="checkbox" id="rc_usarfirma" ${RC.usarFirma?"checked":""}>Incluir mi firma digital en el recado</label>
+    <label class="opt ${RC.acuse?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_acuse" ${RC.acuse?"checked":""}>Incluir acuse de enterado (para firmar y devolver)</label></section>
+   <section class="card"><div class="acts"><button class="btn primary act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
+   <p class="foot">El recado y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{RC.tipo=g("rc_tipo").value;RC.alumno=g("rc_alumno").value;RC.dirigido=g("rc_dirigido").value;RC.grado=g("rc_grado").value;RC.grupo=g("rc_grupo").value;RC.fecha=g("rc_fecha").value;RC.asunto=g("rc_asunto").value;RC.mensaje=g("rc_mensaje").value;
+    RC.cdia=g("rc_cdia").value;RC.chora=g("rc_chora").value;RC.clugar=g("rc_clugar").value;RC.cquien=g("rc_cquien").value;RC.firma=g("rc_firma").value;RC.cargo=g("rc_cargo").value;RC.acuse=g("rc_acuse").checked;RC.usarFirma=g("rc_usarfirma").checked;rcSave()};
+  app.querySelectorAll("#rc_tipo,#rc_alumno,#rc_dirigido,#rc_grado,#rc_grupo,#rc_fecha,#rc_asunto,#rc_mensaje,#rc_cdia,#rc_chora,#rc_clugar,#rc_cquien,#rc_firma,#rc_cargo").forEach(i=>i.addEventListener("change",leer));
+  g("rc_tipo").addEventListener("change",()=>{leer();rcView()});
+  g("rc_acuse").addEventListener("change",()=>{leer();g("rc_acuse").closest(".opt").classList.toggle("on",g("rc_acuse").checked)});
+  g("rc_usarfirma").addEventListener("change",()=>{leer();g("rc_usarfirma").closest(".opt").classList.toggle("on",g("rc_usarfirma").checked)});
+  wireFirma();
+  g("salir").onclick=()=>{leer();goBack()};
+  g("rc_pdf").onclick=e=>{leer();rcPDF(e.currentTarget)};
+  g("rc_word").onclick=()=>{leer();rcWord()};
+  window.scrollTo(0,0)}
+/* ---- firma digital: dibujar o subir ---- */
+function firmaWidgetHTML(){const F=firmaGet();
+  return`<div class="field"><span class="lbl">Firma digital</span><p class="help">Dibuje su firma con el dedo (en el celular) o con el mouse, o suba una foto de su firma. Se guarda para los próximos recados.</p>
+   <div class="fw" id="fw_box">
+     <div class="fw_pad" id="fw_pad" ${F?"hidden":""}><canvas id="fw_canvas"></canvas><span class="fw_hint">Firme aquí</span></div>
+     <div class="fw_pv" id="fw_pv" ${F?"":"hidden"}>${F?`<img src="${F}" alt="Firma guardada">`:""}</div>
+   </div>
+   <div class="phb row" style="margin-top:8px">
+     <button type="button" class="btn ghost" id="fw_clear" ${F?"hidden":""}>Borrar y volver a firmar</button>
+     <button type="button" class="btn primary" id="fw_save" ${F?"hidden":""}>Guardar firma</button>
+     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir imagen de mi firma<input type="file" accept="image/*" id="fw_file" hidden></label>
+     <button type="button" class="btn link" id="fw_del" ${F?"":"hidden"}>Quitar firma</button>
+   </div>
+   <div id="fw_m" class="help"></div></div>`}
+function wireFirma(){const g=id=>document.getElementById(id);const cv=g("fw_canvas");if(!cv)return;
+  const pad=g("fw_pad"),pv=g("fw_pv"),msg=g("fw_m");let drew=false,drawing=false,ctx;
+  const setup=()=>{const r=pad.getBoundingClientRect();const w=Math.max(220,Math.floor(r.width||pad.clientWidth||300)),h=150;const dpr=window.devicePixelRatio||1;
+    cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+"px";cv.style.height=h+"px";ctx=cv.getContext("2d");ctx.scale(dpr,dpr);ctx.lineWidth=2.4;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#15223a"};
+  const pos=e=>{const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}};
+  const start=e=>{e.preventDefault();drawing=true;drew=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};
+  const move=e=>{if(!drawing)return;e.preventDefault();const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke()};
+  const end=()=>{drawing=false};
+  if(!pad.hidden)setup();
+  cv.addEventListener("pointerdown",start);cv.addEventListener("pointermove",move);window.addEventListener("pointerup",end);
+  cv.addEventListener("touchstart",start,{passive:false});cv.addEventListener("touchmove",move,{passive:false});cv.addEventListener("touchend",end);
+  const showPad=()=>{pad.hidden=false;pv.hidden=true;g("fw_clear").hidden=false;g("fw_save").hidden=false;g("fw_del").hidden=true;pv.innerHTML="";drew=false;setup();ctx.clearRect(0,0,cv.width,cv.height)};
+  const showSaved=F=>{pad.hidden=true;pv.hidden=false;pv.innerHTML=`<img src="${F}" alt="Firma guardada">`;g("fw_clear").hidden=true;g("fw_save").hidden=true;g("fw_del").hidden=false};
+  g("fw_clear").onclick=()=>{drew=false;setup();ctx.clearRect(0,0,cv.width,cv.height);msg.textContent=""};
+  g("fw_save").onclick=()=>{if(!drew){msg.textContent="Dibuje su firma antes de guardar.";return}
+    const u=firmaTrim(cv);const ok=firmaSet(u);msg.innerHTML=ok?"Firma guardada.":"<b>Ojo:</b> no cupo en la memoria del navegador; se usará mientras no cierre esta página.";showSaved(u)};
+  g("fw_del").onclick=()=>{firmaSet(null);msg.textContent="";showPad()};
+  g("fw_file").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async()=>{try{const im=await imgLoad(rd.result);const u=firmaFromImg(im);const ok=firmaSet(u);msg.innerHTML=ok?"Firma cargada.":"<b>Ojo:</b> la imagen es grande y no cupo en memoria; se usará mientras no cierre esta página.";showSaved(u)}catch(err){msg.textContent="No se pudo leer la imagen. Use un JPG o PNG."}};rd.readAsDataURL(f)};
+  window.addEventListener("resize",()=>{if(!pad.hidden&&!drew)setup()})}
+function firmaTrim(cv){const w=cv.width,h=cv.height,ctx=cv.getContext("2d");const d=ctx.getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=0,y1=0,any=false;for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>10){any=true;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+  if(!any)return cv.toDataURL("image/png");const pad=8;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w,x1+pad);y1=Math.min(h,y1+pad);
+  const o=document.createElement("canvas");o.width=x1-x0;o.height=y1-y0;o.getContext("2d").drawImage(cv,x0,y0,x1-x0,y1-y0,0,0,x1-x0,y1-y0);return o.toDataURL("image/png")}
+function firmaFromImg(im){const maxW=600;const sc=Math.min(1,maxW/im.width);const o=document.createElement("canvas");o.width=Math.round(im.width*sc);o.height=Math.round(im.height*sc);
+  o.getContext("2d").drawImage(im,0,0,o.width,o.height);return o.toDataURL("image/png")}
+/* ---- PDF ---- */
+async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();
+    const esc0=rcEscuela();const pg=doc.addPage([612,792]);const M=50,W0=612-M*2;let y=792-M;
+    const azul=rgb(0.07,0.227,0.42),blu2=rgb(0.12,0.35,0.66),ink=rgb(0.1,0.13,0.19),gray=rgb(0.35,0.4,0.48),soft=rgb(0.906,0.933,0.973),line=rgb(0.84,0.86,0.9);
+    const wrap=(x,s,f,w)=>{const o=[];for(const para of clean(x).split("\n")){if(!para.trim()){o.push("");continue}const ws=para.split(/\s+/);let ln="";for(const wd of ws){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te}if(ln)o.push(ln)}return o};
+    const par=(x,s,f,c,w,gp,ind)=>{gp=gp||3;ind=ind||0;for(const ln of wrap(x,s,f,w-ind)){pg.drawText(ln,{x:M+ind,y:y-s,size:s,font:f,color:c});y-=s+gp}};
+    const bh=74;pg.drawRectangle({x:0,y:792-bh,width:612,height:bh,color:azul});
+    const L=logoGet();let drew=false;
+    if(L){try{const img=await embedLogo(doc);if(img){const sz=50,bx=M,by=792-bh+(bh-sz)/2;pg.drawRectangle({x:bx,y:by,width:sz,height:sz,color:rgb(1,1,1)});const d2=img.scaleToFit(sz-4,sz-4);pg.drawImage(img,{x:bx+2+(sz-4-d2.width)/2,y:by+2+(sz-4-d2.height)/2,width:d2.width,height:d2.height});drew=true}}catch(e){}}
+    if(!drew){const sz=50,cx=M+sz/2,cy=792-bh/2;pg.drawCircle({x:cx,y:cy,size:sz/2,color:rgb(1,1,1)});const tw=HELVB.widthOfTextAtSize(esc0.zona,15);pg.drawText(esc0.zona,{x:cx-tw/2,y:cy-5,size:15,font:HELVB,color:azul})}
+    const tx=M+64;pg.drawText(clean(esc0.nombre).slice(0,56),{x:tx,y:792-30,size:14,font:HELVB,color:rgb(1,1,1)});
+    pg.drawText(clean(`C.C.T. ${esc0.cct} · Supervisión Escolar Zona No. ${esc0.zona} · ${esc0.lugar}`).slice(0,92),{x:tx,y:792-46,size:8.5,font:HELV,color:rgb(0.88,0.92,0.98)});
+    y=792-bh-24;
+    const tipo=RC.tipo.toUpperCase();const pw=HELVB.widthOfTextAtSize(tipo,9)+20;pg.drawRectangle({x:M,y:y-16,width:pw,height:20,color:soft});pg.drawText(tipo,{x:M+10,y:y-11,size:9,font:HELVB,color:blu2});y-=34;
+    const mrows=[["Alumno(a)",RC.alumno||"—","Grado y grupo",rcGG()||"—"],["Dirigido a",RC.dirigido||"—","Fecha",RC.fecha||"—"]];
+    const mh=mrows.length*20+10;pg.drawRectangle({x:M,y:y-mh,width:W0,height:mh,borderColor:line,borderWidth:1,color:rgb(1,1,1)});
+    let my=y-6;mrows.forEach(r=>{const colw=W0/2;[[0,r[0],r[1]],[1,r[2],r[3]]].forEach(([i,lab,val])=>{const cx=M+8+i*colw;pg.drawText(lab.toUpperCase(),{x:cx,y:my-8,size:7,font:HELV,color:gray});pg.drawText(clean(val).slice(0,42),{x:cx,y:my-18,size:10.5,font:HELVB,color:ink})});my-=20});y-=mh+16;
+    if(RC.asunto){par("Asunto: "+RC.asunto,10.5,HELVB,ink,W0,4);y-=2}
+    par(RC_SALUDO,11,HELV,ink,W0,4);y-=2;
+    par(RC_TEXTO[RC.tipo]||"",10.5,HELV,ink,W0,4);y-=4;
+    if(RC.mensaje){par(RC.mensaje,10.5,HELV,ink,W0,4);y-=4}
+    if(RC.tipo==="Citatorio"&&(RC.cdia||RC.chora||RC.clugar||RC.cquien)){
+      const lines=[];if(RC.cdia||RC.chora)lines.push(`Día: ${RC.cdia||"—"}    Hora: ${RC.chora||"—"}`);if(RC.clugar||RC.cquien)lines.push(`Lugar: ${RC.clugar||"—"}    Le atenderá: ${RC.cquien||"—"}`);
+      const wl=[];lines.forEach(l=>wrap(l,10.5,HELV,W0-24).forEach(x=>wl.push(x)));const ch=wl.length*15+16;
+      pg.drawRectangle({x:M,y:y-ch,width:W0,height:ch,color:soft});pg.drawRectangle({x:M,y:y-ch,width:4,height:ch,color:blu2});
+      let cy=y-8;wl.forEach(l=>{pg.drawText(l,{x:M+14,y:cy-10,size:10.5,font:HELV,color:ink});cy-=15});y-=ch+14}
+    par("Agradezco de antemano su atención y apoyo.",10.5,HELV,ink,W0,4);y-=14;
+    // firma digital sobre la línea
+    const F=RC.usarFirma?firmaGet():null;
+    if(F){try{const fi=F.startsWith("data:image/png")?await doc.embedPng(F):await doc.embedJpg(F);const fd=fi.scaleToFit(170,46);
+      pg.drawImage(fi,{x:M+(W0-fd.width)/2,y:y-fd.height+6,width:fd.width,height:fd.height});y-=fd.height-2}catch(e){y-=24}}else y-=22;
+    const fnom=RC.firma||"";const fw=Math.max(HELVB.widthOfTextAtSize(clean(fnom),11),160);const fcx=M+(W0-fw)/2;
+    pg.drawLine({start:{x:fcx,y:y},end:{x:fcx+fw,y:y},thickness:0.8,color:ink});y-=14;
+    pg.drawText(clean(fnom),{x:M+(W0-HELVB.widthOfTextAtSize(clean(fnom),11))/2,y:y,size:11,font:HELVB,color:ink});y-=13;
+    if(RC.cargo){const cw=HELV.widthOfTextAtSize(clean(RC.cargo),9.5);pg.drawText(clean(RC.cargo),{x:M+(W0-cw)/2,y:y,size:9.5,font:HELV,color:gray})}y-=24;
+    if(RC.acuse){for(let x=M;x<M+W0;x+=8)pg.drawLine({start:{x,y:y},end:{x:x+4,y:y},thickness:1,color:line});y-=16;
+      pg.drawText("ACUSE DE ENTERADO (favor de recortar y devolver)",{x:M,y:y-9,size:9,font:HELVB,color:gray});y-=22;
+      par(`Recibí el recado referente al alumno(a) ${RC.alumno||"____________"} de ${rcGG()||"______"}.`,10,HELV,ink,W0,4);y-=16;
+      const half=(W0-20)/2;pg.drawLine({start:{x:M,y:y},end:{x:M+half,y:y},thickness:0.8,color:ink});pg.drawLine({start:{x:M+half+20,y:y},end:{x:M+W0,y:y},thickness:0.8,color:ink});y-=12;
+      pg.drawText("Nombre y firma del padre, madre o tutor",{x:M,y:y,size:8,font:HELV,color:gray});pg.drawText("Fecha de recibido",{x:M+half+20,y:y,size:8,font:HELV,color:gray})}
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`Recado ${RC.tipo} - ${(RC.alumno||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t}}
+/* ---- Word ---- */
+function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela();const L=logoGet();const F=RC.usarFirma?firmaGet():null;
+  const cita=RC.tipo==="Citatorio"&&(RC.cdia||RC.clugar)?`<div style="border-left:4px solid #1e5aa8;background:#e7eef8;padding:10px 14px;margin:10px 0"><b>Día:</b> ${esc(RC.cdia)} &nbsp; <b>Hora:</b> ${esc(RC.chora)}<br><b>Lugar:</b> ${esc(RC.clugar)} &nbsp; <b>Le atenderá:</b> ${esc(RC.cquien)}</div>`:"";
+  const firmaImg=F?`<img src="${F}" style="height:46px"><br>`:"<br><br>";
+  const acuse=RC.acuse?`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666;letter-spacing:.06em"><b>Acuse de enterado (favor de recortar y devolver)</b></p><p>Recibí el recado referente al alumno(a) <b>${esc(RC.alumno)}</b> de ${esc(rcGG())}.</p><table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha de recibido</td></tr></table>`:"";
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Recado</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#1a2230">
+   <table style="width:100%;background:#123a6b;color:#fff"><tr>${L?`<td style="width:60px;padding:10px"><img src="${L}" style="width:50px;height:50px;background:#fff;border-radius:4px"></td>`:""}<td style="padding:12px 14px"><div style="font-size:15px;font-weight:bold">${esc(esc0.nombre)}</div><div style="font-size:11px">C.C.T. ${esc(esc0.cct)} · Supervisión Escolar Zona No. ${esc(esc0.zona)} · ${esc(esc0.lugar)}</div></td></tr></table>
+   <p style="margin:12px 0 6px"><span style="background:#e7eef8;color:#1e5aa8;font-weight:bold;font-size:12px;padding:3px 10px;border-radius:999px;text-transform:uppercase">${esc(RC.tipo)}</span></p>
+   <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+    <tr><td style="border:1px solid #ccc;padding:5px 8px"><b>Alumno(a):</b> ${esc(RC.alumno)}</td><td style="border:1px solid #ccc;padding:5px 8px"><b>Grado y grupo:</b> ${esc(rcGG())}</td></tr>
+    <tr><td style="border:1px solid #ccc;padding:5px 8px"><b>Dirigido a:</b> ${esc(RC.dirigido)}</td><td style="border:1px solid #ccc;padding:5px 8px"><b>Fecha:</b> ${esc(RC.fecha)}</td></tr></table>
+   ${RC.asunto?`<p><b>Asunto:</b> ${esc(RC.asunto)}</p>`:""}
+   <p>${esc(RC_SALUDO)}</p><p style="text-align:justify">${esc(RC_TEXTO[RC.tipo]||"")}</p>
+   ${RC.mensaje?`<p style="text-align:justify">${e2(RC.mensaje)}</p>`:""}${cita}
+   <p style="text-align:justify">Agradezco de antemano su atención y apoyo.</p>
+   <p style="text-align:center;margin-top:34px">${firmaImg}______________________________<br><b>${esc(RC.firma)}</b><br><span style="color:#555">${esc(RC.cargo)}</span></p>${acuse}</body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Recado ${RC.tipo} - ${(RC.alumno||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
