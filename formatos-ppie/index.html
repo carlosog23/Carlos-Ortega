@@ -1988,9 +1988,11 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
      <div class="opts"><label class="opt"><input type="radio" name="dxn" value="grupo"><span><b>De un grupo</b><br><span class="muted" style="font-size:14px">Un grado y grupo en particular</span></span></label>
       <label class="opt"><input type="radio" name="dxn" value="escuela"><span><b>De la escuela</b><br><span class="muted" style="font-size:14px">Toda la escuela / el colectivo</span></span></label></div>
      <p class="help">Podrá cambiar entre grupo y escuela en cualquier momento; cada uno guarda sus propias respuestas.</p>
-     <button class="btn primary" id="dxOk">Comenzar</button></section>`;
+     <button class="btn primary" id="dxOk">Comenzar</button></section>
+    ${insUploaderHTML("lectura")}`;
     document.getElementById("salir").onclick=goBack;
     document.getElementById("dxOk").onclick=()=>{const r=app.querySelector('input[name=dxn]:checked');if(!r)return;DX={nivel:r.value};DX[r.value]=dxNuevo(r.value);dxSave();dxView()};
+    wireIns("lectura",()=>dxView());
     window.scrollTo(0,0);return}
   const C=dxCur(),datosDef=DX_PLANTILLA[DX.nivel].datos;
   app.innerHTML=top+`
@@ -2063,10 +2065,12 @@ const PM_AMBITOS=["Escolar","Aula","Comunitario","Contexto regional"];
 const PM_ASPECTOS=["Aprovechamiento académico","Asistencia de los educandos","Prácticas docentes y directivas","Formación docente","Avance de los planes y programas educativos","Participación de la comunidad","Desempeño de la autoridad escolar","Infraestructura","Equipamiento","Carga administrativa"];
 function pmAccion(){return{accion:"",responsable:"",periodo:"",recursos:"",evidencias:""}}
 function pmAspecto(){return{aspecto:"",ambitos:"",prioridad:"",problematica:"",objetivo:"",meta:"",acciones:[pmAccion()]}}
-function dxResumen(){const d=store.get("ppie-dx",null);if(!d)return"";const cur=d.secs?d:(d.nivel?d[d.nivel]:null);if(!cur||!cur.secs)return"";const out=[];
-  (cur.secs||[]).forEach(sec=>{const its=(sec.items||[]).filter(it=>it.a&&it.a.trim());if(!its.length)return;
-    out.push((sec.t||"").toUpperCase());its.forEach(it=>{if(it.q)out.push(it.q);out.push(it.a.trim())});out.push("")});
-  return out.join("\n").trim()}
+function dxResumen(){const d=store.get("ppie-dx",null);const cur=d?(d.secs?d:(d.nivel?d[d.nivel]:null)):null;
+  if(cur&&cur.secs){const out=[];
+    (cur.secs||[]).forEach(sec=>{const its=(sec.items||[]).filter(it=>it.a&&it.a.trim());if(!its.length)return;
+      out.push((sec.t||"").toUpperCase());its.forEach(it=>{if(it.q)out.push(it.q);out.push(it.a.trim())});out.push("")});
+    const g=out.join("\n").trim();if(g)return g}
+  return (typeof insText==="function")?insText("lectura"):""}
 function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:dxResumen(),aspectos:[pmAspecto()]}}
 function pmView(){S.view="pmce";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa de Mejora Continua</h2></div></div>`;
@@ -2202,9 +2206,11 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
      <div class="opts"><label class="opt"><input type="radio" name="pan" value="escuela"><span><b>De la escuela</b><br><span class="muted" style="font-size:14px">Trabajo del colectivo por fase</span></span></label>
       <label class="opt"><input type="radio" name="pan" value="grupo"><span><b>De un grupo</b><br><span class="muted" style="font-size:14px">Un grado concreto: carga sus contenidos y PDA</span></span></label></div>
      <p class="help">Podrá cambiar entre escuela y grupo en cualquier momento; cada uno guarda lo suyo.</p>
-     <button class="btn primary" id="paOk">Comenzar</button></section>`;
+     <button class="btn primary" id="paOk">Comenzar</button></section>
+    ${insUploaderHTML("analitico")}`;
     document.getElementById("salir").onclick=goBack;
     document.getElementById("paOk").onclick=()=>{const r=app.querySelector('input[name=pan]:checked');if(!r)return;PA={nivel:r.value};PA[r.value]=paNuevo(r.value);paSave();paView()};
+    wireIns("analitico",()=>paView());
     window.scrollTo(0,0);return}
   app.innerHTML=top+`<p class="muted">Cargando el banco de contenidos…</p>`;document.getElementById("salir").onclick=goBack;
   await cargarBanco();if(S.view!=="pa")return;
@@ -2388,7 +2394,8 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
   app.innerHTML=top+`
    <section class="card"><h3>Insumos</h3><p class="help">Traiga de su Programa Analítico los contenidos, PDA y ejes, y de la lectura de la realidad el problema del contexto.</p>
     <button type="button" class="btn ghost" id="plImpPA">↓ Importar del Programa Analítico</button>
-    ${dxResumen()?`<button type="button" class="btn ghost" id="plImpLec">↓ Importar problema del contexto (lectura de la realidad)</button>`:""}</section>
+    ${dxResumen()?`<button type="button" class="btn ghost" id="plImpLec">↓ Importar problema del contexto (lectura de la realidad)</button>`:""}
+    ${insRefHTML("lectura")}${insRefHTML("analitico")}</section>
    <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pl_d" data-k="${k}" value="${esc(PL.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
    <section class="card"><h3>Proyecto o situación de aprendizaje</h3>
     <div class="field"><label>Nombre del proyecto / situación</label><input type="text" class="pl_p" data-k="nombre" value="${esc(PL.proyecto.nombre)}" autocomplete="off"></div>
@@ -2447,9 +2454,9 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
     if(r.grado)PL.datos.grado=PL.datos.grado||r.grado;if(r.escuela)PL.datos.escuela=PL.datos.escuela||r.escuela;if(r.cct)PL.datos.cct=PL.datos.cct||r.cct;
     PL.campos=[...new Set([...PL.campos,...r.campos])];PL.ejes=[...new Set([...PL.ejes,...r.ejes])];
     const ex=new Set(PL.contenidos.map(c=>c.c));r.contenidos.forEach(c=>{if(!ex.has(c.c))PL.contenidos.push(c)});plSave();plView()};
-  if(g("plImpLec"))g("plImpLec").onclick=()=>{const d=store.get("ppie-dx",null);if(!d)return;const cur=d.secs?d:(d[d.nivel]);let prob="";
+  if(g("plImpLec"))g("plImpLec").onclick=()=>{const d=store.get("ppie-dx",null);const cur=d?(d.secs?d:(d[d.nivel])):null;let prob="";
     (cur&&cur.secs||[]).forEach(s=>{if(/problem/i.test(s.t))s.items.forEach(it=>{if(it.a)prob+=(prob?"\n":"")+it.a})});
-    if(!prob)prob=dxResumen().slice(0,500);leer();PL.proyecto.problema=prob;plSave();plView()};
+    if(!prob)prob=dxResumen().slice(0,800);leer();PL.proyecto.problema=prob;plSave();plView()};
   g("plAddCont").onclick=()=>{leer();PL.contenidos.push({campo:"",c:"Nuevo contenido",pda:"",on:true});plSave();plView()};
   app.querySelectorAll(".plcontdel").forEach(b=>b.onclick=()=>{leer();PL.contenidos.splice(+b.dataset.i,1);plSave();plView()});
   if(g("plAddSes"))g("plAddSes").onclick=()=>{leer();PL.sesiones.push({t:"Sesión "+(PL.sesiones.length+1),a:""});plSave();plView()};
@@ -2684,6 +2691,46 @@ function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela(
    <p style="text-align:center;margin-top:34px">${firmaImg}______________________________<br><b>${esc(RC.firma)}</b><br><span style="color:#555">${esc(RC.cargo)}</span></p>${acuse}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`Recado ${RC.tipo} - ${(RC.alumno||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
+/* Para quien ya tiene su documento y no usará el generador: sube su PDF y sirve de base para PMC, analítico y planeación. */
+function insGet(){return store.get("ppie-insumos",{})}
+function insText(tipo){const o=insGet();return (o[tipo]&&o[tipo].text)||""}
+function insMeta(tipo){const o=insGet();return o[tipo]||null}
+function insSave(tipo,data){const o=insGet();if(data)o[tipo]=data;else delete o[tipo];store.set("ppie-insumos",o)}
+async function extraerPDF(file){const L=await pdfjs();const buf=await file.arrayBuffer();const pdf=await L.getDocument({data:new Uint8Array(buf)}).promise;
+  const out=[];for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();
+    let last=null,line=[];const lines=[];tc.items.forEach(t=>{const y=t.transform[5];if(last!==null&&Math.abs(y-last)>3){lines.push(line.join(" "));line=[]}line.push(t.str);last=y});if(line.length)lines.push(line.join(" "));
+    out.push(lines.join("\n"))}
+  return out.join("\n").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim()}
+const INS_LBL={lectura:"Lectura de la realidad",analitico:"Programa Analítico"};
+function insUploaderHTML(tipo){const m=insMeta(tipo),L=INS_LBL[tipo];
+  return`<section class="card"><h3>¿Ya tiene su ${esc(L)} hecho?</h3>
+   <p class="help">Si ya lo elaboró y no va a usar el generador, suba su archivo en <b>PDF</b>. Se guarda como base y servirá para el PMC, el analítico y la planeación. No se envía a internet.</p>
+   <div id="ins_${tipo}_box">${insStatusHTML(tipo)}</div>
+   <div class="phb row" style="margin-top:8px">
+     <label class="btn ${m?"ghost":"primary"}" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${m?"Reemplazar PDF":"Subir mi PDF"}<input type="file" accept="application/pdf,.pdf" id="ins_${tipo}_file" hidden></label>
+     ${m?`<button type="button" class="btn link" id="ins_${tipo}_del">Quitar</button>`:""}</div>
+   <div id="ins_${tipo}_m" class="help"></div></section>`}
+function insStatusHTML(tipo){const m=insMeta(tipo);if(!m)return`<p class="muted" style="font-size:14px">Aún no ha subido ningún archivo.</p>`;
+  return`<div class="soon" style="color:var(--ink)"><b>✓ ${esc(m.nombre||"Documento")}</b> — guardado como base${m.fecha?` (${esc(m.fecha)})`:""}.<br><span class="muted" style="font-size:13px">${(m.text||"").length.toLocaleString("es-MX")} caracteres de texto.</span>
+   <details style="margin-top:6px"><summary>Ver el texto que se leyó</summary><div style="max-height:220px;overflow:auto;white-space:pre-wrap;font-size:13px;margin-top:6px;border-top:1px solid var(--line);padding-top:6px">${esc(m.text||"")}</div></details></div>`}
+function wireIns(tipo,onChange){const g=id=>document.getElementById(id);const fi=g(`ins_${tipo}_file`);if(!fi)return;const msg=g(`ins_${tipo}_m`),box=g(`ins_${tipo}_box`);
+  fi.onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    if(!/pdf/i.test(f.type)&&!/\.pdf$/i.test(f.name)){msg.innerHTML="<b>Debe ser un archivo PDF.</b> Si su documento está en Word, use «Guardar como PDF» y vuelva a intentar.";return}
+    msg.textContent="Leyendo el PDF…";
+    try{const text=await extraerPDF(f);
+      if(!text||text.length<20){msg.innerHTML="<b>No se pudo leer texto del PDF.</b> Puede ser un PDF escaneado (solo imagen). Súbalo con texto seleccionable o cópielo a mano en el generador.";return}
+      insSave(tipo,{nombre:f.name,fecha:fmtDate(today(),"larga"),text});box.innerHTML=insStatusHTML(tipo);msg.innerHTML="Listo. Se guardó como base.";
+      // reconstruir botones (para que aparezca "Quitar" / cambie la etiqueta)
+      onChange&&onChange()}
+    catch(err){msg.innerHTML="<b>No se pudo leer el PDF.</b> "+esc(err.message||"")}
+    finally{fi.value=""}};
+  const del=g(`ins_${tipo}_del`);if(del)del.onclick=()=>{if(!confirm(`¿Quitar el ${INS_LBL[tipo]} subido?`))return;insSave(tipo,null);onChange&&onChange()}}
+/* Panel de referencia (solo lectura) para mostrar un insumo subido dentro de otra herramienta */
+function insRefHTML(tipo){const m=insMeta(tipo);if(!m)return"";
+  return`<details class="card" style="padding:12px 14px"><summary style="font-weight:600">Mi ${esc(INS_LBL[tipo])} (PDF subido) — referencia</summary>
+   <p class="help" style="margin-top:6px">${esc(m.nombre||"")}${m.fecha?` · ${esc(m.fecha)}`:""}</p>
+   <div style="max-height:260px;overflow:auto;white-space:pre-wrap;font-size:13px;border-top:1px solid var(--line);padding-top:8px">${esc(m.text||"")}</div></details>`}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
  edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
