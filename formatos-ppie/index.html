@@ -2177,7 +2177,7 @@ const PA_CAMPOS=["Lenguajes","Saberes y Pensamiento Científico","Ética, Natura
 const PA_EJES=["Inclusión","Pensamiento crítico","Interculturalidad crítica","Igualdad de género","Vida saludable","Apropiación de las culturas a través de la lectura y la escritura","Artes y experiencias estéticas"];
 const PA_METODOS=["Aprendizaje Basado en Proyectos Comunitarios (ABPC)","Aprendizaje Basado en Problemas (ABP)","Aprendizaje por Indagación (STEAM)","Aprendizaje Servicio (AS)"];
 const faseDeGrado=g=>({1:"3",2:"3",3:"4",4:"4",5:"5",6:"5"}[g]||"3");
-function paCampoVacio(){return{ejes:[],sel:{},orden:[],notas:{},propios:[]}}
+function paCampoVacio(){return{ejes:[],sel:{},orden:[],notas:{},pda:{},propios:[]}}
 function paNuevo(nivel){const datos={};["escuela","cct","zona","director","ciclo","fecha","colectivo","grado"].forEach(k=>datos[k]="");
   datos.escuela=perfil.escuela||"";datos.cct=perfil.cct||"";datos.zona=perfil.zona||"050";datos.director=perfil.director||"";datos.ciclo=cicloActual();datos.fecha=fmtDate(today(),"larga");
   const campos={};PA_CAMPOS.forEach(c=>campos[c]=paCampoVacio());
@@ -2206,22 +2206,23 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
   const fase=C.fase,gradosFase=(BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados:[];
   const gradosMostrar=PA.nivel==="grupo"?[+C.grado||gradosFase[0]]:gradosFase;
   const datosDef=[["escuela","Escuela"],["cct","C.C.T."],["zona","Zona escolar"],["director","Dirección"],["ciclo","Ciclo escolar"],["colectivo","Colectivo docente / docente"],["fecha","Fecha de elaboración"]];
-  const campoHTML=(camp)=>{const cc=C.campos[camp];cc.orden=cc.orden||Object.keys(cc.sel||{}).filter(k=>cc.sel&&cc.sel[k]);const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][fase])||[];
+  const campoHTML=(camp)=>{const cc=C.campos[camp];cc.orden=cc.orden||Object.keys(cc.sel||{}).filter(k=>cc.sel&&cc.sel[k]);cc.pda=cc.pda||{};const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][fase])||[];
     return`<details class="card pacampo" data-camp="${esc(camp)}"><summary><b>${esc(camp)}</b> · ${cc.orden.length+cc.propios.length} contenido(s)</summary>
      <div class="field"><label>Ejes articuladores que atraviesan el campo</label><div class="chips">${PA_EJES.map(e=>`<label class="opt pejeopt ${cc.ejes.includes(e)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="peje" value="${esc(e)}" ${cc.ejes.includes(e)?"checked":""}>${esc(e)}</label>`).join("")}</div></div>
-     <div class="field"><label>Contextualización del campo</label><p class="help">¿Cómo se vincula este campo con lo detectado en la lectura de la realidad?</p><textarea class="pctx" rows="2">${esc(cc.notas.__campo||"")}</textarea></div>
+     <div class="field"><label>Contextualización del campo <span class="muted" style="font-weight:400">(codiseñar)</span></label><p class="help">¿Cómo se vincula este campo con lo detectado en la lectura de la realidad? Ajustar esto es parte del codiseño.</p><textarea class="pctx" rows="2">${esc(cc.notas.__campo||"")}</textarea></div>
      <div class="group-title">Contenidos y PDA · ${BANCO?BANCO.fases[fase].nombre:""} · orden de atención</div>
      ${cc.orden.length?`${cc.orden.length>1?`<button type="button" class="btn ghost pasug" data-camp="${esc(camp)}">⇅ Sugerir orden por prioridad (según las problemáticas)</button><p class="help">Es una sugerencia; use ↑ ↓ para ajustar el orden de atención.</p>`:""}
-      ${cc.orden.map((key,oi)=>{const it=items.find(x=>x.c===key);return`<div class="paseln card" data-c="${esc(key)}" style="padding:12px"><div style="display:flex;gap:8px;align-items:flex-start"><span class="pnum">${oi+1}</span><div style="flex:1;min-width:0"><b>${esc(key)}</b>${it?`<br>${gradosMostrar.map(gg=>it.pda[gg]?`<span class="muted" style="font-size:13px"><b>${gg}°:</b> ${esc(it.pda[gg])}</span>`:"").filter(Boolean).join("<br>")}`:`<br><span class="muted" style="font-size:13px">(no está en el banco de esta fase)</span>`}</div>
+      ${cc.orden.map((key,oi)=>{const it=items.find(x=>x.c===key);return`<div class="paseln card" data-c="${esc(key)}" style="padding:12px"><div style="display:flex;gap:8px;align-items:flex-start"><span class="pnum">${oi+1}</span><div style="flex:1;min-width:0"><b>${esc(key)}</b>${it?"":`<br><span class="muted" style="font-size:13px">(no está en el banco de esta fase)</span>`}</div>
         <div style="display:flex;flex-direction:column;gap:4px"><button type="button" class="btn ghost pasub" data-camp="${esc(camp)}" data-oi="${oi}" ${oi===0?"disabled":""} style="padding:0 10px;min-height:30px">↑</button><button type="button" class="btn ghost pabaj" data-camp="${esc(camp)}" data-oi="${oi}" ${oi===cc.orden.length-1?"disabled":""} style="padding:0 10px;min-height:30px">↓</button></div></div>
-        <div class="field" style="margin-top:6px"><label style="font-size:13px">Contextualización / codiseño</label><textarea class="pnota" rows="2">${esc(cc.notas[key]||"")}</textarea></div>
+        ${gradosMostrar.map(gg=>{const off=(it&&it.pda[gg])||"";const val=(cc.pda[key]&&cc.pda[key][gg]!=null)?cc.pda[key][gg]:off;return `<div class="field" style="margin-top:6px"><label style="font-size:13px">PDA ${gg}° <span class="muted" style="font-weight:400">(modificar = codiseñar)</span></label><textarea class="ppda" data-c="${esc(key)}" data-g="${gg}" rows="3">${esc(val)}</textarea></div>`}).join("")}
+        <div class="field" style="margin-top:6px"><label style="font-size:13px">Contextualización / observaciones <span class="muted" style="font-weight:400">(codiseñar)</span></label><textarea class="pnota" rows="2">${esc(cc.notas[key]||"")}</textarea></div>
         <button type="button" class="btn link paquit" data-camp="${esc(camp)}" data-c="${esc(key)}" style="padding:4px 0">Quitar</button></div>`}).join("")}`:`<p class="help">Seleccione contenidos del banco para ordenarlos por prioridad.</p>`}
      ${items.filter(it=>!cc.orden.includes(it.c)).length?`<details class="card" style="padding:12px"><summary><b>Agregar contenidos del banco</b></summary>
        ${items.filter(it=>!cc.orden.includes(it.c)).map(it=>`<label class="opt" style="align-items:flex-start;margin-top:6px"><input type="checkbox" class="paadd" data-camp="${esc(camp)}" data-c="${esc(it.c)}"><span><b>${esc(it.c)}</b></span></label>`).join("")}</details>`:(items.length?"":`<p class="help">No hay contenidos en el banco para este campo y fase. Agregue los suyos abajo.</p>`)}
      <div class="group-title">Contenidos propios (contextualizados)</div>
      ${cc.propios.map((pp,pi)=>`<div class="pprop card" data-pi="${pi}" style="padding:12px"><div class="field"><label>Contenido</label><input type="text" class="ppc" value="${esc(pp.c)}" autocomplete="off"></div>
        <div class="field"><label>PDA / proceso de desarrollo de aprendizaje</label><textarea class="ppp" rows="2">${esc(pp.pda||"")}</textarea></div>
-       <div class="field"><label>Contextualización</label><textarea class="ppn" rows="2">${esc(pp.nota||"")}</textarea></div>
+       <div class="field"><label>Contextualización <span class="muted" style="font-weight:400">(codiseñar)</span></label><textarea class="ppn" rows="2">${esc(pp.nota||"")}</textarea></div>
        <button type="button" class="btn link ppdel" data-camp="${esc(camp)}" data-pi="${pi}" style="padding:4px 0">Quitar</button></div>`).join("")}
      <button type="button" class="btn ghost ppadd" data-camp="${esc(camp)}">+ Agregar contenido propio</button></details>`};
   app.innerHTML=top+`
@@ -2255,7 +2256,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
     app.querySelectorAll(".pacampo").forEach(sec=>{const camp=sec.dataset.camp,cc=C.campos[camp];
       cc.ejes=[...sec.querySelectorAll(".peje:checked")].map(x=>x.value);
       const ctx=sec.querySelector(".pctx");cc.notas.__campo=ctx?ctx.value:"";
-      sec.querySelectorAll(".paseln").forEach(pc=>{const key=pc.dataset.c;const nt=pc.querySelector(".pnota");if(nt)cc.notas[key]=nt.value});
+      sec.querySelectorAll(".paseln").forEach(pc=>{const key=pc.dataset.c;const nt=pc.querySelector(".pnota");if(nt)cc.notas[key]=nt.value;pc.querySelectorAll(".ppda").forEach(x=>{cc.pda[key]=cc.pda[key]||{};cc.pda[key][x.dataset.g]=x.value})});
       sec.querySelectorAll(".pprop").forEach(pp=>{const pi=+pp.dataset.pi;const o=cc.propios[pi];if(o){o.c=pp.querySelector(".ppc").value;o.pda=pp.querySelector(".ppp").value;o.nota=pp.querySelector(".ppn").value}})});
     app.querySelectorAll(".pacod").forEach(sec=>{const pi=+sec.dataset.pi,p=C.codiseno[pi];sec.querySelectorAll(".pco").forEach(i=>p[i.dataset.f]=i.value);
       const ms=sec.querySelector(".pco_met");p.metodologia=ms.value==="__otro__"?sec.querySelector(".pco_metotro").value:ms.value;
@@ -2263,7 +2264,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
   app.querySelectorAll(".paniv").forEach(b=>b.onclick=()=>{if(b.dataset.niv===PA.nivel)return;leer();PA.nivel=b.dataset.niv;paCur();paSave();paView()});
   if(g("pa_fase"))g("pa_fase").onchange=()=>{leer();paView()};
   if(g("pa_grado"))g("pa_grado").onchange=()=>{leer();paView()};
-  app.querySelectorAll(".pa_d,.pa_lect,.pctx,.pnota,.ppc,.ppp,.ppn,.pco,.pco_metotro").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".pa_d,.pa_lect,.pctx,.pnota,.ppda,.ppc,.ppp,.ppn,.pco,.pco_metotro").forEach(i=>i.addEventListener("change",leer));
   app.querySelectorAll(".peje,.pcampoopt input,.pco_campo").forEach(i=>i.addEventListener("change",()=>{i.closest(".opt").classList.toggle("on",i.checked);leer()}));
   const paOC=()=>{paOpen=[...app.querySelectorAll(".pacampo[open]")].map(d=>d.dataset.camp)};
   app.querySelectorAll(".paadd").forEach(c=>c.addEventListener("change",()=>{leer();const cc=paCur().campos[c.dataset.camp];if(!cc.orden.includes(c.dataset.c))cc.orden.push(c.dataset.c);cc.sel[c.dataset.c]=true;paOC();paSave();paView()}));
@@ -2285,7 +2286,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
 function paDocModel(){const C=paCur();const fase=C.fase;const grados=PA.nivel==="grupo"?[+C.grado]:((BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados:[]);
   const titulo=PA.nivel==="grupo"?`Programa Analítico · ${C.grado}°`:`Programa Analítico · ${BANCO?BANCO.fases[fase].nombre:"Fase "+fase}`;
   const campos=PA_CAMPOS.map(camp=>{const cc=C.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][fase])||[];
-    const sel=(cc.orden||[]).map(key=>{const it=items.find(x=>x.c===key);return{c:key,pda:it?grados.map(gr=>it.pda[gr]?`${gr}°: ${it.pda[gr]}`:"").filter(Boolean).join("  |  "):"",nota:cc.notas[key]||""}});
+    const sel=(cc.orden||[]).map(key=>{const it=items.find(x=>x.c===key);const ov=(cc.pda&&cc.pda[key])||{};return{c:key,pda:grados.map(gr=>{const txt=ov[gr]!=null?ov[gr]:(it?it.pda[gr]:"");return txt?`${gr}°: ${txt}`:""}).filter(Boolean).join("  |  "),nota:cc.notas[key]||""}});
     const prop=cc.propios.filter(p=>p.c).map(p=>({c:p.c,pda:p.pda||"",nota:p.nota||""}));
     return{camp,ejes:cc.ejes,ctx:cc.notas.__campo||"",contenidos:sel.concat(prop)}}).filter(x=>x.contenidos.length||x.ctx||x.ejes.length);
   return{C,titulo,campos}}
