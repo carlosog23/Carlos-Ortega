@@ -1936,7 +1936,7 @@ async function salExcel(btn){const t=btn.textContent;btn.disabled=true;btn.textC
 /* ---------- Diagnóstico socioeducativo (Nueva Escuela Mexicana), nivel grupo o escuela ----------
    Guiado por preguntas; el docente edita, agrega puntos y secciones; se guarda en este dispositivo. */
 let DX=null;
-(function(){const d=store.get("ppie-dx",null);if(d&&d.nivel)DX=d})();
+(function(){const d=store.get("ppie-dx",null);if(d){if(d.secs){DX={nivel:d.nivel||"grupo"};DX[DX.nivel]=d}else if(d.nivel)DX=d}})();
 function dxSave(){store.set("ppie-dx",DX)}
 const DX_PLANTILLA={
  grupo:{
@@ -1969,60 +1969,64 @@ const DX_PLANTILLA={
    ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan?","¿Cómo se integran al Programa de Mejora Continua (PMC)?"]]
   ]}
 };
-function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]="");
-  datos.escuela=perfil.escuela||"";datos.cct=perfil.cct||"";datos.zona=perfil.zona||"050";datos.director=perfil.director||"";datos.ciclo=cicloActual();datos.fecha=fmtDate(today(),"larga");
+const perfilDX=k=>({escuela:perfil.escuela,cct:perfil.cct,zona:perfil.zona||"050",director:perfil.director,ciclo:cicloActual(),fecha:fmtDate(today(),"larga")}[k]||"");
+function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]=perfilDX(k));
   return{nivel,titulo:t.titulo,datos,secs:t.secs.map(([tit,qs])=>({t:tit,items:qs.map(q=>({q,a:""}))}))}}
+function dxCur(){if(!DX)return null;if(!DX[DX.nivel])DX[DX.nivel]=dxNuevo(DX.nivel);return DX[DX.nivel]}
 function dxView(){S.view="dx";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Lectura de la realidad</h2></div></div>`;
   if(!DX||!DX.nivel){app.innerHTML=top+`
     <p class="muted">Elabore la <b>lectura de la realidad</b> (antes diagnóstico socioeducativo) conforme a la Nueva Escuela Mexicana: la descripción del contexto más el análisis crítico de cómo se llegó a esos resultados y cómo se puede salir adelante. La app lo guía con preguntas; usted responde, agrega datos, su análisis y las secciones que necesite.</p>
-    <section class="card"><h3>¿De qué nivel es el diagnóstico?</h3>
+    <section class="card"><h3>¿De qué nivel es?</h3>
      <div class="opts"><label class="opt"><input type="radio" name="dxn" value="grupo"><span><b>De un grupo</b><br><span class="muted" style="font-size:14px">Un grado y grupo en particular</span></span></label>
       <label class="opt"><input type="radio" name="dxn" value="escuela"><span><b>De la escuela</b><br><span class="muted" style="font-size:14px">Toda la escuela / el colectivo</span></span></label></div>
+     <p class="help">Podrá cambiar entre grupo y escuela en cualquier momento; cada uno guarda sus propias respuestas.</p>
      <button class="btn primary" id="dxOk">Comenzar</button></section>`;
     document.getElementById("salir").onclick=goBack;
-    app.querySelectorAll('input[name=dxn]').forEach(r=>r.onchange=()=>app.querySelectorAll("#dxn,.opt").forEach(()=>{}));
-    document.getElementById("dxOk").onclick=()=>{const r=app.querySelector('input[name=dxn]:checked');if(!r)return;DX=dxNuevo(r.value);dxSave();dxView()};
+    document.getElementById("dxOk").onclick=()=>{const r=app.querySelector('input[name=dxn]:checked');if(!r)return;DX={nivel:r.value};DX[r.value]=dxNuevo(r.value);dxSave();dxView()};
     window.scrollTo(0,0);return}
-  const datosDef=DX_PLANTILLA[DX.nivel].datos;
+  const C=dxCur(),datosDef=DX_PLANTILLA[DX.nivel].datos;
   app.innerHTML=top+`
+   <section class="card"><div class="field"><span class="lbl">Nivel del diagnóstico</span><p class="help">Puede cambiar en cualquier momento; cada nivel guarda sus propias respuestas.</p>
+    <div class="chips"><button type="button" class="chip dxniv ${DX.nivel==="grupo"?"sel":""}" data-niv="grupo">De un grupo</button><button type="button" class="chip dxniv ${DX.nivel==="escuela"?"sel":""}" data-niv="escuela">De la escuela</button></div></div></section>
    <p class="muted">Responda las preguntas de cada apartado. Puede dejar en blanco lo que no aplique, agregar puntos o secciones, y guardar para continuar después. Todo se guarda en este dispositivo.</p>
    <section class="card"><h3>Datos generales</h3>
-    ${datosDef.map(([k,lab])=>`<div class="field"><label>${esc(lab)}</label><input type="text" class="dx_d" data-k="${k}" value="${esc(DX.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
-   ${DX.secs.map((s,si)=>`<section class="card dxsec" data-si="${si}"><div class="field"><input type="text" class="dx_t" value="${esc(s.t)}" autocomplete="off" style="font-weight:700;font-size:17px"></div>
-     ${s.items.map((it,ii)=>`<div class="field dxitem" data-ii="${ii}">${it.q?`<label>${esc(it.q)}</label>`:`<input type="text" class="dx_q" value="" placeholder="Título del punto (opcional)" autocomplete="off" style="font-weight:600;margin-bottom:6px">`}
+    ${datosDef.map(([k,lab])=>`<div class="field"><label>${esc(lab)}</label><input type="text" class="dx_d" data-k="${k}" value="${esc(C.datos[k]||perfilDX(k))}" autocomplete="off"></div>`).join("")}</section>
+   ${C.secs.map((sx,si)=>`<section class="card dxsec" data-si="${si}"><div class="field"><input type="text" class="dx_t" value="${esc(sx.t)}" autocomplete="off" style="font-weight:700;font-size:17px"></div>
+     ${sx.items.map((it,ii)=>`<div class="field dxitem" data-ii="${ii}">${it.q?`<label>${esc(it.q)}</label>`:`<input type="text" class="dx_q" value="" placeholder="Título del punto (opcional)" autocomplete="off" style="font-weight:600;margin-bottom:6px">`}
        <textarea class="dx_a" rows="3" autocomplete="off">${esc(it.a||"")}</textarea>
-       ${it.q&&si<999?"":""}<button type="button" class="btn link dxdelit" data-si="${si}" data-ii="${ii}" style="padding:4px 0">Quitar este punto</button></div>`).join("")}
+       <button type="button" class="btn link dxdelit" data-si="${si}" data-ii="${ii}" style="padding:4px 0">Quitar este punto</button></div>`).join("")}
      <button type="button" class="btn ghost dxaddit" data-si="${si}">+ Agregar un punto</button>
      <button type="button" class="btn link dxdelsec" data-si="${si}" style="padding:6px 0">Quitar esta sección</button></section>`).join("")}
    <button class="btn ghost" id="dxAddSec">+ Agregar una sección</button>
    <section class="card"><div class="acts"><button class="btn primary act" id="dxWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="dxPDF">⬇ Descargar PDF</button></div>
-    <button class="btn link" id="dxNuevo">Empezar un diagnóstico nuevo</button></section>
-   <p class="foot">El diagnóstico se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
+    <button class="btn link" id="dxNuevo">Empezar de nuevo (borra grupo y escuela)</button></section>
+   <p class="foot">La lectura de la realidad se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
-  const leer=()=>{app.querySelectorAll(".dx_d").forEach(i=>DX.datos[i.dataset.k]=i.value);
-    app.querySelectorAll(".dxsec").forEach(sec=>{const si=+sec.dataset.si;DX.secs[si].t=sec.querySelector(".dx_t").value;
-      sec.querySelectorAll(".dxitem").forEach(it=>{const ii=+it.dataset.ii;const o=DX.secs[si].items[ii];const q=it.querySelector(".dx_q");if(q)o.q=q.value;o.a=it.querySelector(".dx_a").value})});dxSave()};
+  const leer=()=>{const C=dxCur();app.querySelectorAll(".dx_d").forEach(i=>C.datos[i.dataset.k]=i.value);
+    app.querySelectorAll(".dxsec").forEach(sec=>{const si=+sec.dataset.si;C.secs[si].t=sec.querySelector(".dx_t").value;
+      sec.querySelectorAll(".dxitem").forEach(it=>{const ii=+it.dataset.ii;const o=C.secs[si].items[ii];const q=it.querySelector(".dx_q");if(q)o.q=q.value;o.a=it.querySelector(".dx_a").value})});dxSave()};
+  app.querySelectorAll(".dxniv").forEach(b=>b.onclick=()=>{if(b.dataset.niv===DX.nivel)return;leer();DX.nivel=b.dataset.niv;dxCur();dxSave();dxView()});
   app.querySelectorAll(".dx_d,.dx_t,.dx_q,.dx_a").forEach(i=>i.addEventListener("change",leer));
-  app.querySelectorAll(".dxaddit").forEach(b=>b.onclick=()=>{leer();DX.secs[+b.dataset.si].items.push({q:"",a:""});dxSave();dxView()});
-  app.querySelectorAll(".dxdelit").forEach(b=>b.onclick=()=>{leer();DX.secs[+b.dataset.si].items.splice(+b.dataset.ii,1);dxSave();dxView()});
-  app.querySelectorAll(".dxdelsec").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar esta sección completa?"))return;leer();DX.secs.splice(+b.dataset.si,1);dxSave();dxView()});
-  g("dxAddSec").onclick=()=>{leer();DX.secs.push({t:"Nueva sección",items:[{q:"",a:""}]});dxSave();dxView()};
-  g("dxNuevo").onclick=()=>{if(!confirm("¿Empezar un diagnóstico nuevo? Se borrará el actual."))return;DX=null;store.del("ppie-dx");dxView()};
+  app.querySelectorAll(".dxaddit").forEach(b=>b.onclick=()=>{leer();dxCur().secs[+b.dataset.si].items.push({q:"",a:""});dxSave();dxView()});
+  app.querySelectorAll(".dxdelit").forEach(b=>b.onclick=()=>{leer();dxCur().secs[+b.dataset.si].items.splice(+b.dataset.ii,1);dxSave();dxView()});
+  app.querySelectorAll(".dxdelsec").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar esta sección completa?"))return;leer();dxCur().secs.splice(+b.dataset.si,1);dxSave();dxView()});
+  g("dxAddSec").onclick=()=>{leer();dxCur().secs.push({t:"Nueva sección",items:[{q:"",a:""}]});dxSave();dxView()};
+  g("dxNuevo").onclick=()=>{if(!confirm("¿Empezar de nuevo? Se borrará la lectura de grupo y de escuela."))return;DX=null;store.del("ppie-dx");dxView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("dxWord").onclick=()=>{leer();dxWord()};
   g("dxPDF").onclick=e=>{leer();dxPDF(e.currentTarget)};
   window.scrollTo(0,0)}
-function dxHeaderHTML(){const d=DX.datos,def=DX_PLANTILLA[DX.nivel].datos;
-  return`<h1 style="text-align:center;font-size:18pt;margin:0 0 4pt">${esc(DX.titulo)}</h1>
+function dxHeaderHTML(){const C=dxCur(),d=C.datos,def=DX_PLANTILLA[C.nivel].datos;
+  return`<h1 style="text-align:center;font-size:18pt;margin:0 0 4pt">${esc(C.titulo)}</h1>
    <p style="text-align:center;margin:0 0 12pt;font-size:11pt">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP</p>
    <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:12pt">${def.map(([k,lab])=>d[k]?`<tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:32%">${esc(lab)}</td><td style="border:1px solid #999;padding:4px 6px">${esc(d[k])}</td></tr>`:"").join("")}</table>`}
-function dxWord(){const body=DX.secs.map(s=>{const its=s.items.filter(it=>it.a&&it.a.trim());if(!its.length&&!s.t)return"";
+function dxWord(){const C=dxCur();const body=C.secs.map(s=>{const its=s.items.filter(it=>it.a&&it.a.trim());if(!its.length&&!s.t)return"";
     return`<h2 style="font-size:13pt;margin:14pt 0 4pt;color:#1e3a5f">${esc(s.t)}</h2>`+its.map(it=>`${it.q?`<p style="font-weight:bold;margin:6pt 0 2pt">${esc(it.q)}</p>`:""}<p style="margin:0 0 6pt;text-align:justify;white-space:pre-wrap">${esc(it.a)}</p>`).join("")}).join("");
-  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(DX.titulo)}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">${dxHeaderHTML()}${body}</body></html>`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(C.titulo)}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">${dxHeaderHTML()}${body}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`${DX.titulo} - ${(DX.datos.grupo||DX.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
-async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  a.download=`${C.titulo} - ${(C.datos.grupo||C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";const C=dxCur();
   try{await loadScript("lib/pdf.min.js").catch(()=>{});await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();
     const M=56,W0=612-M*2,ink=rgb(0.07,0.07,0.07),blu=rgb(0.12,0.23,0.37),gray=rgb(0.4,0.4,0.4);let pg,y;
     const nueva=()=>{pg=doc.addPage([612,792]);y=792-M};nueva();
@@ -2031,16 +2035,16 @@ async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const par=(text,size,font,color,gap=2,indent=0)=>{for(const ln of wrap(text,size,font)){space(size+gap);if(ln)pg.drawText(ln,{x:M+indent,y:y-size,size,font,color});y-=size+gap}};
     // encabezado centrado
     const ctr=(txt,size,font,color)=>{const w=font.widthOfTextAtSize(clean(txt),size);space(size+4);pg.drawText(clean(txt),{x:M+(W0-w)/2,y:y-size,size,font,color});y-=size+4};
-    const tt=clean(DX.titulo);let ts=16;while(HELVB.widthOfTextAtSize(tt,ts)>W0)ts-=0.5;ctr(tt,ts,HELVB,blu);
+    const tt=clean(C.titulo);let ts=16;while(HELVB.widthOfTextAtSize(tt,ts)>W0)ts-=0.5;ctr(tt,ts,HELVB,blu);
     ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP",9.5,HELV,gray);
-    y-=8;const def=DX_PLANTILLA[DX.nivel].datos;for(const [k,lab] of def){const v=DX.datos[k];if(!v)continue;const lines=wrap(v,10,HELV);const lw=HELVB.widthOfTextAtSize(clean(lab)+":  ",10);
+    y-=8;const def=DX_PLANTILLA[C.nivel].datos;for(const [k,lab] of def){const v=C.datos[k];if(!v)continue;const lines=wrap(v,10,HELV);const lw=HELVB.widthOfTextAtSize(clean(lab)+":  ",10);
       lines.forEach((ln,i)=>{space(13);if(i===0)pg.drawText(clean(lab)+":",{x:M,y:y-10,size:10,font:HELVB,color:ink});pg.drawText(ln,{x:M+lw,y:y-10,size:10,font:HELV,color:ink});y-=13})}
     y-=8;
-    for(const s of DX.secs){const its=s.items.filter(it=>it.a&&it.a.trim());if(!its.length)continue;
+    for(const s of C.secs){const its=s.items.filter(it=>it.a&&it.a.trim());if(!its.length)continue;
       space(22);pg.drawText(clean(s.t),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=20;
       for(const it of its){if(it.q){space(14);par(it.q,10.5,HELVB,ink,3)}par(it.a,10.5,HELV,ink,3.5);y-=4}y-=4}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`${DX.titulo} - ${(DX.datos.grupo||DX.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`${C.titulo} - ${(C.datos.grupo||C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---------- Programa de Mejora Continua (PMC), guiado por preguntas ----------
@@ -2051,8 +2055,8 @@ function pmSave(){store.set("ppie-pmce",PM)}
 const PM_AMBITOS=["Escolar","Aula","Comunitario","Contexto regional"];
 function pmAccion(){return{accion:"",responsable:"",periodo:"",recursos:"",evidencias:""}}
 function pmAspecto(){return{aspecto:"",ambitos:"",prioridad:"",problematica:"",objetivo:"",meta:"",acciones:[pmAccion()]}}
-function dxResumen(){const d=store.get("ppie-dx",null);if(!d||!d.secs)return"";const out=[];
-  (d.secs||[]).forEach(sec=>{const its=(sec.items||[]).filter(it=>it.a&&it.a.trim());if(!its.length)return;
+function dxResumen(){const d=store.get("ppie-dx",null);if(!d)return"";const cur=d.secs?d:(d.nivel?d[d.nivel]:null);if(!cur||!cur.secs)return"";const out=[];
+  (cur.secs||[]).forEach(sec=>{const its=(sec.items||[]).filter(it=>it.a&&it.a.trim());if(!its.length)return;
     out.push((sec.t||"").toUpperCase());its.forEach(it=>{if(it.q)out.push(it.q);out.push(it.a.trim())});out.push("")});
   return out.join("\n").trim()}
 function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:dxResumen(),aspectos:[pmAspecto()]}}
@@ -2062,10 +2066,11 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
     <p class="muted">Elabore el <b>Programa de Mejora Continua</b> (PMC) de la escuela. Se apoya en la <b>lectura de la realidad</b> y organiza los aspectos a atender, por orden de prioridad, con sus objetivos, metas y acciones. La app lo guía con preguntas; usted completa y lo descarga en Word o PDF.</p>
     <section class="card"><button class="btn primary" id="pmStart">Comenzar el PMC</button></section>`;
     document.getElementById("salir").onclick=goBack;document.getElementById("pmStart").onclick=()=>{PM=pmNuevo();pmSave();pmView()};window.scrollTo(0,0);return}
+  const pmDef=k=>({ciclo:cicloActual(),escuela:perfil.escuela,cct:perfil.cct,director:perfil.director,lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),fecha:fmtDate(today(),"larga")}[k]||"");
   const dd=[["ciclo","Ciclo escolar"],["escuela","Escuela"],["cct","C.C.T."],["director","Dirección"],["lugar","Lugar"],["fecha","Fecha de elaboración"]];
   app.innerHTML=top+`
    <p class="muted">Complete los apartados. Puede agregar los aspectos y las acciones que necesite, guardar y continuar después. Todo se guarda en este dispositivo.</p>
-   <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||"")}" autocomplete="off"></div>`).join("")}</section>
+   <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||pmDef(k))}" autocomplete="off"></div>`).join("")}</section>
    <section class="card"><h3>Lectura de la realidad</h3><p class="help">Es la base del diagnóstico del PMC. Si ya la hizo en la herramienta «Lectura de la realidad», impórtela aquí; también puede escribir o ajustar el texto.</p>
     ${dxResumen()?`<button type="button" class="btn ghost" id="pmImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad» y luego vuelva para importarla.</p>`}
     <textarea class="pm_lect" rows="6" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
