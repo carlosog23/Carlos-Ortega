@@ -2051,7 +2051,11 @@ function pmSave(){store.set("ppie-pmce",PM)}
 const PM_AMBITOS=["Escolar","Aula","Comunitario","Contexto regional"];
 function pmAccion(){return{accion:"",responsable:"",periodo:"",recursos:"",evidencias:""}}
 function pmAspecto(){return{aspecto:"",ambitos:"",prioridad:"",problematica:"",objetivo:"",meta:"",acciones:[pmAccion()]}}
-function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:"",aspectos:[pmAspecto()]}}
+function dxResumen(){const d=store.get("ppie-dx",null);if(!d||!d.secs)return"";const out=[];
+  (d.secs||[]).forEach(sec=>{const its=(sec.items||[]).filter(it=>it.a&&it.a.trim());if(!its.length)return;
+    out.push((sec.t||"").toUpperCase());its.forEach(it=>{if(it.q)out.push(it.q);out.push(it.a.trim())});out.push("")});
+  return out.join("\n").trim()}
+function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:dxResumen(),aspectos:[pmAspecto()]}}
 function pmView(){S.view="pmce";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa de Mejora Continua</h2></div></div>`;
   if(!PM){app.innerHTML=top+`
@@ -2062,8 +2066,9 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   app.innerHTML=top+`
    <p class="muted">Complete los apartados. Puede agregar los aspectos y las acciones que necesite, guardar y continuar después. Todo se guarda en este dispositivo.</p>
    <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||"")}" autocomplete="off"></div>`).join("")}</section>
-   <section class="card"><h3>Lectura de la realidad</h3><p class="help">Resuma aquí la lectura de la realidad, o cópiela de la herramienta «Lectura de la realidad». Es la base del diagnóstico del PMCE.</p>
-    <textarea class="pm_lect" rows="5" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
+   <section class="card"><h3>Lectura de la realidad</h3><p class="help">Es la base del diagnóstico del PMCE. Si ya la hizo en la herramienta «Lectura de la realidad», impórtela aquí; también puede escribir o ajustar el texto.</p>
+    ${dxResumen()?`<button type="button" class="btn ghost" id="pmImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad» y luego vuelva para importarla.</p>`}
+    <textarea class="pm_lect" rows="6" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
    <div class="group-title">Aspectos de atención (por orden de prioridad)</div>
    ${PM.aspectos.map((a,ai)=>`<section class="card pmasp" data-ai="${ai}">
      <div class="row2"><div class="field"><label>Aspecto de atención</label><input type="text" class="pm_a" data-f="aspecto" value="${esc(a.aspecto)}" autocomplete="off" placeholder="Ej. Aprovechamiento académico"></div>
@@ -2097,6 +2102,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   app.querySelectorAll(".pmdela").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar este aspecto completo?"))return;leer();PM.aspectos.splice(+b.dataset.ai,1);pmSave();pmView()});
   g("pmAddA").onclick=()=>{leer();PM.aspectos.push(pmAspecto());pmSave();pmView()};
   g("pmNuevo").onclick=()=>{if(!confirm("¿Empezar un PMCE nuevo? Se borrará el actual."))return;PM=null;store.del("ppie-pmce");pmView()};
+  if(g("pmImport"))g("pmImport").onclick=()=>{const r=dxResumen();if(!r)return;if(PM.lectura&&PM.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();PM.lectura=r;pmSave();pmView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("pmWord").onclick=()=>{leer();pmWord()};
   g("pmPDF").onclick=e=>{leer();pmPDF(e.currentTarget)};
