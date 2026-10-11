@@ -877,7 +877,7 @@ const SECCIONES=[
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
- {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()}]},
+ {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
@@ -2338,11 +2338,184 @@ async function paPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     a.download=`${titulo} - ${(C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
+/* ---------- Planeación didáctica (NEM) ----------
+   Se alimenta del Programa Analítico y la lectura de la realidad. Elige PDA/contenidos, ejes, metodología, secuencia (momentos/fases/sesiones),
+   evaluación formativa, ajustes razonables y adecuaciones curriculares. Se guarda en el dispositivo. */
+let PL=null;
+(function(){const d=store.get("ppie-plan",null);if(d&&d.datos)PL=d})();
+function plSave(){store.set("ppie-plan",PL)}
+const PL_METODOS=["Aprendizaje Basado en Proyectos Comunitarios (ABPC)","Aprendizaje Basado en Indagación (STEAM)","Aprendizaje Basado en Problemas (ABP)","Aprendizaje Servicio (AS)","Proyecto de aula","Unidad didáctica"];
+const PL_FASES={
+ "Aprendizaje Basado en Proyectos Comunitarios (ABPC)":["Identificación","Recuperación","Planificación","Acercamiento","Comprensión y producción","Reconocimiento","Concreción"],
+ "Aprendizaje Basado en Indagación (STEAM)":["Introducción","Diseño de la investigación","Organización y desarrollo de la experiencia","Resultados y análisis","Difusión"],
+ "Aprendizaje Basado en Problemas (ABP)":["Presentemos","Recolectemos","Formulemos el problema","Organicemos la experiencia","Vivamos la experiencia","Resultados y análisis"],
+ "Aprendizaje Servicio (AS)":["Punto de partida","Lo que sé y lo que quiero saber","Organicemos las actividades","Creatividad en marcha","Compartir y evaluar lo aprendido"]
+};
+const PL_INSTR=["Rúbrica","Lista de cotejo","Escala estimativa","Registro anecdótico","Guía de observación","Diario del docente","Diario del alumno","Portafolio de evidencias","Autoevaluación","Coevaluación","Tablero de autoevaluación (diana)","Boleto de salida / preguntas","Organizadores gráficos"];
+const PL_EVAL_SUG="Evaluación formativa y para el aprendizaje: se valora el proceso, no solo el producto. Observe y registre durante todo el proyecto, dé retroalimentación oportuna y específica, comparta los criterios con los alumnos desde el inicio e integre autoevaluación y coevaluación. Use las evidencias para ajustar la enseñanza.";
+function plNuevo(){return{datos:{escuela:perfil.escuela||"",cct:perfil.cct||"",docente:perfil.minombre||perfil.director||"",grado:"",grupo:"",ciclo:cicloActual(),periodo:"",sesiones:"",fecha:fmtDate(today(),"larga")},
+  proyecto:{nombre:"",problema:"",proposito:"",producto:""},campos:[],ejes:[],metodologia:PL_METODOS[0],contenidos:[],
+  formato:"momentos",momentos:{inicio:"",desarrollo:"",cierre:""},fases:[],sesiones:[{t:"Sesión 1",a:""}],
+  evaluacion:{instrumentos:[],criterios:"",momentos:"",notas:""},ajustes:"",adecuaciones:"",recursos:""}}
+function plImportPA(){const d=store.get("ppie-pa",null);if(!d)return null;const C=d.grupo||d.escuela||d[d.nivel];if(!C)return null;
+  const bc=BANCO||store.get("pda-cache",null);const fase=C.fase;const grado=C.grado||"";
+  const grados=grado?[grado]:((bc&&bc.fases[fase])?bc.fases[fase].grados.map(String):[]);
+  const cont=[],ejesSet=new Set(),campos=[];
+  PA_CAMPOS.forEach(camp=>{const cc=C.campos&&C.campos[camp];if(!cc)return;const orden=cc.orden||[];if(orden.length)campos.push(camp);
+    (cc.ejes||[]).forEach(e=>ejesSet.add(e));
+    const items=(bc&&bc.campos[camp]&&bc.campos[camp][fase])||[];
+    orden.forEach(key=>{const it=items.find(x=>x.c===key);const ov=(cc.pda&&cc.pda[key])||{};
+      const pda=grados.map(g=>{const t=ov[g]!=null?ov[g]:(it?it.pda[g]:"");return t?`${g}°: ${t}`:""}).filter(Boolean).join("  |  ");
+      cont.push({campo:camp,c:key,pda,on:true})})});
+  return{grado:C.grado||"",campos,ejes:[...ejesSet],contenidos:cont,escuela:(C.datos&&C.datos.escuela)||"",cct:(C.datos&&C.datos.cct)||""}}
+async function plView(){S.view="plan";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Planeación didáctica</h2></div></div>`;
+  if(!PL){app.innerHTML=top+`
+    <p class="muted">Cree su <b>planeación didáctica</b> conforme a la Nueva Escuela Mexicana. Se alimenta de su <b>Programa Analítico</b> y su <b>lectura de la realidad</b>: elija los contenidos y PDA a trabajar, la metodología, la secuencia, la evaluación formativa y los ajustes. Todo editable y referenciado a sus insumos.</p>
+    <section class="card"><button class="btn primary" id="plStart">Comenzar la planeación</button>
+     <p class="help">Si ya tiene su Programa Analítico en la app, podrá importar de él los contenidos, PDA y ejes.</p></section>`;
+    document.getElementById("salir").onclick=goBack;document.getElementById("plStart").onclick=()=>{PL=plNuevo();plSave();plView()};window.scrollTo(0,0);return}
+  app.innerHTML=top+`<p class="muted">Cargando…</p>`;document.getElementById("salir").onclick=goBack;await cargarBanco();if(S.view!=="plan")return;
+  const dd=[["escuela","Escuela"],["cct","C.C.T."],["docente","Docente"],["grado","Grado"],["grupo","Grupo"],["ciclo","Ciclo escolar"],["periodo","Periodo / trimestre"],["sesiones","N° de sesiones"],["fecha","Fecha"]];
+  const fases=PL_FASES[PL.metodologia]||null;
+  if(PL.formato==="fases"&&fases&&(!PL.fases||!PL.fases.length))PL.fases=fases.map(f=>({t:f,a:""}));
+  app.innerHTML=top+`
+   <section class="card"><h3>Insumos</h3><p class="help">Traiga de su Programa Analítico los contenidos, PDA y ejes, y de la lectura de la realidad el problema del contexto.</p>
+    <button type="button" class="btn ghost" id="plImpPA">↓ Importar del Programa Analítico</button>
+    ${dxResumen()?`<button type="button" class="btn ghost" id="plImpLec">↓ Importar problema del contexto (lectura de la realidad)</button>`:""}</section>
+   <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pl_d" data-k="${k}" value="${esc(PL.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
+   <section class="card"><h3>Proyecto o situación de aprendizaje</h3>
+    <div class="field"><label>Nombre del proyecto / situación</label><input type="text" class="pl_p" data-k="nombre" value="${esc(PL.proyecto.nombre)}" autocomplete="off"></div>
+    <div class="field"><label>Problema del contexto</label><p class="help">De la lectura de la realidad.</p><textarea class="pl_p" data-k="problema" rows="2">${esc(PL.proyecto.problema)}</textarea></div>
+    <div class="field"><label>Propósito</label><textarea class="pl_p" data-k="proposito" rows="2">${esc(PL.proyecto.proposito)}</textarea></div>
+    <div class="field"><label>Producto / entregable</label><textarea class="pl_p" data-k="producto" rows="2">${esc(PL.proyecto.producto)}</textarea></div></section>
+   <section class="card"><h3>Campos formativos y ejes articuladores</h3>
+    <div class="field"><label>Campos formativos</label><div class="chips">${PA_CAMPOS.map(c=>`<label class="opt plcampo ${PL.campos.includes(c)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="pl_campo" value="${esc(c)}" ${PL.campos.includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div></div>
+    <div class="field"><label>Ejes articuladores</label><div class="chips">${PA_EJES.map(e=>`<label class="opt pleje ${PL.ejes.includes(e)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="pl_eje" value="${esc(e)}" ${PL.ejes.includes(e)?"checked":""}>${esc(e)}</label>`).join("")}</div></div></section>
+   <section class="card"><h3>Contenidos y PDA a trabajar</h3><p class="help">Marque los que trabajará en esta planeación. Impórtelos del Programa Analítico o agréguelos a mano.</p>
+    ${PL.contenidos.length?PL.contenidos.map((ct,i)=>`<div class="plcont" data-i="${i}"><label class="opt ${ct.on?"on":""}" style="align-items:flex-start"><input type="checkbox" class="pl_conton" ${ct.on?"checked":""}><span><b>${esc(ct.c)}</b>${ct.campo?` <span class="muted" style="font-size:12px">· ${esc(ct.campo)}</span>`:""}${ct.pda?`<br><span class="muted" style="font-size:13px">${esc(ct.pda)}</span>`:""}</span></label>
+      <button type="button" class="btn link plcontdel" data-i="${i}" style="padding:2px 0">Quitar</button></div>`).join(""):`<p class="help">Aún no hay contenidos. Importe del Programa Analítico o agregue uno.</p>`}
+    <button type="button" class="btn ghost" id="plAddCont">+ Agregar contenido / PDA a mano</button></section>
+   <section class="card"><h3>Metodología</h3>
+    <div class="field"><select class="pl_met">${PL_METODOS.map(x=>`<option value="${esc(x)}" ${PL.metodologia===x?"selected":""}>${esc(x)}</option>`).join("")}<option value="__otro__" ${PL.metodologia&&!PL_METODOS.includes(PL.metodologia)?"selected":""}>Otra…</option></select>
+     <input type="text" class="pl_metotro" value="${esc(PL.metodologia&&!PL_METODOS.includes(PL.metodologia)?PL.metodologia:"")}" placeholder="Escriba la metodología" style="margin-top:8px" ${PL.metodologia&&!PL_METODOS.includes(PL.metodologia)?"":"hidden"}></div></section>
+   <section class="card"><h3>Secuencia didáctica</h3>
+    <div class="field"><label>Formato de la secuencia</label><div class="chips">
+      ${[["momentos","Por momentos"],["fases","Por fases de la metodología"],["sesiones","Por sesiones"]].map(([v,l])=>`<button type="button" class="chip plfmt ${PL.formato===v?"sel":""}" data-fmt="${v}">${l}</button>`).join("")}</div></div>
+    ${PL.formato==="momentos"?`
+      <div class="field"><label>Inicio</label><textarea class="pl_mom" data-k="inicio" rows="3">${esc(PL.momentos.inicio)}</textarea></div>
+      <div class="field"><label>Desarrollo</label><textarea class="pl_mom" data-k="desarrollo" rows="4">${esc(PL.momentos.desarrollo)}</textarea></div>
+      <div class="field"><label>Cierre</label><textarea class="pl_mom" data-k="cierre" rows="3">${esc(PL.momentos.cierre)}</textarea></div>`
+    :PL.formato==="fases"?`${fases?"":`<p class="help">Esta metodología no tiene fases predefinidas; use «Por momentos» o «Por sesiones», o edite las fases.</p>`}
+      ${(PL.fases||[]).map((f,i)=>`<div class="plfase" data-i="${i}"><div class="field"><label>${esc(f.t)}</label><textarea class="pl_fasea" rows="3">${esc(f.a)}</textarea></div></div>`).join("")}`
+    :`${(PL.sesiones||[]).map((s,i)=>`<div class="plses card" data-i="${i}" style="padding:12px"><div class="field"><label>Sesión</label><input type="text" class="pl_sest" value="${esc(s.t)}" autocomplete="off"></div><div class="field"><label>Actividades</label><textarea class="pl_sesa" rows="3">${esc(s.a)}</textarea></div><button type="button" class="btn link plsesdel" data-i="${i}" style="padding:2px 0">Quitar sesión</button></div>`).join("")}<button type="button" class="btn ghost" id="plAddSes">+ Agregar sesión</button>`}
+    <div class="field" style="margin-top:8px"><label>Recursos y materiales</label><textarea class="pl_rec" rows="2">${esc(PL.recursos)}</textarea></div></section>
+   <section class="card"><h3>Evaluación formativa</h3>
+    <div class="alert" style="font-size:14px">${esc(PL_EVAL_SUG)}</div>
+    <div class="field"><label>Instrumentos y técnicas (todos formativos)</label><p class="help">Marque los que usará.</p><div class="chips">${PL_INSTR.map(x=>`<label class="opt plinstr ${PL.evaluacion.instrumentos.includes(x)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="pl_instr" value="${esc(x)}" ${PL.evaluacion.instrumentos.includes(x)?"checked":""}>${esc(x)}</label>`).join("")}</div></div>
+    <div class="field"><label>Criterios de evaluación</label><textarea class="pl_ev" data-k="criterios" rows="2">${esc(PL.evaluacion.criterios)}</textarea></div>
+    <div class="field"><label>Momentos de evaluación</label><p class="help">Diagnóstica / de proceso / final; autoevaluación y coevaluación.</p><textarea class="pl_ev" data-k="momentos" rows="2">${esc(PL.evaluacion.momentos)}</textarea></div></section>
+   <section class="card"><h3>Inclusión</h3>
+    <div class="field"><label>Ajustes razonables</label><p class="help">Para alumnos que lo requieran (apoyos, tiempos, materiales, organización), sin modificar los aprendizajes esperados.</p><textarea class="pl_inc" data-k="ajustes" rows="3">${esc(PL.ajustes)}</textarea></div>
+    <div class="field"><label>Adecuaciones curriculares</label><p class="help">Cuando se ajustan los contenidos u objetivos para un alumno en particular.</p><textarea class="pl_inc" data-k="adecuaciones" rows="3">${esc(PL.adecuaciones)}</textarea></div></section>
+   <section class="card"><div class="acts"><button class="btn primary act" id="plWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="plPDF">⬇ Descargar PDF</button></div>
+    <button class="btn link" id="plNuevo">Empezar una planeación nueva</button></section>
+   <p class="foot">La planeación se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{app.querySelectorAll(".pl_d").forEach(i=>PL.datos[i.dataset.k]=i.value);app.querySelectorAll(".pl_p").forEach(i=>PL.proyecto[i.dataset.k]=i.value);
+    PL.campos=[...app.querySelectorAll(".pl_campo:checked")].map(x=>x.value);PL.ejes=[...app.querySelectorAll(".pl_eje:checked")].map(x=>x.value);
+    const ms=app.querySelector(".pl_met");if(ms)PL.metodologia=ms.value==="__otro__"?(app.querySelector(".pl_metotro").value):ms.value;
+    app.querySelectorAll(".plcont").forEach(pc=>{const i=+pc.dataset.i;if(PL.contenidos[i])PL.contenidos[i].on=pc.querySelector(".pl_conton").checked});
+    app.querySelectorAll(".pl_mom").forEach(i=>PL.momentos[i.dataset.k]=i.value);
+    app.querySelectorAll(".plfase").forEach(pf=>{const i=+pf.dataset.i;if(PL.fases[i])PL.fases[i].a=pf.querySelector(".pl_fasea").value});
+    app.querySelectorAll(".plses").forEach(ps=>{const i=+ps.dataset.i;if(PL.sesiones[i]){PL.sesiones[i].t=ps.querySelector(".pl_sest").value;PL.sesiones[i].a=ps.querySelector(".pl_sesa").value}});
+    const rc=app.querySelector(".pl_rec");if(rc)PL.recursos=rc.value;
+    PL.evaluacion.instrumentos=[...app.querySelectorAll(".pl_instr:checked")].map(x=>x.value);
+    app.querySelectorAll(".pl_ev").forEach(i=>PL.evaluacion[i.dataset.k]=i.value);
+    app.querySelectorAll(".pl_inc").forEach(i=>PL[i.dataset.k]=i.value);plSave()};
+  app.querySelectorAll(".pl_d,.pl_p,.pl_mom,.pl_fasea,.pl_sest,.pl_sesa,.pl_rec,.pl_ev,.pl_inc,.pl_metotro").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".pl_campo,.pl_eje,.pl_instr,.pl_conton").forEach(i=>i.addEventListener("change",()=>{if(i.closest(".opt"))i.closest(".opt").classList.toggle("on",i.checked);leer()}));
+  app.querySelectorAll(".plfmt").forEach(b=>b.onclick=()=>{leer();PL.formato=b.dataset.fmt;if(PL.formato==="fases"){const f=PL_FASES[PL.metodologia];PL.fases=f?f.map(x=>({t:x,a:""})):(PL.fases||[])}plSave();plView()});
+  const mt=app.querySelector(".pl_met");if(mt)mt.addEventListener("change",()=>{const o=app.querySelector(".pl_metotro");o.hidden=mt.value!=="__otro__";leer();if(PL.formato==="fases"){PL.fases=(PL_FASES[PL.metodologia]||[]).map(x=>({t:x,a:""}));plSave();plView()}});
+  g("plImpPA").onclick=()=>{const r=plImportPA();if(!r){alert("No encontré un Programa Analítico guardado. Hágalo primero en Pedagógico → Programa Analítico.");return}leer();
+    if(r.grado)PL.datos.grado=PL.datos.grado||r.grado;if(r.escuela)PL.datos.escuela=PL.datos.escuela||r.escuela;if(r.cct)PL.datos.cct=PL.datos.cct||r.cct;
+    PL.campos=[...new Set([...PL.campos,...r.campos])];PL.ejes=[...new Set([...PL.ejes,...r.ejes])];
+    const ex=new Set(PL.contenidos.map(c=>c.c));r.contenidos.forEach(c=>{if(!ex.has(c.c))PL.contenidos.push(c)});plSave();plView()};
+  if(g("plImpLec"))g("plImpLec").onclick=()=>{const d=store.get("ppie-dx",null);if(!d)return;const cur=d.secs?d:(d[d.nivel]);let prob="";
+    (cur&&cur.secs||[]).forEach(s=>{if(/problem/i.test(s.t))s.items.forEach(it=>{if(it.a)prob+=(prob?"\n":"")+it.a})});
+    if(!prob)prob=dxResumen().slice(0,500);leer();PL.proyecto.problema=prob;plSave();plView()};
+  g("plAddCont").onclick=()=>{leer();PL.contenidos.push({campo:"",c:"Nuevo contenido",pda:"",on:true});plSave();plView()};
+  app.querySelectorAll(".plcontdel").forEach(b=>b.onclick=()=>{leer();PL.contenidos.splice(+b.dataset.i,1);plSave();plView()});
+  if(g("plAddSes"))g("plAddSes").onclick=()=>{leer();PL.sesiones.push({t:"Sesión "+(PL.sesiones.length+1),a:""});plSave();plView()};
+  app.querySelectorAll(".plsesdel").forEach(b=>b.onclick=()=>{leer();PL.sesiones.splice(+b.dataset.i,1);plSave();plView()});
+  g("plNuevo").onclick=()=>{if(!confirm("¿Empezar una planeación nueva? Se borrará la actual."))return;PL=null;store.del("ppie-plan");plView()};
+  g("salir").onclick=()=>{leer();goBack()};
+  g("plWord").onclick=()=>{leer();plWord()};
+  g("plPDF").onclick=e=>{leer();plPDF(e.currentTarget)};
+  // mark agregar contenido manual editable inline: open edit via prompt-less -> allow editing text by converting to inputs is heavy; keep simple: tapping name edits
+  app.querySelectorAll(".plcont b").forEach(b=>b.onclick=()=>{const i=+b.closest(".plcont").dataset.i;const nv=prompt("Contenido:",PL.contenidos[i].c);if(nv!=null){PL.contenidos[i].c=nv;const pd=prompt("PDA:",PL.contenidos[i].pda||"");if(pd!=null)PL.contenidos[i].pda=pd;plSave();plView()}});
+  window.scrollTo(0,0)}
+function plSecModel(){const out=[];
+  if(PL.formato==="momentos")["inicio","desarrollo","cierre"].forEach(k=>{if(PL.momentos[k])out.push([k.charAt(0).toUpperCase()+k.slice(1),PL.momentos[k]])});
+  else if(PL.formato==="fases")(PL.fases||[]).forEach(f=>{if(f.a)out.push([f.t,f.a])});
+  else (PL.sesiones||[]).forEach(s=>{if(s.a||s.t)out.push([s.t,s.a])});
+  return out}
+function plWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const dd=[["escuela","Escuela"],["cct","C.C.T."],["docente","Docente"],["grado","Grado"],["grupo","Grupo"],["ciclo","Ciclo"],["periodo","Periodo"],["sesiones","Sesiones"],["fecha","Fecha"]];
+  const cont=PL.contenidos.filter(c=>c.on);const sec=plSecModel();
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Planeación didáctica</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">
+   <h1 style="text-align:center;font-size:18pt;margin:0 0 2pt">Planeación didáctica</h1>
+   <p style="text-align:center;margin:0 0 10pt;font-size:11pt">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · Nueva Escuela Mexicana</p>
+   <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:10pt">${dd.map(([k,l])=>PL.datos[k]?`<tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:28%">${l}</td><td style="border:1px solid #999;padding:4px 6px">${esc(PL.datos[k])}</td></tr>`:"").join("")}</table>
+   <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:10pt">
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:28%">Proyecto / situación</td><td style="border:1px solid #999;padding:4px 6px">${e2(PL.proyecto.nombre)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Problema del contexto</td><td style="border:1px solid #999;padding:4px 6px">${e2(PL.proyecto.problema)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Propósito</td><td style="border:1px solid #999;padding:4px 6px">${e2(PL.proyecto.proposito)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Producto / entregable</td><td style="border:1px solid #999;padding:4px 6px">${e2(PL.proyecto.producto)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Campos formativos</td><td style="border:1px solid #999;padding:4px 6px">${esc(PL.campos.join(", "))}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Ejes articuladores</td><td style="border:1px solid #999;padding:4px 6px">${esc(PL.ejes.join(", "))}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Metodología</td><td style="border:1px solid #999;padding:4px 6px">${esc(PL.metodologia)}</td></tr></table>
+   <h2 style="font-size:13pt;color:#1e3a5f">Contenidos y PDA a trabajar</h2>
+   <table style="width:100%;border-collapse:collapse;font-size:10.5pt"><tr style="background:#eef"><th style="border:1px solid #999;padding:4px 6px;text-align:left;width:34%">Contenido</th><th style="border:1px solid #999;padding:4px 6px;text-align:left">PDA</th><th style="border:1px solid #999;padding:4px 6px;text-align:left">Campo</th></tr>
+    ${cont.map(c=>`<tr><td style="border:1px solid #999;padding:4px 6px">${e2(c.c)}</td><td style="border:1px solid #999;padding:4px 6px">${e2(c.pda)}</td><td style="border:1px solid #999;padding:4px 6px">${esc(c.campo)}</td></tr>`).join("")}</table>
+   <h2 style="font-size:13pt;color:#1e3a5f">Secuencia didáctica</h2>
+   ${sec.map(([t,a])=>`<p style="margin:6pt 0 2pt;font-weight:bold">${esc(t)}</p><p style="margin:0 0 6pt;text-align:justify;white-space:pre-wrap">${esc(a)}</p>`).join("")}
+   ${PL.recursos?`<p style="margin:6pt 0"><b>Recursos:</b> ${e2(PL.recursos)}</p>`:""}
+   <h2 style="font-size:13pt;color:#1e3a5f">Evaluación formativa</h2>
+   <p><b>Instrumentos:</b> ${esc(PL.evaluacion.instrumentos.join(", "))}</p>
+   ${PL.evaluacion.criterios?`<p><b>Criterios:</b> ${e2(PL.evaluacion.criterios)}</p>`:""}
+   ${PL.evaluacion.momentos?`<p><b>Momentos:</b> ${e2(PL.evaluacion.momentos)}</p>`:""}
+   <h2 style="font-size:13pt;color:#1e3a5f">Inclusión</h2>
+   ${PL.ajustes?`<p><b>Ajustes razonables:</b> ${e2(PL.ajustes)}</p>`:""}
+   ${PL.adecuaciones?`<p><b>Adecuaciones curriculares:</b> ${e2(PL.adecuaciones)}</p>`:""}</body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Planeación - ${(PL.proyecto.nombre||PL.datos.grado+PL.datos.grupo||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function plPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await loadScript("lib/pdf.min.js").catch(()=>{});await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();
+    const M=52,W0=612-M*2,ink=rgb(0.07,0.07,0.07),blu=rgb(0.12,0.23,0.37),gray=rgb(0.4,0.4,0.4);let pg,y;
+    const nueva=()=>{pg=doc.addPage([612,792]);y=792-M};nueva();const space=h=>{if(y-h<M)nueva()};
+    const wrap=(x,s,f,w=W0)=>{const o=[];for(const para of clean(x).split("\n")){if(!para.trim()){o.push("");continue}const ws=para.split(/\s+/);let ln="";for(const wd of ws){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te}if(ln)o.push(ln)}return o};
+    const par=(x,s,f,c,gp=2.5,ind=0)=>{for(const ln of wrap(x,s,f,W0-ind)){space(s+gp);if(ln)pg.drawText(ln,{x:M+ind,y:y-s,size:s,font:f,color:c});y-=s+gp}};
+    const ctr=(x,s,f,c)=>{const w=f.widthOfTextAtSize(clean(x),s);space(s+4);pg.drawText(clean(x),{x:M+(W0-w)/2,y:y-s,size:s,font:f,color:c});y-=s+4};
+    const h2=x=>{space(22);pg.drawText(clean(x),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=19};
+    const kv=(l,v)=>{if(!v)return;space(13);pg.drawText(clean(l)+": ",{x:M,y:y-10,size:10,font:HELVB,color:ink});const lw=HELVB.widthOfTextAtSize(clean(l)+": ",10);const lines=wrap(v,10,HELV,W0-lw);lines.forEach((ln,i)=>{if(i>0){space(12)}pg.drawText(ln,{x:M+(i===0?lw:14),y:y-10,size:10,font:HELV,color:ink});if(i<lines.length-1)y-=12});y-=13};
+    let ts=17;while(HELVB.widthOfTextAtSize("Planeación didáctica",ts)>W0)ts-=0.5;ctr("Planeación didáctica",ts,HELVB,blu);
+    ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP - NEM",9,HELV,gray);y-=4;
+    [["Escuela",PL.datos.escuela],["Docente",PL.datos.docente],["Grado y grupo",(PL.datos.grado+" "+PL.datos.grupo).trim()],["Ciclo",PL.datos.ciclo],["Periodo",PL.datos.periodo],["Sesiones",PL.datos.sesiones]].forEach(([l,v])=>kv(l,v));y-=4;
+    h2("Proyecto o situación de aprendizaje");kv("Nombre",PL.proyecto.nombre);kv("Problema del contexto",PL.proyecto.problema);kv("Propósito",PL.proyecto.proposito);kv("Producto",PL.proyecto.producto);
+    kv("Campos formativos",PL.campos.join(", "));kv("Ejes articuladores",PL.ejes.join(", "));kv("Metodología",PL.metodologia);
+    h2("Contenidos y PDA a trabajar");PL.contenidos.filter(c=>c.on).forEach(c=>{par("• "+c.c+(c.campo?"  ("+c.campo+")":""),10,HELVB,ink,2.5,8);if(c.pda)par(c.pda,9.5,HELV,gray,2.5,16);y-=1});
+    h2("Secuencia didáctica");plSecModel().forEach(([t2,a])=>{par(t2,11,HELVB,ink,2.5,0);par(a,10,HELV,ink,2.5,8);y-=2});if(PL.recursos)kv("Recursos",PL.recursos);
+    h2("Evaluación formativa");kv("Instrumentos",PL.evaluacion.instrumentos.join(", "));kv("Criterios",PL.evaluacion.criterios);kv("Momentos",PL.evaluacion.momentos);
+    h2("Inclusión");kv("Ajustes razonables",PL.ajustes);kv("Adecuaciones curriculares",PL.adecuaciones);
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`Planeación - ${(PL.proyecto.nombre||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t}}
 
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
