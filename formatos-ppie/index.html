@@ -876,7 +876,7 @@ const SECCIONES=[
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
- {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Diagnóstico socioeducativo, planeación, actas de CTE y seguimiento de alumnos.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMCE a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()}]},
+ {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()}]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
@@ -1966,7 +1966,7 @@ const DX_PLANTILLA={
    ["Análisis crítico: ¿cómo llegamos a estos resultados?",["Más allá de describir, ¿qué factores, decisiones o condiciones llevaron a la escuela a estos resultados y números?","¿Qué causas de fondo explican lo detectado?"]],
    ["Problemática priorizada y sus causas",["¿Cuál es la problemática central de la escuela?","¿Cuáles son sus causas y sus efectos?"]],
    ["¿Cómo saldremos adelante?",["¿Cómo consideran que se puede atender o erradicar la problemática detectada?","¿Qué rutas, apoyos o cambios se requieren?"]],
-   ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan?","¿Cómo se integran al Programa de Mejora Continua (PEMC/PMCE)?"]]
+   ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan?","¿Cómo se integran al Programa de Mejora Continua (PMC)?"]]
   ]}
 };
 function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]="");
@@ -2043,7 +2043,7 @@ async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     a.download=`${DX.titulo} - ${(DX.datos.grupo||DX.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
-/* ---------- Programa de Mejora Continua (PMCE), guiado por preguntas ----------
+/* ---------- Programa de Mejora Continua (PMC), guiado por preguntas ----------
    Se apoya en la lectura de la realidad y organiza aspectos priorizados con objetivos, metas y acciones. Se guarda en el dispositivo. */
 let PM=null;
 (function(){const d=store.get("ppie-pmce",null);if(d&&d.aspectos)PM=d})();
@@ -2059,14 +2059,14 @@ function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.mun
 function pmView(){S.view="pmce";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa de Mejora Continua</h2></div></div>`;
   if(!PM){app.innerHTML=top+`
-    <p class="muted">Elabore el <b>Programa de Mejora Continua</b> (PMCE) de la escuela. Se apoya en la <b>lectura de la realidad</b> y organiza los aspectos a atender, por orden de prioridad, con sus objetivos, metas y acciones. La app lo guía con preguntas; usted completa y lo descarga en Word o PDF.</p>
-    <section class="card"><button class="btn primary" id="pmStart">Comenzar el PMCE</button></section>`;
+    <p class="muted">Elabore el <b>Programa de Mejora Continua</b> (PMC) de la escuela. Se apoya en la <b>lectura de la realidad</b> y organiza los aspectos a atender, por orden de prioridad, con sus objetivos, metas y acciones. La app lo guía con preguntas; usted completa y lo descarga en Word o PDF.</p>
+    <section class="card"><button class="btn primary" id="pmStart">Comenzar el PMC</button></section>`;
     document.getElementById("salir").onclick=goBack;document.getElementById("pmStart").onclick=()=>{PM=pmNuevo();pmSave();pmView()};window.scrollTo(0,0);return}
   const dd=[["ciclo","Ciclo escolar"],["escuela","Escuela"],["cct","C.C.T."],["director","Dirección"],["lugar","Lugar"],["fecha","Fecha de elaboración"]];
   app.innerHTML=top+`
    <p class="muted">Complete los apartados. Puede agregar los aspectos y las acciones que necesite, guardar y continuar después. Todo se guarda en este dispositivo.</p>
    <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||"")}" autocomplete="off"></div>`).join("")}</section>
-   <section class="card"><h3>Lectura de la realidad</h3><p class="help">Es la base del diagnóstico del PMCE. Si ya la hizo en la herramienta «Lectura de la realidad», impórtela aquí; también puede escribir o ajustar el texto.</p>
+   <section class="card"><h3>Lectura de la realidad</h3><p class="help">Es la base del diagnóstico del PMC. Si ya la hizo en la herramienta «Lectura de la realidad», impórtela aquí; también puede escribir o ajustar el texto.</p>
     ${dxResumen()?`<button type="button" class="btn ghost" id="pmImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad» y luego vuelva para importarla.</p>`}
     <textarea class="pm_lect" rows="6" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
    <div class="group-title">Aspectos de atención (por orden de prioridad)</div>
@@ -2089,8 +2089,8 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
      <button type="button" class="btn link pmdela" data-ai="${ai}" style="padding:6px 0">Quitar este aspecto</button></section>`).join("")}
    <button class="btn ghost" id="pmAddA">+ Agregar un aspecto de atención</button>
    <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="pmPDF">⬇ Descargar PDF</button></div>
-    <button class="btn link" id="pmNuevo">Empezar un PMCE nuevo</button></section>
-   <p class="foot">El PMCE se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
+    <button class="btn link" id="pmNuevo">Empezar un PMC nuevo</button></section>
+   <p class="foot">El PMC se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll(".pm_d").forEach(i=>PM[i.dataset.k]=i.value);const lt=app.querySelector(".pm_lect");if(lt)PM.lectura=lt.value;
     app.querySelectorAll(".pmasp").forEach(sec=>{const ai=+sec.dataset.ai,a=PM.aspectos[ai];sec.querySelectorAll(":scope > .field .pm_a, :scope > .row2 .pm_a").forEach(i=>a[i.dataset.f]=i.value);
@@ -2101,7 +2101,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   app.querySelectorAll(".pmdelc").forEach(b=>b.onclick=()=>{leer();PM.aspectos[+b.dataset.ai].acciones.splice(+b.dataset.ci,1);pmSave();pmView()});
   app.querySelectorAll(".pmdela").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar este aspecto completo?"))return;leer();PM.aspectos.splice(+b.dataset.ai,1);pmSave();pmView()});
   g("pmAddA").onclick=()=>{leer();PM.aspectos.push(pmAspecto());pmSave();pmView()};
-  g("pmNuevo").onclick=()=>{if(!confirm("¿Empezar un PMCE nuevo? Se borrará el actual."))return;PM=null;store.del("ppie-pmce");pmView()};
+  g("pmNuevo").onclick=()=>{if(!confirm("¿Empezar un PMC nuevo? Se borrará el actual."))return;PM=null;store.del("ppie-pmce");pmView()};
   if(g("pmImport"))g("pmImport").onclick=()=>{const r=dxResumen();if(!r)return;if(PM.lectura&&PM.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();PM.lectura=r;pmSave();pmView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("pmWord").onclick=()=>{leer();pmWord()};
