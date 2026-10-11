@@ -876,7 +876,7 @@ const SECCIONES=[
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
- {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()}]},
+ {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()}]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
@@ -2166,11 +2166,166 @@ async function pmPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     a.download=`Programa de Mejora Continua - ${(PM.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
+/* ---------- Programa Analítico (NEM): tres planos, por escuela o por grupo, con banco de contenidos y PDA ----------
+   Plano 1 lectura de la realidad · Plano 2 contextualización (contenidos y PDA por campo formativo y eje) · Plano 3 codiseño. Se guarda en el dispositivo. */
+let PA=null,BANCO=null,paOpen=[];
+(function(){const d=store.get("ppie-pa",null);if(d&&d.nivel)PA=d})();
+function paSave(){store.set("ppie-pa",PA)}
+async function cargarBanco(){if(BANCO)return BANCO;try{const r=await fetch("formatos/pda.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;BANCO=await r.json();store.set("pda-cache",BANCO)}catch(e){BANCO=store.get("pda-cache",null)}return BANCO}
+const PA_CAMPOS=["Lenguajes","Saberes y Pensamiento Científico","Ética, Naturaleza y Sociedades","De lo Humano y lo Comunitario"];
+const PA_EJES=["Inclusión","Pensamiento crítico","Interculturalidad crítica","Igualdad de género","Vida saludable","Apropiación de las culturas a través de la lectura y la escritura","Artes y experiencias estéticas"];
+const PA_METODOS=["Aprendizaje Basado en Proyectos Comunitarios (ABPC)","Aprendizaje Basado en Problemas (ABP)","Aprendizaje por Indagación (STEAM)","Aprendizaje Servicio (AS)"];
+const faseDeGrado=g=>({1:"3",2:"3",3:"4",4:"4",5:"5",6:"5"}[g]||"3");
+function paCampoVacio(){return{ejes:[],sel:{},notas:{},propios:[]}}
+function paNuevo(nivel){const datos={};["escuela","cct","zona","director","ciclo","fecha","colectivo","grado"].forEach(k=>datos[k]="");
+  datos.escuela=perfil.escuela||"";datos.cct=perfil.cct||"";datos.zona=perfil.zona||"050";datos.director=perfil.director||"";datos.ciclo=cicloActual();datos.fecha=fmtDate(today(),"larga");
+  const campos={};PA_CAMPOS.forEach(c=>campos[c]=paCampoVacio());
+  return{nivel,datos,lectura:dxResumen(),fase:nivel==="grupo"?"3":"3",grado:nivel==="grupo"?"1":"",campos,codiseno:[]}}
+function paCur(){if(!PA)return null;if(!PA[PA.nivel])PA[PA.nivel]=paNuevo(PA.nivel);return PA[PA.nivel]}
+async function paView(){S.view="pa";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa Analítico</h2></div></div>`;
+  if(!PA||!PA.nivel){app.innerHTML=top+`
+    <p class="muted">Elabore el <b>Programa Analítico</b> conforme a la Nueva Escuela Mexicana. Parte de la <b>lectura de la realidad</b> (Plano 1), contextualiza los <b>contenidos y PDA</b> por campo formativo y eje articulador (Plano 2) y concreta el <b>codiseño</b> en proyectos y metodologías (Plano 3). La app lo guía y usted lo descarga en Word o PDF.</p>
+    <section class="card"><h3>¿De qué nivel es?</h3>
+     <div class="opts"><label class="opt"><input type="radio" name="pan" value="escuela"><span><b>De la escuela</b><br><span class="muted" style="font-size:14px">Trabajo del colectivo por fase</span></span></label>
+      <label class="opt"><input type="radio" name="pan" value="grupo"><span><b>De un grupo</b><br><span class="muted" style="font-size:14px">Un grado concreto: carga sus contenidos y PDA</span></span></label></div>
+     <p class="help">Podrá cambiar entre escuela y grupo en cualquier momento; cada uno guarda lo suyo.</p>
+     <button class="btn primary" id="paOk">Comenzar</button></section>`;
+    document.getElementById("salir").onclick=goBack;
+    document.getElementById("paOk").onclick=()=>{const r=app.querySelector('input[name=pan]:checked');if(!r)return;PA={nivel:r.value};PA[r.value]=paNuevo(r.value);paSave();paView()};
+    window.scrollTo(0,0);return}
+  app.innerHTML=top+`<p class="muted">Cargando el banco de contenidos…</p>`;document.getElementById("salir").onclick=goBack;
+  await cargarBanco();if(S.view!=="pa")return;
+  const C=paCur();if(PA.nivel==="grupo")C.fase=faseDeGrado(+C.grado||1);
+  const fase=C.fase,gradosFase=(BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados:[];
+  const gradosMostrar=PA.nivel==="grupo"?[+C.grado||gradosFase[0]]:gradosFase;
+  const datosDef=[["escuela","Escuela"],["cct","C.C.T."],["zona","Zona escolar"],["director","Dirección"],["ciclo","Ciclo escolar"],["colectivo","Colectivo docente / docente"],["fecha","Fecha de elaboración"]];
+  const campoHTML=(camp)=>{const cc=C.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][fase])||[];
+    return`<details class="card pacampo" data-camp="${esc(camp)}"><summary><b>${esc(camp)}</b> · ${Object.values(cc.sel).filter(Boolean).length+cc.propios.length} contenido(s)</summary>
+     <div class="field"><label>Ejes articuladores que atraviesan el campo</label><div class="chips">${PA_EJES.map(e=>`<label class="opt pejeopt ${cc.ejes.includes(e)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="peje" value="${esc(e)}" ${cc.ejes.includes(e)?"checked":""}>${esc(e)}</label>`).join("")}</div></div>
+     <div class="field"><label>Contextualización del campo</label><p class="help">¿Cómo se vincula este campo con lo detectado en la lectura de la realidad?</p><textarea class="pctx" rows="2">${esc(cc.notas.__campo||"")}</textarea></div>
+     <div class="group-title">Contenidos y PDA · ${BANCO?BANCO.fases[fase].nombre:""}</div>
+     ${items.length?items.map((it,ii)=>{const on=!!cc.sel[it.c];return`<div class="pcont" data-c="${esc(it.c)}"><label class="opt ${on?"on":""}" style="align-items:flex-start"><input type="checkbox" class="pselc" ${on?"checked":""}><span><b>${esc(it.c)}</b>${on?`<br>${gradosMostrar.map(g=>it.pda[g]?`<span class="muted" style="font-size:13px"><b>${g}°:</b> ${esc(it.pda[g])}</span>`:"").filter(Boolean).join("<br>")}`:""}</span></label>
+       ${on?`<div class="field" style="margin-top:6px"><label style="font-size:13px">Contextualización / codiseño de este contenido</label><textarea class="pnota" rows="2">${esc(cc.notas[it.c]||"")}</textarea></div>`:""}</div>`}).join(""):`<p class="help">No hay contenidos en el banco para este campo y fase. Agregue los suyos abajo.</p>`}
+     <div class="group-title">Contenidos propios (contextualizados)</div>
+     ${cc.propios.map((pp,pi)=>`<div class="pprop card" data-pi="${pi}" style="padding:12px"><div class="field"><label>Contenido</label><input type="text" class="ppc" value="${esc(pp.c)}" autocomplete="off"></div>
+       <div class="field"><label>PDA / proceso de desarrollo de aprendizaje</label><textarea class="ppp" rows="2">${esc(pp.pda||"")}</textarea></div>
+       <div class="field"><label>Contextualización</label><textarea class="ppn" rows="2">${esc(pp.nota||"")}</textarea></div>
+       <button type="button" class="btn link ppdel" data-camp="${esc(camp)}" data-pi="${pi}" style="padding:4px 0">Quitar</button></div>`).join("")}
+     <button type="button" class="btn ghost ppadd" data-camp="${esc(camp)}">+ Agregar contenido propio</button></details>`};
+  app.innerHTML=top+`
+   <section class="card"><div class="field"><span class="lbl">Nivel</span>
+    <div class="chips"><button type="button" class="chip paniv ${PA.nivel==="escuela"?"sel":""}" data-niv="escuela">De la escuela</button><button type="button" class="chip paniv ${PA.nivel==="grupo"?"sel":""}" data-niv="grupo">De un grupo</button></div></div>
+    ${PA.nivel==="grupo"?`<div class="field"><label>Grado</label><select id="pa_grado">${[1,2,3,4,5,6].map(g=>`<option value="${g}" ${String(C.grado)===String(g)?"selected":""}>${g}°</option>`).join("")}</select><p class="help">Se cargan los contenidos y PDA de la fase que corresponde a este grado.</p></div>`
+      :`<div class="field"><label>Fase a trabajar</label><select id="pa_fase">${Object.keys(BANCO?BANCO.fases:{3:0,4:0,5:0}).map(f=>`<option value="${f}" ${C.fase===f?"selected":""}>${BANCO?BANCO.fases[f].nombre:f}</option>`).join("")}</select></div>`}</section>
+   <section class="card"><h3>Datos generales</h3>${datosDef.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pa_d" data-k="${k}" value="${esc(C.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
+   <section class="card"><h3>Plano 1 · Lectura de la realidad</h3><p class="help">Base del Programa Analítico. Impórtela de la herramienta «Lectura de la realidad» o escríbala.</p>
+    ${dxResumen()?`<button type="button" class="btn ghost" id="paImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad».</p>`}
+    <textarea class="pa_lect" rows="5">${esc(C.lectura||"")}</textarea></section>
+   <div class="group-title">Plano 2 · Contextualización (contenidos y PDA por campo formativo)</div>
+   ${PA_CAMPOS.map(campoHTML).join("")}
+   <div class="group-title">Plano 3 · Codiseño</div>
+   ${C.codiseno.map((p,pi)=>`<section class="card pacod" data-pi="${pi}">
+     <div class="field"><label>Título del proyecto o situación de aprendizaje</label><input type="text" class="pco" data-f="titulo" value="${esc(p.titulo)}" autocomplete="off"></div>
+     <div class="field"><label>Metodología</label><select class="pco_met">${PA_METODOS.map(m=>`<option value="${esc(m)}" ${p.metodologia===m?"selected":""}>${esc(m)}</option>`).join("")}<option value="__otro__" ${(p.metodologia&&!PA_METODOS.includes(p.metodologia))?"selected":""}>Otra…</option></select>
+      <input type="text" class="pco_metotro" value="${esc(p.metodologia&&!PA_METODOS.includes(p.metodologia)?p.metodologia:"")}" placeholder="Escriba la metodología" style="margin-top:8px" ${(p.metodologia&&!PA_METODOS.includes(p.metodologia))?"":"hidden"}></div>
+     <div class="field"><label>Campos formativos que integra</label><div class="chips">${PA_CAMPOS.map(c=>`<label class="opt pcampoopt ${(p.campos||[]).includes(c)?"on":""}" style="display:inline-flex;margin:0 6px 6px 0"><input type="checkbox" class="pco_campo" value="${esc(c)}" ${(p.campos||[]).includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div></div>
+     <div class="field"><label>Periodo / temporalidad</label><input type="text" class="pco" data-f="periodo" value="${esc(p.periodo)}" autocomplete="off" placeholder="Ej. Noviembre; 3 semanas"></div>
+     <div class="field"><label>Descripción del codiseño</label><textarea class="pco" data-f="descripcion" rows="3">${esc(p.descripcion)}</textarea></div>
+     <button type="button" class="btn link pcoddel" data-pi="${pi}" style="padding:4px 0">Quitar proyecto</button></section>`).join("")}
+   <button class="btn ghost" id="paAddCod">+ Agregar proyecto / situación de aprendizaje</button>
+   <section class="card"><div class="acts"><button class="btn primary act" id="paWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="paPDF">⬇ Descargar PDF</button></div>
+    <button class="btn link" id="paNuevo">Empezar de nuevo (borra escuela y grupo)</button></section>
+   <p class="foot">El Programa Analítico se guarda solo en este dispositivo. Nada se envía a internet. Banco de contenidos y PDA: versión inicial, cotéjela con el programa sintético oficial.</p>`;
+  app.querySelectorAll(".pacampo").forEach(d=>{if(paOpen.includes(d.dataset.camp))d.open=true});
+  const g=id=>document.getElementById(id);
+  const leer=()=>{const C=paCur();app.querySelectorAll(".pa_d").forEach(i=>C.datos[i.dataset.k]=i.value);const lt=app.querySelector(".pa_lect");if(lt)C.lectura=lt.value;
+    if(g("pa_fase"))C.fase=g("pa_fase").value;if(g("pa_grado"))C.grado=g("pa_grado").value;
+    app.querySelectorAll(".pacampo").forEach(sec=>{const camp=sec.dataset.camp,cc=C.campos[camp];
+      cc.ejes=[...sec.querySelectorAll(".peje:checked")].map(x=>x.value);
+      const ctx=sec.querySelector(".pctx");cc.notas.__campo=ctx?ctx.value:"";
+      sec.querySelectorAll(".pcont").forEach(pc=>{const key=pc.dataset.c;const chk=pc.querySelector(".pselc");cc.sel[key]=chk.checked;const nt=pc.querySelector(".pnota");if(nt)cc.notas[key]=nt.value});
+      sec.querySelectorAll(".pprop").forEach(pp=>{const pi=+pp.dataset.pi;const o=cc.propios[pi];if(o){o.c=pp.querySelector(".ppc").value;o.pda=pp.querySelector(".ppp").value;o.nota=pp.querySelector(".ppn").value}})});
+    app.querySelectorAll(".pacod").forEach(sec=>{const pi=+sec.dataset.pi,p=C.codiseno[pi];sec.querySelectorAll(".pco").forEach(i=>p[i.dataset.f]=i.value);
+      const ms=sec.querySelector(".pco_met");p.metodologia=ms.value==="__otro__"?sec.querySelector(".pco_metotro").value:ms.value;
+      p.campos=[...sec.querySelectorAll(".pco_campo:checked")].map(x=>x.value)});paSave()};
+  app.querySelectorAll(".paniv").forEach(b=>b.onclick=()=>{if(b.dataset.niv===PA.nivel)return;leer();PA.nivel=b.dataset.niv;paCur();paSave();paView()});
+  if(g("pa_fase"))g("pa_fase").onchange=()=>{leer();paView()};
+  if(g("pa_grado"))g("pa_grado").onchange=()=>{leer();paView()};
+  app.querySelectorAll(".pa_d,.pa_lect,.pctx,.pnota,.ppc,.ppp,.ppn,.pco,.pco_metotro").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".peje,.pcampoopt input,.pco_campo").forEach(i=>i.addEventListener("change",()=>{i.closest(".opt").classList.toggle("on",i.checked);leer()}));
+  app.querySelectorAll(".pselc").forEach(c=>c.addEventListener("change",()=>{leer();paOpen=[...app.querySelectorAll(".pacampo[open]")].map(d=>d.dataset.camp);paView()}));
+  app.querySelectorAll(".pco_met").forEach(sl=>sl.addEventListener("change",()=>{const o=sl.parentNode.querySelector(".pco_metotro");o.hidden=sl.value!=="__otro__";leer()}));
+  app.querySelectorAll(".ppadd").forEach(b=>b.onclick=()=>{leer();paOpen=[...app.querySelectorAll(".pacampo[open]")].map(d=>d.dataset.camp);paCur().campos[b.dataset.camp].propios.push({c:"",pda:"",nota:""});paSave();paView()});
+  app.querySelectorAll(".ppdel").forEach(b=>b.onclick=()=>{leer();paOpen=[...app.querySelectorAll(".pacampo[open]")].map(d=>d.dataset.camp);paCur().campos[b.dataset.camp].propios.splice(+b.dataset.pi,1);paSave();paView()});
+  g("paAddCod").onclick=()=>{leer();paCur().codiseno.push({titulo:"",metodologia:PA_METODOS[0],campos:[],periodo:"",descripcion:""});paSave();paView()};
+  app.querySelectorAll(".pcoddel").forEach(b=>b.onclick=()=>{leer();paCur().codiseno.splice(+b.dataset.pi,1);paSave();paView()});
+  if(g("paImport"))g("paImport").onclick=()=>{const r=dxResumen();if(!r)return;const C=paCur();if(C.lectura&&C.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();C.lectura=r;paSave();paView()};
+  g("paNuevo").onclick=()=>{if(!confirm("¿Empezar de nuevo? Se borrará el programa analítico de escuela y de grupo."))return;PA=null;store.del("ppie-pa");paView()};
+  g("salir").onclick=()=>{leer();goBack()};
+  g("paWord").onclick=()=>{leer();paWord()};
+  g("paPDF").onclick=e=>{leer();paPDF(e.currentTarget)};
+  window.scrollTo(0,0)}
+function paDocModel(){const C=paCur();const fase=C.fase;const grados=PA.nivel==="grupo"?[+C.grado]:((BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados:[]);
+  const titulo=PA.nivel==="grupo"?`Programa Analítico · ${C.grado}°`:`Programa Analítico · ${BANCO?BANCO.fases[fase].nombre:"Fase "+fase}`;
+  const campos=PA_CAMPOS.map(camp=>{const cc=C.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][fase])||[];
+    const sel=items.filter(it=>cc.sel[it.c]).map(it=>({c:it.c,pda:grados.map(gr=>it.pda[gr]?`${gr}°: ${it.pda[gr]}`:"").filter(Boolean).join("  |  "),nota:cc.notas[it.c]||""}));
+    const prop=cc.propios.filter(p=>p.c).map(p=>({c:p.c,pda:p.pda||"",nota:p.nota||""}));
+    return{camp,ejes:cc.ejes,ctx:cc.notas.__campo||"",contenidos:sel.concat(prop)}}).filter(x=>x.contenidos.length||x.ctx||x.ejes.length);
+  return{C,titulo,campos}}
+function paWord(){const{C,titulo,campos}=paDocModel();const e2=t=>esc(t).replace(/\n/g,"<br>");
+  const dd=[["escuela","Escuela"],["cct","C.C.T."],["zona","Zona"],["director","Dirección"],["ciclo","Ciclo"],["colectivo","Colectivo / docente"],["fecha","Fecha"]];
+  const body=`<h1 style="text-align:center;font-size:18pt;margin:0 0 2pt">${esc(titulo)}</h1>
+   <p style="text-align:center;margin:0 0 10pt;font-size:11pt">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · Nueva Escuela Mexicana</p>
+   <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:12pt">${dd.map(([k,l])=>C.datos[k]?`<tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:30%">${l}</td><td style="border:1px solid #999;padding:4px 6px">${esc(C.datos[k])}</td></tr>`:"").join("")}</table>
+   ${C.lectura?`<h2 style="font-size:13pt;color:#1e3a5f">Plano 1 · Lectura de la realidad</h2><p style="text-align:justify;white-space:pre-wrap">${esc(C.lectura)}</p>`:""}
+   <h2 style="font-size:13pt;color:#1e3a5f">Plano 2 · Contextualización</h2>
+   ${campos.map(cf=>`<h3 style="font-size:12.5pt;margin:12pt 0 2pt">${esc(cf.camp)}</h3>
+     ${cf.ejes.length?`<p style="margin:2pt 0"><b>Ejes articuladores:</b> ${esc(cf.ejes.join(", "))}</p>`:""}
+     ${cf.ctx?`<p style="margin:2pt 0;text-align:justify"><b>Contextualización:</b> ${e2(cf.ctx)}</p>`:""}
+     <table style="width:100%;border-collapse:collapse;font-size:10.5pt;margin:4pt 0"><tr style="background:#eef"><th style="border:1px solid #999;padding:4px 6px;text-align:left;width:34%">Contenido</th><th style="border:1px solid #999;padding:4px 6px;text-align:left">PDA</th><th style="border:1px solid #999;padding:4px 6px;text-align:left">Contextualización</th></tr>
+      ${cf.contenidos.map(ct=>`<tr><td style="border:1px solid #999;padding:4px 6px">${e2(ct.c)}</td><td style="border:1px solid #999;padding:4px 6px">${e2(ct.pda)}</td><td style="border:1px solid #999;padding:4px 6px">${e2(ct.nota)}</td></tr>`).join("")}</table>`).join("")}
+   <h2 style="font-size:13pt;color:#1e3a5f">Plano 3 · Codiseño</h2>
+   ${C.codiseno.filter(p=>p.titulo||p.descripcion).map(p=>`<table style="width:100%;border-collapse:collapse;font-size:10.5pt;margin-bottom:8pt">
+     <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:28%">Proyecto / situación</td><td style="border:1px solid #999;padding:4px 6px">${e2(p.titulo)}</td></tr>
+     <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Metodología</td><td style="border:1px solid #999;padding:4px 6px">${e2(p.metodologia)}</td></tr>
+     <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Campos que integra</td><td style="border:1px solid #999;padding:4px 6px">${e2((p.campos||[]).join(", "))}</td></tr>
+     <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Periodo</td><td style="border:1px solid #999;padding:4px 6px">${e2(p.periodo)}</td></tr>
+     <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Descripción</td><td style="border:1px solid #999;padding:4px 6px">${e2(p.descripcion)}</td></tr></table>`).join("")}`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">${body}</body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`${titulo} - ${(C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function paPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await loadScript("lib/pdf.min.js").catch(()=>{});await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();
+    const M=52,W0=612-M*2,ink=rgb(0.07,0.07,0.07),blu=rgb(0.12,0.23,0.37),gray=rgb(0.4,0.4,0.4);let pg,y;
+    const nueva=()=>{pg=doc.addPage([612,792]);y=792-M};nueva();const space=h=>{if(y-h<M)nueva()};
+    const wrap=(text,size,font,w=W0)=>{const out=[];for(const para of clean(text).split("\n")){if(!para.trim()){out.push("");continue}const ws=para.split(/\s+/);let ln="";for(const wd of ws){const test=ln?ln+" "+wd:wd;if(font.widthOfTextAtSize(test,size)>w&&ln){out.push(ln);ln=wd}else ln=test}if(ln)out.push(ln)}return out};
+    const par=(text,size,font,color,gap=2.5,ind=0)=>{for(const ln of wrap(text,size,font,W0-ind)){space(size+gap);if(ln)pg.drawText(ln,{x:M+ind,y:y-size,size,font,color});y-=size+gap}};
+    const ctr=(txt,size,font,color)=>{const w=font.widthOfTextAtSize(clean(txt),size);space(size+4);pg.drawText(clean(txt),{x:M+(W0-w)/2,y:y-size,size,font,color});y-=size+4};
+    const h2=txt=>{space(22);pg.drawText(clean(txt),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=19};
+    const h3=txt=>{space(18);pg.drawText(clean(txt),{x:M,y:y-11.5,size:11.5,font:HELVB,color:ink});y-=16};
+    const {C,titulo,campos}=paDocModel();
+    let ts=16;while(HELVB.widthOfTextAtSize(clean(titulo),ts)>W0)ts-=0.5;ctr(titulo,ts,HELVB,blu);
+    ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP - NEM",9,HELV,gray);y-=4;
+    const dd=[["escuela","Escuela"],["cct","C.C.T."],["colectivo","Colectivo / docente"],["ciclo","Ciclo"],["fecha","Fecha"]];
+    dd.forEach(([k,l])=>{if(!C.datos[k])return;space(13);pg.drawText(clean(l)+": ",{x:M,y:y-10,size:10,font:HELVB,color:ink});pg.drawText(clean(C.datos[k]),{x:M+HELVB.widthOfTextAtSize(clean(l)+": ",10),y:y-10,size:10,font:HELV,color:ink});y-=13});y-=6;
+    if(C.lectura){h2("Plano 1 · Lectura de la realidad");par(C.lectura,10,HELV,ink)}
+    h2("Plano 2 · Contextualización");
+    campos.forEach(cf=>{h3(cf.camp);if(cf.ejes.length)par("Ejes articuladores: "+cf.ejes.join(", "),9.5,HELV,gray,2.5,8);if(cf.ctx)par("Contextualización: "+cf.ctx,10,HELV,ink,2.5,8);
+      cf.contenidos.forEach(ct=>{par("• "+ct.c,10,HELVB,ink,2.5,8);if(ct.pda)par(ct.pda,9.5,HELV,ink,2.5,18);if(ct.nota)par("Contextualización: "+ct.nota,9.5,HELV,gray,2.5,18);y-=2})});
+    h2("Plano 3 · Codiseño");
+    C.codiseno.filter(p=>p.titulo||p.descripcion).forEach(p=>{h3(p.titulo||"Proyecto");
+      const meta=[p.metodologia&&"Metodología: "+p.metodologia,(p.campos||[]).length&&"Campos: "+p.campos.join(", "),p.periodo&&"Periodo: "+p.periodo].filter(Boolean).join("  ·  ");
+      if(meta)par(meta,9.5,HELV,gray,2.5,8);if(p.descripcion)par(p.descripcion,10,HELV,ink,2.5,8)});
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`${titulo} - ${(C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t}}
 
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
