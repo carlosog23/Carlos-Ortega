@@ -876,7 +876,7 @@ const SECCIONES=[
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
- {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Diagnóstico socioeducativo, planeación, actas de CTE y seguimiento de alumnos.",grupos:[],tools:[{id:"dx",letra:"D",name:"Diagnóstico socioeducativo (NEM)",use:"De grupo o de escuela. La app lo guía con preguntas; usted agrega su análisis y datos, y lo descarga en Word o PDF.",open:()=>dxView()}]},
+ {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Diagnóstico socioeducativo, planeación, actas de CTE y seguimiento de alumnos.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMCE a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()}]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
@@ -1940,7 +1940,7 @@ let DX=null;
 function dxSave(){store.set("ppie-dx",DX)}
 const DX_PLANTILLA={
  grupo:{
-  titulo:"Diagnóstico socioeducativo del grupo",
+  titulo:"Lectura de la realidad del grupo",
   datos:[["escuela","Escuela"],["cct","C.C.T."],["grupo","Grado y grupo"],["docente","Docente"],["ciclo","Ciclo escolar"],["matricula","Matrícula (H / M / total)"],["fecha","Fecha de elaboración"]],
   secs:[
    ["Contexto de la comunidad y el entorno",["¿Cómo es la comunidad donde viven los alumnos (urbana, rural, indígena, migrante)?","¿Qué actividades económicas predominan en las familias?","¿Qué servicios, tradiciones culturales y problemáticas sociales o ambientales influyen en el grupo?"]],
@@ -1948,32 +1948,34 @@ const DX_PLANTILLA={
    ["Entorno familiar del alumnado",["¿Cómo es la composición y organización de las familias?","¿Qué acompañamiento dan al estudio en casa?","¿Qué condiciones económicas, de salud o de convivencia inciden en el aprendizaje?"]],
    ["Características del alumnado: intereses, necesidades y barreras (BAP)",["¿Qué temas e intereses motivan al grupo?","¿Qué necesidades socioemocionales y de convivencia se observan?","¿Qué barreras para el aprendizaje y la participación existen (incluida alguna discapacidad)?"]],
    ["Desempeño académico y habilidades para la vida",["¿Cuáles son las fortalezas y dificultades en lectura, escritura y matemáticas?","¿Qué saberes previos y qué rezagos se identifican?","¿Cómo son la laboriosidad, el pensamiento crítico y el trabajo colaborativo?"]],
-   ["Instrumentos y datos recabados",["¿Qué instrumentos se usaron (observación, encuestas, listas de cotejo, evaluación diagnóstica)?","Registre aquí los datos, cifras y evidencias recabadas."]],
-   ["Análisis e interpretación",["A partir de lo anterior, ¿qué relaciones y hallazgos principales encuentra? Escriba su análisis."]],
-   ["Problemática y sus causas",["¿Cuál es la problemática central del grupo?","¿Cuáles son sus causas y sus efectos (árbol de problemas)?"]],
-   ["Conclusiones y vínculo con la planeación",["¿Qué prioridades de atención se derivan del diagnóstico?","¿Cómo se integran al programa analítico y a la planeación didáctica?"]]
+   ["Datos y resultados recabados",["¿Qué instrumentos se usaron (observación, encuestas, listas de cotejo, evaluación diagnóstica, SISAT)?","Registre aquí los datos, porcentajes y evidencias recabadas."]],
+   ["Análisis crítico: ¿cómo llegamos a estos resultados?",["Más allá de describir, ¿qué factores, decisiones o condiciones llevaron al grupo a estos resultados y números?","¿Qué causas de fondo explican lo detectado?"]],
+   ["Problemática priorizada y sus causas",["¿Cuál es la problemática central del grupo?","¿Cuáles son sus causas y sus efectos (árbol de problemas)?"]],
+   ["¿Cómo saldremos adelante?",["¿Cómo consideran que se puede atender o erradicar la problemática detectada?","¿Qué rutas, apoyos o cambios se requieren?"]],
+   ["Conclusiones y vínculo con la planeación",["¿Qué prioridades de atención se derivan?","¿Cómo se integran al programa analítico y a la planeación didáctica?"]]
   ]},
  escuela:{
-  titulo:"Diagnóstico socioeducativo de la escuela",
+  titulo:"Lectura de la realidad de la escuela",
   datos:[["escuela","Escuela"],["cct","C.C.T."],["zona","Zona escolar"],["director","Dirección"],["ciclo","Ciclo escolar"],["matricula","Matrícula total"],["plantilla","Plantilla docente"],["fecha","Fecha de elaboración"]],
   secs:[
-   ["Contexto de la comunidad y el entorno social",["¿Cómo es la comunidad que atiende la escuela?","¿Qué actividades económicas, tradiciones y organización social predominan?","¿Qué problemáticas sociales, de salud, movilidad o ambientales afectan a las familias?"]],
-   ["La escuela y los ambientes de aprendizaje",["¿Cómo son la infraestructura, los espacios y los recursos de la escuela?","¿Cómo es el clima escolar y la organización del colectivo?","¿Qué fortalezas y carencias hay para la formación integral?"]],
-   ["Resultados educativos y trayectorias",["¿Cómo está el aprovechamiento por grado (lectura, escritura, matemáticas)?","¿Cómo están la asistencia, el rezago y el abandono escolar?","¿Qué grupos o alumnos requieren mayor atención?"]],
-   ["Entorno familiar de la comunidad escolar",["¿Cómo son las familias y su participación en la escuela?","¿Qué condiciones económicas, de convivencia y de acompañamiento inciden?"]],
-   ["Instrumentos y datos recabados",["¿Qué instrumentos se usaron (encuestas, actas de CTE, estadística, evaluación diagnóstica)?","Registre aquí los datos, cifras y evidencias recabadas."]],
-   ["Análisis e interpretación",["A partir de lo anterior, ¿qué relaciones y hallazgos principales encuentra? Escriba su análisis."]],
-   ["Problemática central y sus causas",["¿Cuál es la problemática central de la escuela?","¿Cuáles son sus causas y sus efectos?"]],
-   ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan del diagnóstico?","¿Cómo se integran al Programa de Mejora Continua (PEMC/PMCE)?"]]
+   ["Contexto regional, nacional e internacional",["¿Qué situaciones sociales, políticas o económicas del entorno regional y nacional afectan a la escuela?","¿Qué temas relevantes (inseguridad, migración, derechos humanos) inciden en la comunidad educativa?"]],
+   ["Ámbito comunitario",["¿Cómo es la convivencia y la participación de las familias y la comunidad?","¿Qué tradiciones, formas de violencia o condiciones sociales influyen?","¿Cómo es el acceso a las TIC y a los servicios?"]],
+   ["Ámbito escolar",["¿Cómo están la infraestructura, el equipamiento y los espacios?","¿Cómo van el avance del programa analítico, el aprovechamiento y la asistencia?","¿Qué necesidades de formación docente hay?"]],
+   ["Ámbito de aula",["¿Cómo es el uso de los libros de texto y las prácticas docentes?","¿Se han adoptado las metodologías del Plan 2022?","¿Cómo es la convivencia escolar?"]],
+   ["Datos y resultados recabados (SISAT, MEJOREDU, evaluación diagnóstica)",["Registre aquí los porcentajes y resultados por habilidad (lectura, escritura, cálculo) y por grado.","¿Qué muestran los diagnósticos aplicados?"]],
+   ["Análisis crítico: ¿cómo llegamos a estos resultados?",["Más allá de describir, ¿qué factores, decisiones o condiciones llevaron a la escuela a estos resultados y números?","¿Qué causas de fondo explican lo detectado?"]],
+   ["Problemática priorizada y sus causas",["¿Cuál es la problemática central de la escuela?","¿Cuáles son sus causas y sus efectos?"]],
+   ["¿Cómo saldremos adelante?",["¿Cómo consideran que se puede atender o erradicar la problemática detectada?","¿Qué rutas, apoyos o cambios se requieren?"]],
+   ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan?","¿Cómo se integran al Programa de Mejora Continua (PEMC/PMCE)?"]]
   ]}
 };
 function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]="");
   datos.escuela=perfil.escuela||"";datos.cct=perfil.cct||"";datos.zona=perfil.zona||"050";datos.director=perfil.director||"";datos.ciclo=cicloActual();datos.fecha=fmtDate(today(),"larga");
   return{nivel,titulo:t.titulo,datos,secs:t.secs.map(([tit,qs])=>({t:tit,items:qs.map(q=>({q,a:""}))}))}}
 function dxView(){S.view="dx";S.letra=null;setBar("");
-  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Diagnóstico socioeducativo</h2></div></div>`;
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Lectura de la realidad</h2></div></div>`;
   if(!DX||!DX.nivel){app.innerHTML=top+`
-    <p class="muted">Elabore un diagnóstico socioeducativo conforme a la Nueva Escuela Mexicana. La app lo guía con preguntas por cada dimensión; usted responde, agrega los datos que recabó, su análisis y las secciones que necesite.</p>
+    <p class="muted">Elabore la <b>lectura de la realidad</b> (antes diagnóstico socioeducativo) conforme a la Nueva Escuela Mexicana: la descripción del contexto más el análisis crítico de cómo se llegó a esos resultados y cómo se puede salir adelante. La app lo guía con preguntas; usted responde, agrega datos, su análisis y las secciones que necesite.</p>
     <section class="card"><h3>¿De qué nivel es el diagnóstico?</h3>
      <div class="opts"><label class="opt"><input type="radio" name="dxn" value="grupo"><span><b>De un grupo</b><br><span class="muted" style="font-size:14px">Un grado y grupo en particular</span></span></label>
       <label class="opt"><input type="radio" name="dxn" value="escuela"><span><b>De la escuela</b><br><span class="muted" style="font-size:14px">Toda la escuela / el colectivo</span></span></label></div>
@@ -2041,11 +2043,114 @@ async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     a.download=`${DX.titulo} - ${(DX.datos.grupo||DX.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
+/* ---------- Programa de Mejora Continua (PMCE), guiado por preguntas ----------
+   Se apoya en la lectura de la realidad y organiza aspectos priorizados con objetivos, metas y acciones. Se guarda en el dispositivo. */
+let PM=null;
+(function(){const d=store.get("ppie-pmce",null);if(d&&d.aspectos)PM=d})();
+function pmSave(){store.set("ppie-pmce",PM)}
+const PM_AMBITOS=["Escolar","Aula","Comunitario","Contexto regional"];
+function pmAccion(){return{accion:"",responsable:"",periodo:"",recursos:"",evidencias:""}}
+function pmAspecto(){return{aspecto:"",ambitos:"",prioridad:"",problematica:"",objetivo:"",meta:"",acciones:[pmAccion()]}}
+function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:"",aspectos:[pmAspecto()]}}
+function pmView(){S.view="pmce";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa de Mejora Continua</h2></div></div>`;
+  if(!PM){app.innerHTML=top+`
+    <p class="muted">Elabore el <b>Programa de Mejora Continua</b> (PMCE) de la escuela. Se apoya en la <b>lectura de la realidad</b> y organiza los aspectos a atender, por orden de prioridad, con sus objetivos, metas y acciones. La app lo guía con preguntas; usted completa y lo descarga en Word o PDF.</p>
+    <section class="card"><button class="btn primary" id="pmStart">Comenzar el PMCE</button></section>`;
+    document.getElementById("salir").onclick=goBack;document.getElementById("pmStart").onclick=()=>{PM=pmNuevo();pmSave();pmView()};window.scrollTo(0,0);return}
+  const dd=[["ciclo","Ciclo escolar"],["escuela","Escuela"],["cct","C.C.T."],["director","Dirección"],["lugar","Lugar"],["fecha","Fecha de elaboración"]];
+  app.innerHTML=top+`
+   <p class="muted">Complete los apartados. Puede agregar los aspectos y las acciones que necesite, guardar y continuar después. Todo se guarda en este dispositivo.</p>
+   <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||"")}" autocomplete="off"></div>`).join("")}</section>
+   <section class="card"><h3>Lectura de la realidad</h3><p class="help">Resuma aquí la lectura de la realidad, o cópiela de la herramienta «Lectura de la realidad». Es la base del diagnóstico del PMCE.</p>
+    <textarea class="pm_lect" rows="5" autocomplete="off">${esc(PM.lectura||"")}</textarea></section>
+   <div class="group-title">Aspectos de atención (por orden de prioridad)</div>
+   ${PM.aspectos.map((a,ai)=>`<section class="card pmasp" data-ai="${ai}">
+     <div class="row2"><div class="field"><label>Aspecto de atención</label><input type="text" class="pm_a" data-f="aspecto" value="${esc(a.aspecto)}" autocomplete="off" placeholder="Ej. Aprovechamiento académico"></div>
+      <div class="field"><label>Nivel de prioridad</label><input type="text" inputmode="numeric" class="pm_a" data-f="prioridad" value="${esc(a.prioridad)}" autocomplete="off" placeholder="1 = más urgente"></div></div>
+     <div class="field"><label>Ámbitos</label><input type="text" class="pm_a" data-f="ambitos" value="${esc(a.ambitos)}" autocomplete="off" placeholder="Escolar, Aula, Comunitario…"></div>
+     <div class="field"><label>Necesidad o situación problemática detectada</label><textarea class="pm_a" data-f="problematica" rows="2">${esc(a.problematica)}</textarea></div>
+     <div class="row2"><div class="field"><label>Objetivo</label><textarea class="pm_a" data-f="objetivo" rows="2">${esc(a.objetivo)}</textarea></div>
+      <div class="field"><label>Meta</label><textarea class="pm_a" data-f="meta" rows="2">${esc(a.meta)}</textarea></div></div>
+     <div class="group-title" style="margin-top:4px">Acciones</div>
+     ${a.acciones.map((c,ci)=>`<div class="card pmacc" data-ci="${ci}" style="padding:12px">
+       <div class="field"><label>Acción</label><textarea class="pm_c" data-f="accion" rows="2">${esc(c.accion)}</textarea></div>
+       <div class="row2"><div class="field"><label>Responsable(s)</label><input type="text" class="pm_c" data-f="responsable" value="${esc(c.responsable)}" autocomplete="off"></div>
+        <div class="field"><label>Periodo</label><input type="text" class="pm_c" data-f="periodo" value="${esc(c.periodo)}" autocomplete="off"></div></div>
+       <div class="row2"><div class="field"><label>Recursos</label><input type="text" class="pm_c" data-f="recursos" value="${esc(c.recursos)}" autocomplete="off"></div>
+        <div class="field"><label>Evidencias</label><input type="text" class="pm_c" data-f="evidencias" value="${esc(c.evidencias)}" autocomplete="off"></div></div>
+       <button type="button" class="btn link pmdelc" data-ai="${ai}" data-ci="${ci}" style="padding:4px 0">Quitar acción</button></div>`).join("")}
+     <button type="button" class="btn ghost pmaddc" data-ai="${ai}">+ Agregar acción</button>
+     <button type="button" class="btn link pmdela" data-ai="${ai}" style="padding:6px 0">Quitar este aspecto</button></section>`).join("")}
+   <button class="btn ghost" id="pmAddA">+ Agregar un aspecto de atención</button>
+   <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="pmPDF">⬇ Descargar PDF</button></div>
+    <button class="btn link" id="pmNuevo">Empezar un PMCE nuevo</button></section>
+   <p class="foot">El PMCE se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{app.querySelectorAll(".pm_d").forEach(i=>PM[i.dataset.k]=i.value);const lt=app.querySelector(".pm_lect");if(lt)PM.lectura=lt.value;
+    app.querySelectorAll(".pmasp").forEach(sec=>{const ai=+sec.dataset.ai,a=PM.aspectos[ai];sec.querySelectorAll(":scope > .field .pm_a, :scope > .row2 .pm_a").forEach(i=>a[i.dataset.f]=i.value);
+      sec.querySelectorAll(".pmacc").forEach(cc=>{const ci=+cc.dataset.ci,c=a.acciones[ci];cc.querySelectorAll(".pm_c").forEach(i=>c[i.dataset.f]=i.value)})});dxSaveQuiet()};
+  function dxSaveQuiet(){pmSave()}
+  app.querySelectorAll(".pm_d,.pm_lect,.pm_a,.pm_c").forEach(i=>i.addEventListener("change",leer));
+  app.querySelectorAll(".pmaddc").forEach(b=>b.onclick=()=>{leer();PM.aspectos[+b.dataset.ai].acciones.push(pmAccion());pmSave();pmView()});
+  app.querySelectorAll(".pmdelc").forEach(b=>b.onclick=()=>{leer();PM.aspectos[+b.dataset.ai].acciones.splice(+b.dataset.ci,1);pmSave();pmView()});
+  app.querySelectorAll(".pmdela").forEach(b=>b.onclick=()=>{if(!confirm("¿Quitar este aspecto completo?"))return;leer();PM.aspectos.splice(+b.dataset.ai,1);pmSave();pmView()});
+  g("pmAddA").onclick=()=>{leer();PM.aspectos.push(pmAspecto());pmSave();pmView()};
+  g("pmNuevo").onclick=()=>{if(!confirm("¿Empezar un PMCE nuevo? Se borrará el actual."))return;PM=null;store.del("ppie-pmce");pmView()};
+  g("salir").onclick=()=>{leer();goBack()};
+  g("pmWord").onclick=()=>{leer();pmWord()};
+  g("pmPDF").onclick=e=>{leer();pmPDF(e.currentTarget)};
+  window.scrollTo(0,0)}
+function pmWord(){const esc2=t=>esc(t).replace(/\n/g,"<br>");
+  const asp=[...PM.aspectos].map((a,i)=>({a,i})).sort((x,y)=>(parseFloat(x.a.prioridad)||99)-(parseFloat(y.a.prioridad)||99));
+  const tablaPri=`<h2 style="font-size:13pt;color:#1e3a5f;margin:14pt 0 4pt">Aspectos de atención por orden de prioridad</h2>
+   <table style="width:100%;border-collapse:collapse;font-size:10.5pt"><tr style="background:#1e3a5f;color:#fff"><th style="border:1px solid #666;padding:4px 6px;text-align:left">Aspecto</th><th style="border:1px solid #666;padding:4px 6px;text-align:left">Ámbitos</th><th style="border:1px solid #666;padding:4px 6px">Prioridad</th></tr>
+    ${asp.map(({a})=>`<tr><td style="border:1px solid #999;padding:4px 6px">${esc(a.aspecto)}</td><td style="border:1px solid #999;padding:4px 6px">${esc(a.ambitos)}</td><td style="border:1px solid #999;padding:4px 6px;text-align:center">${esc(a.prioridad)}</td></tr>`).join("")}</table>`;
+  const bloques=asp.map(({a})=>`<h2 style="font-size:12.5pt;color:#1e3a5f;margin:16pt 0 4pt">${esc(a.aspecto||"Aspecto de atención")}</h2>
+   <table style="width:100%;border-collapse:collapse;font-size:10.5pt;margin-bottom:6pt">
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold;width:30%">Ámbito y aspecto</td><td style="border:1px solid #999;padding:4px 6px">${esc(a.aspecto)}${a.ambitos?" — "+esc(a.ambitos):""}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Necesidad o problemática detectada</td><td style="border:1px solid #999;padding:4px 6px">${esc2(a.problematica)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Objetivo</td><td style="border:1px solid #999;padding:4px 6px">${esc2(a.objetivo)}</td></tr>
+    <tr><td style="border:1px solid #999;padding:4px 6px;font-weight:bold">Meta</td><td style="border:1px solid #999;padding:4px 6px">${esc2(a.meta)}</td></tr></table>
+   <table style="width:100%;border-collapse:collapse;font-size:10pt"><tr style="background:#eef">${["Acciones","Responsables","Periodo","Recursos","Evidencias"].map(h=>`<th style="border:1px solid #999;padding:4px 6px;text-align:left">${h}</th>`).join("")}</tr>
+    ${a.acciones.filter(c=>c.accion||c.responsable).map(c=>`<tr><td style="border:1px solid #999;padding:4px 6px">${esc2(c.accion)}</td><td style="border:1px solid #999;padding:4px 6px">${esc2(c.responsable)}</td><td style="border:1px solid #999;padding:4px 6px">${esc2(c.periodo)}</td><td style="border:1px solid #999;padding:4px 6px">${esc2(c.recursos)}</td><td style="border:1px solid #999;padding:4px 6px">${esc2(c.evidencias)}</td></tr>`).join("")}</table>`).join("");
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Programa de Mejora Continua</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">
+   <h1 style="text-align:center;font-size:18pt;margin:0 0 2pt">Programa de Mejora Continua</h1>
+   <p style="text-align:center;margin:0 0 10pt;font-size:11pt">Ciclo escolar ${esc(PM.ciclo)} · ${esc(PM.lugar)}</p>
+   <p style="text-align:center;margin:0 0 12pt;font-size:11pt"><b>${esc(PM.escuela)}</b>${PM.cct?" · "+esc(PM.cct):""}</p>
+   ${PM.lectura?`<h2 style="font-size:13pt;color:#1e3a5f;margin:14pt 0 4pt">Lectura de la realidad</h2><p style="text-align:justify;white-space:pre-wrap">${esc(PM.lectura)}</p>`:""}
+   ${tablaPri}${bloques}</body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Programa de Mejora Continua - ${(PM.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function pmPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await loadScript("lib/pdf.min.js").catch(()=>{});await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();
+    const M=56,W0=612-M*2,ink=rgb(0.07,0.07,0.07),blu=rgb(0.12,0.23,0.37),gray=rgb(0.4,0.4,0.4);let pg,y;
+    const nueva=()=>{pg=doc.addPage([612,792]);y=792-M};nueva();const space=h=>{if(y-h<M)nueva()};
+    const wrap=(text,size,font,w=W0)=>{const out=[];for(const para of clean(text).split("\n")){if(!para.trim()){out.push("");continue}const ws=para.split(/\s+/);let ln="";for(const wd of ws){const test=ln?ln+" "+wd:wd;if(font.widthOfTextAtSize(test,size)>w&&ln){out.push(ln);ln=wd}else ln=test}if(ln)out.push(ln)}return out};
+    const par=(text,size,font,color,gap=2.5,ind=0)=>{for(const ln of wrap(text,size,font,W0-ind)){space(size+gap);if(ln)pg.drawText(ln,{x:M+ind,y:y-size,size,font,color});y-=size+gap}};
+    const ctr=(txt,size,font,color)=>{const w=font.widthOfTextAtSize(clean(txt),size);space(size+4);pg.drawText(clean(txt),{x:M+(W0-w)/2,y:y-size,size,font,color});y-=size+4};
+    const h2=txt=>{space(22);pg.drawText(clean(txt),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=20};
+    const kv=(lab,val)=>{if(!val)return;const lines=wrap(val,10.5,HELV,W0-14);space(14);pg.drawText(clean(lab)+":",{x:M,y:y-10.5,size:10.5,font:HELVB,color:ink});y-=14;lines.forEach(ln=>{space(13);pg.drawText(ln,{x:M+14,y:y-10.5,size:10.5,font:HELV,color:ink});y-=13})};
+    let tt="Programa de Mejora Continua";let ts=17;while(HELVB.widthOfTextAtSize(tt,ts)>W0)ts-=0.5;ctr(tt,ts,HELVB,blu);
+    ctr(`Ciclo escolar ${PM.ciclo} - ${PM.lugar}`,10,HELV,gray);ctr(clean(PM.escuela)+(PM.cct?" - "+PM.cct:""),11,HELVB,ink);y-=6;
+    if(PM.lectura){h2("Lectura de la realidad");par(PM.lectura,10.5,HELV,ink)}
+    const asp=[...PM.aspectos].sort((x,y)=>(parseFloat(x.prioridad)||99)-(parseFloat(y.prioridad)||99));
+    h2("Aspectos de atención por orden de prioridad");asp.forEach(a=>{if(a.aspecto)par(`${a.prioridad?a.prioridad+". ":""}${a.aspecto}${a.ambitos?"  ("+a.ambitos+")":""}`,10.5,HELV,ink,3,10)});
+    asp.forEach(a=>{h2(a.aspecto||"Aspecto de atención");
+      kv("Ámbitos",a.ambitos);kv("Necesidad o problemática",a.problematica);kv("Objetivo",a.objetivo);kv("Meta",a.meta);
+      const acc=a.acciones.filter(c=>c.accion||c.responsable);if(acc.length){space(14);pg.drawText("Acciones:",{x:M,y:y-10.5,size:10.5,font:HELVB,color:ink});y-=15;
+        acc.forEach((c,i)=>{par(`${i+1}. ${c.accion}`,10,HELV,ink,2.5,10);
+          const meta=[c.responsable&&"Resp.: "+c.responsable,c.periodo&&"Periodo: "+c.periodo,c.recursos&&"Recursos: "+c.recursos,c.evidencias&&"Evidencias: "+c.evidencias].filter(Boolean).join("  ·  ");
+          if(meta)par(meta,9,HELV,gray,2.5,20);y-=2})}});
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`Programa de Mejora Continua - ${(PM.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t}}
 
 /* ---------- Navegación: botón «Inicio» en todas las pantallas y «Volver a donde estaba» en el inicio ---------- */
 let ULTIMA=null;
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
