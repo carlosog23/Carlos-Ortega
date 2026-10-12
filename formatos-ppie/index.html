@@ -286,7 +286,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .signif[open] summary::after{transform:rotate(90deg)}
 .signif p{margin:0 0 12px;font-size:15.5px}
 .signif .pr{font-family:var(--brand);font-style:italic;color:var(--terra)}
-.firma-sup{display:block;height:112px!important;width:90px!important;max-width:none;object-fit:contain;margin:8px 0 -2px 18px}
+.firma-sup{display:block;height:112px!important;width:90px!important;max-width:none;object-fit:contain;margin:8px auto -2px}
+.firma-blq{text-align:center}
 .card p a{color:var(--accent)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .firma-sup{filter:brightness(2.2) saturate(.8)}}
 :root[data-theme="dark"] .firma-sup{filter:brightness(2.2) saturate(.8)}
@@ -3044,12 +3045,12 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p style="margin:0 0 10px">Su propósito es simplificar la elaboración y generación de los formatos de uso cotidiano, a fin de contribuir a una gestión escolar más ágil y a una mejor práctica profesional.</p>
     <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través de los correos ${CONTACTO}.</p>
     <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
-    <p style="margin:14px 0 0">Atentamente,</p><img class="firma-sup" src="img/firma-supervisor.png" alt="Firma del Mtro. Carlos Gabriel Ortega Gutiérrez"><p style="margin:0"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></p></section>
+    <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><img class="firma-sup" src="img/firma-supervisor.png" alt="Firma del Mtro. Carlos Gabriel Ortega Gutiérrez"><p style="margin:0"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></p></div></section>
    ${TLM_SIGNIF}
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
-   <p class="foot"><span class="muted">v2026-10-12.5</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-12.6</span></p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
