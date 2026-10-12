@@ -2843,42 +2843,44 @@ function alCsv(){const cols=alCols();if(!cols.length)return;const q=s=>`"${Strin
   const blob=new Blob(["﻿"+head+"\n"+body],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`Datos de alumnos (${AL.rows.length}).csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 /* ---------- Ejercicios Integradores del Aprendizaje (EIA) — primaria fases 3, 4 y 5 ---------- */
-/* Enlaces oficiales en un solo lugar para actualizarlos fácil cada ciclo. */
+/* Enlaces oficiales (portal SEP, recursos públicos 2025, vigentes) en un solo lugar para actualizarlos fácil. */
 const EIA_PORTAL="https://ejerciciosintegradores.sep.gob.mx/";
+const EIA_MAT="https://ejerciciosintegradores.sep.gob.mx/Materiales";
+const EIA_B="https://ejerciciosintegradores.sep.gob.mx/storage/recursos/2025_01/";
 const EIA_LINKS={
-  portal:EIA_PORTAL,
-  concentrado:"",   // enlace al formato de concentrado (pendiente de Carlos); si vacío, manda al portal
-  tutoriales:"",    // enlace a tutoriales (pendiente); si vacío, manda al portal
-  // Retroalimentación pública por fase (ciclo vigente); actualizar cuando cambie
-  retro:{
-    "3":"https://ejerciciosintegradores.sep.gob.mx/storage/recursos/2025_01/Retroalimentacion/R2qjx88P4k-2025_EIA_Retroalimentacion_F3.pdf",
-    "4":"",
-    "5":"https://ejerciciosintegradores.sep.gob.mx/storage/recursos/2025_01/Retroalimentacion/hHZfmxgrW2-2025_EIA_Retroalimentacion_F5.pdf"
-  },
-  // Materiales (ejercicios/guía) por fase; si vacío, el botón manda al portal
-  materiales:{"3":"","4":"","5":""}
+  portal:EIA_PORTAL, materiales:EIA_MAT,
+  directivos:EIA_B+"DocApoyo/5jXooVaMB9-2025_EIA_Guia_Directivos.pdf",
+  carta:EIA_B+"DocApoyo/sWg2TiNbCI-2025_EIA_Carta_Informativa.pdf",
+  taller:EIA_B+"4jJfH4fF82-2025_Taller_DGFCDD.pdf",
+  concentrado:"",   // formato de valoraciones/concentrado de primaria (pendiente); si vacío, va a Materiales
+  // Por fase: ejercicio, guía de aplicación, rúbrica y retroalimentación
+  fases:{
+    "3":{ejercicio:"", guia:EIA_B+"Guias/mNlTflDhkX-2025_EIA_Guia_F3-01.pdf", rubrica:EIA_B+"Rubricas/wLtEj3YWPY-2025_EIA_Rubrica_F3-01.pdf", retro:EIA_B+"Retroalimentacion/R2qjx88P4k-2025_EIA_Retroalimentacion_F3.pdf"},
+    "4":{ejercicio:EIA_B+"EIA/Uyk1MBikHB-2025_EIA_F4-01.pdf", guia:EIA_B+"Guias/NBzDSc5E0Y-2025_EIA_Guia_Aplic_F4-F5-F6.pdf", rubrica:EIA_B+"Rubricas/wyExMQiLXs-2025_EIA_Rubrica_F4-01.pdf", retro:EIA_B+"Retroalimentacion/lun9KBzhj4-2025_EIA_Retroalimentacion_F4.pdf"},
+    "5":{ejercicio:EIA_B+"EIA/om9jmaok51-2025_EIA_F5-01.pdf", guia:EIA_B+"Guias/NBzDSc5E0Y-2025_EIA_Guia_Aplic_F4-F5-F6.pdf", rubrica:EIA_B+"Rubricas/vh9pkkxhNm-2025_EIA_Rubrica_F5-01.pdf", retro:EIA_B+"Retroalimentacion/hHZfmxgrW2-2025_EIA_Retroalimentacion_F5.pdf"}
+  }
 };
 const EIA_FASES=[{f:"3",g:"1.º y 2.º grado"},{f:"4",g:"3.º y 4.º grado"},{f:"5",g:"5.º y 6.º grado"}];
-function eiaBtn(href,label,primary){const url=href||EIA_PORTAL;const cls=primary?"btn primary":"btn ghost";
+function eiaBtn(href,label,primary){const url=href||EIA_MAT;const cls=primary?"btn primary":"btn ghost";
   return `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">${esc(label)}</a>`}
 function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>Ejercicios Integradores del Aprendizaje (EIA)</h2></div></div>`;
-  const fases=EIA_FASES.map(x=>{const mat=EIA_LINKS.materiales[x.f],ret=EIA_LINKS.retro[x.f];
+  const fases=EIA_FASES.map(x=>{const L=EIA_LINKS.fases[x.f];
     return `<section class="card"><h3>Fase ${x.f} <span class="muted" style="font-weight:400;font-size:15px">· ${esc(x.g)}</span></h3>
-     <div class="acts">${eiaBtn(mat,"Materiales (en el portal)",true)}${ret?eiaBtn(ret,"Guía de retroalimentación (PDF)"):""}</div></section>`}).join("");
+     <div class="acts">${eiaBtn(L.ejercicio,"Ejercicio (PDF)",true)}${eiaBtn(L.guia,"Guía de aplicación")}${eiaBtn(L.rubrica,"Rúbrica")}${eiaBtn(L.retro,"Retroalimentación")}</div></section>`}).join("");
   app.innerHTML=top+`
    <p class="muted">Los <b>Ejercicios Integradores del Aprendizaje (EIA)</b> son actividades abiertas y contextualizadas que evalúan, de forma interdisciplinaria, lo que el alumnado aprendió en los campos formativos del Plan de Estudio 2022, a partir de un nodo integrador, una situación problemática y consignas de trabajo. En primaria se aplican por fase. El docente valora cada respuesta con una rúbrica de cuatro niveles y usa los resultados para retroalimentar al alumnado, al colectivo y a las familias; tienen un enfoque <b>diagnóstico y formativo</b>.</p>
    <details class="card" style="padding:12px 14px"><summary style="font-weight:600">¿Cómo se aplican?</summary>
-    <p class="help" style="margin-top:8px">Se imprimen los ejercicios para que el alumnado responda en ellos. Cada fase corresponde a dos grados: <b>Fase 3</b> (1.º y 2.º), <b>Fase 4</b> (3.º y 4.º) y <b>Fase 5</b> (5.º y 6.º). Los materiales, guías, retroalimentación y el concentrado se descargan desde el portal oficial, al que se entra con su cuenta.</p></details>
-   <section class="card"><h3>Portal oficial</h3><p class="help">Aquí se descargan los ejercicios, las guías y se captura/obtiene el concentrado de resultados (requiere iniciar sesión).</p>
-    <div class="acts">${eiaBtn(EIA_PORTAL,"Abrir el portal oficial de los EIA",true)}</div></section>
+    <p class="help" style="margin-top:8px">Se imprimen los ejercicios para que el alumnado responda en ellos. Cada fase corresponde a dos grados: <b>Fase 3</b> (1.º y 2.º), <b>Fase 4</b> (3.º y 4.º) y <b>Fase 5</b> (5.º y 6.º). Después se valora con la rúbrica y se concentra la información para la retroalimentación.</p></details>
+   <section class="card"><h3>Portal y documentos generales</h3>
+    <div class="acts">${eiaBtn(EIA_PORTAL,"Abrir el portal oficial",true)}${eiaBtn(EIA_LINKS.materiales,"Todos los materiales")}${eiaBtn(EIA_LINKS.directivos,"Guía para directivos")}${eiaBtn(EIA_LINKS.carta,"Carta informativa")}</div></section>
    <h3 style="margin:18px 0 2px">Por fase (primaria)</h3>
    ${fases}
-   <section class="card"><h3>Concentrado de resultados</h3><p class="help">Formato para concentrar y retroalimentar los resultados del grupo y la escuela.</p>
+   <section class="card"><h3>Concentrado de resultados</h3><p class="help">Formato de valoraciones para concentrar los resultados y retroalimentar al grupo y a la escuela.</p>
     <div class="acts">${eiaBtn(EIA_LINKS.concentrado,"Formato de concentrado",true)}</div></section>
-   <section class="card"><h3>Tutoriales</h3><p class="help">Guías y videos de apoyo para la aplicación y captura.</p>
-    <div class="acts">${eiaBtn(EIA_LINKS.tutoriales,"Ver tutoriales",true)}</div></section>
-   <div class="soon" style="color:var(--ink)">Los enlaces abren el portal oficial de la SEP (<b>ejerciciosintegradores.sep.gob.mx</b>). Si en su cuenta no abre un recurso, inicie sesión primero.</div>
+   <section class="card"><h3>Tutoriales y formación</h3><p class="help">Materiales de apoyo para la aplicación y la captura.</p>
+    <div class="acts">${eiaBtn(EIA_LINKS.taller,"Taller de aplicación (PDF)",true)}${eiaBtn(EIA_LINKS.materiales,"Más recursos en el portal")}</div></section>
+   <div class="soon" style="color:var(--ink)">Los enlaces abren recursos del portal oficial de la SEP (<b>ejerciciosintegradores.sep.gob.mx</b>). Si alguno no abre, inicie sesión en el portal.</div>
    <p class="foot">Los materiales son de la SEP; esta sección solo reúne los accesos para la zona.</p>`;
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
   window.scrollTo(0,0)}
