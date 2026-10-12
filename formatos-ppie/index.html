@@ -889,6 +889,7 @@ const SECCIONES=[
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
+ {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
@@ -2841,8 +2842,48 @@ function alCsv(){const cols=alCols();if(!cols.length)return;const q=s=>`"${Strin
   const body=AL.rows.map((r,i)=>[i+1,...cols.map(c=>r[c[0]])].map(q).join(",")).join("\n");
   const blob=new Blob(["﻿"+head+"\n"+body],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`Datos de alumnos (${AL.rows.length}).csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* ---------- Ejercicios Integradores del Aprendizaje (EIA) — primaria fases 3, 4 y 5 ---------- */
+/* Enlaces oficiales en un solo lugar para actualizarlos fácil cada ciclo. */
+const EIA_PORTAL="https://ejerciciosintegradores.sep.gob.mx/";
+const EIA_LINKS={
+  portal:EIA_PORTAL,
+  concentrado:"",   // enlace al formato de concentrado (pendiente de Carlos); si vacío, manda al portal
+  tutoriales:"",    // enlace a tutoriales (pendiente); si vacío, manda al portal
+  // Retroalimentación pública por fase (ciclo vigente); actualizar cuando cambie
+  retro:{
+    "3":"https://ejerciciosintegradores.sep.gob.mx/storage/recursos/2025_01/Retroalimentacion/R2qjx88P4k-2025_EIA_Retroalimentacion_F3.pdf",
+    "4":"",
+    "5":"https://ejerciciosintegradores.sep.gob.mx/storage/recursos/2025_01/Retroalimentacion/hHZfmxgrW2-2025_EIA_Retroalimentacion_F5.pdf"
+  },
+  // Materiales (ejercicios/guía) por fase; si vacío, el botón manda al portal
+  materiales:{"3":"","4":"","5":""}
+};
+const EIA_FASES=[{f:"3",g:"1.º y 2.º grado"},{f:"4",g:"3.º y 4.º grado"},{f:"5",g:"5.º y 6.º grado"}];
+function eiaBtn(href,label,primary){const url=href||EIA_PORTAL;const cls=primary?"btn primary":"btn ghost";
+  return `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">${esc(label)}</a>`}
+function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Gestión Escolar Zona 050</div><h2>Ejercicios Integradores del Aprendizaje (EIA)</h2></div></div>`;
+  const fases=EIA_FASES.map(x=>{const mat=EIA_LINKS.materiales[x.f],ret=EIA_LINKS.retro[x.f];
+    return `<section class="card"><h3>Fase ${x.f} <span class="muted" style="font-weight:400;font-size:15px">· ${esc(x.g)}</span></h3>
+     <div class="acts">${eiaBtn(mat,"Materiales (en el portal)",true)}${ret?eiaBtn(ret,"Guía de retroalimentación (PDF)"):""}</div></section>`}).join("");
+  app.innerHTML=top+`
+   <p class="muted">Los <b>Ejercicios Integradores del Aprendizaje (EIA)</b> son actividades abiertas y contextualizadas que evalúan, de forma interdisciplinaria, lo que el alumnado aprendió en los campos formativos del Plan de Estudio 2022, a partir de un nodo integrador, una situación problemática y consignas de trabajo. En primaria se aplican por fase. El docente valora cada respuesta con una rúbrica de cuatro niveles y usa los resultados para retroalimentar al alumnado, al colectivo y a las familias; tienen un enfoque <b>diagnóstico y formativo</b>.</p>
+   <details class="card" style="padding:12px 14px"><summary style="font-weight:600">¿Cómo se aplican?</summary>
+    <p class="help" style="margin-top:8px">Se imprimen los ejercicios para que el alumnado responda en ellos. Cada fase corresponde a dos grados: <b>Fase 3</b> (1.º y 2.º), <b>Fase 4</b> (3.º y 4.º) y <b>Fase 5</b> (5.º y 6.º). Los materiales, guías, retroalimentación y el concentrado se descargan desde el portal oficial, al que se entra con su cuenta.</p></details>
+   <section class="card"><h3>Portal oficial</h3><p class="help">Aquí se descargan los ejercicios, las guías y se captura/obtiene el concentrado de resultados (requiere iniciar sesión).</p>
+    <div class="acts">${eiaBtn(EIA_PORTAL,"Abrir el portal oficial de los EIA",true)}</div></section>
+   <h3 style="margin:18px 0 2px">Por fase (primaria)</h3>
+   ${fases}
+   <section class="card"><h3>Concentrado de resultados</h3><p class="help">Formato para concentrar y retroalimentar los resultados del grupo y la escuela.</p>
+    <div class="acts">${eiaBtn(EIA_LINKS.concentrado,"Formato de concentrado",true)}</div></section>
+   <section class="card"><h3>Tutoriales</h3><p class="help">Guías y videos de apoyo para la aplicación y captura.</p>
+    <div class="acts">${eiaBtn(EIA_LINKS.tutoriales,"Ver tutoriales",true)}</div></section>
+   <div class="soon" style="color:var(--ink)">Los enlaces abren el portal oficial de la SEP (<b>ejerciciosintegradores.sep.gob.mx</b>). Si en su cuenta no abre un recurso, inicie sesión primero.</div>
+   <p class="foot">Los materiales son de la SEP; esta sección solo reúne los accesos para la zona.</p>`;
+  document.getElementById("salir").onclick=()=>{S.sec=null;home()};
+  window.scrollTo(0,0)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),alum:()=>alView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),alum:()=>alView(),eia:()=>eiaView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
