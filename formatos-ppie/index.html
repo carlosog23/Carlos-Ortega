@@ -2953,14 +2953,30 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú).</p>
     <div class="acts"><button class="btn primary act" id="su050">Sí, soy de la Zona 050</button><button class="btn ghost act" id="suOtra">No, soy de otra zona</button></div></section>
    <p class="foot">Podrá cambiar estos datos después en «Datos de mi escuela».</p>`;
-  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";store.set("ppie-perfil",perfil);home()};
-  document.getElementById("suOtra").onclick=()=>setupOtraView(false);
+  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";store.set("ppie-perfil",perfil);home()};
+  document.getElementById("suOtra").onclick=()=>setupSubsisView();
+  window.scrollTo(0,0)}
+function setupSubsisView(){S.view="setupsub";S.sec=null;setBar("");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>¿A qué subsistema pertenece?</h2></div></div>
+   <p class="muted">Esto define el logotipo institucional y el tipo de escuela.</p>
+   <section class="card"><div class="opts">
+     <label class="opt"><input type="radio" name="sub" value="ISEP"><span><b>ISEP</b><br><span class="muted" style="font-size:14px">Escuelas federalizadas · logotipo de ISEP (ya incluido)</span></span></label>
+     <label class="opt"><input type="radio" name="sub" value="SEBS"><span><b>SEBS</b><br><span class="muted" style="font-size:14px">Escuelas estatales · logotipo de la Secretaría de Educación</span></span></label></div>
+    <div style="display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap">
+     <img src="img/isep.png" alt="ISEP" style="height:54px"><img src="img/se.png" alt="Secretaría de Educación" style="height:54px"></div>
+    <button class="btn primary" id="subOk" style="margin-top:12px">Continuar</button></section>
+   <p class="foot">Podrá cambiarlo después.</p>`;
+  document.getElementById("salir").onclick=setupView;
+  app.querySelectorAll('input[name=sub]').forEach(i=>i.addEventListener("change",()=>app.querySelectorAll('input[name=sub]').forEach(r=>r.closest(".opt").classList.toggle("on",r.checked))));
+  document.getElementById("subOk").onclick=()=>{const r=app.querySelector('input[name=sub]:checked');if(!r){alert("Elija ISEP o SEBS.");return}
+    perfil.subsis=r.value;perfil.subsistema=r.value==="ISEP"?"Federalizado":"Estatal";perfil.instLogo=r.value==="ISEP"?"img/isep.png":"img/se.png";perfil.nivel=perfil.nivel||"Primaria";store.set("ppie-perfil",perfil);setupOtraView(false)};
   window.scrollTo(0,0)}
 /* ---- Registro para otras zonas (también sirve como editor) ---- */
 function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
   const p=perfil,val=k=>esc(p[k]||"");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>Datos de mi zona y escuela</h2></div></div>
    <p class="muted">Capture sus datos una vez; con ellos se llenan todos los formatos que genere. Lo que no aplique, déjelo en blanco.</p>
+   <section class="card" style="display:flex;align-items:center;gap:12px"><img src="${esc(perfil.instLogo||'img/isep.png')}" alt="" style="height:40px"><div style="flex:1"><b>Subsistema: ${perfil.subsis==="SEBS"?"SEBS (escuelas estatales)":"ISEP (escuelas federalizadas)"}</b><br><span class="muted" style="font-size:13px">Logotipo institucional seleccionado.</span></div><button type="button" class="btn link" id="s_cambsub">Cambiar</button></section>
    <section class="card"><h3>Zona escolar y supervisión</h3>
     <div class="row2"><div class="field"><label>Zona escolar</label><input type="text" id="s_zona" value="${val('zona')}" placeholder="Ej. 063" autocomplete="off"></div>
      <div class="field"><label>Clave de la supervisión (CCT) <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="s_cctzona" value="${val('cctzona')}" autocomplete="off"></div></div>
@@ -2984,8 +3000,9 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
    <p class="foot">Todo se guarda solo en este dispositivo.</p>`;
   setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
   wireLogo();wireZlogo();
-  const back=()=>{if(editar)home();else setupView()};
+  const back=()=>{if(editar)home();else setupSubsisView()};
   document.getElementById("salir").onclick=back;document.getElementById("cancel").onclick=back;
+  {const cb=document.getElementById("s_cambsub");if(cb)cb.onclick=setupSubsisView}
   document.getElementById("save").onclick=()=>{const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
     if(!v("s_escuela")){alert("Escriba al menos el nombre de la escuela.");return}
     perfil.zona=v("s_zona");perfil.cctzona=v("s_cctzona");perfil.supervisor=v("s_supervisor");
