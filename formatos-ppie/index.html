@@ -2949,16 +2949,31 @@ function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
 const ZLOGO_KEY="logo-zona";let ZLOGO;
 function zlogoGet(){if(ZLOGO===undefined)ZLOGO=store.get(ZLOGO_KEY,null);return ZLOGO}
 function zlogoSet(u){ZLOGO=u||null;if(!u){store.del(ZLOGO_KEY);return true}try{localStorage.setItem(ZLOGO_KEY,JSON.stringify(u));return true}catch(e){return false}}
-function imgDownscale(im,maxW){const sc=Math.min(1,maxW/im.width);const o=document.createElement("canvas");o.width=Math.round(im.width*sc);o.height=Math.round(im.height*sc);o.getContext("2d").drawImage(im,0,0,o.width,o.height);return o.toDataURL(/png/i.test(im.src.slice(0,20))?"image/png":"image/jpeg",0.9)}
+let ZLOGO_ORIG=null;
 function zlogoWidgetHTML(){const L=zlogoGet();
-  return`<div class="field"><span class="lbl">Logo de la zona o supervisión <span class="muted" style="font-weight:400">(opcional)</span></span><p class="help">Si su zona tiene logotipo, súbalo. Si no, se deja en blanco.</p>
-   <div class="fw_pv" id="zl_pv" ${L?"":"hidden"}>${L?`<img src="${L}" alt="Logo de la zona" style="max-height:80px">`:""}</div>
-   <div class="phb row" style="margin-top:8px"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${L?"Cambiar logo":"Subir logo"}<input type="file" accept="image/*" id="zl_file" hidden></label>${L?`<button type="button" class="btn link" id="zl_del">Quitar</button>`:""}</div>
-   <div id="zl_m" class="help"></div></div>`}
-function wireZlogo(onChange){const g=id=>document.getElementById(id);const fi=g("zl_file");if(!fi)return;
-  fi.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async()=>{try{const im=await imgLoad(rd.result);const u=imgDownscale(im,600);const ok=zlogoSet(u);
-      const pv=g("zl_pv");pv.hidden=false;pv.innerHTML=`<img src="${u}" alt="Logo de la zona" style="max-height:80px">`;g("zl_m").innerHTML=ok?"Logo guardado.":"<b>Ojo:</b> es grande y no cupo en memoria; se usará mientras no cierre la página.";onChange&&onChange()}catch(err){g("zl_m").textContent="No se pudo leer la imagen. Use un JPG o PNG."}};rd.readAsDataURL(f)};
-  const del=g("zl_del");if(del)del.onclick=()=>{zlogoSet(null);onChange&&onChange()}}
+  return`<div class="field"><span class="lbl">Logo de la zona o supervisión <span class="muted" style="font-weight:400">(opcional)</span></span><p class="help">Si su zona tiene logotipo, súbalo. Si no, se deja en blanco. Si se ve borroso, puede mejorarlo.</p>
+   <div class="ph"><div class="phf lvlogo" id="zl_pv">${L?`<img src="${L}" alt="Logo de la zona">`:"<span>Sin logo</span>"}</div>
+    <div class="phb"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${L?"Cambiar logo":"Subir logo de la zona"}<input type="file" accept="image/*" id="zl_file" hidden></label>
+     <button type="button" class="btn ghost" id="zl_up" ${L?"":"hidden"}>✨ Mejorar calidad</button>
+     <button type="button" class="btn link" id="zl_undo" hidden>Deshacer la mejora</button>
+     <button type="button" class="btn link" id="zl_del" ${L?"":"hidden"}>Quitar</button></div></div>
+   <div class="help" id="zl_m"></div></div>`}
+function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_file"))return;
+  const info=async extra=>{const L=zlogoGet();if(!L){g("zl_m").innerHTML=extra||"";return}try{const i=logoCalidad(await imgLoad(L));
+    g("zl_m").innerHTML=`Tamaño: ${i.w} × ${i.h} px · Calidad <b>${i.cal}</b>${i.cal==="buena"?".":ZLOGO_ORIG?". Si aún se ve borroso, puede mejorarlo otra vez.":". Toque <b>«Mejorar calidad»</b> para que se vea nítido al imprimir."}${extra?"<br>"+extra:""}`}catch(e){}};
+  const show=extra=>{const L=zlogoGet();g("zl_pv").innerHTML=L?`<img src="${L}" alt="Logo de la zona">`:"<span>Sin logo</span>";g("zl_up").hidden=!L;g("zl_del").hidden=!L;g("zl_undo").hidden=!ZLOGO_ORIG;info(extra);onChange&&onChange()};
+  const guardar=(u,extra)=>{const ok=zlogoSet(u);show(ok?extra:(extra?extra+" ":"")+"<b>Ojo:</b> el logo es grande y no cupo en memoria; se usará mientras no cierre la página.")};
+  g("zl_file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("zl_m").textContent="Procesando…";
+    try{ZLOGO_ORIG=null;guardar(await logoDesdeArchivo(f),"Logo listo.")}catch(err){g("zl_m").textContent=err.message}};
+  g("zl_up").onclick=async()=>{const b=g("zl_up"),L=zlogoGet();if(!L)return;const q=logoCalidad(await imgLoad(L));
+    if(q.cal==="buena"){info("Su logo ya tiene buena resolución; no necesita mejorarse.");return}
+    b.disabled=true;b.textContent="Mejorando… 0%";g("zl_m").textContent="Mejorando el logo con inteligencia artificial en este equipo. Puede tardar de unos segundos a un minuto; no cierre la página.";
+    try{const out=await mejorarLogo(L,p=>{b.textContent=`Mejorando… ${Math.round(p*100)}%`});ZLOGO_ORIG=L;guardar(out,"<b>Logo mejorado.</b> Compárelo; si no le gusta, toque «Deshacer la mejora».")}
+    catch(err){g("zl_m").innerHTML=`<b>No se pudo mejorar el logo.</b> Revise su conexión e intente de nuevo. (${esc(err.message||err)})`}
+    finally{b.disabled=false;b.textContent="✨ Mejorar calidad"}};
+  g("zl_undo").onclick=()=>{const o=ZLOGO_ORIG;ZLOGO_ORIG=null;guardar(o,"Se restauró el logo original.")};
+  g("zl_del").onclick=()=>{ZLOGO_ORIG=null;guardar(null,"")};
+  info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
 function inicioOK(){if(!perfil.modo){if(perfil.escuela){perfil.modo="050";perfil.subsis=perfil.subsis||"ISEP";perfil.instLogo=perfil.instLogo||"img/isep.png";store.set("ppie-perfil",perfil)}else return setupView()}if(!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}home()}
