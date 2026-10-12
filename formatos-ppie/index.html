@@ -2976,14 +2976,15 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
   info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(!perfil.modo){if(perfil.escuela){perfil.modo="050";perfil.subsis=perfil.subsis||"ISEP";perfil.instLogo=perfil.instLogo||"img/isep.png";store.set("ppie-perfil",perfil)}else return setupView()}if(!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}home()}
+function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`<div class="top"><div style="min-width:0"><div class="eyebrow">Gestión Escolar</div><h2>Bienvenida y bienvenido</h2></div></div>
    <p class="muted">Esta herramienta ayuda a llenar y generar documentos escolares. Para empezar, díganos de qué zona es, así los formatos saldrán con sus datos.</p>
    <section class="card"><h3>¿Su zona escolar es la Zona No. 050?</h3>
     <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú).</p>
-    <div class="acts"><button class="btn primary act" id="su050">Sí, soy de la Zona 050</button><button class="btn ghost act" id="suOtra">No, soy de otra zona</button></div></section>
-   <p class="foot">Podrá cambiar estos datos después en «Datos de mi escuela».</p>`;
+    <div class="acts"><button class="btn primary act" id="su050">Zona 050</button><button class="btn ghost act" id="suOtra">Otra zona / nueva escuela</button></div>
+    ${perfil.escuela?`<p class="help" style="margin-top:10px">Última configuración guardada: <b>${esc(perfil.escuela)}</b>${perfil.zona?` · Zona ${esc(perfil.zona)}`:""}${perfil.subsis?` · ${esc(perfil.subsis)}`:""}. Se conserva al elegir una opción.</p>`:""}</section>
+   <p class="foot">Esta pregunta aparece cada vez que abre la app. Podrá cambiar los datos después en «Datos de mi escuela».</p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
