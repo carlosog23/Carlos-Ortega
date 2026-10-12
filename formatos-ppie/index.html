@@ -1204,6 +1204,14 @@ async function mejorarLogo(src,prog){const im=await imgLoad(src);const w=im.natu
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x>=B&&x<W-B&&y>=B&&y<H-B)continue;const i=(y*W+x)*4;if(d[i]+d[i+1]+d[i+2]>600){d[i]=d[i+1]=d[i+2]=255}}rx.putImageData(id,0,0)}
     return aURL(r)}finally{try{up.dispose()}catch(e){}}}
 async function embedLogo(doc){const L=logoGet();if(!L)return null;try{return L.startsWith("data:image/png")?await doc.embedPng(L):await doc.embedJpg(L)}catch(e){return null}}
+let INSTLOGO_DATA;
+async function instLogoData(){if(INSTLOGO_DATA!==undefined)return INSTLOGO_DATA;const p=perfil.instLogo||(perfil.subsis==="SEBS"?"img/se.png":"img/isep.png");try{const r=await fetch(p);const b=await r.blob();INSTLOGO_DATA=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)})}catch(e){INSTLOGO_DATA=null}return INSTLOGO_DATA}
+async function embedInst(doc){const d=await instLogoData();if(!d)return null;try{return d.startsWith("data:image/png")?await doc.embedPng(d):await doc.embedJpg(d)}catch(e){return null}}
+function membreteSub(){const est=perfil.subsis==="SEBS";return `Supervisión Escolar Zona No. ${perfil.zona||"050"} · Primaria ${est?"Estatal":"Federalizada"} · ${est?"SEBS":"ISEP"}`}
+async function pdfMembrete(doc,pg,M,W0,y){const inst=await embedInst(doc),sch=await embedLogo(doc);if(!inst&&!sch)return y;const h=36;
+  if(inst){const d=inst.scaleToFit(84,h);pg.drawImage(inst,{x:M,y:y-d.height,width:d.width,height:d.height})}
+  if(sch){const d=sch.scaleToFit(h+8,h);pg.drawImage(sch,{x:M+W0-d.width,y:y-d.height,width:d.width,height:d.height})}
+  return y-h-8}
 function logoWidgetHTML(){const L=logoGet();
   return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Si no sube uno, se usa el logo de la Zona 050.</p>
    <div class="ph"><div class="phf lvlogo" id="lg_pv">${L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
@@ -2050,8 +2058,9 @@ async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const par=(text,size,font,color,gap=2,indent=0)=>{for(const ln of wrap(text,size,font)){space(size+gap);if(ln)pg.drawText(ln,{x:M+indent,y:y-size,size,font,color});y-=size+gap}};
     // encabezado centrado
     const ctr=(txt,size,font,color)=>{const w=font.widthOfTextAtSize(clean(txt),size);space(size+4);pg.drawText(clean(txt),{x:M+(W0-w)/2,y:y-size,size,font,color});y-=size+4};
+    y=await pdfMembrete(doc,pg,M,W0,y);
     const tt=clean(C.titulo);let ts=16;while(HELVB.widthOfTextAtSize(tt,ts)>W0)ts-=0.5;ctr(tt,ts,HELVB,blu);
-    ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP",9.5,HELV,gray);
+    ctr(membreteSub(),9.5,HELV,gray);
     y-=8;const def=DX_PLANTILLA[C.nivel].datos;for(const [k,lab] of def){const v=C.datos[k];if(!v)continue;const lines=wrap(v,10,HELV);const lw=HELVB.widthOfTextAtSize(clean(lab)+":  ",10);
       lines.forEach((ln,i)=>{space(13);if(i===0)pg.drawText(clean(lab)+":",{x:M,y:y-10,size:10,font:HELVB,color:ink});pg.drawText(ln,{x:M+lw,y:y-10,size:10,font:HELV,color:ink});y-=13})}
     y-=8;
@@ -2168,6 +2177,7 @@ async function pmPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const ctr=(txt,size,font,color)=>{const w=font.widthOfTextAtSize(clean(txt),size);space(size+4);pg.drawText(clean(txt),{x:M+(W0-w)/2,y:y-size,size,font,color});y-=size+4};
     const h2=txt=>{space(22);pg.drawText(clean(txt),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=20};
     const kv=(lab,val)=>{if(!val)return;const lines=wrap(val,10.5,HELV,W0-14);space(14);pg.drawText(clean(lab)+":",{x:M,y:y-10.5,size:10.5,font:HELVB,color:ink});y-=14;lines.forEach(ln=>{space(13);pg.drawText(ln,{x:M+14,y:y-10.5,size:10.5,font:HELV,color:ink});y-=13})};
+    y=await pdfMembrete(doc,pg,M,W0,y);
     let tt="Programa de Mejora Continua";let ts=17;while(HELVB.widthOfTextAtSize(tt,ts)>W0)ts-=0.5;ctr(tt,ts,HELVB,blu);
     ctr(`Ciclo escolar ${PM.ciclo} - ${PM.lugar}`,10,HELV,gray);ctr(clean(PM.escuela)+(PM.cct?" - "+PM.cct:""),11,HELVB,ink);y-=6;
     if(PM.lectura){h2("Lectura de la realidad");par(PM.lectura,10.5,HELV,ink)}
@@ -2340,8 +2350,9 @@ async function paPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const h2=txt=>{space(22);pg.drawText(clean(txt),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=19};
     const h3=txt=>{space(18);pg.drawText(clean(txt),{x:M,y:y-11.5,size:11.5,font:HELVB,color:ink});y-=16};
     const {C,titulo,campos}=paDocModel();
+    y=await pdfMembrete(doc,pg,M,W0,y);
     let ts=16;while(HELVB.widthOfTextAtSize(clean(titulo),ts)>W0)ts-=0.5;ctr(titulo,ts,HELVB,blu);
-    ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP - NEM",9,HELV,gray);y-=4;
+    ctr(membreteSub()+" · NEM",9,HELV,gray);y-=4;
     const dd=[["escuela","Escuela"],["cct","C.C.T."],["colectivo","Colectivo / docente"],["ciclo","Ciclo"],["fecha","Fecha"]];
     dd.forEach(([k,l])=>{if(!C.datos[k])return;space(13);pg.drawText(clean(l)+": ",{x:M,y:y-10,size:10,font:HELVB,color:ink});pg.drawText(clean(C.datos[k]),{x:M+HELVB.widthOfTextAtSize(clean(l)+": ",10),y:y-10,size:10,font:HELV,color:ink});y-=13});y-=6;
     if(C.lectura){h2("Plano 1 · Lectura de la realidad");par(C.lectura,10,HELV,ink)}
@@ -2517,8 +2528,9 @@ async function plPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const ctr=(x,s,f,c)=>{const w=f.widthOfTextAtSize(clean(x),s);space(s+4);pg.drawText(clean(x),{x:M+(W0-w)/2,y:y-s,size:s,font:f,color:c});y-=s+4};
     const h2=x=>{space(22);pg.drawText(clean(x),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=19};
     const kv=(l,v)=>{if(!v)return;space(13);pg.drawText(clean(l)+": ",{x:M,y:y-10,size:10,font:HELVB,color:ink});const lw=HELVB.widthOfTextAtSize(clean(l)+": ",10);const lines=wrap(v,10,HELV,W0-lw);lines.forEach((ln,i)=>{if(i>0){space(12)}pg.drawText(ln,{x:M+(i===0?lw:14),y:y-10,size:10,font:HELV,color:ink});if(i<lines.length-1)y-=12});y-=13};
+    y=await pdfMembrete(doc,pg,M,W0,y);
     let ts=17;while(HELVB.widthOfTextAtSize("Planeación didáctica",ts)>W0)ts-=0.5;ctr("Planeación didáctica",ts,HELVB,blu);
-    ctr("Supervision Escolar Zona No. 050 - Primaria Federalizada - ISEP - NEM",9,HELV,gray);y-=4;
+    ctr(membreteSub()+" · NEM",9,HELV,gray);y-=4;
     [["Escuela",PL.datos.escuela],["Docente",PL.datos.docente],["Grado y grupo",(PL.datos.grado+" "+PL.datos.grupo).trim()],["Ciclo",PL.datos.ciclo],["Periodo",PL.datos.periodo],["Sesiones",PL.datos.sesiones]].forEach(([l,v])=>kv(l,v));y-=4;
     h2("Proyecto o situación de aprendizaje");kv("Nombre",PL.proyecto.nombre);kv("Problema del contexto",PL.proyecto.problema);kv("Propósito",PL.proyecto.proposito);kv("Producto",PL.proyecto.producto);
     kv("Campos formativos",PL.campos.join(", "));kv("Ejes articuladores",PL.ejes.join(", "));kv("Metodología",PL.metodologia);
@@ -2672,12 +2684,16 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
       pg.drawRectangle({x:M,y:y-ch,width:W0,height:ch,color:soft});pg.drawRectangle({x:M,y:y-ch,width:4,height:ch,color:blu2});
       let cy=y-8;wl.forEach(l=>{pg.drawText(l,{x:M+14,y:cy-10,size:10.5,font:HELV,color:ink});cy-=15});y-=ch+14};
     // banda
-    const bh=74;pg.drawRectangle({x:0,y:792-bh,width:612,height:bh,color:azul});
-    const L=logoGet();let drew=false;
-    if(L){try{const img=await embedLogo(doc);if(img){const sz=50,bx=M,by=792-bh+(bh-sz)/2;pg.drawRectangle({x:bx,y:by,width:sz,height:sz,color:rgb(1,1,1)});const d2=img.scaleToFit(sz-4,sz-4);pg.drawImage(img,{x:bx+2+(sz-4-d2.width)/2,y:by+2+(sz-4-d2.height)/2,width:d2.width,height:d2.height});drew=true}}catch(e){}}
-    if(!drew){const sz=50,cx=M+sz/2,cy=792-bh/2;pg.drawCircle({x:cx,y:cy,size:sz/2,color:rgb(1,1,1)});const tw=HELVB.widthOfTextAtSize(esc0.zona,15);pg.drawText(esc0.zona,{x:cx-tw/2,y:cy-5,size:15,font:HELVB,color:azul})}
-    const tx=M+64;pg.drawText(clean(esc0.nombre).slice(0,56),{x:tx,y:792-30,size:14,font:HELVB,color:rgb(1,1,1)});
-    pg.drawText(clean(`C.C.T. ${esc0.cct} · Supervisión Escolar Zona No. ${esc0.zona} · ${esc0.lugar}`).slice(0,92),{x:tx,y:792-46,size:8.5,font:HELV,color:rgb(0.88,0.92,0.98)});
+    const bh=78;pg.drawRectangle({x:0,y:792-bh,width:612,height:bh,color:azul});
+    const sz=54,boxY=792-bh+(bh-sz)/2;
+    const inst=await embedInst(doc);let lx=M;
+    if(inst){pg.drawRectangle({x:M,y:boxY,width:sz,height:sz,color:rgb(1,1,1)});const d=inst.scaleToFit(sz-6,sz-6);pg.drawImage(inst,{x:M+3+(sz-6-d.width)/2,y:boxY+3+(sz-6-d.height)/2,width:d.width,height:d.height});lx=M+sz+12}
+    else{const cx=M+sz/2,cy=792-bh/2;pg.drawCircle({x:cx,y:cy,size:sz/2,color:rgb(1,1,1)});const tw=HELVB.widthOfTextAtSize(esc0.zona,15);pg.drawText(esc0.zona,{x:cx-tw/2,y:cy-5,size:15,font:HELVB,color:azul});lx=M+sz+12}
+    let rx=612-M;const sch=await embedLogo(doc);
+    if(sch){pg.drawRectangle({x:612-M-sz,y:boxY,width:sz,height:sz,color:rgb(1,1,1)});const d=sch.scaleToFit(sz-6,sz-6);pg.drawImage(sch,{x:612-M-sz+3+(sz-6-d.width)/2,y:boxY+3+(sz-6-d.height)/2,width:d.width,height:d.height});rx=612-M-sz-12}
+    const maxw=rx-lx;const fit=(s,base)=>{let z=base;while(HELVB.widthOfTextAtSize(clean(s),z)>maxw&&z>8)z-=0.5;return z};
+    const ns=fit(esc0.nombre,14);pg.drawText(clean(esc0.nombre),{x:lx,y:792-32,size:ns,font:HELVB,color:rgb(1,1,1)});
+    const sub=clean(`C.C.T. ${esc0.cct} · Supervisión Escolar Zona No. ${esc0.zona} · ${esc0.lugar}`);let ss=8.5;while(HELV.widthOfTextAtSize(sub,ss)>maxw&&ss>6)ss-=0.3;pg.drawText(sub,{x:lx,y:792-48,size:ss,font:HELV,color:rgb(0.88,0.92,0.98)});
     y=792-bh-24;
     // pastilla tipo
     const tipo=RC.tipo.toUpperCase();const pw=HELVB.widthOfTextAtSize(tipo,9)+20;pg.drawRectangle({x:M,y:y-16,width:pw,height:20,color:soft});pg.drawText(tipo,{x:M+10,y:y-11,size:9,font:HELVB,color:blu2});y-=34;
@@ -2717,7 +2733,7 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---- Word ---- */
-function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela();const L=logoGet();const F=RC.usarFirma?firmaGet():null;const bt=rcBottom();
+async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela();const L=logoGet();const IL=await instLogoData();const F=RC.usarFirma?firmaGet():null;const bt=rcBottom();
   const metaPairs=(RC.tipo==="Aviso"&&!RC.alumno)?[["Dirigido a",RC.dirigido],["Fecha",RC.fecha]]:[["Alumno(a)",RC.alumno],["Grado y grupo",rcGG()],["Dirigido a",RC.dirigido],["Fecha",RC.fecha]];
   let meta="<table style='width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px'>";
   for(let i=0;i<metaPairs.length;i+=2){meta+="<tr>"+[metaPairs[i],metaPairs[i+1]].map(p=>p?`<td style='border:1px solid #ccc;padding:5px 8px'><b>${esc(p[0])}:</b> ${esc(p[1])}</td>`:"<td style='border:1px solid #ccc'></td>").join("")+"</tr>"}
@@ -2732,7 +2748,7 @@ function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela(
   else if(bt==="autorizacion")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Autorización del padre, madre o tutor</b></p><p>(&nbsp;&nbsp;) Autorizo &nbsp;&nbsp; (&nbsp;&nbsp;) No autorizo &nbsp; que mi hijo(a) <b>${esc(RC.alumno)}</b> participe en: ${esc(RC.aactividad)}.</p><table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha</td></tr></table>`;
   const despedida=RC.tipo==="Autorización / permiso"?"Agradezco de antemano su atención.":"Agradezco de antemano su atención y apoyo.";
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(RC.tipo)}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#1a2230">
-   <table style="width:100%;background:#123a6b;color:#fff"><tr>${L?`<td style="width:60px;padding:10px"><img src="${L}" style="width:50px;height:50px;background:#fff;border-radius:4px"></td>`:""}<td style="padding:12px 14px"><div style="font-size:15px;font-weight:bold">${esc(esc0.nombre)}</div><div style="font-size:11px">C.C.T. ${esc(esc0.cct)} · Supervisión Escolar Zona No. ${esc(esc0.zona)} · ${esc(esc0.lugar)}</div></td></tr></table>
+   <table style="width:100%;background:#123a6b;color:#fff"><tr>${IL?`<td style="width:70px;padding:8px 10px"><img src="${IL}" style="height:48px;background:#fff;border-radius:4px;padding:2px"></td>`:""}<td style="padding:12px 14px"><div style="font-size:15px;font-weight:bold">${esc(esc0.nombre)}</div><div style="font-size:11px">C.C.T. ${esc(esc0.cct)} · Supervisión Escolar Zona No. ${esc(esc0.zona)} · ${esc(esc0.lugar)}</div></td>${L?`<td style="width:62px;padding:8px 10px;text-align:right"><img src="${L}" style="width:50px;height:50px;background:#fff;border-radius:4px"></td>`:""}</tr></table>
    <p style="margin:12px 0 6px"><span style="background:#e7eef8;color:#1e5aa8;font-weight:bold;font-size:12px;padding:3px 10px;border-radius:999px;text-transform:uppercase">${esc(RC.tipo)}</span></p>
    ${meta}${RC.asunto?`<p><b>Asunto:</b> ${esc(RC.asunto)}</p>`:""}
    <p>${esc(RC_SALUDO)}</p><p style="text-align:justify">${esc(RC_INTRO[RC.tipo])}</p>${bloqueTipo}
@@ -2945,7 +2961,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);const fi=g(
   const del=g("zl_del");if(del)del.onclick=()=>{zlogoSet(null);onChange&&onChange()}}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(!perfil.modo){if(perfil.escuela){perfil.modo="050";store.set("ppie-perfil",perfil)}else return setupView()}home()}
+function inicioOK(){if(!perfil.modo){if(perfil.escuela){perfil.modo="050";perfil.subsis=perfil.subsis||"ISEP";perfil.instLogo=perfil.instLogo||"img/isep.png";store.set("ppie-perfil",perfil)}else return setupView()}if(!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}home()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`<div class="top"><div style="min-width:0"><div class="eyebrow">Gestión Escolar</div><h2>Bienvenida y bienvenido</h2></div></div>
    <p class="muted">Esta herramienta ayuda a llenar y generar documentos escolares. Para empezar, díganos de qué zona es, así los formatos saldrán con sus datos.</p>
@@ -2953,7 +2969,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú).</p>
     <div class="acts"><button class="btn primary act" id="su050">Sí, soy de la Zona 050</button><button class="btn ghost act" id="suOtra">No, soy de otra zona</button></div></section>
    <p class="foot">Podrá cambiar estos datos después en «Datos de mi escuela».</p>`;
-  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";store.set("ppie-perfil",perfil);home()};
+  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
 function setupSubsisView(){S.view="setupsub";S.sec=null;setBar("");
@@ -2969,7 +2985,7 @@ function setupSubsisView(){S.view="setupsub";S.sec=null;setBar("");
   document.getElementById("salir").onclick=setupView;
   app.querySelectorAll('input[name=sub]').forEach(i=>i.addEventListener("change",()=>app.querySelectorAll('input[name=sub]').forEach(r=>r.closest(".opt").classList.toggle("on",r.checked))));
   document.getElementById("subOk").onclick=()=>{const r=app.querySelector('input[name=sub]:checked');if(!r){alert("Elija ISEP o SEBS.");return}
-    perfil.subsis=r.value;perfil.subsistema=r.value==="ISEP"?"Federalizado":"Estatal";perfil.instLogo=r.value==="ISEP"?"img/isep.png":"img/se.png";perfil.nivel=perfil.nivel||"Primaria";store.set("ppie-perfil",perfil);setupOtraView(false)};
+    perfil.subsis=r.value;perfil.subsistema=r.value==="ISEP"?"Federalizado":"Estatal";perfil.instLogo=r.value==="ISEP"?"img/isep.png":"img/se.png";INSTLOGO_DATA=undefined;perfil.nivel=perfil.nivel||"Primaria";store.set("ppie-perfil",perfil);setupOtraView(false)};
   window.scrollTo(0,0)}
 /* ---- Registro para otras zonas (también sirve como editor) ---- */
 function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
