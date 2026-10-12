@@ -773,7 +773,7 @@ async function normasView(){S.view="normas";S.sec="normas";setBar("");if(!CAL)ca
    <p class="muted">Leyes, reglamentos, acuerdos, protocolos y libros de texto que aplican al personal del ISEP. Cada documento abre la versión oficial.</p>
    ${NV.cat!=="libros"?`<div class="field"><label for="nq" class="sr">Buscar</label><input type="search" id="nq" placeholder="Buscar: licencias, evaluación, ISSSTE, protección civil…" value="${esc(NV.q)}" autocomplete="off"></div>`:""}
    <div class="chips cats">${cats.map(c=>`<button class="chip ${NV.cat===c.id?"sel":""}" data-cat="${c.id}">${esc(c.nombre)}</button>`).join("")}</div>
-   ${body}<p class="foot">Lista revisada el ${fmtDate(NORMAS.actualizado,"larga")}. ¿Falta un documento? Escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a></p>`;
+   ${body}<p class="foot">Lista revisada el ${fmtDate(NORMAS.actualizado,"larga")}. ¿Falta un documento? Escriba a ${CONTACTO}</p>`;
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
   app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{NV.cat=b.dataset.cat;NV.abierto=null;normasView()});
   app.querySelectorAll("[data-grado]").forEach(b=>b.onclick=()=>{NV.grado=+b.dataset.grado;normasView()});
@@ -891,6 +891,7 @@ function TLM(v){const d=v==="oscuro";const c=d?"#FBF6EC":"#24427A",t=d?"#E3925A"
  <g fill="${t}"><circle cx="109.3" cy="24.8" r="3.4"/><circle cx="130.9" cy="25.7" r="3"/><circle cx="150.1" cy="35.7" r="2.6"/><circle cx="163.3" cy="52.9" r="2.2"/><circle cx="168" cy="74" r="1.8"/></g>
  <path d="M26 170 H50 V150 H74 V130 H96 V110 H118 A36 36 0 0 0 118 38 A26 26 0 0 0 118 90 A18 18 0 0 0 118 54 A10 10 0 0 0 118 74" fill="none" stroke="${c}" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
  <circle cx="118" cy="63.5" r="4.6" fill="#E8A33D"/></g></svg>`}
+const CONTACTO=`<a href="mailto:tlamatini023@gmail.com">tlamatini023@gmail.com</a>, <a href="mailto:carlosog23@gmail.com">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>, o por WhatsApp al <a href="https://wa.me/526618501585" target="_blank" rel="noopener">661 850 1585</a>`;
 const TLM_SIGNIF=`<details class="signif"><summary>${TLM()}<span>¿Qué significa Tlamatini?</span></summary>
  <p><b>Tlamatini</b> <span class="pr">(tla-ma-TÍ-ni)</span> es una palabra náhuatl que significa «el que sabe». En el pensamiento educativo del México antiguo nombraba al sabio y maestro: el que ilumina, el que pone un espejo frente a los demás para que se conozcan y el que muestra el camino a su comunidad.</p>
  <p>Su símbolo retoma la <b>greca escalonada</b>, herencia de muchos pueblos de México: un camino de escalones, el esfuerzo de la labor docente, que asciende y se vuelve espiral de conocimiento. En su centro hay una luz de la que nacen puntos conectados: la era digital y la inteligencia artificial como acompañantes del maestro, nunca como sustitutos.</p>
@@ -918,7 +919,7 @@ function home(){S.view="home";setBar("");
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
       <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
    ${TLM_SIGNIF}
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>${accPie()}<br><button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button></p>`;
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}<br><button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button></p>`;
   document.getElementById("perfilBtn").onclick=perfilView;document.getElementById("accAdm").onclick=()=>accAdminView();
   app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
 
@@ -953,7 +954,7 @@ function sectionView(id){const x=SECCIONES.find(z=>z.id===id);if(x.view)return x
   const tools=(x.tools||[]).map(t=>`<div class="anexos"><button class="anexo tool" data-t="${t.id}"><span class="letra">${t.letra}</span><span class="tx"><b>${esc(t.name)}</b><span class="ds">${esc(t.use)}</span></span></button></div>`).join("");
   const body=tools?tools:x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
      return`${GLBL[g]?`<div class="group-title">${GLBL[g]}</div>`:""}<div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")
-   :`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>.</div>`;
+   :`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a ${CONTACTO}.</div>`;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini · Zona 050</div><h2>${esc(x.title)}</h2></div></div>
    <p class="muted">${esc(x.desc)}</p>${x.intro?x.intro():""}${body}${x.admin?`<button class="btn link adminlink" id="adminSeg">Supervisión: actualizar teléfonos</button>`:""}`;
   if(x.admin)document.getElementById("adminSeg").onclick=seguroAdminView;
@@ -1812,7 +1813,7 @@ function bloqueoView(){S.view="bloqueo";setBar("");const e=ACC_YO,st=e?accEstado
    <div><p class="band-k">Supervisión Escolar Zona 050 · ISEP</p><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div></header>
    <section class="card"><h3>${st==="vencido"?"Su enlace de acceso ya venció":st==="anulado"?"Su enlace de acceso ya no es válido":"Se necesita un enlace de acceso"}</h3>
     <p>${st==="vencido"?`El acceso estuvo vigente hasta el ${esc(fechaLarga(e.vence))}.`:st==="anulado"?"La Supervisión Escolar renovó los enlaces de acceso.":"Esta herramienta está en fase de pilotaje y por ahora se usa con un enlace que entrega la Supervisión Escolar."}
-     Para solicitar un enlace, escriba a <a href="mailto:carlosog23@gmail.com,cortegagutierrez@bcedu.mx">carlosog23@gmail.com</a> o <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>.</p>
+     Para solicitar un enlace, escriba a ${CONTACTO}.</p>
     <div class="field"><label for="pegar">¿Ya tiene un enlace? Péguelo aquí</label><input type="url" id="pegar" autocomplete="off"></div>
     <button class="btn primary" id="usar">Entrar con este enlace</button><div id="msg"></div></section>
    <button class="btn link adminlink" id="sup">Soy Supervisión</button>`;
@@ -3036,14 +3037,14 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
    <section class="card" style="border-top:3px solid var(--rule)">
     <p style="margin:0 0 10px">Reciba usted una cordial bienvenida a esta plataforma, concebida como una herramienta de apoyo para <b>facilitar los procesos de la práctica docente y administrativa</b>, así como la <b>consulta de documentos normativos</b>.</p>
     <p style="margin:0 0 10px">Su propósito es simplificar la elaboración y generación de los formatos de uso cotidiano, a fin de contribuir a una gestión escolar más ágil y a una mejor práctica profesional.</p>
-    <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través del correo <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>.</p>
+    <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través de los correos ${CONTACTO}.</p>
     <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
     <p style="margin:14px 0 0">Atentamente,<br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></p></section>
    ${TLM_SIGNIF}
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
-   <p class="foot"><span class="muted">v2026-10-12.1</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-12.2</span></p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
