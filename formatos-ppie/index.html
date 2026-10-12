@@ -2979,23 +2979,17 @@ function necesitaSetup(){return !perfil.modo}
 function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`
-   <section style="background:#123a6b;color:#fff;border-radius:16px;overflow:hidden;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:14px;padding:18px 18px 14px">
-     <img src="img/isep.png" alt="ISEP" style="height:52px;background:#fff;border-radius:8px;padding:4px">
-     <div style="flex:1;min-width:0"><div style="font-size:12px;letter-spacing:.08em;opacity:.85;text-transform:uppercase">Supervisión Escolar Zona No. 050</div>
-      <div style="font-size:21px;font-weight:800;line-height:1.1">Gestión Escolar</div>
-      <div style="font-size:12.5px;opacity:.9;margin-top:2px">Primaria Federalizada · ISEP · San Quintín y Ensenada, B.C.</div></div>
-     <img src="img/zona050.png" alt="Zona 050" style="height:58px;background:#fff;border-radius:8px;padding:4px">
-    </div></section>
-   <section class="card"><p style="margin:0">Plataforma <b>facilitadora</b> de los procesos de la <b>práctica docente</b> y <b>administrativos</b>, y de <b>consulta de documentos normativos</b>. Su propósito es simplificar el llenado y la generación de formatos para apoyar una mejor práctica profesional.</p></section>
-   <section class="card" style="border-left:4px solid #e0a500;background:var(--azul-soft,#eef2f8)"><h3 style="margin-top:0">⚠ Versión en fase de pilotaje</h3>
-    <p class="help" style="margin-top:4px">Este es un <b>proyecto piloto</b>. El acceso es <b>provisional</b>; más adelante deberá ser <b>validado</b> para continuar con su uso. Sus comentarios y sugerencias para mejorarla son muy bienvenidos.</p>
-    <p class="help">Escríbanos a: <a href="mailto:supervision050sep@gmail.com">supervision050sep@gmail.com</a> · <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a></p></section>
-   <section class="card"><h3>¿Su zona escolar es la Zona No. 050?</h3>
-    <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú). Si es de otra zona o subsistema, use la segunda opción.</p>
-    <div class="acts"><button class="btn primary act" id="su050">Zona 050</button><button class="btn ghost act" id="suOtra">Otra zona / nueva escuela</button></div>
-    ${perfil.escuela?`<p class="help" style="margin-top:10px">Última configuración guardada: <b>${esc(perfil.escuela)}</b>${perfil.zona?` · Zona ${esc(perfil.zona)}`:""}${perfil.subsis?` · ${esc(perfil.subsis)}`:""}. Se conserva al elegir una opción.</p>`:""}</section>
-   <p class="foot">Desarrollado por el <b>Mtro. Carlos Gabriel Ortega Gutiérrez</b> · Supervisor Escolar de la Zona 050. Esta pantalla aparece cada vez que abre la app. <span class="muted">· v2026-10-11.3</span></p>`;
+   <div class="top" style="border:none"><div style="min-width:0"><div class="eyebrow">Gestión Escolar</div><h2>Bienvenida</h2></div></div>
+   <section class="card" style="border-top:3px solid var(--accent,#1e5aa8)">
+    <p style="margin:0 0 10px">Reciba usted una cordial bienvenida a esta plataforma, concebida como una herramienta de apoyo para <b>facilitar los procesos de la práctica docente y administrativa</b>, así como la <b>consulta de documentos normativos</b>.</p>
+    <p style="margin:0 0 10px">Su propósito es simplificar la elaboración y generación de los formatos de uso cotidiano, a fin de contribuir a una gestión escolar más ágil y a una mejor práctica profesional.</p>
+    <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través del correo <a href="mailto:cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</a>.</p>
+    <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
+    <p style="margin:14px 0 0">Atentamente,<br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></p></section>
+   <section class="card"><h3>Para comenzar</h3>
+    <p class="help">Seleccione la opción que corresponda a su caso.</p>
+    <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
+   <p class="foot"><span class="muted">v2026-10-11.4</span></p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
