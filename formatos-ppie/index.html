@@ -2852,7 +2852,8 @@ const EIA_LINKS={
   directivos:EIA_B+"DocApoyo/5jXooVaMB9-2025_EIA_Guia_Directivos.pdf",
   carta:EIA_B+"DocApoyo/sWg2TiNbCI-2025_EIA_Carta_Informativa.pdf",
   taller:EIA_B+"4jJfH4fF82-2025_Taller_DGFCDD.pdf",
-  concentrado:"",   // formato de valoraciones/concentrado de primaria (pendiente); si vacío, va a Materiales
+  video:"https://www.youtube.com/watch?v=l0CGUYosjEQ",   // video oficial: llenado del concentrado
+  concentrado:"formatos/eia/EIA_2026_Concentrado_FRV_F3-F5.xls",   // formato de valoraciones (primaria, ciclo 2026-2027)
   // Por fase: ejercicio, guía de aplicación, rúbrica y retroalimentación
   fases:{
     "3":{ejercicio:"", guia:EIA_B+"Guias/mNlTflDhkX-2025_EIA_Guia_F3-01.pdf", rubrica:EIA_B+"Rubricas/wLtEj3YWPY-2025_EIA_Rubrica_F3-01.pdf", retro:EIA_B+"Retroalimentacion/R2qjx88P4k-2025_EIA_Retroalimentacion_F3.pdf"},
@@ -2876,10 +2877,10 @@ function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
     <div class="acts">${eiaBtn(EIA_PORTAL,"Abrir el portal oficial",true)}${eiaBtn(EIA_LINKS.materiales,"Todos los materiales")}${eiaBtn(EIA_LINKS.directivos,"Guía para directivos")}${eiaBtn(EIA_LINKS.carta,"Carta informativa")}</div></section>
    <h3 style="margin:18px 0 2px">Por fase (primaria)</h3>
    ${fases}
-   <section class="card"><h3>Concentrado de resultados</h3><p class="help">Formato de valoraciones para concentrar los resultados y retroalimentar al grupo y a la escuela.</p>
-    <div class="acts">${eiaBtn(EIA_LINKS.concentrado,"Formato de concentrado",true)}</div></section>
+   <section class="card"><h3>Concentrado de resultados</h3><p class="help">Formato para el registro de valoraciones (ciclo 2026-2027). Concentra todos los grados; aplica para todas las fases de primaria.</p>
+    <div class="acts">${eiaBtn(EIA_LINKS.concentrado,"Descargar formato de concentrado (Excel)",true)}${eiaBtn(EIA_LINKS.video,"Video: cómo llenarlo")}</div></section>
    <section class="card"><h3>Tutoriales y formación</h3><p class="help">Materiales de apoyo para la aplicación y la captura.</p>
-    <div class="acts">${eiaBtn(EIA_LINKS.taller,"Taller de aplicación (PDF)",true)}${eiaBtn(EIA_LINKS.materiales,"Más recursos en el portal")}</div></section>
+    <div class="acts">${eiaBtn(EIA_LINKS.video,"Video de llenado del concentrado",true)}${eiaBtn(EIA_LINKS.taller,"Taller de aplicación (PDF)")}${eiaBtn(EIA_LINKS.materiales,"Más recursos en el portal")}</div></section>
    <div class="soon" style="color:var(--ink)">Los enlaces abren recursos del portal oficial de la SEP (<b>ejerciciosintegradores.sep.gob.mx</b>). Si alguno no abre, inicie sesión en el portal.</div>
    <p class="foot">Los materiales son de la SEP; esta sección solo reúne los accesos para la zona.</p>`;
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
