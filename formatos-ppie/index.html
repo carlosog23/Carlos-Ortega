@@ -1043,7 +1043,7 @@ async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.t
 
 function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d?d.vals:{};S.step=d?Math.min(d.step,ANEXOS[L].steps.length-1):0;stepView();loadForm(L).catch(()=>{})}
 
-function perfilView(){S.view="perfil";
+function perfilView(){if(perfil.modo==="otra")return setupOtraView(true);S.view="perfil";
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Datos de mi escuela</h2></div></div>
    <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos a mano.</p>
     <select id="selEsc"><option value="">Otra escuela (llenar a mano)</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
@@ -2929,6 +2929,71 @@ function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
    <p class="foot">Los materiales son de la SEP; esta sección solo reúne los accesos para la zona.</p>`;
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
   window.scrollTo(0,0)}
+/* ---------- Configuración inicial multi-zona (Zona 050 u otra zona) ---------- */
+const ZLOGO_KEY="logo-zona";let ZLOGO;
+function zlogoGet(){if(ZLOGO===undefined)ZLOGO=store.get(ZLOGO_KEY,null);return ZLOGO}
+function zlogoSet(u){ZLOGO=u||null;if(!u){store.del(ZLOGO_KEY);return true}try{localStorage.setItem(ZLOGO_KEY,JSON.stringify(u));return true}catch(e){return false}}
+function imgDownscale(im,maxW){const sc=Math.min(1,maxW/im.width);const o=document.createElement("canvas");o.width=Math.round(im.width*sc);o.height=Math.round(im.height*sc);o.getContext("2d").drawImage(im,0,0,o.width,o.height);return o.toDataURL(/png/i.test(im.src.slice(0,20))?"image/png":"image/jpeg",0.9)}
+function zlogoWidgetHTML(){const L=zlogoGet();
+  return`<div class="field"><span class="lbl">Logo de la zona o supervisión <span class="muted" style="font-weight:400">(opcional)</span></span><p class="help">Si su zona tiene logotipo, súbalo. Si no, se deja en blanco.</p>
+   <div class="fw_pv" id="zl_pv" ${L?"":"hidden"}>${L?`<img src="${L}" alt="Logo de la zona" style="max-height:80px">`:""}</div>
+   <div class="phb row" style="margin-top:8px"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${L?"Cambiar logo":"Subir logo"}<input type="file" accept="image/*" id="zl_file" hidden></label>${L?`<button type="button" class="btn link" id="zl_del">Quitar</button>`:""}</div>
+   <div id="zl_m" class="help"></div></div>`}
+function wireZlogo(onChange){const g=id=>document.getElementById(id);const fi=g("zl_file");if(!fi)return;
+  fi.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async()=>{try{const im=await imgLoad(rd.result);const u=imgDownscale(im,600);const ok=zlogoSet(u);
+      const pv=g("zl_pv");pv.hidden=false;pv.innerHTML=`<img src="${u}" alt="Logo de la zona" style="max-height:80px">`;g("zl_m").innerHTML=ok?"Logo guardado.":"<b>Ojo:</b> es grande y no cupo en memoria; se usará mientras no cierre la página.";onChange&&onChange()}catch(err){g("zl_m").textContent="No se pudo leer la imagen. Use un JPG o PNG."}};rd.readAsDataURL(f)};
+  const del=g("zl_del");if(del)del.onclick=()=>{zlogoSet(null);onChange&&onChange()}}
+/* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
+function necesitaSetup(){return !perfil.modo}
+function inicioOK(){if(!perfil.modo){if(perfil.escuela){perfil.modo="050";store.set("ppie-perfil",perfil)}else return setupView()}home()}
+function setupView(){S.view="setup";S.sec=null;setBar("");
+  app.innerHTML=`<div class="top"><div style="min-width:0"><div class="eyebrow">Gestión Escolar</div><h2>Bienvenida y bienvenido</h2></div></div>
+   <p class="muted">Esta herramienta ayuda a llenar y generar documentos escolares. Para empezar, díganos de qué zona es, así los formatos saldrán con sus datos.</p>
+   <section class="card"><h3>¿Su zona escolar es la Zona No. 050?</h3>
+    <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú).</p>
+    <div class="acts"><button class="btn primary act" id="su050">Sí, soy de la Zona 050</button><button class="btn ghost act" id="suOtra">No, soy de otra zona</button></div></section>
+   <p class="foot">Podrá cambiar estos datos después en «Datos de mi escuela».</p>`;
+  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";store.set("ppie-perfil",perfil);home()};
+  document.getElementById("suOtra").onclick=()=>setupOtraView(false);
+  window.scrollTo(0,0)}
+/* ---- Registro para otras zonas (también sirve como editor) ---- */
+function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
+  const p=perfil,val=k=>esc(p[k]||"");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>Datos de mi zona y escuela</h2></div></div>
+   <p class="muted">Capture sus datos una vez; con ellos se llenan todos los formatos que genere. Lo que no aplique, déjelo en blanco.</p>
+   <section class="card"><h3>Zona escolar y supervisión</h3>
+    <div class="row2"><div class="field"><label>Zona escolar</label><input type="text" id="s_zona" value="${val('zona')}" placeholder="Ej. 063" autocomplete="off"></div>
+     <div class="field"><label>Clave de la supervisión (CCT) <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="s_cctzona" value="${val('cctzona')}" autocomplete="off"></div></div>
+    <div class="field"><label>Nombre del supervisor(a)</label><input type="text" id="s_supervisor" value="${val('supervisor')}" autocomplete="off"></div>
+    ${zlogoWidgetHTML()}</section>
+   <section class="card"><h3>Escuela</h3>
+    <div class="field"><label>Nombre de la escuela</label><input type="text" id="s_escuela" value="${val('escuela')}" placeholder="Escuela Primaria …" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label>CCT</label><input type="text" id="s_cct" value="${val('cct')}" placeholder="02DPR…" autocomplete="off"></div>
+     <div class="field"><label>Turno</label><select id="s_turno">${["Matutino","Vespertino","Tiempo completo"].map(o=>`<option ${p.turno===o?"selected":""}>${o}</option>`).join("")}</select></div></div>
+    <div class="row2"><div class="field"><label>Localidad</label><input type="text" id="s_localidad" value="${val('localidad')}" autocomplete="off"></div>
+     <div class="field"><label>Municipio</label><select id="s_municipio"><option value="">Elija…</option>${MUNIS.map(o=>`<option ${p.municipio===o?"selected":""}>${o}</option>`).join("")}</select></div></div>
+    <div class="field"><label>Domicilio <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="s_domicilio" value="${val('domicilio')}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label>Teléfono <span class="muted" style="font-weight:400">(opcional)</span></label><input type="tel" id="s_telefono" value="${val('telefono')}" autocomplete="off"></div>
+     <div class="field"><label>Nombre del director(a)</label><input type="text" id="s_director" value="${val('director')}" autocomplete="off"></div></div>
+    ${logoWidgetHTML()}</section>
+   <section class="card"><h3>Mis datos (docente)</h3>
+    <div class="field"><label>Mi nombre (quien llena los formatos)</label><input type="text" id="s_minombre" value="${val('minombre')}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label>Mi cargo</label><input type="text" id="s_micargo" value="${val('micargo')}" placeholder="Docente, Director(a)…" autocomplete="off"></div>
+     <div class="field"><label>Grado</label><input type="text" id="s_grado" value="${val('grado')}" autocomplete="off"></div></div>
+    <div class="field" style="max-width:50%"><label>Grupo</label><input type="text" id="s_grupo" value="${val('grupo')}" autocomplete="off"></div></section>
+   <p class="foot">Todo se guarda solo en este dispositivo.</p>`;
+  setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
+  wireLogo();wireZlogo();
+  const back=()=>{if(editar)home();else setupView()};
+  document.getElementById("salir").onclick=back;document.getElementById("cancel").onclick=back;
+  document.getElementById("save").onclick=()=>{const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+    if(!v("s_escuela")){alert("Escriba al menos el nombre de la escuela.");return}
+    perfil.zona=v("s_zona");perfil.cctzona=v("s_cctzona");perfil.supervisor=v("s_supervisor");
+    perfil.escuela=v("s_escuela");perfil.cct=v("s_cct");perfil.turno=document.getElementById("s_turno").value;perfil.localidad=v("s_localidad");perfil.municipio=document.getElementById("s_municipio").value;perfil.domicilio=v("s_domicilio");perfil.telefono=v("s_telefono");perfil.director=v("s_director");
+    perfil.minombre=v("s_minombre");perfil.micargo=v("s_micargo");perfil.grado=v("s_grado");perfil.grupo=v("s_grupo");
+    perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";perfil.modo="otra";
+    store.set("ppie-perfil",perfil);home()};
+  window.scrollTo(0,0)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
  edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),alum:()=>alView(),eia:()=>eiaView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
@@ -2938,7 +3003,7 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
   if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
-if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?home():bloqueoView(),()=>home()));
+if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
 </script>
 
 </body></html>
