@@ -1045,8 +1045,8 @@ function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d
 
 function perfilView(){if(perfil.modo==="otra")return setupOtraView(true);S.view="perfil";
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Datos de mi escuela</h2></div></div>
-   <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos a mano.</p>
-    <select id="selEsc"><option value="">Otra escuela (llenar a mano)</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
+   <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos.</p>
+    <select id="selEsc"><option value="" disabled ${perfil.cct?"":"selected"}>Elija su escuela…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
    <form class="card" id="frm" novalidate>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>
    ${logoWidgetHTML()}`;
   setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
@@ -2984,7 +2984,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p class="help">Zona 050, Primaria Federalizada, San Quintín y Ensenada, B.C. (sede Camalú).</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona 050</button><button class="btn ghost act" id="suOtra">Otra zona / nueva escuela</button></div>
     ${perfil.escuela?`<p class="help" style="margin-top:10px">Última configuración guardada: <b>${esc(perfil.escuela)}</b>${perfil.zona?` · Zona ${esc(perfil.zona)}`:""}${perfil.subsis?` · ${esc(perfil.subsis)}`:""}. Se conserva al elegir una opción.</p>`:""}</section>
-   <p class="foot">Esta pregunta aparece cada vez que abre la app. Podrá cambiar los datos después en «Datos de mi escuela». <span class="muted">· v2026-10-11.1</span></p>`;
+   <p class="foot">Esta pregunta aparece cada vez que abre la app. Podrá cambiar los datos después en «Datos de mi escuela». <span class="muted">· v2026-10-11.2</span></p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   window.scrollTo(0,0)}
