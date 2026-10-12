@@ -130,6 +130,11 @@ details.card>summary::before{content:"▸ ";color:var(--accent)}details.card[ope
 .fw_hint{position:absolute;left:14px;bottom:10px;color:#9aa5b5;font-size:13px;pointer-events:none}
 .fw_pv{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px;display:flex;align-items:center;justify-content:center;min-height:90px}
 .fw_pv img{max-height:90px;max-width:100%}
+.altab{border-collapse:collapse;width:100%;font-size:13px}
+.altab th,.altab td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.altab thead th{background:var(--azul-soft);color:var(--ink);font-weight:700;white-space:nowrap}
+.altab td.aled:focus{outline:2px solid var(--accent);background:var(--azul-soft)}
+.altab td.alnum{color:var(--muted);text-align:center}
 .soon{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font-size:14px}
 .emer{border:2px solid var(--accent);background:var(--accent-soft);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .emer-t{font-family:var(--display);font-size:23px;line-height:1.1}
@@ -885,7 +890,7 @@ const SECCIONES=[
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -2731,8 +2736,111 @@ function insRefHTML(tipo){const m=insMeta(tipo);if(!m)return"";
   return`<details class="card" style="padding:12px 14px"><summary style="font-weight:600">Mi ${esc(INS_LBL[tipo])} (PDF subido) — referencia</summary>
    <p class="help" style="margin-top:6px">${esc(m.nombre||"")}${m.fecha?` · ${esc(m.fecha)}`:""}</p>
    <div style="max-height:260px;overflow:auto;white-space:pre-wrap;font-size:13px;border-top:1px solid var(--line);padding-top:8px">${esc(m.text||"")}</div></details>`}
+/* ---------- Extractor de datos de alumnos desde PDF (nombre, CURP, fecha de nacimiento, sexo) ---------- */
+/* Para maestros que deben rellenar formatos oficiales: sube un PDF, elige qué extraer y descarga en Word para copiar y pegar. */
+let AL={fields:{nombre:true,curp:true,fnac:true,sexo:true},nameMode:"completo",rows:[]};
+const AL_MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const AL_CURP_RE=/[A-ZÑ]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d/;
+function curpDatos(curp){curp=(curp||"").toUpperCase();if(!AL_CURP_RE.test(curp))return{fecha:"",sexo:""};
+  const yy=+curp.slice(4,6),mm=+curp.slice(6,8),dd=+curp.slice(8,10);const h=curp[10];
+  const sexo=h==="H"?"Hombre":h==="M"?"Mujer":"";
+  const esNuevoSiglo=/[A-Z]/.test(curp[16]);let anio=(esNuevoSiglo?2000:1900)+yy;
+  if(mm<1||mm>12||dd<1||dd>31)return{fecha:"",sexo};
+  const fecha=`${String(dd).padStart(2,"0")}/${String(mm).padStart(2,"0")}/${anio}`;
+  return{fecha,sexo}}
+function alLimpiaNombre(s){return (s||"").replace(/[\*\/]+/g," ").replace(/\s{2,}/g," ").replace(/\s+,/g,",").trim()}
+function alParteNombre(raw){ // separa en [paterno,materno,nombres] usando * y / como separadores
+  let seg=(raw||"").split(/[\*\/]+/).map(x=>x.replace(/\s{2,}/g," ").trim()).filter(Boolean);
+  if(seg.length>=3)return[seg[0],seg[1],seg.slice(2).join(" ")];
+  if(seg.length===2)return[seg[0],"",seg[1]];
+  const t=(raw||"").replace(/\s{2,}/g," ").trim().split(" ").filter(Boolean);
+  if(t.length>=3)return[t[0],t[1],t.slice(2).join(" ")];
+  if(t.length===2)return[t[0],"",t[1]];
+  return["","",t.join(" ")]}
+function alParse(texto){const out=[];const seen=new Set();const lines=texto.split("\n");
+  lines.forEach((ln,i)=>{const up=ln.toUpperCase();const m=up.match(AL_CURP_RE);if(!m)return;
+    const curp=m[0];if(seen.has(curp))return;seen.add(curp);
+    // nombre: la línea sin la CURP, sin fechas, sin números sueltos, sin palabras de sexo
+    let resto=ln.replace(new RegExp(curp,"i")," ");
+    resto=resto.replace(/\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/g," ")    // fechas
+               .replace(/\b(HOMBRE|MUJER|FEMENINO|MASCULINO|\d+)\b/gi," ");
+    // conservar letras, espacios, acentos, * y /
+    let nombreRaw=resto.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ \*\/'.-]/g," ").replace(/\s{2,}/g," ").trim();
+    if(!nombreRaw){ // nombre en la línea anterior
+      for(let k=i-1;k>=0&&k>=i-2;k--){const prev=lines[k];if(prev&&!AL_CURP_RE.test(prev.toUpperCase())&&/[A-Za-zÑñ]{3,}/.test(prev)){nombreRaw=prev.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ \*\/'.-]/g," ").replace(/\s{2,}/g," ").trim();break}}}
+    const {fecha,sexo}=curpDatos(curp);
+    const partes=alParteNombre(nombreRaw);
+    out.push({curp,nombre:alLimpiaNombre(nombreRaw),pat:partes[0],mat:partes[1],nom:partes[2],fnac:fecha,sexo})});
+  return out}
+async function alExtraer(file){const L=await pdfjs();const buf=await file.arrayBuffer();const pdf=await L.getDocument({data:new Uint8Array(buf)}).promise;
+  const out=[];for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();
+    let last=null,line=[];const lines=[];tc.items.forEach(t=>{const y=t.transform[5];if(last!==null&&Math.abs(y-last)>3){lines.push(line.join(" "));line=[]}line.push(t.str);last=y});if(line.length)lines.push(line.join(" "));
+    out.push(lines.join("\n"))}
+  return out.join("\n")}
+function alCols(){const c=[];if(AL.fields.nombre){if(AL.nameMode==="separado"){c.push(["pat","Apellido paterno"],["mat","Apellido materno"],["nom","Nombre(s)"])}else c.push(["nombre","Nombre completo"])}
+  if(AL.fields.curp)c.push(["curp","CURP"]);if(AL.fields.fnac)c.push(["fnac","Fecha de nacimiento"]);if(AL.fields.sexo)c.push(["sexo","Sexo"]);return c}
+function alView(){S.view="alum";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Herramientas</div><h2>Extraer datos de alumnos (PDF)</h2></div></div>`;
+  const F=AL.fields;
+  app.innerHTML=top+`
+   <p class="muted">Suba un PDF con la lista de alumnos. La app extrae lo que elija y lo entrega en <b>Word</b> para copiar y pegar en cualquier formato oficial. La fecha de nacimiento y el sexo se calculan desde la CURP. No se envía nada a internet.</p>
+   <section class="card"><h3>¿Qué quiere extraer?</h3>
+    <div class="opts">
+     <label class="opt ${F.nombre?"on":""}"><input type="checkbox" class="alf" data-k="nombre" ${F.nombre?"checked":""}>Nombre</label>
+     <label class="opt ${F.curp?"on":""}"><input type="checkbox" class="alf" data-k="curp" ${F.curp?"checked":""}>CURP</label>
+     <label class="opt ${F.fnac?"on":""}"><input type="checkbox" class="alf" data-k="fnac" ${F.fnac?"checked":""}>Fecha de nacimiento</label>
+     <label class="opt ${F.sexo?"on":""}"><input type="checkbox" class="alf" data-k="sexo" ${F.sexo?"checked":""}>Sexo</label></div>
+    <div class="field" id="alNameBox" ${F.nombre?"":"hidden"} style="margin-top:10px"><label>¿Cómo quiere el nombre?</label>
+     <div class="chips"><button type="button" class="chip alnm ${AL.nameMode==="completo"?"sel":""}" data-m="completo">Nombre completo</button><button type="button" class="chip alnm ${AL.nameMode==="separado"?"sel":""}" data-m="separado">Separado (paterno · materno · nombre)</button></div>
+     <p class="help">Se quitan los <b>*</b> y <b>/</b> de los nombres. En «separado», se usan esos signos para dividir apellidos y nombre (orden: paterno, materno, nombre).</p></div>
+   </section>
+   <section class="card"><div class="phb row">
+     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF y extraer<input type="file" accept="application/pdf,.pdf" id="alFile" hidden></label></div>
+    <div id="alMsg" class="help"></div></section>
+   <div id="alRes"></div>
+   <p class="foot">Todo el proceso ocurre en este dispositivo.</p>`;
+  const g=id=>document.getElementById(id);
+  app.querySelectorAll(".alf").forEach(c=>c.onchange=()=>{AL.fields[c.dataset.k]=c.checked;c.closest(".opt").classList.toggle("on",c.checked);if(c.dataset.k==="nombre")g("alNameBox").hidden=!c.checked;if(AL.rows.length)alRender()});
+  app.querySelectorAll(".alnm").forEach(b=>b.onclick=()=>{AL.nameMode=b.dataset.m;app.querySelectorAll(".alnm").forEach(x=>x.classList.toggle("sel",x===b));if(AL.rows.length)alRender()});
+  g("alFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;const msg=g("alMsg");
+    if(!/pdf/i.test(f.type)&&!/\.pdf$/i.test(f.name)){msg.innerHTML="<b>Debe ser un PDF.</b>";return}
+    msg.textContent="Leyendo el PDF…";
+    try{const txt=await alExtraer(f);AL.rows=alParse(txt);
+      if(!AL.rows.length){msg.innerHTML="<b>No se encontraron CURPs en el PDF.</b> Puede ser un PDF escaneado (solo imagen) o sin CURP. Suba uno con texto seleccionable.";g("alRes").innerHTML="";return}
+      msg.innerHTML=`Se encontraron <b>${AL.rows.length}</b> registros. Revise la tabla; puede corregir cualquier celda antes de descargar.`;alRender()}
+    catch(err){msg.innerHTML="<b>No se pudo leer el PDF.</b> "+esc(err.message||"")}
+    finally{g("alFile").value=""}};
+  g("salir").onclick=goBack;
+  if(AL.rows.length)alRender();
+  window.scrollTo(0,0)}
+function alRender(){const cols=alCols();const res=document.getElementById("alRes");if(!res)return;
+  if(!cols.length){res.innerHTML=`<section class="card"><p class="help">Elija al menos un campo para extraer.</p></section>`;return}
+  const head=`<th style="width:34px">#</th>`+cols.map(([k,l])=>`<th>${esc(l)} <button type="button" class="btn link alcopy" data-k="${k}" style="padding:0 4px">copiar</button></th>`).join("");
+  const body=AL.rows.map((r,i)=>`<tr data-i="${i}"><td class="alnum">${i+1}</td>`+cols.map(([k])=>`<td contenteditable="true" class="aled" data-k="${k}">${esc(r[k]||"")}</td>`).join("")+`</tr>`).join("");
+  res.innerHTML=`<section class="card"><div class="acts"><button class="btn primary act" id="alWord">⬇ Descargar Word</button><button class="btn ghost act" id="alCsv">⬇ Descargar Excel/CSV</button></div>
+    <p class="help">Toque una celda para corregirla. El botón «copiar» de cada columna copia esa lista para pegarla en vertical.</p>
+    <div style="overflow-x:auto"><table class="altab"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`;
+  const g=id=>document.getElementById(id);
+  res.querySelectorAll(".aled").forEach(td=>td.addEventListener("input",()=>{const i=+td.closest("tr").dataset.i;AL.rows[i][td.dataset.k]=td.textContent}));
+  res.querySelectorAll(".alcopy").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;const vals=AL.rows.map(r=>r[k]||"").join("\n");
+    try{await navigator.clipboard.writeText(vals);b.textContent="¡copiado!";setTimeout(()=>b.textContent="copiar",1200)}catch(e){b.textContent="no se pudo";setTimeout(()=>b.textContent="copiar",1200)}});
+  g("alWord").onclick=()=>alWord();
+  g("alCsv").onclick=()=>alCsv()}
+function alWord(){const cols=alCols();if(!cols.length)return;
+  const th=cols.map(([k,l])=>`<th style="background:#1f3864;color:#fff;border:1px solid #999;padding:5px 8px;text-align:left">${esc(l)}</th>`).join("");
+  const rows=AL.rows.map((r,i)=>`<tr><td style="border:1px solid #999;padding:4px 8px">${i+1}</td>`+cols.map(([k])=>`<td style="border:1px solid #999;padding:4px 8px">${esc(r[k]||"")}</td>`).join("")+`</tr>`).join("");
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Datos de alumnos</title></head><body style="font-family:Arial,sans-serif;font-size:11pt">
+   <h3>Datos de alumnos</h3><p style="font-size:10pt;color:#555">${AL.rows.length} registros. Fecha de nacimiento y sexo calculados desde la CURP.</p>
+   <table style="border-collapse:collapse;font-size:10.5pt"><thead><tr><th style="background:#1f3864;color:#fff;border:1px solid #999;padding:5px 8px">#</th>${th}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Datos de alumnos (${AL.rows.length}).doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+function alCsv(){const cols=alCols();if(!cols.length)return;const q=s=>`"${String(s||"").replace(/"/g,'""')}"`;
+  const head=["#",...cols.map(c=>c[1])].map(q).join(",");
+  const body=AL.rows.map((r,i)=>[i+1,...cols.map(c=>r[c[0]])].map(q).join(",")).join("\n");
+  const blob=new Blob(["﻿"+head+"\n"+body],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Datos de alumnos (${AL.rows.length}).csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),alum:()=>alView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
