@@ -2769,6 +2769,7 @@ function alParse(texto){const out=[];const seen=new Set();const lines=texto.spli
     if(!nombreRaw){ // nombre en la línea anterior
       for(let k=i-1;k>=0&&k>=i-2;k--){const prev=lines[k];if(prev&&!AL_CURP_RE.test(prev.toUpperCase())&&/[A-Za-zÑñ]{3,}/.test(prev)){nombreRaw=prev.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ \*\/'.-]/g," ").replace(/\s{2,}/g," ").trim();break}}}
     const {fecha,sexo}=curpDatos(curp);
+    nombreRaw=nombreRaw.replace(/\s+[HM]$/,"").trim();  // quita la letra de género (H/M) pegada al nombre
     const partes=alParteNombre(nombreRaw);
     out.push({curp,nombre:alLimpiaNombre(nombreRaw),pat:partes[0],mat:partes[1],nom:partes[2],fnac:fecha,sexo})});
   return out}
