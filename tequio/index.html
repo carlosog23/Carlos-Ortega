@@ -200,6 +200,7 @@ main{padding:20px 0 40px}
 .barras .fila-av:first-child{border-top:0}
 div.fila-av{cursor:default;border-top:0}
 button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
+.fila-av.sel{background:#EEF2F9;box-shadow:inset 3px 0 0 var(--indigo)}
 .fila-av .nom{font-size:14.5px;font-weight:600;min-width:0;overflow-wrap:anywhere}
 .fila-av .pct{font-size:14px;font-weight:700;text-align:right;color:var(--tinta);font-variant-numeric:tabular-nums}
 .barra-av{display:block;height:10px;border-radius:999px;background:var(--arena-2);overflow:hidden}
@@ -328,7 +329,7 @@ const AVISOS = {
 
 let cfg = null;          // { s: url del servidor, k: llave personal } o { demo: true }
 let S = null;            // datos: yo, act, seg, dir, usr, cuota, reu, acu, cum (checklist de acuerdos)
-let vista = { tab: 'agenda', mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null };
+let vista = { tab: 'agenda', mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null, atp: null };
 
 /* ---------------- Utilidades ---------------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -427,6 +428,7 @@ async function cargar() {
     const r = await api('datos');
     S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null };
+    if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
     if (!S) portada(e.message); else aviso(esc(e.message), 'mal', 9000);
@@ -463,6 +465,30 @@ function acuerdosDe(cct) {
   return r;
 }
 const vencido = x => x.estado === 'pendiente' && x.revision && x.revision < hoy();
+
+/* Escuelas que atiende cada ATP. Se guardan en el contacto del ATP (Directorio, campo C.C.T.);
+   mientras la Supervisión no la cambie desde Tequio, se usa la asignación del ciclo 2026-2027. */
+const ASIGNACION_INICIAL = [
+  [/oros/i, ['02DPR0425Z', '02DPR0014Y']],
+  [/l[oó]pez alvarado/i, ['02DPR0593W', '02DPR0556S', '02DPR0012Z', '02DPR0382S']],
+  [/espinoza araujo/i, ['02DPR0077J', '02DPR0150B', '02DPR0378F', '02DPR0882N']],
+  [/arce avi[nñ]a/i, ['02DPR0210Z', '02DPR0862Z', '02DPR0379E', '02DPR0684N']]
+];
+const atps = () => S.usr.filter(u => u.rol === 'atp' && u.activo);
+const contactoAtp = u => S.dir.find(c => c.tipo === 'atp' && c.id === u.contacto);
+function escuelasDeAtp(u) {
+  const c = contactoAtp(u);
+  if (c && c.cct) return c.cct === '-' ? [] : String(c.cct).split(',').map(x => x.trim()).filter(Boolean);
+  const f = ASIGNACION_INICIAL.find(([re]) => re.test(u.nombre));
+  return f ? f[1].slice() : [];
+}
+const atpDe = cct => atps().find(u => escuelasDeAtp(u).includes(cct));
+function filtroEscuelas() {
+  const u = vista.atp ? usuario(vista.atp) : null;
+  const mias = u ? escuelasDeAtp(u) : null;
+  return directores().filter(c => (!vista.municipio || c.municipio === vista.municipio) && (!mias || mias.includes(c.cct)));
+}
+const selAtp = () => `<select id="f-atp" aria-label="ATP"><option value="">Toda la Mesa Técnica</option>${atps().map(u => `<option value="${u.id}" ${vista.atp === u.id ? 'selected' : ''}>ATP: ${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>`;
 
 /* ---------------- Portada (sin enlace) ---------------- */
 function portada(mensaje) {
@@ -803,7 +829,7 @@ function vSeguimiento() {
   const pend = todos.filter(x => x.estado === 'pendiente');
   const venc = pend.filter(vencido);
   const cumpl = todos.filter(x => x.estado === 'cumplido');
-  const dirs = directores().filter(c => !vista.municipio || c.municipio === vista.municipio);
+  const dirs = filtroEscuelas();
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Seguimiento por escuela</h1>
     <div class="acciones"><button class="boton terra" id="b-nseg">${ico('i-mas')}Registrar seguimiento</button></div></div>
@@ -814,6 +840,7 @@ function vSeguimiento() {
     <div class="tarjeta cifra"><b>${cumpl.length}</b><span>acuerdos cumplidos</span></div>
   </div>
   <div class="filtros">
+    ${selAtp()}
     <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>
   </div>
   <div class="escuelas">${dirs.map(c => {
@@ -823,7 +850,7 @@ function vSeguimiento() {
     const prox = S.act.filter(a => a.estado === 'programada' && a.fecha >= hoy() && (a.escuelas || []).includes(c.cct)).sort((x, y) => x.fecha.localeCompare(y.fecha))[0];
     return `<button class="tarjeta esc" data-esc="${c.cct}">
       <span class="nom">${esc(c.escuela)}</span>
-      <span class="peq mudo">${c.cct} · ${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span>
+      <span class="peq mudo">${c.cct} · ${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}${atpDe(c.cct) ? '<br>ATP: ' + esc(nombreCorto(atpDe(c.cct).nombre)) : ''}</span>
       <span class="chips">
         <span class="chip indigo">${ss.length} visita${ss.length === 1 ? '' : 's'}</span>
         ${p.length ? `<span class="chip aviso">${p.length} pendiente${p.length === 1 ? '' : 's'}</span>` : ''}
@@ -834,6 +861,7 @@ function vSeguimiento() {
   }).join('')}</div>`;
   $$('[data-esc]').forEach(b => b.onclick = () => { vista.escuela = b.dataset.esc; vSeguimiento(); window.scrollTo(0, 0); });
   $('#f-mun').onchange = e => { vista.municipio = e.target.value; vSeguimiento(); };
+  $('#f-atp').onchange = e => { vista.atp = e.target.value; vSeguimiento(); };
   $('#b-nseg').onclick = () => formSeguimiento(null, {});
 }
 
@@ -851,6 +879,7 @@ function vEscuela(cct) {
     <div><div class="ayuda">C.C.T.</div><b>${c.cct}</b></div>
     <div><div class="ayuda">Municipio</div><b>${esc(c.municipio)}</b>${c.multigrado ? ' <span class="chip">multigrado</span>' : ''}</div>
     <div><div class="ayuda">${esc(c.cargo || 'Director(a)')}</div><b>${esc(c.nombre)}</b></div>
+    ${atpDe(cct) ? `<div><div class="ayuda">ATP</div><b>${esc(nombreCorto(atpDe(cct).nombre))}</b></div>` : ''}
     <div class="contacto" style="padding:0;flex-direction:row;gap:6px;margin-left:auto">
       ${tels.map(t => `<a class="boton wa chico" target="_blank" rel="noopener" href="https://wa.me/52${t}">${ico('i-wa')}WhatsApp</a><a class="boton sec chico" href="tel:${t}">${ico('i-tel')}Llamar</a>`).join('')}
       ${correos(c).length ? `<a class="boton sec chico" href="mailto:${correos(c).join(',')}">${ico('i-correo')}Correo</a>` : ''}
@@ -1003,7 +1032,8 @@ function tarjetaContacto(c) {
   const tels = telefonos(c.whatsapp), mails = correos(c);
   return `<div class="tarjeta contacto ${c.activo ? '' : 'inactivo'}">
     <div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div class="nom">${esc(c.nombre)}</div>
-      <div class="peq mudo">${esc(c.cargo || '')}${c.escuela ? ' · ' + esc(c.escuela) : ''}${c.cct ? ' · ' + c.cct : ''}${c.activo ? '' : ' · inactivo'}</div></div>
+      <div class="peq mudo">${esc(c.cargo || '')}${c.escuela ? ' · ' + esc(c.escuela) : ''}${c.cct && c.tipo !== 'atp' ? ' · ' + c.cct : ''}${c.activo ? '' : ' · inactivo'}</div>
+      ${c.tipo === 'atp' ? (() => { const u = S.usr.find(x => x.contacto === c.id); const e = u ? escuelasDeAtp(u) : []; return e.length ? `<div class="peq" style="margin-top:3px">Escuelas: ${esc(e.map(nombreEscuela).join(', '))}</div>` : ''; })() : ''}</div>
       ${esAdmin() ? `<button class="icono-btn" data-econt="${c.id}" aria-label="Editar ${esc(c.nombre)}">${ico('i-lapiz')}</button>` : ''}</div>
     <div class="peq">${mails.map(m => `<div><a href="mailto:${esc(m)}">${esc(m)}</a></div>`).join('')}</div>
     <div class="lnk">${tels.map(t => `<a class="boton wa chico" target="_blank" rel="noopener" href="https://wa.me/52${t}">${ico('i-wa')}${t.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}</a><a class="boton sec chico" href="tel:${t}" aria-label="Llamar al ${t}">${ico('i-tel')}</a>`).join('')}</div>
@@ -1143,9 +1173,12 @@ function vAcuerdos() {
     return;
   }
   if (vista.acuEsc) return vChecklistEscuela(vista.acuEsc);
-  const dirs = directores().filter(c => !vista.municipio || c.municipio === vista.municipio);
+  const dirs = filtroEscuelas();
   const ccts = dirs.map(c => c.cct);
   const lista = acuerdosFiltro();
+  const atpSel = vista.atp ? usuario(vista.atp) : null;
+  const porAtp = atps().map(u => { const e = escuelasDeAtp(u).filter(c => !vista.municipio || (escuelaDe(c) || {}).municipio === vista.municipio); return { u, n: e.length, a: avance(lista, e), visitas: S.seg.filter(s => s.creadoPor === u.id).length }; });
+  const sinAtp = directores().filter(c => !atpDe(c.cct));
   const total = avance(lista, ccts);
   const faltan = SEMILLA.filter(p => !(S.reu || []).find(r => r.id === p.reunion.id));
   const porEsc = dirs.map(c => ({ c, a: avance(lista, [c.cct]) })).sort((x, y) => y.a.pct - x.a.pct || x.c.escuela.localeCompare(y.c.escuela, 'es'));
@@ -1158,14 +1191,21 @@ function vAcuerdos() {
       <button class="boton" id="b-semilla">Cargar ahora</button></div>` : ''}
   ${!(S.reu || []).length ? `<div class="tarjeta vacio">Aún no hay reuniones con acuerdos registrados.</div>` : `
   <div class="filtros">
+    ${selAtp()}
     <select id="f-reu" aria-label="Reunión"><option value="">Todas las reuniones</option>${reuniones().map(r => `<option value="${r.id}" ${vista.acuReu === r.id ? 'selected' : ''}>${fechaCorta(r.fecha)} · ${esc(r.titulo)}</option>`).join('')}</select>
     <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>
   </div>
+  ${porAtp.length ? `<div class="tarjeta" style="margin-bottom:16px">
+    <div class="seccion-t" style="display:flex;align-items:center;gap:8px">Avance por ATP${esAdmin() ? `<button class="boton sec chico" id="b-asignar" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}Asignar escuelas</button>` : ''}</div>
+    <div class="barras">${porAtp.map(({ u, n, a, visitas }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}" aria-label="${esc(u.nombre)}: ${a.pct}% en sus ${n} escuelas. Ver solo sus escuelas">
+      <span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${visitas} visita${visitas === 1 ? '' : 's'} registrada${visitas === 1 ? '' : 's'}${a.vencidos ? ` · <span style="color:var(--alerta);font-weight:600">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div>
+    ${esAdmin() && sinAtp.length ? `<div class="ayuda" style="padding:0 14px 12px">Sin ATP asignado: ${sinAtp.map(c => esc(c.escuela)).join(', ')}.</div>` : ''}
+  </div>` : ''}
   <div class="tablero">
     <div class="tarjeta pad general">
       ${anillo(total.pct)}
       <div class="general-tx">
-        <div class="seccion-t" style="padding:0 0 4px">Avance de la zona</div>
+        <div class="seccion-t" style="padding:0 0 4px">${atpSel ? 'Escuelas de ' + esc(nombreCorto(atpSel.nombre)) : 'Avance de la zona'}</div>
         <div><b class="num">${total.hecho}</b> de <b class="num">${total.total}</b> compromisos cumplidos</div>
         <div class="peq mudo">${lista.length} acuerdo${lista.length === 1 ? '' : 's'} × ${dirs.length} escuela${dirs.length === 1 ? '' : 's'}${total.noAplica ? ' · ' + total.noAplica + ' marcados «no aplica»' : ''}</div>
         <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
@@ -1177,7 +1217,7 @@ function vAcuerdos() {
     <div class="tarjeta">
       <div class="seccion-t">Avance por escuela</div>
       <div class="barras">${porEsc.map(({ c, a }) => `<button class="fila-av" data-chk="${c.cct}" aria-label="${esc(c.escuela)}: ${a.pct}% cumplido. Abrir su checklist">
-        <span class="nom">${esc(c.escuela)}${a.vencidos ? ` <span class="chip mal" title="Compromisos con fecha vencida">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
+        <span class="nom">${esc(c.escuela)}${!atpSel && atpDe(c.cct) ? `<br><span class="ayuda" style="font-weight:400">${esc(nombreCorto(atpDe(c.cct).nombre))}</span>` : ''}${a.vencidos ? ` <span class="chip mal" title="Compromisos con fecha vencida">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
     </div>
   </div>
   ${reus.length > 1 ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Avance por reunión</div>
@@ -1185,6 +1225,9 @@ function vAcuerdos() {
   ${reus.map(r => tarjetaReunion(r, ccts)).join('')}`}`;
   if ($('#f-reu')) $('#f-reu').onchange = e => { vista.acuReu = e.target.value; vAcuerdos(); };
   if ($('#f-mun')) $('#f-mun').onchange = e => { vista.municipio = e.target.value; vAcuerdos(); };
+  if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vAcuerdos(); };
+  $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vAcuerdos(); window.scrollTo(0, 0); });
+  if ($('#b-asignar')) $('#b-asignar').onclick = formAsignacion;
   $$('[data-chk]').forEach(b => b.onclick = () => { vista.acuEsc = b.dataset.chk; vAcuerdos(); window.scrollTo(0, 0); });
   $$('[data-palomear]').forEach(b => b.onclick = () => palomearAcuerdo(b.dataset.palomear));
   $$('[data-ereu]').forEach(b => b.onclick = () => formReunion(b.dataset.ereu));
@@ -1251,7 +1294,7 @@ function vChecklistEscuela(cct) {
   const reus = reuniones().filter(r => !vista.acuReu || r.id === vista.acuReu);
   const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
   const a = avance(todos, [cct]);
-  const idx = directores().findIndex(d => d.cct === cct), dl = directores();
+  const dl = filtroEscuelas().some(d => d.cct === cct) ? filtroEscuelas() : directores(), idx = dl.findIndex(d => d.cct === cct);
   const ant = dl[(idx - 1 + dl.length) % dl.length], sig = dl[(idx + 1) % dl.length];
   $('#vista').innerHTML = `
   <div class="migas"><button id="b-volver">Acuerdos</button> › <span>${esc(c.escuela)}</span></div>
@@ -1260,7 +1303,7 @@ function vChecklistEscuela(cct) {
   <div class="tarjeta pad general" style="margin-bottom:14px">
     ${anillo(a.pct)}
     <div class="general-tx">
-      <div class="peq mudo">${c.cct} · ${esc(c.municipio)} · ${esc(c.cargo || 'Director(a)')}: ${esc(c.nombre)}</div>
+      <div class="peq mudo">${c.cct} · ${esc(c.municipio)} · ${esc(c.cargo || 'Director(a)')}: ${esc(c.nombre)}${atpDe(cct) ? ' · ATP: ' + esc(nombreCorto(atpDe(cct).nombre)) : ''}</div>
       <div style="margin-top:4px"><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> compromisos cumplidos</div>
       <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${a.pend} pendiente${a.pend === 1 ? '' : 's'}</span>${a.vencidos ? `<span class="chip mal">${a.vencidos} con fecha vencida</span>` : ''}</div>
       <div class="barras" style="padding:10px 0 0">${reus.map(r => { const ar = avance(acuerdosReu(r.id), [cct]); return `<div class="fila-av" style="padding:4px 0"><span class="nom peq">${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></div>`; }).join('')}</div>
@@ -1290,6 +1333,28 @@ function vChecklistEscuela(cct) {
       if (n !== null) guardarMarca(id, estadoDe(id, cct), n.trim());
     };
   });
+}
+
+/* Asignar escuelas a cada ATP (solo Supervisión) */
+function formAsignacion() {
+  const lista = atps().filter(u => contactoAtp(u));
+  const cuerpo = `<p class="peq" style="margin-top:0">Elija el ATP que atiende cada escuela. El avance de cada ATP se calcula con el checklist de sus escuelas.</p>
+    <div class="checklist">${directores().map(c => { const a = atpDe(c.cct); return `<div class="chk-fila" style="align-items:center"><div style="flex:1;min-width:0"><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span></div>
+      <select data-asig="${c.cct}" aria-label="ATP de ${esc(c.escuela)}" style="border:1px solid var(--borde);border-radius:8px;padding:6px 8px;background:#fff;max-width:52%"><option value="">Sin ATP</option>${lista.map(u => `<option value="${u.id}" ${a && a.id === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select></div>`; }).join('')}</div>`;
+  modal('Escuelas de cada ATP', cuerpo, '<button class="boton sec" id="as-cancelar">Cancelar</button><button class="boton terra" id="as-guardar">Guardar</button>');
+  $('#as-cancelar').onclick = cerrarModal;
+  $('#as-guardar').onclick = async () => {
+    const nuevo = {}; lista.forEach(u => nuevo[u.id] = []);
+    $$('[data-asig]').forEach(sel => { if (sel.value) nuevo[sel.value].push(sel.dataset.asig); });
+    for (const u of lista) {
+      const antes = escuelasDeAtp(u).slice().sort().join(','), ahora_ = nuevo[u.id].slice().sort().join(',');
+      const c = contactoAtp(u);
+      if (antes === ahora_ && c.cct) continue;
+      const r = await accion('guardarContacto', Object.assign({}, c, { cct: nuevo[u.id].join(',') || '-' }), res => poner(S.dir, res.contacto));
+      if (!r) return;
+    }
+    cerrarModal(); pintar(); aviso('Asignación guardada.', 'ok', 2500);
+  };
 }
 
 /* Cargar las reuniones que ya traen sus acuerdos */
@@ -1437,7 +1502,8 @@ const Demo = (() => {
     const h = hoy();
     const dir = ESC.map((e, i) => ({ id: 'd-' + e[1], tipo: 'director', nombre: 'Dirección de ejemplo ' + (i + 1), cargo: e[3] ? 'Encargado(a) de despacho' : 'Director(a)', cct: e[1], escuela: e[0], municipio: e[2], multigrado: e[3], correo1: 'direccion' + (i + 1) + '@ejemplo.mx', correo2: '', whatsapp: '', activo: true }));
     const NOMS = ['Laura Ejemplo Ruiz', 'Mario Ejemplo Soto', 'Rosa Ejemplo Vega', 'Pedro Ejemplo Luna'];
-    const atps = [1, 2, 3, 4].map(n => ({ id: 'a-' + n, tipo: 'atp', nombre: NOMS[n - 1], cargo: 'ATP de la Supervisión', cct: '', escuela: '', municipio: '', multigrado: false, correo1: 'atp' + n + '@ejemplo.mx', correo2: '', whatsapp: '', activo: true }));
+    const REP = [['02DPR0425Z', '02DPR0014Y'], ['02DPR0593W', '02DPR0556S', '02DPR0012Z', '02DPR0382S'], ['02DPR0077J', '02DPR0150B', '02DPR0378F', '02DPR0882N'], ['02DPR0210Z', '02DPR0862Z', '02DPR0379E', '02DPR0684N']];
+    const atps = [1, 2, 3, 4].map(n => ({ id: 'a-' + n, tipo: 'atp', nombre: NOMS[n - 1], cargo: 'ATP de la Supervisión', cct: REP[n - 1].join(','), escuela: '', municipio: '', multigrado: false, correo1: 'atp' + n + '@ejemplo.mx', correo2: '', whatsapp: '', activo: true }));
     const usr = [{ id: 'u-carlos', nombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', rol: 'admin', contacto: '', correo: 'supervision@ejemplo.mx', whatsapp: '', activo: true, conEnlace: true }]
       .concat(atps.map(a => ({ id: 'u-' + a.id.slice(2), nombre: a.nombre, rol: 'atp', contacto: a.id, correo: a.correo1, whatsapp: '', activo: true, conEnlace: a.id !== 'a-4' })));
     const base = { estado: 'programada', enviado: {}, calEventId: '', creadoPor: 'u-carlos', creado: ahora(), actualizado: ahora(), confidencial: false, destinatarios: [] };
