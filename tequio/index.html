@@ -187,6 +187,49 @@ main{padding:20px 0 40px}
 .mensaje{white-space:pre-wrap;background:#fff;border:1px solid var(--borde);border-radius:9px;padding:10px 12px;font-size:14.5px;max-height:220px;overflow:auto}
 .enlace-caja{word-break:break-all;background:#fff;border:1px solid var(--borde);border-radius:9px;padding:10px 12px;font-size:13.5px}
 
+/* Acuerdos: checklist y avance */
+.tablero{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr);gap:16px;margin-bottom:16px;align-items:start}
+@media (max-width:860px){.tablero{grid-template-columns:1fr}}
+@media (max-width:520px){.general .anillo{width:96px;height:96px}}
+.general{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.general-tx{flex:1;min-width:200px}
+.general .num{font-family:'Fraunces',serif;font-size:22px;color:var(--indigo)}
+.anillo{flex:none;display:block}
+.barras{display:flex;flex-direction:column;padding:2px 14px 12px}
+.fila-av{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(80px,1fr) 44px;gap:10px;align-items:center;padding:7px 0;border:0;border-top:1px solid var(--borde);background:none;text-align:left;width:100%;color:inherit;text-decoration:none;cursor:pointer}
+.barras .fila-av:first-child{border-top:0}
+div.fila-av{cursor:default;border-top:0}
+button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
+.fila-av .nom{font-size:14.5px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.fila-av .pct{font-size:14px;font-weight:700;text-align:right;color:var(--tinta);font-variant-numeric:tabular-nums}
+.barra-av{display:block;height:10px;border-radius:999px;background:var(--arena-2);overflow:hidden}
+.barra-av i{display:block;height:100%;border-radius:4px;background:var(--indigo);min-width:0}
+.reunion{margin-bottom:16px;overflow:hidden}
+.reunion-cab{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:14px 16px 8px}
+.reunion-cab h2{font-size:20px;margin:6px 0 2px;line-height:1.25}
+.reunion-av{display:flex;align-items:center;gap:8px}
+.acu-fila{display:grid;grid-template-columns:42px minmax(0,1fr) 150px auto;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--borde)}
+.acu-num{font-family:'Fraunces',serif;font-weight:600;color:var(--terra-d);font-size:16px}
+.acu-av{display:flex;align-items:center;gap:8px}
+.acu-av .barra-av{flex:1}
+@media (max-width:640px){.acu-fila{grid-template-columns:34px minmax(0,1fr)}.acu-av,.acu-fila>.boton{grid-column:2}.acu-fila>.boton{justify-self:start}}
+.checklist{display:flex;flex-direction:column;border:1px solid var(--borde);border-radius:10px;background:#fff;max-height:52vh;overflow:auto}
+.checklist.sin-borde{border:0;border-radius:0;background:none;max-height:none}
+.chk-fila{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-top:1px solid var(--borde)}
+.chk-fila:first-child{border-top:0}
+.chk-fila.hecho{background:var(--ok-f)}
+.chk-fila.no_aplica{opacity:.6}
+.chk{display:flex;gap:10px;align-items:flex-start;flex:1;cursor:pointer;min-width:0;font-size:15px}
+.chk input{width:22px;height:22px;margin:1px 0 0;flex:none;accent-color:var(--ok)}
+.na{font-size:13px;color:var(--gris);display:flex;gap:5px;align-items:center;white-space:nowrap;cursor:pointer}
+.chk-acc{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.enlace{background:none;border:0;color:var(--indigo);font-size:13px;font-weight:600;cursor:pointer;padding:2px 0;text-decoration:underline;white-space:nowrap}
+.acu-ed{border:1px solid var(--borde);border-radius:10px;padding:8px;margin-bottom:8px;background:var(--crema);display:flex;flex-direction:column;gap:6px}
+.acu-ed input,.acu-ed textarea{border:1px solid var(--borde);border-radius:8px;padding:7px 9px;background:#fff;width:100%;min-height:38px}
+.acu-ed textarea{min-height:56px;resize:vertical}
+.acu-ed .fila{gap:6px}
+@media (max-width:520px){.acu-ed .fila:not([style]){grid-template-columns:1fr 1fr}.acu-ed .fila input[data-k=responsable]{grid-column:1/-1}}
+
 /* Avisos flotantes */
 #avisos{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:80;display:flex;flex-direction:column;gap:8px;width:min(520px,calc(100% - 24px))}
 @media (max-width:760px){#avisos{bottom:84px}}
@@ -247,6 +290,7 @@ main{padding:20px 0 40px}
   <symbol id="i-tel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 6.8 6.8l1.4-2.2 4.3 1.7V19a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 3.5 5.1 1.5 1.5 0 0 1 5 3.5z"/></symbol>
   <symbol id="i-copiar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/></symbol>
   <symbol id="i-act" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 1 1 17.7 6M20 4v5h-5"/></symbol>
+  <symbol id="i-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l1.8 1.8L8.5 4.5M3.5 12.5l1.8 1.8 3.2-3.3M3.5 19l1.8 1.8 3.2-3.3M12 6.5h8.5M12 13h8.5M12 19.5h8.5"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -283,8 +327,8 @@ const AVISOS = {
 };
 
 let cfg = null;          // { s: url del servidor, k: llave personal } o { demo: true }
-let S = null;            // datos: yo, act, seg, dir, usr, cuota
-let vista = { tab: 'agenda', mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '' };
+let S = null;            // datos: yo, act, seg, dir, usr, cuota, reu, acu, cum (checklist de acuerdos)
+let vista = { tab: 'agenda', mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null };
 
 /* ---------------- Utilidades ---------------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -381,7 +425,8 @@ async function cargar() {
   cargando(true);
   try {
     const r = await api('datos');
-    S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota };
+    S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
+      reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null };
     pintar();
   } catch (e) {
     if (!S) portada(e.message); else aviso(esc(e.message), 'mal', 9000);
@@ -444,7 +489,7 @@ function portada(mensaje) {
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
-  const l = [['agenda', 'Agenda', 'i-cal'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -461,10 +506,10 @@ function pintar() {
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}</button>`).join('')}</nav>`;
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, seguimiento: vSeguimiento, directorio: vDirectorio, enlaces: vEnlaces })[vista.tab]();
+  ({ agenda: vAgenda, acuerdos: vAcuerdos, seguimiento: vSeguimiento, directorio: vDirectorio, enlaces: vEnlaces })[vista.tab]();
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -811,10 +856,14 @@ function vEscuela(cct) {
       ${correos(c).length ? `<a class="boton sec chico" href="mailto:${correos(c).join(',')}">${ico('i-correo')}Correo</a>` : ''}
     </div>
   </div>
+  ${S.acu && S.acu.length ? (() => { const ax = avance(S.acu, [cct]); return `<div class="tarjeta pad" style="margin-bottom:14px;display:flex;gap:12px 16px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px"><div class="seccion-t" style="padding:0 0 6px">Checklist de acuerdos de reuniones</div>${barraAv(ax, c.escuela)}<div class="peq" style="margin-top:6px"><b>${ax.pct}%</b> · ${ax.hecho} de ${ax.total} cumplidos${ax.vencidos ? ` · <span style="color:var(--alerta)">${ax.vencidos} con fecha vencida</span>` : ''}</div></div>
+    <button class="boton sec chico" id="b-chk">${ico('i-chk')}Ver y palomear</button></div>`; })() : ''}
   ${prox.length ? `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t">Próximas actividades en esta escuela</div><div class="lista-act">${prox.map(filaAct).join('')}</div></div>` : ''}
   <h2 style="font-size:20px;margin:6px 0 10px">Visitas y acuerdos</h2>
   ${ss.length ? ss.map(s => tarjetaSeg(s)).join('') : '<div class="tarjeta vacio">Aún no hay seguimiento registrado en esta escuela.</div>'}`;
   $('#b-volver').onclick = () => { vista.escuela = null; vSeguimiento(); };
+  if ($('#b-chk')) $('#b-chk').onclick = () => { vista.tab = 'acuerdos'; vista.acuEsc = cct; vista.escuela = null; pintar(); window.scrollTo(0, 0); };
   $('#b-nseg').onclick = () => formSeguimiento(null, { cct });
   $$('[data-act]').forEach(b => b.onclick = () => detalleActividad(b.dataset.act));
   enlazarSeg();
@@ -985,6 +1034,348 @@ function formContacto(id) {
   };
 }
 
+/* ---------------- Acuerdos de reuniones ya celebradas (se cargan una vez) ---------------- */
+const SEMILLA = [
+  {
+    reunion: { id: 'reu-2026-09-09-dir', titulo: 'Reunión extraordinaria de directores', tipo: 'reunion', fecha: '2026-09-09', horario: '', lugar: 'Centro Integrador del Bienestar, Camalú', descripcion: 'Acuerdos y compromisos de la reunión extraordinaria de directores. La columna «Punto del acta» se conserva en la nota de cada acuerdo.' },
+    acuerdos: [
+      ['A. Órganos colegiados y documentos rectores', '1', 'Conformar el Consejo de Participación Escolar y elaborar su acta de instalación.', 'Director(a)', '2026-09-30', '30 sep 2026', 'Punto 2 del acta.'],
+      ['A. Órganos colegiados y documentos rectores', '2', 'Tener en la dirección la Guía Operativa 2026-2027 impresa y firmada.', 'Director(a)', '', 'Sin fecha', 'Punto 4 del acta.'],
+      ['A. Órganos colegiados y documentos rectores', '3', 'Conformar el Comité de Evaluación y Seguimiento, con acta firmada e impresa en la dirección.', 'Director(a)', '', 'Sin fecha', 'Punto 4 del acta.'],
+      ['B. Planeación', '4', 'Contar con el Programa Analítico de la escuela y de cada grado.', 'Director(a) y colectivo docente', '', 'Sin fecha', 'Punto 5 del acta.'],
+      ['B. Planeación', '5', 'Elaborar el Programa de Mejora Continua a partir de la lectura de la realidad, con lo que realmente se requiere.', 'Director(a) y colectivo docente', '', 'Sin fecha', 'Punto 6 del acta.'],
+      ['C. Estadística y evaluación', '6', 'Integrar la estadística inicial (formato 911) con corte al 30 de septiembre y llenar el Excel que compartirá la Supervisión.', 'Director(a)', '2026-09-30', '30 sep 2026', 'Punto 3 del acta.'],
+      ['C. Estadística y evaluación', '7', 'Aplicar el SisAT y los niveles conceptuales en las fechas que dé a conocer la Supervisión.', 'Director(a) y colectivo docente', '', 'Por confirmar', 'Punto 7 del acta.'],
+      ['C. Estadística y evaluación', '8', 'Aplicar los Ejercicios Integradores de Aprendizaje con los materiales entregados.', 'Colectivo docente', '2026-10-07', 'Antes del 7 oct', 'Punto 8 del acta.'],
+      ['C. Estadística y evaluación', '9', 'Enviar el Excel de resultados de los Ejercicios Integradores a la Supervisión y al correo de la plataforma.', 'Director(a)', '2026-10-07', '7 oct 2026', 'Punto 8 del acta.'],
+      ['D. Seguridad y control escolar', '10', 'Asegurar la asistencia a la capacitación de Seguridad Escolar (PPIE) por fases: docentes de 1° y 2°, 3° y 4°, 5° y 6°, así como maestro de Educación Física, intendente, director y ATP.', 'Director(a)', '2026-10-06', '29 sep, 1 y 6 oct', 'Punto 9 del acta.'],
+      ['D. Seguridad y control escolar', '11', 'Contar con el formato de acceso y salida del centro escolar por alumno.', 'Director(a)', '', 'Sin fecha', 'Punto 10 del acta.'],
+      ['D. Seguridad y control escolar', '12', 'Tener el croquis o las áreas asignadas de guardias en recreo, firmado y conocido por todos los docentes.', 'Director(a)', '', 'Sin fecha', 'Punto 11 del acta.'],
+      ['D. Seguridad y control escolar', '13', 'Trabajar el Atlas de Riesgo y el proyecto de seguridad escolar: riesgos preventivos alrededor de la escuela (inundaciones, entre otros).', 'Director(a) y colectivo docente', '', 'Sin fecha', 'Punto 15 del acta.'],
+      ['D. Seguridad y control escolar', '14', 'Dar seguimiento a las fumigaciones en la escuela.', 'Director(a)', '', 'Sin fecha', 'Punto 15 del acta.'],
+      ['E. Personal', '15', 'Tener el horario de la escuela y del personal docente y de apoyo (mismo horario en todas las escuelas). Intendente: 6:00 a 13:00 y 12:00 a 19:00 h.', 'Director(a)', '', 'Sin fecha', 'Punto 12 del acta.'],
+      ['E. Personal', '16', 'Revisar los horarios de los intendentes.', 'Director(a)', '', 'Sin fecha', 'Punto 15 del acta.'],
+      ['E. Personal', '17', 'Que todos los docentes llenen la hoja de actualización de datos y digitalizarlas por escuela como respaldo.', 'Director(a)', '', 'A la brevedad', 'Punto 13 del acta.'],
+      ['E. Personal', '18', 'Llevar el control de permisos económicos: 3 permisos por año fiscal (enero a diciembre), en el libro de firmas.', 'Director(a)', '', 'Permanente', 'Punto 15 del acta.'],
+      ['F. Comunicación y seguimiento', '19', 'Usar el grupo de WhatsApp solo para enviar formatos e información que se pueda necesitar después.', 'Director(a)', '', 'Permanente', 'Punto 14 del acta.'],
+      ['F. Comunicación y seguimiento', '20', 'Prepararse para las visitas de asesoría, acompañamiento y seguimiento de los asesores asignados (área pedagógica).', 'Director(a) y colectivo docente', '', 'Después de octubre', 'Punto 1 del acta.']
+    ].map((x, i) => ({ id: 'acu-0909-' + pad(i + 1), seccion: x[0], numero: x[1], texto: x[2], responsable: x[3], limite: x[4], plazo: x[5], nota: x[6] })),
+    actividades: [
+      { id: 'act-0909-reunion', titulo: 'Reunión extraordinaria de directores', tipo: 'reunion', fecha: '2026-09-09', lugar: 'Centro Integrador del Bienestar, Camalú', proposito: 'Acuerdos y compromisos del inicio del ciclo 2026-2027. Ver la pestaña Acuerdos.', estado: 'realizada' }
+    ]
+  },
+  {
+    reunion: { id: 'reu-2026-09-23-ctz', titulo: 'Primera Sesión Ordinaria del Consejo Técnico de Zona (CTZ)', tipo: 'ctz', fecha: '2026-09-23', horario: '9:15 a 12:30 h', lugar: 'Oficina de la Supervisión Escolar', descripcion: 'Propósitos: conocer el cuadernillo de la Primera Sesión Ordinaria de CTE; dominar los tres momentos (Codiseño del Programa Analítico, Programa de Mejora Continua e Itinerario del ciclo); acordar qué queda por escrito.' },
+    acuerdos: [
+      ['01 Primera Sesión Ordinaria de CTE', '1.1', 'Conocer y utilizar el cuadernillo de la Primera Sesión Ordinaria como guía para conducir el CTE con el colectivo docente.', 'Director(a)', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.2', 'Dominar y desarrollar los tres momentos de la sesión: a) Codiseño del Programa Analítico de la escuela; b) Programa de Mejora Continua (PMC); c) Itinerario del CTE del ciclo escolar 2026–2027.', 'Director(a) y colectivo docente', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.3', 'Programa Analítico: partir de la lectura de la realidad y codiseñar los PDA adaptados a cada grupo.', 'Colectivo docente', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.4', 'Considerar los elementos del Programa Analítico: 1. Diagnóstico socioeducativo · 2. Integración curricular · 3. Contextualización · 4. Incorporación de contenidos · 5. Secuenciación y temporalidad · 6. Orientaciones.', 'Colectivo docente', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.5', 'PMC: fortalecer las capacidades de la escuela para garantizar el derecho a la educación, definiendo sus actividades permanentes.', 'Director(a) y colectivo docente', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.6', 'Elaborar el Itinerario del CTE 2026–2027.', 'Director(a) y colectivo docente', '2026-09-25', '25 sep 2026', ''],
+      ['01 Primera Sesión Ordinaria de CTE', '1.7', 'Dejar por escrito los acuerdos de la sesión y resguardar los productos en la escuela para su revisión en las visitas de la mesa técnica.', 'Director(a)', '2026-09-25', '25 sep 2026', 'Los productos no se entregan a la Supervisión.'],
+      ['02 Sesiones de CTE durante el ciclo', '2.1', 'Compartir con la Supervisión el calendario de temas para las sesiones de CTE de cada escuela.', 'Director(a)', '', 'Por definir', ''],
+      ['03 Ley Daryela · Primer momento de capacitación', '3.1', 'Analizar con el colectivo la Ley Daryela: ¿por qué surge?, ¿qué establece? y ¿a qué estamos obligados?', 'Director(a) y colectivo docente', '', 'Por definir', ''],
+      ['03 Ley Daryela · Primer momento de capacitación', '3.2', 'Asegurar que todo el personal participe en el webinar (primer momento de capacitación). Es una obligación legal que se cursa y se acredita cada año.', 'Director(a) y todo el personal', '', 'Según calendario', 'Evidencia: constancia de acreditación por persona.'],
+      ['04 Seguridad escolar', '4.1', 'Revisar, difundir y aplicar lo esencial del Protocolo de Acceso y Salida en cada escuela.', 'Director(a)', '', 'Permanente', ''],
+      ['05 Asuntos generales: capacitación y calendario', '5.1', 'Capacitación — 1ª sesión.', 'Directores(as)', '2026-09-29', '29 sep 2026', ''],
+      ['05 Asuntos generales: capacitación y calendario', '5.2', 'Capacitación — 2ª sesión.', 'Directores(as)', '2026-10-06', '6 oct 2026', ''],
+      ['05 Asuntos generales: capacitación y calendario', '5.3', 'Capacitación — 3ª sesión (cambia al turno de la tarde).', 'Directores(as)', '2026-10-20', '20 oct 2026 (tarde)', ''],
+      ['05 Asuntos generales: capacitación y calendario', '5.4', 'Mes de octubre: inauguración de la Biblioteca Escolar, con actividad (Érase una vez).', 'Director(a) y colectivo docente', '2026-10-23', '19 al 23 oct 2026', ''],
+      ['05 Asuntos generales: capacitación y calendario', '5.5', 'Prever la organización escolar: el 8 de octubre, Día del Profesor de Educación Física, los docentes de EF no asisten a las escuelas.', 'Director(a)', '2026-10-08', '8 oct 2026', ''],
+      ['06 Actividades deportivas de zona', '6.1', 'Torneo de Ajedrez.', 'Directores(as) y docentes de EF', '2026-10-27', '27 oct 2026', 'Sede: Esc. Belisario Domínguez.'],
+      ['06 Actividades deportivas de zona', '6.2', 'Torneo de Fútbol 5x5.', 'Directores(as) y docentes de EF', '2026-11-18', '18 nov 2026', 'Sede: Esc. Maximino Virgen Flores.'],
+      ['06 Actividades deportivas de zona', '6.3', 'Atletismo.', 'Directores(as) y docentes de EF', '2026-12-10', '10 dic 2026', 'Sede por definir.'],
+      ['06 Actividades deportivas de zona', '6.4', 'Apoyar a los docentes de Educación Física en la organización de los eventos deportivos.', 'Director(a)', '', 'Permanente', '']
+    ].map((x, i) => ({ id: 'acu-0923-' + pad(i + 1), seccion: x[0], numero: x[1], texto: x[2], responsable: x[3], limite: x[4], plazo: x[5], nota: x[6] })),
+    actividades: [
+      { id: 'act-0923-ctz', titulo: 'Primera Sesión Ordinaria del CTZ', tipo: 'reunion', fecha: '2026-09-23', horaInicio: '09:15', horaFin: '12:30', lugar: 'Oficina de la Supervisión Escolar', proposito: 'Directoras y directores de la Zona 050. Ver la pestaña Acuerdos.', estado: 'realizada' },
+      { id: 'act-0923-biblio', titulo: 'Inauguración de la Biblioteca Escolar (del 19 al 23 de octubre)', tipo: 'evento', fecha: '2026-10-19', lugar: 'En cada escuela', proposito: 'Inauguración con actividad «Érase una vez», durante la semana del 19 al 23 de octubre.' },
+      { id: 'act-0923-cap3', titulo: 'Capacitación de directores · 3ª sesión (por la tarde)', tipo: 'capacitacion', fecha: '2026-10-20', lugar: '', proposito: 'La 3ª sesión cambia al turno de la tarde.' },
+      { id: 'act-0923-ajedrez', titulo: 'Torneo de Ajedrez de zona', tipo: 'evento', fecha: '2026-10-27', lugar: 'Esc. Belisario Domínguez', proposito: 'Directores(as) y docentes de Educación Física.' },
+      { id: 'act-0923-futbol', titulo: 'Torneo de Fútbol 5x5 de zona', tipo: 'evento', fecha: '2026-11-18', lugar: 'Esc. Maximino Virgen Flores', proposito: 'Directores(as) y docentes de Educación Física.' },
+      { id: 'act-0923-atletismo', titulo: 'Atletismo de zona', tipo: 'evento', fecha: '2026-12-10', lugar: 'Sede por definir', proposito: 'Directores(as) y docentes de Educación Física.' }
+    ]
+  }
+];
+
+/* ---------------- Checklist de acuerdos: consultas ---------------- */
+const TIPOS_REU = { reunion: 'Reunión de directores', ctz: 'Consejo Técnico de Zona', cte: 'Consejo Técnico Escolar', mesa: 'Reunión de Mesa Técnica', otro: 'Otra reunión' };
+const reuniones = () => (S.reu || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+const acuerdosReu = id => (S.acu || []).filter(x => x.reunionId === id).sort((a, b) => (+a.orden || 0) - (+b.orden || 0));
+const aplicaA = (x, cct) => !(x.escuelas || []).length || x.escuelas.includes(cct);
+const marcaDe = (acuId, cct) => (S.cum || []).find(m => m.id === acuId + '|' + cct);
+const estadoDe = (acuId, cct) => { const m = marcaDe(acuId, cct); return m ? m.estado : 'pendiente'; };
+const limiteVencido = x => !!x.limite && x.limite < hoy();
+function avance(lista, ccts) {
+  const r = { hecho: 0, total: 0, noAplica: 0, vencidos: 0 };
+  lista.forEach(x => ccts.forEach(c => {
+    if (!aplicaA(x, c)) return;
+    const e = estadoDe(x.id, c);
+    if (e === 'no_aplica') { r.noAplica++; return; }
+    r.total++;
+    if (e === 'hecho') r.hecho++; else if (limiteVencido(x)) r.vencidos++;
+  }));
+  r.pct = r.total ? Math.round(r.hecho * 100 / r.total) : 0;
+  r.pend = r.total - r.hecho;
+  return r;
+}
+function acuerdosFiltro() {
+  return (S.acu || []).filter(x => !vista.acuReu || x.reunionId === vista.acuReu);
+}
+function anillo(pct, tam = 128, etiqueta = 'cumplido') {
+  const r = 52, c = 2 * Math.PI * r, lleno = c * pct / 100;
+  return `<svg class="anillo" width="${tam}" height="${tam}" viewBox="0 0 128 128" role="img" aria-label="${pct}% ${etiqueta}">
+    <circle cx="64" cy="64" r="${r}" fill="none" stroke="var(--arena-2)" stroke-width="13"/>
+    ${pct > 0 ? `<circle cx="64" cy="64" r="${r}" fill="none" stroke="var(--indigo)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${Math.max(lleno - 0.01, 0.01)} ${c}" transform="rotate(-90 64 64)"/>` : ''}
+    <text x="64" y="66" text-anchor="middle" font-family="Fraunces, Georgia, serif" font-size="30" font-weight="600" fill="var(--tinta)">${pct}%</text>
+    <text x="64" y="86" text-anchor="middle" font-size="12" fill="var(--gris)">${etiqueta}</text>
+  </svg>`;
+}
+const barraAv = (a, titulo) => `<span class="barra-av" title="${esc(titulo || '')}${titulo ? ': ' : ''}${a.hecho} de ${a.total} cumplidos (${a.pct}%)"><i style="width:${a.pct}%"></i></span>`;
+
+/* ---------------- Vista: Acuerdos ---------------- */
+function vAcuerdos() {
+  if (!S.acu) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Acuerdos</h1></div>
+      <div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">La página ya trae el checklist de acuerdos, pero el servidor de Tequio todavía tiene la versión anterior. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> en la guía (toma unos 5 minutos) y vuelva a abrir Tequio.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
+    return;
+  }
+  if (vista.acuEsc) return vChecklistEscuela(vista.acuEsc);
+  const dirs = directores().filter(c => !vista.municipio || c.municipio === vista.municipio);
+  const ccts = dirs.map(c => c.cct);
+  const lista = acuerdosFiltro();
+  const total = avance(lista, ccts);
+  const faltan = SEMILLA.filter(p => !(S.reu || []).find(r => r.id === p.reunion.id));
+  const porEsc = dirs.map(c => ({ c, a: avance(lista, [c.cct]) })).sort((x, y) => y.a.pct - x.a.pct || x.c.escuela.localeCompare(y.c.escuela, 'es'));
+  const reus = reuniones().filter(r => !vista.acuReu || r.id === vista.acuReu);
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Acuerdos y compromisos</h1>
+    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-importar">${ico('i-copiar')}Importar</button><button class="boton terra" id="b-nreu">${ico('i-mas')}Nueva reunión</button>` : ''}</div></div>
+  ${esAdmin() && faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><b>Acuerdos listos para cargar:</b> ${faltan.map(p => esc(p.reunion.titulo) + ' (' + fechaCorta(p.reunion.fecha) + ')').join(' y ')}. Se agregan también sus fechas clave a la agenda, sin enviar correos.</div>
+      <button class="boton" id="b-semilla">Cargar ahora</button></div>` : ''}
+  ${!(S.reu || []).length ? `<div class="tarjeta vacio">Aún no hay reuniones con acuerdos registrados.</div>` : `
+  <div class="filtros">
+    <select id="f-reu" aria-label="Reunión"><option value="">Todas las reuniones</option>${reuniones().map(r => `<option value="${r.id}" ${vista.acuReu === r.id ? 'selected' : ''}>${fechaCorta(r.fecha)} · ${esc(r.titulo)}</option>`).join('')}</select>
+    <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>
+  </div>
+  <div class="tablero">
+    <div class="tarjeta pad general">
+      ${anillo(total.pct)}
+      <div class="general-tx">
+        <div class="seccion-t" style="padding:0 0 4px">Avance de la zona</div>
+        <div><b class="num">${total.hecho}</b> de <b class="num">${total.total}</b> compromisos cumplidos</div>
+        <div class="peq mudo">${lista.length} acuerdo${lista.length === 1 ? '' : 's'} × ${dirs.length} escuela${dirs.length === 1 ? '' : 's'}${total.noAplica ? ' · ' + total.noAplica + ' marcados «no aplica»' : ''}</div>
+        <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <span class="chip aviso">${total.pend} pendiente${total.pend === 1 ? '' : 's'}</span>
+          ${total.vencidos ? `<span class="chip mal">${total.vencidos} con fecha vencida</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="seccion-t">Avance por escuela</div>
+      <div class="barras">${porEsc.map(({ c, a }) => `<button class="fila-av" data-chk="${c.cct}" aria-label="${esc(c.escuela)}: ${a.pct}% cumplido. Abrir su checklist">
+        <span class="nom">${esc(c.escuela)}${a.vencidos ? ` <span class="chip mal" title="Compromisos con fecha vencida">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
+    </div>
+  </div>
+  ${reus.length > 1 ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Avance por reunión</div>
+    <div class="barras">${reus.map(r => { const a = avance(acuerdosReu(r.id), ccts); return `<a class="fila-av" href="#r-${r.id}"><span class="nom">${esc(r.titulo)}<br><span class="ayuda">${fechaCorta(r.fecha)}</span></span>${barraAv(a, r.titulo)}<span class="pct">${a.pct}%</span></a>`; }).join('')}</div></div>` : ''}
+  ${reus.map(r => tarjetaReunion(r, ccts)).join('')}`}`;
+  if ($('#f-reu')) $('#f-reu').onchange = e => { vista.acuReu = e.target.value; vAcuerdos(); };
+  if ($('#f-mun')) $('#f-mun').onchange = e => { vista.municipio = e.target.value; vAcuerdos(); };
+  $$('[data-chk]').forEach(b => b.onclick = () => { vista.acuEsc = b.dataset.chk; vAcuerdos(); window.scrollTo(0, 0); });
+  $$('[data-palomear]').forEach(b => b.onclick = () => palomearAcuerdo(b.dataset.palomear));
+  $$('[data-ereu]').forEach(b => b.onclick = () => formReunion(b.dataset.ereu));
+  if ($('#b-nreu')) $('#b-nreu').onclick = () => formReunion(null);
+  if ($('#b-importar')) $('#b-importar').onclick = importarReunion;
+  if ($('#b-semilla')) $('#b-semilla').onclick = () => cargarSemilla(faltan);
+}
+
+function tarjetaReunion(r, ccts) {
+  const acs = acuerdosReu(r.id), a = avance(acs, ccts);
+  const secciones = [];
+  acs.forEach(x => { let s = secciones.find(y => y[0] === x.seccion); if (!s) secciones.push(s = [x.seccion, []]); s[1].push(x); });
+  return `<div class="tarjeta reunion" id="r-${r.id}">
+    <div class="reunion-cab">
+      <div style="flex:1;min-width:220px"><span class="chip indigo">${esc(TIPOS_REU[r.tipo] || TIPOS_REU.otro)}</span>
+        <h2>${esc(r.titulo)}</h2>
+        <div class="peq mudo">${fechaLarga(r.fecha)}${r.horario ? ' · ' + esc(r.horario) : ''}${r.lugar ? ' · ' + esc(r.lugar) : ''}</div></div>
+      <div class="reunion-av">${anillo(a.pct, 76, '')}${esAdmin() ? `<button class="boton sec chico" data-ereu="${r.id}">${ico('i-lapiz')}Editar</button>` : ''}</div>
+    </div>
+    ${r.descripcion ? `<p class="peq" style="margin:0 16px 10px;white-space:pre-line">${esc(r.descripcion)}</p>` : ''}
+    ${secciones.map(([sec, xs]) => `${sec ? `<div class="seccion-t">${esc(sec)}</div>` : ''}
+      ${xs.map(x => { const ax = avance([x], ccts); return `<div class="acu-fila">
+        <span class="acu-num">${esc(x.numero)}</span>
+        <div class="tx"><div>${esc(x.texto)}</div>
+          <div class="ayuda">${x.responsable ? esc(x.responsable) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div>
+        <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}</div>
+        <button class="boton sec chico" data-palomear="${x.id}">${ico('i-seg')}Palomear</button>
+      </div>`; }).join('')}`).join('')}
+    ${!acs.length ? '<div class="vacio peq">Esta reunión no tiene acuerdos.</div>' : ''}
+  </div>`;
+}
+
+/* Palomear un acuerdo en varias escuelas a la vez */
+function palomearAcuerdo(id) {
+  const x = S.acu.find(a => a.id === id); if (!x) return;
+  const dirs = directores().filter(c => aplicaA(x, c.cct));
+  const r = S.reu.find(y => y.id === x.reunionId);
+  const cuerpo = `
+  <p style="margin-top:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}</p>
+  <p class="peq mudo" style="margin-top:-6px">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || 'Sin fecha')}</p>
+  <div class="rapidos"><button type="button" class="boton sec chico" id="p-todas">Todas cumplieron</button><button type="button" class="boton sec chico" id="p-ninguna">Quitar todas</button></div>
+  <div class="checklist" id="p-lista">${dirs.map(c => { const e = estadoDe(x.id, c.cct); return `<div class="chk-fila" data-cct="${c.cct}" data-ini="${e}">
+    <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}><span><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span></span></label>
+    <label class="na"><input type="checkbox" ${e === 'no_aplica' ? 'checked' : ''}> No aplica</label></div>`; }).join('')}</div>`;
+  modal('Palomear acuerdo', cuerpo, '<button class="boton sec" id="p-cancelar">Cancelar</button><button class="boton terra" id="p-guardar">Guardar</button>');
+  $$('#p-lista .na input').forEach(n => n.onchange = () => { const h = n.closest('.chk-fila').querySelector('.chk input'); h.disabled = n.checked; if (n.checked) h.checked = false; });
+  $('#p-todas').onclick = () => $$('#p-lista .chk input').forEach(i => { if (!i.disabled) i.checked = true; });
+  $('#p-ninguna').onclick = () => $$('#p-lista .chk input').forEach(i => { i.checked = false; });
+  $('#p-cancelar').onclick = cerrarModal;
+  $('#p-guardar').onclick = () => {
+    const marcas = $$('#p-lista .chk-fila').map(f => {
+      const e = f.querySelector('.na input').checked ? 'no_aplica' : f.querySelector('.chk input').checked ? 'hecho' : 'pendiente';
+      return e !== f.dataset.ini ? { acuerdoId: x.id, cct: f.dataset.cct, estado: e } : null;
+    }).filter(Boolean);
+    if (!marcas.length) return cerrarModal();
+    accion('marcar', { marcas }, res => { res.cum.forEach(m => poner(S.cum, m)); cerrarModal(); pintar(); aviso('Checklist actualizado: ' + marcas.length + ' escuela' + (marcas.length === 1 ? '' : 's') + '.', 'ok', 2500); });
+  };
+}
+
+/* Checklist de una escuela */
+function vChecklistEscuela(cct) {
+  const c = escuelaDe(cct);
+  if (!c) { vista.acuEsc = null; return vAcuerdos(); }
+  const reus = reuniones().filter(r => !vista.acuReu || r.id === vista.acuReu);
+  const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
+  const a = avance(todos, [cct]);
+  const idx = directores().findIndex(d => d.cct === cct), dl = directores();
+  const ant = dl[(idx - 1 + dl.length) % dl.length], sig = dl[(idx + 1) % dl.length];
+  $('#vista').innerHTML = `
+  <div class="migas"><button id="b-volver">Acuerdos</button> › <span>${esc(c.escuela)}</span></div>
+  <div class="titulo-vista"><h1>${esc(c.escuela)}</h1>
+    <div class="acciones"><button class="icono-btn" id="e-ant" aria-label="Escuela anterior: ${esc(ant.escuela)}">${ico('i-izq')}</button><button class="icono-btn" id="e-sig" aria-label="Escuela siguiente: ${esc(sig.escuela)}">${ico('i-der')}</button></div></div>
+  <div class="tarjeta pad general" style="margin-bottom:14px">
+    ${anillo(a.pct)}
+    <div class="general-tx">
+      <div class="peq mudo">${c.cct} · ${esc(c.municipio)} · ${esc(c.cargo || 'Director(a)')}: ${esc(c.nombre)}</div>
+      <div style="margin-top:4px"><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> compromisos cumplidos</div>
+      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${a.pend} pendiente${a.pend === 1 ? '' : 's'}</span>${a.vencidos ? `<span class="chip mal">${a.vencidos} con fecha vencida</span>` : ''}</div>
+      <div class="barras" style="padding:10px 0 0">${reus.map(r => { const ar = avance(acuerdosReu(r.id), [cct]); return `<div class="fila-av" style="padding:4px 0"><span class="nom peq">${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></div>`; }).join('')}</div>
+    </div>
+  </div>
+  <div class="aviso-caja peq">Toque cada compromiso para palomearlo. Se guarda al momento.</div>
+  ${reus.map(r => { const xs = acuerdosReu(r.id).filter(x => aplicaA(x, cct)); return xs.length ? `<div class="tarjeta" style="margin-bottom:14px">
+    <div class="seccion-t">${fechaCorta(r.fecha)} · ${esc(r.titulo)}</div>
+    <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; const autor = m && usuario(m.marcadoPor); return `<div class="chk-fila ${e}" data-acu="${x.id}">
+      <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}>
+        <span><b>${esc(x.numero)}.</b> ${esc(x.texto)}
+          <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'pendiente' && limiteVencido(x) ? ' · <b style="color:var(--alerta)">fecha vencida</b>' : ''}${e === 'hecho' && m.fecha ? ' · palomeado el ' + fechaCorta(m.fecha) + (autor ? ' por ' + esc(nombreCorto(autor.nombre)) : '') : ''}${m && m.nota ? '<br>Observación: ' + esc(m.nota) : ''}</span></span></label>
+      <div class="chk-acc"><button class="enlace" data-nota>Observación</button><button class="enlace" data-na>${e === 'no_aplica' ? 'Sí aplica' : 'No aplica'}</button></div></div>`; }).join('')}</div></div>` : ''; }).join('') || '<div class="tarjeta vacio">No hay acuerdos registrados.</div>'}`;
+  $('#b-volver').onclick = () => { vista.acuEsc = null; vAcuerdos(); };
+  $('#e-ant').onclick = () => { vista.acuEsc = ant.cct; vAcuerdos(); };
+  $('#e-sig').onclick = () => { vista.acuEsc = sig.cct; vAcuerdos(); };
+  const guardarMarca = (acuId, estado, nota) => accion('marcar', { marcas: [Object.assign({ acuerdoId: acuId, cct, estado }, nota != null ? { nota } : {})] }, res => {
+    res.cum.forEach(m => poner(S.cum, m)); const y = window.scrollY; vAcuerdos(); window.scrollTo(0, y);
+  });
+  $$('.chk-fila[data-acu]').forEach(f => {
+    const id = f.dataset.acu;
+    f.querySelector('.chk input').onchange = e => guardarMarca(id, e.target.checked ? 'hecho' : 'pendiente');
+    f.querySelector('[data-na]').onclick = () => guardarMarca(id, estadoDe(id, cct) === 'no_aplica' ? 'pendiente' : 'no_aplica');
+    f.querySelector('[data-nota]').onclick = () => {
+      const m = marcaDe(id, cct);
+      const n = prompt('Observación o evidencia para este compromiso:', m ? m.nota : '');
+      if (n !== null) guardarMarca(id, estadoDe(id, cct), n.trim());
+    };
+  });
+}
+
+/* Cargar las reuniones que ya traen sus acuerdos */
+async function cargarSemilla(paquetes) {
+  const todas = directores();
+  for (const p of paquetes) {
+    const d = JSON.parse(JSON.stringify(p));
+    d.actividades.forEach(a => { a.escuelas = todas.map(c => c.cct); a.destinatarios = todas.map(c => c.id); a.responsables = [S.yo.id]; });
+    const r = await accion('guardarReunion', d, res => recibirReunion(res));
+    if (!r) return;
+  }
+  vista.acuReu = ''; pintar();
+  aviso('Acuerdos cargados. Ya puede palomear lo que cada escuela haya cumplido.', 'ok', 5000);
+}
+function recibirReunion(res) {
+  poner(S.reu, res.reunion);
+  S.acu = S.acu.filter(x => x.reunionId !== res.reunion.id).concat(res.acuerdos);
+  (res.act || []).forEach(a => poner(S.act, a));
+}
+
+/* Alta y edición de reuniones (solo Supervisión) */
+function formReunion(id, base) {
+  const r = id ? S.reu.find(x => x.id === id) : Object.assign({ titulo: '', tipo: 'reunion', fecha: hoy(), horario: '', lugar: '', descripcion: '' }, base && base.reunion || {});
+  const acs = id ? acuerdosReu(id) : (base && base.acuerdos || []);
+  const filaAc = x => `<div class="acu-ed" data-id="${esc(x.id || '')}">
+    <div class="fila" style="grid-template-columns:90px 1fr 36px"><input aria-label="Número" placeholder="No." value="${esc(x.numero || '')}" data-k="numero"><input aria-label="Sección" placeholder="Sección (opcional)" value="${esc(x.seccion || '')}" data-k="seccion" list="l-secc"><button type="button" class="icono-btn" data-quitar aria-label="Quitar acuerdo">${ico('i-x')}</button></div>
+    <textarea aria-label="Acuerdo" placeholder="Acuerdo o acción a implementar" data-k="texto">${esc(x.texto || '')}</textarea>
+    <div class="fila"><input aria-label="Responsable" placeholder="Responsable" value="${esc(x.responsable || '')}" data-k="responsable"><input type="date" aria-label="Fecha límite" value="${x.limite || ''}" data-k="limite"><input aria-label="Plazo como se escribió" placeholder="Plazo (ej. Permanente)" value="${esc(x.plazo || '')}" data-k="plazo"></div>
+    <input aria-label="Evidencia u observaciones" placeholder="Evidencia u observaciones (opcional)" value="${esc(x.nota || '')}" data-k="nota"></div>`;
+  const cuerpo = `
+  <div class="campo"><label for="r-tit">Nombre de la reunión</label><input id="r-tit" value="${esc(r.titulo)}" placeholder="Ej. Segunda Sesión Ordinaria del CTZ"></div>
+  <div class="fila">
+    <div class="campo"><label for="r-tipo">Tipo</label><select id="r-tipo">${Object.entries(TIPOS_REU).map(([k, v]) => `<option value="${k}" ${r.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+    <div class="campo"><label for="r-fecha">Fecha</label><input type="date" id="r-fecha" value="${r.fecha}"></div>
+    <div class="campo"><label for="r-hor">Horario</label><input id="r-hor" value="${esc(r.horario)}" placeholder="9:00 a 12:00 h"></div>
+  </div>
+  <div class="campo"><label for="r-lugar">Lugar</label><input id="r-lugar" value="${esc(r.lugar)}"></div>
+  <div class="campo"><label for="r-desc">Propósitos o notas (opcional)</label><textarea id="r-desc">${esc(r.descripcion)}</textarea></div>
+  <div class="campo"><span class="et">Acuerdos (cada uno se palomea por escuela)</span>
+    <div id="r-acs">${acs.map(filaAc).join('')}</div>
+    <datalist id="l-secc">${[...new Set((S.acu || []).map(x => x.seccion).filter(Boolean))].map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+    <div><button type="button" class="boton sec chico" id="r-mas">${ico('i-mas')}Agregar acuerdo</button></div>
+  </div>
+  ${id ? '<div class="ayuda">Si quita un acuerdo, deja de contar en el avance (sus palomeos se conservan en la hoja de datos).</div>' : ''}`;
+  modal(id ? 'Editar reunión' : 'Nueva reunión', cuerpo, `${id ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar reunión</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
+  const quitar = () => $$('#r-acs [data-quitar]').forEach(b => b.onclick = () => b.closest('.acu-ed').remove());
+  quitar();
+  if (!acs.length) { $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: '1' })); quitar(); }
+  $('#r-mas').onclick = () => { const prev = $$('#r-acs .acu-ed').pop(); $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: String($$('#r-acs .acu-ed').length + 1), seccion: prev ? prev.querySelector('[data-k=seccion]').value : '' })); quitar(); $$('#r-acs textarea').pop().focus(); };
+  $('#r-cancelar').onclick = cerrarModal;
+  if ($('#r-borrar')) $('#r-borrar').onclick = () => {
+    if (!confirm('¿Quitar «' + r.titulo + '» y todos sus acuerdos del checklist? Los datos se conservan en la hoja de cálculo.')) return;
+    accion('eliminarReunion', { id }, () => { S.reu = S.reu.filter(x => x.id !== id); S.acu = S.acu.filter(x => x.reunionId !== id); cerrarModal(); vista.acuReu = ''; pintar(); aviso('Reunión quitada.', 'ok', 2500); });
+  };
+  $('#r-guardar').onclick = () => {
+    const d = {
+      reunion: { id: id || (base && base.reunion && base.reunion.id) || '', titulo: $('#r-tit').value.trim(), tipo: $('#r-tipo').value, fecha: $('#r-fecha').value, horario: $('#r-hor').value.trim(), lugar: $('#r-lugar').value.trim(), descripcion: $('#r-desc').value.trim() },
+      acuerdos: $$('#r-acs .acu-ed').map(f => { const o = { id: f.dataset.id || undefined }; $$('[data-k]', f).forEach(i => o[i.dataset.k] = i.value.trim()); return o; }).filter(x => x.texto),
+      actividades: (base && base.actividades || [])
+    };
+    if (!d.reunion.titulo) return aviso('Escriba el nombre de la reunión.', 'mal');
+    if (!d.reunion.fecha) return aviso('Elija la fecha de la reunión.', 'mal');
+    if (!d.acuerdos.length) return aviso('Agregue al menos un acuerdo.', 'mal');
+    const todas = directores();
+    d.actividades.forEach(a => { a.escuelas = a.escuelas || todas.map(c => c.cct); a.destinatarios = a.escuelas.map(c => (escuelaDe(c) || {}).id).filter(Boolean); a.responsables = [S.yo.id]; });
+    accion('guardarReunion', d, res => { recibirReunion(res); cerrarModal(); vista.acuReu = ''; vista.acuEsc = null; pintar(); setTimeout(() => { const t = document.getElementById('r-' + res.reunion.id); if (t) t.scrollIntoView({ block: 'start' }); }, 50); aviso('Reunión guardada con ' + res.acuerdos.length + ' acuerdos.', 'ok', 3000); });
+  };
+}
+
+/* Importar el código que prepara Claude a partir del PDF de una minuta o checklist */
+function importarReunion() {
+  modal('Importar acuerdos', `
+    <p class="peq" style="margin-top:0">Pegue aquí el <b>código de importación</b> de una reunión (por ejemplo, el que le prepara Claude a partir del PDF del checklist). Antes de guardar podrá revisarlo y corregirlo.</p>
+    <div class="campo"><textarea id="i-cod" style="min-height:180px;font-family:ui-monospace,monospace;font-size:13px" placeholder='{"reunion": {...}, "acuerdos": [...]}'></textarea></div>`,
+    '<button class="boton sec" id="i-cancelar">Cancelar</button><button class="boton terra" id="i-revisar">Revisar</button>');
+  $('#i-cancelar').onclick = cerrarModal;
+  $('#i-revisar').onclick = () => {
+    let d;
+    try { d = JSON.parse($('#i-cod').value.trim().replace(/^```(json)?|```$/g, '')); } catch (e) { return aviso('El código no es válido. Cópielo completo, desde la primera llave { hasta la última }.', 'mal', 7000); }
+    if (!d || !d.reunion || !Array.isArray(d.acuerdos)) return aviso('Al código le falta la reunión o la lista de acuerdos.', 'mal');
+    const previa = d.reunion.id && S.reu.find(x => x.id === d.reunion.id);
+    if (previa && !confirm('«' + previa.titulo + '» ya está en Tequio. ¿Reemplazar su lista de acuerdos con la del código? Los palomeos de los acuerdos que se conserven no se pierden.')) return;
+    formReunion(null, d);
+  };
+}
+
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
 function vEnlaces() {
   $('#vista').innerHTML = `
@@ -1065,7 +1456,18 @@ const Demo = (() => {
       { id: 'seg-2', actividadId: '', cct: '02DPR0379E', fecha: sumarDias(h, -10), resumen: 'Revisión del Programa Analítico.', acuerdos: [
         { id: 'ac-4', texto: 'Ajustar los contenidos del campo formativo Lenguajes', responsable: 'Dirección de ejemplo 5', revision: sumarDias(h, 2), estado: 'pendiente', avisado: '' }], confidencial: false, minutaEnviada: false, creadoPor: 'u-carlos', creado: ahora(), actualizado: ahora() }
     ];
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96 };
+    // Checklist de ejemplo: las dos reuniones reales con palomeos inventados
+    const reu = [], acu = [], cum = [];
+    SEMILLA.forEach((p, k) => {
+      reu.push(Object.assign({ activo: true, creadoPor: 'u-carlos' }, p.reunion));
+      p.acuerdos.forEach((x, i) => acu.push(Object.assign({ reunionId: p.reunion.id, escuelas: [], orden: String(i + 1), activo: true }, x)));
+    });
+    acu.forEach((x, i) => ESC.forEach((e, j) => {
+      const v = (i * 7 + j * 5 + (x.limite && x.limite < h ? 11 : 0)) % 13;
+      if (v < 8) cum.push({ id: x.id + '|' + e[1], acuerdoId: x.id, cct: e[1], estado: 'hecho', fecha: x.limite && x.limite < h ? x.limite : sumarDias(h, -2), nota: '', marcadoPor: j % 2 ? 'u-1' : 'u-carlos' });
+      else if (v === 12 && e[3]) cum.push({ id: x.id + '|' + e[1], acuerdoId: x.id, cct: e[1], estado: 'no_aplica', fecha: '', nota: '', marcadoPor: 'u-carlos' });
+    }));
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, version: 2 };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -1096,7 +1498,23 @@ const Demo = (() => {
     },
     guardarContacto: d => { const c = Object.assign({}, d, { id: d.id || uid('c') }); poner(D.dir, c); return { contacto: copia(c) }; },
     enlaceUsuario: d => { const u = D.usr.find(x => x.id === d.id); u.conEnlace = true; return { enlace: 'https://carlosog23.github.io/Carlos-Ortega/tequio/ (en la versión real aquí aparece el enlace personal)' }; },
-    anularUsuario: d => { const u = D.usr.find(x => x.id === d.id); u.conEnlace = false; return { usuario: copia(u) }; }
+    anularUsuario: d => { const u = D.usr.find(x => x.id === d.id); u.conEnlace = false; return { usuario: copia(u) }; },
+    guardarReunion: d => {
+      const reu = Object.assign({}, d.reunion, { id: d.reunion.id || uid('reu'), activo: true, creadoPor: D.yo.id });
+      poner(D.reu, reu);
+      const acs = d.acuerdos.map((x, i) => Object.assign({ escuelas: [] }, x, { id: x.id || uid('acu'), reunionId: reu.id, orden: String(i + 1), activo: true }));
+      D.acu = D.acu.filter(x => x.reunionId !== reu.id).concat(acs);
+      const nuevas = (d.actividades || []).filter(a => a.id && !D.act.find(y => y.id === a.id)).map(a => Object.assign({ horaInicio: '', horaFin: '', avisos: [], enviado: {}, confidencial: false, estado: 'programada', creadoPor: D.yo.id }, a));
+      nuevas.forEach(a => D.act.push(a));
+      return { reunion: copia(reu), acuerdos: copia(acs), act: copia(nuevas) };
+    },
+    eliminarReunion: d => { D.reu = D.reu.filter(x => x.id !== d.id); D.acu = D.acu.filter(x => x.reunionId !== d.id); return { id: d.id }; },
+    marcar: d => {
+      const r = d.marcas.map(m => { const id = m.acuerdoId + '|' + m.cct; const p = D.cum.find(x => x.id === id);
+        const o = { id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado, fecha: m.estado === 'hecho' ? ((p && p.estado === 'hecho' && p.fecha) || hoy()) : '', nota: m.nota != null ? m.nota : (p ? p.nota : ''), marcadoPor: D.yo.id };
+        poner(D.cum, o); return o; });
+      return { cum: copia(r) };
+    }
   };
   return { llamar: (accion, datos) => new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
 })();

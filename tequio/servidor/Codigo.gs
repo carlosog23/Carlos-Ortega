@@ -9,6 +9,7 @@
  *  · Atiende a la página de Tequio (cada usuario entra con su enlace personal).
  *  · Envía invitaciones de Google Calendar, avisos y minutas por correo.
  *  · Cada mañana manda los recordatorios del día y los de seguimiento.
+ *  · Lleva el checklist de acuerdos de reuniones y CTZ, escuela por escuela.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -28,9 +29,14 @@ const HOJAS = {
   seg: ['id', 'actividadId', 'cct', 'fecha', 'resumen', 'acuerdos', 'confidencial', 'minutaEnviada', 'creadoPor', 'creado', 'actualizado'],
   dir: ['id', 'tipo', 'nombre', 'cargo', 'cct', 'escuela', 'municipio', 'multigrado', 'correo1', 'correo2', 'whatsapp', 'activo'],
   usr: ['id', 'nombre', 'rol', 'contacto', 'correo', 'whatsapp', 'tokenHash', 'activo', 'creado'],
-  log: ['fecha', 'tipo', 'ref', 'destinatarios', 'asunto', 'resultado']
+  log: ['fecha', 'tipo', 'ref', 'destinatarios', 'asunto', 'resultado'],
+  reu: ['id', 'titulo', 'tipo', 'fecha', 'horario', 'lugar', 'descripcion', 'activo', 'creadoPor', 'creado', 'actualizado'],
+  acu: ['id', 'reunionId', 'seccion', 'numero', 'texto', 'responsable', 'limite', 'plazo', 'nota', 'escuelas', 'orden', 'activo', 'actualizado'],
+  cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado']
 };
-const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos' };
+const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
+  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela' };
+const VERSION = 2;
 const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo'];
 
@@ -118,8 +124,75 @@ const ACCIONES = {
     seg: leer_('seg').filter(s => visible_(yo, s)),
     dir: leer_('dir'),
     usr: leer_('usr').map(publico_),
+    reu: leer_('reu').filter(r => r.activo),
+    acu: leer_('acu').filter(a => a.activo),
+    cum: leer_('cum'),
+    version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
+
+  /* ---- Checklist de acuerdos de reuniones ---- */
+
+  // Crea o actualiza una reunión con su lista de acuerdos (y, opcionalmente, actividades para la agenda).
+  // No envía ningún correo: las actividades importadas quedan sin avisos automáticos.
+  guardarReunion: (yo, d) => {
+    soloAdmin_(yo);
+    const r0 = d.reunion || {};
+    if (!r0.titulo || !r0.fecha) throw new Error('La reunión necesita nombre y fecha.');
+    const previa = r0.id ? buscar_('reu', r0.id) : null;
+    const reu = {
+      id: previa ? previa.id : (r0.id || 'reu-' + Utilities.getUuid().slice(0, 8)),
+      titulo: String(r0.titulo).slice(0, 200), tipo: r0.tipo || 'reunion', fecha: r0.fecha, horario: r0.horario || '',
+      lugar: r0.lugar || '', descripcion: r0.descripcion || '', activo: true,
+      creadoPor: previa ? previa.creadoPor : yo.id, creado: previa ? previa.creado : ahora_(), actualizado: ahora_()
+    };
+    guardar_('reu', reu);
+
+    const nuevos = (d.acuerdos || []).filter(x => x && String(x.texto || '').trim()).map((x, i) => ({
+      id: x.id || 'acu-' + Utilities.getUuid().slice(0, 8), reunionId: reu.id, seccion: x.seccion || '', numero: x.numero || String(i + 1),
+      texto: String(x.texto).trim(), responsable: x.responsable || '', limite: /^\d{4}-\d{2}-\d{2}$/.test(x.limite || '') ? x.limite : '',
+      plazo: x.plazo || '', nota: x.nota || '', escuelas: x.escuelas || [], orden: String(i + 1), activo: true, actualizado: ahora_()
+    }));
+    const ids = nuevos.map(x => x.id);
+    const quitar = leer_('acu').filter(x => x.reunionId === reu.id && x.activo && ids.indexOf(x.id) < 0)
+      .map(x => Object.assign(x, { activo: false, actualizado: ahora_() }));
+    guardarVarios_('acu', nuevos.concat(quitar));
+
+    const existentes = leer_('act').map(a => a.id);
+    const acts = (d.actividades || []).filter(a => a && a.id && existentes.indexOf(a.id) < 0).map(a => Object.assign(limpiarActividad_(a), {
+      id: a.id, avisos: [], confidencial: false, estado: a.estado === 'realizada' ? 'realizada' : 'programada',
+      enviado: {}, calEventId: '', creadoPor: yo.id, creado: ahora_(), actualizado: ahora_()
+    }));
+    if (acts.length) guardarVarios_('act', acts);
+    return { reunion: reu, acuerdos: nuevos, quitados: quitar.map(x => x.id), act: acts };
+  },
+
+  eliminarReunion: (yo, d) => {
+    soloAdmin_(yo);
+    const reu = buscar_('reu', d.id);
+    if (!reu) throw new Error('Reunión no encontrada.');
+    reu.activo = false; reu.actualizado = ahora_();
+    guardar_('reu', reu);
+    const acs = leer_('acu').filter(x => x.reunionId === reu.id && x.activo).map(x => Object.assign(x, { activo: false, actualizado: ahora_() }));
+    guardarVarios_('acu', acs);
+    return { id: reu.id };
+  },
+
+  // Palomea (o despalomea) acuerdos por escuela. Lo puede hacer la Supervisión o cualquier ATP.
+  marcar: (yo, d) => {
+    const acs = leer_('acu'), previos = leer_('cum');
+    const cambios = (d.marcas || []).map(m => {
+      if (['hecho', 'pendiente', 'no_aplica'].indexOf(m.estado) < 0) throw new Error('Estado no válido.');
+      if (!acs.find(a => a.id === m.acuerdoId)) throw new Error('Acuerdo no encontrado.');
+      const id = m.acuerdoId + '|' + m.cct;
+      const p = previos.find(x => x.id === id);
+      return { id: id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado,
+        fecha: m.estado === 'hecho' ? (m.fecha || (p && p.estado === 'hecho' && p.fecha) || hoy_()) : '',
+        nota: m.nota != null ? String(m.nota).slice(0, 500) : (p ? p.nota : ''), marcadoPor: yo.id, actualizado: ahora_() };
+    });
+    guardarVarios_('cum', cambios);
+    return { cum: cambios };
+  },
 
   guardarActividad: (yo, d) => {
     const previa = d.id ? buscar_('act', d.id) : null;
@@ -379,7 +452,17 @@ function boton_(url, texto) {
 
 /* ===================== Utilidades ===================== */
 
-function hoja_(k) { return SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID')).getSheetByName(NOMBRES[k]); }
+function hoja_(k) {
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  let sh = ss.getSheetByName(NOMBRES[k]);
+  if (!sh) {  // Las hojas nuevas de una actualización se crean solas la primera vez que se usan
+    sh = ss.insertSheet(NOMBRES[k]);
+    sh.getRange(1, 1, 1, HOJAS[k].length).setValues([HOJAS[k]]).setFontWeight('bold').setBackground('#1F3A6B').setFontColor('#FFFFFF');
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, sh.getMaxRows(), HOJAS[k].length).setNumberFormat('@');
+  }
+  return sh;
+}
 
 function leer_(k) {
   const sh = hoja_(k), n = sh.getLastRow();
@@ -414,6 +497,26 @@ function guardar_(k, o) {
   const i = ids.indexOf(String(o.id));
   const r = sh.getRange(i >= 0 ? i + 2 : n + 1, 1, 1, cols.length);
   r.setNumberFormat('@').setValues([fila]);
+}
+
+function guardarVarios_(k, lista) {
+  if (!lista.length) return;
+  const sh = hoja_(k), cols = HOJAS[k];
+  const filaDe = o => cols.map(c => {
+    const v = o[c];
+    if (JSON_COLS.indexOf(c) >= 0) return JSON.stringify(v || (c === 'enviado' ? {} : []));
+    if (BOOL_COLS.indexOf(c) >= 0) return v ? 'true' : 'false';
+    return v == null ? '' : String(v);
+  });
+  const n = sh.getLastRow();
+  const ids = n > 1 ? sh.getRange(2, 1, n - 1, 1).getValues().map(r => String(r[0])) : [];
+  const nuevas = [];
+  lista.forEach(o => {
+    const i = ids.indexOf(String(o.id));
+    if (i >= 0) sh.getRange(i + 2, 1, 1, cols.length).setNumberFormat('@').setValues([filaDe(o)]);
+    else { nuevas.push(filaDe(o)); ids.push(String(o.id)); }
+  });
+  if (nuevas.length) sh.getRange(n + 1, 1, nuevas.length, cols.length).setNumberFormat('@').setValues(nuevas);
 }
 
 function limpiarActividad_(d) {
