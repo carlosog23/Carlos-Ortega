@@ -10,6 +10,7 @@
  *  · Envía invitaciones de Google Calendar, avisos y minutas por correo.
  *  · Cada mañana manda los recordatorios del día y los de seguimiento.
  *  · Lleva el checklist de acuerdos de reuniones y CTZ, escuela por escuela.
+ *  · Revisa las carpetas de evidencias del Drive «Supervisión 050» (solo nombres y fechas).
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -32,12 +33,18 @@ const HOJAS = {
   log: ['fecha', 'tipo', 'ref', 'destinatarios', 'asunto', 'resultado'],
   reu: ['id', 'titulo', 'tipo', 'fecha', 'horario', 'lugar', 'descripcion', 'activo', 'creadoPor', 'creado', 'actualizado'],
   acu: ['id', 'reunionId', 'seccion', 'numero', 'texto', 'responsable', 'limite', 'plazo', 'nota', 'escuelas', 'orden', 'activo', 'actualizado'],
-  cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado']
+  cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
+  evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
-  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela' };
-const VERSION = 2;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos'];
+  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive' };
+const VERSION = 3;
+
+// Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
+const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
+// Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
+const CARPETAS_PRIVADAS = /^01-Expedientes/i;
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -108,9 +115,12 @@ function doPost(e) {
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
     if (!f) return json_({ ok: false, error: 'accion', mensaje: 'Acción desconocida.' });
-    const lock = LockService.getScriptLock();
-    lock.waitLock(20000);
-    try { r = f(yo, q.datos || {}); } finally { lock.releaseLock(); }
+    if (q.accion === 'revisarEvidencias') r = f(yo, q.datos || {});  // tarda; se bloquea solo al guardar
+    else {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(20000);
+      try { r = f(yo, q.datos || {}); } finally { lock.releaseLock(); }
+    }
     return json_(Object.assign({ ok: true }, r));
   } catch (err) {
     return json_({ ok: false, error: 'servidor', mensaje: String(err && err.message || err) });
@@ -127,6 +137,8 @@ const ACCIONES = {
     reu: leer_('reu').filter(r => r.activo),
     acu: leer_('acu').filter(a => a.activo),
     cum: leer_('cum'),
+    evi: leer_('evi'),
+    eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
@@ -176,6 +188,12 @@ const ACCIONES = {
     const acs = leer_('acu').filter(x => x.reunionId === reu.id && x.activo).map(x => Object.assign(x, { activo: false, actualizado: ahora_() }));
     guardarVarios_('acu', acs);
     return { id: reu.id };
+  },
+
+  // Revisa ahora las carpetas del Drive (tarda uno o dos minutos)
+  revisarEvidencias: (yo) => {
+    const r = revisarEvidencias_();
+    return Object.assign(r, { evi: leer_('evi'), eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') });
   },
 
   // Palomea (o despalomea) acuerdos por escuela. Lo puede hacer la Supervisión o cualquier ATP.
@@ -373,9 +391,72 @@ function sincronizarCalendario_(a, previa) {
   }
 }
 
+/* ===================== Evidencias en Drive ===================== */
+
+/** Ejecute esta función UNA vez desde el editor después de actualizar, para dar permiso de leer el Drive. */
+function autorizarDrive() {
+  const raiz = DriveApp.getFolderById(CARPETA_EVIDENCIAS);
+  Logger.log('Carpeta encontrada: ' + raiz.getName() + '. Revisando evidencias…');
+  const r = revisarEvidencias_();
+  Logger.log('Listo: ' + r.escuelas + ' escuelas y ' + r.carpetas + ' carpetas revisadas. Ya puede ver la pestaña Evidencias en Tequio.');
+}
+
+function revisarEvidencias_() {
+  const sinAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/^\s*\d+\s*-\s*/, '')
+    .replace(/\b(pte|pdte|presidente)\.?\s*/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const escuelas = leer_('dir').filter(c => c.tipo === 'director');
+  const ahora = ahora_(), filas = [];
+  const raiz = DriveApp.getFolderById(CARPETA_EVIDENCIAS);
+  const sub = raiz.getFolders();
+  let n = 0;
+  while (sub.hasNext()) {
+    const f = sub.next(), nom = sinAcento(f.getName());
+    const esc = escuelas.find(e => sinAcento(e.escuela) === nom) || escuelas.find(e => nom && (sinAcento(e.escuela).indexOf(nom) >= 0 || nom.indexOf(sinAcento(e.escuela)) >= 0));
+    if (!esc) continue;
+    n++;
+    recorrer_(f, '', esc.cct, filas, ahora);
+  }
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    reemplazarTodo_('evi', filas);  // la hoja de evidencias siempre refleja la última revisión completa
+    PropertiesService.getScriptProperties().setProperty('EVI_REVISADO', ahora);
+  } finally { lock.releaseLock(); }
+  return { escuelas: n, carpetas: filas.length };
+}
+
+// Devuelve { archivos, ultimo, ultimoPor, recientes } de la carpeta y todo lo que tiene dentro
+function recorrer_(carpeta, ruta, cct, filas, ahora) {
+  const privada = CARPETAS_PRIVADAS.test(ruta.split('/')[0] || '');
+  let directos = 0, recientes = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const a = it.next();
+    directos++;
+    let por = '';
+    try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {}
+    recientes.push({ f: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), n: privada ? '' : a.getName(), p: por, id: privada ? '' : a.getId() });
+  }
+  let total = directos;
+  const subs = carpeta.getFolders();
+  while (subs.hasNext()) {
+    const s = subs.next();
+    const r = recorrer_(s, ruta ? ruta + '/' + s.getName() : s.getName(), cct, filas, ahora);
+    total += r.archivos;
+    recientes = recientes.concat(r.recientes);
+  }
+  recientes.sort((x, y) => y.f.localeCompare(x.f));
+  recientes = recientes.slice(0, 6);
+  const fila = { id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: carpeta.getId(), directos: String(directos), archivos: String(total),
+    ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes, revisado: ahora };
+  filas.push(fila);
+  return { archivos: total, recientes: recientes };
+}
+
 /* ===================== Tarea diaria (6:00 a. m.) ===================== */
 
 function tareaDiaria() {
+  try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
   acts.forEach(a => {
@@ -497,6 +578,18 @@ function guardar_(k, o) {
   const i = ids.indexOf(String(o.id));
   const r = sh.getRange(i >= 0 ? i + 2 : n + 1, 1, 1, cols.length);
   r.setNumberFormat('@').setValues([fila]);
+}
+
+function reemplazarTodo_(k, lista) {
+  const sh = hoja_(k), cols = HOJAS[k], n = sh.getLastRow();
+  if (n > 1) sh.getRange(2, 1, n - 1, cols.length).clearContent();
+  if (!lista.length) return;
+  const filas = lista.map(o => cols.map(c => {
+    const v = o[c];
+    if (JSON_COLS.indexOf(c) >= 0) return JSON.stringify(v || []);
+    return v == null ? '' : String(v);
+  }));
+  sh.getRange(2, 1, filas.length, cols.length).setNumberFormat('@').setValues(filas);
 }
 
 function guardarVarios_(k, lista) {

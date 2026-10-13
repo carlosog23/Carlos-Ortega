@@ -231,6 +231,28 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .acu-ed .fila{gap:6px}
 @media (max-width:520px){.acu-ed .fila:not([style]){grid-template-columns:1fr 1fr}.acu-ed .fila input[data-k=responsable]{grid-column:1/-1}}
 
+/* Evidencias */
+.matriz-caja{overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch}
+.matriz{border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:100%}
+.matriz th,.matriz td{border-bottom:1px solid var(--borde);padding:6px 6px;text-align:center;vertical-align:middle}
+.matriz thead th{font-size:12px;font-weight:700;color:var(--gris);white-space:nowrap;padding:8px 6px;position:sticky;top:0;background:var(--papel)}
+.matriz .esc-col{position:sticky;left:0;background:var(--papel);text-align:left;min-width:150px;max-width:190px;z-index:1;box-shadow:1px 0 0 var(--borde);padding-left:14px}
+.matriz thead .esc-col{z-index:2}
+.matriz td a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:inherit;border-radius:7px;padding:4px 6px;min-width:58px}
+.matriz td.con a{background:var(--ok-f);color:var(--ok)}
+.matriz td.con a span{font-size:11.5px;color:var(--gris)}
+.matriz td.vacia a{background:var(--arena-2)}
+.matriz td a:hover{outline:2px solid var(--indigo)}
+.matriz .falta{font-size:12px;color:var(--gris)}
+.matriz td.sin{color:var(--borde)}
+.matriz td.pct{font-weight:700;font-variant-numeric:tabular-nums;padding-right:14px}
+.nov{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--borde)}
+.nov-f{flex:none;width:44px;text-align:center;border-radius:9px;background:var(--arena);padding:4px 0;line-height:1.1}
+.nov-f b{display:block;font-family:'Fraunces',serif;font-size:18px;color:var(--indigo)}
+.nov-f span{font-size:11px;text-transform:uppercase;font-weight:700;color:var(--terra-d)}
+.nov .t{font-weight:600;overflow-wrap:anywhere}
+@media (max-width:760px){.nav-movil button{font-size:11px}}
+
 /* Avisos flotantes */
 #avisos{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:80;display:flex;flex-direction:column;gap:8px;width:min(520px,calc(100% - 24px))}
 @media (max-width:760px){#avisos{bottom:84px}}
@@ -292,6 +314,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-copiar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/></symbol>
   <symbol id="i-act" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 1 1 17.7 6M20 4v5h-5"/></symbol>
   <symbol id="i-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l1.8 1.8L8.5 4.5M3.5 12.5l1.8 1.8 3.2-3.3M3.5 19l1.8 1.8 3.2-3.3M12 6.5h8.5M12 13h8.5M12 19.5h8.5"/></symbol>
+  <symbol id="i-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/><path d="M8.5 13.2l2.2 2.2 4.6-4.6"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -427,7 +450,8 @@ async function cargar() {
   try {
     const r = await api('datos');
     S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
-      reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null };
+      reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
+      evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '' };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -515,7 +539,7 @@ function portada(mensaje) {
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
-  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -531,11 +555,11 @@ function pintar() {
   </div></header>
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}</button>`).join('')}</nav>`;
+  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, acuerdos: vAcuerdos, seguimiento: vSeguimiento, directorio: vDirectorio, enlaces: vEnlaces })[vista.tab]();
+  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, enlaces: vEnlaces })[vista.tab]();
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -1253,7 +1277,7 @@ function tarjetaReunion(r, ccts) {
         <span class="acu-num">${esc(x.numero)}</span>
         <div class="tx"><div>${esc(x.texto)}</div>
           <div class="ayuda">${x.responsable ? esc(x.responsable) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div>
-        <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}</div>
+        <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}${(() => { const n = S.evi ? ccts.filter(c => estadoDe(x.id, c) === 'pendiente' && eviAcuerdo(x.id, c)).length : 0; return n ? `<span class="chip ok" title="Escuelas con archivos en Drive y sin palomear">📎 ${n} por revisar</span>` : ''; })()}</div>
         <button class="boton sec chico" data-palomear="${x.id}">${ico('i-seg')}Palomear</button>
       </div>`; }).join('')}`).join('')}
     ${!acs.length ? '<div class="vacio peq">Esta reunión no tiene acuerdos.</div>' : ''}
@@ -1270,7 +1294,7 @@ function palomearAcuerdo(id) {
   <p class="peq mudo" style="margin-top:-6px">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || 'Sin fecha')}</p>
   <div class="rapidos"><button type="button" class="boton sec chico" id="p-todas">Todas cumplieron</button><button type="button" class="boton sec chico" id="p-ninguna">Quitar todas</button></div>
   <div class="checklist" id="p-lista">${dirs.map(c => { const e = estadoDe(x.id, c.cct); return `<div class="chk-fila" data-cct="${c.cct}" data-ini="${e}">
-    <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}><span><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span></span></label>
+    <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}><span><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span>${S.evi ? ' ' + chipEvi(x.id, c.cct) : ''}</span></label>
     <label class="na"><input type="checkbox" ${e === 'no_aplica' ? 'checked' : ''}> No aplica</label></div>`; }).join('')}</div>`;
   modal('Palomear acuerdo', cuerpo, '<button class="boton sec" id="p-cancelar">Cancelar</button><button class="boton terra" id="p-guardar">Guardar</button>');
   $$('#p-lista .na input').forEach(n => n.onchange = () => { const h = n.closest('.chk-fila').querySelector('.chk input'); h.disabled = n.checked; if (n.checked) h.checked = false; });
@@ -1315,6 +1339,7 @@ function vChecklistEscuela(cct) {
     <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; const autor = m && usuario(m.marcadoPor); return `<div class="chk-fila ${e}" data-acu="${x.id}">
       <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}>
         <span><b>${esc(x.numero)}.</b> ${esc(x.texto)}
+          ${S.evi && e !== 'hecho' ? chipEvi(x.id, cct) : ''}
           <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'pendiente' && limiteVencido(x) ? ' · <b style="color:var(--alerta)">fecha vencida</b>' : ''}${e === 'hecho' && m.fecha ? ' · palomeado el ' + fechaCorta(m.fecha) + (autor ? ' por ' + esc(nombreCorto(autor.nombre)) : '') : ''}${m && m.nota ? '<br>Observación: ' + esc(m.nota) : ''}</span></span></label>
       <div class="chk-acc"><button class="enlace" data-nota>Observación</button><button class="enlace" data-na>${e === 'no_aplica' ? 'Sí aplica' : 'No aplica'}</button></div></div>`; }).join('')}</div></div>` : ''; }).join('') || '<div class="tarjeta vacio">No hay acuerdos registrados.</div>'}`;
   $('#b-volver').onclick = () => { vista.acuEsc = null; vAcuerdos(); };
@@ -1441,6 +1466,126 @@ function importarReunion() {
   };
 }
 
+
+/* ---------------- Evidencias en el Drive «Supervisión 050» ---------------- */
+const RAIZ_DRIVE = 'https://drive.google.com/drive/folders/1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
+const CARPETAS_EVI = [
+  { ruta: '01-Expedientes de trabajadores', corto: 'Expedientes', privada: true },
+  { ruta: '02-Evidencias 2026-2027/CTEs/01-CTE Primera sesión', corto: 'CTE 1ª sesión', acu: ['acu-0923-01'] },
+  { ruta: '02-Evidencias 2026-2027/PMC', corto: 'PMC', acu: ['acu-0909-05', 'acu-0923-05'] },
+  { ruta: '02-Evidencias 2026-2027/Érase una vez', corto: 'Érase una vez', acu: ['acu-0923-15'] },
+  { ruta: '03-Ingresos propios', corto: 'Ingresos propios' },
+  { ruta: '04-CPE', corto: 'CPE', acu: ['acu-0909-01'] },
+  { ruta: '05-Estadística 911', corto: 'Estadística 911', acu: ['acu-0909-06'] },
+  { ruta: '06-Inscripción inicial', corto: 'Inscripción' },
+  { ruta: '07-SISAT', corto: 'SisAT', acu: ['acu-0909-07'] },
+  { ruta: '08-Niveles conceptuales', corto: 'Niveles conc.', acu: ['acu-0909-07'] },
+  { ruta: '09-Ejercicios Integradores del Aprendizaje', corto: 'EIA', acu: ['acu-0909-08', 'acu-0909-09'] },
+  { ruta: '10-Evaluaciones', corto: 'Evaluaciones' },
+  { ruta: 'Contingencia por lluvias 12-10-2026', corto: 'Lluvias 12 oct' }
+];
+const normRuta = r => String(r || '').normalize('NFC').toLowerCase().trim();
+const eviDe = (cct, ruta) => (S.evi || []).find(e => e.cct === cct && normRuta(e.ruta) === normRuta(ruta));
+const nArch = e => e ? (+e.archivos || 0) : 0;
+const urlCarpeta = id => 'https://drive.google.com/drive/folders/' + id;
+const urlArchivo = id => 'https://drive.google.com/file/d/' + id + '/view';
+function quienSubio(correo) {
+  if (!correo) return '';
+  const c = S.dir.find(x => correos(x).map(m => m.toLowerCase()).includes(String(correo).toLowerCase()));
+  if (c) return nombreCorto(c.nombre);
+  const u = S.usr.find(x => correos(x).map(m => m.toLowerCase()).includes(String(correo).toLowerCase()));
+  return u ? nombreCorto(u.nombre) : correo;
+}
+const fechaHora = f => /^\d{4}-\d{2}-\d{2}/.test(f || '') ? fechaCorta(f.slice(0, 10)) + (f.length > 10 ? ' ' + f.slice(11, 16) : '') : '';
+// Evidencia en Drive ligada a un acuerdo del checklist
+function eviAcuerdo(acuId, cct) {
+  let mejor = null;
+  CARPETAS_EVI.filter(c => (c.acu || []).includes(acuId)).forEach(c => { const e = eviDe(cct, c.ruta); if (nArch(e) && (!mejor || e.ultimo > mejor.e.ultimo)) mejor = { c, e }; });
+  return mejor;
+}
+const chipEvi = (acuId, cct) => { const m = eviAcuerdo(acuId, cct); return m ? `<a class="chip ok" target="_blank" rel="noopener" href="${urlCarpeta(m.e.carpetaId)}" title="Abrir la carpeta ${esc(m.c.corto)} en Drive">📎 ${nArch(m.e)} en Drive · ${fechaCorta(m.e.ultimo.slice(0, 10))}</a>` : ''; };
+function avanceEvi(ccts) {
+  let con = 0, total = 0;
+  ccts.forEach(cct => CARPETAS_EVI.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) return; total++; if (nArch(e)) con++; }));
+  return { hecho: con, total, pct: total ? Math.round(con * 100 / total) : 0, pend: total - con, vencidos: 0 };
+}
+
+function vEvidencias() {
+  if (!S.evi) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Evidencias</h1></div>
+      <div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Para revisar el Drive, el servidor de Tequio necesita la versión nueva del programa y un permiso de lectura del Drive. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> en la guía.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
+    return;
+  }
+  const dirs = filtroEscuelas(), ccts = dirs.map(c => c.cct);
+  const tot = avanceEvi(ccts);
+  const revisado = S.eviRevisado;
+  const vistos = {}, nov = [];
+  (S.evi || []).filter(e => ccts.includes(e.cct) && e.ruta).forEach(e => (e.recientes || []).forEach(a => {
+    const k = a.id || (e.cct + a.f + a.n); if (vistos[k]) return; vistos[k] = 1;
+    nov.push(Object.assign({ cct: e.cct, ruta: e.ruta }, a));
+  }));
+  // cada archivo aparece en todas sus carpetas «madre»; se queda con la ruta más profunda
+  const prof = {}; nov.forEach(a => { const k = a.id || (a.cct + a.f + a.n); if (!prof[k] || a.ruta.length > prof[k].ruta.length) prof[k] = a; });
+  const recientes = Object.values(prof).sort((x, y) => y.f.localeCompare(x.f)).filter(a => a.f.slice(0, 10) >= sumarDias(hoy(), -14)).slice(0, 25);
+  const porAtp = atps().map(u => { const e = escuelasDeAtp(u).filter(c => !vista.municipio || (escuelaDe(c) || {}).municipio === vista.municipio); return { u, n: e.length, a: avanceEvi(e) }; });
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Evidencias en Drive</h1>
+    <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton" id="b-revisar">${ico('i-act')}Revisar ahora</button></div></div>
+  <div class="aviso-caja peq">Tequio revisa las carpetas cada mañana a las 6:00. Última revisión: <b>${revisado ? fechaHora(revisado) : 'todavía no se ha hecho'}</b>. Solo lee nombres y fechas de los archivos, no su contenido.</div>
+  <div class="filtros">${selAtp()}
+    <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select></div>
+  ${!S.evi.length ? '<div class="tarjeta vacio">Aún no hay datos del Drive. Pulse «Revisar ahora».</div>' : `
+  <div class="tablero">
+    <div class="tarjeta pad general">${anillo(tot.pct, 128, 'con archivos')}
+      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Carpetas con evidencia</div>
+        <div><b class="num">${tot.hecho}</b> de <b class="num">${tot.total}</b> carpetas ya tienen archivos</div>
+        <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${CARPETAS_EVI.length} carpetas revisadas</div></div></div>
+    <div class="tarjeta"><div class="seccion-t">Avance por ATP</div>
+      <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${a.hecho} de ${a.total} carpetas</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
+  </div>
+  <div class="tarjeta" style="margin-bottom:16px">
+    <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· toque una casilla para abrir la carpeta</span></div>
+    <div class="matriz-caja"><table class="matriz">
+      <thead><tr><th class="esc-col">Escuela</th>${CARPETAS_EVI.map(c => `<th><span>${esc(c.corto)}</span></th>`).join('')}<th>Avance</th></tr></thead>
+      <tbody>${dirs.map(d => { const a = avanceEvi([d.cct]); return `<tr><th class="esc-col"><button class="enlace" data-eesc="${d.cct}" style="text-decoration:none;color:var(--tinta);font-size:14px;text-align:left;white-space:normal">${esc(d.escuela)}</button>${atpDe(d.cct) && !vista.atp ? `<div class="ayuda">${esc(nombreCorto(atpDe(d.cct).nombre))}</div>` : ''}</th>
+        ${CARPETAS_EVI.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e);
+          return !e ? '<td class="sin" title="No existe esta carpeta">—</td>' : `<td class="${n ? 'con' : 'vacia'}"><a target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="${esc(d.escuela)} · ${esc(c.corto)}: ${n ? n + ' archivo' + (n === 1 ? '' : 's') + ', último ' + fechaHora(e.ultimo) : 'vacía'}">${n ? `<b>✓ ${n}</b><span>${fechaCorta(e.ultimo.slice(0, 10)).replace(/ \d{4}$/, '')}</span>` : '<span class="falta">vacía</span>'}</a></td>`; }).join('')}
+        <td class="pct">${a.pct}%</td></tr>`; }).join('')}</tbody></table></div>
+  </div>
+  <div class="tarjeta"><div class="seccion-t">Lo que se subió en las últimas dos semanas</div>
+    ${recientes.length ? `<div class="lista-act">${recientes.map(a => { const c = CARPETAS_EVI.find(x => normRuta(a.ruta).startsWith(normRuta(x.ruta))); return `<div class="nov">
+      <div class="nov-f"><b>${deIso(a.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(a.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
+      <div style="min-width:0;flex:1"><div class="t">${a.n ? (a.id ? `<a target="_blank" rel="noopener" href="${urlArchivo(a.id)}">${esc(a.n)}</a>` : esc(a.n)) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'}</div>
+        <div class="peq mudo">${esc(nombreEscuela(a.cct))} · ${esc(a.ruta.split('/').slice(-2).join(' › '))}${a.p ? ' · subió ' + esc(quienSubio(a.p)) : ''} · ${a.f.slice(11, 16)} h</div></div>
+      ${c && c.acu ? '<span class="chip indigo">checklist</span>' : ''}</div>`; }).join('')}</div>` : '<div class="vacio peq">No hay archivos nuevos en las últimas dos semanas.</div>'}
+  </div>`}`;
+  $('#b-revisar').onclick = async () => {
+    aviso('Revisando las carpetas del Drive. Puede tardar uno o dos minutos…', '', 6000);
+    await accion('revisarEvidencias', {}, r => { S.evi = r.evi; S.eviRevisado = r.eviRevisado; vEvidencias(); aviso('Revisión terminada: ' + r.escuelas + ' escuelas.', 'ok', 3500); });
+  };
+  $('#f-mun').onchange = e => { vista.municipio = e.target.value; vEvidencias(); };
+  $('#f-atp').onchange = e => { vista.atp = e.target.value; vEvidencias(); };
+  $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vEvidencias(); });
+  $$('[data-eesc]').forEach(b => b.onclick = () => detalleEvidencias(b.dataset.eesc));
+}
+
+/* Todas las carpetas de una escuela, con sus subcarpetas */
+function detalleEvidencias(cct) {
+  const c = escuelaDe(cct);
+  const filas = (S.evi || []).filter(e => e.cct === cct).sort((a, b) => a.ruta.localeCompare(b.ruta, 'es'));
+  const raiz = filas.find(e => !e.ruta);
+  const sueltos = raiz ? +raiz.directos || 0 : 0;
+  modal(esc(c ? c.escuela : cct), `
+    ${sueltos ? `<div class="aviso-caja">Hay <b>${sueltos}</b> archivo${sueltos === 1 ? '' : 's'} suelto${sueltos === 1 ? '' : 's'} fuera de las carpetas. Conviene moverlos a la carpeta que corresponde.</div>` : ''}
+    <div class="checklist" style="max-height:60vh">${filas.filter(e => e.ruta).map(e => { const nivel = e.ruta.split('/').length - 1, n = nArch(e); return `<a class="chk-fila" style="text-decoration:none;color:inherit;padding-left:${12 + nivel * 18}px" target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}">
+      <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${esc(e.ruta.split('/').pop())}</span>
+      ${n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}</a>`; }).join('') || '<div class="vacio peq">Sin datos de esta escuela.</div>'}</div>
+    ${raiz ? `<p class="peq" style="margin-bottom:0"><a target="_blank" rel="noopener" href="${urlCarpeta(raiz.carpetaId)}">Abrir la carpeta de la escuela en Drive</a></p>` : ''}`,
+    '<button class="boton" id="de-cerrar">Cerrar</button>');
+  $('#de-cerrar').onclick = cerrarModal;
+}
+
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
 function vEnlaces() {
   $('#vista').innerHTML = `
@@ -1533,7 +1678,22 @@ const Demo = (() => {
       if (v < 8) cum.push({ id: x.id + '|' + e[1], acuerdoId: x.id, cct: e[1], estado: 'hecho', fecha: x.limite && x.limite < h ? x.limite : sumarDias(h, -2), nota: '', marcadoPor: j % 2 ? 'u-1' : 'u-carlos' });
       else if (v === 12 && e[3]) cum.push({ id: x.id + '|' + e[1], acuerdoId: x.id, cct: e[1], estado: 'no_aplica', fecha: '', nota: '', marcadoPor: 'u-carlos' });
     }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, version: 2 };
+    // Evidencias de ejemplo
+    const evi = [];
+    const SUBS = { '02-Evidencias 2026-2027': ['CTEs', 'CTEs/01-CTE Primera sesión', 'PMC', 'Érase una vez'], '07-SISAT': ['Momento 1'], '10-Evaluaciones': ['Primer Trimestre'] };
+    ESC.forEach((e, j) => {
+      const raiz = { id: e[1] + '|', cct: e[1], ruta: '', carpetaId: 'demo', directos: j === 3 ? '2' : '0', archivos: '0', ultimo: '', recientes: [] };
+      evi.push(raiz);
+      ['01-Expedientes de trabajadores', '02-Evidencias 2026-2027', '03-Ingresos propios', '04-CPE', '05-Estadística 911', '06-Inscripción inicial', '07-SISAT', '08-Niveles conceptuales', '09-Ejercicios Integradores del Aprendizaje', '10-Evaluaciones'].concat(j % 2 ? ['Contingencia por lluvias 12-10-2026'] : []).forEach((r, i) => {
+        [r].concat((SUBS[r] || []).map(x => r + '/' + x)).forEach((ruta, k) => {
+          const n = ((i * 3 + j * 5 + k) % 7) > 2 ? ((i + j + k) % 4) + 1 : 0;
+          const f = sumarDias(h, -((i + j + k) % 12)) + 'T' + pad(8 + (i + j) % 9) + ':' + pad((j * 7) % 60);
+          evi.push({ id: e[1] + '|' + ruta, cct: e[1], ruta, carpetaId: 'demo', directos: String(n), archivos: String(n), ultimo: n ? f : '', ultimoPor: n ? 'direccion' + (j + 1) + '@ejemplo.mx' : '',
+            recientes: n ? [{ f, n: /Expedientes/.test(ruta) ? '' : 'Evidencia ' + ruta.split('/').pop() + '.pdf', p: 'direccion' + (j + 1) + '@ejemplo.mx', id: '' }] : [] });
+        });
+      });
+    });
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 3 };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -1574,6 +1734,7 @@ const Demo = (() => {
       nuevas.forEach(a => D.act.push(a));
       return { reunion: copia(reu), acuerdos: copia(acs), act: copia(nuevas) };
     },
+    revisarEvidencias: () => ({ evi: copia(D.evi), eviRevisado: (D.eviRevisado = ahora()), escuelas: 14, carpetas: D.evi.length }),
     eliminarReunion: d => { D.reu = D.reu.filter(x => x.id !== d.id); D.acu = D.acu.filter(x => x.reunionId !== d.id); return { id: d.id }; },
     marcar: d => {
       const r = d.marcas.map(m => { const id = m.acuerdoId + '|' + m.cct; const p = D.cum.find(x => x.id === id);
