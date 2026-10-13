@@ -296,6 +296,16 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .bienv-h .tlm-n{color:var(--accent);font-size:38px}
 .bienv-h .tlm-l{color:var(--terra)}
 @media (max-width:400px){.band-in.tlm{flex-direction:row;align-items:center;gap:12px}.tlm-m{width:64px;height:64px}}
+.demo-banda{margin:0 -16px;background:#E8A33D;color:#2B1D05;display:flex;align-items:center;justify-content:center;gap:6px 12px;flex-wrap:wrap;padding:6px 14px;font-size:14px;line-height:1.3;text-align:center}
+.demo-banda button{background:#2B1D05;color:#FFF7E6;border:0;border-radius:999px;padding:4px 12px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+.demo-rec{border-left:4px solid #E8A33D}
+.demo-pasos{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:560px){.demo-pasos{grid-template-columns:1fr 1fr}}
+.demo-paso{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);font:inherit;cursor:pointer}
+.demo-paso:hover{border-color:var(--accent)}
+.demo-paso b{font-family:var(--display);font-size:15.5px}
+.demo-paso span{font-size:14px;color:var(--muted);line-height:1.35}
+.demo-inv{border-style:dashed}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -792,6 +802,24 @@ const GRUPOS=["Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
 const GTIT={Personal:"Laboral · Trámites del personal",Docente:"Protección escolar (PPIE) · Lo llena: Docente",Dirección:"Protección escolar (PPIE) · Lo llena: Dirección",Todos:"Protección escolar (PPIE) · Lo llena: Todos","Jefatura de Nivel":"Protección escolar (PPIE) · Lo llena: Jefatura de Nivel"};
 const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos y canalizaciones."],["Comunicación con familias","Recados, citatorios, avisos y autorizaciones."],["Dirección","Oficios, actas administrativas y entrega de documentación."]];
 
+/* ---------- Demostración: escuela de ejemplo en memoria ----------
+   Mientras está activa, todo lo que la app lee o guarda va a una memoria temporal de la pestaña.
+   Los datos reales del dispositivo no se leen ni se modifican. Se sale con «Salir de la demostración». */
+const DEMO=(()=>{let on=false;try{on=sessionStorage.getItem("tlm-demo")==="1"}catch(e){}
+  if(/[#&]demo(?![\w-])/.test(location.hash)){on=true;try{sessionStorage.setItem("tlm-demo","1")}catch(e){}history.replaceState(null,"",location.pathname+location.search)}
+  return on})();
+const DEMO_PERFIL={modo:"050",zona:"050",subsis:"ISEP",subsistema:"Federalizado",nivel:"Primaria",instLogo:"img/isep.png",
+  escuela:"Escuela Primaria «Cuauhtémoc» (ejemplo)",cct:"02DPR9999Z",localidad:"Camalú",municipio:"San Quintín",domicilio:"Calle Revolución s/n, Ejido Ejemplo",telefono:"",turno:"Matutino",
+  director:"Mtro. Ramón Ejemplo Torres",minombre:"Mtra. Laura Ejemplo Ruiz",micargo:"Docente de 4° A",grado:"4°",grupo:"A"};
+if(DEMO){const real=window.localStorage,mem=new Map(),P=Storage.prototype,gi=P.getItem,si=P.setItem,ri=P.removeItem;
+  ["cal-cache","seguro-cache","normas-cache","pda-cache","acc-cache","acc-token"].forEach(k=>{const v=gi.call(real,k);if(v!=null)mem.set(k,v)});
+  P.getItem=function(k){return this===real?(mem.has(k)?mem.get(k):null):gi.call(this,k)};
+  P.setItem=function(k,v){if(this===real)mem.set(String(k),String(v));else si.call(this,k,v)};
+  P.removeItem=function(k){if(this===real)mem.delete(String(k));else ri.call(this,k)};
+  mem.set("ppie-perfil",JSON.stringify(DEMO_PERFIL))}
+function demoEntrar(){try{sessionStorage.setItem("tlm-demo","1")}catch(e){}location.replace(location.pathname+location.search+"#demo");location.reload()}
+function demoSalir(){try{sessionStorage.removeItem("tlm-demo")}catch(e){}location.replace(location.pathname+location.search)}
+
 /* ---------- almacenamiento local (solo en este dispositivo) ---------- */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 let perfil=store.get("ppie-perfil",{});
@@ -918,6 +946,7 @@ function home(){S.view="home";setBar("");
    <section class="piloto" aria-label="Acerca de esta herramienta"><span class="piloto-tag">Versión de prueba · Fase de pilotaje</span>
     <p>Esta herramienta es un esfuerzo de la Supervisión Escolar para facilitar los procesos administrativos y de gestión de nuestras escuelas, de modo que el tiempo y la energía del colectivo se dediquen a lo que más importa: una mejor práctica docente y, sobre todo, profesional.</p>
     <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p></section>
+   ${DEMO?demoRecorrido():""}
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
    <div class="group-title">¿Qué necesita hacer?</div>
@@ -925,8 +954,9 @@ function home(){S.view="home";setBar("");
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
       <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
    ${TLM_SIGNIF}
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}<br><button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button></p>`;
-  document.getElementById("perfilBtn").onclick=perfilView;document.getElementById("accAdm").onclick=()=>accAdminView();
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>`;
+  document.getElementById("perfilBtn").onclick=perfilView;{const a=document.getElementById("accAdm");if(a)a.onclick=()=>accAdminView();const d=document.getElementById("demoHome");if(d)d.onclick=demoEntrar}
+  app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
   app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
 
 const ICON={
@@ -3036,7 +3066,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
   info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}setupView()}
+function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`
    <div class="bienv-h">${TLM()}<div><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div>
@@ -3050,9 +3080,13 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
-   <p class="foot"><span class="muted">v2026-10-12.6</span></p>`;
+   <section class="card demo-inv"><h3>¿Quiere conocerla primero?</h3>
+    <p class="help">Recorra Tlamatini con una escuela de ejemplo ya capturada y vea todo lo que puede hacer. Lo que haga en la demostración no se guarda ni toca sus datos.</p>
+    <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
+   <p class="foot"><span class="muted">v2026-10-12.7</span></p>`;
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
+  document.getElementById("suDemo").onclick=demoEntrar;
   window.scrollTo(0,0)}
 function setupSubsisView(){S.view="setupsub";S.sec=null;setBar("");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>¿A qué subsistema pertenece?</h2></div></div>
@@ -3117,6 +3151,46 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
   if(!REABRIR[S.view])return;const t=app.querySelector(".top");const h2=t&&t.querySelector("h2");
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
   if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
+
+/* ---------- Demostración: banda, recorrido y ejemplo de lectura de la realidad ---------- */
+function demoBanda(){if(document.getElementById("demoBanda"))return;const b=document.createElement("div");b.id="demoBanda";b.className="demo-banda";b.setAttribute("role","note");
+  b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
+  document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
+const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),firmas:()=>lfView(),visitas:()=>lvView(),
+  ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
+function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
+  return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
+   <p>Bienvenida, bienvenido. Esta es una escuela de ejemplo con sus datos ya capturados, para que vea cómo Tlamatini <b>llena solo los formatos</b> y le ahorra tiempo. Toque cualquier opción para probarla:</p>
+   <div class="demo-pasos">
+    ${p("perfil","1 · Datos de mi escuela","Se capturan una sola vez y aparecen en todos los formatos.")}
+    ${p("dx","2 · Lectura de la realidad","Ya tiene un ejemplo de 4.° A respondido. Descárguelo en Word o PDF.")}
+    ${p("pmce","3 · Programa de Mejora Continua","Retoma la lectura de la realidad para armar objetivos, metas y acciones.")}
+    ${p("pa","4 · Programa Analítico","Contenidos y PDA oficiales por campo formativo, para ordenar y codiseñar.")}
+    ${p("plan","5 · Planeación didáctica","Desde el analítico: metodología, secuencia y evaluación formativa.")}
+    ${p("ppie","6 · Protección escolar (PPIE)","Los anexos oficiales A al I, llenados paso a paso, sin alterar el formato.")}
+    ${p("recado","7 · Comunicación con familias","Recados, citatorios y autorizaciones con logo y firma digital.")}
+    ${p("firmas","8 · Libro de firmas","Hojas diarias con las fechas del calendario oficial, listas para imprimir.")}
+    ${p("laboral","9 · Laboral","Licencias, actualización de datos, correo institucional y CURP.")}
+    ${p("calendario","10 · Calendario escolar","CTE, suspensiones y vacaciones del ciclo vigente.")}
+    ${p("normas","11 · Normatividad","Leyes, acuerdos, protocolos y libros de texto a la mano.")}
+   </div>
+   <p class="help">Salario anual, estadística de edades y extracción de datos de alumnos funcionan con sus propios PDF (talones o reportes de inscripción); puede probarlos con los suyos, nada sale de su equipo.</p>
+   <div class="acts"><button type="button" class="btn ghost act" id="demoFin" onclick="demoSalir()">Terminar la demostración</button></div></section>`}
+if(DEMO&&!store.get("ppie-dx",null)){try{
+  DX={nivel:"grupo",grupo:dxNuevo("grupo")};const C=DX.grupo;
+  Object.assign(C.datos,{grupo:"4° A",docente:"Mtra. Laura Ejemplo Ruiz",matricula:"14 H / 13 M / 27"});
+  const R=[
+   ["Comunidad rural agrícola del Valle de San Quintín. Cerca de la mitad de las familias llegó de Oaxaca y Guerrero; en varios hogares se habla mixteco o triqui además del español.","La mayoría de madres y padres son jornaleros agrícolas, con jornadas largas y temporadas de trabajo que cambian a lo largo del año.","Hay luz y agua, pero el internet es irregular. Las tradiciones de la Guelaguetza y las fiestas patronales son muy importantes. La lluvia y los caminos de terracería afectan la asistencia."],
+   ["Aula con 27 butacas, pizarrón, biblioteca de aula pequeña y un proyector compartido con la escuela.","Ambiente de respeto; el grupo trabaja bien en equipos cuando hay roles claros.","Falta de material de lectura en lengua indígena y de conexión estable para recursos digitales."],
+   ["Familias extensas; en muchos casos los abuelos o hermanos mayores cuidan a los niños por las tardes.","El acompañamiento en tareas es limitado por los horarios de trabajo; las familias valoran mucho la escuela.","Ingresos variables por temporada; algunos alumnos faltan cuando acompañan a sus padres al campo."],
+   ["Les interesan los animales, el campo, el fútbol y las historias de sus comunidades de origen.","Se requiere fortalecer la expresión de emociones y la resolución pacífica de conflictos en el recreo.","Tres alumnos con barreras en lectoescritura por cambio frecuente de escuela; un alumno con baja visión (con apoyo de USAER)."],
+   ["Fortalezas en cálculo mental y resolución de problemas prácticos; dificultades en comprensión lectora y producción de textos.","Siete alumnos aún no consolidan la lectura convencional; hay rezago en fracciones.","Son participativos y solidarios; se requiere promover más el pensamiento crítico y argumentar sus ideas."],
+   ["Observación en clase, entrevista breve a familias, evaluación diagnóstica de inicio de ciclo y SisAT.","Lectura: 15 de 27 (56 %) en nivel esperado. Escritura: 12 de 27 (44 %). Cálculo mental: 20 de 27 (74 %). Asistencia promedio de septiembre: 89 %."],
+   ["El rezago lector se relaciona con la movilidad de las familias, la poca lectura en casa y la falta de textos cercanos a su cultura.","La causa de fondo es la discontinuidad: los alumnos entran y salen de la escuela según la temporada agrícola."],
+   ["Problemática: bajo nivel de comprensión lectora y de producción de textos en el grupo.","Causas: movilidad, poco acceso a libros y lectura poco vinculada a su contexto. Efectos: dificultad en todos los campos formativos y baja participación escrita."],
+   ["Con lectura diaria de textos de su comunidad, círculos de lectura con las familias y un registro de avance por alumno.","Apoyo de USAER, préstamo de libros a domicilio y acuerdos con las familias para leer 15 minutos diarios."],
+   ["Prioridad 1: comprensión lectora. Prioridad 2: producción de textos. Prioridad 3: convivencia y manejo de emociones.","Se integran al programa analítico en el campo formativo Lenguajes y a la planeación con proyectos comunitarios."]];
+  C.secs.forEach((sx,i)=>(R[i]||[]).forEach((a,j)=>{if(sx.items[j])sx.items[j].a=a}));dxSave()}catch(e){console.warn("demo dx",e)}}
 
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
 </script>
