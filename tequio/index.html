@@ -235,7 +235,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .matriz-caja{overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch}
 .matriz{border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:100%}
 .matriz th,.matriz td{border-bottom:1px solid var(--borde);padding:6px 6px;text-align:center;vertical-align:middle}
-.matriz thead th{font-size:12px;font-weight:700;color:var(--gris);white-space:nowrap;padding:8px 6px;position:sticky;top:0;background:var(--papel)}
+.matriz thead th{font-size:12px;font-weight:700;color:var(--gris);max-width:96px;line-height:1.2;padding:8px 6px;position:sticky;top:0;background:var(--papel)}
 .matriz .esc-col{position:sticky;left:0;background:var(--papel);text-align:left;min-width:150px;max-width:190px;z-index:1;box-shadow:1px 0 0 var(--borde);padding-left:14px}
 .matriz thead .esc-col{z-index:2}
 .matriz td a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:inherit;border-radius:7px;padding:4px 6px;min-width:58px}
@@ -1469,21 +1469,37 @@ function importarReunion() {
 
 /* ---------------- Evidencias en el Drive «Supervisión 050» ---------------- */
 const RAIZ_DRIVE = 'https://drive.google.com/drive/folders/1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
-const CARPETAS_EVI = [
-  { ruta: '01-Expedientes de trabajadores', corto: 'Expedientes', privada: true },
-  { ruta: '02-Evidencias 2026-2027/CTEs/01-CTE Primera sesión', corto: 'CTE 1ª sesión', acu: ['acu-0923-01'] },
-  { ruta: '02-Evidencias 2026-2027/PMC', corto: 'PMC', acu: ['acu-0909-05', 'acu-0923-05'] },
-  { ruta: '02-Evidencias 2026-2027/Érase una vez', corto: 'Érase una vez', acu: ['acu-0923-15'] },
-  { ruta: '03-Ingresos propios', corto: 'Ingresos propios' },
-  { ruta: '04-CPE', corto: 'CPE', acu: ['acu-0909-01'] },
-  { ruta: '05-Estadística 911', corto: 'Estadística 911', acu: ['acu-0909-06'] },
-  { ruta: '06-Inscripción inicial', corto: 'Inscripción' },
-  { ruta: '07-SISAT', corto: 'SisAT', acu: ['acu-0909-07'] },
-  { ruta: '08-Niveles conceptuales', corto: 'Niveles conc.', acu: ['acu-0909-07'] },
-  { ruta: '09-Ejercicios Integradores del Aprendizaje', corto: 'EIA', acu: ['acu-0909-08', 'acu-0909-09'] },
-  { ruta: '10-Evaluaciones', corto: 'Evaluaciones' },
-  { ruta: 'Contingencia por lluvias 12-10-2026', corto: 'Lluvias 12 oct' }
+// Carpetas ligadas a acuerdos del checklist (la evidencia aparece con 📎 junto al acuerdo)
+const LIGAS_EVI = [
+  { ruta: '02-Evidencias 2026-2027/CTEs/01-CTE Primera sesión', acu: ['acu-0923-01'] },
+  { ruta: '02-Evidencias 2026-2027/PMC', acu: ['acu-0909-05', 'acu-0923-05'] },
+  { ruta: '02-Evidencias 2026-2027/Érase una vez', acu: ['acu-0923-15'] },
+  { ruta: '04-CPE', acu: ['acu-0909-01'] },
+  { ruta: '05-Estadística 911', acu: ['acu-0909-06'] },
+  { ruta: '07-SISAT', acu: ['acu-0909-07'] },
+  { ruta: '08-Niveles conceptuales', acu: ['acu-0909-07'] },
+  { ruta: '09-Ejercicios Integradores del Aprendizaje', acu: ['acu-0909-08', 'acu-0909-09'] }
 ];
+const CORTOS_EVI = { 'expedientes de trabajadores': 'Expedientes', 'ejercicios integradores del aprendizaje': 'EIA', 'inscripcion inicial': 'Inscripción', 'niveles conceptuales': 'Niveles conc.', 'sisat': 'SisAT' };
+const sinNum = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '');
+const clave = t => sinNum(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+/* Las columnas salen de las carpetas que existen en el Drive: cada carpeta del primer nivel es una columna,
+   y las que se llaman «Evidencias…» se abren en sus subcarpetas. Si crea una carpeta nueva, aparece sola. */
+function columnasEvi() {
+  const rows = (S.evi || []).filter(e => e.ruta);
+  const nivel1 = [...new Set(rows.filter(e => !e.ruta.includes('/')).map(e => e.ruta))];
+  const cols = [];
+  nivel1.sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).forEach(r => {
+    if (/^evidencias/i.test(clave(r))) {
+      const hijos = [...new Set(rows.filter(e => e.ruta.split('/').length === 2 && e.ruta.startsWith(r + '/')).map(e => e.ruta))].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+      hijos.forEach(h => cols.push({ ruta: h, corto: CORTOS_EVI[clave(h.split('/')[1])] || sinNum(h.split('/')[1]) }));
+      if (!hijos.length) cols.push({ ruta: r, corto: sinNum(r) });
+    } else cols.push({ ruta: r, corto: CORTOS_EVI[clave(r)] || sinNum(r) });
+  });
+  // la misma carpeta escrita distinto en dos escuelas cuenta como una sola columna
+  const vistas = {};
+  return cols.filter(c => { const k = normRuta(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
+}
 const normRuta = r => String(r || '').normalize('NFC').toLowerCase().trim();
 const eviDe = (cct, ruta) => (S.evi || []).find(e => e.cct === cct && normRuta(e.ruta) === normRuta(ruta));
 const nArch = e => e ? (+e.archivos || 0) : 0;
@@ -1500,13 +1516,14 @@ const fechaHora = f => /^\d{4}-\d{2}-\d{2}/.test(f || '') ? fechaCorta(f.slice(0
 // Evidencia en Drive ligada a un acuerdo del checklist
 function eviAcuerdo(acuId, cct) {
   let mejor = null;
-  CARPETAS_EVI.filter(c => (c.acu || []).includes(acuId)).forEach(c => { const e = eviDe(cct, c.ruta); if (nArch(e) && (!mejor || e.ultimo > mejor.e.ultimo)) mejor = { c, e }; });
+  LIGAS_EVI.filter(c => (c.acu || []).includes(acuId)).forEach(c => { const e = eviDe(cct, c.ruta); if (nArch(e) && (!mejor || e.ultimo > mejor.e.ultimo)) mejor = { c: Object.assign({ corto: sinNum(c.ruta.split('/').pop()) }, c), e }; });
   return mejor;
 }
 const chipEvi = (acuId, cct) => { const m = eviAcuerdo(acuId, cct); return m ? `<a class="chip ok" target="_blank" rel="noopener" href="${urlCarpeta(m.e.carpetaId)}" title="Abrir la carpeta ${esc(m.c.corto)} en Drive">📎 ${nArch(m.e)} en Drive · ${fechaCorta(m.e.ultimo.slice(0, 10))}</a>` : ''; };
 function avanceEvi(ccts) {
   let con = 0, total = 0;
-  ccts.forEach(cct => CARPETAS_EVI.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) return; total++; if (nArch(e)) con++; }));
+  const cols = columnasEvi();
+  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) return; total++; if (nArch(e)) con++; }));
   return { hecho: con, total, pct: total ? Math.round(con * 100 / total) : 0, pend: total - con, vencidos: 0 };
 }
 
@@ -1518,6 +1535,7 @@ function vEvidencias() {
     return;
   }
   const dirs = filtroEscuelas(), ccts = dirs.map(c => c.cct);
+  const COLS = columnasEvi();
   const tot = avanceEvi(ccts);
   const revisado = S.eviRevisado;
   const vistos = {}, nov = [];
@@ -1540,21 +1558,21 @@ function vEvidencias() {
     <div class="tarjeta pad general">${anillo(tot.pct, 128, 'con archivos')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Carpetas con evidencia</div>
         <div><b class="num">${tot.hecho}</b> de <b class="num">${tot.total}</b> carpetas ya tienen archivos</div>
-        <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${CARPETAS_EVI.length} carpetas revisadas</div></div></div>
+        <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${COLS.length} carpetas revisadas</div></div></div>
     <div class="tarjeta"><div class="seccion-t">Avance por ATP</div>
       <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${a.hecho} de ${a.total} carpetas</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
   </div>
   <div class="tarjeta" style="margin-bottom:16px">
     <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· toque una casilla para abrir la carpeta</span></div>
     <div class="matriz-caja"><table class="matriz">
-      <thead><tr><th class="esc-col">Escuela</th>${CARPETAS_EVI.map(c => `<th><span>${esc(c.corto)}</span></th>`).join('')}<th>Avance</th></tr></thead>
+      <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => `<th title="${esc(c.ruta)}"><span>${esc(c.corto)}</span></th>`).join('')}<th>Avance</th></tr></thead>
       <tbody>${dirs.map(d => { const a = avanceEvi([d.cct]); return `<tr><th class="esc-col"><button class="enlace" data-eesc="${d.cct}" style="text-decoration:none;color:var(--tinta);font-size:14px;text-align:left;white-space:normal">${esc(d.escuela)}</button>${atpDe(d.cct) && !vista.atp ? `<div class="ayuda">${esc(nombreCorto(atpDe(d.cct).nombre))}</div>` : ''}</th>
-        ${CARPETAS_EVI.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e);
+        ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e);
           return !e ? '<td class="sin" title="No existe esta carpeta">—</td>' : `<td class="${n ? 'con' : 'vacia'}"><a target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="${esc(d.escuela)} · ${esc(c.corto)}: ${n ? n + ' archivo' + (n === 1 ? '' : 's') + ', último ' + fechaHora(e.ultimo) : 'vacía'}">${n ? `<b>✓ ${n}</b><span>${fechaCorta(e.ultimo.slice(0, 10)).replace(/ \d{4}$/, '')}</span>` : '<span class="falta">vacía</span>'}</a></td>`; }).join('')}
         <td class="pct">${a.pct}%</td></tr>`; }).join('')}</tbody></table></div>
   </div>
   <div class="tarjeta"><div class="seccion-t">Lo que se subió en las últimas dos semanas</div>
-    ${recientes.length ? `<div class="lista-act">${recientes.map(a => { const c = CARPETAS_EVI.find(x => normRuta(a.ruta).startsWith(normRuta(x.ruta))); return `<div class="nov">
+    ${recientes.length ? `<div class="lista-act">${recientes.map(a => { const c = LIGAS_EVI.find(x => normRuta(a.ruta).startsWith(normRuta(x.ruta))); return `<div class="nov">
       <div class="nov-f"><b>${deIso(a.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(a.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
       <div style="min-width:0;flex:1"><div class="t">${a.n ? (a.id ? `<a target="_blank" rel="noopener" href="${urlArchivo(a.id)}">${esc(a.n)}</a>` : esc(a.n)) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'}</div>
         <div class="peq mudo">${esc(nombreEscuela(a.cct))} · ${esc(a.ruta.split('/').slice(-2).join(' › '))}${a.p ? ' · subió ' + esc(quienSubio(a.p)) : ''} · ${a.f.slice(11, 16)} h</div></div>
