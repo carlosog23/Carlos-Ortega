@@ -808,6 +808,7 @@ const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos 
    Mientras está activa, todo lo que la app lee o guarda va a una memoria temporal de la pestaña.
    Los datos reales del dispositivo no se leen ni se modifican. Se sale con «Salir de la demostración». */
 const DEMO=(()=>{let on=false;try{on=sessionStorage.getItem("tlm-demo")==="1"}catch(e){}
+  window.DEMO_DEST=(location.hash.match(/[#&]demo=([\w-]+)/)||[])[1]||"";
   if(/[#&]demo(?![\w-])/.test(location.hash)){on=true;try{sessionStorage.setItem("tlm-demo","1")}catch(e){}history.replaceState(null,"",location.pathname+location.search)}
   return on})();
 const DEMO_PERFIL={modo:"050",zona:"050",subsis:"ISEP",subsistema:"Federalizado",nivel:"Primaria",instLogo:"img/isep.png",
@@ -947,7 +948,8 @@ function home(){S.view="home";setBar("");
    </section>
    <section class="piloto" aria-label="Acerca de esta herramienta"><span class="piloto-tag">Versión de prueba · Fase de pilotaje</span>
     <p>Esta herramienta es un esfuerzo de la Supervisión Escolar para facilitar los procesos administrativos y de gestión de nuestras escuelas, de modo que el tiempo y la energía del colectivo se dediquen a lo que más importa: una mejor práctica docente y, sobre todo, profesional.</p>
-    <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p></section>
+    <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p>
+    <a class="btn ghost" href="tour.html" style="margin-top:10px;text-decoration:none;text-align:center">▶ Conozca Tlamatini en 2 minutos</a></section>
    ${DEMO?demoRecorrido():""}
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
@@ -3453,7 +3455,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
   info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();return}setupView()}
+function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`
    <div class="bienv-h">${TLM()}<div><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div>
@@ -3544,7 +3546,7 @@ function demoBanda(){if(document.getElementById("demoBanda"))return;const b=docu
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
   document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
 const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),firmas:()=>lfView(),visitas:()=>lvView(),
-  ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
+  ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),salario:()=>sectionView("salario"),estadistica:()=>sectionView("estadistica"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
 function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
   return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
    <p>Bienvenida, bienvenido. Esta es una escuela de ejemplo con sus datos ya capturados, para que vea cómo Tlamatini <b>llena solo los formatos</b> y le ahorra tiempo. Toque cualquier opción para probarla:</p>
@@ -3579,6 +3581,11 @@ if(DEMO&&!store.get("ppie-dx",null)){try{
    ["Prioridad 1: comprensión lectora. Prioridad 2: producción de textos. Prioridad 3: convivencia y manejo de emociones.","Se integran al programa analítico en el campo formativo Lenguajes y a la planeación con proyectos comunitarios."]];
   C.secs.forEach((sx,i)=>(R[i]||[]).forEach((a,j)=>{if(sx.items[j])sx.items[j].a=a}));dxSave()}catch(e){console.warn("demo dx",e)}}
 
+if(DEMO&&!store.get(INV_KEY,null)){try{INV=invNuevo();INV.c=Object.assign(invCentroVacio(),{nombre:perfil.escuela,clave:perfil.cct,zona:"050",dom:perfil.domicilio+", San Quintín, B.C.",resp:perfil.director,cargo:"Director"});INV.resguardante=perfil.minombre;INV.rfc="EERL850315AB1";
+  INV.items=[["ISEP-104512","Proyector multimedia con control y cable HDMI","1","8500"],["ISEP-104513","Escritorio metálico para docente con cajonera","1","2350"],["ISEP-104520","Silla de paleta para alumno","27","650"],["ISEP-104547","Pizarrón blanco de 2.40 x 1.20 m","1","1800"]].map(([inv,desc,cant,monto])=>({inv,desc,cant,monto,sit:""}));invSave()}catch(e){console.warn("demo inv",e)}}
+if(DEMO&&!store.get(CP_KEY,null)){try{CP=cpNuevo();CP.esc=Object.assign(cpEscVacia(),{nombre:perfil.escuela,cct:perfil.cct,zona:"050",turno:"Matutino",mun:"San Quintín",loc:"Camalú",dom:perfil.domicilio,director:perfil.director});
+  CP.pres={nom:"Rosa María",ap1:"Ejemplo",ap2:"Gómez"};const P=(n,c,t)=>({n,c,t});CP.comites[0].coord=P("Rosa María Ejemplo Gómez","rosa.ejemplo@correo.mx","616 555 0102");CP.comites[1].coord=P(perfil.director,"","616 555 0000");CP.comites[2].coord=P("Martha Ejemplo Soto","","616 555 0105");
+  Object.assign(CP.conv,{turno:"M",fecha:"2026-10-20",hora:"12:30"});cpSave()}catch(e){console.warn("demo cp",e)}}
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
 </script>
 

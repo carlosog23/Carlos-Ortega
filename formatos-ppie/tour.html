@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Conozca Tlamatini</title>
+<meta name="description" content="Recorrido rápido por Tlamatini · Un camino para la labor docente. Supervisión Escolar Zona 050 · ISEP.">
+<meta name="theme-color" content="#1F3A6B">
+<meta property="og:title" content="Conozca Tlamatini en 2 minutos">
+<meta property="og:description" content="Formatos que se llenan solos: lectura de la realidad, PPIE, recados, libro de firmas, inventarios, Consejo de Participación y más.">
+<meta property="og:image" content="tour/img/scr_home.jpg">
+<link rel="icon" type="image/svg+xml" href="img/tlamatini-icono.svg">
+<link rel="apple-touch-icon" href="img/tlamatini-icono-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Montserrat:wght@600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&display=swap">
+<style>
+:root{--anil:#1F3A6B;--anil2:#24427A;--crema:#F7F1E5;--papel:#FFFDF8;--terra:#C2603A;--terra2:#A9512F;--ambar:#E8A33D;--tinta:#1E2A40;--suave:#6A5C4C;
+  --brand:"Fraunces",Georgia,serif;--display:"Montserrat","Segoe UI",system-ui,sans-serif;--body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#14223D;color:var(--tinta);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent}
+.stage{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch}
+.phone{position:relative;width:100%;max-width:480px;height:100%;overflow:hidden;background:var(--crema)}
+@media (min-width:700px){.stage{align-items:center;padding:20px}.phone{height:min(900px,calc(100vh - 40px));border-radius:26px;box-shadow:0 30px 80px rgba(0,0,0,.45)}}
+/* barras de progreso */
+.bars{position:absolute;z-index:20;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:4px}
+.bars i{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.35);overflow:hidden;display:block}
+.slide.claro~.bars i{background:rgba(30,42,64,.18)}
+.bars i b{display:block;height:100%;width:0;background:#fff;border-radius:3px}
+.phone.claro .bars i{background:rgba(30,42,64,.16)}.phone.claro .bars i b{background:var(--terra)}
+.top{position:absolute;z-index:20;top:calc(max(10px,env(safe-area-inset-top)) + 12px);left:14px;right:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.marca{display:flex;align-items:center;gap:8px;font-family:var(--brand);font-weight:600;font-size:17px;color:#FBF6EC}
+.marca svg{width:28px;height:28px}
+.phone.claro .marca{color:var(--anil2)}
+.ctrl{display:flex;gap:6px}
+.ctrl button{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#FBF6EC;font-size:15px;display:grid;place-items:center;cursor:pointer}
+.phone.claro .ctrl button{background:rgba(31,58,107,.1);color:var(--anil2)}
+/* diapositivas */
+.slide{position:absolute;inset:0;padding:calc(max(10px,env(safe-area-inset-top)) + 64px) 22px calc(max(16px,env(safe-area-inset-bottom)) + 74px);display:flex;flex-direction:column;gap:12px;opacity:0;visibility:hidden;transition:opacity .45s ease,visibility .45s}
+.slide.on{opacity:1;visibility:visible}
+.slide.oscuro{background:radial-gradient(120% 70% at 85% 0%,#2A4C86 0%,var(--anil) 55%,#16294D 100%);color:#FBF6EC}
+.slide.claro{background:var(--crema)}
+.slide.terra{background:radial-gradient(120% 70% at 10% 0%,#D3784F 0%,var(--terra2) 60%,#8E3F22 100%);color:#FFF8EE}
+.eyebrow{font-family:var(--display);font-weight:700;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ambar)}
+.claro .eyebrow{color:var(--terra2)}
+.terra .eyebrow{color:#FFE2B0}
+h1,h2{font-family:var(--brand);font-weight:600;margin:0;line-height:1.04;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:clamp(40px,12vw,54px)}
+h2{font-size:clamp(27px,7.6vw,34px)}
+.claro h2{color:var(--anil2)}
+.sub{margin:0;font-size:16.5px;line-height:1.42;opacity:.92;text-wrap:pretty}
+.claro .sub{color:var(--suave);opacity:1}
+.sub b{color:inherit}
+.vis{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+/* hoja de papel */
+.doc{position:absolute;background:#fff;border-radius:4px;box-shadow:0 2px 4px rgba(40,26,8,.12),0 18px 40px rgba(40,26,8,.28);max-height:100%;max-width:100%;object-fit:contain}
+.oscuro .doc,.terra .doc{box-shadow:0 2px 4px rgba(0,0,0,.2),0 22px 48px rgba(0,0,0,.45)}
+.tel{position:absolute;border-radius:22px;border:6px solid #1B2335;background:#1B2335;box-shadow:0 20px 44px rgba(0,0,0,.35);overflow:hidden}
+.tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+.on .anim{animation:entra .7s cubic-bezier(.2,.8,.2,1) both}
+.on .anim.d2{animation-delay:.18s}.on .anim.d3{animation-delay:.32s}.on .anim.d4{animation-delay:.46s}
+@keyframes entra{from{opacity:0;transform:translateY(28px) rotate(var(--r,0deg)) scale(.96)}to{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1)}}
+.anim{transform:rotate(var(--r,0deg))}
+/* chips de beneficios */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25)}
+.claro .chips span{background:#EFE6D4;border-color:#E4D8C3;color:var(--anil2)}
+/* portada */
+.portada{justify-content:center;text-align:center;align-items:center;gap:16px}
+.portada svg.logo{width:132px;height:132px}
+.portada .lema{font-family:var(--brand);font-style:italic;font-size:21px;opacity:.9;margin:-4px 0 0}
+.portada .sabe{max-width:330px;font-size:16.5px;line-height:1.45;opacity:.92;margin:6px 0 0}
+.portada .sabe b{color:var(--ambar);font-family:var(--brand);font-style:italic;font-weight:600;font-size:19px}
+.toca{margin-top:18px;font-family:var(--display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;animation:pulso 2s ease-in-out infinite}
+@keyframes pulso{50%{opacity:.35}}
+/* botón probar */
+.probar{position:absolute;z-index:15;left:22px;right:22px;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 12px);display:flex;gap:8px}
+.probar a{flex:1;text-align:center;text-decoration:none;font-family:var(--display);font-weight:700;font-size:14.5px;padding:13px 10px;border-radius:12px;background:var(--ambar);color:#2A1A05;box-shadow:0 6px 16px rgba(0,0,0,.18)}
+.probar a.sec{background:rgba(255,255,255,.16);color:#FBF6EC;box-shadow:none;border:1px solid rgba(255,255,255,.3)}
+.phone.claro .probar a.sec{background:#fff;color:var(--anil2);border-color:#E4D8C3}
+/* cierre */
+.cierre{justify-content:center;gap:14px}
+.cierre ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:16px}
+.cierre li{display:flex;gap:10px;align-items:flex-start}
+.cierre li:before{content:"";flex:none;width:9px;height:9px;margin-top:7px;border-radius:50%;background:var(--ambar)}
+.final{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.final a,.final button{text-align:center;text-decoration:none;font:700 15px var(--display);padding:14px;border-radius:12px;border:0;cursor:pointer}
+.final .a1{background:var(--ambar);color:#2A1A05}
+.final .a2{background:#FBF6EC;color:var(--anil2)}
+.final .a3{background:transparent;color:#FBF6EC;border:1px solid rgba(251,246,236,.4)}
+.nota{font-size:13px;opacity:.75;text-align:center;margin-top:4px}
+/* zonas táctiles */
+.tap{position:absolute;z-index:10;top:70px;bottom:80px;width:35%}
+.tap.izq{left:0}.tap.der{right:0;width:65%}
+.pausa-ind{position:absolute;z-index:25;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.45);color:#fff;border-radius:12px;padding:8px 14px;font:700 13px var(--display);letter-spacing:.08em;opacity:0;transition:opacity .2s;pointer-events:none}
+.pausado .pausa-ind{opacity:1}
+@media (prefers-reduced-motion:reduce){.on .anim{animation:none}.toca{animation:none}.slide{transition:none}}
+</style></head>
+<body>
+<div class="stage"><div class="phone" id="phone">
+ <div class="bars" id="bars"></div>
+ <div class="top"><div class="marca" id="marca"></div><div class="ctrl"><button type="button" id="bPausa" aria-label="Pausar">❚❚</button><button type="button" id="bCerrar" aria-label="Cerrar el recorrido" onclick="location.href='index.html'">✕</button></div></div>
+ <div id="slides"></div>
+ <div class="probar" id="probar"></div>
+ <button class="tap izq" id="tIzq" aria-label="Anterior" style="background:none;border:0"></button>
+ <button class="tap der" id="tDer" aria-label="Siguiente" style="background:none;border:0"></button>
+ <div class="pausa-ind">EN PAUSA</div>
+</div></div>
+<script>
+/* Recorrido de Tlamatini. Datos de ejemplo: escuela «Cuauhtémoc» (ejemplo), nombres ficticios. */
+const LOGO=(oscuro)=>{const c=oscuro?"#FBF6EC":"#24427A",t=oscuro?"#E3925A":"#C2603A";
+ return`<svg class="logo" viewBox="0 0 200 200" aria-hidden="true">${oscuro?"":`<circle cx="100" cy="100" r="94" fill="#F4E1C1"/>`}<g transform="translate(10 -4)">
+ <g stroke="${t}" stroke-opacity=".5" stroke-width="1.3"><line x1="109.3" y1="24.8" x2="130.9" y2="25.7"/><line x1="130.9" y1="25.7" x2="150.1" y2="35.7"/><line x1="150.1" y1="35.7" x2="163.3" y2="52.9"/><line x1="163.3" y1="52.9" x2="168" y2="74"/></g>
+ <g fill="${t}"><circle cx="109.3" cy="24.8" r="3.4"/><circle cx="130.9" cy="25.7" r="3"/><circle cx="150.1" cy="35.7" r="2.6"/><circle cx="163.3" cy="52.9" r="2.2"/><circle cx="168" cy="74" r="1.8"/></g>
+ <path d="M26 170 H50 V150 H74 V130 H96 V110 H118 A36 36 0 0 0 118 38 A26 26 0 0 0 118 90 A18 18 0 0 0 118 54 A10 10 0 0 0 118 74" fill="none" stroke="${c}" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle cx="118" cy="63.5" r="4.6" fill="#E8A33D"/></g></svg>`};
+const I="tour/img/";
+/* helpers de composición: hoja (doc) y teléfono (tel); x,y en % del área visual, w en %, r = giro */
+const doc=(src,alt,o)=>`<img class="doc anim ${o.d||""}" src="${I+src}" alt="${alt}" style="width:${o.w}%;left:${o.x}%;top:${o.y}%;--r:${o.r||0}deg">`;
+const tel=(src,alt,o)=>`<div class="tel anim ${o.d||""}" style="width:${o.w}%;height:${o.h}%;left:${o.x}%;top:${o.y}%;--r:${o.r||0}deg"><img src="${I+src}" alt="${alt}"></div>`;
+const S=[
+ {t:"oscuro",portada:true,ms:6500,html:`${LOGO(true)}<h1>Tlamatini</h1><p class="lema">Un camino para la labor docente</p>
+   <p class="sabe">En náhuatl, <b>tlamatini</b> es «el que sabe»: quien ilumina y guía a su comunidad. <br>Usted es tlamatini. Esta herramienta es para usted.</p><p class="toca">Toque para comenzar · 2 minutos</p>`},
+ {t:"claro",ey:"Primer paso",h:"Sus datos, una sola vez",p:"Escuela, C.C.T., director, logo y firma. Los captura una vez y <b>aparecen solos en cada formato</b>.",
+   vis:tel("scr_home.jpg","Pantalla de inicio de Tlamatini",{w:62,h:100,x:19,y:0}),go:"perfil"},
+ {t:"oscuro",ey:"Pedagógico",h:"Su lectura de la realidad, lista",p:"Responda preguntas guiadas sobre su grupo o escuela y descárguela <b>en Word o PDF</b>, para editarla cuando quiera.",
+   vis:tel("scr_dx.jpg","Preguntas guiadas",{w:44,h:78,x:2,y:14,r:-4})+doc("doc_dx.jpg","Lectura de la realidad de 4° A",{w:62,x:36,y:4,r:3,d:"d2"}),go:"dx"},
+ {t:"claro",ey:"Pedagógico",h:"Del diagnóstico a la planeación",p:"Programa de Mejora Continua, Programa Analítico con los <b>contenidos y PDA oficiales</b> y planeación didáctica, conectados entre sí.",
+   vis:tel("scr_pm.jpg","Programa de Mejora Continua",{w:40,h:70,x:0,y:16,r:-6})+tel("scr_pa.jpg","Programa Analítico",{w:42,h:76,x:29,y:4,d:"d2"})+tel("scr_pl.jpg","Planeación didáctica",{w:40,h:70,x:60,y:16,r:6,d:"d3"}),go:"pa"},
+ {t:"terra",ey:"Protección escolar",h:"Los anexos del PPIE, sin errores",p:"Del A al I, <b>idénticos al formato oficial</b>. Usted responde paso a paso y Tlamatini acomoda cada dato en su lugar.",
+   vis:doc("doc_anexoA.jpg","Anexo A del PPIE lleno",{w:78,x:11,y:2,r:-2}),go:"ppie"},
+ {t:"claro",ey:"Comunicación con familias",h:"Un citatorio para todo el grupo, en segundos",p:"Recados, avisos, citatorios y autorizaciones para un alumno o para todos, con su logo y firma digital… <b>y hasta dos por hoja</b> para ahorrar papel.",
+   vis:doc("doc_recado.jpg","Citatorio general, dos por hoja",{w:96,x:2,y:14,r:-1.5}),go:"recado"},
+ {t:"oscuro",ey:"Dirección",h:"El libro de firmas, hecho",p:"Portada con su logo y hojas diarias con las <b>fechas del calendario oficial de Baja California</b>: CTE, suspensiones y vacaciones ya marcadas.",
+   vis:doc("doc_firmas.jpg","Portada del libro de firmas",{w:50,x:2,y:6,r:-5})+doc("doc_firmas2.jpg","Hoja diaria del libro de firmas",{w:58,x:40,y:16,r:4,d:"d2"}),go:"firmas"},
+ {t:"claro",ey:"Laboral",h:"El «permiso económico», desde el celular",p:"La licencia con goce de sueldo se llena en minutos: <b>calcula sola el periodo y la fecha de reanudación</b> y sale en el formato oficial.",
+   vis:doc("doc_lic.jpg","Solicitud de licencia económica",{w:82,x:9,y:2,r:1.5}),go:"laboral"},
+ {t:"oscuro",ey:"Recursos materiales",h:"Inventarios sin dolores de cabeza",p:"Resguardo, transferencia, alta, bajas, no localizados y aclaraciones, en el <b>formato de Recursos Materiales del ISEP</b>.",
+   vis:doc("doc_inv.jpg","Resguardo interno lleno",{w:80,x:10,y:2,r:-2}),go:"inventario"},
+ {t:"claro",ey:"Participación social",h:"Su Consejo de Participación, completo",p:"Convocatoria, lista de asistencia, minuta de instalación, comités y plan de trabajo del <b>ciclo 2026-2027</b>.",
+   vis:doc("doc_conv.jpg","Convocatoria del Consejo",{w:88,x:0,y:4,r:-3})+doc("doc_comites.jpg","Formato de comités",{w:88,x:12,y:42,r:2.5,d:"d2"}),go:"consejo"},
+ {t:"terra",ey:"Y además",h:"Todo lo que necesita, a la mano",p:"<b>Calendario oficial</b>, normatividad y libros de texto, su <b>salario anual</b> para la declaración patrimonial y las <b>edades al 1 de septiembre</b> para la estadística.",
+   vis:tel("scr_calendario.jpg","Calendario escolar",{w:36,h:62,x:0,y:4,r:-5})+tel("scr_normas.jpg","Normatividad",{w:36,h:62,x:32,y:0,d:"d2"})+tel("scr_salario.jpg","Salario anual",{w:36,h:62,x:64,y:6,r:5,d:"d3"})+
+     `<div class="chips anim d4" style="position:absolute;bottom:0;left:0;right:0;justify-content:center"><span>Seguro escolar</span><span>CURP</span><span>Correo institucional</span><span>Libro de visitas</span><span>EIA</span></div>`,go:"calendario"},
+ {t:"oscuro",cierre:true,ms:14000,html:`<span class="eyebrow">Supervisión Escolar Zona 050 · ISEP</span><h2 style="color:#FBF6EC;font-size:clamp(32px,9vw,40px)">Menos trámite,<br>más tiempo para enseñar</h2>
+   <ul><li>Funciona en el celular o la computadora, sin instalar nada.</li><li>Sus datos se quedan en su dispositivo: nada se envía a internet.</li><li>Formatos oficiales listos para imprimir, guardar o enviar.</li><li>Está en pilotaje: sus observaciones la hacen mejor.</li></ul>
+   <div class="final"><a class="a1" href="index.html#demo">Probarla con una escuela de ejemplo</a><a class="a2" href="index.html">Abrir Tlamatini</a><button type="button" class="a3" id="otraVez">Ver el recorrido otra vez</button></div>
+   <p class="nota">Dudas o sugerencias: tlamatini023@gmail.com · WhatsApp 661 850 1585</p>`}];
+const DUR=8000;
+const cont=document.getElementById("slides"),bars=document.getElementById("bars"),phone=document.getElementById("phone"),probar=document.getElementById("probar"),marca=document.getElementById("marca");
+cont.innerHTML=S.map((s,i)=>{if(s.portada)return`<section class="slide oscuro portada" aria-label="Portada">${s.html}</section>`;
+  if(s.cierre)return`<section class="slide oscuro cierre" aria-label="Cierre">${s.html}</section>`;
+  return`<section class="slide ${s.t}" aria-label="${s.ey}: ${s.h}"><span class="eyebrow">${s.ey}</span><h2>${s.h}</h2><p class="sub">${s.p}</p><div class="vis">${s.vis}</div></section>`}).join("");
+bars.innerHTML=S.map(()=>"<i><b></b></i>").join("");
+const slides=[...cont.children],fills=[...bars.querySelectorAll("b")];
+let cur=-1,t0=0,acc=0,paused=false,raf=0;
+function show(i){i=Math.max(0,Math.min(S.length-1,i));if(i===cur)return;cur=i;acc=0;t0=performance.now();
+  slides.forEach((s,j)=>s.classList.toggle("on",j===i));fills.forEach((f,j)=>f.style.width=j<i?"100%":"0");
+  const s=S[i],claro=s.t==="claro";phone.classList.toggle("claro",claro);
+  marca.innerHTML=s.portada?"":`${LOGO(!claro).replace('class="logo"','')}<span>Tlamatini</span>`;
+  probar.innerHTML=s.go?`<a href="index.html#demo=${s.go}">Probar esta sección</a><a class="sec" href="index.html">Abrir Tlamatini</a>`:"";
+  document.querySelectorAll(".tap").forEach(t=>t.hidden=!!s.cierre);
+  const ot=document.getElementById("otraVez");if(ot)ot.onclick=e=>{e.stopPropagation();show(0)}}
+function tick(now){if(!paused){const d=S[cur].ms||DUR;const p=Math.min(1,(acc+now-t0)/d);fills[cur].style.width=(p*100)+"%";if(p>=1&&cur<S.length-1)show(cur+1)}raf=requestAnimationFrame(tick)}
+function pause(v){if(v===paused)return;if(v){acc+=performance.now()-t0}else t0=performance.now();paused=v;phone.classList.toggle("pausado",v);document.getElementById("bPausa").textContent=v?"▶":"❚❚";document.getElementById("bPausa").setAttribute("aria-label",v?"Continuar":"Pausar")}
+let held=false,swiped=false;const skip=()=>{if(held||swiped){held=swiped=false;return true}return false};
+document.getElementById("tDer").onclick=()=>{if(!skip())show(cur+1)};document.getElementById("tIzq").onclick=()=>{if(!skip())show(cur-1)};
+document.getElementById("bPausa").onclick=()=>pause(!paused);
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" ")show(cur+1);else if(e.key==="ArrowLeft")show(cur-1);else if(e.key==="p")pause(!paused)});
+/* mantener presionado = pausa; deslizar = navegar */
+let hold=0,sx=0;phone.addEventListener("pointerdown",e=>{if(e.target.closest("a,button:not(.tap)"))return;sx=e.clientX;held=false;swiped=false;hold=setTimeout(()=>{held=true;pause(true)},350)});
+phone.addEventListener("pointerup",e=>{clearTimeout(hold);const dx=e.clientX-sx;if(sx&&Math.abs(dx)>50){swiped=true;show(cur+(dx<0?1:-1))}if(held)pause(false);sx=0});
+document.addEventListener("visibilitychange",()=>pause(document.hidden||paused));
+if(matchMedia("(prefers-reduced-motion: reduce)").matches)pause(true);
+/* precarga de imágenes */
+S.forEach(s=>((s.vis||"").match(/src="([^"]+)"/g)||[]).forEach(m=>{const im=new Image();im.src=m.slice(5,-1)}));
+show(0);raf=requestAnimationFrame(tick);
+</script>
+</body></html>
