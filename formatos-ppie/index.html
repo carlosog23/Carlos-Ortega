@@ -246,6 +246,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .letra{width:42px;height:42px;border-radius:8px;font-family:var(--display);font-size:19px;font-weight:700;background:var(--accent-soft);color:var(--accent)}
 .opt.on{border-color:var(--accent);background:var(--accent-soft)}
 .opt input{accent-color:var(--accent)}
+.invit{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;background:var(--field)}
+.invit_h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 /* barra superior fija en las pantallas internas */
 .top{position:sticky;top:0;z-index:5;margin:-16px calc(50% - 50vw) 0;padding:10px max(16px,calc(50vw - 340px));background:color-mix(in srgb,var(--card) 94%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(13,39,71,.03)}
 .top .back{width:42px;height:42px;border-radius:8px}
@@ -981,7 +983,7 @@ const SECCIONES=[
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -2889,6 +2891,102 @@ async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEs
    <p style="text-align:center;margin-top:34px">${firmaImg}______________________________<br><b>${esc(RC.firma)}</b><br><span style="color:#555">${esc(RC.cargo)}</span></p>${bottom}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=rcFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* ---------- Formatos de inventario (ISEP · Dirección de Recursos Materiales y Servicios) ---------- */
+/* La plantilla es el formato oficial tal cual (formatos/inventarios.pdf, una página por trámite); la app solo escribe los datos encima. */
+const INV_T=[
+ {k:"resguardo",n:"Resguardo interno",d:"Para dejar bienes bajo la responsabilidad de una persona del centro de trabajo (resguardante).",cols:["inv","desc","cant","monto"]},
+ {k:"transferencia",n:"Transferencia de bienes",d:"Cuando bienes pasan de un centro de trabajo a otro: uno entrega y otro recibe.",cols:["inv","desc","cant","monto"]},
+ {k:"alta",n:"Aviso de alta de bienes muebles",d:"Para registrar bienes que ingresan al centro de trabajo, con su forma de adquisición y número de serie.",cols:["inv","desc","cant","monto"]},
+ {k:"baja_obs",n:"Baja de bienes · obsoletos e inservibles",d:"Solicitud de baja de bienes obsoletos o que ya no sirven.",cols:["inv","desc","cant","monto"]},
+ {k:"baja_robo",n:"Baja de bienes · robos y siniestros",d:"Solicitud de baja de bienes robados o dañados por un siniestro.",cols:["inv","desc","cant","monto"]},
+ {k:"no_loc",n:"Reporte de bienes no localizados",d:"Para reportar bienes del inventario que no se encuentran (sujeto a validación).",cols:["inv","desc","cant","monto"]},
+ {k:"aclaracion",n:"Aclaraciones al inventario",d:"Para aclarar la situación de un bien del inventario.",cols:["inv","desc","sit"]}];
+const INV_CAP={resguardo:26,transferencia:28,alta:30,baja_obs:30,baja_robo:30,no_loc:30,aclaracion:30};
+const INV_KEY="ppie-inventario";let INV=null,INV_GEO=null,INV_TPL=null;
+const invT=()=>INV_T.find(t=>t.k===INV.tipo)||INV_T[0];
+const invItem=()=>({inv:"",desc:"",cant:"",monto:"",sit:""});
+function invCentro(i){const c=CENTROS[i];return{sel:String(i),nombre:c.nombre,clave:c.cct,zona:"050",dom:[c.dir,c.cp&&"C.P. "+c.cp,c.mun,"B.C."].filter(Boolean).join(", "),resp:c.resp,cargo:c.cargo,rfc:""}}
+function invCentroVacio(){return{sel:"otra",nombre:"",clave:"",zona:"",dom:"",resp:"",cargo:"",rfc:""}}
+function invNuevo(){const i=CENTROS.findIndex(c=>c.cct===perfil.cct);
+  return{tipo:"resguardo",fecha:today(),c:i>=0?invCentro(i):invCentroVacio(),r:invCentroVacio(),resguardante:"",rfc:"",forma:"",items:[invItem(),invItem(),invItem()]}}
+(function(){const d=store.get(INV_KEY,null);if(d&&d.tipo&&d.c)INV=d})();
+const invSave=()=>store.set(INV_KEY,INV);
+function invCentroHTML(p,tit,conRFC){const c=INV[p];const f=(k,lab,ph)=>`<div class="field"><label>${lab}</label><input type="text" data-f="${p}.${k}" value="${esc(c[k]||"")}" ${ph?`placeholder="${ph}"`:""} autocomplete="off"></div>`;
+  return`<section class="card"><h3>${tit}</h3>
+   <div class="field"><label>Escuela o centro de trabajo</label><select data-centro="${p}"><option value="">Elija…</option>${CENTROS.map((x,i)=>`<option value="${i}" ${c.sel===String(i)?"selected":""}>${esc(x.label)} · ${esc(x.cct)}</option>`).join("")}<option value="otra" ${c.sel==="otra"?"selected":""}>Otro centro de trabajo (llenar a mano)</option></select></div>
+   ${f("nombre","Centro de trabajo")}
+   <div class="row2">${f("clave","Clave (C.C.T.)")}${f("zona","Zona")}</div>
+   ${f("dom","Domicilio")}
+   <div class="row2">${f("resp","Responsable del centro de trabajo")}${conRFC?f("rfc","RFC del responsable"):`<div class="field"><label>Cargo</label><input type="text" data-f="${p}.cargo" value="${esc(c.cargo||"")}" autocomplete="off"></div>`}</div>
+   ${conRFC?`<div class="field"><label>Cargo</label><input type="text" data-f="${p}.cargo" value="${esc(c.cargo||"")}" autocomplete="off"></div>`:""}
+   <p class="help">El responsable del centro de trabajo es el director(a) o el encargado(a) de despacho. Firma el formato.</p></section>`}
+function invView(){S.view="inventario";S.letra=null;setBar("");if(!INV)INV=invNuevo();const T=invT(),k=INV.tipo,cap=INV_CAP[k];
+  const lab={inv:k==="alta"?"No. de serie":"No. de inventario",desc:"Descripción detallada del bien",cant:"Cantidad",monto:"Monto unitario",sit:"Situación a aclarar del bien"};
+  const itemsHTML=INV.items.map((it,i)=>`<div class="invit"><div class="invit_h"><b>Bien ${i+1}</b><button type="button" class="btn link" data-del="${i}" aria-label="Quitar bien ${i+1}">Quitar</button></div>
+     <div class="field"><label>${lab.inv}</label><input type="text" data-f="items.${i}.inv" value="${esc(it.inv)}" autocomplete="off"></div>
+<div class="field"><label>${lab.desc}</label><input type="text" data-f="items.${i}.desc" value="${esc(it.desc)}" autocomplete="off"></div>
+     ${T.cols.includes("cant")?`<div class="row2"><div class="field"><label>${lab.cant}</label><input type="text" inputmode="numeric" data-f="items.${i}.cant" value="${esc(it.cant)}" autocomplete="off"></div><div class="field"><label>${lab.monto}</label><input type="text" inputmode="decimal" data-f="items.${i}.monto" value="${esc(it.monto)}" placeholder="$" autocomplete="off"></div></div>`:""}
+     ${T.cols.includes("sit")?`<div class="field"><label>${lab.sit}</label><input type="text" data-f="items.${i}.sit" value="${esc(it.sit)}" autocomplete="off"></div>`:""}</div>`).join("");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección · Recursos materiales</div><h2>Formatos de inventario</h2></div></div>
+   <p class="muted">Elija el trámite, revise los datos de la escuela y capture los bienes. Se genera el formato oficial de la Dirección de Recursos Materiales y Servicios (ISEP), sin cambios, listo para imprimir y firmar.</p>
+   <section class="card"><div class="field"><label>Trámite</label><select id="inv_tipo">${INV_T.map(t=>`<option value="${t.k}" ${k===t.k?"selected":""}>${esc(t.n)}</option>`).join("")}</select><p class="help">${esc(T.d)}</p></div>
+    <div class="field"><label>Fecha</label><input type="date" data-f="fecha" value="${esc(INV.fecha)}"></div></section>
+   ${k==="transferencia"?invCentroHTML("c","Centro de trabajo que entrega",true)+invCentroHTML("r","Centro de trabajo que recibe",true):invCentroHTML("c","Centro de trabajo",false)}
+   ${k==="resguardo"?`<section class="card"><h3>Resguardante</h3><p class="help">Persona que queda a cargo de los bienes (por ejemplo, el docente del grupo).</p>
+     <div class="row2"><div class="field"><label>Nombre</label><input type="text" data-f="resguardante" value="${esc(INV.resguardante)}" autocomplete="off"></div><div class="field"><label>RFC</label><input type="text" data-f="rfc" value="${esc(INV.rfc)}" autocomplete="off" style="text-transform:uppercase"></div></div></section>`:""}
+   ${k==="alta"?`<section class="card"><div class="field"><label>Forma de adquisición</label><input type="text" data-f="forma" list="inv_formas" value="${esc(INV.forma)}" autocomplete="off"><datalist id="inv_formas"><option value="Compra"><option value="Donación"><option value="Aportación de padres de familia"><option value="Programa federal o estatal"></datalist></div></section>`:""}
+   ${k!=="resguardo"&&k!=="transferencia"?`<section class="card"><div class="field"><label>Resguardante <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" data-f="resguardante" value="${esc(INV.resguardante)}" autocomplete="off"><p class="help">Nombre que aparece en la firma de «Resguardante». Si lo deja vacío, se firma a mano.</p></div></section>`:""}
+   <section class="card"><h3>Bienes</h3><p class="help">Caben ${cap} bienes por hoja. Si captura más, se agregan hojas del mismo formato.</p>${itemsHTML}
+    <div class="acts"><button type="button" class="btn ghost act" id="inv_add">+ Agregar bien</button></div></section>
+   <section class="card"><div class="acts"><button class="btn primary act" id="inv_pdf">⬇ Descargar formato (PDF)</button><button type="button" class="btn link" id="inv_nuevo">Empezar uno nuevo</button></div></section>
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=INV;for(let j=0;j<p.length-1;j++)o=o[p[j]];o[p[p.length-1]]=e.value});invSave()};
+  app.querySelectorAll("[data-f]").forEach(e=>e.addEventListener("change",leer));
+  app.querySelectorAll("[data-centro]").forEach(s=>s.addEventListener("change",()=>{leer();const p=s.dataset.centro,v=s.value;
+    if(v==="otra"){INV[p]=Object.assign(invCentroVacio(),{rfc:INV[p].rfc})}else if(v!==""){INV[p]=Object.assign(invCentro(+v),{rfc:INV[p].rfc})}invSave();invView()}));
+  document.getElementById("inv_tipo").onchange=e=>{leer();INV.tipo=e.target.value;invSave();invView()};
+  document.getElementById("inv_add").onclick=()=>{leer();INV.items.push(invItem());invSave();invView();const l=app.querySelectorAll(".invit");l[l.length-1].scrollIntoView({block:"center"})};
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{leer();INV.items.splice(+b.dataset.del,1);if(!INV.items.length)INV.items.push(invItem());invSave();invView()});
+  document.getElementById("inv_nuevo").onclick=()=>{if(!confirm("¿Borrar los bienes capturados y empezar un formato nuevo? Se conservan los datos de la escuela."))return;leer();INV.items=[invItem(),invItem(),invItem()];INV.resguardante="";INV.rfc="";INV.forma="";INV.r=invCentroVacio();invSave();invView()};
+  document.getElementById("salir").onclick=()=>{leer();goBack()};
+  document.getElementById("inv_pdf").onclick=e=>{leer();invPDF(e.currentTarget)};
+  window.scrollTo(0,0)}
+function invMonto(v){const s=String(v||"").trim();if(!s)return"";const n=Number(s.replace(/[$,\s]/g,""));return isFinite(n)&&/\d/.test(s)?"$"+n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}):s}
+async function invPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();if(!INV_GEO){INV_GEO=await(await fetch("formatos/inventarios.json")).json();INV_TPL=await(await fetch("formatos/inventarios.pdf")).arrayBuffer()}
+    const k=INV.tipo,G=INV_GEO[k],pi=INV_T.findIndex(x=>x.k===k),T=invT();
+    const src=await PDFLib.PDFDocument.load(INV_TPL);const doc=await PDFLib.PDFDocument.create();
+    const F=await doc.embedFont(PDFLib.StandardFonts.Helvetica),FB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);const ink=PDFLib.rgb(0.05,0.05,0.12);
+    const put=(pg,txt,R,o={})=>{const t=clean(txt).replace(/\s*\n\s*/g," ").trim();if(!t||!R)return;const f=o.bold?FB:F,pad=2.5,w=R[2]-pad*2;
+      const one=(s)=>{const tw=f.widthOfTextAtSize(t,s);let x=R[0]+pad;if(o.align==="c")x=R[0]+(R[2]-tw)/2;else if(o.align==="r")x=R[0]+R[2]-pad-tw;pg.drawText(t,{x,y:R[1]+(R[3]-s*0.7)/2,size:s,font:f,color:ink})};
+      const lines=(s)=>{const out=[];let ln="";for(const wd of t.split(" ")){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){out.push(ln);ln=wd}else ln=te}if(ln)out.push(ln);return out};
+      for(let s=o.size||8.5;s>=5.5;s-=0.25){if(f.widthOfTextAtSize(t,s)<=w){one(s);return}
+        if(o.two&&s<=7&&R[3]>=s*1.95+1.5){const L=lines(s);if(L.length<=2&&L.every(l=>f.widthOfTextAtSize(l,s)<=w)){const lh=s*1.02,y0=R[1]+R[3]/2+(lh-0.48*s)/2;L.forEach((l,j)=>pg.drawText(l,{x:R[0]+pad,y:y0-j*lh,size:s,font:f,color:ink}));return}}}
+      let s=5.5,c=t;while(c.length>1&&f.widthOfTextAtSize(c+"…",s)>w)c=c.slice(0,-1);pg.drawText(c+"…",{x:R[0]+pad,y:R[1]+(R[3]-s*0.7)/2,size:s,font:f,color:ink})};
+    const firma=(pg,txt,j)=>{const t=clean(txt).trim();const P=G.firmas[j];if(!t||!P)return;let s=9;while(FB.widthOfTextAtSize(t,s)>200&&s>6)s-=0.25;pg.drawText(t,{x:P[0]-FB.widthOfTextAtSize(t,s)/2,y:P[1]+5,size:s,font:FB,color:ink})};
+    const fecha=fmtDate(INV.fecha,"corta")||"";
+    const items=INV.items.filter(it=>T.cols.some(c=>String(it[c]||"").trim()));const cap=G.c_desc.length,pages=Math.max(1,Math.ceil(items.length/cap));
+    for(let p=0;p<pages;p++){const[pg]=await doc.copyPages(src,[pi]);doc.addPage(pg);
+      const h=(n,v,o)=>put(pg,v,G["h_"+n],o);
+      if(k==="transferencia"){const e=INV.c,r=INV.r;
+        h("e_resp",e.resp);h("fecha",fecha);h("e_rfc",(e.rfc||"").toUpperCase());h("e_clave",e.clave);h("e_ct",e.nombre);h("e_zona",e.zona);h("e_dom",e.dom);
+        h("r_resp",r.resp);h("r_clave",r.clave);h("r_rfc",(r.rfc||"").toUpperCase());h("r_zona",r.zona);h("r_ct",r.nombre);h("r_dom",r.dom);
+        firma(pg,e.resp,0);firma(pg,r.resp,1)}
+      else{const c=INV.c;h("ct",c.nombre);h("fecha",fecha);h("dom",c.dom);h("clave",c.clave);h("zona",c.zona);
+        if(k==="resguardo"){h("nombre",INV.resguardante);h("rfc",(INV.rfc||"").toUpperCase())}
+        if(k==="alta")h("forma",INV.forma);
+        firma(pg,INV.resguardante,0);firma(pg,c.resp,1)}
+      items.slice(p*cap,(p+1)*cap).forEach((it,i)=>{
+        if(G.c_no)put(pg,String(p*cap+i+1),G.c_no[i],{align:"c"});
+        put(pg,it.inv,G.c_inv[i]);put(pg,it.desc,G.c_desc[i],{two:true});
+        if(G.c_cant)put(pg,it.cant,G.c_cant[i],{align:"c"});if(G.c_monto)put(pg,invMonto(it.monto),G.c_monto[i],{align:"r"});
+        if(G.c_sit)put(pg,it.sit,G.c_sit[i],{two:true})});
+      if(pages>1){const lt=`Hoja ${p+1} de ${pages}`;pg.drawText(lt,{x:G.page[0]-30-F.widthOfTextAtSize(lt,7.5),y:22,size:7.5,font:F,color:ink})}}
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    const quien=(INV.c.nombre||"").replace(/^Escuela Primaria\s*/i,"").replace(/[\\/:*?"<>|]/g,"").trim();
+    a.download=`${T.n.replace(/[·\/]/g,"-").replace(/\s+-\s+/g," - ")} - ${quien||fecha.replace(/\//g,"-")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar el formato: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t0}}
 /* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
 /* Para quien ya tiene su documento y no usará el generador: sube su PDF y sirve de base para PMC, analítico y planeación. */
 function insGet(){return store.get("ppie-insumos",{})}
@@ -3186,7 +3284,7 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
     store.set("ppie-perfil",perfil);home()};
   window.scrollTo(0,0)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),alum:()=>alView(),eia:()=>eiaView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),alum:()=>alView(),eia:()=>eiaView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
@@ -3198,7 +3296,7 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
 function demoBanda(){if(document.getElementById("demoBanda"))return;const b=document.createElement("div");b.id="demoBanda";b.className="demo-banda";b.setAttribute("role","note");
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
   document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
-const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),firmas:()=>lfView(),visitas:()=>lvView(),
+const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),firmas:()=>lfView(),visitas:()=>lvView(),
   ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
 function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
   return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
