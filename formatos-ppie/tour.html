@@ -9,6 +9,7 @@
 <meta property="og:image" content="tour/img/scr_home.jpg">
 <link rel="icon" type="image/svg+xml" href="img/tlamatini-icono.svg">
 <link rel="apple-touch-icon" href="img/tlamatini-icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Montserrat:wght@600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&display=swap">
 <style>
@@ -214,5 +215,6 @@ if(matchMedia("(prefers-reduced-motion: reduce)").matches)pause(true);
 /* precarga de imágenes */
 S.forEach(s=>((s.vis||"").match(/src="([^"]+)"/g)||[]).forEach(m=>{const im=new Image();im.src=m.slice(5,-1)}));
 show(0);raf=requestAnimationFrame(tick);
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body></html>

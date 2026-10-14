@@ -4,9 +4,13 @@
 <meta name="theme-color" content="#1F3A6B">
 <link rel="icon" type="image/svg+xml" href="img/tlamatini-icono.svg">
 <link rel="apple-touch-icon" href="img/tlamatini-icono-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tlamatini">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Montserrat:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
 <style>
 /* Layout: una columna tipo app de teléfono; pantallas Inicio → Pasos → Revisión. Guinda ISEP como único acento. */
 :root{
@@ -298,6 +302,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .bienv-h .tlm-n{color:var(--accent);font-size:38px}
 .bienv-h .tlm-l{color:var(--terra)}
 @media (max-width:400px){.band-in.tlm{flex-direction:row;align-items:center;gap:12px}.tlm-m{width:64px;height:64px}}
+.sin-red{margin:0 -16px;background:#1E2A40;color:#FBF6EC;text-align:center;padding:7px 14px;font-size:14px;line-height:1.35}
+.eq-fila{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.eq-ok{color:var(--ok,#1E7A46);font-weight:700}
 .demo-banda{margin:0 -16px;background:#E8A33D;color:#2B1D05;display:flex;align-items:center;justify-content:center;gap:6px 12px;flex-wrap:wrap;padding:6px 14px;font-size:14px;line-height:1.3;text-align:center}
 .demo-banda button{background:#2B1D05;color:#FFF7E6;border:0;border-radius:999px;padding:4px 12px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
 .demo-rec{border-left:4px solid #E8A33D}
@@ -952,6 +959,7 @@ function home(){S.view="home";setBar("");
    ${DEMO?demoRecorrido():""}
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
+   ${equipoHTML()}
    <div class="group-title">¿Qué necesita hacer?</div>
    <div class="secs">${SECCIONES.map(x=>{const n=x.count?x.count():secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
@@ -961,7 +969,7 @@ function home(){S.view="home";setBar("");
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;{const a=document.getElementById("accAdm");if(a)a.onclick=()=>accAdminView();const d=document.getElementById("demoHome");if(d)d.onclick=demoEntrar}
   app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
-  app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));window.scrollTo(0,0)}
+  app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));wireEquipo();window.scrollTo(0,0)}
 
 const ICON={
  work:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></svg>',
@@ -3473,7 +3481,10 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
    <section class="card demo-inv"><h3>¿Quiere conocerla primero?</h3>
     <p class="help">Recorra Tlamatini con una escuela de ejemplo ya capturada y vea todo lo que puede hacer. Lo que haga en la demostración no se guarda ni toca sus datos.</p>
     <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
-   <p class="foot"><span class="muted">v2026-10-12.7</span></p>`;
+   ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
+    <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
+   <p class="foot"><span class="muted">v2026-10-14.1</span></p>`;
+  {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   document.getElementById("suDemo").onclick=demoEntrar;
@@ -3542,6 +3553,55 @@ new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
   if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
+/* ---------- Tlamatini en este equipo: instalar, usar sin internet y respaldo ---------- */
+let INSTALAR=null;
+const tlmInstalada=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}};
+const tlmIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();INSTALAR=e;pintaEquipo()});
+window.addEventListener("appinstalled",()=>{INSTALAR=null;pintaEquipo()});
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.tipo==="completo"){try{if(!e.data.fallas)localStorage.setItem("tlm-completo","1")}catch(x){}
+    pintaEquipo();const m=document.getElementById("eq_msg");if(m)m.innerHTML=e.data.fallas?"<b>No se pudieron guardar algunos archivos.</b> Revise su conexión e inténtelo de nuevo.":"Listo: todos los formatos quedaron guardados en este equipo."}})}
+/* aviso cuando no hay internet */
+function tlmRed(){let b=document.getElementById("sinRed");if(navigator.onLine){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id="sinRed";b.className="sin-red";b.setAttribute("role","status");b.innerHTML="<b>Sin internet.</b> Puede seguir usando Tlamatini con lo que ya está guardado en este equipo.";document.body.prepend(b)}}
+window.addEventListener("online",tlmRed);window.addEventListener("offline",tlmRed);
+/* respaldo: solo los datos de Tlamatini (no contraseñas ni enlaces de acceso) */
+const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","logo-zona","libro-visitas-logo","tlm-tour-visto"];
+const respClave=k=>k.startsWith("ppie-")||RESP_EXACTAS.includes(k);
+function respaldoDescargar(){const datos={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(respClave(k))datos[k]=localStorage.getItem(k)}}catch(e){}
+  const n=Object.keys(datos).length;if(!n){alert("Todavía no hay datos guardados para respaldar.");return}
+  const hoy=today(),esc0=(perfil.escuela||"").replace(/[\\/:*?"<>|«»]/g,"").trim();
+  const blob=new Blob([JSON.stringify({app:"Tlamatini",tipo:"respaldo",version:1,fecha:new Date().toISOString(),escuela:perfil.escuela||"",datos})],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`Respaldo Tlamatini${esc0?" - "+esc0:""} - ${hoy}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  try{localStorage.setItem("tlm-ultimo-respaldo",hoy)}catch(e){}const m=document.getElementById("eq_msg");if(m)m.textContent=`Respaldo descargado (${n} apartados). Guárdelo en su Drive, correo o WhatsApp para no perderlo.`}
+function respaldoRestaurar(file){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON.parse(rd.result)}catch(e){alert("El archivo no es un respaldo de Tlamatini.");return}
+    if(!o||o.app!=="Tlamatini"||!o.datos||typeof o.datos!=="object"){alert("El archivo no es un respaldo de Tlamatini.");return}
+    const ks=Object.keys(o.datos).filter(respClave);const f=o.fecha?new Date(o.fecha).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"";
+    if(!confirm(`Se restaurarán ${ks.length} apartados del respaldo${o.escuela?" de "+o.escuela:""}${f?" del "+f:""}.\n\nLo que tenga ahora en este equipo en esos apartados se reemplazará. ¿Continuar?`))return;
+    try{ks.forEach(k=>localStorage.setItem(k,o.datos[k]))}catch(e){alert("No se pudo restaurar todo: el espacio del navegador está lleno.");return}
+    alert("Respaldo restaurado. Tlamatini se volverá a abrir con sus datos.");location.reload()};rd.readAsText(file)}
+function equipoHTML(){return`<section class="card" id="equipo">${equipoInner()}</section>`}
+function equipoInner(){let completo=false,ult="";try{completo=localStorage.getItem("tlm-completo")==="1";ult=localStorage.getItem("tlm-ultimo-respaldo")||""}catch(e){}
+  const inst=tlmInstalada()?`<p class="eq-ok">✓ Tlamatini está instalada en este equipo.</p>`
+    :INSTALAR?`<button type="button" class="btn primary" id="eq_inst">Instalar Tlamatini en este equipo</button>`
+    :tlmIOS?`<p class="help">Para instalarla en iPhone o iPad: abra esta página en <b>Safari</b>, toque <b>Compartir</b> <span aria-hidden="true">⬆︎</span> y elija <b>«Agregar a inicio»</b>.</p>`
+    :`<p class="help">Para instalarla: abra el menú del navegador (⋮) y elija <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla de inicio»</b>.</p>`;
+  return`<div><h3>Tlamatini en este equipo</h3><p class="muted" style="font-size:15px">Instálela como app, úsela sin internet y respalde su información.</p></div>
+   ${inst}
+   <div class="eq-fila"><div><b>Sin internet</b><p class="help">${completo?"Todos los formatos están guardados: puede trabajar sin conexión.":"Los formatos principales ya se guardan solos. Para tener también el Consejo, la estadística y las demás plantillas, guárdelos una vez con internet."}</p></div>
+    ${completo?"":`<button type="button" class="btn ghost" id="eq_todo">Guardar todos los formatos (5 MB)</button>`}</div>
+   <div class="eq-fila"><div><b>Respaldo de mis datos</b><p class="help">Sus datos viven solo en este equipo. Descargue un respaldo para pasarlos a otro teléfono o no perderlos.${ult?` Último respaldo: ${esc(fmtDate(ult,"larga"))}.`:""}</p></div>
+    ${DEMO?`<p class="help"><i>No disponible en la demostración.</i></p>`:`<div class="phb row"><button type="button" class="btn ghost" id="eq_resp">Descargar respaldo</button><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="eq_rest" hidden></label></div>`}</div>
+   <p class="help" id="eq_msg" role="status"></p>`}
+function pintaEquipo(){const c=document.getElementById("equipo");if(!c)return;c.innerHTML=equipoInner();wireEquipo()}
+function wireEquipo(){const g=id=>document.getElementById(id);
+  if(g("eq_inst"))g("eq_inst").onclick=async()=>{if(!INSTALAR)return;INSTALAR.prompt();try{await INSTALAR.userChoice}catch(e){}INSTALAR=null;pintaEquipo()};
+  if(g("eq_todo"))g("eq_todo").onclick=async()=>{const m=g("eq_msg");if(!navigator.onLine){m.innerHTML="<b>Necesita internet</b> para guardar los formatos la primera vez.";return}
+    if(!("serviceWorker" in navigator)){m.textContent="Este navegador no permite guardar los formatos para usarlos sin internet.";return}
+    m.textContent="Guardando formatos en este equipo…";g("eq_todo").disabled=true;const r=await navigator.serviceWorker.ready;(navigator.serviceWorker.controller||r.active).postMessage("completo")};
+  if(g("eq_resp"))g("eq_resp").onclick=respaldoDescargar;
+  if(g("eq_rest"))g("eq_rest").onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
 /* ---------- Demostración: banda, recorrido y ejemplo de lectura de la realidad ---------- */
 function demoBanda(){if(document.getElementById("demoBanda"))return;const b=document.createElement("div");b.id="demoBanda";b.className="demo-banda";b.setAttribute("role","note");
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
@@ -3587,6 +3647,7 @@ if(DEMO&&!store.get(INV_KEY,null)){try{INV=invNuevo();INV.c=Object.assign(invCen
 if(DEMO&&!store.get(CP_KEY,null)){try{CP=cpNuevo();CP.esc=Object.assign(cpEscVacia(),{nombre:perfil.escuela,cct:perfil.cct,zona:"050",turno:"Matutino",mun:"San Quintín",loc:"Camalú",dom:perfil.domicilio,director:perfil.director});
   CP.pres={nom:"Rosa María",ap1:"Ejemplo",ap2:"Gómez"};const P=(n,c,t)=>({n,c,t});CP.comites[0].coord=P("Rosa María Ejemplo Gómez","rosa.ejemplo@correo.mx","616 555 0102");CP.comites[1].coord=P(perfil.director,"","616 555 0000");CP.comites[2].coord=P("Martha Ejemplo Soto","","616 555 0105");
   Object.assign(CP.conv,{turno:"M",fecha:"2026-10-20",hora:"12:30"});cpSave()}catch(e){console.warn("demo cp",e)}}
+tlmRed();
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
 </script>
 
