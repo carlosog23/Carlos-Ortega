@@ -2732,7 +2732,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
     ${firmaWidgetHTML()}
     <label class="opt ${RC.usarFirma?"on":""}" style="display:inline-flex;margin-top:4px"><input type="checkbox" id="rc_usarfirma" ${RC.usarFirma?"checked":""}>Incluir mi firma digital</label>
     ${esAut?`<p class="help">La autorización lleva un espacio para que el tutor marque «Autorizo / No autorizo» y firme.</p>`:esCit?`<p class="help">El citatorio incluye un acuse de enterado para confirmar asistencia.</p>`:`<label class="opt ${RC.acuse?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_acuse" ${RC.acuse?"checked":""}>Incluir acuse de enterado (para firmar y devolver)</label>`}</section>
-   <section class="card"><div class="acts"><button class="btn primary act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
+   <section class="card"><label class="opt ${RC.dosHoja?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_dos" ${RC.dosHoja?"checked":""}>Dos por hoja (media carta)</label><p class="help">Acomoda dos copias en cada hoja carta, con una línea de corte al centro. Ahorra papel en los recados generales. Aplica al PDF.</p><div class="acts"><button class="btn primary act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
    <p class="foot">La comunicación y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{const v=id=>{const e=g(id);return e?e.value:(RC[id.slice(3)]||"")};
@@ -2748,6 +2748,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
     else if(prevA==="escuela"&&RC.alcance!=="escuela"&&RC.cargo==="Director(a) de la escuela"){RC.cargo="Docente del grupo";if(perfil.minombre)RC.firma=perfil.minombre}
     rcSave();rcView()});
   if(g("rc_acuse"))g("rc_acuse").addEventListener("change",()=>{leer();g("rc_acuse").closest(".opt").classList.toggle("on",g("rc_acuse").checked)});
+  g("rc_dos").addEventListener("change",()=>{RC.dosHoja=g("rc_dos").checked;rcSave();g("rc_dos").closest(".opt").classList.toggle("on",RC.dosHoja)});
   g("rc_usarfirma").addEventListener("change",()=>{leer();g("rc_usarfirma").closest(".opt").classList.toggle("on",g("rc_usarfirma").checked)});
   wireFirma();
   g("salir").onclick=()=>{leer();goBack()};
@@ -2794,9 +2795,8 @@ function firmaTrim(cv){const w=cv.width,h=cv.height,ctx=cv.getContext("2d");cons
 function firmaFromImg(im){const maxW=600;const sc=Math.min(1,maxW/im.width);const o=document.createElement("canvas");o.width=Math.round(im.width*sc);o.height=Math.round(im.height*sc);
   o.getContext("2d").drawImage(im,0,0,o.width,o.height);return o.toDataURL("image/png")}
 /* ---- PDF ---- */
-async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
-  try{await fonts();const{rgb}=PDFLib;const doc=await PDFLib.PDFDocument.create();const HELV=await doc.embedFont(PDFLib.StandardFonts.Helvetica),HELVB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-    const esc0=rcEscuela();const pg=doc.addPage([612,792]);const M=50,W0=612-M*2;let y=792-M;
+async function rcDibujar(doc,PW,PH,M){const{rgb}=PDFLib;const HELV=await doc.embedFont(PDFLib.StandardFonts.Helvetica),HELVB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const esc0=rcEscuela();const pg=doc.addPage([PW,PH]);const W0=PW-M*2;let y=PH-M;
     const azul=rgb(0.07,0.227,0.42),blu2=rgb(0.12,0.35,0.66),ink=rgb(0.1,0.13,0.19),gray=rgb(0.35,0.4,0.48),soft=rgb(0.906,0.933,0.973),line=rgb(0.84,0.86,0.9);
     const wrap=(x,s,f,w)=>{const o=[];for(const para of clean(x).split("\n")){if(!para.trim()){o.push("");continue}const ws=para.split(/\s+/);let ln="";for(const wd of ws){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te}if(ln)o.push(ln)}return o};
     const par=(x,s,f,c,w,gp,ind)=>{gp=gp||3;ind=ind||0;for(const ln of wrap(x,s,f,w-ind)){pg.drawText(ln,{x:M+ind,y:y-s,size:s,font:f,color:c});y-=s+gp}};
@@ -2804,17 +2804,17 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
       pg.drawRectangle({x:M,y:y-ch,width:W0,height:ch,color:soft});pg.drawRectangle({x:M,y:y-ch,width:4,height:ch,color:blu2});
       let cy=y-8;wl.forEach(l=>{pg.drawText(l,{x:M+14,y:cy-10,size:10.5,font:HELV,color:ink});cy-=15});y-=ch+14};
     // banda
-    const bh=78;pg.drawRectangle({x:0,y:792-bh,width:612,height:bh,color:azul});
-    const sz=54,boxY=792-bh+(bh-sz)/2;
+    const bh=78;pg.drawRectangle({x:0,y:PH-bh,width:PW,height:bh,color:azul});
+    const sz=54,boxY=PH-bh+(bh-sz)/2;
     const inst=await embedInst(doc);let lx=M;
     if(inst){pg.drawRectangle({x:M,y:boxY,width:sz,height:sz,color:rgb(1,1,1)});const d=inst.scaleToFit(sz-6,sz-6);pg.drawImage(inst,{x:M+3+(sz-6-d.width)/2,y:boxY+3+(sz-6-d.height)/2,width:d.width,height:d.height});lx=M+sz+12}
-    else{const cx=M+sz/2,cy=792-bh/2;pg.drawCircle({x:cx,y:cy,size:sz/2,color:rgb(1,1,1)});const tw=HELVB.widthOfTextAtSize(esc0.zona,15);pg.drawText(esc0.zona,{x:cx-tw/2,y:cy-5,size:15,font:HELVB,color:azul});lx=M+sz+12}
-    let rx=612-M;const sch=await embedLogo(doc);
-    if(sch){pg.drawRectangle({x:612-M-sz,y:boxY,width:sz,height:sz,color:rgb(1,1,1)});const d=sch.scaleToFit(sz-6,sz-6);pg.drawImage(sch,{x:612-M-sz+3+(sz-6-d.width)/2,y:boxY+3+(sz-6-d.height)/2,width:d.width,height:d.height});rx=612-M-sz-12}
+    else{const cx=M+sz/2,cy=PH-bh/2;pg.drawCircle({x:cx,y:cy,size:sz/2,color:rgb(1,1,1)});const tw=HELVB.widthOfTextAtSize(esc0.zona,15);pg.drawText(esc0.zona,{x:cx-tw/2,y:cy-5,size:15,font:HELVB,color:azul});lx=M+sz+12}
+    let rx=PW-M;const sch=await embedLogo(doc);
+    if(sch){pg.drawRectangle({x:PW-M-sz,y:boxY,width:sz,height:sz,color:rgb(1,1,1)});const d=sch.scaleToFit(sz-6,sz-6);pg.drawImage(sch,{x:PW-M-sz+3+(sz-6-d.width)/2,y:boxY+3+(sz-6-d.height)/2,width:d.width,height:d.height});rx=PW-M-sz-12}
     const maxw=rx-lx;const fit=(s,base)=>{let z=base;while(HELVB.widthOfTextAtSize(clean(s),z)>maxw&&z>8)z-=0.5;return z};
-    const ns=fit(esc0.nombre,14);pg.drawText(clean(esc0.nombre),{x:lx,y:792-32,size:ns,font:HELVB,color:rgb(1,1,1)});
-    const sub=clean(`C.C.T. ${esc0.cct} · Supervisión Escolar Zona No. ${esc0.zona} · ${esc0.lugar}`);let ss=8.5;while(HELV.widthOfTextAtSize(sub,ss)>maxw&&ss>6)ss-=0.3;pg.drawText(sub,{x:lx,y:792-48,size:ss,font:HELV,color:rgb(0.88,0.92,0.98)});
-    y=792-bh-24;
+    const ns=fit(esc0.nombre,14);pg.drawText(clean(esc0.nombre),{x:lx,y:PH-32,size:ns,font:HELVB,color:rgb(1,1,1)});
+    const sub=clean(`C.C.T. ${esc0.cct} · Supervisión Escolar Zona No. ${esc0.zona} · ${esc0.lugar}`);let ss=8.5;while(HELV.widthOfTextAtSize(sub,ss)>maxw&&ss>6)ss-=0.3;pg.drawText(sub,{x:lx,y:PH-48,size:ss,font:HELV,color:rgb(0.88,0.92,0.98)});
+    y=PH-bh-24;
     // pastilla tipo
     const tipo=RC.tipo.toUpperCase();const pw=HELVB.widthOfTextAtSize(tipo,9)+20;pg.drawRectangle({x:M,y:y-16,width:pw,height:20,color:soft});pg.drawText(tipo,{x:M+10,y:y-11,size:9,font:HELVB,color:blu2});y-=34;
     // meta
@@ -2848,8 +2848,20 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     else if(bt==="autorizacion"){dashed();pg.drawText("AUTORIZACIÓN DEL PADRE, MADRE O TUTOR",{x:M,y:y-9,size:9,font:HELVB,color:gray});y-=22;
       if(rcGen()){par(rcAlumLinea(),10,HELV,ink,W0,6);par(`(   ) Autorizo      (   ) No autorizo   que mi hijo(a) participe en: ${RC.aactividad||"____________"}.`,10,HELV,ink,W0,4)}
       else par(`(   ) Autorizo      (   ) No autorizo   que mi hijo(a) ${RC.alumno||"____________"} participe en: ${RC.aactividad||"____________"}.`,10,HELV,ink,W0,4);y-=14;dosLineas("Nombre y firma del padre, madre o tutor","Fecha")}
+    return{pg,y}}
+/* PDF: una por hoja carta, o dos por hoja (media carta) con línea de corte al centro */
+async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();let doc=await PDFLib.PDFDocument.create();
+    if(RC.dosHoja){const PW=440,PH=1400,M=26;const r=await rcDibujar(doc,PW,PH,M);
+      const top=PH,bot=Math.max(0,r.y-16);const out=await PDFLib.PDFDocument.create();const hoja=out.addPage([792,612]);
+      const tmp=await PDFLib.PDFDocument.load(await doc.save());const emb=await out.embedPage(tmp.getPage(0),{left:0,bottom:bot,right:PW,top:top});
+      const hw=396,pad=16;const sc=Math.min((hw-pad*2)/PW,(612-pad*2)/(top-bot));const w=PW*sc,h=(top-bot)*sc;
+      for(const ox of [0,hw])hoja.drawPage(emb,{x:ox+(hw-w)/2,y:612-pad-h,width:w,height:h});
+      for(let yy=10;yy<602;yy+=10)hoja.drawLine({start:{x:hw,y:yy},end:{x:hw,y:yy+5},thickness:0.6,color:PDFLib.rgb(0.6,0.6,0.6)});
+      doc=out}
+    else await rcDibujar(doc,612,792,50);
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=rcFile("pdf");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=RC.dosHoja?rcFile("pdf").replace(/\.pdf$/," (2 por hoja).pdf"):rcFile("pdf");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---- Word ---- */
