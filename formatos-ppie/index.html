@@ -948,8 +948,7 @@ function home(){S.view="home";setBar("");
    </section>
    <section class="piloto" aria-label="Acerca de esta herramienta"><span class="piloto-tag">Versión de prueba · Fase de pilotaje</span>
     <p>Esta herramienta es un esfuerzo de la Supervisión Escolar para facilitar los procesos administrativos y de gestión de nuestras escuelas, de modo que el tiempo y la energía del colectivo se dediquen a lo que más importa: una mejor práctica docente y, sobre todo, profesional.</p>
-    <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p>
-    <a class="btn ghost" href="tour.html" style="margin-top:10px;text-decoration:none;text-align:center">▶ Conozca Tlamatini en 2 minutos</a></section>
+    <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p></section>
    ${DEMO?demoRecorrido():""}
    <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
     <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
@@ -958,6 +957,7 @@ function home(){S.view="home";setBar("");
      return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
       <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
    ${TLM_SIGNIF}
+   <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>`;
   document.getElementById("perfilBtn").onclick=perfilView;{const a=document.getElementById("accAdm");if(a)a.onclick=()=>accAdminView();const d=document.getElementById("demoHome");if(d)d.onclick=demoEntrar}
   app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
@@ -986,7 +986,7 @@ const SECCIONES=[
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
- {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Convocatoria, lista de asistencia, minuta de instalación, comités y plan de trabajo, con los requisitos de validación.",grupos:[],view:()=>cpView()},
+ {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Convocatoria, lista de asistencia, minuta de instalación, comités y plan de trabajo, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>5,cntLabel:()=>"5 formatos y guía de requisitos"},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
@@ -3455,7 +3455,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
   info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
+function inicioOK(){if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`
    <div class="bienv-h">${TLM()}<div><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div>
@@ -3466,6 +3466,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
     <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><img class="firma-sup" src="img/firma-supervisor.png" alt="Firma del Mtro. Carlos Gabriel Ortega Gutiérrez"><p style="margin:0"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></p></div></section>
    ${TLM_SIGNIF}
+   <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
