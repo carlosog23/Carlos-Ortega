@@ -1374,7 +1374,7 @@ const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.ge
 function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
 function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
 function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
-  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,orient:"vertical",tercios:false,filasH:10,filas3:5,
     portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
   if(i>=0)lfFromZona(o,i);else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.lugar=[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", ")}
   return o}
@@ -1486,9 +1486,51 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro){pg.drawRectangle({x:48,y:Y(754),width:267,height:64,borderColor:C.ink,borderWidth:0.8});
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],255,9.5);L.slice(0,5).forEach((ln,i)=>{const t=ln.map(w=>w.w).join(" ");ctr(pg,t,701+i*11.5,9.5,F.b,C.ink,181.5,255)})}}
     hline(pg,358.6,560,752,0.8);if(v.dirnom.trim())ctr(pg,clean(v.dirnom.trim()),746,9.5,F.r,C.ink,459.3,200);ctr(pg,clean(v.firma.trim()||"Director del plantel"),765,11,F.b,C.ink,459.3,200)};
+  /* tabla genérica: columnas proporcionales a la hoja vertical original */
+  const XR=X.map(x=>(x-X[0])/(X[7]-X[0]));
+  const tabla=(pg,ph,x0,x1,hT,hB,bB,fl,sz=8,nsz=9)=>{const XX=XR.map(r=>x0+r*(x1-x0)),YY=t=>ph-t,rh=(bB-hB)/fl;
+    pg.drawRectangle({x:x0,y:YY(hB),width:x1-x0,height:hB-hT,color:C.hd,borderColor:C.ink,borderWidth:0.7});
+    XX.forEach(x=>pg.drawLine({start:{x,y:YY(hT)},end:{x,y:YY(bB)},thickness:0.7,color:C.ink}));
+    HD.forEach((ls,i)=>{const cx=(XX[i]+XX[i+1])/2,lh=sz*1.15;const L2=ls.length>2&&(hB-hT)<ls.length*lh+2?[ls.join(" ")]:ls;const t0=(hT+hB)/2-(L2.length*lh)/2+sz*0.8;
+      L2.forEach((l,j)=>{const ss=fit(l,F.b,sz,XX[i+1]-XX[i]-3,5);const w=F.b.widthOfTextAtSize(l,ss);pg.drawText(l,{x:cx-w/2,y:YY(t0+j*lh),size:ss,font:F.b,color:C.ink})})});
+    for(let r=0;r<=fl;r++)pg.drawLine({start:{x:x0,y:YY(hB+r*rh)},end:{x:x1,y:YY(hB+r*rh)},thickness:0.7,color:C.ink});
+    for(let r=0;r<fl;r++){const t=`${r+1}.`;const w=F.r.widthOfTextAtSize(t,nsz);pg.drawText(t,{x:(XX[0]+XX[1])/2-w/2,y:YY(hB+r*rh+rh/2+nsz*0.35),size:nsz,font:F.r,color:C.ink})}};
+  const folio=(pg,ph,d,x,top,w=72,h=24,sz=10.5)=>{pg.drawRectangle({x,y:ph-top-h,width:w,height:h,borderColor:C.ink,borderWidth:0.8});const t=d?`No. ${d.no}`:"No.";const ss=fit(t,F.b,sz,w-6);const tw=F.b.widthOfTextAtSize(t,ss);pg.drawText(t,{x:x+(w-tw)/2,y:ph-top-h/2-ss*0.35,size:ss,font:F.b,color:C.red})};
+  const imgP=(pg,ph,im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:ph-top-h+(h-ih)/2,width:iw,height:ih})};
+  const txt=(pg,ph,t,x,top,size,font,color=C.ink,maxW=999)=>{const ss=fit(t,font,size,maxW,5);pg.drawText(t,{x,y:ph-top,size:ss,font,color});return font.widthOfTextAtSize(t,ss)};
+  const ctrP=(pg,ph,t,top,size,font,cx,maxW,color=C.ink)=>{const ss=fit(t,font,size,maxW,5);const w=font.widthOfTextAtSize(t,ss);pg.drawText(t,{x:cx-w/2,y:ph-top,size:ss,font,color})};
+  const fechaTxt=(pg,ph,d,x,top,size,maxW)=>{const pre=`${lugar?lugar+" ":""}a `;const w=txt(pg,ph,pre,x,top,size,F.r,C.ink,maxW*0.6);
+    if(d)txt(pg,ph,fechaLarga(d.f)+".",x+w+2,top,size,F.b,C.ink,maxW-w-2);else pg.drawLine({start:{x:x+w+2,y:ph-top-1},end:{x:x+Math.min(maxW,w+240),y:ph-top-1},thickness:0.6,color:C.ink})};
+  /* hoja horizontal (carta apaisada) */
+  const LW=792,LH=612,flH=Math.max(4,+v.filasH||10);
+  const diaH=(d)=>{const pg=doc.addPage([LW,LH]);
+    imgP(pg,LH,isep,40,22,92,58);if(escLogo)imgP(pg,LH,escLogo,LW-40-150,22,64,58);folio(pg,LH,d,LW-40-78,30,78,26,11);
+    ctrP(pg,LH,`Registro de Asistencia del Personal adscrito a la ${tipo}`,36,9,F.b,LW/2-20,380);
+    ctrP(pg,LH,nombre,54,15,F.b,LW/2-20,380);ctrP(pg,LH,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",ciclo?`Ciclo escolar ${ciclo}`:""].filter(Boolean).join("  ·  "),70,9.5,F.r,LW/2-20,400);
+    pg.drawLine({start:{x:40,y:LH-88},end:{x:LW-40,y:LH-88},thickness:1.1,color:C.gu});
+    fechaTxt(pg,LH,d,44,106,11,LW-88);
+    const hT=116,hB=140,bB=448;tabla(pg,LH,40,LW-40,hT,hB,bB,flH,8.5,9.5);
+    txt(pg,LH,"Observaciones:",44,466,9.5,F.r);pg.drawLine({start:{x:118,y:LH-467},end:{x:LW-40,y:LH-467},thickness:0.6,color:C.ink});pg.drawLine({start:{x:44,y:LH-484},end:{x:LW-40,y:LH-484},thickness:0.6,color:C.ink});
+    if(v.recuadro){pg.drawRectangle({x:40,y:LH-578,width:330,height:80,borderColor:C.ink,borderWidth:0.8});
+      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],315,9.5);L.slice(0,6).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),514+i*11.5,9.5,F.b,205,315))}}
+    pg.drawLine({start:{x:470,y:LH-562},end:{x:720,y:LH-562},thickness:0.8,color:C.ink});if(v.dirnom.trim())ctrP(pg,LH,clean(v.dirnom.trim()),556,9.5,F.r,595,240);ctrP(pg,LH,clean(v.firma.trim()||"Director del plantel"),576,11,F.b,595,240)};
+  /* tres días por hoja (escuelas multigrado) */
+  const fl3=Math.max(3,+v.filas3||5);
+  const tercio=(pg,ph,pw,d,top,h)=>{const M=34,x0=M,x1=pw-M,W=x1-x0;
+    imgP(pg,ph,isep,x0,top+6,46,30);if(escLogo)imgP(pg,ph,escLogo,x1-80-40,top+6,36,30);folio(pg,ph,d,x1-76,top+8,76,22,10);
+    ctrP(pg,ph,`Registro de Asistencia del Personal · ${tipo} «${nombre}»`,top+17,8.6,F.b,x0+W/2-24,W-250);
+    ctrP(pg,ph,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",ciclo?`Ciclo ${ciclo}`:""].filter(Boolean).join("  ·  "),top+29,7.6,F.r,x0+W/2-24,W-250);
+    fechaTxt(pg,ph,d,x0+2,top+48,9,W-4);
+    const foot=v.recuadro?34:26;const hT=top+54,hB=hT+20,bB=top+h-foot;tabla(pg,ph,x0,x1,hT,hB,bB,fl3,7,8);
+    const fy=bB+14;txt(pg,ph,"Obs.:",x0+2,fy,8,F.r);pg.drawLine({start:{x:x0+26,y:ph-fy-1},end:{x:x0+W*0.52,y:ph-fy-1},thickness:0.5,color:C.ink});
+    if(v.recuadro&&d&&d.ev)txt(pg,ph,clean(d.ev),x0+2,fy+11,7.4,F.b,C.gu,W*0.55);
+    pg.drawLine({start:{x:x0+W*0.62,y:ph-fy+2},end:{x:x1,y:ph-fy+2},thickness:0.7,color:C.ink});ctrP(pg,ph,(v.dirnom.trim()?clean(v.dirnom.trim())+" · ":"")+clean(v.firma.trim()||"Director del plantel"),fy+10,8,F.b,x0+W*0.81,W*0.38)};
+  const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=18,hh=(ph-36)/3;
+    ds.forEach((d,i)=>{tercio(pg,ph,pw,d,top0+i*hh,hh-6);if(i<2){const yy=ph-(top0+(i+1)*hh-3);for(let x=20;x<pw-20;x+=9)pg.drawLine({start:{x,y:yy},end:{x:x+4.5,y:yy},thickness:0.5,color:C.gray})}})};
   let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
-  lista.forEach(dia);
-  const nb=preview?Math.min(1,+v.blancas||0):(+v.blancas||0);for(let i=0;i<nb;i++)dia(null);
+  const nb=preview?Math.min(1,+v.blancas||0):(+v.blancas||0);
+  if(v.tercios){const all=preview?DS.slice(0,Math.min(3,DS.length)):DS.slice();for(let i=0;i<nb*3;i++)all.push(null);for(let i=0;i<all.length;i+=3)hoja3(all.slice(i,i+3))}
+  else{const fn=v.orient==="horizontal"?diaH:dia;lista.forEach(fn);for(let i=0;i<nb;i++)fn(null)}
   doc.setTitle(`Libro de firmas - ${tipo} ${nombre} - ${ciclo}`);doc.setProducer("Tlamatini · Zona 050");doc.setAuthor("Supervisión Escolar Zona 050");
   return await doc.save()}
 
@@ -1530,7 +1572,10 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     <div class="row2"><div class="field"><label for="lf_desde">Desde</label><input type="date" id="lf_desde" value="${esc(v.desde||CAL?.inicio||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div>
      <div class="field"><label for="lf_hasta">Hasta</label><input type="date" id="lf_hasta" value="${esc(v.hasta||CAL?.fin||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div></div>
     <p class="help">Para todo el ciclo deje las fechas como están. Si lo imprime por partes (por ejemplo, por mes), el número de hoja sigue la numeración del ciclo completo.</p>
-    <div class="row2"><div class="field"><label for="lf_filas">Renglones por hoja</label><select id="lf_filas">${[15,16,17,18,19,20,21,22].map(n=>`<option ${+v.filas===n?"selected":""}>${n}</option>`).join("")}</select></div>
+    <div class="field"><label>Formato</label><div class="chips">${[[false,"Un día por hoja"],[true,"Tres días por hoja (multigrado)"]].map(([t,l])=>`<button type="button" class="chip lf_fmt ${!!v.tercios===t?"sel":""}" data-t="${t?1:0}">${l}</button>`).join("")}</div>
+     ${v.tercios?`<p class="help">La hoja se divide en tres partes, cada una es un día con su propio número (folio), su fecha y sus renglones. Ideal para escuelas multigrado con poco personal; se recorta por la línea punteada o se deja completa.</p>`:""}</div>
+    <div class="field"><label>Orientación de la hoja</label><div class="chips">${[["vertical","Vertical"],["horizontal","Horizontal"]].map(([o,l])=>`<button type="button" class="chip lf_or ${(v.orient||"vertical")===o?"sel":""}" data-o="${o}">${l}</button>`).join("")}</div></div>
+    <div class="row2"><div class="field"><label for="lf_filas">Renglones por ${v.tercios?"día":"hoja"}</label><select id="lf_filas">${(v.tercios?[3,4,5,6,7]:v.orient==="horizontal"?[6,7,8,9,10,11,12,13,14]:[8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]).map(n=>`<option ${(v.tercios?+(v.filas3||5):v.orient==="horizontal"?+(v.filasH||10):+v.filas)===n?"selected":""}>${n}</option>`).join("")}</select></div>
      <div class="field"><label for="lf_blancas">Hojas en blanco al final</label><input type="number" id="lf_blancas" min="0" max="50" step="1" inputmode="numeric" value="${esc(v.blancas)}"></div></div>
     <p class="help">Las hojas en blanco llevan número y fecha vacíos, para días extra o reposiciones.</p>
     <div id="lf_res"></div></section>
@@ -1539,7 +1584,7 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     ${chk("lf_recuadro",v.recuadro,"Poner las fechas importantes en el recuadro de abajo")}${chk("lf_susp",v.susp,"Incluir hojas de los días de suspensión de labores docentes")}</div></section>
    <section class="card"><h3>Vista previa</h3><p class="help">Muestra la portada, la primera hoja de normatividad, el primer día y un día con fecha importante.</p>
     <button class="btn ghost" id="lf_prev">Ver vista previa</button><div id="lf_pvw" class="lvpv"></div></section>
-   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>vertical</b>.</p>
+   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>${v.orient==="horizontal"?"horizontal":"vertical"}</b>${v.orient==="horizontal"&&(v.portada||v.normas)?" (la portada y la normatividad salen en vertical; la impresora las acomoda sola)":""}.</p>
     <div class="acts">
      <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
      <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
@@ -1548,15 +1593,17 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;
-    v.desde=g("lf_desde").value===CAL?.inicio?"":g("lf_desde").value;v.hasta=g("lf_hasta").value===CAL?.fin?"":g("lf_hasta").value;v.filas=+g("lf_filas").value;v.blancas=g("lf_blancas").value;
+    v.desde=g("lf_desde").value===CAL?.inicio?"":g("lf_desde").value;v.hasta=g("lf_hasta").value===CAL?.fin?"":g("lf_hasta").value;if(v.tercios)v.filas3=+g("lf_filas").value;else if(v.orient==="horizontal")v.filasH=+g("lf_filas").value;else v.filas=+g("lf_filas").value;v.blancas=g("lf_blancas").value;
     v.portada=g("lf_portada").checked;v.normas=g("lf_normas").checked;v.recuadro=g("lf_recuadro").checked;v.susp=g("lf_susp").checked;store.set(LF_KEY,v);OUT=null;resumen()};
   const resumen=()=>{const p=lfProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
     if(p.length){g("lf_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
-    const DS=lfSel(),nb=+v.blancas||0,tot=DS.length+nb+(v.portada?1:0)+(v.normas?LF_NORMAS.length:0);
+    const DS=lfSel(),nb=+v.blancas||0,tot=(v.tercios?Math.ceil((DS.length+nb*3)/3):DS.length+nb)+(v.portada?1:0)+(v.normas?LF_NORMAS.length:0);
     g("lf_res").innerHTML=`<div class="okmsg"><b>${DS.length} días hábiles</b> · hojas No. ${DS[0].no} a ${DS[DS.length-1].no}<br><span style="font-size:14px">Del ${fechaLarga(DS[0].f)} al ${fechaLarga(DS[DS.length-1].f)}. ${tot} páginas en total.</span></div>`};
   app.querySelectorAll("input,select").forEach(el=>{if(["lf_sel","lg_file","lf_nf","lf_nt"].includes(el.id)||el.dataset.ev)return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"||el.type==="date"?"change":"input",leer)});
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
   app.querySelectorAll("[data-firma]").forEach(b=>b.onclick=()=>{g("lf_firma").value=b.dataset.firma;leer()});
+  app.querySelectorAll(".lf_fmt").forEach(b=>b.onclick=()=>{leer();v.tercios=b.dataset.t==="1";store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
+  app.querySelectorAll(".lf_or").forEach(b=>b.onclick=()=>{leer();v.orient=b.dataset.o;store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
   g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);store.set(LF_KEY,v);lfView()};
   const reRender=()=>{store.set(LF_KEY,v);const open=app.querySelector("details")?.open;const y=window.scrollY;lfView().then(()=>{const d=app.querySelector("details");if(d)d.open=open;window.scrollTo(0,y)})};
   app.querySelectorAll("[data-ev]").forEach(i=>i.addEventListener("change",()=>{const k=i.dataset.ev,t=i.value.trim();const of=(()=>{const s=v.ed;v.ed={};const o=lfEventos()[k]||"";v.ed=s;return o})();if(t===of)delete v.ed[k];else v.ed[k]=t;reRender()}));
@@ -3650,7 +3697,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
    ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
-   <p class="foot"><span class="muted">v2026-10-14.4</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-14.5</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
