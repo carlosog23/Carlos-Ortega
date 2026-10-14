@@ -980,7 +980,7 @@ const SECCIONES=[
  {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
- {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
+ {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
@@ -2641,7 +2641,7 @@ const FIRMA_KEY="firma-docente";let FIRMA_D;
 function firmaGet(){if(FIRMA_D===undefined)FIRMA_D=store.get(FIRMA_KEY,null);return FIRMA_D}
 function firmaSet(u){FIRMA_D=u||null;if(!u){store.del(FIRMA_KEY);return true}try{localStorage.setItem(FIRMA_KEY,JSON.stringify(u));return true}catch(e){return false}}
 let RC=null;
-(function(){const d=store.get("ppie-recado",null);if(d&&d.tipo)RC=d})();
+(function(){const d=store.get("ppie-recado",null);if(d&&d.tipo)RC=d;if(RC&&!RC.alcance)RC.alcance=(RC.tipo==="Aviso"&&!RC.alumno)?"grupo":"individual"})();
 function rcSave(){store.set("ppie-recado",RC)}
 const RC_TIPOS=["Recado","Aviso","Citatorio","Autorización / permiso","Reporte de conducta"];
 const RC_SALUDO="Estimado padre, madre o tutor:";
@@ -2652,8 +2652,30 @@ const RC_INTRO={
  "Autorización / permiso":"Por este medio solicito su autorización para que su hijo(a) participe en la actividad que se describe. Si está de acuerdo, favor de firmar la autorización al final."
 };
 const RC_MSGLBL={"Recado":"Mensaje","Aviso":"Texto del aviso","Citatorio":"Mensaje adicional (opcional)","Autorización / permiso":"Observaciones (opcional)"};
-const rcDirDef=t=>t==="Aviso"?"Padres de familia":"Padre, madre o tutor";
-function rcNuevo(){return{tipo:"Recado",alumno:"",grado:"",grupo:"",dirigido:"Padre, madre o tutor",fecha:fmtDate(today(),"larga"),asunto:"",mensaje:"",
+const rcDirDef=t=>(RC&&RC.alcance&&RC.alcance!=="individual")||t==="Aviso"?"Padres de familia":"Padre, madre o tutor";
+/* Alcance: a un alumno o general (todo el grupo / toda la escuela) */
+const RC_ALC=[["individual","Un alumno(a)"],["grupo","Todo el grupo (general)"],["escuela","Toda la escuela (general)"]];
+const rcGen=()=>RC.alcance==="grupo"||RC.alcance==="escuela";
+const RC_INTRO_G={
+ "Recado":"Por medio de la presente les comparto el siguiente recado:",
+ "Aviso":"Por este medio les informo lo siguiente:",
+ "Citatorio":"Por este medio se les cita atentamente a la reunión que se indica:",
+ "Autorización / permiso":"Por este medio solicito su autorización para que su hijo(a) participe en la actividad que se describe. Si está de acuerdo, favor de llenar y firmar la autorización al final y devolverla."
+};
+const rcSaludo=()=>rcGen()?"Estimados padres de familia:":RC_SALUDO;
+const rcIntro=()=>rcGen()?RC_INTRO_G[RC.tipo]:RC_INTRO[RC.tipo];
+const rcDoc=()=>RC.tipo==="Aviso"?"el aviso":RC.tipo==="Citatorio"?"el citatorio":"el recado";
+const rcGGlinea=()=>RC.alcance==="grupo"&&rcGG()?rcGG():"__________";
+const rcAlumLinea=()=>`Nombre del alumno(a): ______________________________   Grado y grupo: ${rcGGlinea()}`;
+const rcAlumW=()=>`<p>Nombre del alumno(a): ______________________________ &nbsp; Grado y grupo: ${esc(rcGGlinea())}</p>`;
+function rcMeta(){const d=RC.dirigido||"—",f=RC.fecha||"—";
+  if(RC.alcance==="escuela")return[["Para","Toda la escuela"],["Dirigido a",d],["Fecha",f]];
+  if(RC.alcance==="grupo")return[["Para","Todo el grupo"+(rcGG()?" "+rcGG():"")],["Dirigido a",d],["Fecha",f]];
+  if(RC.tipo==="Aviso"&&!RC.alumno)return[["Dirigido a",d],["Fecha",f]];
+  return[["Alumno(a)",RC.alumno||"—"],["Grado y grupo",rcGG()||"—"],["Dirigido a",d],["Fecha",f]]}
+const rcFile=ext=>{const t=RC.tipo.replace(/ \/.*/,"");const q=rcGen()?(RC.alcance==="escuela"?"general escuela":"general grupo"+(rcGG()?" "+rcGG():"")):(RC.alumno||"");
+  return `${t} - ${q.replace(/[\\/:*?"<>|«»°]/g,"").trim()||today()}.${ext}`};
+function rcNuevo(){return{tipo:"Recado",alcance:"individual",alumno:"",grado:"",grupo:"",dirigido:"Padre, madre o tutor",fecha:fmtDate(today(),"larga"),asunto:"",mensaje:"",
   cmotivo:"",cdia:"",chora:"",clugar:"",cquien:"",
   aactividad:"",afecha:"",alugar:"",ahorario:"",aresponsable:"",
   acuse:true,usarFirma:true,firma:perfil.minombre||perfil.director||"",cargo:"Docente del grupo"}}
@@ -2680,16 +2702,19 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
   app.innerHTML=top+`
    <p class="muted">Elija el tipo de comunicación, responda las preguntas y descárguela lista para imprimir o enviar. Lleva el logo de la escuela, los datos del perfil y su firma digital.</p>
    <section class="card"><div class="field"><label>Tipo de comunicación</label>
-     <select id="rc_tipo">${RC_TIPOS.map(t=>`<option value="${esc(t)}" ${RC.tipo===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div></section>
+     <select id="rc_tipo">${RC_TIPOS.map(t=>`<option value="${esc(t)}" ${RC.tipo===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div>
+    <div class="field"><label>¿Para quién es?</label>
+     <select id="rc_alcance">${RC_ALC.map(([v,t])=>`<option value="${v}" ${RC.alcance===v?"selected":""}>${t}</option>`).join("")}</select>
+     <p class="help">${rcGen()?"Comunicación general: sale igual para todas las familias; imprima las copias que necesite. El acuse trae un espacio para que cada familia escriba el nombre de su hijo(a).":"Para un recado general a todas las familias, elija «Todo el grupo» o «Toda la escuela»."}</p></div></section>
    <section class="card"><h3>Datos generales</h3>
-    <div class="row2"><div class="field"><label>${esAviso?"Alumno(a) <span class='muted' style='font-weight:400'>(opcional)</span>":"Nombre del alumno(a)"}</label><input type="text" id="rc_alumno" value="${esc(RC.alumno)}" autocomplete="off"></div>
-     <div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div></div>
-    <div class="row2"><div class="field"><label>Grado</label><input type="text" id="rc_grado" value="${esc(RC.grado)}" autocomplete="off"></div>
-     <div class="field"><label>Grupo</label><input type="text" id="rc_grupo" value="${esc(RC.grupo)}" autocomplete="off"></div></div>
+    ${RC.alcance==="individual"?`<div class="row2"><div class="field"><label>Nombre del alumno(a)</label><input type="text" id="rc_alumno" value="${esc(RC.alumno)}" autocomplete="off"></div>
+     <div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div></div>`:`<div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div>`}
+    ${RC.alcance!=="escuela"?`<div class="row2"><div class="field"><label>Grado</label><input type="text" id="rc_grado" value="${esc(RC.grado)}" autocomplete="off"></div>
+     <div class="field"><label>Grupo</label><input type="text" id="rc_grupo" value="${esc(RC.grupo)}" autocomplete="off"></div></div>`:""}
     <div class="row2"><div class="field"><label>Fecha</label><input type="text" id="rc_fecha" value="${esc(RC.fecha)}" autocomplete="off"></div>
      <div class="field"><label>Asunto <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="rc_asunto" value="${esc(RC.asunto)}" autocomplete="off"></div></div></section>
-   ${esCit?`<section class="card"><h3>Datos de la cita</h3>
-    <div class="field"><label>Motivo de la cita</label><input type="text" id="rc_cmotivo" value="${esc(RC.cmotivo)}" autocomplete="off"></div>
+   ${esCit?`<section class="card"><h3>Datos de ${rcGen()?"la reunión":"la cita"}</h3>
+    <div class="field"><label>Motivo de ${rcGen()?"la reunión":"la cita"}</label><input type="text" id="rc_cmotivo" value="${esc(RC.cmotivo)}" autocomplete="off"></div>
     <div class="row2"><div class="field"><label>Día</label><input type="text" id="rc_cdia" value="${esc(RC.cdia)}" placeholder="martes 14 de octubre de 2026" autocomplete="off"></div>
      <div class="field"><label>Hora</label><input type="text" id="rc_chora" value="${esc(RC.chora)}" placeholder="12:30 p. m." autocomplete="off"></div></div>
     <div class="row2"><div class="field"><label>Lugar</label><input type="text" id="rc_clugar" value="${esc(RC.clugar)}" autocomplete="off"></div>
@@ -2710,13 +2735,18 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
    <section class="card"><div class="acts"><button class="btn primary act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
    <p class="foot">La comunicación y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
-  const leer=()=>{const v=id=>{const e=g(id);return e?e.value:""};
+  const leer=()=>{const v=id=>{const e=g(id);return e?e.value:(RC[id.slice(3)]||"")};
     RC.tipo=g("rc_tipo").value;RC.alumno=v("rc_alumno");RC.dirigido=v("rc_dirigido");RC.grado=v("rc_grado");RC.grupo=v("rc_grupo");RC.fecha=v("rc_fecha");RC.asunto=v("rc_asunto");RC.mensaje=v("rc_mensaje");
     RC.cmotivo=v("rc_cmotivo");RC.cdia=v("rc_cdia");RC.chora=v("rc_chora");RC.clugar=v("rc_clugar");RC.cquien=v("rc_cquien");
     RC.aactividad=v("rc_aactividad");RC.afecha=v("rc_afecha");RC.alugar=v("rc_alugar");RC.ahorario=v("rc_ahorario");RC.aresponsable=v("rc_aresponsable");
     RC.firma=v("rc_firma");RC.cargo=v("rc_cargo");if(g("rc_acuse"))RC.acuse=g("rc_acuse").checked;RC.usarFirma=g("rc_usarfirma").checked;rcSave()};
   app.querySelectorAll("#rc_alumno,#rc_dirigido,#rc_grado,#rc_grupo,#rc_fecha,#rc_asunto,#rc_mensaje,#rc_cmotivo,#rc_cdia,#rc_chora,#rc_clugar,#rc_cquien,#rc_aactividad,#rc_afecha,#rc_alugar,#rc_ahorario,#rc_aresponsable,#rc_firma,#rc_cargo").forEach(i=>i.addEventListener("change",leer));
   g("rc_tipo").addEventListener("change",()=>{const prev=RC.dirigido;leer();if(prev===rcDirDef("Aviso")||prev===rcDirDef("Recado")||!prev)RC.dirigido=rcDirDef(RC.tipo);rcSave();rcView()});
+  g("rc_alcance").addEventListener("change",()=>{leer();const prevA=RC.alcance;RC.alcance=g("rc_alcance").value;
+    if(["Padres de familia","Padre, madre o tutor",""].includes(RC.dirigido))RC.dirigido=rcDirDef(RC.tipo);
+    if(RC.alcance==="escuela"&&RC.cargo==="Docente del grupo"){RC.cargo="Director(a) de la escuela";if(perfil.director)RC.firma=perfil.director}
+    else if(prevA==="escuela"&&RC.alcance!=="escuela"&&RC.cargo==="Director(a) de la escuela"){RC.cargo="Docente del grupo";if(perfil.minombre)RC.firma=perfil.minombre}
+    rcSave();rcView()});
   if(g("rc_acuse"))g("rc_acuse").addEventListener("change",()=>{leer();g("rc_acuse").closest(".opt").classList.toggle("on",g("rc_acuse").checked)});
   g("rc_usarfirma").addEventListener("change",()=>{leer();g("rc_usarfirma").closest(".opt").classList.toggle("on",g("rc_usarfirma").checked)});
   wireFirma();
@@ -2788,14 +2818,12 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     // pastilla tipo
     const tipo=RC.tipo.toUpperCase();const pw=HELVB.widthOfTextAtSize(tipo,9)+20;pg.drawRectangle({x:M,y:y-16,width:pw,height:20,color:soft});pg.drawText(tipo,{x:M+10,y:y-11,size:9,font:HELVB,color:blu2});y-=34;
     // meta
-    let pairs;
-    if(RC.tipo==="Aviso"&&!RC.alumno)pairs=[["Dirigido a",RC.dirigido||"—"],["Fecha",RC.fecha||"—"]];
-    else pairs=[["Alumno(a)",RC.alumno||"—"],["Grado y grupo",rcGG()||"—"],["Dirigido a",RC.dirigido||"—"],["Fecha",RC.fecha||"—"]];
+    const pairs=rcMeta();
     const nrows=Math.ceil(pairs.length/2);const mh=nrows*20+10;pg.drawRectangle({x:M,y:y-mh,width:W0,height:mh,borderColor:line,borderWidth:1,color:rgb(1,1,1)});
     let my=y-6;for(let r=0;r<nrows;r++){const colw=W0/2;for(let i=0;i<2;i++){const p=pairs[r*2+i];if(!p)continue;const cx=M+8+i*colw;pg.drawText(p[0].toUpperCase(),{x:cx,y:my-8,size:7,font:HELV,color:gray});pg.drawText(clean(p[1]).slice(0,42),{x:cx,y:my-18,size:10.5,font:HELVB,color:ink})}my-=20}y-=mh+16;
     if(RC.asunto){par("Asunto: "+RC.asunto,10.5,HELVB,ink,W0,4);y-=2}
-    par(RC_SALUDO,11,HELV,ink,W0,4);y-=2;
-    par(RC_INTRO[RC.tipo],10.5,HELV,ink,W0,4);y-=4;
+    par(rcSaludo(),11,HELV,ink,W0,4);y-=2;
+    par(rcIntro(),10.5,HELV,ink,W0,4);y-=4;
     if(RC.tipo==="Citatorio"){const l=[];if(RC.cmotivo)l.push("Motivo: "+RC.cmotivo);if(RC.cdia||RC.chora)l.push(`Día: ${RC.cdia||"—"}    Hora: ${RC.chora||"—"}`);if(RC.clugar||RC.cquien)l.push(`Lugar: ${RC.clugar||"—"}    Le atenderá: ${RC.cquien||"—"}`);if(l.length)box(l)}
     if(RC.tipo==="Autorización / permiso"){const l=[];if(RC.aactividad)l.push("Actividad: "+RC.aactividad);if(RC.afecha||RC.ahorario)l.push(`Fecha: ${RC.afecha||"—"}    Horario: ${RC.ahorario||"—"}`);if(RC.alugar||RC.aresponsable)l.push(`Lugar/destino: ${RC.alugar||"—"}    Responsable: ${RC.aresponsable||"—"}`);if(l.length)box(l)}
     if(RC.mensaje){par(RC.mensaje,10.5,HELV,ink,W0,4);y-=4}
@@ -2812,19 +2840,21 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     const dashed=()=>{for(let x=M;x<M+W0;x+=8)pg.drawLine({start:{x,y:y},end:{x:x+4,y:y},thickness:1,color:line});y-=16};
     const dosLineas=(lab1,lab2)=>{const half=(W0-20)/2;pg.drawLine({start:{x:M,y:y},end:{x:M+half,y:y},thickness:0.8,color:ink});pg.drawLine({start:{x:M+half+20,y:y},end:{x:M+W0,y:y},thickness:0.8,color:ink});y-=12;pg.drawText(lab1,{x:M,y:y,size:8,font:HELV,color:gray});pg.drawText(lab2,{x:M+half+20,y:y,size:8,font:HELV,color:gray})};
     if(bt==="acuse"){dashed();pg.drawText("ACUSE DE ENTERADO (favor de recortar y devolver)",{x:M,y:y-9,size:9,font:HELVB,color:gray});y-=22;
-      par(`Recibí ${RC.tipo==="Aviso"?"el aviso":"el recado"} referente al alumno(a) ${RC.alumno||"____________"}${rcGG()?" de "+rcGG():""}.`,10,HELV,ink,W0,4);y-=16;dosLineas("Nombre y firma del padre, madre o tutor","Fecha de recibido")}
+      if(rcGen()){par(`Recibí ${rcDoc()}.`,10,HELV,ink,W0,6);par(rcAlumLinea(),10,HELV,ink,W0,4)}else par(`Recibí ${RC.tipo==="Aviso"?"el aviso":"el recado"} referente al alumno(a) ${RC.alumno||"____________"}${rcGG()?" de "+rcGG():""}.`,10,HELV,ink,W0,4);y-=16;dosLineas("Nombre y firma del padre, madre o tutor","Fecha de recibido")}
     else if(bt==="enterado"){dashed();pg.drawText("ACUSE DE ENTERADO (favor de recortar y devolver)",{x:M,y:y-9,size:9,font:HELVB,color:gray});y-=22;
-      par(`Recibí el citatorio referente al alumno(a) ${RC.alumno||"____________"}${rcGG()?" de "+rcGG():""}.`,10,HELV,ink,W0,3);
-      par("(   ) Asistiré el día y hora señalados.      (   ) Solicito reprogramar la cita.",10,HELV,ink,W0,4);y-=14;dosLineas("Nombre y firma del padre, madre o tutor","Fecha")}
+      if(rcGen()){par("Recibí el citatorio.",10,HELV,ink,W0,6);par(rcAlumLinea(),10,HELV,ink,W0,6);par("(   ) Asistiré a la reunión.      (   ) No podré asistir.",10,HELV,ink,W0,4)}
+      else{par(`Recibí el citatorio referente al alumno(a) ${RC.alumno||"____________"}${rcGG()?" de "+rcGG():""}.`,10,HELV,ink,W0,3);
+      par("(   ) Asistiré el día y hora señalados.      (   ) Solicito reprogramar la cita.",10,HELV,ink,W0,4)}y-=14;dosLineas("Nombre y firma del padre, madre o tutor","Fecha")}
     else if(bt==="autorizacion"){dashed();pg.drawText("AUTORIZACIÓN DEL PADRE, MADRE O TUTOR",{x:M,y:y-9,size:9,font:HELVB,color:gray});y-=22;
-      par(`(   ) Autorizo      (   ) No autorizo   que mi hijo(a) ${RC.alumno||"____________"} participe en: ${RC.aactividad||"____________"}.`,10,HELV,ink,W0,4);y-=14;dosLineas("Nombre y firma del padre, madre o tutor","Fecha")}
+      if(rcGen()){par(rcAlumLinea(),10,HELV,ink,W0,6);par(`(   ) Autorizo      (   ) No autorizo   que mi hijo(a) participe en: ${RC.aactividad||"____________"}.`,10,HELV,ink,W0,4)}
+      else par(`(   ) Autorizo      (   ) No autorizo   que mi hijo(a) ${RC.alumno||"____________"} participe en: ${RC.aactividad||"____________"}.`,10,HELV,ink,W0,4);y-=14;dosLineas("Nombre y firma del padre, madre o tutor","Fecha")}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`${RC.tipo.replace(/ \/.*/,"")} - ${(RC.alumno||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=rcFile("pdf");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---- Word ---- */
 async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEscuela();const L=logoGet();const IL=await instLogoData();const F=RC.usarFirma?firmaGet():null;const bt=rcBottom();
-  const metaPairs=(RC.tipo==="Aviso"&&!RC.alumno)?[["Dirigido a",RC.dirigido],["Fecha",RC.fecha]]:[["Alumno(a)",RC.alumno],["Grado y grupo",rcGG()],["Dirigido a",RC.dirigido],["Fecha",RC.fecha]];
+  const metaPairs=rcMeta();
   let meta="<table style='width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px'>";
   for(let i=0;i<metaPairs.length;i+=2){meta+="<tr>"+[metaPairs[i],metaPairs[i+1]].map(p=>p?`<td style='border:1px solid #ccc;padding:5px 8px'><b>${esc(p[0])}:</b> ${esc(p[1])}</td>`:"<td style='border:1px solid #ccc'></td>").join("")+"</tr>"}
   meta+="</table>";
@@ -2833,20 +2863,20 @@ async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEs
   if(RC.tipo==="Autorización / permiso"){const l=[];if(RC.aactividad)l.push(`<b>Actividad:</b> ${esc(RC.aactividad)}`);if(RC.afecha||RC.ahorario)l.push(`<b>Fecha:</b> ${esc(RC.afecha)} &nbsp; <b>Horario:</b> ${esc(RC.ahorario)}`);if(RC.alugar||RC.aresponsable)l.push(`<b>Lugar/destino:</b> ${esc(RC.alugar)} &nbsp; <b>Responsable:</b> ${esc(RC.aresponsable)}`);if(l.length)bloqueTipo=`<div style="border-left:4px solid #1e5aa8;background:#e7eef8;padding:10px 14px;margin:10px 0">${l.join("<br>")}</div>`}
   const firmaImg=F?`<img src="${F}" style="height:46px"><br>`:"<br><br>";
   let bottom="";
-  if(bt==="acuse")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Acuse de enterado (recortar y devolver)</b></p><p>Recibí ${RC.tipo==="Aviso"?"el aviso":"el recado"} referente al alumno(a) <b>${esc(RC.alumno)}</b>${rcGG()?" de "+esc(rcGG()):""}.</p><table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha de recibido</td></tr></table>`;
-  else if(bt==="enterado")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Acuse de enterado (recortar y devolver)</b></p><p>Recibí el citatorio referente al alumno(a) <b>${esc(RC.alumno)}</b>${rcGG()?" de "+esc(rcGG()):""}.</p><p>(&nbsp;&nbsp;) Asistiré el día y hora señalados. &nbsp;&nbsp; (&nbsp;&nbsp;) Solicito reprogramar la cita.</p><table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha</td></tr></table>`;
-  else if(bt==="autorizacion")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Autorización del padre, madre o tutor</b></p><p>(&nbsp;&nbsp;) Autorizo &nbsp;&nbsp; (&nbsp;&nbsp;) No autorizo &nbsp; que mi hijo(a) <b>${esc(RC.alumno)}</b> participe en: ${esc(RC.aactividad)}.</p><table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha</td></tr></table>`;
+  if(bt==="acuse")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Acuse de enterado (recortar y devolver)</b></p>${rcGen()?`<p>Recibí ${rcDoc()}.</p>${rcAlumW()}`:`<p>Recibí ${RC.tipo==="Aviso"?"el aviso":"el recado"} referente al alumno(a) <b>${esc(RC.alumno)}</b>${rcGG()?" de "+esc(rcGG()):""}.</p>`}<table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha de recibido</td></tr></table>`;
+  else if(bt==="enterado")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Acuse de enterado (recortar y devolver)</b></p>${rcGen()?`<p>Recibí el citatorio.</p>${rcAlumW()}<p>(&nbsp;&nbsp;) Asistiré a la reunión. &nbsp;&nbsp; (&nbsp;&nbsp;) No podré asistir.</p>`:`<p>Recibí el citatorio referente al alumno(a) <b>${esc(RC.alumno)}</b>${rcGG()?" de "+esc(rcGG()):""}.</p><p>(&nbsp;&nbsp;) Asistiré el día y hora señalados. &nbsp;&nbsp; (&nbsp;&nbsp;) Solicito reprogramar la cita.</p>`}<table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha</td></tr></table>`;
+  else if(bt==="autorizacion")bottom=`<hr style="border:none;border-top:2px dashed #999;margin:22px 0 12px"><p style="font-size:12px;text-transform:uppercase;color:#666"><b>Autorización del padre, madre o tutor</b></p>${rcGen()?`${rcAlumW()}<p>(&nbsp;&nbsp;) Autorizo &nbsp;&nbsp; (&nbsp;&nbsp;) No autorizo &nbsp; que mi hijo(a) participe en: ${esc(RC.aactividad)}.</p>`:`<p>(&nbsp;&nbsp;) Autorizo &nbsp;&nbsp; (&nbsp;&nbsp;) No autorizo &nbsp; que mi hijo(a) <b>${esc(RC.alumno)}</b> participe en: ${esc(RC.aactividad)}.</p>`}<table style="width:100%;margin-top:26px"><tr><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Nombre y firma del padre, madre o tutor</td><td style="width:24px"></td><td style="border-top:1px solid #000;font-size:11px;color:#555;padding-top:4px">Fecha</td></tr></table>`;
   const despedida=RC.tipo==="Autorización / permiso"?"Agradezco de antemano su atención.":"Agradezco de antemano su atención y apoyo.";
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(RC.tipo)}</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#1a2230">
    <table style="width:100%;background:#123a6b;color:#fff"><tr>${IL?`<td style="width:70px;padding:8px 10px"><img src="${IL}" style="height:48px;background:#fff;border-radius:4px;padding:2px"></td>`:""}<td style="padding:12px 14px"><div style="font-size:15px;font-weight:bold">${esc(esc0.nombre)}</div><div style="font-size:11px">C.C.T. ${esc(esc0.cct)} · Supervisión Escolar Zona No. ${esc(esc0.zona)} · ${esc(esc0.lugar)}</div></td>${L?`<td style="width:62px;padding:8px 10px;text-align:right"><img src="${L}" style="width:50px;height:50px;background:#fff;border-radius:4px"></td>`:""}</tr></table>
    <p style="margin:12px 0 6px"><span style="background:#e7eef8;color:#1e5aa8;font-weight:bold;font-size:12px;padding:3px 10px;border-radius:999px;text-transform:uppercase">${esc(RC.tipo)}</span></p>
    ${meta}${RC.asunto?`<p><b>Asunto:</b> ${esc(RC.asunto)}</p>`:""}
-   <p>${esc(RC_SALUDO)}</p><p style="text-align:justify">${esc(RC_INTRO[RC.tipo])}</p>${bloqueTipo}
+   <p>${esc(rcSaludo())}</p><p style="text-align:justify">${esc(rcIntro())}</p>${bloqueTipo}
    ${RC.mensaje?`<p style="text-align:justify">${e2(RC.mensaje)}</p>`:""}
    <p style="text-align:justify">${despedida}</p>
    <p style="text-align:center;margin-top:34px">${firmaImg}______________________________<br><b>${esc(RC.firma)}</b><br><span style="color:#555">${esc(RC.cargo)}</span></p>${bottom}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`${RC.tipo.replace(/ \/.*/,"")} - ${(RC.alumno||"").replace(/[\\/:*?"<>|]/g,"")||today()}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  a.download=rcFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 /* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
 /* Para quien ya tiene su documento y no usará el generador: sube su PDF y sirve de base para PMC, analítico y planeación. */
 function insGet(){return store.get("ppie-insumos",{})}
