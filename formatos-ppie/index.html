@@ -315,6 +315,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .demo-paso b{font-family:var(--display);font-size:15.5px}
 .demo-paso span{font-size:14px;color:var(--muted);line-height:1.35}
 .demo-inv{border-style:dashed}
+/* Planeación: duración */
+.pl-dur-res{display:flex;gap:14px;align-items:center;margin:4px 0 10px;padding:12px;border-radius:12px;background:var(--accent-soft)}
+.pl-dur-n{flex:none;display:flex;flex-direction:column;align-items:center;min-width:76px}.pl-dur-n b{font-size:34px;line-height:1;color:var(--accent)}.pl-dur-n span{font-size:12.5px;color:var(--muted);text-align:center}
+.pl-dur-sug{margin:0 0 10px;font-size:15px;line-height:1.45}.pl-dur-av{color:var(--warn);font-weight:700}
 /* Directorio de la comunidad escolar */
 .dir-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:4px 0 14px}
 .dir-tab{font:inherit;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2}
@@ -2519,6 +2523,32 @@ function plImportPA(){const d=store.get("ppie-pa",null);if(!d)return null;const 
       const pda=grados.map(g=>{const t=ov[g]!=null?ov[g]:(it?it.pda[g]:"");return t?`${g}°: ${t}`:""}).filter(Boolean).join("  |  ");
       cont.push({campo:camp,c:key,pda,on:true})})});
   return{grado:C.grado||"",campos,ejes:[...ejesSet],contenidos:cont,escuela:(C.datos&&C.datos.escuela)||"",cct:(C.datos&&C.datos.cct)||""}}
+/* ---- duración de la planeación: cuántas sesiones caben según el calendario oficial ---- */
+const PL_DUR=[["dia","1 día"],["semana","1 semana"],["2semanas","2 semanas"],["3semanas","3 semanas"],["mes","1 mes"],["trimestre","Trimestre"],["otro","Otro periodo"]];
+const PL_DSEM=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+function plSigHabil(k){const d=new Date(k+"T12:00:00");for(let i=0;i<120;i++){const w=d.getDay(),x=isoD(d);if(w&&w<6&&!asSinClase(x))return x;d.setDate(d.getDate()+1)}return k}
+function plDurCalc(){const D=PL.duracion;if(!D||!D.tipo||!D.inicio)return null;const ini=new Date(D.inicio+"T12:00:00");let fin=new Date(ini);
+  const sem={semana:1,"2semanas":2,"3semanas":3}[D.tipo];
+  if(D.tipo==="dia"){}else if(sem){fin.setDate(fin.getDate()+7*sem-1);while(fin.getDay()===0||fin.getDay()===6)fin.setDate(fin.getDate()-1)}
+  else if(D.tipo==="mes"){fin.setMonth(fin.getMonth()+1);fin.setDate(fin.getDate()-1)}else if(D.tipo==="trimestre"){fin.setMonth(fin.getMonth()+3);fin.setDate(fin.getDate()-1)}
+  else if(D.tipo==="otro"){if(!D.fin||D.fin<D.inicio)return null;fin=new Date(D.fin+"T12:00:00")}
+  const dias=[],sin=[];for(const d=new Date(ini);d<=fin;d.setDate(d.getDate()+1)){const w=d.getDay();if(!w||w===6)continue;const k=isoD(d);const x=asSinClase(k);if(x)sin.push([k,x]);else dias.push(k)}
+  const n=dias.length;const a=[[1,2,"una sola sesión con inicio, desarrollo y cierre","momentos"],[5,3,"una secuencia breve por sesiones o por momentos","sesiones"],[10,4,"un proyecto breve organizado por fases","fases"],[20,6,"un proyecto completo por fases, con producto final","fases"],[999,10,"conviene dividirlo en dos o tres proyectos","fases"]].find(x=>n<=x[0]);
+  return{n,dias,sin,fin:isoD(fin),max:a[1],sug:a[2],fmt:a[3]}}
+function plFechaCorta(k){const d=new Date(k+"T12:00:00");return`${PL_DSEM[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`}
+function plRango(a,b){const A=parseDate(a),B=parseDate(b);if(a===b)return fmtDate(a,"larga");if(A.y===B.y&&A.m===B.m)return`${A.d} al ${B.d} de ${MESES[B.m-1]} de ${B.y}`;if(A.y===B.y)return`${A.d} de ${MESES[A.m-1]} al ${B.d} de ${MESES[B.m-1]} de ${B.y}`;return`${fmtDate(a,"larga")} al ${fmtDate(b,"larga")}`}
+function plDurHTML(){const D=PL.duracion||{};const c=plDurCalc();const marcados=PL.contenidos.filter(x=>x.on).length;const SN={VAC:"vacaciones",CTE:"Consejo Técnico",SUSP:"suspensión","—":"fuera del ciclo"};
+  return`<section class="card" id="plDurCard"><h3>¿Para cuánto tiempo es esta planeación?</h3>
+   <p class="help">Con la duración, Tlamatini cuenta los días de clase reales según el calendario oficial de Baja California (sin fines de semana, Consejo Técnico, suspensiones ni vacaciones) y le sugiere cuánto puede abarcar.</p>
+   <div class="chips" style="margin-bottom:10px">${PL_DUR.map(([v,l])=>`<button type="button" class="chip pldur ${D.tipo===v?"sel":""}" data-v="${v}">${l}</button>`).join("")}</div>
+   ${D.tipo?`<div class="row2"><div class="field"><label for="pl_dini">Fecha de inicio</label><input type="date" id="pl_dini" value="${esc(D.inicio||"")}"></div>
+     ${D.tipo==="otro"?`<div class="field"><label for="pl_dfin">Fecha de término</label><input type="date" id="pl_dfin" value="${esc(D.fin||"")}"></div>`:`<div class="field"><label for="pl_dmin">Minutos por sesión <span class="muted" style="font-weight:400">(opcional)</span></label><input type="number" id="pl_dmin" min="10" max="300" step="5" value="${esc(D.min||"")}" placeholder="Ej. 60"></div>`}</div>
+     ${D.tipo==="otro"?`<div class="field" style="max-width:50%"><label for="pl_dmin">Minutos por sesión <span class="muted" style="font-weight:400">(opcional)</span></label><input type="number" id="pl_dmin" min="10" max="300" step="5" value="${esc(D.min||"")}" placeholder="Ej. 60"></div>`:""}`:""}
+   ${c?`<div class="pl-dur-res"><div class="pl-dur-n"><b>${c.n}</b><span>${c.n===1?"sesión":"sesiones"} de clase</span></div><div><p style="margin:0"><b>${esc(plRango(D.inicio,c.fin))}</b>${D.min&&c.n?` · ${Math.round(c.n*D.min/60*10)/10} horas en total`:""}</p>
+     ${c.sin.length?`<p class="help" style="margin:4px 0 0">Sin clases: ${c.sin.map(([k,x])=>`${esc(plFechaCorta(k))} (${SN[x]||x})`).join(", ")}.</p>`:""}</div></div>
+     ${c.n?`<div class="pl-dur-sug"><b>Alcance sugerido:</b> hasta <b>${c.max} contenidos con sus PDA</b> y ${esc(c.sug)}.${marcados>c.max?`<br><span class="pl-dur-av">Tiene ${marcados} contenidos marcados: para ${c.n} ${c.n===1?"sesión":"sesiones"} conviene dejar ${c.max} o menos, o ampliar la duración.</span>`:marcados?`<br><span class="eq-ok">✓ ${marcados} contenido${marcados===1?"":"s"} marcado${marcados===1?"":"s"}: alcanza bien en este tiempo.</span>`:""}</div>
+      <button type="button" class="btn ghost" id="plDistrib">Organizar la secuencia en ${c.n} ${c.n===1?"sesión":"sesiones"} con fechas</button>`:`<div class="alert">En ese periodo no hay días de clase según el calendario oficial. Elija otra fecha de inicio.</div>`}`
+   :D.tipo&&D.tipo==="otro"?`<p class="help">Elija la fecha de término.</p>`:""}</section>`}
 async function plView(){S.view="plan";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Planeación didáctica</h2></div></div>`;
   if(!PL){app.innerHTML=top+`
@@ -2535,6 +2565,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
     <button type="button" class="btn ghost" id="plImpPA">↓ Importar del Programa Analítico</button>
     ${dxResumen()?`<button type="button" class="btn ghost" id="plImpLec">↓ Importar problema del contexto (lectura de la realidad)</button>`:""}
     ${insRefHTML("lectura")}${insRefHTML("analitico")}</section>
+   ${plDurHTML()}
    <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pl_d" data-k="${k}" value="${esc(PL.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
    <section class="card"><h3>Proyecto o situación de aprendizaje</h3>
     <div class="field"><label>Nombre del proyecto / situación</label><input type="text" class="pl_p" data-k="nombre" value="${esc(PL.proyecto.nombre)}" autocomplete="off"></div>
@@ -2589,6 +2620,15 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
   app.querySelectorAll(".pl_campo,.pl_eje,.pl_instr,.pl_conton").forEach(i=>i.addEventListener("change",()=>{if(i.closest(".opt"))i.closest(".opt").classList.toggle("on",i.checked);leer()}));
   app.querySelectorAll(".plfmt").forEach(b=>b.onclick=()=>{leer();PL.formato=b.dataset.fmt;if(PL.formato==="fases"){const f=PL_FASES[PL.metodologia];PL.fases=f?f.map(x=>({t:x,a:""})):(PL.fases||[])}plSave();plView()});
   const mt=app.querySelector(".pl_met");if(mt)mt.addEventListener("change",()=>{const o=app.querySelector(".pl_metotro");o.hidden=mt.value!=="__otro__";leer();if(PL.formato==="fases"){PL.fases=(PL_FASES[PL.metodologia]||[]).map(x=>({t:x,a:""}));plSave();plView()}});
+  const durAplica=()=>{const c=plDurCalc();if(!c)return;PL.datos.periodo=plRango(PL.duracion.inicio,c.fin);PL.datos.sesiones=String(c.n);PL.datos.duracion=(PL_DUR.find(x=>x[0]===PL.duracion.tipo)||[,""])[1]+(PL.duracion.min?` · ${PL.duracion.min} min por sesión`:"")};
+  app.querySelectorAll(".pldur").forEach(b=>b.onclick=()=>{leer();PL.duracion=PL.duracion||{};PL.duracion.tipo=b.dataset.v;if(!PL.duracion.inicio){PL.duracion.inicio=plSigHabil(today())}durAplica();plSave();const y=window.scrollY;plView().then(()=>window.scrollTo(0,y))});
+  ["pl_dini","pl_dfin","pl_dmin"].forEach(id=>{const e=g(id);if(e)e.addEventListener("change",()=>{leer();const k={pl_dini:"inicio",pl_dfin:"fin",pl_dmin:"min"}[id];PL.duracion[k]=e.value;durAplica();plSave();const y=window.scrollY;plView().then(()=>window.scrollTo(0,y))})});
+  if(g("plDistrib"))g("plDistrib").onclick=()=>{leer();const c=plDurCalc();if(!c||!c.n)return;
+    const conTexto=(PL.sesiones||[]).some(x=>x.a&&x.a.trim());if(PL.formato==="sesiones"&&conTexto&&!confirm(`Se reorganizará la secuencia en ${c.n} sesiones con fechas. Lo que ya escribió en cada sesión se conserva en el mismo orden. ¿Continuar?`))return;
+    const F=PL_FASES[PL.metodologia]||[];const prev=PL.sesiones||[];
+    PL.sesiones=c.dias.map((k,i)=>{let fase="";if(F.length){if(c.n>=F.length){fase=F[Math.min(F.length-1,Math.floor(i*F.length/c.n))]}else{const a=Math.floor(i*F.length/c.n),b=Math.floor((i+1)*F.length/c.n);fase=F.slice(a,Math.max(b,a+1)).join(" · ")}}
+      return{t:`Sesión ${i+1} · ${plFechaCorta(k)}${fase?` · Fase: ${fase}`:""}`,a:(prev[i]&&prev[i].a)||""}});
+    PL.formato="sesiones";plSave();plView().then(()=>{const e=app.querySelector(".plses");if(e)e.scrollIntoView({block:"start"})})};
   g("plImpPA").onclick=()=>{const r=plImportPA();if(!r){alert("No encontré un Programa Analítico guardado. Hágalo primero en Pedagógico → Programa Analítico.");return}leer();
     if(r.grado)PL.datos.grado=PL.datos.grado||r.grado;if(r.escuela)PL.datos.escuela=PL.datos.escuela||r.escuela;if(r.cct)PL.datos.cct=PL.datos.cct||r.cct;
     PL.campos=[...new Set([...PL.campos,...r.campos])];PL.ejes=[...new Set([...PL.ejes,...r.ejes])];
@@ -2612,7 +2652,7 @@ function plSecModel(){const out=[];
   else if(PL.formato==="fases")(PL.fases||[]).forEach(f=>{if(f.a)out.push([f.t,f.a])});
   else (PL.sesiones||[]).forEach(s=>{if(s.a||s.t)out.push([s.t,s.a])});
   return out}
-function plWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const dd=[["escuela","Escuela"],["cct","C.C.T."],["docente","Docente"],["grado","Grado"],["grupo","Grupo"],["ciclo","Ciclo"],["periodo","Periodo"],["sesiones","Sesiones"],["fecha","Fecha"]];
+function plWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const dd=[["escuela","Escuela"],["cct","C.C.T."],["docente","Docente"],["grado","Grado"],["grupo","Grupo"],["ciclo","Ciclo"],["duracion","Duración"],["periodo","Periodo"],["sesiones","Sesiones"],["fecha","Fecha"]];
   const cont=PL.contenidos.filter(c=>c.on);const sec=plSecModel();
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>Planeación didáctica</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#111">
    <h1 style="text-align:center;font-size:18pt;margin:0 0 2pt">Planeación didáctica</h1>
@@ -2653,7 +2693,7 @@ async function plPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     y=await pdfMembrete(doc,pg,M,W0,y);
     let ts=17;while(HELVB.widthOfTextAtSize("Planeación didáctica",ts)>W0)ts-=0.5;ctr("Planeación didáctica",ts,HELVB,blu);
     ctr(membreteSub()+" · NEM",9,HELV,gray);y-=4;
-    [["Escuela",PL.datos.escuela],["Docente",PL.datos.docente],["Grado y grupo",(PL.datos.grado+" "+PL.datos.grupo).trim()],["Ciclo",PL.datos.ciclo],["Periodo",PL.datos.periodo],["Sesiones",PL.datos.sesiones]].forEach(([l,v])=>kv(l,v));y-=4;
+    [["Escuela",PL.datos.escuela],["Docente",PL.datos.docente],["Grado y grupo",(PL.datos.grado+" "+PL.datos.grupo).trim()],["Ciclo",PL.datos.ciclo],["Duración",PL.datos.duracion],["Periodo",PL.datos.periodo],["Sesiones",PL.datos.sesiones]].forEach(([l,v])=>kv(l,v));y-=4;
     h2("Proyecto o situación de aprendizaje");kv("Nombre",PL.proyecto.nombre);kv("Problema del contexto",PL.proyecto.problema);kv("Propósito",PL.proyecto.proposito);kv("Producto",PL.proyecto.producto);
     kv("Campos formativos",PL.campos.join(", "));kv("Ejes articuladores",PL.ejes.join(", "));kv("Metodología",PL.metodologia);
     h2("Contenidos y PDA a trabajar");PL.contenidos.filter(c=>c.on).forEach(c=>{par("• "+c.c+(c.campo?"  ("+c.campo+")":""),10,HELVB,ink,2.5,8);if(c.pda)par(c.pda,9.5,HELV,gray,2.5,16);y-=1});
@@ -3610,7 +3650,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
    ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
-   <p class="foot"><span class="muted">v2026-10-14.3</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-14.4</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
