@@ -990,7 +990,7 @@ const SECCIONES=[
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
- {id:"estadistica",icon:"chart",title:"Estadística",desc:"Estadística de inicio de ciclo: edades de los alumnos al 1 de septiembre.",grupos:[],tools:[{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
+ {id:"estadistica",icon:"chart",title:"Estadística y control escolar",desc:"Lista de asistencia mensual de alumnos y edades al 1 de septiembre para la estadística.",grupos:[],tools:[{id:"asistencia",letra:"A",name:"Lista de asistencia mensual",use:"Suba el PDF de RELweb: se agregan el maestro, el mes, los días hábiles y los días sin clases del calendario oficial.",open:()=>asView()},{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
@@ -3244,6 +3244,114 @@ async function cpMinuta(doc,H){const{F,put,box,ink}=H,M=CP.minuta,E=CP.esc;
   parrafo(p10,`No habiendo otro asunto que tratar, se cierra la presente MINUTA, siendo las ${hh||"___"}:${mi||"___"} horas del día ${v(dia)} del mes de ${v(mes)} del año ${v(yy)}, con fundamento en los artículos 68 y 69 de la Ley General de Educación, articulo 37 del capítulo VI del acuerdo número 02/05/2016 por el que se establecen los lineamientos para la constitución`,37,575,219.3,0,10,9.5);
   const firma=(t,cx,T)=>put(p10,t,cx-120,T,{w:240,align:"c",size:10,bold:true});
   firma(cpPresNombre(),313.3,310);firma(E.director,306.3,401.5);firma(M.maestro,305.5,503);firma(M.supervisor,172.8,611)}
+/* ---------- Lista de asistencia mensual de alumnos (formato de RELweb) ---------- */
+/* Reproduce la hoja oficial (oficio, 612x1008) y le agrega: maestro, mes, número de cada día hábil y días sin clases sombreados según el calendario oficial. */
+const AS_KEY="ppie-asistencia";let AS=null;
+const AS_MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+function asNuevo(){const e=ESCUELAS_050.find(x=>x[1]===perfil.cct);const hoy=today().slice(0,7);
+  return{escuela:(e?e[0]:(perfil.escuela||"").replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"")).toUpperCase().trim(),cct:perfil.cct||"",grado:(perfil.grado||"").replace(/\D/g,""),grupo:perfil.grupo||"",
+    turno:(perfil.turno||"").charAt(0).toUpperCase(),maestro:perfil.minombre||"",ciclo:(typeof CAL!=="undefined"&&CAL&&CAL.ciclo)||cpCiclo(),alumnos:"",meses:[hoy],sombrear:true,extra:0,origen:""}}
+(function(){const d=store.get(AS_KEY,null);if(d&&Array.isArray(d.meses))AS=d})();
+const asSave=()=>store.set(AS_KEY,AS);
+/* meses del ciclo según el calendario oficial */
+function asMesesCiclo(){const a=(CAL&&CAL.inicioClases)||((AS.ciclo||cpCiclo()).slice(0,4)+"-09-01"),b=(CAL&&CAL.fin)||((AS.ciclo||cpCiclo()).slice(5,9)+"-07-15");
+  const out=[];let y=+a.slice(0,4),m=+a.slice(5,7);const yb=+b.slice(0,4),mb=+b.slice(5,7);while(y<yb||(y===yb&&m<=mb)){out.push(`${y}-${String(m).padStart(2,"0")}`);m++;if(m>12){m=1;y++}}return out}
+/* qué días no hay clases: CTE, suspensiones y vacaciones */
+function asSinClase(k){if(!CAL)return"";if((CAL.vacaciones||[]).some(([a,b])=>k>=a&&k<=b))return"VAC";
+  const ev=(CAL.eventos||[]).filter(([a,b])=>k>=a&&k<=b).map(x=>x[2]);
+  if(ev.some(t=>/consejo t[eé]cnico/i.test(t)))return"CTE";if(ev.some(t=>/suspensi[oó]n de labores/i.test(t)))return"SUSP";
+  if(CAL.inicioClases&&k<CAL.inicioClases)return"—";if(CAL.fin&&k>CAL.fin)return"—";return""}
+function asDiasMes(ym){const[y,m]=ym.split("-").map(Number);const out=[];for(let d=new Date(y,m-1,1);d.getMonth()===m-1;d.setDate(d.getDate()+1)){const w=d.getDay();if(w===0||w===6)continue;const k=isoD(d);if(CAL&&((CAL.inicioClases&&k<CAL.inicioClases)||(CAL.fin&&k>CAL.fin)))continue;out.push({k,d:d.getDate(),w,sin:asSinClase(k)})}return out}
+/* leer el PDF de RELweb */
+/* texto ordenado por renglones según su posición en la hoja (pdf.js no garantiza el orden) */
+async function asLineasPDF(file){const P=await pdfjs();const pdf=await P.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();const it=tc.items.filter(t=>t.str&&t.str.trim()).map(t=>({s:t.str,x:t.transform[4],y:t.transform[5]}));
+    it.sort((a,b)=>b.y-a.y||a.x-b.x);const rows=[];for(const t of it){const r=rows.find(r=>Math.abs(r.y-t.y)<=3);if(r)r.items.push(t);else rows.push({y:t.y,items:[t]})}
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.items.sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ")))}return out}
+async function asLeerPDF(file){const L=(await asLineasPDF(file)).map(s=>s.replace(/\s+/g," ").trim()).filter(Boolean);const r={alumnos:[]};
+  const pick=(re)=>{for(const l of L){const m=l.match(re);if(m)return m[1].trim()}return""};
+  r.escuela=pick(/Escuela:\s*(.+?)(?:\s+Clave CT:|$)/i);r.cct=pick(/Clave CT:\s*([0-9A-Z]{10})/i);r.grado=pick(/Grado:\s*(\S+)/i);r.grupo=pick(/Grupo:\s*(\S+)/i);
+  r.turno=pick(/Turno:\s*(\S+)/i);r.ciclo=pick(/Ciclo Escolar:\s*(\d{4}-\d{4})/i);
+  for(const l of L){const m=l.match(/^(\d{1,3})\s+([^\d].*\*.*)$/);if(m)r.alumnos.push([+m[1],m[2].trim()])}
+  r.alumnos.sort((a,b)=>a[0]-b[0]);return r}
+function asView(){S.view="asistencia";S.letra=null;setBar("");if(!AS)AS=asNuevo();const meses=asMesesCiclo();const n=AS.alumnos.split("\n").filter(s=>s.trim()).length;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Control escolar</div><h2>Lista de asistencia mensual</h2></div></div>
+   <p class="muted">El formato oficial de RELweb, con el nombre del maestro, el mes, el número de cada día hábil y los días sin clases ya marcados según el calendario oficial de Baja California.</p>
+   <section class="card"><h3>1 · Sus alumnos</h3>
+    <p class="help">Suba la lista de asistencia en PDF que descarga de <b>RELweb</b>: Tlamatini toma de ahí la escuela, el grado, el grupo y los nombres de sus alumnos.</p>
+    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de RELweb<input type="file" accept="application/pdf,.pdf" id="as_pdf" hidden></label>
+    <p class="help" id="as_msg" role="status">${AS.origen?esc(AS.origen):""}</p>
+    <div class="field"><label>Alumnos (${n})</label><textarea data-f="alumnos" rows="8" placeholder="APELLIDO / APELLIDO * NOMBRE(S)">${esc(AS.alumnos)}</textarea><p class="help">Uno por renglón. También puede escribirlos o corregirlos aquí.</p></div></section>
+   <section class="card"><h3>2 · Datos de la hoja</h3>
+    ${cpIn("escuela","Escuela",AS.escuela)}
+    <div class="row2">${cpIn("cct","Clave CT",AS.cct)}${cpIn("ciclo","Ciclo escolar",AS.ciclo)}</div>
+    <div class="row2"><div class="row2" style="gap:8px">${cpIn("grado","Grado",AS.grado)}${cpIn("grupo","Grupo",AS.grupo)}</div>${cpIn("turno","Turno",AS.turno,{ph:"M o V"})}</div>
+    ${cpIn("maestro","Nombre del maestro(a)",AS.maestro)}</section>
+   <section class="card"><h3>3 · Meses</h3><p class="help">Elija uno o varios: cada mes sale en su propia hoja.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${meses.map(ym=>{const on=AS.meses.includes(ym);const[y,m]=ym.split("-");return`<label class="opt ${on?"on":""}" style="display:inline-flex;min-height:0;padding:8px 12px"><input type="checkbox" data-mes="${ym}" ${on?"checked":""}>${AS_MESES[+m-1].charAt(0)+AS_MESES[+m-1].slice(1).toLowerCase()} ${y}</label>`}).join("")}</div>
+    <div class="acts" style="margin-top:6px"><button type="button" class="btn link" id="as_todos">Todo el ciclo</button><button type="button" class="btn link" id="as_ninguno">Ninguno</button></div>
+    <label class="opt ${AS.sombrear?"on":""}" style="display:inline-flex"><input type="checkbox" data-f="sombrear" ${AS.sombrear?"checked":""}>Sombrear los días sin clases (CTE, suspensiones y vacaciones)</label>
+    <div class="field"><label>Renglones en blanco al final <span class="muted" style="font-weight:400">(para altas)</span></label><select data-f="extra">${[0,1,2,3,5].map(x=>`<option ${+AS.extra===x?"selected":""}>${x}</option>`).join("")}</select></div></section>
+   <section class="card"><div class="acts"><button class="btn primary act" id="as_go">⬇ Descargar lista (PDF)</button></div>${CAL?"":`<p class="help"><b>Ojo:</b> no se pudo cargar el calendario oficial; los días sin clases no se marcarán.</p>`}</section>
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const g=id=>document.getElementById(id);
+  const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{AS[e.dataset.f]=e.type==="checkbox"?e.checked:e.value});AS.meses=[...app.querySelectorAll("[data-mes]")].filter(x=>x.checked).map(x=>x.dataset.mes);asSave()};
+  app.querySelectorAll("[data-f],[data-mes]").forEach(e=>e.addEventListener("change",()=>{leer();if(e.type==="checkbox")e.closest(".opt").classList.toggle("on",e.checked)}));
+  g("as_todos").onclick=()=>{app.querySelectorAll("[data-mes]").forEach(x=>{x.checked=true;x.closest(".opt").classList.add("on")});leer()};
+  g("as_ninguno").onclick=()=>{app.querySelectorAll("[data-mes]").forEach(x=>{x.checked=false;x.closest(".opt").classList.remove("on")});leer()};
+  g("as_pdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const m=g("as_msg");m.textContent="Leyendo el PDF…";leer();
+    try{const r=await asLeerPDF(f);if(!r.alumnos.length){m.innerHTML="<b>No encontré alumnos en ese PDF.</b> Verifique que sea la lista de asistencia de RELweb.";return}
+      AS.alumnos=r.alumnos.map(a=>a[1]).join("\n");["escuela","cct","grado","grupo","turno","ciclo"].forEach(k=>{if(r[k])AS[k]=r[k]});
+      AS.origen=`Se leyeron ${r.alumnos.length} alumnos de «${f.name}».`;asSave();asView()}
+    catch(err){m.innerHTML="<b>No se pudo leer el PDF.</b> "+esc(err.message||"")}};
+  g("salir").onclick=()=>{leer();goBack()};
+  g("as_go").onclick=e=>{leer();asPDF(e.currentTarget)};
+  window.scrollTo(0,0)}
+async function asPDF(btn){const t0=btn.textContent;
+  const al=AS.alumnos.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(!AS.meses.length){alert("Elija al menos un mes.");return}if(!al.length&&!+AS.extra){alert("Agregue la lista de alumnos (suba el PDF de RELweb o escríbalos).");return}
+  btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();const doc=await PDFLib.PDFDocument.create();const F=await doc.embedFont(PDFLib.StandardFonts.Helvetica),FB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const k0=PDFLib.rgb(0,0,0),gris=PDFLib.rgb(.89,.89,.89),somb=PDFLib.rgb(.82,.82,.82),dash=[1.5,1.5];
+    const logo=await doc.embedJpg(await(await fetch("formatos/logo_se_lista.jpg")).arrayBuffer());
+    const W=612,H=1008,Y=t=>H-t;
+    const txt=(pg,s,x,base,o={})=>{const f=o.b?FB:F;let z=o.s||10;const t=clean(s);if(o.w)while(f.widthOfTextAtSize(t,z)>o.w&&z>5)z-=.25;let X=x;const tw=f.widthOfTextAtSize(t,z);
+      if(o.c)X=x-tw/2;else if(o.r)X=x-tw;pg.drawText(t,{x:X,y:Y(base),size:z,font:f,color:o.col||k0})};
+    const lin=(pg,x1,t1,x2,t2,o={})=>pg.drawLine({start:{x:x1,y:Y(t1)},end:{x:x2,y:Y(t2)},thickness:o.th||.5,color:k0,dashArray:o.d?dash:undefined});
+    const caja=(pg,x1,t1,x2,t2,fill)=>pg.drawRectangle({x:x1,y:Y(t2),width:x2-x1,height:t2-t1,color:fill,borderColor:k0,borderWidth:.5});
+    const filas=al.concat(Array(+AS.extra||0).fill(""));const PITCH=14.25,MAXF=Math.floor((H-40-223)/PITCH)+1;
+    for(const ym of AS.meses.slice().sort()){const dias=asDiasMes(ym),N=Math.max(dias.length,20),cw=229.5/N,[yy,mm]=ym.split("-");
+      for(let p=0;p<Math.max(1,Math.ceil(filas.length/MAXF));p++){const pg=doc.addPage([W,H]);const fs=filas.slice(p*MAXF,(p+1)*MAXF);
+        /* encabezado */
+        const d=logo.scaleToFit(137.9,45.7);pg.drawImage(logo,{x:34.7,y:Y(34.7)-d.height,width:d.width,height:d.height});
+        caja(pg,177.9,34.7,604,80.5,gris);txt(pg,"SECRETARÍA DE EDUCACIÓN",390.95,51.5,{b:1,s:12,c:1});txt(pg,"LISTA DE ASISTENCIA MENSUAL",390.95,66.8,{b:1,s:10,c:1});
+        caja(pg,34.7,86.5,604,166.7);
+        txt(pg,"Escuela:",52,107.7);txt(pg,AS.escuela.toUpperCase(),91.7,105.7,{b:1,s:8,w:330});txt(pg,"Clave CT:",431.4,107.7);txt(pg,AS.cct.toUpperCase(),476.9,105.7,{b:1,s:8});
+        txt(pg,"Grado:",52,124.9);txt(pg,AS.grado,86.5,122.9,{b:1,s:8});txt(pg,"Grupo:",121,124.9);txt(pg,AS.grupo.toUpperCase(),155.4,122.9,{b:1,s:8});txt(pg,"Turno:",431.4,124.9);txt(pg,AS.turno.toUpperCase(),465.7,122.9,{b:1,s:8});
+        txt(pg,"Nombre del maestro:",52,142.2);lin(pg,143.4,143.5,350.4,143.5);txt(pg,AS.maestro.toUpperCase(),146,141.6,{b:1,s:8,w:202});
+        txt(pg,"Ciclo Escolar:",431.4,142.2);txt(pg,AS.ciclo,494.2,140.2,{b:1,s:8});
+        txt(pg,"Mes de:",431.4,159.4);lin(pg,465.9,160.7,574.7,160.7);txt(pg,`${AS_MESES[+mm-1]} ${yy}`,468,158.8,{b:1,s:8});
+        /* encabezado de la tabla */
+        caja(pg,34.7,178,604,212.5);[52,264.7,494.2].forEach(x=>lin(pg,x,178,x,212.5));lin(pg,264.7,195.2,494.2,195.2);
+        txt(pg,"No.",34.9,199.6);txt(pg,"Nombre del alumno",158.35,199.6,{c:1});txt(pg,"Fecha de asistencias",379.45,193.8,{c:1});txt(pg,"Observaciones",549.1,193.8,{c:1});
+        const xs=[];for(let i=0;i<=N;i++)xs.push(264.7+i*cw);
+        const bodyTop=212.5,bodyBot=223+(Math.max(fs.length,1)-1)*PITCH;
+        dias.forEach((di,i)=>{if(AS.sombrear&&di.sin){pg.drawRectangle({x:xs[i],y:Y(212.5),width:cw,height:212.5-195.2,color:somb});pg.drawRectangle({x:xs[i],y:Y(bodyBot),width:cw,height:bodyBot-bodyTop,color:somb})}});
+        dias.forEach((di,i)=>{const cx=xs[i]+cw/2;txt(pg,"LMMJV"[di.w-1],cx,202.3,{s:7,c:1});txt(pg,String(di.d),cx,210.6,{s:di.d>9?6:6.5,b:1,c:1})});
+        for(let i=1;i<N;i++){const lunes=dias[i]&&dias[i].w===1&&i>0;lin(pg,xs[i],195.2,xs[i],212.5,{d:!lunes})}
+        /* renglones */
+        fs.forEach((nm,j)=>{const base=223+j*PITCH;lin(pg,34.7,base,604,base,{d:1});const no=p*MAXF+j+1;
+          txt(pg,String(no),43.35,base-4.3,{s:7,c:1});if(nm)txt(pg,nm,57.2,base-2.4,{s:9,w:205})});
+        [34.7,52,264.7,494.2,604].concat(xs.slice(1,N)).forEach(x=>lin(pg,x,bodyTop,x,bodyBot,{d:1}));
+        /* nota de días sin clases */
+        if(AS.sombrear){const sin=dias.filter(x=>x.sin&&x.sin!=="—");if(sin.length){const lab={CTE:"Consejo Técnico Escolar",SUSP:"suspensión de labores",VAC:"vacaciones"};
+          const grupos={};sin.forEach(x=>{(grupos[x.sin]=grupos[x.sin]||[]).push(x.d)});
+          const t="Días sin clases (sombreados): "+Object.entries(grupos).map(([k,v])=>`${v.join(", ")} (${lab[k]})`).join("; ")+".";txt(pg,t,34.7,bodyBot+14,{s:7,w:569,col:PDFLib.rgb(.25,.25,.25)})}}}}
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    const ms=AS.meses.slice().sort();const nom=ms.length===1?`${AS_MESES[+ms[0].slice(5)-1].toLowerCase()} ${ms[0].slice(0,4)}`:`${ms.length} meses`;
+    a.download=`Lista de asistencia ${AS.grado}${AS.grupo} - ${nom}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  catch(e){alert("No se pudo generar la lista: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t0}}
 /* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
 /* Para quien ya tiene su documento y no usará el generador: sube su PDF y sirve de base para PMC, analítico y planeación. */
 function insGet(){return store.get("ppie-insumos",{})}
@@ -3545,7 +3653,7 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
     store.set("ppie-perfil",perfil);home()};
   window.scrollTo(0,0)}
 const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
- edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),alum:()=>alView(),eia:()=>eiaView()};
+ edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),alum:()=>alView(),eia:()=>eiaView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
 new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
@@ -3606,7 +3714,7 @@ function wireEquipo(){const g=id=>document.getElementById(id);
 function demoBanda(){if(document.getElementById("demoBanda"))return;const b=document.createElement("div");b.id="demoBanda";b.className="demo-banda";b.setAttribute("role","note");
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
   document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
-const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),firmas:()=>lfView(),visitas:()=>lvView(),
+const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),firmas:()=>lfView(),visitas:()=>lvView(),
   ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),salario:()=>sectionView("salario"),estadistica:()=>sectionView("estadistica"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
 function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
   return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
