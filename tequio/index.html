@@ -1769,5 +1769,95 @@ cfg = leerCfg();
 if (cfg) cargar(); else portada('');
 window.addEventListener('hashchange', () => { const c = leerCfg(); if (c) { cfg = c; S = null; cargar(); } });
 </script>
+<script>
+/* Dictado por voz · Tlamatini y Tequio
+   Agrega un micrófono a los campos de texto. Se toca, se habla y el texto se escribe solo.
+   Usa el reconocimiento de voz del navegador (Chrome, Edge, Safari). Necesita internet.
+   Comandos: «punto», «coma», «dos puntos», «punto y aparte» / «nueva línea», «signo de interrogación». */
+(function(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  const NO=/curp|rfc|cct|tel|cel|correo|mail|clave|folio|token|contra|pass|url|enlace|buscar|^s_zona|cp$|c\.p|codigo/i;
+  const CORTO=/\bgrado|\bgrupo\b|^d_grupo|dir_g[rp]|turno|sangre|_gr$|_gp$/i;
+  const MIC='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  const css=document.createElement("style");
+  css.textContent=`.dct{display:block;position:relative;min-width:0;flex:1 1 auto}
+.dct>input,.dct>textarea{padding-right:46px!important}
+.dct-b{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--muted,var(--gris,#666));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;opacity:.75}
+.dct.ta>.dct-b{top:6px;transform:none}
+.dct-b:hover,.dct-b:focus-visible{opacity:1;background:color-mix(in srgb,currentColor 10%,transparent)}
+.dct-b.on{opacity:1;color:#fff;background:#C62828;animation:dctP 1.4s infinite}
+@keyframes dctP{0%{box-shadow:0 0 0 0 rgba(198,40,40,.45)}70%{box-shadow:0 0 0 10px rgba(198,40,40,0)}100%{box-shadow:0 0 0 0 rgba(198,40,40,0)}}
+.dct-t{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));pointer-events:none;transform:translateX(-50%);z-index:9999;max-width:min(92vw,560px);background:#1E2A40;color:#fff;border-radius:14px;padding:10px 14px;font:15px/1.35 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:flex-start}
+.dct-t[hidden]{display:none}.dct-t b{color:#FFB4A9}.dct-t i{opacity:.8}.dct-t button{pointer-events:auto;margin-left:auto;background:#fff;color:#1E2A40;border:0;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;flex:none}
+@media print{.dct-b,.dct-t{display:none!important}}`;
+  document.head.appendChild(css);
+  const toast=document.createElement("div");toast.className="dct-t";toast.hidden=true;toast.setAttribute("role","status");toast.setAttribute("aria-live","polite");
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(toast));if(document.body)document.body.appendChild(toast);
+  let tTimer=null;
+  function aviso(html,ms,boton){clearTimeout(tTimer);toast.innerHTML=`<span>${html}</span>${boton?'<button type="button">Listo</button>':""}`;toast.hidden=false;
+    const b=toast.querySelector("button");if(b){b.onmousedown=e=>e.preventDefault();b.onclick=detener}
+    if(ms)tTimer=setTimeout(()=>{toast.hidden=true},ms)}
+  function apto(el){if(el.dataset.dct||el.readOnly||el.disabled||el.dataset.nodict!==undefined)return false;
+    if(el.tagName==="INPUT"){const t=(el.getAttribute("type")||"text").toLowerCase();if(t!=="text"&&t!=="search")return false;
+      const ml=+el.getAttribute("maxlength");if(ml&&ml<25)return false}
+    if(el.tagName==="INPUT"){const k=(el.id||"")+" "+(el.name||"")+" "+(el.getAttribute("autocomplete")||"");
+      if(NO.test(k)||CORTO.test(k))return false;
+      const lab=el.id&&document.querySelector(`label[for="${CSS.escape(el.id)}"]`);if(lab&&(NO.test(lab.textContent)||CORTO.test(lab.textContent)))return false}
+    if(el.closest("[data-nodict]"))return false;
+    return !!el.parentNode}
+  function decorar(raiz){(raiz||document).querySelectorAll("textarea,input").forEach(el=>{if(!apto(el))return;el.dataset.dct="1";
+    const w=document.createElement("span");w.className="dct"+(el.tagName==="TEXTAREA"?" ta":"");el.parentNode.insertBefore(w,el);w.appendChild(el);
+    const b=document.createElement("button");b.type="button";b.className="dct-b";b.innerHTML=MIC;b.title="Dictar por voz";b.setAttribute("aria-label","Dictar por voz");
+    b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("pointerdown",e=>e.preventDefault());
+    b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(activo&&activo.el===el)detener();else iniciar(el,b)});w.appendChild(b)})}
+  let pend=false;
+  new MutationObserver(()=>{if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;decorar()})}).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener("DOMContentLoaded",()=>decorar());
+  /* --- reconocimiento --- */
+  let activo=null;
+  function puntuar(t){return t
+    .replace(/\s*\b(punto y aparte|nuevo p[aá]rrafo|nueva l[ií]nea|siguiente rengl[oó]n)\b\s*/gi,"\n")
+    .replace(/\s*\bpunto y seguido\b/gi,".")
+    .replace(/\s*\bdos puntos\b/gi,":")
+    .replace(/\s*\bpunto y coma\b/gi,";")
+    .replace(/\s*\bpunto final\b/gi,".")
+    .replace(/\s*\bpunto\b(?!\s+(de|del|y|por|com|medio|a|en|que|cardinal)\b)/gi,".")
+    .replace(/\s*\bcoma\b/gi,",")
+    .replace(/\s*\bsigno de interrogaci[oó]n\b/gi,"?")
+    .replace(/\s*\bsigno de admiraci[oó]n\b/gi,"!")
+    .replace(/\s*\b(abre|abrir) par[eé]ntesis\b\s*/gi," (")
+    .replace(/\s*\b(cierra|cerrar) par[eé]ntesis\b/gi,")")}
+  function insertar(el,txt){if(!txt)return;const ta=el.tagName==="TEXTAREA";if(!ta)txt=txt.replace(/\n/g," ");
+    const v=el.value;let s=el.selectionStart,e=el.selectionEnd;if(s==null||document.activeElement!==el){s=e=v.length}
+    const antes=v.slice(0,s),despues=v.slice(e);
+    const fin=antes.replace(/[ \t]+$/,"");
+    const inicioFrase=!fin||/[.!?:\n]$/.test(fin);
+    txt=txt.trim().replace(/[ \t]+/g," ").replace(/ ([.,;:?!)])/g,"$1").replace(/([.?!]) *\n/g,"$1\n").replace(/\n +/g,"\n");
+    if(inicioFrase&&!/:$/.test(fin)||/[.!?]$/.test(fin))txt=txt.charAt(0).toUpperCase()+txt.slice(1);
+    txt=txt.replace(/([.!?]\s+|\n)([a-záéíóúñ])/g,(m,a,b)=>a+b.toUpperCase());
+    const sep=!antes||/[\s(\n]$/.test(antes)||/^[.,;:?!)]/.test(txt)||/^\n/.test(txt)?"":" ";
+    const sep2=despues&&!/^[\s.,;:?!)]/.test(despues)?" ":"";
+    el.value=antes+sep+txt+sep2+despues;const p=(antes+sep+txt).length;try{el.setSelectionRange(p,p)}catch(x){}
+    el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))}
+  function detener(){if(!activo)return;const a=activo;activo=null;a.b.classList.remove("on");a.b.setAttribute("aria-label","Dictar por voz");try{a.r.stop()}catch(e){}
+    a.el.removeEventListener("blur",a.onBlur);if(!a.err)aviso("Dictado terminado. Revise el texto antes de guardar.",2600)}
+  function iniciar(el,b){detener();
+    if(navigator.onLine===false){aviso("<b>El dictado necesita internet.</b> Sin conexión, use el micrófono del teclado de su teléfono.",5000);return}
+    const r=new SR();r.lang="es-MX";r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
+    const a={el,b,r,err:false,calla:0,onBlur:()=>setTimeout(()=>{if(activo===a&&document.activeElement!==el)detener()},250)};activo=a;
+    b.classList.add("on");b.setAttribute("aria-label","Detener dictado");el.focus();el.addEventListener("blur",a.onBlur);
+    aviso("<b>🎙 Escuchando…</b> Hable con calma. Diga «punto», «coma» o «punto y aparte».",0,true);
+    r.onresult=ev=>{a.calla=0;let fin="",inter="";for(let i=ev.resultIndex;i<ev.results.length;i++){const x=ev.results[i];if(x.isFinal)fin+=x[0].transcript+" ";else inter+=x[0].transcript}
+      if(fin)insertar(el,puntuar(fin));
+      if(activo===a)aviso(inter?`<b>🎙</b> <i>${inter.replace(/[<>&]/g,"")}</i>`:"<b>🎙 Escuchando…</b> Diga «punto», «coma» o «punto y aparte».",0,true)};
+    r.onerror=ev=>{a.err=true;const m={"not-allowed":"<b>No hay permiso para el micrófono.</b> Permítalo en el candado junto a la dirección de la página.","service-not-allowed":"<b>Este navegador no permite el dictado aquí.</b> Use el micrófono del teclado de su teléfono.","network":"<b>El dictado necesita internet.</b> Revise su conexión.","audio-capture":"<b>No se encontró un micrófono.</b>","no-speech":"No se escuchó nada. Toque el micrófono e intente de nuevo."}[ev.error];
+      if(ev.error==="aborted")return;if(ev.error==="no-speech"&&++a.calla<3){a.err=false;return}/* silencio breve: sigue escuchando */aviso(m||"No se pudo dictar. Intente de nuevo.",5000);if(activo===a){activo=null;b.classList.remove("on");el.removeEventListener("blur",a.onBlur)}};
+    r.onend=()=>{if(activo===a){try{r.start()}catch(e){detener()}}}; // cada frase termina sola: se reanuda mientras siga activo
+    try{r.start()}catch(e){a.err=true;detener();aviso("No se pudo iniciar el dictado.",4000)}}
+  window.addEventListener("pagehide",detener);
+  window.Dictado={decorar,detener};
+})();
+</script>
 </body>
 </html>

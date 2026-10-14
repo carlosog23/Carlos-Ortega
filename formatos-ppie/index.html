@@ -315,6 +315,23 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .demo-paso b{font-family:var(--display);font-size:15.5px}
 .demo-paso span{font-size:14px;color:var(--muted);line-height:1.35}
 .demo-inv{border-style:dashed}
+/* Directorio de la comunidad escolar */
+.dir-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:4px 0 14px}
+.dir-tab{font:inherit;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2}
+.dir-tab span{font-size:12.5px;color:var(--muted)}.dir-tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.dir-tab.on span{color:inherit;opacity:.85}
+.dir-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.dir-acts .btn{min-width:0;text-align:center}
+.dir-share{width:100%;margin-top:8px}.dir-msg:empty{display:none}
+.dir-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.dir-it{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--ink);font:inherit;cursor:pointer}
+.dir-it.yo{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dir-it .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dir-it .tx b{overflow-wrap:anywhere}.dir-it .ds{font-size:14px;color:var(--muted)}
+.dir-av{flex:none;width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.dir-yo{color:var(--accent);font-style:normal;font-weight:700}
+.dir-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.dir-tags i{font-style:normal;font-size:12.5px;border-radius:999px;padding:2px 8px;background:var(--bg);border:1px solid var(--line)}
+.dir-tags .t-ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}.dir-tags .t-falta{color:var(--warn);background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}.dir-tags .t-sal{color:var(--accent);background:var(--accent-soft);border-color:transparent}
+.dir-chips{margin:0 0 10px}.dir-prog{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:-4px 0 10px}.dir-prog span{display:block;height:100%;background:var(--ok)}
+.dir-chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0}.dir-chk input{margin-top:4px;width:20px;height:20px;flex:none}
+@media (max-width:420px){.dir-acts{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -986,6 +1003,7 @@ money:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
  {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
+ {id:"directorio",icon:"people",title:"Directorio de la comunidad escolar",desc:"Escuelas de la zona, maestros con grado y grupo, y alumnos con tutores, emergencias y quién los recoge.",grupos:[],view:()=>dirView(),count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.length:0,m=(typeof DIR!=="undefined")?DIR.maestros.length:0;return n||m?[m?m+" maestro"+(m>1?"s":""):"",n?n+" alumno"+(n>1?"s":""):""].filter(Boolean).join(" · "):"Personalice su escuela"}},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
@@ -3279,7 +3297,7 @@ function asView(){S.view="asistencia";S.letra=null;setBar("");if(!AS)AS=asNuevo(
    <p class="muted">El formato oficial de RELweb, con el nombre del maestro, el mes, el número de cada día hábil y los días sin clases ya marcados según el calendario oficial de Baja California.</p>
    <section class="card"><h3>1 · Sus alumnos</h3>
     <p class="help">Suba la lista de asistencia en PDF que descarga de <b>RELweb</b>: Tlamatini toma de ahí la escuela, el grado, el grupo y los nombres de sus alumnos.</p>
-    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de RELweb<input type="file" accept="application/pdf,.pdf" id="as_pdf" hidden></label>
+    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de RELweb<input type="file" accept="application/pdf,.pdf" id="as_pdf" hidden></label>${dirBotonAsistencia()}
     <p class="help" id="as_msg" role="status">${AS.origen?esc(AS.origen):""}</p>
     <div class="field"><label>Alumnos (${n})</label><textarea data-f="alumnos" rows="8" placeholder="APELLIDO / APELLIDO * NOMBRE(S)">${esc(AS.alumnos)}</textarea><p class="help">Uno por renglón. También puede escribirlos o corregirlos aquí.</p></div></section>
    <section class="card"><h3>2 · Datos de la hoja</h3>
@@ -3586,12 +3604,13 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
+   ${DEMO?"":dirCargaCard()}
    <section class="card demo-inv"><h3>¿Quiere conocerla primero?</h3>
     <p class="help">Recorra Tlamatini con una escuela de ejemplo ya capturada y vea todo lo que puede hacer. Lo que haga en la demostración no se guarda ni toca sus datos.</p>
     <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
    ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
-   <p class="foot"><span class="muted">v2026-10-14.1</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-14.2</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
@@ -3618,6 +3637,9 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>Datos de mi zona y escuela</h2></div></div>
    <p class="muted">Capture sus datos una vez; con ellos se llenan todos los formatos que genere. Lo que no aplique, déjelo en blanco.</p>
    <section class="card" style="display:flex;align-items:center;gap:12px"><img src="${esc(perfil.instLogo||'img/isep.png')}" alt="" style="height:40px"><div style="flex:1"><b>Subsistema: ${perfil.subsis==="SEBS"?"SEBS (escuelas estatales)":"ISEP (escuelas federalizadas)"}</b><br><span class="muted" style="font-size:13px">Logotipo institucional seleccionado.</span></div><button type="button" class="btn link" id="s_cambsub">Cambiar</button></section>
+   ${DEMO?"":`<section class="card"><h3>¿Es supervisión de zona?</h3><p class="help">Suba el directorio de sus escuelas (Excel) y elija la suya; después podrá compartirlo con sus directores para que a cada uno se le llenen solos sus datos.</p>
+    <div class="dir-acts" style="margin-top:4px"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir directorio de escuelas<input type="file" accept=".xlsx,.csv" id="s_dirxls" hidden></label><button type="button" class="btn ghost" id="s_dirpl">Plantilla de Excel</button></div><p class="help" id="s_dirmsg" role="status"></p>
+    ${DIR.escuelas.length?`<div class="field" style="margin-top:8px"><label for="s_selesc">Escuelas de mi zona (${DIR.escuelas.length})</label><p class="help">Elija su escuela y sus datos se llenan abajo.</p><select id="s_selesc"><option value="">Elija su escuela…</option>${DIR.escuelas.map((e,i)=>`<option value="${i}" ${perfil.cct&&perfil.cct===e.cct?"selected":""}>${esc(e.nombre)}${e.cct?" · "+esc(e.cct):""}</option>`).join("")}</select></div>`:""}</section>`}
    <section class="card"><h3>Zona escolar y supervisión</h3>
     <div class="row2"><div class="field"><label>Zona escolar</label><input type="text" id="s_zona" value="${val('zona')}" placeholder="Ej. 063" autocomplete="off"></div>
      <div class="field"><label>Clave de la supervisión (CCT) <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="s_cctzona" value="${val('cctzona')}" autocomplete="off"></div></div>
@@ -3644,6 +3666,14 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
   const back=()=>{if(editar)home();else setupSubsisView()};
   document.getElementById("salir").onclick=back;document.getElementById("cancel").onclick=back;
   {const cb=document.getElementById("s_cambsub");if(cb)cb.onclick=setupSubsisView}
+  {const g=id=>document.getElementById(id);
+   if(g("s_dirpl"))g("s_dirpl").onclick=()=>dirPlantilla("escuelas",false).catch(e=>alert(e.message));
+   if(g("s_dirxls"))g("s_dirxls").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const keep={};["s_zona","s_cctzona","s_supervisor","s_minombre","s_micargo","s_grado","s_grupo"].forEach(k=>{const el=g(k);if(el)keep[k]=el.value});
+     try{const S0=S.view;await dirLeerTabla(f,"escuelas");Object.assign(perfil,{zona:keep.s_zona,cctzona:keep.s_cctzona,supervisor:keep.s_supervisor,minombre:keep.s_minombre,micargo:keep.s_micargo,grado:keep.s_grado,grupo:keep.s_grupo});DIR.zona={zona:keep.s_zona||"",cctzona:keep.s_cctzona||"",supervisor:keep.s_supervisor||"",subsis:perfil.subsis||"ISEP"};dirSave();setupOtraView(editar);const m=g("s_dirmsg");if(m)m.textContent=`Directorio cargado: ${DIR.escuelas.length} escuelas. Elija la suya.`}
+     catch(x){const m=g("s_dirmsg");if(m)m.innerHTML="<b>No se pudo leer.</b> "+esc(x.message||x)}};
+   if(g("s_selesc"))g("s_selesc").onchange=e=>{const o=DIR.escuelas[+e.target.value];if(!o)return;const set=(k,v)=>{const el=g(k);if(el&&v!==undefined)el.value=v||""};
+     const n=String(o.nombre||"").trim();set("s_escuela",/^(escuela|esc\.|primaria|centro)/i.test(n)?n:"Escuela Primaria "+n);set("s_cct",o.cct);set("s_localidad",o.localidad);set("s_domicilio",o.domicilio);set("s_telefono",o.telefono);set("s_director",o.director);
+     const mu=g("s_municipio");if(mu&&o.municipio){const opt=[...mu.options].find(x=>dirN(x.value)===dirN(o.municipio));if(opt)mu.value=opt.value}const tu=g("s_turno");if(tu&&o.turno){const opt=[...tu.options].find(x=>dirN(x.value)===dirN(o.turno));if(opt)tu.value=opt.value}}}
   document.getElementById("save").onclick=()=>{const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
     if(!v("s_escuela")){alert("Escriba al menos el nombre de la escuela.");return}
     perfil.zona=v("s_zona");perfil.cctzona=v("s_cctzona");perfil.supervisor=v("s_supervisor");
@@ -3757,6 +3787,457 @@ if(DEMO&&!store.get(CP_KEY,null)){try{CP=cpNuevo();CP.esc=Object.assign(cpEscVac
   Object.assign(CP.conv,{turno:"M",fecha:"2026-10-20",hora:"12:30"});cpSave()}catch(e){console.warn("demo cp",e)}}
 tlmRed();
 if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
+</script>
+<script>
+/* ---------- Directorio de la comunidad escolar: escuelas de la zona → maestros → alumnos ----------
+   Todo se guarda solo en este dispositivo (clave ppie-dir, entra en el respaldo).
+   Se comparte de un nivel a otro con un archivo de Tlamatini (.json) que se manda por WhatsApp o correo. */
+const DIR_KEY="ppie-dir";
+let DIR=(()=>{const d=store.get(DIR_KEY,null)||{};return{escuelas:d.escuelas||[],maestros:d.maestros||[],alumnos:d.alumnos||[],zona:d.zona||null,yo:d.yo||null,escCct:d.escCct||""}})();
+function dirSave(){store.set(DIR_KEY,DIR)}
+const dirId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dirN=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9ñ]+/g," ").trim();
+const DIR_GRADOS={primero:"1",segundo:"2",tercero:"3",cuarto:"4",quinto:"5",sexto:"6","1ro":"1","1er":"1","2do":"2","3ro":"3","3er":"3","4to":"4","5to":"5","6to":"6"};
+function dirGrado(s){s=dirN(s);if(!s)return"";const m=s.match(/\d/);if(m)return m[0];for(const k in DIR_GRADOS)if(s.includes(k))return DIR_GRADOS[k];return s.toUpperCase()}
+const dirGrupo=s=>String(s??"").replace(/grupo|°|º|"|«|»/gi,"").trim().toUpperCase();
+const dirSi=s=>/^(s|si|sí|x|1|true|verdadero)$/i.test(String(s??"").trim());
+const dirOrden=(a,b)=>(a.grado||"9").localeCompare(b.grado||"9")||(a.grupo||"").localeCompare(b.grupo||"")||(a.nombre||"").localeCompare(b.nombre||"","es");
+
+/* --- definición de campos (sirven para el formulario, la plantilla de Excel y para reconocer columnas) --- */
+const DF_ESC=[
+ {k:"nombre",l:"Nombre de la escuela",req:1,al:["nombre de la escuela","escuela","plantel","nombre"]},
+ {k:"cct",l:"CCT",al:["cct","clave del centro","clave ct","clave"],up:1},
+ {k:"turno",l:"Turno",opts:["Matutino","Vespertino","Tiempo completo"],al:["turno"]},
+ {k:"organizacion",l:"Organización",opts:["Completa","Multigrado"],al:["organizacion","tipo","multigrado"]},
+ {k:"municipio",l:"Municipio",al:["municipio"]},
+ {k:"localidad",l:"Localidad",al:["localidad","comunidad","poblado","ejido"]},
+ {k:"domicilio",l:"Domicilio",al:["domicilio","direccion","calle","ubicacion"]},
+ {k:"telefono",l:"Teléfono",t:"tel",al:["telefono","tel","celular"]},
+ {k:"director",l:"Director(a) o encargado(a)",al:["director","encargado","responsable","titular"]},
+ {k:"cargoDir",l:"Cargo del titular",opts:["Director(a)","Encargado(a) de despacho"],al:["cargo"]},
+ {k:"correo",l:"Correo de la escuela",t:"email",al:["correo","email","e mail"]}];
+const DIR_FUNC=["Docente frente a grupo","Director(a)","Encargado(a) de despacho","Subdirector(a)","Docente de Educación Física","Docente de Inglés","Docente de Artes","Maestro(a) de USAER","Apoyo técnico pedagógico","Personal de apoyo y asistencia","Otra"];
+const DF_MAE=[
+ {k:"nombre",l:"Nombre completo",req:1,al:["nombre completo","nombre del docente","nombre del maestro","docente","maestro","nombre"]},
+ {k:"funcion",l:"Función",opts:DIR_FUNC,al:["funcion","cargo","puesto","categoria"]},
+ {k:"grado",l:"Grado",al:["grado"],half:1},
+ {k:"grupo",l:"Grupo",al:["grupo"],half:1},
+ {k:"rfc",l:"RFC",al:["rfc"],up:1},
+ {k:"curp",l:"CURP",al:["curp"],up:1},
+ {k:"celular",l:"Celular",t:"tel",al:["celular","cel","telefono","tel","whatsapp","movil"]},
+ {k:"correo",l:"Correo",t:"email",al:["correo","email","e mail"]}];
+const DIR_PAR=["Madre","Padre","Tutor(a)","Abuela","Abuelo","Tía","Tío","Hermana","Hermano","Madrina","Padrino","Vecina","Vecino"];
+const DIR_SANGRE=["O+","O−","A+","A−","B+","B−","AB+","AB−","No sabe"];
+const DF_ALU=[
+ {sec:"Datos del alumno"},
+ {k:"nombre",l:"Nombre del alumno",req:1,help:"Apellidos y nombre(s), como en el acta.",al:["nombre del alumno","alumno","nombre completo","nombre"]},
+ {k:"curp",l:"CURP",up:1,help:"Con la CURP se calculan solos la fecha de nacimiento y el sexo.",al:["curp"]},
+ {k:"grado",l:"Grado",half:1,al:["grado"]},{k:"grupo",l:"Grupo",half:1,al:["grupo"]},
+ {k:"fnac",l:"Fecha de nacimiento",half:1,ph:"dd/mm/aaaa",al:["fecha de nacimiento","nacimiento","f nac"]},
+ {k:"sexo",l:"Sexo",half:1,opts:["Hombre","Mujer"],al:["sexo","genero"]},
+ {k:"domicilio",l:"Domicilio",al:["domicilio","direccion"]},
+ {sec:"Madre, padre o tutores"},
+ {k:"t1nom",l:"Madre, padre o tutor 1",al:["tutor 1","madre padre o tutor 1","nombre de la madre","madre","mama"]},
+ {k:"t1par",l:"Parentesco (tutor 1)",half:1,list:DIR_PAR,al:["parentesco tutor 1","parentesco 1"]},
+ {k:"t1tel",l:"Teléfono (tutor 1)",half:1,t:"tel",al:["telefono tutor 1","telefono 1","telefono de la madre","tel madre"]},
+ {k:"t2nom",l:"Madre, padre o tutor 2",al:["tutor 2","madre padre o tutor 2","nombre del padre","padre","papa"]},
+ {k:"t2par",l:"Parentesco (tutor 2)",half:1,list:DIR_PAR,al:["parentesco tutor 2","parentesco 2"]},
+ {k:"t2tel",l:"Teléfono (tutor 2)",half:1,t:"tel",al:["telefono tutor 2","telefono 2","telefono del padre","tel padre"]},
+ {k:"correo",l:"Correo de la familia",t:"email",al:["correo","email"]},
+ {sec:"En caso de emergencia, llamar a"},
+ {k:"e1nom",l:"Contacto de emergencia 1",al:["contacto de emergencia 1","emergencia 1"]},
+ {k:"e1par",l:"Parentesco (emergencia 1)",half:1,list:DIR_PAR,al:["parentesco emergencia 1"]},
+ {k:"e1tel",l:"Teléfono (emergencia 1)",half:1,t:"tel",al:["telefono emergencia 1"]},
+ {k:"e2nom",l:"Contacto de emergencia 2",al:["contacto de emergencia 2","emergencia 2"]},
+ {k:"e2par",l:"Parentesco (emergencia 2)",half:1,list:DIR_PAR,al:["parentesco emergencia 2"]},
+ {k:"e2tel",l:"Teléfono (emergencia 2)",half:1,t:"tel",al:["telefono emergencia 2"]},
+ {sec:"Salida de la escuela"},
+ {k:"vaSolo",l:"Se retira solo",t:"check",help:"Márquelo solo si la madre, el padre o tutor lo autorizó por escrito.",al:["se retira solo","se va solo","va solo"]},
+ {k:"recogen",l:"Personas autorizadas para recogerlo",t:"area",help:"Una por renglón: nombre y parentesco. Ej. María López Ruiz · Tía",al:["personas autorizadas","autorizados","quien recoge","recogen"]},
+ {sec:"Salud"},
+ {k:"sangre",l:"Tipo de sangre",half:1,opts:DIR_SANGRE,al:["tipo de sangre","sangre"]},
+ {k:"alergias",l:"Alergias",half:1,al:["alergias","alergia"]},
+ {k:"padec",l:"Padecimientos o condiciones",al:["padecimientos","enfermedades","condiciones"]},
+ {k:"medic",l:"Medicamentos que toma",al:["medicamentos","medicamento"]},
+ {sec:"Apoyos para el aprendizaje"},
+ {k:"bap",l:"Barreras para el aprendizaje y la participación (BAP)",t:"area",al:["barreras","bap"]},
+ {k:"usaer",l:"Recibe apoyo de USAER",t:"check",al:["usaer"]},
+ {k:"apoyo",l:"Otro apoyo (CAM, terapia, otro)",al:["otro apoyo","apoyo"]},
+ {sec:"Observaciones"},
+ {k:"obs",l:"Observaciones",t:"area",al:["observaciones","notas"]}];
+const DIR_DEF={escuelas:DF_ESC,maestros:DF_MAE,alumnos:DF_ALU};
+const DIR_TIT={escuelas:"Escuelas de la zona",maestros:"Maestros de la escuela",alumnos:"Alumnos"};
+const DIR_HOJA={escuelas:"Escuelas",maestros:"Maestros",alumnos:"Alumnos"};
+const dirCampos=t=>DIR_DEF[t].filter(f=>f.k);
+
+/* --- datos derivados --- */
+function dirAlumnoCurp(a){const c=String(a.curp||"").toUpperCase().replace(/\s/g,"");a.curp=c;if(c&&AL_CURP_RE.test(c)){const d=curpDatos(c);if(!a.fnac&&d.fecha)a.fnac=d.fecha;if(!a.sexo&&d.sexo)a.sexo=d.sexo}return a}
+function dirFicha(a){const tiene=k=>String(a[k]||"").trim();const falta=[];if(!tiene("t1nom")&&!tiene("t2nom"))falta.push("tutor");if(!tiene("t1tel")&&!tiene("t2tel"))falta.push("teléfono");
+  if(!tiene("e1nom")||!tiene("e1tel"))falta.push("emergencia");if(!a.vaSolo&&!tiene("recogen"))falta.push("quién lo recoge");return falta}
+function dirSalud(a){return["alergias","padec","medic"].some(k=>String(a[k]||"").trim())}
+function dirMiEscuela(){return{nombre:perfil.escuela||"",cct:perfil.cct||"",turno:perfil.turno||"",municipio:perfil.municipio||"",localidad:perfil.localidad||"",domicilio:perfil.domicilio||"",telefono:perfil.telefono||"",director:perfil.director||""}}
+function dirEscuelasBase(){ // en la Zona 050 se parte del directorio oficial de la app
+  if(DIR.escuelas.length||perfil.modo!=="050")return DIR.escuelas;
+  const MULTI=["02DPR0379E","02DPR0378F","02DPR0882N","02DPR0012Z","02DPR0556S","02DPR0382S"];
+  return ESCUELAS_050.map((e,i)=>({id:"z"+e[1],nombre:e[0],cct:e[1],municipio:e[2],localidad:e[3],domicilio:e[4],director:e[5],cargoDir:/encargad/i.test(CARGOS_050[i]||"")?"Encargado(a) de despacho":"Director(a)",organizacion:MULTI.includes(e[1])?"Multigrado":"Completa",turno:"",telefono:"",correo:""}))}
+function dirGrupos(){const g=new Map();DIR.alumnos.forEach(a=>{const k=(a.grado||"?")+"|"+(a.grupo||"");g.set(k,(g.get(k)||0)+1)});
+  return[...g.entries()].map(([k,n])=>{const[gr,gp]=k.split("|");return{k,grado:gr,grupo:gp,n}}).sort((a,b)=>a.k.localeCompare(b.k))}
+const dirGLabel=(gr,gp)=>`${gr&&gr!=="?"?gr+"°":"Sin grado"}${gp?" «"+gp+"»":""}`;
+
+/* --- vista principal --- */
+function dirView(tab){S.view="dir";S.letra=null;S.sec="directorio";setBar("");
+  if(tab)S.dirTab=tab;if(!S.dirTab)S.dirTab=DIR.alumnos.length||/docente/i.test(perfil.micargo||"")?"alumnos":DIR.maestros.length?"maestros":"maestros";
+  const T=S.dirTab;
+  const tabs=[["escuelas","Escuelas","Supervisión"],["maestros","Maestros","Dirección"],["alumnos","Alumnos","Docente"]].map(([k,l,q])=>`<button type="button" class="dir-tab ${T===k?"on":""}" data-tab="${k}" aria-pressed="${T===k}"><b>${l}</b><span>${q}</span></button>`).join("");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini · Comunidad escolar</div><h2>Directorio</h2></div></div>
+   <p class="muted">La supervisión comparte las escuelas con los directores, la dirección comparte a sus maestros y cada maestro registra a sus alumnos. Así Tlamatini se personaliza con su escuela, su grado y su grupo.</p>
+   <div class="dir-tabs" role="group" aria-label="Directorio">${tabs}</div>
+   <div id="dirBody">${T==="escuelas"?dirEscHTML():T==="maestros"?dirMaeHTML():dirAluHTML()}</div>
+   <section class="card"><h3>¿Le enviaron un archivo de directorio?</h3><p class="help">Si la supervisión, la dirección o un maestro le mandó un archivo de Tlamatini por WhatsApp o correo, cárguelo aquí.</p>
+    <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Cargar archivo recibido<input type="file" accept=".json,application/json" id="dir_imp" hidden></label></section>
+   <p class="foot">El directorio se guarda solo en este dispositivo y entra en su respaldo. Contiene datos personales: compártalo solo con quien corresponda.</p>`;
+  document.getElementById("salir").onclick=home;
+  app.querySelectorAll(".dir-tab").forEach(b=>b.onclick=()=>dirView(b.dataset.tab));
+  document.getElementById("dir_imp").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)dirImportarArchivo(f)};
+  dirWire(T);window.scrollTo(0,0)}
+function dirAcciones(t,extra){return`<div class="dir-acts">
+   <button type="button" class="btn primary" data-a="nuevo">+ Agregar</button>
+   <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir Excel<input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-a="excel" hidden></label>
+   ${extra||""}
+   <button type="button" class="btn ghost" data-a="plantilla">Plantilla de Excel</button>
+   ${DIR_LISTA(t).length?`<button type="button" class="btn ghost" data-a="xls">Descargar en Excel</button>`:""}</div><p class="help dir-msg" id="dir_msg" role="status"></p>`}
+const DIR_LISTA=t=>t==="escuelas"?dirEscuelasBase():DIR[t];
+function dirEscHTML(){const L=dirEscuelasBase();const z=DIR.zona||{};
+  return`<section class="card"><h3>Escuelas de la zona${perfil.zona?" "+esc(perfil.zona):""}</h3>
+   <p class="help">Para la <b>supervisión</b>: capture o suba el directorio de sus escuelas y compártalo con los directores. Cada director elige su escuela y sus datos se llenan solos.</p>
+   ${dirAcciones("escuelas")}
+   ${L.length?`<button type="button" class="btn primary dir-share" data-a="compartir">Compartir con los directores</button>`:""}</section>
+   ${L.length?`<div class="group-title">${L.length} escuela${L.length>1?"s":""}${z.supervisor?" · "+esc(z.supervisor):""}</div><div class="dir-list">${L.map((e,i)=>`<button type="button" class="dir-it ${perfil.cct&&perfil.cct===e.cct?"yo":""}" data-i="${i}"><span class="dir-av">${esc((e.nombre||"?").trim().charAt(0))}</span><span class="tx"><b>${esc(e.nombre)}</b><span class="ds">${esc([e.cct,e.localidad,e.organizacion].filter(Boolean).join(" · "))}</span><span class="ds">${esc(e.director||"Sin titular")}${perfil.cct&&perfil.cct===e.cct?' · <i class="dir-yo">Mi escuela</i>':""}</span></span><span class="chev" aria-hidden="true">›</span></button>`).join("")}</div>`
+   :`<div class="soon">Todavía no hay escuelas. Agréguelas una por una o suba la plantilla de Excel llena.</div>`}`}
+function dirMaeHTML(){const L=[...DIR.maestros].sort(dirOrden);const yo=DIR.maestros.find(m=>m.id===DIR.yo);
+  return`<section class="card"><h3>Maestros de ${esc(perfil.escuela||"la escuela")}</h3>
+   <p class="help">Para la <b>dirección</b>: capture o suba la plantilla de su personal (grado, grupo, RFC, CURP y celular) y compártala con sus maestros. Cada quien elige su nombre y Tlamatini se ajusta a su grado y grupo.</p>
+   ${dirAcciones("maestros")}
+   ${L.length?`<button type="button" class="btn primary dir-share" data-a="compartir">Compartir con mis maestros</button>`:""}</section>
+   ${L.length?`<section class="card dir-yo-card"><h3>¿Quién es usted en esta escuela?</h3><p class="help">Elija su nombre: se llenan solos su nombre, cargo, grado y grupo en todos los formatos de este dispositivo.</p>
+    <select id="dir_yo"><option value="">Elija su nombre…</option>${L.map(m=>`<option value="${esc(m.id)}" ${m.id===DIR.yo?"selected":""}>${esc(m.nombre)}${m.grado?` · ${esc(m.grado)}° ${esc(m.grupo||"")}`:m.funcion?" · "+esc(m.funcion):""}</option>`).join("")}</select>
+    ${yo?`<p class="eq-ok" style="margin-top:8px">✓ Tlamatini está personalizada para ${esc(yo.nombre)}.</p>`:""}</section>
+    <div class="group-title">${L.length} persona${L.length>1?"s":""}</div><div class="dir-list">${L.map(m=>{const i=DIR.maestros.indexOf(m);return`<button type="button" class="dir-it ${m.id===DIR.yo?"yo":""}" data-i="${i}"><span class="dir-av">${m.grado?esc(m.grado)+"°":esc((m.nombre||"?").charAt(0))}</span><span class="tx"><b>${esc(m.nombre)}</b><span class="ds">${esc([m.grado?`${m.grado}° ${m.grupo||""}`.trim():"",m.funcion].filter(Boolean).join(" · "))}</span>${m.celular?`<span class="ds">${esc(m.celular)}</span>`:""}</span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>`
+   :`<div class="soon">Todavía no hay maestros. Agréguelos uno por uno o suba la plantilla de Excel llena.</div>`}`}
+function dirAluHTML(){const gs=dirGrupos();let F=S.dirGrupo;
+  if(F===undefined){const mio=(perfil.grado?dirGrado(perfil.grado):"")+"|"+dirGrupo(perfil.grupo||"");F=gs.some(g=>g.k===mio)?mio:"";S.dirGrupo=F}
+  const L=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F).sort(dirOrden);
+  const compl=L.filter(a=>!dirFicha(a).length).length;
+  const pg=dirGrado(perfil.grado||""),pp=dirGrupo(perfil.grupo||"");
+  return`<section class="card"><h3>Mis alumnos</h3>
+   <p class="help">Para cada <b>docente</b>: suba la lista de su grupo (el PDF de RELweb o la plantilla de Excel) y complete la ficha de cada alumno: tutores, contactos de emergencia, quién puede recogerlo, salud y apoyos.</p>
+   <div class="row2" style="gap:8px;grid-template-columns:1fr 1fr"><div class="field"><label for="dir_gr">Grado de la lista</label><input type="text" id="dir_gr" value="${esc(pg)}" placeholder="Ej. 3"></div><div class="field"><label for="dir_gp">Grupo</label><input type="text" id="dir_gp" value="${esc(pp)}" placeholder="Ej. A"></div></div>
+   <p class="help" style="margin-top:-4px">Se usan si el archivo no trae el grado y el grupo.</p>
+   ${dirAcciones("alumnos",`<label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir lista de RELweb (PDF)<input type="file" accept="application/pdf,.pdf" data-a="pdf" multiple hidden></label>`)}
+   ${DIR.alumnos.length?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="emerg">Directorio de emergencia (Word)</button><button type="button" class="btn primary dir-share" data-a="compartir">Enviar a la dirección</button></div>`:""}</section>
+   ${gs.length>1?`<div class="chips dir-chips" role="group" aria-label="Grupos"><button type="button" class="chip ${!F?"sel":""}" data-g="">Todos (${DIR.alumnos.length})</button>${gs.map(g=>`<button type="button" class="chip ${F===g.k?"sel":""}" data-g="${esc(g.k)}">${esc(dirGLabel(g.grado,g.grupo))} (${g.n})</button>`).join("")}</div>`:""}
+   ${L.length?`<div class="group-title">${L.length} alumno${L.length>1?"s":""} · ${compl} ficha${compl===1?"":"s"} completa${compl===1?"":"s"}</div>
+    <div class="dir-prog" aria-hidden="true"><span style="width:${Math.round(compl/L.length*100)}%"></span></div>
+    <div class="dir-list">${L.map((a,n)=>{const i=DIR.alumnos.indexOf(a);const f=dirFicha(a);return`<button type="button" class="dir-it" data-i="${i}"><span class="dir-av">${n+1}</span><span class="tx"><b>${esc(a.nombre)}</b><span class="ds">${esc([F?"":dirGLabel(a.grado,a.grupo),a.sexo,a.fnac].filter(Boolean).join(" · "))}</span>
+     <span class="dir-tags">${a.vaSolo?'<i class="t-ok">Se retira solo</i>':String(a.recogen||"").trim()?`<i class="t-ok">${String(a.recogen).split("\n").filter(s=>s.trim()).length} autorizado(s) para recogerlo</i>`:""}${dirSalud(a)?'<i class="t-sal">Salud: ver ficha</i>':""}${a.usaer?'<i>USAER</i>':""}${f.length?`<i class="t-falta">Falta: ${esc(f.join(", "))}</i>`:'<i class="t-ok">✓ Ficha completa</i>'}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>`
+   :`<div class="soon">Todavía no hay alumnos${F?" en este grupo":""}. Suba el PDF de RELweb de su grupo y después complete las fichas.</div>`}`}
+function dirWire(T){const msg=t=>{const m=document.getElementById("dir_msg");if(m)m.innerHTML=t};
+  const q=s=>app.querySelector(`[data-a="${s}"]`);
+  if(q("nuevo"))q("nuevo").onclick=()=>dirEditar(T,-1);
+  if(q("plantilla"))q("plantilla").onclick=()=>dirPlantilla(T,false).catch(e=>msg(esc(e.message)));
+  if(q("xls"))q("xls").onclick=()=>dirPlantilla(T,true).catch(e=>msg(esc(e.message)));
+  if(q("excel"))q("excel").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;msg("Leyendo el archivo…");
+    try{const r=await dirLeerTabla(f,T);msg(r)}catch(x){msg(`<b>No se pudo leer.</b> ${esc(x.message||x)}`)}};
+  if(q("pdf"))q("pdf").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;msg("Leyendo la lista…");
+    const out=[];for(const f of fs){try{out.push(await dirLeerPDF(f))}catch(x){out.push(`«${esc(f.name)}»: no se pudo leer.`)}}
+    S.dirGrupo=undefined;dirView("alumnos");msg(out.join("<br>"))};
+  if(q("compartir"))q("compartir").onclick=()=>dirCompartirView(T);
+  if(q("emerg"))q("emerg").onclick=dirEmergencia;
+  app.querySelectorAll(".dir-it").forEach(b=>b.onclick=()=>dirEditar(T,+b.dataset.i));
+  app.querySelectorAll(".dir-chips .chip").forEach(b=>b.onclick=()=>{S.dirGrupo=b.dataset.g;dirView("alumnos")});
+  const yo=document.getElementById("dir_yo");if(yo)yo.onchange=()=>{const m=DIR.maestros.find(x=>x.id===yo.value);if(m)dirSoyYo(m);else{DIR.yo=null;dirSave()}dirView("maestros")}}
+
+/* --- personalizar el dispositivo --- */
+function dirSoyYo(m){DIR.yo=m.id;dirSave();perfil.minombre=m.nombre;
+  perfil.micargo=m.funcion==="Docente frente a grupo"||(!m.funcion&&m.grado)?`Docente${m.grado?` de ${m.grado}° ${m.grupo||""}`.trimEnd():""}`:(m.funcion||perfil.micargo||"");
+  if(m.grado)perfil.grado=m.grado;if(m.grupo)perfil.grupo=m.grupo;
+  ["rfc","curp","celular","correo"].forEach(k=>{if(m[k])perfil[k]=m[k]});
+  if(/director|encargad/i.test(m.funcion||""))perfil.director=m.nombre;
+  store.set("ppie-perfil",perfil);S.dirGrupo=undefined}
+function dirUsarEscuela(e){const n=String(e.nombre||"").trim();perfil.escuela=/^(escuela|esc\.|primaria|centro)/i.test(n)?n:"Escuela Primaria "+n;
+  ["cct","municipio","localidad","domicilio","director"].forEach(k=>{if(e[k]!==undefined)perfil[k]=e[k]||""});if(e.telefono)perfil.telefono=e.telefono;if(e.turno)perfil.turno=e.turno;
+  if(DIR.zona){const z=DIR.zona;if(z.zona)perfil.zona=z.zona;if(z.cctzona)perfil.cctzona=z.cctzona;if(z.supervisor)perfil.supervisor=z.supervisor}
+  perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";
+  if(!perfil.modo)perfil.modo=perfil.zona==="050"?"050":"otra";if(!perfil.instLogo)perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png";
+  store.set("ppie-perfil",perfil)}
+
+/* --- ficha (alta y edición) --- */
+function dirCampoHTML(f,v){const id="d_"+f.k;const op=f.req?"":' <span class="muted" style="font-weight:400">(opcional)</span>';
+  const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";v=v??"";
+  if(f.t==="check")return`<label class="opt dir-chk ${v?"on":""}"><input type="checkbox" id="${id}" ${v?"checked":""}><span><b>${esc(f.l)}</b>${f.help?`<br><span class="muted" style="font-size:14px">${esc(f.help)}</span>`:""}</span></label>`;
+  const lab=`<label for="${id}">${esc(f.l)}${f.req?"":op}</label>`;
+  if(f.opts)return`<div class="field">${lab}${help}<select id="${id}"><option value="">—</option>${f.opts.map(o=>`<option ${v===o?"selected":""}>${esc(o)}</option>`).join("")}${v&&!f.opts.includes(v)?`<option selected>${esc(v)}</option>`:""}</select></div>`;
+  if(f.t==="area")return`<div class="field">${lab}${help}<textarea id="${id}" rows="3" style="min-height:84px">${esc(v)}</textarea></div>`;
+  const ty=f.t==="tel"?"tel":f.t==="email"?"email":"text";
+  return`<div class="field">${lab}${help}<input type="${ty}" id="${id}" value="${esc(v)}" ${f.ph?`placeholder="${esc(f.ph)}"`:""} ${f.list?`list="dl_${f.k}"`:""} ${f.up?'autocapitalize="characters" style="text-transform:uppercase"':""} autocomplete="off">${f.list?`<datalist id="dl_${f.k}">${f.list.map(o=>`<option value="${esc(o)}">`).join("")}</datalist>`:""}</div>`}
+function dirFormHTML(defs,o){let h="",open=false,par=[];const flush=()=>{if(par.length){h+=`<div class="row2">${par.join("")}</div>`;par=[]}};
+  for(const f of defs){if(f.sec){flush();if(open)h+="</section>";h+=`<section class="card"><h3>${esc(f.sec)}</h3>`;open=true;continue}
+    if(!open){h+=`<section class="card">`;open=true}
+    const c=dirCampoHTML(f,o[f.k]);if(f.half){par.push(c);if(par.length===2)flush()}else{flush();h+=c}}
+  flush();if(open)h+="</section>";return h}
+function dirEditar(t,i){const L=DIR_LISTA(t);const nuevo=i<0;const o=nuevo?{}:{...L[i]};
+  if(nuevo&&t==="alumnos"){const g=document.getElementById("dir_gr"),p=document.getElementById("dir_gp");o.grado=dirGrado(g?g.value:perfil.grado||"");o.grupo=dirGrupo(p?p.value:perfil.grupo||"")}
+  S.view="dir";const tit={escuelas:nuevo?"Nueva escuela":"Escuela",maestros:nuevo?"Nuevo maestro(a)":"Maestro(a)",alumnos:nuevo?"Nuevo alumno(a)":"Ficha del alumno"}[t];
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio · ${esc(DIR_TIT[t])}</div><h2>${esc(nuevo?tit:(o.nombre||tit))}</h2></div></div>
+   ${t==="alumnos"&&!nuevo?`<p class="muted">${esc(dirGLabel(o.grado,o.grupo))}${dirFicha(o).length?` · Falta: ${esc(dirFicha(o).join(", "))}`:" · ✓ Ficha completa"}</p>`:""}
+   ${t==="alumnos"&&o.t1tel?`<div class="dir-acts"><a class="btn ghost" href="tel:${esc(String(o.t1tel).replace(/[^\d+]/g,""))}">📞 Llamar a ${esc((o.t1nom||"tutor 1").split(" ")[0])}</a>${o.e1tel?`<a class="btn ghost" href="tel:${esc(String(o.e1tel).replace(/[^\d+]/g,""))}">📞 Emergencia: ${esc((o.e1nom||"contacto 1").split(" ")[0])}</a>`:""}</div>`:""}
+   <form id="dirFrm" novalidate>${dirFormHTML(DIR_DEF[t],o)}</form>
+   ${!nuevo&&t==="escuelas"?`<section class="card"><h3>¿Es su escuela?</h3><p class="help">Use estos datos como los de su escuela en este dispositivo.</p><button type="button" class="btn ghost" id="d_usar">Usar como mi escuela</button></section>`:""}
+   ${!nuevo&&t==="maestros"?`<section class="card"><h3>¿Es usted?</h3><p class="help">Personalice Tlamatini con este nombre, grado y grupo.</p><button type="button" class="btn ghost" id="d_yo">Soy yo</button></section>`:""}
+   ${!nuevo?`<button type="button" class="btn link" id="d_del" style="color:var(--warn);margin:4px 0 18px">Quitar del directorio</button>`:""}`;
+  setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
+  const volver=()=>dirView(t);document.getElementById("salir").onclick=volver;document.getElementById("cancel").onclick=volver;
+  app.querySelectorAll(".dir-chk input").forEach(c=>c.onchange=()=>c.closest(".opt").classList.toggle("on",c.checked));
+  const cu=document.getElementById("d_curp");if(cu&&t==="alumnos")cu.addEventListener("change",()=>{const d=curpDatos(cu.value.trim().toUpperCase());const fn=document.getElementById("d_fnac"),sx=document.getElementById("d_sexo");if(d.fecha&&fn&&!fn.value)fn.value=d.fecha;if(d.sexo&&sx&&!sx.value)sx.value=d.sexo});
+  const leer=()=>{const r={...o};for(const f of dirCampos(t)){const el=document.getElementById("d_"+f.k);if(!el)continue;r[f.k]=f.t==="check"?el.checked:el.value.trim();if(f.up&&typeof r[f.k]==="string")r[f.k]=r[f.k].toUpperCase()}
+    if(r.grado!==undefined&&t!=="escuelas")r.grado=dirGrado(r.grado);if(r.grupo!==undefined&&t!=="escuelas")r.grupo=dirGrupo(r.grupo);if(t==="alumnos")dirAlumnoCurp(r);return r};
+  const guardar=()=>{const r=leer();if(!r.nombre){alert("Escriba al menos el nombre.");return null}
+    const av=[];if(r.curp&&!AL_CURP_RE.test(r.curp))av.push("La CURP no parece completa (son 18 caracteres).");if(r.rfc&&!/^[A-ZÑ&]{4}\d{6}([A-Z0-9]{3})?$/.test(r.rfc))av.push("El RFC no parece correcto (10 o 13 caracteres).");
+    if(av.length&&!confirm(av.join("\n")+"\n\n¿Guardar de todos modos?"))return null;
+    if(t==="escuelas"&&!DIR.escuelas.length)DIR.escuelas=dirEscuelasBase().map(x=>({...x}));
+    if(!r.id)r.id=dirId();const arr=DIR[t];const k=arr.findIndex(x=>x.id===r.id);if(k>=0)arr[k]=r;else arr.push(r);
+    if(t==="maestros"&&r.id===DIR.yo)dirSoyYo(r);if(t==="escuelas"&&perfil.cct&&r.cct===perfil.cct)dirUsarEscuela(r);dirSave();return r};
+  document.getElementById("save").onclick=()=>{if(guardar())volver()};
+  const u=document.getElementById("d_usar");if(u)u.onclick=()=>{const r=guardar();if(!r)return;dirUsarEscuela(r);alert(`Listo: ${perfil.escuela} quedó como su escuela en este dispositivo.`);dirView("maestros")};
+  const y=document.getElementById("d_yo");if(y)y.onclick=()=>{const r=guardar();if(!r)return;dirSoyYo(r);alert(`Listo: Tlamatini quedó personalizada para ${r.nombre}.`);dirView(r.grado?"alumnos":"maestros")};
+  const d=document.getElementById("d_del");if(d)d.onclick=()=>{if(!confirm(`¿Quitar a «${o.nombre}» del directorio de este dispositivo?`))return;
+    if(t==="escuelas"&&!DIR.escuelas.length)DIR.escuelas=dirEscuelasBase().map(x=>({...x}));DIR[t]=DIR[t].filter(x=>x.id!==o.id);if(t==="maestros"&&DIR.yo===o.id)DIR.yo=null;dirSave();volver()};
+  window.scrollTo(0,0)}
+
+/* --- Excel: plantilla, descarga y lectura --- */
+async function dirPlantilla(t,conDatos){await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();wb.creator="Tlamatini";
+  const ws=wb.addWorksheet(DIR_HOJA[t],{views:[{state:"frozen",ySplit:1}]});const C=dirCampos(t);
+  ws.columns=C.map(f=>({header:f.l,key:f.k,width:Math.max(12,Math.min(38,f.l.length+4,f.t==="area"?38:30))}));
+  const h=ws.getRow(1);h.font={bold:true,color:{argb:"FFFFFFFF"}};h.alignment={vertical:"middle",wrapText:true};h.height=34;
+  h.eachCell(c=>{c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF24427A"}};c.border={bottom:{style:"thin",color:{argb:"FF999999"}}}});
+  let filas=conDatos?DIR_LISTA(t).slice().sort(t==="escuelas"?()=>0:dirOrden):[];
+  if(!conDatos&&t==="alumnos"){const g=document.getElementById("dir_gr"),p=document.getElementById("dir_gp");const gr=dirGrado(g?g.value:""),gp=dirGrupo(p?p.value:"");if(gr||gp)filas=Array.from({length:30},()=>({grado:gr,grupo:gp}))}
+  if(!conDatos&&t==="maestros")filas=[];
+  filas.forEach(o=>ws.addRow(C.reduce((r,f)=>{let v=o[f.k];if(f.t==="check")v=v?"Sí":(conDatos?"No":"");r[f.k]=v??"";return r},{})));
+  const n=Math.max(filas.length+50,100);
+  C.forEach((f,ci)=>{const opts=f.opts||(f.t==="check"?["Sí","No"]:null);if(!opts)return;const col=ws.getColumn(ci+1).letter;
+    for(let r=2;r<=n;r++)ws.getCell(`${col}${r}`).dataValidation={type:"list",allowBlank:true,formulae:[`"${opts.join(",").replace(/"/g,"")}"`]}});
+  ["curp","rfc","celular","telefono","t1tel","t2tel","e1tel","e2tel","cct"].forEach(k=>{const ci=C.findIndex(f=>f.k===k);if(ci>=0)ws.getColumn(ci+1).numFmt="@"});
+  const buf=await wb.xlsx.writeBuffer();const nom=conDatos?`Directorio de ${DIR_HOJA[t].toLowerCase()}${perfil.escuela&&t!=="escuelas"?" - "+perfil.escuela:""}.xlsx`:`Plantilla Tlamatini - ${DIR_HOJA[t]}.xlsx`;
+  dirBajar(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),nom.replace(/[\\/:*?"<>|«»]/g,""));
+  const m=document.getElementById("dir_msg");if(m)m.innerHTML=conDatos?"Excel descargado.":"Plantilla descargada. Llénela (un renglón por "+({escuelas:"escuela",maestros:"maestro",alumnos:"alumno"}[t])+") y súbala con «Subir Excel». También sirve su propio Excel: Tlamatini reconoce las columnas por su encabezado."}
+function dirBajar(blob,nombre){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=String(nombre).replace(/[°º]/g,"").replace(/\s+/g," ");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+function dirCelda(v){if(v==null)return"";if(v instanceof Date){const d=v;return`${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}/${d.getUTCFullYear()}`}
+  if(typeof v==="object"){if(v.richText)return v.richText.map(r=>r.text).join("");if(v.text!==undefined)return dirCelda(v.text);if(v.result!==undefined)return dirCelda(v.result);if(v.hyperlink)return String(v.hyperlink).replace(/^mailto:/,"");return""}
+  return String(v).trim()}
+function dirCSV(txt){const rows=[];let row=[],cell="",q=false;const sep=(txt.split("\n")[0].match(/;/g)||[]).length>(txt.split("\n")[0].match(/,/g)||[]).length?";":",";
+  for(let i=0;i<txt.length;i++){const c=txt[i];if(q){if(c==='"'){if(txt[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+    else if(c==='"')q=true;else if(c===sep){row.push(cell);cell=""}else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell=""}else if(c!=="\r")cell+=c}
+  if(cell||row.length){row.push(cell);rows.push(row)}return rows}
+function dirMapa(enc,t){const C=dirCampos(t);const map={};const usados=new Set();const H=enc.map(dirN);
+  H.forEach((h,i)=>{const f=C.find(f=>dirN(f.l)===h);if(f&&!usados.has(f.k)){map[i]=f.k;usados.add(f.k)}}); // encabezado exacto de la plantilla
+  H.forEach((h,i)=>{if(map[i]!==undefined||!h)return;let mejor=null,lar=0;
+    for(const f of C){if(usados.has(f.k))continue;for(const a of f.al||[]){const an=dirN(a);if((h===an||(" "+h+" ").includes(" "+an+" "))&&an.length>lar){mejor=f;lar=an.length}}}
+    if(mejor){map[i]=mejor.k;usados.add(mejor.k)}});
+  return map}
+async function dirLeerTabla(file,t){let filas;
+  if(/\.csv$/i.test(file.name)){filas=dirCSV(await file.text())}
+  else if(/\.xlsx$/i.test(file.name)){await loadScript("lib/exceljs.min.js");const wb=new ExcelJS.Workbook();await wb.xlsx.load(await file.arrayBuffer());
+    const ws=wb.worksheets.find(w=>dirN(w.name)===dirN(DIR_HOJA[t]))||wb.worksheets.find(w=>w.actualRowCount>1)||wb.worksheets[0];if(!ws)throw new Error("El archivo no tiene hojas.");
+    filas=[];ws.eachRow({includeEmpty:true},(r,n)=>{const a=[];r.eachCell({includeEmpty:true},(c,ci)=>{a[ci-1]=dirCelda(c.value)});filas[n-1]=a});filas=filas.map(r=>r||[])}
+  else throw new Error("Use un archivo de Excel .xlsx (o .csv). Si es .xls antiguo, ábralo y guárdelo como «Libro de Excel (.xlsx)».");
+  let hi=-1,map=null;for(let i=0;i<Math.min(filas.length,12);i++){const m=dirMapa(filas[i]||[],t);if(Object.keys(m).length>=2&&Object.values(m).includes("nombre")){hi=i;map=m;break}}
+  if(hi<0)throw new Error("No se encontraron los encabezados. La primera fila debe tener al menos la columna «Nombre». Use la plantilla de Tlamatini si tiene dudas.");
+  const C=dirCampos(t);const nuevos=[];
+  for(const r of filas.slice(hi+1)){const o={};for(const i in map){const f=C.find(x=>x.k===map[i]);let v=dirCelda(r[i]);if(f.t==="check")v=dirSi(v);else if(f.up)v=v.toUpperCase();if(f.opts&&v){const m=f.opts.find(x=>dirN(x)===dirN(v)||dirN(x).startsWith(dirN(v)));if(m)v=m}o[map[i]]=v}
+    if(!String(o.nombre||"").trim())continue;if(t!=="escuelas"){if(o.grado!==undefined)o.grado=dirGrado(o.grado);if(o.grupo!==undefined)o.grupo=dirGrupo(o.grupo)}
+    if(t==="alumnos"){const g=document.getElementById("dir_gr"),p=document.getElementById("dir_gp");if(!o.grado)o.grado=dirGrado(g?g.value:"");if(!o.grupo)o.grupo=dirGrupo(p?p.value:"");if(o.sexo){o.sexo=/^(h|hombre|masc|var|niño)/i.test(o.sexo)?"Hombre":/^(m|mujer|fem|niña)/i.test(o.sexo)?"Mujer":o.sexo}dirAlumnoCurp(o)}
+    nuevos.push(o)}
+  if(!nuevos.length)throw new Error("El archivo no tiene renglones con nombre.");
+  const r=dirFusionar(t,nuevos);S.dirGrupo=undefined;dirView(t);
+  const cols=Object.values(map).map(k=>C.find(f=>f.k===k).l);
+  return`<b>${nuevos.length} renglones leídos:</b> ${r.nuevos} nuevos y ${r.act} actualizados.<br><span class="muted">Columnas reconocidas: ${esc(cols.join(", "))}.</span>`}
+function dirClave(t,o){if(t==="escuelas")return o.cct?"c:"+o.cct.toUpperCase():"n:"+dirN(o.nombre);if(o.curp&&AL_CURP_RE.test(o.curp))return"c:"+o.curp;return"n:"+dirN(o.nombre)}
+function dirFusionar(t,lista){if(t==="escuelas"&&!DIR.escuelas.length)DIR.escuelas=dirEscuelasBase().map(x=>({...x}));const arr=DIR[t];let nuevos=0,act=0;
+  for(const o of lista){const k=dirClave(t,o);const i=arr.findIndex(x=>dirClave(t,x)===k||(o.curp&&x.curp&&x.curp===o.curp)||dirN(x.nombre)===dirN(o.nombre)&&(t!=="alumnos"||!x.curp||!o.curp));
+    if(i>=0){const b=arr[i];for(const f in o){if(o[f]!==""&&o[f]!==undefined&&o[f]!==false)b[f]=o[f]}act++}else{arr.push({...o,id:o.id||dirId()});nuevos++}}
+  dirSave();return{nuevos,act}}
+/* --- lista de RELweb (PDF) --- */
+async function dirLeerPDF(file){const g0=document.getElementById("dir_gr"),p0=document.getElementById("dir_gp");let gr=dirGrado(g0?g0.value:""),gp=dirGrupo(p0?p0.value:"");let lista=[],fuente="";
+  try{const g=await leerPDF(file);if(g.alumnos.length){gr=dirGrado(g.grado)||gr;gp=dirGrupo(g.grupo)||gp;lista=g.alumnos.map(a=>({nombre:a.nombre,curp:a.curp,sexo:a.sexo==="H"?"Hombre":a.sexo==="M"?"Mujer":""}));fuente="reporte de inscripción"}}catch(e){}
+  if(!lista.length){try{const r=await asLeerPDF(file);if(r.alumnos.length){gr=dirGrado(r.grado)||gr;gp=dirGrupo(r.grupo)||gp;lista=r.alumnos.map(([n,raw])=>({nombre:nombreLegible(raw)}));fuente="lista de asistencia"}}catch(e){}}
+  if(!lista.length){const txt=await alExtraer(file);lista=alParse(txt).map(a=>({nombre:a.nombre,curp:a.curp}));fuente="PDF"}
+  if(!lista.length)return`«${esc(file.name)}»: no se encontraron alumnos. Use el reporte de inscripción o la lista de asistencia de RELweb.`;
+  lista.forEach(a=>{a.grado=gr;a.grupo=gp;dirAlumnoCurp(a)});const r=dirFusionar("alumnos",lista);
+  return`«${esc(file.name)}» (${fuente}): ${dirGLabel(gr||"?",gp)}, ${lista.length} alumnos · ${r.nuevos} nuevos, ${r.act} ya estaban.${!gr?" <b>Escriba el grado y el grupo</b> arriba y vuelva a subirlo.":""}`}
+
+/* --- directorio de emergencia (Word) --- */
+function dirEmergencia(){const F=S.dirGrupo||"";const L=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F).sort(dirOrden);if(!L.length)return;
+  const td='style="border:1px solid #999;padding:4px 6px;vertical-align:top"',th='style="background:#24427A;color:#fff;border:1px solid #999;padding:5px 6px;text-align:left"';
+  const p=(n,par,tel)=>n?`${esc(n)}${par?` <span style="color:#555">(${esc(par)})</span>`:""}${tel?`<br><b>${esc(tel)}</b>`:""}`:"";
+  const rows=L.map((a,i)=>`<tr><td ${td}>${i+1}</td><td ${td}><b>${esc(a.nombre)}</b>${F?"":`<br><span style="color:#555">${esc(dirGLabel(a.grado,a.grupo))}</span>`}</td><td ${td}>${p(a.t1nom,a.t1par,a.t1tel)}${a.t2nom?"<br>"+p(a.t2nom,a.t2par,a.t2tel):""}</td><td ${td}>${p(a.e1nom,a.e1par,a.e1tel)}${a.e2nom?"<br>"+p(a.e2nom,a.e2par,a.e2tel):""}</td><td ${td}>${a.vaSolo?"<b>Se retira solo</b>":esc(a.recogen||"").replace(/\n/g,"<br>")}</td><td ${td}>${[a.sangre&&a.sangre!=="No sabe"?"Sangre "+a.sangre:"",a.alergias?"Alergias: "+a.alergias:"",a.padec,a.medic?"Medicamento: "+a.medic:""].filter(Boolean).map(esc).join("<br>")}</td></tr>`).join("");
+  const tit=`Directorio de emergencia${F?" · "+dirGLabel(...F.split("|")):""}`;/* nombre de archivo sin «°» */
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(tit)}</title><style>@page{size:landscape;margin:1.5cm}</style></head><body style="font-family:Calibri,Arial,sans-serif;font-size:10.5pt">
+   <p style="margin:0;font-size:10pt;color:#555">${esc(perfil.escuela||"")}${perfil.cct?" · "+esc(perfil.cct):""}${perfil.zona?" · Zona "+esc(perfil.zona):""}</p>
+   <h2 style="margin:4px 0 2px;color:#24427A">${esc(tit)}</h2><p style="margin:0 0 8px;font-size:9.5pt;color:#555">${esc(perfil.minombre||"")}${perfil.minombre?" · ":""}Actualizado el ${esc(fmtDate(today(),"larga"))}. Documento confidencial: contiene datos personales de menores.</p>
+   <table style="border-collapse:collapse;width:100%"><thead><tr><th ${th}>#</th><th ${th}>Alumno</th><th ${th}>Madre, padre o tutor</th><th ${th}>Emergencia</th><th ${th}>Quién lo recoge</th><th ${th}>Salud</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  dirBajar(new Blob(["﻿"+html],{type:"application/msword"}),`${tit.replace(/[\\/:*?"<>|«»·]/g,"").replace(/\s+/g," ").trim()}.doc`)}
+
+/* --- compartir y cargar el archivo de Tlamatini --- */
+function dirCompartirView(t){const nivel={escuelas:"zona",maestros:"escuela",alumnos:"grupo"}[t];
+  const dest={zona:"los directores de su zona",escuela:"los maestros de su escuela",grupo:"la dirección de su escuela"}[nivel];
+  const F=S.dirGrupo||"";const nAl=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F).length;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio · Compartir</div><h2>Compartir con ${esc(dest)}</h2></div></div>
+   <section class="card"><p style="margin:0 0 8px">Tlamatini prepara un <b>archivo</b> que puede mandar por WhatsApp o correo. Quien lo reciba lo carga en <b>Directorio → Cargar archivo recibido</b> (o al abrir Tlamatini por primera vez) y sus datos se llenan solos.</p>
+    ${nivel==="zona"?`<p class="help">Incluye las ${dirEscuelasBase().length} escuelas con sus datos y los de la supervisión. Cada director elegirá la suya.</p>`:""}
+    ${nivel==="escuela"?`<p class="help">Incluye los datos de la escuela y la lista de ${DIR.maestros.length} maestros con grado, grupo, función, celular y correo. Cada maestro elegirá su nombre.</p>
+     <label class="opt dir-chk"><input type="checkbox" id="c_ids"><span><b>Incluir RFC y CURP</b><br><span class="muted" style="font-size:14px">Así a cada maestro se le llenan solos en los formatos laborales, pero todos verán los de todos. Si no lo marca, cada quien los escribe una vez.</span></span></label>`:""}
+    ${nivel==="grupo"?`<p class="help">Incluye ${nAl} alumno${nAl===1?"":"s"}${F?" de "+esc(dirGLabel(...F.split("|"))):""} con sus fichas completas: tutores, emergencias, quién los recoge, salud y apoyos.</p>
+     <div class="alert" style="margin:8px 0 0"><b>Datos de menores.</b> Envíe este archivo solo a la dirección de su escuela y bórrelo del chat cuando la dirección lo haya cargado.</div>`:""}
+    <button type="button" class="btn primary" id="c_ir" style="margin-top:12px">${navigator.share?"Compartir archivo":"Descargar archivo"}</button>
+    <p class="help" id="c_msg" role="status"></p></section>`;
+  document.getElementById("salir").onclick=()=>dirView(t);
+  document.getElementById("c_ir").onclick=async()=>{const z={zona:perfil.zona||"",cctzona:perfil.cctzona||(perfil.modo==="050"?"02FIZ0094X":""),supervisor:perfil.supervisor||(perfil.modo==="050"?"Mtro. Carlos Gabriel Ortega Gutiérrez":""),subsis:perfil.subsis||"ISEP",modo:perfil.modo||""};
+    const pk={app:"Tlamatini",tipo:"directorio",version:1,nivel,fecha:new Date().toISOString(),zona:z};let nom;
+    if(nivel==="zona"){pk.escuelas=dirEscuelasBase().map(({id,...e})=>e);nom=`Directorio de escuelas - Zona ${z.zona||""}`}
+    if(nivel==="escuela"){const ids=document.getElementById("c_ids").checked;pk.escuela=dirMiEscuela();pk.maestros=DIR.maestros.map(m=>{const o={...m};if(!ids){delete o.rfc;delete o.curp}return o});nom=`Maestros - ${perfil.escuela||"escuela"}`}
+    if(nivel==="grupo"){pk.escuela={cct:perfil.cct||"",nombre:perfil.escuela||""};pk.docente=perfil.minombre||"";pk.alumnos=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F);nom=`Alumnos ${F?dirGLabel(...F.split("|")):""} - ${perfil.minombre||perfil.escuela||""}`}
+    nom=(nom.replace(/[\\/:*?"<>|«»°]/g,"").replace(/\s+/g," ").trim()+".json");
+    const file=new File([JSON.stringify(pk)],nom,{type:"application/json"});const m=document.getElementById("c_msg");
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Directorio Tlamatini",text:`Directorio de Tlamatini para ${dest}. Ábralo en Tlamatini: Directorio → Cargar archivo recibido.`});m.textContent="Listo.";return}catch(e){if(e&&e.name==="AbortError")return}}
+    dirBajar(file,nom);m.innerHTML="Archivo descargado. Envíelo por WhatsApp o correo como <b>documento</b>."}}
+function dirImportarArchivo(file,alTerminar){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON.parse(rd.result)}catch(e){alert("El archivo no es un directorio de Tlamatini.");return}
+    if(o&&o.app==="Tlamatini"&&o.tipo==="respaldo"){if(typeof respaldoRestaurar==="function")respaldoRestaurar(file);return}
+    if(!o||o.app!=="Tlamatini"||o.tipo!=="directorio"){alert("El archivo no es un directorio de Tlamatini.");return}
+    const z=o.zona||{};const fecha=o.fecha?new Date(o.fecha).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"";
+    if(o.nivel==="zona"){const n=(o.escuelas||[]).length;if(!confirm(`Directorio de la Zona ${z.zona||""}${fecha?" ("+fecha+")":""}: ${n} escuelas.\n\nSe cargará en este dispositivo para que elija su escuela. ¿Continuar?`))return;
+      DIR.escuelas=(o.escuelas||[]).map(e=>({...e,id:dirId()}));DIR.zona=z;dirSave();
+      perfil.zona=z.zona||perfil.zona;perfil.cctzona=z.cctzona||perfil.cctzona;perfil.supervisor=z.supervisor||perfil.supervisor;
+      if(!perfil.modo){if(z.modo==="050"||z.zona==="050"){perfil.modo="050";perfil.subsis="ISEP";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png"}else{perfil.modo="otra";perfil.subsis=z.subsis||"ISEP";perfil.subsistema=perfil.subsis==="SEBS"?"Estatal":"Federalizado";perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}perfil.nivel="Primaria"}
+      store.set("ppie-perfil",perfil);dirElegirEscuelaView()}
+    else if(o.nivel==="escuela"){const e=o.escuela||{};const n=(o.maestros||[]).length;
+      if(!confirm(`Directorio de ${e.nombre||"la escuela"}${fecha?" ("+fecha+")":""}: ${n} maestros.\n\nSe cargarán los datos de la escuela en este dispositivo y podrá elegir su nombre. ¿Continuar?`))return;
+      DIR.zona=z;if(z.zona)perfil.zona=z.zona;if(z.cctzona)perfil.cctzona=z.cctzona;if(z.supervisor)perfil.supervisor=z.supervisor;
+      if(!perfil.modo){perfil.modo=z.modo==="050"||z.zona==="050"?"050":"otra";perfil.subsis=z.subsis||"ISEP";perfil.subsistema=perfil.subsis==="SEBS"?"Estatal":"Federalizado";perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png";perfil.nivel="Primaria"}
+      dirUsarEscuela(e);const prev=DIR.maestros;DIR.maestros=(o.maestros||[]).map(m=>{const p=prev.find(x=>dirN(x.nombre)===dirN(m.nombre));return{...(p||{}),...m,id:m.id||(p&&p.id)||dirId()}});
+      if(DIR.yo&&!DIR.maestros.some(m=>m.id===DIR.yo))DIR.yo=null;dirSave();S.dirTab="maestros";dirView("maestros");setTimeout(()=>{const s=document.getElementById("dir_yo");if(s){s.scrollIntoView({block:"center"});if(!DIR.yo)s.focus()}},50)}
+    else if(o.nivel==="grupo"){const L=o.alumnos||[];if(o.escuela&&o.escuela.cct&&perfil.cct&&o.escuela.cct!==perfil.cct&&!confirm(`Estos alumnos son de otra escuela (${o.escuela.cct}). ¿Cargarlos de todos modos?`))return;
+      if(!confirm(`${L.length} alumnos${o.docente?" de "+o.docente:""}${fecha?" ("+fecha+")":""}.\n\nSe agregarán al directorio de alumnos de este dispositivo; los que ya estén se actualizan. ¿Continuar?`))return;
+      const r=dirFusionar("alumnos",L.map(a=>({...a})));S.dirGrupo="";dirView("alumnos");const m=document.getElementById("dir_msg");if(m)m.innerHTML=`Alumnos cargados: ${r.nuevos} nuevos y ${r.act} actualizados.`}
+    else alert("Este archivo de directorio no se reconoce.");if(alTerminar)alTerminar()};rd.readAsText(file)}
+function dirElegirEscuelaView(){S.view="dir";const L=dirEscuelasBase();
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio${perfil.zona?" · Zona "+esc(perfil.zona):""}</div><h2>¿Cuál es su escuela?</h2></div></div>
+   <p class="muted">Elíjala y sus datos se llenan solos en todos los formatos de este dispositivo.</p>
+   <div class="dir-list">${L.map((e,i)=>`<button type="button" class="dir-it" data-i="${i}"><span class="dir-av">${esc((e.nombre||"?").charAt(0))}</span><span class="tx"><b>${esc(e.nombre)}</b><span class="ds">${esc([e.cct,e.localidad,e.director].filter(Boolean).join(" · "))}</span></span><span class="chev" aria-hidden="true">›</span></button>`).join("")}</div>
+   <p class="foot">¿Es usted la supervisión? <button type="button" class="btn link" id="sup" style="font-size:14px;padding:4px 0">Ver el directorio de escuelas</button></p>`;
+  document.getElementById("salir").onclick=home;document.getElementById("sup").onclick=()=>dirView("escuelas");
+  app.querySelectorAll(".dir-it").forEach(b=>b.onclick=()=>{dirUsarEscuela(L[+b.dataset.i]);alert(`Listo: ${perfil.escuela} quedó como su escuela en este dispositivo.\n\nAhora la dirección puede capturar o compartir a sus maestros.`);dirView("maestros")});window.scrollTo(0,0)}
+/* tarjeta para la pantalla de inicio y la configuración */
+function dirCargaCard(){return`<section class="card"><h3>¿Le enviaron un archivo de su zona o escuela?</h3><p class="help">Si la supervisión o la dirección le mandó el directorio de Tlamatini por WhatsApp o correo, cárguelo y sus datos quedarán listos.</p>
+  <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Cargar archivo de directorio<input type="file" accept=".json,application/json" class="dir-carga" hidden></label></section>`}
+document.addEventListener("change",e=>{if(e.target&&e.target.classList&&e.target.classList.contains("dir-carga")){const f=e.target.files[0];e.target.value="";if(f)dirImportarArchivo(f)}});
+/* lista de asistencia: tomar los alumnos del directorio */
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#as_dir");if(!b)return;
+  const gr=dirGrado(AS.grado||perfil.grado||""),gp=dirGrupo(AS.grupo||perfil.grupo||"");let L=DIR.alumnos.filter(a=>(!gr||a.grado===gr)&&(!gp||a.grupo===gp));if(!L.length)L=DIR.alumnos;
+  if(!L.length)return;L=[...L].sort(dirOrden);AS.alumnos=L.map(a=>a.nombre).join("\n");if(!AS.grado&&L[0].grado)AS.grado=L[0].grado;if(!AS.grupo&&L[0].grupo)AS.grupo=L[0].grupo;AS.origen=`${L.length} alumnos tomados del directorio.`;
+  if(typeof asSave==="function")asSave();asView()});
+function dirBotonAsistencia(){return DIR.alumnos.length?`<button type="button" class="btn ghost" id="as_dir" style="margin-top:8px;width:100%">Usar mis alumnos del directorio</button>`:""}
+REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=>dirView();
+</script>
+<script>
+/* Dictado por voz · Tlamatini y Tequio
+   Agrega un micrófono a los campos de texto. Se toca, se habla y el texto se escribe solo.
+   Usa el reconocimiento de voz del navegador (Chrome, Edge, Safari). Necesita internet.
+   Comandos: «punto», «coma», «dos puntos», «punto y aparte» / «nueva línea», «signo de interrogación». */
+(function(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  const NO=/curp|rfc|cct|tel|cel|correo|mail|clave|folio|token|contra|pass|url|enlace|buscar|^s_zona|cp$|c\.p|codigo/i;
+  const CORTO=/\bgrado|\bgrupo\b|^d_grupo|dir_g[rp]|turno|sangre|_gr$|_gp$/i;
+  const MIC='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  const css=document.createElement("style");
+  css.textContent=`.dct{display:block;position:relative;min-width:0;flex:1 1 auto}
+.dct>input,.dct>textarea{padding-right:46px!important}
+.dct-b{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--muted,var(--gris,#666));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;opacity:.75}
+.dct.ta>.dct-b{top:6px;transform:none}
+.dct-b:hover,.dct-b:focus-visible{opacity:1;background:color-mix(in srgb,currentColor 10%,transparent)}
+.dct-b.on{opacity:1;color:#fff;background:#C62828;animation:dctP 1.4s infinite}
+@keyframes dctP{0%{box-shadow:0 0 0 0 rgba(198,40,40,.45)}70%{box-shadow:0 0 0 10px rgba(198,40,40,0)}100%{box-shadow:0 0 0 0 rgba(198,40,40,0)}}
+.dct-t{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));pointer-events:none;transform:translateX(-50%);z-index:9999;max-width:min(92vw,560px);background:#1E2A40;color:#fff;border-radius:14px;padding:10px 14px;font:15px/1.35 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25);display:flex;gap:10px;align-items:flex-start}
+.dct-t[hidden]{display:none}.dct-t b{color:#FFB4A9}.dct-t i{opacity:.8}.dct-t button{pointer-events:auto;margin-left:auto;background:#fff;color:#1E2A40;border:0;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;flex:none}
+@media print{.dct-b,.dct-t{display:none!important}}`;
+  document.head.appendChild(css);
+  const toast=document.createElement("div");toast.className="dct-t";toast.hidden=true;toast.setAttribute("role","status");toast.setAttribute("aria-live","polite");
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(toast));if(document.body)document.body.appendChild(toast);
+  let tTimer=null;
+  function aviso(html,ms,boton){clearTimeout(tTimer);toast.innerHTML=`<span>${html}</span>${boton?'<button type="button">Listo</button>':""}`;toast.hidden=false;
+    const b=toast.querySelector("button");if(b){b.onmousedown=e=>e.preventDefault();b.onclick=detener}
+    if(ms)tTimer=setTimeout(()=>{toast.hidden=true},ms)}
+  function apto(el){if(el.dataset.dct||el.readOnly||el.disabled||el.dataset.nodict!==undefined)return false;
+    if(el.tagName==="INPUT"){const t=(el.getAttribute("type")||"text").toLowerCase();if(t!=="text"&&t!=="search")return false;
+      const ml=+el.getAttribute("maxlength");if(ml&&ml<25)return false}
+    if(el.tagName==="INPUT"){const k=(el.id||"")+" "+(el.name||"")+" "+(el.getAttribute("autocomplete")||"");
+      if(NO.test(k)||CORTO.test(k))return false;
+      const lab=el.id&&document.querySelector(`label[for="${CSS.escape(el.id)}"]`);if(lab&&(NO.test(lab.textContent)||CORTO.test(lab.textContent)))return false}
+    if(el.closest("[data-nodict]"))return false;
+    return !!el.parentNode}
+  function decorar(raiz){(raiz||document).querySelectorAll("textarea,input").forEach(el=>{if(!apto(el))return;el.dataset.dct="1";
+    const w=document.createElement("span");w.className="dct"+(el.tagName==="TEXTAREA"?" ta":"");el.parentNode.insertBefore(w,el);w.appendChild(el);
+    const b=document.createElement("button");b.type="button";b.className="dct-b";b.innerHTML=MIC;b.title="Dictar por voz";b.setAttribute("aria-label","Dictar por voz");
+    b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("pointerdown",e=>e.preventDefault());
+    b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();if(activo&&activo.el===el)detener();else iniciar(el,b)});w.appendChild(b)})}
+  let pend=false;
+  new MutationObserver(()=>{if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;decorar()})}).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener("DOMContentLoaded",()=>decorar());
+  /* --- reconocimiento --- */
+  let activo=null;
+  function puntuar(t){return t
+    .replace(/\s*\b(punto y aparte|nuevo p[aá]rrafo|nueva l[ií]nea|siguiente rengl[oó]n)\b\s*/gi,"\n")
+    .replace(/\s*\bpunto y seguido\b/gi,".")
+    .replace(/\s*\bdos puntos\b/gi,":")
+    .replace(/\s*\bpunto y coma\b/gi,";")
+    .replace(/\s*\bpunto final\b/gi,".")
+    .replace(/\s*\bpunto\b(?!\s+(de|del|y|por|com|medio|a|en|que|cardinal)\b)/gi,".")
+    .replace(/\s*\bcoma\b/gi,",")
+    .replace(/\s*\bsigno de interrogaci[oó]n\b/gi,"?")
+    .replace(/\s*\bsigno de admiraci[oó]n\b/gi,"!")
+    .replace(/\s*\b(abre|abrir) par[eé]ntesis\b\s*/gi," (")
+    .replace(/\s*\b(cierra|cerrar) par[eé]ntesis\b/gi,")")}
+  function insertar(el,txt){if(!txt)return;const ta=el.tagName==="TEXTAREA";if(!ta)txt=txt.replace(/\n/g," ");
+    const v=el.value;let s=el.selectionStart,e=el.selectionEnd;if(s==null||document.activeElement!==el){s=e=v.length}
+    const antes=v.slice(0,s),despues=v.slice(e);
+    const fin=antes.replace(/[ \t]+$/,"");
+    const inicioFrase=!fin||/[.!?:\n]$/.test(fin);
+    txt=txt.trim().replace(/[ \t]+/g," ").replace(/ ([.,;:?!)])/g,"$1").replace(/([.?!]) *\n/g,"$1\n").replace(/\n +/g,"\n");
+    if(inicioFrase&&!/:$/.test(fin)||/[.!?]$/.test(fin))txt=txt.charAt(0).toUpperCase()+txt.slice(1);
+    txt=txt.replace(/([.!?]\s+|\n)([a-záéíóúñ])/g,(m,a,b)=>a+b.toUpperCase());
+    const sep=!antes||/[\s(\n]$/.test(antes)||/^[.,;:?!)]/.test(txt)||/^\n/.test(txt)?"":" ";
+    const sep2=despues&&!/^[\s.,;:?!)]/.test(despues)?" ":"";
+    el.value=antes+sep+txt+sep2+despues;const p=(antes+sep+txt).length;try{el.setSelectionRange(p,p)}catch(x){}
+    el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))}
+  function detener(){if(!activo)return;const a=activo;activo=null;a.b.classList.remove("on");a.b.setAttribute("aria-label","Dictar por voz");try{a.r.stop()}catch(e){}
+    a.el.removeEventListener("blur",a.onBlur);if(!a.err)aviso("Dictado terminado. Revise el texto antes de guardar.",2600)}
+  function iniciar(el,b){detener();
+    if(navigator.onLine===false){aviso("<b>El dictado necesita internet.</b> Sin conexión, use el micrófono del teclado de su teléfono.",5000);return}
+    const r=new SR();r.lang="es-MX";r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
+    const a={el,b,r,err:false,calla:0,onBlur:()=>setTimeout(()=>{if(activo===a&&document.activeElement!==el)detener()},250)};activo=a;
+    b.classList.add("on");b.setAttribute("aria-label","Detener dictado");el.focus();el.addEventListener("blur",a.onBlur);
+    aviso("<b>🎙 Escuchando…</b> Hable con calma. Diga «punto», «coma» o «punto y aparte».",0,true);
+    r.onresult=ev=>{a.calla=0;let fin="",inter="";for(let i=ev.resultIndex;i<ev.results.length;i++){const x=ev.results[i];if(x.isFinal)fin+=x[0].transcript+" ";else inter+=x[0].transcript}
+      if(fin)insertar(el,puntuar(fin));
+      if(activo===a)aviso(inter?`<b>🎙</b> <i>${inter.replace(/[<>&]/g,"")}</i>`:"<b>🎙 Escuchando…</b> Diga «punto», «coma» o «punto y aparte».",0,true)};
+    r.onerror=ev=>{a.err=true;const m={"not-allowed":"<b>No hay permiso para el micrófono.</b> Permítalo en el candado junto a la dirección de la página.","service-not-allowed":"<b>Este navegador no permite el dictado aquí.</b> Use el micrófono del teclado de su teléfono.","network":"<b>El dictado necesita internet.</b> Revise su conexión.","audio-capture":"<b>No se encontró un micrófono.</b>","no-speech":"No se escuchó nada. Toque el micrófono e intente de nuevo."}[ev.error];
+      if(ev.error==="aborted")return;if(ev.error==="no-speech"&&++a.calla<3){a.err=false;return}/* silencio breve: sigue escuchando */aviso(m||"No se pudo dictar. Intente de nuevo.",5000);if(activo===a){activo=null;b.classList.remove("on");el.removeEventListener("blur",a.onBlur)}};
+    r.onend=()=>{if(activo===a){try{r.start()}catch(e){detener()}}}; // cada frase termina sola: se reanuda mientras siga activo
+    try{r.start()}catch(e){a.err=true;detener();aviso("No se pudo iniciar el dictado.",4000)}}
+  window.addEventListener("pagehide",detener);
+  window.Dictado={decorar,detener};
+})();
 </script>
 
 </body></html>
