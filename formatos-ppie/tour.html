@@ -97,7 +97,7 @@ h2{font-size:clamp(27px,7.6vw,34px)}
 <body>
 <div class="stage"><div class="phone" id="phone">
  <div class="bars" id="bars"></div>
- <div class="top"><div class="marca" id="marca"></div><div class="ctrl"><button type="button" id="bPausa" aria-label="Pausar">❚❚</button><button type="button" id="bCerrar" aria-label="Cerrar el recorrido" onclick="location.href='index.html'">✕</button></div></div>
+ <div class="top"><div class="marca" id="marca"></div><div class="ctrl"><button type="button" id="bSon" aria-label="Silenciar la música">🔊</button><button type="button" id="bPausa" aria-label="Pausar">❚❚</button><button type="button" id="bCerrar" aria-label="Cerrar el recorrido" onclick="location.href='index.html'">✕</button></div></div>
  <div id="slides"></div>
  <div class="probar" id="probar"></div>
  <button class="tap izq" id="tIzq" aria-label="Anterior" style="background:none;border:0"></button>
@@ -118,7 +118,7 @@ const doc=(src,alt,o)=>`<img class="doc anim ${o.d||""}" src="${I+src}" alt="${a
 const tel=(src,alt,o)=>`<div class="tel anim ${o.d||""}" style="width:${o.w}%;height:${o.h}%;left:${o.x}%;top:${o.y}%;--r:${o.r||0}deg"><img src="${I+src}" alt="${alt}"></div>`;
 const S=[
  {t:"oscuro",portada:true,ms:6500,html:`${LOGO(true)}<h1>Tlamatini</h1><p class="lema">Un camino para la labor docente</p>
-   <p class="sabe">En náhuatl, <b>tlamatini</b> es «el que sabe»: quien ilumina y guía a su comunidad. <br>Usted es tlamatini. Esta herramienta es para usted.</p><p class="toca">Toque para comenzar · 2 minutos</p>`},
+   <p class="sabe">En náhuatl, <b>tlamatini</b> es «el que sabe»: quien ilumina y guía a su comunidad. <br>Usted es tlamatini. Esta herramienta es para usted.</p><p class="toca">Toque para comenzar · con música · 2 minutos</p>`},
  {t:"claro",ey:"Primer paso",h:"Sus datos, una sola vez",p:"Escuela, C.C.T., director, logo y firma. Los captura una vez y <b>aparecen solos en cada formato</b>.",
    vis:tel("scr_home.jpg","Pantalla de inicio de Tlamatini",{w:62,h:100,x:19,y:0}),go:"perfil"},
  {t:"oscuro",ey:"Pedagógico",h:"Su lectura de la realidad, lista",p:"Responda preguntas guiadas sobre su grupo o escuela y descárguela <b>en Word o PDF</b>, para editarla cuando quiera.",
@@ -144,6 +144,47 @@ const S=[
    <ul><li>Funciona en el celular o la computadora, sin instalar nada.</li><li>Sus datos se quedan en su dispositivo: nada se envía a internet.</li><li>Formatos oficiales listos para imprimir, guardar o enviar.</li><li>Está en pilotaje: sus observaciones la hacen mejor.</li></ul>
    <div class="final"><a class="a1" href="index.html#demo">Probarla con una escuela de ejemplo</a><a class="a2" href="index.html">Abrir Tlamatini</a><button type="button" class="a3" id="otraVez">Ver el recorrido otra vez</button></div>
    <p class="nota">Dudas o sugerencias: tlamatini023@gmail.com · WhatsApp 661 850 1585</p>`}];
+/* Música de fondo original, generada en el navegador (marimba suave sobre acordes cálidos). Sin archivos de audio ni derechos de terceros. */
+const Musica=(()=>{let ctx=null,master,eco,timer=0,next=0,step=0,sonando=false,silencio=false;
+  try{silencio=localStorage.getItem("tlm-tour-mute")==="1"}catch(e){}
+  const bpm=92,spb=60/bpm,oct=spb/2,hz=m=>440*Math.pow(2,(m-69)/12);
+  /* I – vi – IV – V en Do mayor, dos compases cada uno */
+  const AC=[[48,[60,64,67,72,76]],[45,[57,60,64,69,72]],[41,[57,60,65,69,72]],[43,[55,59,62,67,71]]];
+  const PAT=[[0,2,1,3,2,1,3,4],[0,1,2,4,3,2,1,2]];
+  function grafo(c){const m=c.createGain();m.gain.value=0;const comp=c.createDynamicsCompressor();comp.threshold.value=-18;m.connect(comp);comp.connect(c.destination);
+    const d=c.createDelay(1);d.delayTime.value=oct*1.5;const fb=c.createGain();fb.gain.value=.3;const lp=c.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2000;
+    const ein=c.createGain();ein.gain.value=.25;ein.connect(d);d.connect(lp);lp.connect(fb);fb.connect(d);lp.connect(m);return[m,ein]}
+  function marimba(c,m,t,v){const o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain();o.frequency.value=hz(m);o2.frequency.value=hz(m)*3.98;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0006,t+1.2);
+    g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(v*.3,t+.003);g2.gain.exponentialRampToValueAtTime(.0004,t+.14);
+    o.connect(g);o2.connect(g2);g.connect(master);g2.connect(master);g.connect(eco);o.start(t);o2.start(t);o.stop(t+1.3);o2.stop(t+.2)}
+  function colchon(c,notas,t,dur){notas.slice(0,3).forEach(m=>{const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();o.type="triangle";o.frequency.value=hz(m-12);o.detune.value=(Math.random()-.5)*10;
+    f.type="lowpass";f.frequency.value=850;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.8);g.gain.setValueAtTime(.05,t+dur-.6);g.gain.linearRampToValueAtTime(0,t+dur+.4);
+    o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.5)})}
+  function bajo(c,m,t){const o=c.createOscillator(),g=c.createGain();o.frequency.value=hz(m-12);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.32,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+spb*1.9);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+spb*2)}
+  function nota(c,t){const comp=Math.floor(step/8),ac=AC[Math.floor(comp/2)%4],i=step%8;
+    if(i===0&&comp%2===0)colchon(c,ac[1],t,spb*8);
+    if(i===0||i===4)bajo(c,ac[0],t);
+    const descanso=(comp%8===7&&i>4);if(!descanso){const k=PAT[comp%2][i];marimba(c,ac[1][k],t,i%2?.11:.17)}
+    step++}
+  function prog(){while(next<ctx.currentTime+.2){nota(ctx,next);next+=oct}}
+  function nivel(){if(!ctx)return;master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setTargetAtTime(silencio?0:.55,ctx.currentTime,.5)}
+  return{
+    iniciar(){if(silencio&&!ctx)return;try{if(!ctx){ctx=new(window.AudioContext||window.webkitAudioContext)();[master,eco]=grafo(ctx)}if(ctx.state==="suspended")ctx.resume();
+      if(!sonando){sonando=true;step=0;next=ctx.currentTime+.12;timer=setInterval(prog,30)}nivel()}catch(e){}},
+    silenciar(v){silencio=v;try{localStorage.setItem("tlm-tour-mute",v?"1":"0")}catch(e){}if(!v)this.iniciar();else nivel()},
+    get silencio(){return silencio},
+    dormir(v){if(!ctx||!sonando)return;v?ctx.suspend():ctx.resume()},
+    /* prueba: genera N segundos sin sonar y devuelve pico y nivel medio */
+    async prueba(seg){const c=new OfflineAudioContext(2,44100*seg,44100);[master,eco]=grafo(c);master.gain.value=.55;step=0;let t=.05;while(t<seg-1){nota(c,t);t+=oct}
+      const b=await c.startRendering();const d=b.getChannelData(0);let pk=0,s2=0;for(const x of d){pk=Math.max(pk,Math.abs(x));s2+=x*x}return{pico:pk,rms:Math.sqrt(s2/d.length)}}}})();
+const bSon=document.getElementById("bSon");
+const pintaSon=()=>{bSon.textContent=Musica.silencio?"🔇":"🔊";bSon.setAttribute("aria-label",Musica.silencio?"Activar la música":"Silenciar la música")};pintaSon();
+bSon.onclick=e=>{e.stopPropagation();Musica.silenciar(!Musica.silencio);pintaSon()};
+/* el primer toque o tecla inicia la música (los navegadores no permiten sonido antes) */
+const arranca=()=>{Musica.iniciar();document.removeEventListener("pointerdown",arranca,true);document.removeEventListener("keydown",arranca,true)};
+document.addEventListener("pointerdown",arranca,true);document.addEventListener("keydown",arranca,true);
 const DUR=8000;
 const cont=document.getElementById("slides"),bars=document.getElementById("bars"),phone=document.getElementById("phone"),probar=document.getElementById("probar"),marca=document.getElementById("marca");
 cont.innerHTML=S.map((s,i)=>{if(s.portada)return`<section class="slide oscuro portada" aria-label="Portada">${s.html}</section>`;
@@ -168,7 +209,7 @@ document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" ")sho
 /* mantener presionado = pausa; deslizar = navegar */
 let hold=0,sx=0;phone.addEventListener("pointerdown",e=>{if(e.target.closest("a,button:not(.tap)"))return;sx=e.clientX;held=false;swiped=false;hold=setTimeout(()=>{held=true;pause(true)},350)});
 phone.addEventListener("pointerup",e=>{clearTimeout(hold);const dx=e.clientX-sx;if(sx&&Math.abs(dx)>50){swiped=true;show(cur+(dx<0?1:-1))}if(held)pause(false);sx=0});
-document.addEventListener("visibilitychange",()=>pause(document.hidden||paused));
+document.addEventListener("visibilitychange",()=>{pause(document.hidden||paused);Musica.dormir(document.hidden)});
 if(matchMedia("(prefers-reduced-motion: reduce)").matches)pause(true);
 /* precarga de imágenes */
 S.forEach(s=>((s.vis||"").match(/src="([^"]+)"/g)||[]).forEach(m=>{const im=new Image();im.src=m.slice(5,-1)}));
