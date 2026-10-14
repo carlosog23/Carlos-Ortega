@@ -4239,5 +4239,32 @@ REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=
   window.Dictado={decorar,detener};
 })();
 </script>
+<script>
+/* ---------- Contador de uso (GoatCounter) ----------
+   Cuenta aperturas, apartados visitados y formatos generados. No envía nombres, CURP ni datos de alumnos:
+   solo el nombre del apartado, y la escuela (CCT) o la zona para saber de dónde se usa.
+   Para activarlo, escriba en USO_CODIGO el nombre de la cuenta de goatcounter.com (ej. "tlamatini").
+   El equipo de la Supervisión (con llave de administración) no se cuenta, para no inflar las cifras. */
+const USO_CODIGO="";
+const USO_VISTA={home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
+function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[S.letra])return`PPIE ${S.letra} · ${ANEXOS[S.letra].name}`;
+  if(S.view==="section"&&S.sec){const x=SECCIONES.find(z=>z.id===S.sec);return"Sección · "+(x?x.title:S.sec)}return USO_VISTA[S.view]||S.view||"?"}
+const USO={cola:[],listo:false,ultima:"",activo:(()=>{try{return !!USO_CODIGO&&!localStorage.getItem("gh-token")&&!/^(localhost|127\.)/.test(location.hostname)}catch(e){return false}})()};
+function usoContar(path,title,evento){if(!USO.activo)return;const o={path:(DEMO?"demo/":"")+path,title:title||path,event:!!evento};
+  if(USO.listo&&window.goatcounter&&window.goatcounter.count){try{window.goatcounter.count(o)}catch(e){}}else USO.cola.push(o)}
+if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO}.goatcounter.com/count`};
+  const s=document.createElement("script");s.async=true;s.src="https://gc.zgo.at/count.js";
+  s.onload=()=>{USO.listo=true;USO.cola.splice(0).forEach(o=>{try{window.goatcounter.count(o)}catch(e){}})};document.head.appendChild(s);
+  usoContar("/formatos-ppie/","Tlamatini · abrir");
+  /* de dónde: una vez por sesión, la escuela o la zona configurada */
+  setTimeout(()=>{try{if(sessionStorage.getItem("uso-donde"))return;sessionStorage.setItem("uso-donde","1")}catch(e){}
+    const p=perfil||{};if(p.cct)usoContar(`escuela/${p.cct}`,`${p.escuela||p.cct}${p.zona?" · Zona "+p.zona:""}`,true);else if(p.zona)usoContar(`zona/${p.zona}`,`Zona ${p.zona} (sin escuela capturada)`,true);
+    if(p.minombre||p.micargo)usoContar(`perfil/${/director|encargad/i.test(p.micargo||"")?"Dirección":/supervis|atp|asesor/i.test(p.micargo||"")?"Supervisión":"Docente"}`,"Tipo de usuario",true)},8000);
+  /* apartados visitados */
+  new MutationObserver(()=>{const a=usoApartado();if(a===USO.ultima||/^(setup|setupsub|setupotra)$/.test(S.view))return;USO.ultima=a;usoContar("ver/"+a,a,true)}).observe(document.getElementById("app"),{childList:true});
+  /* formatos generados: toda descarga o envío por compartir */
+  const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true)}}catch(e){}return clk.apply(this,arguments)};
+  if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files)usoContar("genera/"+usoApartado(),"Compartido",true)}catch(e){}return sh(d)}}}
+</script>
 
 </body></html>
