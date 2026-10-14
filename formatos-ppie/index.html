@@ -3610,7 +3610,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
    ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
-   <p class="foot"><span class="muted">v2026-10-14.2</span></p>`;
+   <p class="foot"><span class="muted">v2026-10-14.3</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
@@ -4245,7 +4245,7 @@ REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=
    solo el nombre del apartado, y la escuela (CCT) o la zona para saber de dónde se usa.
    Para activarlo, escriba en USO_CODIGO el nombre de la cuenta de goatcounter.com (ej. "tlamatini").
    El equipo de la Supervisión (con llave de administración) no se cuenta, para no inflar las cifras. */
-const USO_CODIGO="";
+const USO_CODIGO="tlamatini";
 const USO_VISTA={home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
 function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[S.letra])return`PPIE ${S.letra} · ${ANEXOS[S.letra].name}`;
   if(S.view==="section"&&S.sec){const x=SECCIONES.find(z=>z.id===S.sec);return"Sección · "+(x?x.title:S.sec)}return USO_VISTA[S.view]||S.view||"?"}
