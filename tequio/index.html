@@ -382,6 +382,9 @@ const fechaMedia = f => { if (!f) return ''; const d = deIso(f); return DIAS[d.g
 const horario = a => a.horaInicio ? a.horaInicio + (a.horaFin ? ' a ' + a.horaFin : '') + ' h' : 'Todo el día';
 const uid = p => p + '-' + Math.random().toString(36).slice(2, 10);
 const esAdmin = () => S && S.yo && S.yo.rol === 'admin';
+const esDirector = () => S && S.yo && S.yo.rol === 'director';
+const miCct = () => esDirector() ? (S.yo.cct || '') : '';
+const MAX_MB = 20;
 const ahora = () => { const d = new Date(); return iso(d) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); };
 
 function telefonos(w) { return (String(w || '').match(/\d[\d\s-]{8,}\d/g) || []).map(x => x.replace(/\D/g, '')).map(x => x.length > 10 ? x.slice(-10) : x).filter(x => x.length === 10); }
@@ -539,6 +542,7 @@ function portada(mensaje) {
     <p style="margin-top:18px">Tequio es el calendario de asesoría y seguimiento de la Supervisión Escolar Zona 050. Para entrar, abra el <b>enlace personal</b> que le envió la Supervisión.</p>
     <div class="botones">
       <a class="boton" href="#demo" id="b-demo">Ver una demostración</a>
+      <a class="boton sec" href="#demo" id="b-demo-dir">Demostración como director</a>
       <a class="boton sec" href="instalacion.html">Guía de instalación</a>
     </div>
     <div class="tarjeta significado">
@@ -547,10 +551,12 @@ function portada(mensaje) {
     <p class="peq" style="margin-top:18px">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · «Responsabilidad y superación»</p>
   </div></div>`;
   $('#b-demo').onclick = ev => { ev.preventDefault(); cfg = { demo: true }; cargar(); };
+  $('#b-demo-dir').onclick = ev => { ev.preventDefault(); cfg = { demo: true, dir: true }; cargar(); };
 }
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -563,7 +569,7 @@ function pintar() {
   <header class="barra"><div class="envoltura">
     <a class="marca" href="#" id="b-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
     <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}</button>`).join('')}</nav>
-    <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : 'Mesa Técnica'}</span></div>
+    <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : esDirector() ? esc(nombreEscuela(miCct())) : 'Mesa Técnica'}</span></div>
   </div></header>
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
@@ -604,10 +610,10 @@ function vAgenda() {
 
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Agenda de la zona</h1>
-    <div class="acciones"><button class="boton sec" id="b-recargar">${ico('i-act')}Actualizar</button><button class="boton terra" id="b-nueva">${ico('i-mas')}Nueva actividad</button></div></div>
+    <div class="acciones"><button class="boton sec" id="b-recargar">${ico('i-act')}Actualizar</button>${esDirector() ? '' : `<button class="boton terra" id="b-nueva">${ico('i-mas')}Nueva actividad</button>`}</div></div>
   <div class="filtros">
     <select id="f-esc" aria-label="Filtrar por escuela"><option value="">Todas las escuelas</option>${directores().map(c => `<option value="${c.cct}" ${vista.filtroEsc === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>
-    <select id="f-resp" aria-label="Filtrar por responsable"><option value="">Toda la Mesa Técnica</option>${S.usr.map(u => `<option value="${u.id}" ${vista.filtroResp === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>
+    <select id="f-resp" aria-label="Filtrar por responsable"><option value="">Toda la Mesa Técnica</option>${S.usr.filter(u => u.rol !== 'director').map(u => `<option value="${u.id}" ${vista.filtroResp === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>
     <label class="casilla" style="align-self:center"><input type="checkbox" id="f-canc" ${vista.verCanceladas ? 'checked' : ''}> Ver canceladas</label>
   </div>
   <div class="agenda">
@@ -623,7 +629,7 @@ function vAgenda() {
     <div style="display:flex;flex-direction:column;gap:16px">
       <div class="tarjeta">
         <div class="seccion-t">${vista.dia === hoy() ? 'Hoy · ' : ''}${fechaMedia(vista.dia)}</div>
-        <div class="lista-act">${delDia.length ? delDia.map(filaAct).join('') : `<div class="vacio peq">Sin actividades este día.<br><button class="boton sec chico" style="margin-top:8px" id="b-nueva-dia">${ico('i-mas')}Agendar aquí</button></div>`}</div>
+        <div class="lista-act">${delDia.length ? delDia.map(filaAct).join('') : `<div class="vacio peq">Sin actividades este día.${esDirector() ? '' : `<br><button class="boton sec chico" style="margin-top:8px" id="b-nueva-dia">${ico('i-mas')}Agendar aquí</button>`}</div>`}</div>
       </div>
       <div class="tarjeta">
         <div class="seccion-t">Próximas actividades</div>
@@ -646,7 +652,7 @@ function vAgenda() {
   $('#f-esc').onchange = e => { vista.filtroEsc = e.target.value; vAgenda(); };
   $('#f-resp').onchange = e => { vista.filtroResp = e.target.value; vAgenda(); };
   $('#f-canc').onchange = e => { vista.verCanceladas = e.target.checked; vAgenda(); };
-  $('#b-nueva').onclick = () => formActividad(null, { fecha: vista.dia >= hoy() ? vista.dia : hoy() });
+  if ($('#b-nueva')) $('#b-nueva').onclick = () => formActividad(null, { fecha: vista.dia >= hoy() ? vista.dia : hoy() });
   if ($('#b-nueva-dia')) $('#b-nueva-dia').onclick = () => formActividad(null, { fecha: vista.dia });
   $('#b-recargar').onclick = cargar;
 }
@@ -719,7 +725,7 @@ function formActividad(id, base) {
   </div>
   ${otros.length ? `<div class="campo"><span class="et">Otros destinatarios</span><div class="casillas" id="a-otros">${otros.map(c => `<label class="casilla"><input type="checkbox" value="${c.id}" ${(a.destinatarios || []).includes(c.id) ? 'checked' : ''}><span>${esc(c.nombre)}<br><span class="ayuda">${esc(c.cargo || '')}</span></span></label>`).join('')}</div></div>` : ''}
   <div class="campo"><span class="et">Responsables de la Mesa Técnica</span>
-    <div class="casillas" id="a-resp">${S.usr.filter(u => u.activo).map(u => `<label class="casilla"><input type="checkbox" value="${u.id}" ${(a.responsables || []).includes(u.id) ? 'checked' : ''}><span>${esc(u.nombre)}</span></label>`).join('')}</div>
+    <div class="casillas" id="a-resp">${S.usr.filter(u => u.activo && u.rol !== 'director').map(u => `<label class="casilla"><input type="checkbox" value="${u.id}" ${(a.responsables || []).includes(u.id) ? 'checked' : ''}><span>${esc(u.nombre)}</span></label>`).join('')}</div>
     <div class="ayuda">También reciben los avisos y la verán en su agenda del día.</div>
   </div>
   <div class="campo"><label for="a-prop">Propósito o indicaciones</label><textarea id="a-prop" placeholder="Qué se va a hacer y qué deben preparar">${esc(a.proposito)}</textarea></div>
@@ -809,6 +815,7 @@ function detalleActividad(id, recienGuardada) {
   const enviados = Object.entries(a.enviado || {}).filter(([k]) => k !== 'pendiente').map(([k, v]) => `${({ aviso: 'Aviso', cambio: 'Aviso de cambio', recordatorio: 'Recordatorio', hoy: 'Recordatorio del día', cancelada: 'Aviso de cancelación' })[k] || k}: ${fechaCorta(String(v).slice(0, 10))} ${String(v).slice(11, 16)}`);
   const segs = S.seg.filter(s => s.actividadId === a.id);
   const programada = a.estado === 'programada';
+  const soloVer = esDirector();
   const cuerpo = `
   <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${chipsAct(a)}</div>
   <table class="ficha">
@@ -822,16 +829,17 @@ function detalleActividad(id, recienGuardada) {
   </table>
   ${a.confidencial ? '<div class="aviso-caja conf" style="margin-top:12px">Actividad confidencial: Tequio no envía avisos automáticos. Use los botones de abajo para avisar desde su correo personal o por WhatsApp.</div>' : ''}
   ${segs.length ? `<div class="campo" style="margin-top:12px"><span class="et">Seguimiento registrado</span>${segs.map(s => `<div class="peq">· ${esc(nombreEscuela(s.cct))}: ${(s.acuerdos || []).length} acuerdo(s)</div>`).join('')}</div>` : ''}
-  <details style="margin-top:12px" ${recienGuardada ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;color:var(--indigo)">Avisar por WhatsApp o desde mi correo</summary>
+  ${soloVer ? '' : `<details style="margin-top:12px" ${recienGuardada ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;color:var(--indigo)">Avisar por WhatsApp o desde mi correo</summary>
     <div style="margin-top:10px">${bloqueWhatsApp(textoWhatsApp(a, a.estado === 'cancelada' ? 'cancelada' : 'aviso'), personasDe(a), 'Supervisión Zona 050 · ' + a.titulo + ' · ' + fechaCorta(a.fecha))}</div>
-  </details>`;
-  const pie = `
+  </details>`}`;
+  const pie = soloVer ? '<button class="boton" id="d-cerrar">Cerrar</button>' : `
     ${programada ? `<button class="boton peligro" id="d-cancelar">Cancelar actividad</button>` : `<button class="boton sec" id="d-reactivar">Volver a programar</button>`}
     ${programada && !a.confidencial ? `<button class="boton sec" id="d-reenviar">${ico('i-correo')}Reenviar aviso</button>` : ''}
     <button class="boton sec" id="d-editar">${ico('i-lapiz')}Editar</button>
     ${programada ? `<button class="boton sec" id="d-hecha">Marcar realizada</button>` : ''}
     <button class="boton terra" id="d-seg">${ico('i-seg')}Registrar seguimiento</button>`;
   modal(esc(a.titulo), cuerpo, pie);
+  if (soloVer) { $('#d-cerrar').onclick = cerrarModal; return; }
   if ($('#w-copiar')) $('#w-copiar').onclick = () => copiar($('#w-msg').textContent, 'Mensaje copiado');
   $('#d-editar').onclick = () => formActividad(a.id);
   $('#d-seg').onclick = () => formSeguimiento(null, { actividadId: a.id, cct: (a.escuelas || []).length === 1 ? a.escuelas[0] : '', fecha: a.fecha <= hoy() ? a.fecha : hoy() });
@@ -1208,6 +1216,7 @@ function vAcuerdos() {
       <p style="margin-top:0">La página ya trae el checklist de acuerdos, pero el servidor de Tequio todavía tiene la versión anterior. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> en la guía (toma unos 5 minutos) y vuelva a abrir Tequio.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
     return;
   }
+  if (esDirector()) return vMiEscuela();
   if (vista.acuEsc) return vChecklistEscuela(vista.acuEsc);
   const dirs = filtroEscuelas();
   const ccts = dirs.map(c => c.cct);
@@ -1370,6 +1379,48 @@ function vChecklistEscuela(cct) {
       if (n !== null) guardarMarca(id, estadoDe(id, cct), n.trim());
     };
   });
+}
+
+/* ---------------- Vista del director: Mi escuela ---------------- */
+function vMiEscuela() {
+  const cct = miCct(), c = escuelaDe(cct);
+  if (!c) { $('#vista').innerHTML = '<div class="tarjeta vacio">Su usuario no está ligado a una escuela. Avise a la Supervisión.</div>'; return; }
+  const reus = reuniones();
+  const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
+  const mia = avance(todos, [cct]);
+  const zona = avance(S.acu || [], directores().map(d => d.cct));
+  const ordenPend = (x, y) => (limiteVencido(y) - limiteVencido(x)) || String(x.limite || '9999').localeCompare(String(y.limite || '9999'));
+  const pend = todos.filter(x => estadoDe(x.id, cct) === 'pendiente').sort(ordenPend);
+  const visitas = acuerdosDe(cct).filter(x => x.estado === 'pendiente').sort((a, b) => String(a.revision || '9999').localeCompare(String(b.revision || '9999')));
+  const atp = atpDe(cct);
+  const chipEstado = (x, e) => e === 'hecho' ? '<span class="chip ok">Cumplido</span>' : e === 'no_aplica' ? '<span class="chip">No aplica</span>' : limiteVencido(x) ? '<span class="chip mal">Fecha vencida</span>' : '<span class="chip aviso">Pendiente</span>';
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>${esc(c.escuela)}</h1>
+    <div class="acciones"><button class="boton sec" id="b-recargar">${ico('i-act')}Actualizar</button></div></div>
+  <div class="peq mudo" style="margin:-6px 0 14px">${c.cct} · ${esc(c.municipio)}${atp ? ' · ATP: ' + esc(nombreCorto(atp.nombre)) : ''}</div>
+  <div class="tablero">
+    <div class="tarjeta pad general">${anillo(mia.pct)}
+      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Avance de su escuela</div>
+        <div><b class="num">${mia.hecho}</b> de <b class="num">${mia.total}</b> compromisos cumplidos</div>
+        <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${mia.pend} pendiente${mia.pend === 1 ? '' : 's'}</span>${mia.vencidos ? `<span class="chip mal">${mia.vencidos} con fecha vencida</span>` : ''}</div></div></div>
+    <div class="tarjeta pad general">${anillo(zona.pct, 128, 'de la zona')}
+      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Avance general de la zona</div>
+        <div><b class="num">${zona.hecho}</b> de <b class="num">${zona.total}</b> compromisos cumplidos en las ${directores().length} escuelas</div>
+        <div class="peq mudo" style="margin-top:6px">Su escuela: <b>${mia.pct}%</b> · Zona: <b>${zona.pct}%</b></div></div></div>
+  </div>
+  <div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Pendientes de su escuela</div>
+    ${pend.length ? `<div class="checklist sin-borde">${pend.map(x => { const r = (S.reu || []).find(y => y.id === x.reunionId); return `<div class="chk-fila pendiente"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
+      ${S.evi ? chipEvi(x.id, cct) : ''}<br><span class="ayuda">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}</span></span>${chipEstado(x, 'pendiente')}</div>`; }).join('')}</div>` : '<div class="vacio peq">Su escuela no tiene compromisos pendientes. ¡Excelente trabajo!</div>'}
+  </div>
+  ${visitas.length ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Acuerdos de las visitas de la Supervisión</div>
+    <div class="pad" style="padding-top:4px">${visitas.map(x => `<div class="acuerdo"><div class="tx">${esc(x.texto)}${x.responsable ? `<div class="peq mudo">Responsable: ${esc(x.responsable)}</div>` : ''}</div>
+      ${x.revision ? `<span class="chip ${vencido(x) ? 'mal' : 'aviso'}">${vencido(x) ? 'Vencido · ' : 'Revisión '}${fechaCorta(x.revision)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
+  ${reus.map(r => { const xs = acuerdosReu(r.id).filter(x => aplicaA(x, cct)); if (!xs.length) return ''; const ar = avance(xs, [cct]); return `<details class="tarjeta" style="margin-bottom:12px">
+    <summary class="seccion-t" style="cursor:pointer;display:flex;gap:10px;align-items:center"><span style="flex:1">${fechaCorta(r.fecha)} · ${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></summary>
+    <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; return `<div class="chk-fila ${e}"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
+      <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'hecho' && m.fecha ? ' · cumplido el ' + fechaCorta(m.fecha) : ''}${m && m.nota ? ' · ' + esc(m.nota) : ''}</span></span>${chipEstado(x, e)}</div>`; }).join('')}</div></details>`; }).join('')}
+  <p class="peq mudo">La Supervisión y su ATP palomean los compromisos al revisar sus evidencias. Si ya cumplió alguno, suba la evidencia en la pestaña <b>Evidencias</b>.</p>`;
+  $('#b-recargar').onclick = cargar;
 }
 
 /* Asignar escuelas a cada ATP (solo Supervisión) */
@@ -1546,6 +1597,7 @@ function vEvidencias() {
       <p style="margin-top:0">Para revisar el Drive, el servidor de Tequio necesita la versión nueva del programa y un permiso de lectura del Drive. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> en la guía.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
     return;
   }
+  if (esDirector()) return vEviDirector();
   const dirs = filtroEscuelas(), ccts = dirs.map(c => c.cct);
   const COLS = columnasEvi();
   const tot = avanceEvi(ccts);
@@ -1561,7 +1613,7 @@ function vEvidencias() {
   const porAtp = atps().map(u => { const e = escuelasDeAtp(u).filter(c => !vista.municipio || (escuelaDe(c) || {}).municipio === vista.municipio); return { u, n: e.length, a: avanceEvi(e) }; });
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Evidencias en Drive</h1>
-    <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton" id="b-revisar">${ico('i-act')}Revisar ahora</button></div></div>
+    <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton sec" id="b-revisar">${ico('i-act')}Revisar ahora</button><button class="boton sec" id="b-carpeta">${ico('i-carpeta')}Nueva carpeta</button><button class="boton terra" id="b-subir">${ico('i-mas')}Subir archivos</button></div></div>
   <div class="aviso-caja peq">Tequio revisa las carpetas cada mañana a las 6:00. Última revisión: <b>${revisado ? fechaHora(revisado) : 'todavía no se ha hecho'}</b>. Solo lee nombres y fechas de los archivos, no su contenido.</div>
   <div class="filtros">${selAtp()}
     <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select></div>
@@ -1594,10 +1646,118 @@ function vEvidencias() {
     aviso('Revisando las carpetas del Drive. Puede tardar uno o dos minutos…', '', 6000);
     await accion('revisarEvidencias', {}, r => { S.evi = r.evi; S.eviRevisado = r.eviRevisado; vEvidencias(); aviso('Revisión terminada: ' + r.escuelas + ' escuelas.', 'ok', 3500); });
   };
+  $('#b-carpeta').onclick = formCarpeta;
+  $('#b-subir').onclick = () => formSubir(vista.atp && escuelasDeAtp(usuario(vista.atp))[0] || '');
   $('#f-mun').onchange = e => { vista.municipio = e.target.value; vEvidencias(); };
   $('#f-atp').onchange = e => { vista.atp = e.target.value; vEvidencias(); };
   $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vEvidencias(); });
   $$('[data-eesc]').forEach(b => b.onclick = () => detalleEvidencias(b.dataset.eesc));
+}
+
+/* ---------------- Evidencias del director ---------------- */
+function vEviDirector() {
+  const cct = miCct(), c = escuelaDe(cct);
+  const filas = (S.evi || []).filter(e => e.cct === cct).sort((a, b) => a.ruta.localeCompare(b.ruta, 'es', { numeric: true }));
+  const a = avanceEvi([cct]);
+  const vistos = {}, nov = [];
+  filas.forEach(e => (e.recientes || []).forEach(x => { const k = x.id || (x.f + x.n); if (vistos[k] && vistos[k].ruta.length >= e.ruta.length) return; vistos[k] = Object.assign({ ruta: e.ruta }, x); }));
+  Object.values(vistos).sort((x, y) => y.f.localeCompare(x.f)).slice(0, 15).forEach(x => nov.push(x));
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Evidencias de su escuela</h1>
+    <div class="acciones"><button class="boton terra" id="b-subir">${ico('i-mas')}Subir archivos</button></div></div>
+  <div class="aviso-caja peq">Elija la carpeta que corresponde y suba sus archivos (PDF, Word, fotos; hasta ${MAX_MB} MB cada uno). Quedan guardados en el Drive de la Supervisión y Tequio los cuenta como evidencia entregada.</div>
+  ${!filas.length ? '<div class="tarjeta vacio">Aún no hay carpetas registradas para su escuela. Avise a la Supervisión.</div>' : `
+  <div class="tablero">
+    <div class="tarjeta pad general">${anillo(a.pct, 128, 'con archivos')}
+      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">${esc(c ? c.escuela : cct)}</div>
+        <div><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> carpetas ya tienen archivos</div></div></div>
+    <div class="tarjeta"><div class="seccion-t">Lo último que se subió</div>
+      ${nov.length ? `<div class="lista-act">${nov.map(x => `<div class="nov"><div class="nov-f"><b>${deIso(x.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(x.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
+        <div style="min-width:0;flex:1"><div class="t">${x.n ? esc(x.n) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'}</div><div class="peq mudo">${esc((x.ruta || 'Carpeta principal').split('/').slice(-2).join(' › '))}${x.p ? ' · ' + esc(quienSubio(x.p)) : ''}</div></div></div>`).join('')}</div>` : '<div class="vacio peq">Todavía no hay archivos.</div>'}</div>
+  </div>
+  <div class="tarjeta"><div class="seccion-t">Carpetas de su escuela</div>
+    <div class="checklist sin-borde">${filas.map(e => { const nivel = e.ruta ? e.ruta.split('/').length - 1 : 0, n = nArch(e); return `<div class="chk-fila" style="align-items:center;padding-left:${12 + nivel * 18}px">
+      <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${e.ruta ? esc(e.ruta.split('/').pop()) : '<b>Carpeta principal</b>'}</span>
+      ${e.ruta ? (n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>') : ''}
+      <button class="boton sec chico" data-subir="${e.carpetaId}">Subir aquí</button></div>`; }).join('')}</div></div>`}`;
+  $('#b-subir').onclick = () => formSubir(cct);
+  $$('[data-subir]').forEach(b => b.onclick = () => formSubir(cct, b.dataset.subir));
+}
+
+/* Subir archivos a una carpeta del Drive de evidencias */
+function formSubir(cct, carpetaId) {
+  const fijo = esDirector();
+  const escSel = fijo ? miCct() : (cct || (directores()[0] || {}).cct);
+  modal('Subir archivos', `
+    ${fijo ? `<p class="peq" style="margin-top:0"><b>${esc(nombreEscuela(escSel))}</b></p>` : `<div class="campo"><label for="s-esc">Escuela</label><select id="s-esc">${directores().map(d => `<option value="${d.cct}" ${d.cct === escSel ? 'selected' : ''}>${esc(d.escuela)}</option>`).join('')}</select></div>`}
+    <div class="campo"><label for="s-carp">Carpeta</label><select id="s-carp"></select></div>
+    <div class="campo"><label for="s-arch">Archivos</label><input type="file" id="s-arch" multiple></div>
+    <div class="ayuda">Hasta ${MAX_MB} MB por archivo. Los videos pesados conviene subirlos directo al Drive.</div>
+    <div id="s-prog" class="peq" style="margin-top:10px"></div>`,
+    '<button class="boton sec" id="s-cancelar">Cancelar</button><button class="boton terra" id="s-subir">Subir</button>');
+  const escuela = () => fijo ? miCct() : $('#s-esc').value;
+  const llenar = () => {
+    const filas = (S.evi || []).filter(e => e.cct === escuela()).sort((a, b) => a.ruta.localeCompare(b.ruta, 'es', { numeric: true }));
+    $('#s-carp').innerHTML = filas.length ? filas.map(e => `<option value="${e.carpetaId}" ${e.carpetaId === carpetaId ? 'selected' : ''}>${e.ruta ? esc(e.ruta.replace(/\//g, ' › ')) : 'Carpeta principal de la escuela'}</option>`).join('') : '<option value="">Sin carpetas registradas</option>';
+  };
+  llenar();
+  if (!fijo) $('#s-esc').onchange = () => { carpetaId = ''; llenar(); };
+  $('#s-cancelar').onclick = cerrarModal;
+  $('#s-subir').onclick = async () => {
+    const c = escuela(), carp = $('#s-carp').value, archivos = [...$('#s-arch').files];
+    if (!carp) return aviso('Elija una carpeta.', 'mal');
+    if (!archivos.length) return aviso('Elija uno o más archivos.', 'mal');
+    const grandes = archivos.filter(f => f.size > MAX_MB * 1024 * 1024);
+    if (grandes.length) return aviso('Pesan más de ' + MAX_MB + ' MB: ' + esc(grandes.map(f => f.name).join(', ')) + '. Súbalos directo al Drive.', 'mal', 9000);
+    const leer = f => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => mal(new Error('No se pudo leer ' + f.name)); r.readAsDataURL(f); });
+    $('#s-subir').disabled = true; $('#s-cancelar').disabled = true;
+    cargando(true);
+    let hechos = 0;
+    try {
+      for (let i = 0; i < archivos.length; i++) {
+        const f = archivos[i];
+        $('#s-prog').textContent = 'Subiendo ' + (i + 1) + ' de ' + archivos.length + ': ' + f.name + '…';
+        const r = await api('subirArchivo', { cct: c, carpetaId: carp, nombre: f.name, tipo: f.type, datos: await leer(f), actualizar: i === archivos.length - 1 });
+        hechos++;
+        if (r.evi) S.evi = (S.evi || []).filter(e => e.cct !== c).concat(r.evi);
+      }
+      cerrarModal(); pintar();
+      aviso(hechos === 1 ? 'Archivo subido.' : hechos + ' archivos subidos.', 'ok', 3500);
+    } catch (e) {
+      aviso(esc(e.message) + (hechos ? ' (' + hechos + ' de ' + archivos.length + ' sí se subieron)' : ''), 'mal', 9000);
+      if ($('#s-subir')) { $('#s-subir').disabled = false; $('#s-cancelar').disabled = false; $('#s-prog').textContent = ''; }
+    } finally { cargando(false); }
+  };
+}
+
+/* Crear una carpeta en varias escuelas a la vez (Supervisión y Mesa Técnica) */
+function formCarpeta() {
+  const rutas = [...new Map((S.evi || []).map(e => [normRuta(e.ruta), e.ruta])).values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  modal('Nueva carpeta en las escuelas', `
+    <div class="campo"><label for="c-nom">Nombre de la carpeta</label><input id="c-nom" maxlength="120" placeholder="Ej. 03-CTE Tercera sesión"></div>
+    <div class="campo"><label for="c-den">Dentro de</label><select id="c-den">${rutas.map(r => `<option value="${esc(r)}">${r ? esc(r.replace(/\//g, ' › ')) : 'La carpeta principal de cada escuela'}</option>`).join('')}</select></div>
+    <div class="campo"><span class="et">Escuelas</span>
+      <div class="rapidos"><button type="button" class="boton sec chico" id="c-todas">Todas</button><button type="button" class="boton sec chico" id="c-ninguna">Ninguna</button></div>
+      <div class="casillas" id="c-esc">${directores().map(d => `<label class="casilla"><input type="checkbox" value="${d.cct}" checked> ${esc(d.escuela)}</label>`).join('')}</div></div>
+    <div class="ayuda">Se crea con el mismo nombre en cada escuela elegida. Si ya existe, no se duplica.</div>`,
+    '<button class="boton sec" id="c-cancelar">Cancelar</button><button class="boton terra" id="c-crear">Crear carpeta</button>');
+  $('#c-todas').onclick = () => $$('#c-esc input').forEach(i => i.checked = true);
+  $('#c-ninguna').onclick = () => $$('#c-esc input').forEach(i => i.checked = false);
+  $('#c-cancelar').onclick = cerrarModal;
+  $('#c-crear').onclick = () => {
+    const nombre = $('#c-nom').value.trim(), ccts = $$('#c-esc input:checked').map(i => i.value);
+    if (!nombre) return aviso('Escriba el nombre de la carpeta.', 'mal');
+    if (/[\\/]/.test(nombre)) return aviso('El nombre no puede llevar diagonales.', 'mal');
+    if (!ccts.length) return aviso('Elija al menos una escuela.', 'mal');
+    accion('crearCarpeta', { nombre, dentro: $('#c-den').value, ccts }, r => {
+      S.evi = r.evi; cerrarModal(); pintar();
+      const p = [];
+      if (r.creadas.length) p.push('Carpeta creada en ' + r.creadas.length + ' escuela' + (r.creadas.length === 1 ? '' : 's') + '.');
+      if (r.existian.length) p.push('Ya existía en ' + r.existian.length + '.');
+      if (r.sinBase.length) p.push('No se encontró la carpeta base en: ' + r.sinBase.map(nombreEscuela).join(', ') + '.');
+      aviso(esc(p.join(' ')), r.sinBase.length ? '' : 'ok', 7000);
+    });
+  };
 }
 
 /* Todas las carpetas de una escuela, con sus subcarpetas */
@@ -1612,27 +1772,36 @@ function detalleEvidencias(cct) {
       <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${esc(e.ruta.split('/').pop())}</span>
       ${n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}</a>`; }).join('') || '<div class="vacio peq">Sin datos de esta escuela.</div>'}</div>
     ${raiz ? `<p class="peq" style="margin-bottom:0"><a target="_blank" rel="noopener" href="${urlCarpeta(raiz.carpetaId)}">Abrir la carpeta de la escuela en Drive</a></p>` : ''}`,
-    '<button class="boton" id="de-cerrar">Cerrar</button>');
+    `<button class="boton sec" id="de-cerrar">Cerrar</button><button class="boton terra" id="de-subir">${ico('i-mas')}Subir archivos</button>`);
   $('#de-cerrar').onclick = cerrarModal;
+  $('#de-subir').onclick = () => formSubir(cct);
 }
 
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
 function vEnlaces() {
-  $('#vista').innerHTML = `
-  <div class="titulo-vista"><h1>Enlaces de acceso</h1></div>
-  <div class="aviso-caja">Cada integrante de la Mesa Técnica entra con su propio enlace. Si genera uno nuevo, el anterior deja de funcionar. Si alguien pierde su teléfono o deja la zona, anule su enlace.</div>
-  <div class="contactos">${S.usr.map(u => `<div class="tarjeta contacto">
+  const tarjeta = u => `<div class="tarjeta contacto">
     <div class="nom">${esc(u.nombre)}</div>
-    <div class="peq mudo">${u.rol === 'admin' ? 'Supervisión (administrador)' : 'Mesa Técnica'}</div>
+    <div class="peq mudo">${u.rol === 'admin' ? 'Supervisión (administrador)' : u.rol === 'director' ? esc(nombreEscuela((S.dir.find(c => c.id === u.contacto) || {}).cct)) : 'Mesa Técnica'}</div>
     <div>${u.conEnlace ? '<span class="chip ok">Con enlace activo</span>' : '<span class="chip">Sin enlace</span>'}</div>
     <div class="lnk">
       ${u.id === S.yo.id ? '<span class="ayuda">Este es su usuario.</span>' : `<button class="boton chico" data-genlace="${u.id}">${ico('i-llave')}${u.conEnlace ? 'Generar nuevo enlace' : 'Generar enlace'}</button>
       ${u.conEnlace ? `<button class="boton peligro chico" data-anular="${u.id}">Anular</button>` : ''}`}
-    </div></div>`).join('')}</div>
+    </div></div>`;
+  const mesa = S.usr.filter(u => u.rol !== 'director');
+  const dirs = S.usr.filter(u => u.rol === 'director' && u.activo).sort((a, b) => nombreEscuela((S.dir.find(c => c.id === a.contacto) || {}).cct).localeCompare(nombreEscuela((S.dir.find(c => c.id === b.contacto) || {}).cct), 'es'));
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Enlaces de acceso</h1></div>
+  <div class="aviso-caja">Cada persona entra con su propio enlace. Si genera uno nuevo, el anterior deja de funcionar. Si alguien pierde su teléfono o deja la zona, anule su enlace.</div>
+  <div class="seccion-t" style="padding:6px 0 8px">Supervisión y Mesa Técnica</div>
+  <div class="contactos">${mesa.map(tarjeta).join('')}</div>
+  <div class="seccion-t" style="padding:22px 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Directores<button class="boton sec chico" id="b-dirs" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}${dirs.length ? 'Actualizar desde el Directorio' : 'Agregar a los directores'}</button></div>
+  <p class="peq mudo" style="margin:0 0 10px">Con su enlace, cada director ve la agenda de la zona, el avance y los pendientes de su escuela, el avance general de la zona y las carpetas de su escuela, donde puede subir archivos. No ve visitas ni datos de otras escuelas ni lo confidencial, y no puede modificar nada.</p>
+  ${dirs.length ? `<div class="contactos">${dirs.map(tarjeta).join('')}</div>` : '<div class="tarjeta vacio peq">Pulse «Agregar a los directores» para crear un usuario por cada escuela con los datos del Directorio. Después genere y envíe el enlace de cada uno.</div>'}
   <div class="tarjeta pad" style="margin-top:16px">
     <h2 style="font-size:19px;margin-bottom:6px">Correos de hoy</h2>
     <p class="peq" style="margin:0">Quedan <b>${S.cuota != null ? S.cuota : '—'}</b> envíos disponibles hoy en supervision050sep@gmail.com. Gmail permite cerca de 100 destinatarios al día en una cuenta gratuita; si se agotan, Tequio deja los avisos para la mañana siguiente.</p>
   </div>`;
+  $('#b-dirs').onclick = () => accion('prepararDirectores', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'Directores actualizados: ' + r.cambios + '.' : 'Los directores ya estaban al día.', 'ok', 3000); });
   $$('[data-genlace]').forEach(b => b.onclick = () => {
     const u = usuario(b.dataset.genlace);
     if (u.conEnlace && !confirm('Se generará un enlace nuevo para ' + u.nombre + ' y el anterior dejará de funcionar. ¿Continuar?')) return;
@@ -1645,7 +1814,9 @@ function vEnlaces() {
   });
 }
 function mostrarEnlace(u, enlace) {
-  const texto = `Hola, ${nombreCorto(u.nombre)}. Este es su enlace personal para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona 050:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`;
+  const texto = u.rol === 'director'
+    ? `Hola, ${nombreCorto(u.nombre)}. Este es el enlace de su escuela para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona 050. Ahí puede ver la agenda de la zona, el avance y los pendientes de su escuela, y subir sus evidencias al Drive:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`
+    : `Hola, ${nombreCorto(u.nombre)}. Este es su enlace personal para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona 050:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`;
   const tels = telefonos(u.whatsapp), mails = correos(u);
   modal('Enlace de ' + esc(nombreCorto(u.nombre)), `
     <p class="peq" style="margin-top:0">Envíeselo solo a esta persona. Por seguridad, no se vuelve a mostrar; si se pierde, genere otro.</p>
@@ -1712,23 +1883,45 @@ const Demo = (() => {
     const evi = [];
     const SUBS = { '02-Evidencias 2026-2027': ['CTEs', 'CTEs/01-CTE Primera sesión', 'PMC', 'Érase una vez'], '07-SISAT': ['Momento 1'], '10-Evaluaciones': ['Primer Trimestre'] };
     ESC.forEach((e, j) => {
-      const raiz = { id: e[1] + '|', cct: e[1], ruta: '', carpetaId: 'demo', directos: j === 3 ? '2' : '0', archivos: '0', ultimo: '', recientes: [] };
+      const raiz = { id: e[1] + '|', cct: e[1], ruta: '', carpetaId: 'demo-' + e[1], directos: j === 3 ? '2' : '0', archivos: '0', ultimo: '', recientes: [] };
       evi.push(raiz);
       ['01-Expedientes de trabajadores', '02-Evidencias 2026-2027', '03-Ingresos propios', '04-CPE', '05-Estadística 911', '06-Inscripción inicial', '07-SISAT', '08-Niveles conceptuales', '09-Ejercicios Integradores del Aprendizaje', '10-Evaluaciones'].concat(j % 2 ? ['Contingencia por lluvias 12-10-2026'] : []).forEach((r, i) => {
         [r].concat((SUBS[r] || []).map(x => r + '/' + x)).forEach((ruta, k) => {
           const n = ((i * 3 + j * 5 + k) % 7) > 2 ? ((i + j + k) % 4) + 1 : 0;
           const f = sumarDias(h, -((i + j + k) % 12)) + 'T' + pad(8 + (i + j) % 9) + ':' + pad((j * 7) % 60);
-          evi.push({ id: e[1] + '|' + ruta, cct: e[1], ruta, carpetaId: 'demo', directos: String(n), archivos: String(n), ultimo: n ? f : '', ultimoPor: n ? 'direccion' + (j + 1) + '@ejemplo.mx' : '',
+          evi.push({ id: e[1] + '|' + ruta, cct: e[1], ruta, carpetaId: 'demo-' + e[1] + '|' + ruta, directos: String(n), archivos: String(n), ultimo: n ? f : '', ultimoPor: n ? 'direccion' + (j + 1) + '@ejemplo.mx' : '',
             recientes: n ? [{ f, n: /Expedientes/.test(ruta) ? '' : 'Evidencia ' + ruta.split('/').pop() + '.pdf', p: 'direccion' + (j + 1) + '@ejemplo.mx', id: '' }] : [] });
         });
       });
     });
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 3 };
+    ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 4 };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
   const A = {
-    datos: () => copia(D),
+    datos: () => {
+      if (!cfg.dir) return copia(D);
+      const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
+      return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
+        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct) }));
+    },
+    subirArchivo: d => {
+      const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
+      [e].concat(D.evi.filter(x => x.cct === e.cct && x !== e && (!x.ruta || e.ruta.startsWith(x.ruta + '/')))).forEach(x => {
+        x.archivos = String(nArch(x) + 1); if (x === e) x.directos = String((+x.directos || 0) + 1);
+        x.ultimo = f; x.recientes = [{ f, n: d.nombre, p: D.yo.nombre, id: '' }].concat(x.recientes || []).slice(0, 6); });
+      return { archivo: { nombre: d.nombre }, evi: d.actualizar === false ? undefined : copia(D.evi.filter(x => x.cct === e.cct)) };
+    },
+    crearCarpeta: d => {
+      const creadas = [], existian = [], sinBase = [];
+      d.ccts.forEach(cct => { const ruta = d.dentro ? d.dentro + '/' + d.nombre : d.nombre;
+        if (!D.evi.find(x => x.cct === cct && normRuta(x.ruta) === normRuta(d.dentro))) return sinBase.push(cct);
+        if (D.evi.find(x => x.cct === cct && normRuta(x.ruta) === normRuta(ruta))) return existian.push(cct);
+        D.evi.push({ id: cct + '|' + ruta, cct, ruta, carpetaId: 'demo-' + cct + '|' + ruta, directos: '0', archivos: '0', ultimo: '', recientes: [] }); creadas.push(cct); });
+      return { creadas, existian, sinBase, evi: copia(D.evi) };
+    },
+    prepararDirectores: () => ({ usr: copia(D.usr), cambios: 0 }),
     guardarActividad: d => {
       const previa = D.act.find(x => x.id === d.id);
       const a = Object.assign({}, previa || {}, d, { id: previa ? previa.id : uid('act'), enviado: previa ? previa.enviado : {}, creadoPor: previa ? previa.creadoPor : D.yo.id, actualizado: ahora() });
