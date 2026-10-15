@@ -169,9 +169,9 @@ main{padding:20px 0 40px}
 .h-filete::after{content:'';display:block;border-top:.7px solid #9AA5B1}
 .h-datos{text-align:right;font-size:.95em}
 .h-num{color:#1F2A44}
-.h-dest{font-weight:700;line-height:1.27}
+.h-dest{font-weight:700;line-height:1.437}
 .h-p{text-align:justify}
-.h-firma{line-height:1.27;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.h-firma{line-height:1.437;text-align:center;break-inside:avoid;page-break-inside:avoid}
 .h-at{font-weight:700;letter-spacing:.12em}
 .h-lema{font-style:italic;color:#1F2A44}
 .h-linea{position:relative;height:18px}
@@ -181,7 +181,7 @@ main{padding:20px 0 40px}
 .h-nom{font-weight:700}
 .h-car{font-size:.9em}
 .h-cct{font-size:.8em;color:#555}
-.h-ccp{font-size:7.5pt;line-height:1.219;margin-top:17px}
+.h-ccp{font-size:7.5pt;line-height:1.38;margin-top:17px}
 .h-cuerpo.abajo{display:flex;flex-direction:column;min-height:842px}
 .h-cuerpo.abajo .h-ccp{margin-top:auto}
 .h-pie{position:absolute;bottom:33px;left:96px;right:96px;border-top:1px solid #1F2A44;padding-top:5px;text-align:center;font-size:7pt;color:#555;line-height:1.35}
@@ -1951,7 +1951,7 @@ const Demo = (() => {
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
         referencia: '', asunto: 'Informe de visitas de acompañamiento del mes de septiembre', ccp: 'Archivo.', firma: false, sello: false, escala: '1', pdfId: '', envios: [], creadoPor: usr[0].id, creado: ahora(), actualizado: ahora(),
         cuerpo: 'Por medio del presente, me permito informar a usted que durante el mes de septiembre la Supervisión Escolar Zona 050 realizó visitas de acompañamiento técnico-pedagógico a las escuelas primarias de la zona, conforme al programa de trabajo del ciclo escolar 2026-2027.\n\nEn dichas visitas se dio seguimiento a la elaboración del Programa Analítico, a la organización del Consejo Técnico Escolar y a las condiciones de seguridad de los planteles. Los registros y evidencias correspondientes quedan a su disposición en esta Supervisión.\n\nSin otro particular por el momento, aprovecho la ocasión para enviarle un cordial saludo.' }],
-      ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false } };
+      ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] } };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -1990,7 +1990,7 @@ const Demo = (() => {
       (d.notas ? 'Al respecto, le informo que ' + d.notas.trim().replace(/\.$/, '') + '. ' : '') + 'Por lo anterior, respetuosamente solicito su valioso apoyo para que se brinde la atención correspondiente, a fin de garantizar el adecuado funcionamiento del servicio educativo en beneficio de las niñas y los niños de la zona.\n\n' +
       'Sin otro particular por el momento, agradezco de antemano la atención que se sirva brindar al presente y le reitero la seguridad de mi consideración distinguida.\n\n(Demostración: en la versión real este texto lo redacta Gemini a partir del asunto y sus notas.)' }),
     archivarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.pdfId = ''; return { oficio: copia(o) }; },
-    enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
+    enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), de: d.de, a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
     configOficios: d => { D.ofiCfg.ultimo = +d.ultimo || 0; D.ofiCfg.siguiente = 'SE-050/' + String(D.ofiCfg.ultimo + 1).padStart(3, '0') + '/2026'; if (d.geminiKey != null) D.ofiCfg.ia = !!d.geminiKey; return { ofiCfg: copia(D.ofiCfg) }; },
     recursosOficio: () => ({}),
 
@@ -2075,17 +2075,19 @@ const parrafosDe = txt => String(txt || '').replace(/\r/g, '').split(/\n\s*\n/).
 const lineasCcp = o => String(o.ccp || '').split('\n').map(x => x.trim()).filter(Boolean);
 
 /* ---- La hoja en HTML (vista previa y PDF). s = escala de letra y espacios (1 = normal) ---- */
+// Word da a cada renglón de Montserrat 1.38 veces el tamaño de la letra; la página usa lo mismo para que ambos coincidan
+const MULT_LINEA = 1.38;
 function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
   // s: escala de letra (para que quepa); t: 0 a 1, aire extra cuando la hoja queda vacía; abajo: C.c.p. al pie de la hoja
   const px = v => (v * s).toFixed(2) + 'px';
   const pt = v => (v * 96 / 72 * s).toFixed(2) + 'px';
-  const lh = ((1.125 + 0.4 * t) * 1.219).toFixed(3), pa = 7.3 + 12 * t;
+  const lh = ((1.125 + 0.4 * t) * MULT_LINEA).toFixed(3), pa = 7.3 + 12 * t;
   const parr = parrafosDe(o.cuerpo).map(p => {
     const lineas = p.split('\n');
     if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) return lineas.map(l => `<p class="h-p h-vi" style="line-height:${lh};margin:0 0 ${px(4 + 3 * t)};padding-left:${px(26)};text-indent:-${px(14)}">•&nbsp;&nbsp;${esc(l.trim().replace(/^[•\-–]\s*/, ''))}</p>`).join('');
     return `<p class="h-p" style="line-height:${lh};margin:0 0 ${px(pa)}">${esc(p).replace(/\n/g, '<br>')}</p>`;
   }).join('') || `<p class="h-p" style="margin:0;color:#aaa">El texto del oficio aparecerá aquí.</p>`;
-  return `<div class="hoja" style="font-size:${pt(10)};line-height:1.371">
+  return `<div class="hoja" style="font-size:${pt(10)};line-height:${(1.125 * MULT_LINEA).toFixed(3)}">
     <div class="h-enc">
       <img class="h-isep" src="img/isep.png" alt="ISEP">
       <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div>
@@ -2127,14 +2129,14 @@ function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
 const ALTO_UTIL = 842;
 let FUENTES_OFI = null;   // la letra del oficio se carga de la propia página para medir igual que en Word
 const fuentesOficio = () => FUENTES_OFI || (FUENTES_OFI = Promise.all(['400 10px MontserratOfi', '700 10px MontserratOfi', 'italic 400 10px MontserratOfi'].map(f => document.fonts.load(f))).catch(() => null));
-function disposicion(o, rec, reserva = 0, escalas = [1, 0.97, 0.94, 0.91, 0.88]) {
+function disposicion(o, rec, reserva = 0, escalas = [1, 0.97, 0.94, 0.91, 0.88], holgura = 0) {
   const caja = document.createElement('div');
   caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;visibility:hidden';
   document.body.appendChild(caja);
   const cabe = (s, t) => {
     caja.innerHTML = htmlOficio(o, s, rec, t, true);
     const pr = caja.querySelector('.h-princ').offsetHeight, cc = caja.querySelector('.h-ccp').offsetHeight;
-    return pr + (cc ? 18 + cc : 0) <= ALTO_UTIL - reserva;
+    return pr * (1 + holgura) + (cc ? 18 + cc : 0) <= ALTO_UTIL - reserva;
   };
   try {
     let s = 0;
@@ -2154,8 +2156,7 @@ async function wordOficio(o, rec) {
   await fuentesOficio();
   const D = window.docx;
   // Word acomoda el texto un poco distinto que la página: se deja un margen de seguridad (más si hay que reducir la letra)
-  let dis = disposicion(o, rec, 40);
-  if (dis.s < 1 || !dis.unaHoja) { const d2 = disposicion(o, rec, 130, [0.97, 0.94, 0.91, 0.88, 0.85, 0.82]); if (d2.unaHoja) dis = d2; }
+  const dis = disposicion(o, rec, 16, [1, 0.97, 0.94, 0.91, 0.88, 0.85], 0.02);
   const s = dis.s, t = dis.t;
   const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: A, BorderStyle, VerticalAlign, Footer, Header, PageNumber,
     HorizontalPositionRelativeFrom: H, VerticalPositionRelativeFrom: V, TextWrappingType } = D;
@@ -2324,7 +2325,7 @@ function vEditorOficio() {
         <button class="boton sec" id="o-correo" ${guardado ? '' : 'disabled'}>${ico('i-correo')}Correo</button>
         <button class="boton wa" id="o-wa" ${guardado ? '' : 'disabled'}>${ico('i-wa')}WhatsApp</button>
       </div>
-      ${guardado && (guardado.envios || []).length ? `<div class="ayuda" style="margin-top:10px">Envíos: ${guardado.envios.map(e => esc(fechaHora(e.f) + ' a ' + e.a)).join(' · ')}</div>` : ''}
+      ${guardado && (guardado.envios || []).length ? `<div class="ayuda" style="margin-top:10px">Envíos: ${guardado.envios.map(e => esc(fechaHora(e.f) + (e.de ? ' desde ' + e.de : '') + ' a ' + e.a) + (e.copia ? ` (<a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${e.copia}/view">copia</a>)` : '')).join(' · ')}</div>` : ''}
       ${guardado && guardado.pdfId ? `<div class="ayuda" style="margin-top:6px"><a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${guardado.pdfId}/view">Ver el PDF guardado en Drive</a></div>` : ''}
     </div>
     <div class="ofi-prev"><div class="seccion-t" style="padding:0 0 8px">Vista previa <span class="mudo" id="o-escala" style="text-transform:none;letter-spacing:0;font-weight:400"></span></div><div class="prev-marco" id="o-prev"></div></div>
@@ -2395,21 +2396,28 @@ function vEditorOficio() {
 function formCorreoOficio(o) {
   let guardados = {}; try { guardados = JSON.parse(localStorage.getItem('tequio.correosOficio') || '{}'); } catch (e) {}
   const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar Zona 050`;
+  const rem = (S.ofiCfg && S.ofiCfg.remitentes) || ['supervision050sep@gmail.com'];
+  let deGuardado = ''; try { deGuardado = localStorage.getItem('tequio.remitenteOficio') || ''; } catch (e) {}
   modal('Enviar ' + esc(o.folio) + ' por correo', `
+    ${esAdmin() && rem.length > 1 ? `<div class="campo"><label for="m-de">Enviar desde</label><select id="m-de">${rem.map(r => `<option ${r === deGuardado ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`
+      : `<div class="campo"><span class="et">Enviar desde</span><div>${esc(rem[0])}</div></div>`}
     <div class="campo"><label for="m-para">Para</label><input id="m-para" type="email" multiple placeholder="correo@ejemplo.mx, otro@ejemplo.mx" value="${esc(guardados[o.destNombre] || '')}"></div>
     <div class="campo"><label for="m-as">Asunto del correo</label><input id="m-as" value="${esc('Oficio ' + o.folio + ' · ' + o.asunto)}"></div>
     <div class="campo"><label for="m-msg">Mensaje</label><textarea id="m-msg" style="min-height:160px">${esc(msg)}</textarea></div>
-    <div class="ayuda">Sale de supervision050sep@gmail.com con el PDF adjunto. Quedan ${S.cuota != null ? S.cuota : '—'} envíos hoy.</div>`,
+    <div class="ayuda">Va con el PDF adjunto y queda una copia del correo en el Drive (Oficios Tequio → Correos enviados). Quedan ${S.cuota != null ? S.cuota : '—'} envíos hoy.</div>`,
     '<button class="boton sec" id="m-no">Cancelar</button><button class="boton terra" id="m-si">Enviar</button>');
   $('#m-no').onclick = cerrarModal;
   $('#m-si').onclick = () => conCarga(async () => {
     const para = $('#m-para').value.trim();
     if (!para) throw new Error('Escriba el correo del destinatario.');
     const b = await pdfOficio(o, await recursos());
-    const r = await api('enviarOficio', { id: o.id, para, asuntoCorreo: $('#m-as').value, mensaje: $('#m-msg').value, pdf: await blobAB64(b) });
+    const de = $('#m-de') ? $('#m-de').value : rem[0];
+    try { if ($('#m-de')) localStorage.setItem('tequio.remitenteOficio', de); } catch (e) {}
+    const r = await api('enviarOficio', { id: o.id, de, para, asuntoCorreo: $('#m-as').value, mensaje: $('#m-msg').value, pdf: await blobAB64(b) });
     poner(S.ofi, r.oficio); if (typeof r.cuota === 'number') S.cuota = r.cuota;
     guardados[o.destNombre] = para; try { localStorage.setItem('tequio.correosOficio', JSON.stringify(guardados)); } catch (e) {}
-    cerrarModal(); vista.ofiBorrador = null; vEditorOficio(); aviso('Oficio enviado por correo.', 'ok', 3500);
+    cerrarModal(); vista.ofiBorrador = null; vEditorOficio();
+    aviso('Oficio enviado por correo.' + (r.nota ? '<br>' + esc(r.nota) : ''), r.nota ? 'aviso' : 'ok', r.nota ? 12000 : 3500);
   });
 }
 

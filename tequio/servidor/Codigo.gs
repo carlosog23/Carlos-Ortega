@@ -437,15 +437,33 @@ const ACCIONES = {
     if (MailApp.getRemainingDailyQuota() < para.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana o envíelo desde su correo.');
     const o = archivar_(d.id, d.pdf);
     const pdf = DriveApp.getFileById(o.pdfId).getBlob().setName(o.folio.replace(/\//g, '-') + '.pdf');
+    const asunto = String(d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto)).slice(0, 250);
     const cuerpo = String(d.mensaje || '').trim() || ('Por este medio le hago llegar el oficio ' + o.folio + '. Asunto: ' + o.asunto + '.');
-    MailApp.sendEmail({ to: para.join(','), subject: d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto), name: 'Supervisión Escolar Zona 050',
-      replyTo: 'supervision050sep@gmail.com', attachments: [pdf],
-      htmlBody: '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
-        '<p style="margin-top:18px;color:#555">Supervisión Escolar Zona 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · Tel. 616 165 5622</p></div>' });
-    o.envios = (o.envios || []).concat([{ f: ahora_(), por: 'correo', a: para.join(', '), u: yo.id }]);
+    const html = '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
+      '<p style="margin-top:18px;color:#555">Supervisión Escolar Zona 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · Tel. 616 165 5622</p></div>';
+    // Los ATP envían siempre desde la cuenta de la Supervisión; el Supervisor puede elegir su correo institucional
+    let de = CORREO_SUPERVISION, nota = '';
+    if (yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL) {
+      let alias = [];
+      try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
+      if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
+        GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: [pdf] });
+        de = CORREO_INSTITUCIONAL;
+      } else {
+        nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
+      }
+    }
+    if (de === CORREO_SUPERVISION) {
+      const institucional = yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL;
+      MailApp.sendEmail({ to: para.join(','), subject: asunto, name: institucional ? 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050' : 'Supervisión Escolar Zona 050',
+        replyTo: institucional ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, attachments: [pdf], htmlBody: html });
+    }
+    const envio = { f: ahora_(), por: 'correo', de: de, a: para.join(', '), u: yo.id };
+    try { envio.copia = guardarCorreo_(o, envio, asunto, cuerpo, yo); } catch (e) { nota = (nota ? nota + ' ' : '') + 'No se pudo guardar la copia del correo en el Drive.'; }
+    o.envios = (o.envios || []).concat([envio]);
     guardar_('ofi', o);
-    bitacora_('oficio', o.id, para, 'Oficio ' + o.folio, 'enviado por ' + yo.nombre);
-    return { oficio: o, cuota: MailApp.getRemainingDailyQuota() };
+    bitacora_('oficio', o.id, para, 'Oficio ' + o.folio, 'enviado por ' + yo.nombre + ' desde ' + de);
+    return { oficio: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota };
   },
 
   // Configuración de oficios (solo Supervisión): último número, clave de Gemini, firma y sello
@@ -511,8 +529,11 @@ function cfgOficios_() {
   const anioHoy = hoy_().slice(0, 4);
   const sig = anio === anioHoy ? ultimo + 1 : 1;
   return { ultimo: ultimo, anio: anio, siguiente: folio_(sig, anioHoy), ia: !!p.getProperty('GEMINI_KEY'), modelo: p.getProperty('GEMINI_MODELO') || '',
-    firma: !!p.getProperty('FIRMA_ID'), sello: !!p.getProperty('SELLO_ID') };
+    firma: !!p.getProperty('FIRMA_ID'), sello: !!p.getProperty('SELLO_ID'), remitentes: [CORREO_SUPERVISION, CORREO_INSTITUCIONAL] };
 }
+
+const CORREO_SUPERVISION = 'supervision050sep@gmail.com';
+const CORREO_INSTITUCIONAL = 'cortegagutierrez@bcedu.mx';
 
 function carpetaPorNombre_(padre, nombre) {
   const it = padre.getFoldersByName(nombre);
@@ -528,6 +549,22 @@ function carpetaOficios_() {
   const f = carpetaPorNombre_(docs.hasNext() ? docs.next() : raiz, 'Oficios Tequio');
   p.setProperty('OFI_CARPETA', f.getId());
   return f;
+}
+// «Oficios Tequio/Correos enviados/AAAA»: una copia en PDF de cada correo enviado desde Tequio
+function carpetaCorreos_(anio) {
+  return carpetaPorNombre_(carpetaPorNombre_(carpetaOficios_(), 'Correos enviados'), String(anio || hoy_().slice(0, 4)));
+}
+function guardarCorreo_(o, envio, asunto, cuerpo, yo) {
+  const fila = (k, v) => '<tr><td style="padding:4px 12px 4px 0;color:#555;white-space:nowrap;vertical-align:top"><b>' + k + '</b></td><td style="padding:4px 0">' + esc_(v) + '</td></tr>';
+  const html = '<html><body style="font:12px/1.5 Arial,sans-serif;color:#1E2A40;margin:30px">' +
+    '<div style="font-size:11px;color:#555;border-bottom:2px solid #1F2A44;padding-bottom:6px;margin-bottom:12px">SUPERVISIÓN ESCOLAR ZONA 050 · Copia de correo enviado desde Tequio</div>' +
+    '<table style="border-collapse:collapse;margin-bottom:14px">' + fila('Fecha', envio.f.replace('T', ' ').slice(0, 16)) + fila('De', envio.de) + fila('Para', envio.a) +
+    fila('Asunto', asunto) + fila('Adjunto', o.folio.replace(/\//g, '-') + '.pdf') + fila('Oficio', o.folio + ' · ' + o.asunto) + fila('Enviado por', yo.nombre) + '</table>' +
+    '<div style="border-top:1px solid #ccc;padding-top:12px">' + esc_(cuerpo).replace(/\n/g, '<br>') + '</div>' +
+    (o.pdfId ? '<p style="margin-top:20px;font-size:11px;color:#555">El oficio en PDF está en el Drive: https://drive.google.com/file/d/' + o.pdfId + '/view</p>' : '') + '</body></html>';
+  const nombre = envio.f.slice(0, 16).replace('T', ' ').replace(':', '') + ' · ' + o.folio.replace(/\//g, '-') + ' · ' + envio.a.split(',')[0].slice(0, 60) + '.pdf';
+  const f = carpetaCorreos_(envio.f.slice(0, 4)).createFile(Utilities.newBlob(html, 'text/html', 'correo.html').getAs('application/pdf').setName(nombre));
+  return f.getId();
 }
 function carpetaRecursos_() { return carpetaPorNombre_(DriveApp.getRootFolder(), 'Tequio · Recursos (no compartir)'); }
 
@@ -596,7 +633,12 @@ function modeloGemini_(key, forzar) {
 function autorizarOficios() {
   const f = carpetaOficios_();
   carpetaRecursos_();
+  carpetaCorreos_();
   UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });
+  let alias = [];
+  try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
+  Logger.log(alias.indexOf(CORREO_INSTITUCIONAL) >= 0 ? 'Su correo ' + CORREO_INSTITUCIONAL + ' ya está dado de alta: Tequio podrá enviar desde él.'
+    : 'Aviso: ' + CORREO_INSTITUCIONAL + ' todavía no está dado de alta en «Enviar como» del Gmail de la Supervisión. Mientras tanto, los oficios saldrán de ' + CORREO_SUPERVISION + ' con respuestas a su correo institucional.');
   Logger.log('Listo. Los oficios se guardarán en la carpeta «' + f.getName() + '» del Drive. El siguiente número es ' + cfgOficios_().siguiente + '.');
 }
 
