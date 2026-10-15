@@ -1994,6 +1994,7 @@ const Demo = (() => {
     enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); if (!GRUPOS_DIR[o.municipio]) o.destCorreo = d.para; o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), de: d.de, a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
     configOficios: d => { D.ofiCfg.ultimo = +d.ultimo || 0; D.ofiCfg.siguiente = 'SE-050/' + String(D.ofiCfg.ultimo + 1).padStart(3, '0') + '/2026'; if (d.geminiKey != null) D.ofiCfg.ia = !!d.geminiKey; return { ofiCfg: copia(D.ofiCfg) }; },
     recursosOficio: () => ({}),
+    numeroOficio: d => { D.ofiCfg.ultimo = +d.ultimo || 0; D.ofiCfg.siguiente = 'SE-050/' + String(D.ofiCfg.ultimo + 1).padStart(3, '0') + '/2026'; return { ofiCfg: copia(D.ofiCfg) }; },
     analizarOficioRecibido: d => ({ analisis: { escuelaCct: '02DPR0425Z', escuelaNombre: 'Esc. Prim. «Emiliano Zapata»', remitente: 'Dirección de la escuela (ejemplo)', oficioDirector: 'Oficio 012/2026, 13 de octubre de 2026',
       resumen: 'La dirección informa que desde el lunes 12 de octubre la escuela no cuenta con suministro de agua y que el reporte a la comisión estatal no ha sido atendido; los sanitarios están fuera de servicio.',
       peticiones: ['Gestionar el envío de una pipa de agua', 'Solicitar la reparación de la toma'], autoridad: 'San Quintín', otraDependencia: {}, motivoAutoridad: 'La escuela pertenece al municipio de San Quintín y la gestión de mantenimiento corresponde al Departamento de Educación Primaria.',
@@ -2309,7 +2310,7 @@ function vOficios() {
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios</h1>
     <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Subir oficio de un director</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
-  <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>${esAdmin() ? ' <button type="button" class="boton sec chico" id="b-ofi-num" style="margin-left:4px">Cambiar el número</button>' : ''}. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
+  <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>${esMesa() ? ' <button type="button" class="boton sec chico" id="b-ofi-num" style="margin-left:4px">Cambiar el número</button>' : ''}. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
   <div class="filtros"><input id="f-ofi" type="search" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.ofiBuscar || '')}" style="flex:1;min-width:220px"></div>
   ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-ofi="${o.id}">
     <div class="fecha"><b>${esc(String(o.numero).padStart(3, '0'))}</b><span>${esc(o.anio)}</span></div>
@@ -2591,7 +2592,7 @@ function formNumeroOficio() {
   $('#n-no').onclick = cerrarModal;
   $('#n-si').onclick = () => { const n = parseInt($('#n-sig').value, 10);
     if (!(n >= 1 && n <= 999)) return aviso('Escriba un número entre 1 y 999.', 'mal');
-    accion('configOficios', { ultimo: n - 1, anio }, r => { S.ofiCfg = r.ofiCfg; cerrarModal(); vOficios(); aviso('El siguiente oficio será el ' + esc(r.ofiCfg.siguiente) + '.', 'ok', 4000); }); };
+    accion('numeroOficio', { ultimo: n - 1, anio }, r => { S.ofiCfg = r.ofiCfg; cerrarModal(); vOficios(); aviso('El siguiente oficio será el ' + esc(r.ofiCfg.siguiente) + '.', 'ok', 4000); }); };
 }
 
 function formCfgOficios() {
