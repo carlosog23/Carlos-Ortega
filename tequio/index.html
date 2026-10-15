@@ -137,6 +137,55 @@ main{padding:20px 0 40px}
 .act .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .seccion-t{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--terra-d);padding:12px 14px 6px}
 
+
+/* Oficios */
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Regular.ttf) format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Bold.ttf) format('truetype');font-weight:700;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Italic.ttf) format('truetype');font-weight:400;font-style:italic}
+.ofi-ed{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+@media (max-width:980px){.ofi-ed{grid-template-columns:minmax(0,1fr)}}
+.ofi-prev{position:sticky;top:76px}
+@media (max-width:980px){.ofi-prev{position:static}}
+.prev-marco{width:100%;overflow:hidden;border-radius:6px;box-shadow:0 2px 14px rgba(20,30,50,.18);background:#fff}
+.ofi-form textarea{min-height:110px}
+.seg-op{display:flex;border:1px solid var(--borde);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg-op button{flex:1;border:0;background:var(--papel);padding:9px 10px;cursor:pointer;font-weight:600;color:var(--tinta);min-height:40px;border-right:1px solid var(--borde)}
+.seg-op button:last-child{border-right:0}
+.seg-op button[aria-pressed="true"]{background:var(--indigo);color:#fff}
+.ia-caja{background:#EEF2F8;border:1px solid #D3DCEA;border-radius:10px;padding:10px 12px}
+.ia-caja .boton{margin-top:8px}
+.ofi-botones{display:flex;gap:8px;flex-wrap:wrap}
+.ofi-botones .boton[disabled]{opacity:.45;cursor:not-allowed}
+.hoja{position:relative;width:816px;min-height:1056px;box-sizing:border-box;padding:137px 96px 77px;background:#fff;color:#1b1b1b;font-family:'MontserratOfi','Montserrat',Arial,sans-serif;text-align:left}
+.hoja *{box-sizing:border-box}
+.h-enc{position:absolute;top:33px;left:96px;right:96px;display:grid;grid-template-columns:113px 1fr 113px;align-items:center}
+.h-isep{width:100px;height:75px;object-fit:contain}
+.h-zona{width:80px;height:80px;object-fit:contain;justify-self:end}
+.h-tit{text-align:center;line-height:1.25}
+.h-tit .t1{font-size:6.5pt;font-weight:700;color:#1F3A6B}
+.h-tit .t2{font-size:7pt;color:#555}
+.h-tit .t3{font-size:9.5pt;font-weight:700;color:#1F2A44;letter-spacing:.06em;margin:1px 0}
+.h-filete{position:absolute;top:118px;left:96px;right:96px;border-top:2px solid #1F2A44;padding-top:2px}
+.h-filete::after{content:'';display:block;border-top:.7px solid #9AA5B1}
+.h-datos{text-align:right;font-size:.95em}
+.h-num{color:#1F2A44}
+.h-dest{font-weight:700;line-height:1.437}
+.h-p{text-align:justify}
+.h-firma{line-height:1.437;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.h-at{font-weight:700;letter-spacing:.12em}
+.h-lema{font-style:italic;color:#1F2A44}
+.h-linea{position:relative;height:18px}
+.h-raya{position:absolute;left:50%;bottom:2px;width:330px;transform:translateX(-50%);border-bottom:1px solid #777}
+.h-img-firma{position:absolute;left:50%;transform:translateX(-50%);top:-125px;width:104px;height:133px;z-index:2}
+.h-img-sello{position:absolute;left:456px;top:-101px;width:72px;height:127px;z-index:1}
+.h-nom{font-weight:700}
+.h-car{font-size:.9em}
+.h-cct{font-size:.8em;color:#555}
+.h-ccp{font-size:7.5pt;line-height:1.38;margin-top:17px}
+.h-cuerpo.abajo{display:flex;flex-direction:column;min-height:842px}
+.h-cuerpo.abajo .h-ccp{margin-top:auto}
+.h-pie{position:absolute;bottom:33px;left:96px;right:96px;border-top:1px solid #1F2A44;padding-top:5px;text-align:center;font-size:7pt;color:#555;line-height:1.35}
+
 /* Seguimiento */
 .resumen{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 @media (max-width:700px){.resumen{grid-template-columns:repeat(2,1fr)}}
@@ -466,7 +515,8 @@ async function cargar() {
     const r = await api('datos');
     S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
-      evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '' };
+      evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
+      ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -558,6 +608,7 @@ function portada(mensaje) {
 function pestanas() {
   if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  l.push(['oficios', 'Oficios', 'i-lapiz']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -573,11 +624,11 @@ function pintar() {
   </div></header>
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
+  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, enlaces: vEnlaces })[vista.tab]();
+  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces })[vista.tab]();
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -1895,7 +1946,12 @@ const Demo = (() => {
       });
     });
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 4 };
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 5,
+      ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
+        destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
+        referencia: '', asunto: 'Informe de visitas de acompañamiento del mes de septiembre', ccp: 'Archivo.', firma: false, sello: false, escala: '1', pdfId: '', envios: [], creadoPor: usr[0].id, creado: ahora(), actualizado: ahora(),
+        cuerpo: 'Por medio del presente, me permito informar a usted que durante el mes de septiembre la Supervisión Escolar Zona 050 realizó visitas de acompañamiento técnico-pedagógico a las escuelas primarias de la zona, conforme al programa de trabajo del ciclo escolar 2026-2027.\n\nEn dichas visitas se dio seguimiento a la elaboración del Programa Analítico, a la organización del Consejo Técnico Escolar y a las condiciones de seguridad de los planteles. Los registros y evidencias correspondientes quedan a su disposición en esta Supervisión.\n\nSin otro particular por el momento, aprovecho la ocasión para enviarle un cordial saludo.' }],
+      ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] } };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -1904,7 +1960,7 @@ const Demo = (() => {
       if (!cfg.dir) return copia(D);
       const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
       return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
-        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct) }));
+        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined }));
     },
     subirArchivo: d => {
       const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
@@ -1922,6 +1978,22 @@ const Demo = (() => {
       return { creadas, existian, sinBase, evi: copia(D.evi) };
     },
     prepararDirectores: () => ({ usr: copia(D.usr), cambios: 0 }),
+    guardarOficio: d => {
+      let o = D.ofi.find(x => x.id === d.id);
+      if (!o) { const n = ++D.ofiCfg.ultimo; o = { id: 'ofi-2026-' + String(n).padStart(3, '0'), numero: n, anio: 2026, folio: 'SE-050/' + String(n).padStart(3, '0') + '/2026', pdfId: '', envios: [], creadoPor: D.yo.id, creado: ahora() };
+        D.ofi.unshift(o); D.ofiCfg.siguiente = 'SE-050/' + String(n + 1).padStart(3, '0') + '/2026'; }
+      ['fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'destCorreo', 'escuelas', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'escala'].forEach(k => o[k] = d[k]);
+      o.actualizado = ahora();
+      return { oficio: copia(o), ofiCfg: copia(D.ofiCfg) };
+    },
+    redactarOficio: d => ({ texto: 'Por medio del presente, me permito dirigirme a usted para hacer de su conocimiento lo relativo a: ' + String(d.asunto).toLowerCase().replace(/\.$/, '') + '.\n\n' +
+      (d.notas ? 'Al respecto, le informo que ' + d.notas.trim().replace(/\.$/, '') + '. ' : '') + 'Por lo anterior, respetuosamente solicito su valioso apoyo para que se brinde la atención correspondiente, a fin de garantizar el adecuado funcionamiento del servicio educativo en beneficio de las niñas y los niños de la zona.\n\n' +
+      'Sin otro particular por el momento, agradezco de antemano la atención que se sirva brindar al presente y le reitero la seguridad de mi consideración distinguida.\n\n(Demostración: en la versión real este texto lo redacta Gemini a partir del asunto y sus notas.)' }),
+    archivarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.pdfId = ''; return { oficio: copia(o) }; },
+    enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); if (!GRUPOS_DIR[o.municipio]) o.destCorreo = d.para; o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), de: d.de, a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
+    configOficios: d => { D.ofiCfg.ultimo = +d.ultimo || 0; D.ofiCfg.siguiente = 'SE-050/' + String(D.ofiCfg.ultimo + 1).padStart(3, '0') + '/2026'; if (d.geminiKey != null) D.ofiCfg.ia = !!d.geminiKey; return { ofiCfg: copia(D.ofiCfg) }; },
+    recursosOficio: () => ({}),
+
     guardarActividad: d => {
       const previa = D.act.find(x => x.id === d.id);
       const a = Object.assign({}, previa || {}, d, { id: previa ? previa.id : uid('act'), enviado: previa ? previa.enviado : {}, creadoPor: previa ? previa.creadoPor : D.yo.id, actualizado: ahora() });
@@ -1968,6 +2040,509 @@ const Demo = (() => {
   };
   return { llamar: (accion, datos) => new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
 })();
+
+/* =========================================================
+   Oficios de la Supervisión (Supervisión y Mesa Técnica)
+   ========================================================= */
+const ISEP_TXT = 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA';
+const DESTINOS = {
+  'San Quintín': { destNombre: 'C. HUMBERTO GARCÍA SOLORIO', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: ISEP_TXT },
+  'Ensenada': { destNombre: 'PROFR. ARTURO AGUILAR CITAL', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN ENSENADA', destInst: ISEP_TXT },
+  'Otro': { destNombre: '', destCargo: '', destInst: '' },
+  'Directores': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'ENSENADA Y SAN QUINTÍN, B.C.' },
+  'Directores Ensenada': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'MUNICIPIO DE ENSENADA, B.C.' },
+  'Directores San Quintín': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'MUNICIPIO DE SAN QUINTÍN, B.C.' },
+  'Multigrado': { destNombre: 'C.C. ENCARGADOS DE DESPACHO DE LAS ESCUELAS MULTIGRADO', destCargo: 'ZONA ESCOLAR 050', destInst: 'ENSENADA Y SAN QUINTÍN, B.C.' }
+};
+// Oficios a los directores: a qué escuelas va cada grupo
+const GRUPOS_DIR = { 'Directores': 'Todos los directores', 'Directores Ensenada': 'Directores de Ensenada', 'Directores San Quintín': 'Directores de San Quintín', 'Multigrado': 'Encargados multigrado' };
+const esGrupo = m => !!GRUPOS_DIR[m];
+const esMultigrado = c => c.multigrado === true || c.multigrado === 'true';
+function escuelasDeGrupo(m) {
+  return directores().filter(c => m === 'Directores' || (m === 'Multigrado' ? esMultigrado(c) : c.municipio === m.replace('Directores ', '')));
+}
+const presente = o => esGrupo(o.municipio) ? 'P R E S E N T E S' : 'P R E S E N T E';
+// Destinatario a partir de un contacto del Directorio (directores, encargados de despacho y demás)
+const FEM = /^(c\.\s*)?(profra|mtra|lic(da|\.?\s*a)?\b|dra|ing\.?\s*a|c\.\s*p\.\s*a|sra|srita)/i;
+function cargoContacto(c) {
+  let cargo = String(c.cargo || (c.tipo === 'director' ? 'Director(a)' : '')).trim();
+  if (/\(a\)/i.test(cargo)) cargo = FEM.test(String(c.nombre || '').trim()) ? cargo.replace(/o\(a\)/gi, 'a').replace(/r\(a\)/gi, 'ra').replace(/\(a\)/gi, 'a') : cargo.replace(/\(a\)/gi, '');
+  if (c.escuela) cargo += ' de la Escuela Primaria «' + c.escuela + '»';
+  return cargo.toUpperCase().replace(/[«»]/g, '"');
+}
+function destDeContacto(c) {
+  return { destNombre: String(c.nombre || '').toUpperCase(), destCargo: cargoContacto(c),
+    destInst: c.cct ? 'C.C.T. ' + c.cct + (c.municipio ? ', ' + c.municipio.toUpperCase() + ', B.C.' : '') : '', destCorreo: correos(c).join(', '), escuelas: c.cct ? [c.cct] : [] };
+}
+// Personas a quienes ya se les hizo un oficio (se guardan solas con cada oficio)
+function destinatariosUsados() {
+  const vistos = {}, l = [];
+  (S.ofi || []).filter(o => !esGrupo(o.municipio) && o.destNombre).sort((a, b) => String(b.actualizado || b.creado).localeCompare(String(a.actualizado || a.creado))).forEach(o => {
+    const k = (o.destNombre + '|' + o.destCargo).toUpperCase();
+    if (vistos[k]) { vistos[k].veces++; if (!vistos[k].destCorreo && o.destCorreo) vistos[k].destCorreo = o.destCorreo; return; }
+    vistos[k] = { destNombre: o.destNombre, destCargo: o.destCargo, destInst: o.destInst, destCorreo: o.destCorreo || '', municipio: o.municipio, escuelas: o.escuelas || [], veces: 1, ultimo: o.fecha };
+    l.push(vistos[k]);
+  });
+  return l;
+}
+const OFI = { lugar: 'Camalú, San Quintín, B.C.', firmante: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', cargo: 'SUPERVISOR ESCOLAR ZONA 050', cct: '02FIZ0094X' };
+let RECURSOS = null;        // firma y sello (solo Supervisión), en base64
+const BIBLIO = {};          // scripts que se cargan solo al generar archivos
+const esMesa = () => S && S.yo && (S.yo.rol === 'admin' || S.yo.rol === 'atp');
+const fechaOficio = f => { const d = deIso(f || hoy()); return d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear(); };
+const folioDe = o => o.folio || (S.ofiCfg ? S.ofiCfg.siguiente : 'SE-050/___/' + hoy().slice(0, 4));
+const nombreArchivoOfi = o => (o.folio || 'Oficio').replace(/\//g, '-') + ' ' + String(o.asunto || '').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 60).trim();
+function cargarScript(src) {
+  if (!BIBLIO[src]) BIBLIO[src] = new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => { delete BIBLIO[src]; mal(new Error('No se pudo cargar ' + src + '. Revise su conexión.')); }; document.head.appendChild(s); });
+  return BIBLIO[src];
+}
+const b64aBytes = b64 => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const blobAB64 = blob => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = mal; r.readAsDataURL(blob); });
+async function bytesDe(url) { const r = await fetch(url); if (!r.ok) throw new Error('No se pudo cargar ' + url); return new Uint8Array(await r.arrayBuffer()); }
+async function recursos() {
+  if (RECURSOS) return RECURSOS;
+  if (!esAdmin()) return (RECURSOS = {});
+  const r = await api('recursosOficio');
+  RECURSOS = { firma: r.firma || '', sello: r.sello || '' };
+  return RECURSOS;
+}
+const parrafosDe = txt => String(txt || '').replace(/\r/g, '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+const lineasCcp = o => String(o.ccp || '').split('\n').map(x => x.trim()).filter(Boolean);
+
+/* ---- La hoja en HTML (vista previa y PDF). s = escala de letra y espacios (1 = normal) ---- */
+// Word da a cada renglón de Montserrat 1.38 veces el tamaño de la letra; la página usa lo mismo para que ambos coincidan
+const MULT_LINEA = 1.38;
+function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
+  // s: escala de letra (para que quepa); t: 0 a 1, aire extra cuando la hoja queda vacía; abajo: C.c.p. al pie de la hoja
+  const px = v => (v * s).toFixed(2) + 'px';
+  const pt = v => (v * 96 / 72 * s).toFixed(2) + 'px';
+  const lh = ((1.125 + 0.4 * t) * MULT_LINEA).toFixed(3), pa = 7.3 + 12 * t;
+  const parr = parrafosDe(o.cuerpo).map(p => {
+    const lineas = p.split('\n');
+    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) return lineas.map(l => `<p class="h-p h-vi" style="line-height:${lh};margin:0 0 ${px(4 + 3 * t)};padding-left:${px(26)};text-indent:-${px(14)}">•&nbsp;&nbsp;${esc(l.trim().replace(/^[•\-–]\s*/, ''))}</p>`).join('');
+    return `<p class="h-p" style="line-height:${lh};margin:0 0 ${px(pa)}">${esc(p).replace(/\n/g, '<br>')}</p>`;
+  }).join('') || `<p class="h-p" style="margin:0;color:#aaa">El texto del oficio aparecerá aquí.</p>`;
+  return `<div class="hoja" style="font-size:${pt(10)};line-height:${(1.125 * MULT_LINEA).toFixed(3)}">
+    <div class="h-enc">
+      <img class="h-isep" src="img/isep.png" alt="ISEP">
+      <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div>
+      <img class="h-zona" src="img/zona050.png" alt="Zona 050">
+    </div>
+    <div class="h-filete"></div>
+    <div class="h-cuerpo${abajo ? ' abajo' : ''}"><div class="h-princ">
+      <div class="h-datos" style="margin:${px(40 * t)} 0 ${px(17 + 28 * t)}">
+        <p style="margin:0 0 ${px(4)}">${esc(OFI.lugar)}, a ${fechaOficio(o.fecha)}</p>
+        <p style="margin:0 0 ${px(4)}"><b>Oficio No.: <span class="h-num">${esc(folioDe(o))}</span></b></p>
+        ${o.referencia ? `<p style="margin:0 0 ${px(4)}"><b>Referencia:</b> ${esc(o.referencia)}</p>` : ''}
+        <p style="margin:0"><b>Asunto:</b> ${esc(o.asunto || '')}</p>
+      </div>
+      <div class="h-dest" style="margin-bottom:${px(16 + 24 * t)}">
+        ${[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => `<div>${esc(String(x).toUpperCase())}</div>`).join('')}
+        <div style="letter-spacing:.25em">${presente(o)}</div>
+      </div>
+      ${parr}
+      <div class="h-firma" style="margin-top:${px(13 + 90 * t)}">
+        <div class="h-at">A T E N T A M E N T E</div>
+        <div class="h-lema">“Responsabilidad y superación”</div>
+        <div class="h-esp" style="height:${px(110 + 24 * t)}"></div>
+        <div class="h-linea">
+          ${o.firma && rec.firma ? `<img class="h-img-firma" src="data:image/png;base64,${rec.firma}" alt="Firma">` : ''}
+          ${o.sello && rec.sello ? `<img class="h-img-sello" src="data:image/png;base64,${rec.sello}" alt="Sello">` : ''}
+          <div class="h-raya"></div>
+        </div>
+        <div class="h-nom">${OFI.firmante}</div>
+        <div class="h-car">${OFI.cargo}</div>
+        <div class="h-cct">C.C.T. ${OFI.cct}</div>
+      </div></div>
+      <div class="h-ccp">${lineasCcp(o).map(l => `<div><b>C.c.p.</b> ${esc(l)}</div>`).join('')}</div>
+    </div>
+    <div class="h-pie"><div>Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910</div><div>Tel. 616 165 5622 · supervision050sep@gmail.com</div></div>
+  </div>`;
+}
+// Acomoda el oficio en la hoja: si se pasa por poco, reduce un poco la letra; si queda vacía, reparte el espacio
+// (más aire entre párrafos y la firma más abajo) y deja las copias (C.c.p.) al pie de la hoja.
+const ALTO_UTIL = 842;
+let FUENTES_OFI = null;   // la letra del oficio se carga de la propia página para medir igual que en Word
+const fuentesOficio = () => FUENTES_OFI || (FUENTES_OFI = Promise.all(['400 10px MontserratOfi', '700 10px MontserratOfi', 'italic 400 10px MontserratOfi'].map(f => document.fonts.load(f))).catch(() => null));
+function disposicion(o, rec, reserva = 0, escalas = [1, 0.97, 0.94, 0.91, 0.88], holgura = 0) {
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;visibility:hidden';
+  document.body.appendChild(caja);
+  const cabe = (s, t) => {
+    caja.innerHTML = htmlOficio(o, s, rec, t, true);
+    const pr = caja.querySelector('.h-princ').offsetHeight, cc = caja.querySelector('.h-ccp').offsetHeight;
+    return pr * (1 + holgura) + (cc ? 18 + cc : 0) <= ALTO_UTIL - reserva;
+  };
+  try {
+    let s = 0;
+    for (const e of escalas) if (cabe(e, 0)) { s = e; break; }
+    if (!s) return { s: 1, t: 0, unaHoja: false };   // ni reduciendo cabe: dos hojas con letra normal
+    if (s < 1) return { s, t: 0, unaHoja: true };
+    let lo = 0, hi = 1;
+    if (cabe(1, 1)) lo = 1;
+    else for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2; if (cabe(1, m)) lo = m; else hi = m; }
+    return { s: 1, t: Math.round(lo * 100) / 100, unaHoja: true };
+  } finally { caja.remove(); }
+}
+
+/* ---- Word (.docx) con la misma composición ---- */
+async function wordOficio(o, rec) {
+  await cargarScript('lib/docx.iife.js');
+  await fuentesOficio();
+  const D = window.docx;
+  // Word acomoda el texto un poco distinto que la página: se deja un margen de seguridad (más si hay que reducir la letra)
+  const dis = disposicion(o, rec, 16, [1, 0.97, 0.94, 0.91, 0.88, 0.85], 0.02);
+  const s = dis.s, t = dis.t;
+  const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: A, BorderStyle, VerticalAlign, Footer, Header, PageNumber,
+    HorizontalPositionRelativeFrom: H, VerticalPositionRelativeFrom: V, TextWrappingType } = D;
+  const [isep, zona, fuente] = await Promise.all([bytesDe('img/isep.png'), bytesDe('img/zona050.png'), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
+  const F = 'Montserrat', AZ = '1F3A6B', OS = '1F2A44', GR = '555555';
+  const z = v => Math.max(12, Math.floor(v * s + 0.001));  // medios puntos hacia abajo para no crecer al redondear
+  const tx = (text, x = {}) => new TextRun({ text, font: F, size: x.size ? z(x.size) : z(20), bold: x.bold, italics: x.italics, color: x.color, characterSpacing: x.sp });
+  const p = (runs, x = {}) => new Paragraph({ children: typeof runs === 'string' ? [tx(runs, x)] : runs, alignment: x.align || A.JUSTIFIED,
+    spacing: { before: x.before || 0, after: x.after != null ? Math.round(x.after * s) : Math.round(110 * s), line: x.line || 270 }, indent: x.indent, keepNext: x.keepNext, frame: x.frame });
+  const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, nb = { top: none, bottom: none, left: none, right: none };
+  const celda = (w, children, al) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children });
+  const header = new Header({ children: [
+    new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [1700, 5960, 1700], borders: { ...nb, insideHorizontal: none, insideVertical: none }, rows: [new TableRow({ children: [
+      celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 100, height: 75 } })] })]),
+      celda(5960, [
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ISEP_TXT, font: F, size: 13, bold: true, color: AZ })] }),
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA', font: F, size: 14, color: GR })] }),
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'SUPERVISIÓN ESCOLAR ZONA 050', font: F, size: 19, bold: true, color: OS, characterSpacing: 20 })] }),
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 0, line: 240 }, children: [new TextRun({ text: 'PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct, font: F, size: 14, color: GR })] })]),
+      celda(1700, [new Paragraph({ alignment: A.RIGHT, children: [new ImageRun({ type: 'png', data: zona, transformation: { width: 80, height: 80 } })] })])
+    ] })] }),
+    new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: OS, space: 1 } }, spacing: { before: 80, after: 0 }, children: [] }),
+    new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '9AA5B1', space: 1 } }, spacing: { after: 0 }, children: [] })
+  ] });
+  const pie = (x) => new TextRun({ text: x, font: F, size: 14, color: GR });
+  // Las copias (C.c.p.) van al pie de la hoja cuando el oficio cabe en una; si ocupa dos, siguen a la firma
+  const ccp = lineasCcp(o);
+  const parCcp = x => new Paragraph({ alignment: A.LEFT, spacing: { before: 0, after: x, line: 240 },
+    children: ccp.flatMap((l, i) => [...(i ? [new TextRun({ break: 1 })] : []), tx('C.c.p. ', { bold: true, size: 15 }), tx(l, { size: 15 })]) });
+  const footer = new Footer({ children: [
+    ...(dis.unaHoja && ccp.length ? [parCcp(160)] : []),
+    new Paragraph({ alignment: A.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: OS, space: 4 } }, spacing: { after: 20 }, children: [pie('Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910')] }),
+    new Paragraph({ alignment: A.CENTER, spacing: { after: 0 }, children: [pie('Tel. 616 165 5622 · supervision050sep@gmail.com     Página '), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 14, color: GR }), pie(' de '), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 14, color: GR })] })
+  ] });
+  const B = (x, y = {}) => tx(x, Object.assign({ bold: true }, y));
+  const der = { align: A.RIGHT, after: 60 };
+  const lineaCuerpo = Math.round(270 + 96 * t), tras = Math.round((110 + 180 * t) * s);
+  const kids = [
+    p([tx(OFI.lugar + ', a ' + fechaOficio(o.fecha), { size: 19 })], Object.assign({}, der, { before: Math.round(600 * t) })),
+    p([B('Oficio No.: ', { size: 19 }), B(o.folio, { size: 19, color: OS })], der),
+    ...(o.referencia ? [p([B('Referencia: ', { size: 19 }), tx(o.referencia, { size: 19 })], der)] : []),
+    p([B('Asunto: ', { size: 19 }), tx(o.asunto, { size: 19 })], { align: A.RIGHT, after: Math.round(260 + 420 * t), indent: { left: 2200 } }),
+    ...[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => p([B(String(x).toUpperCase())], { align: A.LEFT, after: 0, line: 250 })),
+    p([B(presente(o), { sp: 20 })], { align: A.LEFT, after: Math.round(240 + 360 * t), line: 250 })
+  ];
+  parrafosDe(o.cuerpo).forEach(par => {
+    const lineas = par.split('\n');
+    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) lineas.forEach(l => kids.push(p([tx('•\t' + l.trim().replace(/^[•\-–]\s*/, ''))], { after: Math.round(60 + 45 * t), line: lineaCuerpo, indent: { left: 540, hanging: 260 } })));
+    else kids.push(new Paragraph({ alignment: A.JUSTIFIED, spacing: { after: tras, line: lineaCuerpo }, children: lineas.flatMap((l, i) => i ? [new TextRun({ break: 1 }), tx(l)] : [tx(l)]) }));
+  });
+  const flota = (data, w, h, x, y, zi) => new ImageRun({ type: 'png', data, transformation: { width: w, height: h }, floating: { horizontalPosition: { relative: H.MARGIN, offset: Math.round(x * 914400) },
+    verticalPosition: { relative: V.PARAGRAPH, offset: Math.round(y * 914400) }, allowOverlap: true, behindDocument: false, lockAnchor: true, layoutInCell: true, wrap: { type: TextWrappingType.NONE }, zIndex: zi } });
+  const imgs = [];
+  if (o.firma && rec.firma) imgs.push(flota(b64aBytes(rec.firma), 104, 133, (6.5 - 104 / 96) / 2, -1.30, 20));
+  if (o.sello && rec.sello) imgs.push(flota(b64aBytes(rec.sello), 72, 127, 4.75, -1.05, 10));
+  kids.push(
+    p([B('A T E N T A M E N T E', { sp: 10 })], { align: A.CENTER, after: 40, keepNext: true, before: Math.round((190 + 1350 * t) * s) }),
+    p([tx('“Responsabilidad y superación”', { italics: true, color: OS })], { align: A.CENTER, after: 0, keepNext: true }),
+    new Paragraph({ keepNext: true, spacing: { before: 0, after: 0, line: Math.round((1650 + 360 * t) * s), lineRule: 'exact' }, children: [tx(' ')] }),
+    new Paragraph({ alignment: A.CENTER, keepNext: true, spacing: { before: 0, after: 0 }, children: [...imgs, tx('_________________________________________', { color: '777777' })] }),
+    p([B(OFI.firmante)], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
+    p([tx(OFI.cargo, { size: 18 })], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
+    p([tx('C.C.T. ' + OFI.cct, { size: 16, color: GR })], { align: A.CENTER, after: dis.unaHoja ? 0 : 260, line: 250 }),
+    ...(!dis.unaHoja && ccp.length ? [parCcp(0)] : [])
+  );
+  const doc = new Document({ creator: 'Supervisión Escolar Zona 050 · Tequio', title: o.folio + ' · ' + o.asunto,
+    fonts: fuente ? [{ name: F, data: fuente, characterSet: D.CharacterSet.ANSI }] : undefined,
+    sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 2050, bottom: 1150, left: 1440, right: 1440, header: 500, footer: 500 } } }, headers: { default: header }, footers: { default: footer }, children: kids }] });
+  return Packer.toBlob(doc);
+}
+
+/* ---- PDF a partir de la hoja HTML ---- */
+async function pdfOficio(o, rec) {
+  await cargarScript('lib/html2pdf.bundle.min.js');
+  await fuentesOficio();
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;background:#fff';
+  const dis = disposicion(o, rec);
+  caja.innerHTML = htmlOficio(o, dis.s, rec, dis.t, dis.unaHoja);
+  document.body.appendChild(caja);
+  try {
+    await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+    return await window.html2pdf().set({ margin: 0, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'] } }).from(caja.firstElementChild).outputPdf('blob');
+  } finally { caja.remove(); }
+}
+function descargarBlob(blob, nombre) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+async function conCarga(fn) { cargando(true); try { return await fn(); } catch (e) { aviso(esc(e.message), 'mal', 9000); return null; } finally { cargando(false); } }
+// Guarda el PDF en el Drive de la Supervisión sin estorbar
+async function archivarPdf(o, blob) {
+  try { const r = await api('archivarOficio', { id: o.id, pdf: await blobAB64(blob) }); poner(S.ofi, r.oficio); } catch (e) {}
+}
+
+/* ---- Vista: lista de oficios ---- */
+function vOficios() {
+  if (!S.ofi) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Oficios</h1></div><div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Para generar oficios, el servidor de Tequio necesita la versión nueva. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</p></div>`;
+    return;
+  }
+  if (vista.ofiEdit) return vEditorOficio();
+  const q = String(vista.ofiBuscar || '').toLowerCase();
+  const lista = S.ofi.filter(o => !q || [o.folio, o.asunto, o.destNombre, o.municipio, o.referencia].join(' ').toLowerCase().includes(q));
+  const cfgO = S.ofiCfg || {};
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Oficios</h1>
+    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
+  <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
+  <div class="filtros"><input id="f-ofi" type="search" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.ofiBuscar || '')}" style="flex:1;min-width:220px"></div>
+  ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-ofi="${o.id}">
+    <div class="fecha"><b>${esc(String(o.numero).padStart(3, '0'))}</b><span>${esc(o.anio)}</span></div>
+    <div class="cuerpo"><div class="t">${esc(o.asunto)}</div>
+      <div class="m"><span>${fechaCorta(o.fecha)}</span><span>· ${esc(o.destNombre || 'Sin destinatario')}</span></div>
+      <div class="chips"><span class="chip">${esc(o.municipio)}</span>${o.pdfId ? '<span class="chip ok">PDF en Drive</span>' : ''}${(o.envios || []).length ? `<span class="chip indigo">Enviado ${fechaCorta(o.envios[o.envios.length - 1].f.slice(0, 10))}</span>` : ''}${o.firma ? '<span class="chip">Firma digital</span>' : ''}</div></div>
+  </button>`).join('')}</div></div>` : `<div class="tarjeta vacio">${q ? 'No hay oficios que coincidan con la búsqueda.' : 'Aún no hay oficios hechos en Tequio. Pulse «Nuevo oficio».'}</div>`}`;
+  $('#b-ofi-nuevo').onclick = () => { vista.ofiEdit = 'nuevo'; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); };
+  if ($('#b-ofi-cfg')) $('#b-ofi-cfg').onclick = formCfgOficios;
+  $('#f-ofi').oninput = e => { vista.ofiBuscar = e.target.value; const pos = e.target.selectionStart; vOficios(); const i = $('#f-ofi'); i.focus(); i.setSelectionRange(pos, pos); };
+  $$('[data-ofi]').forEach(b => b.onclick = () => { vista.ofiEdit = b.dataset.ofi; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); });
+}
+
+/* ---- Editor de oficio con vista previa ---- */
+function vEditorOficio() {
+  const guardado = vista.ofiEdit !== 'nuevo' ? S.ofi.find(x => x.id === vista.ofiEdit) : null;
+  if (vista.ofiEdit !== 'nuevo' && !guardado) { vista.ofiEdit = null; return vOficios(); }
+  if (!vista.ofiBorrador) vista.ofiBorrador = guardado ? JSON.parse(JSON.stringify(guardado)) :
+    Object.assign({ fecha: hoy(), municipio: 'San Quintín', escuelas: [], referencia: '', asunto: '', cuerpo: '', ccp: 'Archivo.', firma: esAdmin() && !!(S.ofiCfg || {}).firma, sello: esAdmin() && !!(S.ofiCfg || {}).sello, notas: '' }, DESTINOS['San Quintín']);
+  const o = vista.ofiBorrador, cfgO = S.ofiCfg || {};
+  const escs = esGrupo(o.municipio) ? escuelasDeGrupo(o.municipio) : directores().filter(c => o.municipio === 'Otro' || c.municipio === o.municipio);
+  $('#vista').innerHTML = `
+  <div class="migas"><button id="b-volver">Oficios</button> › <span>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</span></div>
+  <div class="titulo-vista"><h1>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</h1>
+    <div class="acciones"><span class="chip ${guardado ? 'ok' : 'aviso'}" id="o-estado">${guardado ? 'Guardado' : 'Número al guardar: ' + esc(cfgO.siguiente || '')}</span></div></div>
+  <div class="ofi-ed">
+    <div class="tarjeta pad ofi-form">
+      <div class="campo"><span class="et">¿A quién va dirigido?</span>
+        <div class="ayuda" style="margin:0 0 4px">A la autoridad</div>
+        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra persona' : 'Jefe ' + m}</button>`).join('')}</div>
+        <div class="ayuda" style="margin:8px 0 4px">A los directores de la zona</div>
+        <div class="seg-op">${Object.keys(GRUPOS_DIR).map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${GRUPOS_DIR[m]}</button>`).join('')}</div>
+        <div class="ayuda">${esGrupo(o.municipio) ? 'Al enviarlo por correo se agregan solos los correos de estas direcciones.' : 'San Quintín y Ensenada no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.'}</div></div>
+      <div class="campo"><div style="display:flex;align-items:end;justify-content:space-between;gap:8px;flex-wrap:wrap"><label for="o-dn">Destinatario</label>
+        <button type="button" class="boton sec chico" id="o-lista">${ico('i-dir')}Elegir de la lista</button></div>
+        <input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título"></div>
+      <div class="campo"><label for="o-dc">Cargo</label><input id="o-dc" value="${esc(o.destCargo)}"></div>
+      <div class="campo"><label for="o-di">Dependencia</label><input id="o-di" value="${esc(o.destInst)}"></div>
+      ${esGrupo(o.municipio) ? '' : `<div class="campo"><label for="o-dco">Correo del destinatario <span class="mudo" style="font-weight:400">(opcional · se guarda para los siguientes oficios)</span></label><input id="o-dco" type="email" multiple value="${esc(o.destCorreo || '')}"></div>`}
+      ${escs.length ? `<div class="campo"><span class="et">${esGrupo(o.municipio) ? 'Escuelas a las que va' : 'Escuelas relacionadas <span class="mudo" style="font-weight:400">(opcional, ayudan a la IA)</span>'}</span>
+        <div class="casillas" id="o-esc">${escs.map(c => `<label class="casilla"><input type="checkbox" value="${c.cct}" ${(o.escuelas || []).includes(c.cct) ? 'checked' : ''}> ${esc(c.escuela)}</label>`).join('')}</div></div>` : ''}
+      <div class="fila">
+        <div class="campo"><label for="o-fe">Fecha</label><input type="date" id="o-fe" value="${o.fecha}"></div>
+        <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio SE-050/044/2026"></div>
+      </div>
+      <div class="campo"><label for="o-as">Asunto</label><input id="o-as" maxlength="400" value="${esc(o.asunto)}" placeholder="Ej. Solicitud de apoyo para mantenimiento del plantel"></div>
+      <div class="campo ia-caja"><label for="o-no">Redactar con IA <span class="mudo" style="font-weight:400">· escriba lo que debe decir el oficio</span></label>
+        <textarea id="o-no" placeholder="Ej. La escuela Emiliano Zapata no tiene agua desde el lunes 12; la CESPE no ha atendido el reporte; pedir que el Departamento gestione una pipa y la reparación.">${esc(o.notas || '')}</textarea>
+        <button type="button" class="boton chico" id="o-ia" ${cfgO.ia ? '' : 'disabled'}>✨ Redactar el texto</button>
+        ${cfgO.ia ? '<div class="ayuda">La IA propone el texto; usted lo revisa y corrige antes de guardar. No incluya datos personales delicados.</div>' : `<div class="ayuda">${esAdmin() ? 'Active la IA en Oficios → Configuración (clave gratuita de Gemini).' : 'La Supervisión aún no activa la redacción con IA.'}</div>`}</div>
+      <div class="campo"><label for="o-cu">Texto del oficio</label><textarea id="o-cu" style="min-height:260px" placeholder="Por medio del presente, ...&#10;&#10;Deje una línea en blanco entre párrafos. Para una lista, inicie cada renglón con «• ».">${esc(o.cuerpo)}</textarea></div>
+      <div class="campo"><label for="o-cc">Con copia para (C.c.p.) <span class="mudo" style="font-weight:400">· uno por renglón</span></label><textarea id="o-cc" style="min-height:60px">${esc(o.ccp)}</textarea></div>
+      ${esAdmin() ? `<div class="campo"><span class="et">Firma y sello</span>
+        <label class="casilla"><input type="checkbox" id="o-fi" ${o.firma ? 'checked' : ''} ${cfgO.firma ? '' : 'disabled'}> Agregar firma digital</label>
+        <label class="casilla"><input type="checkbox" id="o-se" ${o.sello ? 'checked' : ''} ${cfgO.sello ? '' : 'disabled'}> Agregar sello digital</label>
+        ${!cfgO.firma || !cfgO.sello ? '<div class="ayuda">Suba su firma y el sello en Oficios → Configuración para poder agregarlos.</div>' : '<div class="ayuda">Sin marcar, queda el espacio para firmar y sellar a mano.</div>'}</div>` : '<div class="ayuda" style="margin-bottom:12px">La firma y el sello digitales solo los agrega la Supervisión.</div>'}
+      <div class="ofi-botones">
+        <button class="boton terra" id="o-guardar">${guardado ? 'Guardar cambios' : 'Guardar y asignar número'}</button>
+        <button class="boton sec" id="o-word" ${guardado ? '' : 'disabled'}>Word</button>
+        <button class="boton sec" id="o-pdf" ${guardado ? '' : 'disabled'}>PDF</button>
+        <button class="boton sec" id="o-correo" ${guardado ? '' : 'disabled'}>${ico('i-correo')}Correo</button>
+        <button class="boton wa" id="o-wa" ${guardado ? '' : 'disabled'}>${ico('i-wa')}WhatsApp</button>
+      </div>
+      ${guardado && (guardado.envios || []).length ? `<div class="ayuda" style="margin-top:10px">Envíos: ${guardado.envios.map(e => esc(fechaHora(e.f) + (e.de ? ' desde ' + e.de : '') + ' a ' + e.a) + (e.copia ? ` (<a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${e.copia}/view">copia</a>)` : '')).join(' · ')}</div>` : ''}
+      ${guardado && guardado.pdfId ? `<div class="ayuda" style="margin-top:6px"><a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${guardado.pdfId}/view">Ver el PDF guardado en Drive</a></div>` : ''}
+    </div>
+    <div class="ofi-prev"><div class="seccion-t" style="padding:0 0 8px">Vista previa <span class="mudo" id="o-escala" style="text-transform:none;letter-spacing:0;font-weight:400"></span></div><div class="prev-marco" id="o-prev"></div></div>
+  </div>`;
+  let rec = RECURSOS || {};
+  const leerForm = () => {
+    if (!$('#o-dn')) return;
+    Object.assign(o, { destNombre: $('#o-dn').value, destCargo: $('#o-dc').value, destInst: $('#o-di').value, destCorreo: $('#o-dco') ? $('#o-dco').value.trim() : (o.destCorreo || ''), fecha: $('#o-fe').value || hoy(), referencia: $('#o-re').value,
+      asunto: $('#o-as').value, notas: $('#o-no').value, cuerpo: $('#o-cu').value, ccp: $('#o-cc').value,
+      escuelas: $$('#o-esc input:checked').map(i => i.value), firma: $('#o-fi') ? $('#o-fi').checked : false, sello: $('#o-se') ? $('#o-se').checked : false });
+  };
+  let tPrev = null;
+  const pintarPrev = () => {
+    if (!$('#o-prev')) return;
+    leerForm();
+    const vo = Object.assign({}, o, { folio: folioDe(guardado || o) }), dis = disposicion(vo, rec);
+    o.escala = String(dis.s);
+    const marco = $('#o-prev'); if (!marco) return;
+    const w = marco.clientWidth || 600, k = Math.min(1, w / 816);
+    marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficio(vo, dis.s, rec, dis.t, dis.unaHoja)}</div>`;
+    marco.style.height = (marco.querySelector('.hoja').offsetHeight * k) + 'px';
+    const de = $('#o-escala'); if (de) de.textContent = dis.s < 1 ? '· ajustado a una hoja (' + Math.round(dis.s * 100) + ' %)' : dis.unaHoja ? '' : '· ocupa dos hojas';
+    const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'destCorreo', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []);
+      est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
+  };
+  const programar = () => { clearTimeout(tPrev); tPrev = setTimeout(pintarPrev, 250); };
+  $$('.ofi-form input, .ofi-form textarea').forEach(el => { el.addEventListener('input', programar); el.addEventListener('change', programar); });
+  $$('[data-mun]').forEach(b => b.onclick = () => {
+    leerForm();
+    const ant = DESTINOS[o.municipio], nue = DESTINOS[b.dataset.mun];
+    ['destNombre', 'destCargo', 'destInst'].forEach(k => { if (!o[k] || o[k] === ant[k]) o[k] = nue[k]; });
+    o.municipio = b.dataset.mun;
+    if (esGrupo(o.municipio)) o.escuelas = escuelasDeGrupo(o.municipio).map(c => c.cct);
+    else if (o.municipio !== 'Otro') o.escuelas = (o.escuelas || []).filter(c => (escuelaDe(c) || {}).municipio === o.municipio);
+    vEditorOficio();
+  });
+  $('#b-volver').onclick = () => { vista.ofiEdit = null; vista.ofiBorrador = null; vOficios(); };
+  $('#o-lista').onclick = () => { leerForm(); elegirDestinatario(d => { Object.assign(o, d); vEditorOficio(); }); };
+  $('#o-ia').onclick = async () => {
+    leerForm();
+    if (!o.asunto.trim()) return aviso('Escriba primero el asunto.', 'mal');
+    if (o.cuerpo.trim() && !confirm('¿Reemplazar el texto actual por la redacción de la IA? (Se usa el texto actual como borrador.)')) return;
+    const r = await accion('redactarOficio', { municipio: o.municipio, asunto: o.asunto, notas: o.notas, referencia: o.referencia, escuelas: o.escuelas, fecha: o.fecha,
+      destNombre: o.destNombre, destCargo: o.destCargo, destInst: o.destInst, cuerpo: o.cuerpo });
+    if (r && r.texto) { $('#o-cu').value = r.texto.replace(/\n{3,}/g, '\n\n'); pintarPrev(); aviso('Texto redactado. Revíselo y corríjalo antes de guardar.', 'ok', 5000); }
+  };
+  $('#o-guardar').onclick = () => {
+    leerForm();
+    if (!o.asunto.trim()) return aviso('Escriba el asunto.', 'mal');
+    if (!o.cuerpo.trim()) return aviso('Escriba el texto del oficio.', 'mal');
+    if (!guardado && !confirm('Se asignará el número ' + (cfgO.siguiente || '') + ' a este oficio. ¿Continuar?')) return;
+    accion('guardarOficio', Object.assign({ id: guardado ? guardado.id : '' }, o), r => {
+      poner(S.ofi, r.oficio); S.ofi.sort((a, b) => String(b.id).localeCompare(String(a.id))); S.ofiCfg = r.ofiCfg;
+      vista.ofiEdit = r.oficio.id; vista.ofiBorrador = Object.assign(JSON.parse(JSON.stringify(r.oficio)), { notas: o.notas });
+      vEditorOficio(); aviso('Oficio ' + esc(r.oficio.folio) + ' guardado.', 'ok', 3500);
+    });
+  };
+  const listo = () => { const g = S.ofi.find(x => x.id === vista.ofiEdit); if (!g) return null;
+    if ($('#o-estado') && $('#o-estado').textContent !== 'Guardado') { aviso('Guarde los cambios antes de descargar o enviar.', 'mal'); return null; } return g; };
+  $('#o-word').onclick = () => { const g = listo(); if (!g) return; conCarga(async () => { const b = await wordOficio(g, await recursos()); descargarBlob(b, nombreArchivoOfi(g) + '.docx'); }); };
+  $('#o-pdf').onclick = () => { const g = listo(); if (!g) return; conCarga(async () => { const b = await pdfOficio(g, await recursos()); descargarBlob(b, nombreArchivoOfi(g) + '.pdf'); archivarPdf(g, b); }); };
+  $('#o-correo').onclick = () => { const g = listo(); if (g) formCorreoOficio(g); };
+  $('#o-wa').onclick = () => { const g = listo(); if (g) compartirOficio(g); };
+  // la vista previa usa la firma y el sello reales
+  if (esAdmin() && (cfgO.firma || cfgO.sello) && !RECURSOS) recursos().then(r => { rec = r; pintarPrev(); }).catch(() => {});
+  pintarPrev();
+  fuentesOficio().then(() => { if ($("#o-prev")) pintarPrev(); });
+}
+
+function elegirDestinatario(listo) {
+  const dir = S.dir.filter(c => c.activo !== false && c.activo !== 'false' && c.tipo !== 'atp' && c.nombre);
+  const dirs = dir.filter(c => c.tipo === 'director').sort((a, b) => a.municipio.localeCompare(b.municipio, 'es') || a.escuela.localeCompare(b.escuela, 'es'));
+  const otros = dir.filter(c => c.tipo !== 'director').sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const usados = destinatariosUsados();
+  const items = [
+    ...usados.map((u, i) => ({ g: 'usados', t: u.destNombre, s: u.destCargo + (u.veces > 1 ? ' · ' + u.veces + ' oficios' : ''), d: () => Object.assign({ municipio: u.municipio === 'San Quintín' || u.municipio === 'Ensenada' ? u.municipio : 'Otro' }, u) })),
+    ...dirs.map(c => ({ g: esMultigrado(c) ? 'multi' : 'dir', mun: c.municipio, t: c.nombre, s: (c.cargo || 'Director(a)') + ' · ' + c.escuela + ' · ' + c.municipio, d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
+    ...otros.map(c => ({ g: 'otros', t: c.nombre, s: [c.cargo, c.escuela].filter(Boolean).join(' · '), d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) }))
+  ];
+  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ['dir-Ensenada', 'Directores Ensenada'], ['dir-San Quintín', 'Directores San Quintín'], ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
+  let f = usados.length ? 'usados' : 'todos';
+  modal('Elegir destinatario', `
+    <input id="d-q" type="search" placeholder="Buscar por nombre, escuela o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
+    <div class="filtros" id="d-f">${filtros.map(x => `<button type="button" class="chip" data-f="${x[0]}" style="cursor:pointer;border:0">${x[1]}</button>`).join('')}</div>
+    <div class="lista-act" id="d-l" style="max-height:52vh;overflow:auto;border:1px solid var(--borde);border-radius:10px"></div>
+    <div class="ayuda" style="margin-top:8px">Las personas a quienes se les hace un oficio se guardan solas en «Usados antes». Los directores y encargados vienen del Directorio.</div>`,
+    '<button class="boton sec" id="d-no">Cerrar</button>');
+  const pinta = () => {
+    const q = $('#d-q').value.toLowerCase();
+    $$('#d-f [data-f]').forEach(b => { b.className = 'chip' + (b.dataset.f === f ? ' indigo' : ''); });
+    const l = items.map((x, i) => Object.assign({ i }, x)).filter(x => (f === 'todos' || x.g === f || (f.startsWith('dir-') && (x.g === 'dir' || x.g === 'multi') && x.mun === f.slice(4))) &&
+      (!q || (x.t + ' ' + x.s).toLowerCase().includes(q)));
+    $('#d-l').innerHTML = l.length ? l.map(x => `<button class="act" data-i="${x.i}"><div class="cuerpo"><div class="t">${esc(x.t)}</div><div class="m">${esc(x.s)}</div></div></button>`).join('')
+      : '<div class="vacio peq">' + (f === 'usados' ? 'Aún no hay oficios guardados a personas.' : 'No hay coincidencias.') + '</div>';
+    $$('#d-l [data-i]').forEach(b => b.onclick = () => { const d = items[+b.dataset.i].d(); cerrarModal(); listo(d); });
+  };
+  $('#d-q').oninput = pinta;
+  $$('#d-f [data-f]').forEach(b => b.onclick = () => { f = b.dataset.f; pinta(); });
+  $('#d-no').onclick = cerrarModal;
+  pinta(); $('#d-q').focus();
+}
+
+function formCorreoOficio(o) {
+  let guardados = {}; try { guardados = JSON.parse(localStorage.getItem('tequio.correosOficio') || '{}'); } catch (e) {}
+  const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar Zona 050`;
+  const rem = (S.ofiCfg && S.ofiCfg.remitentes) || ['supervision050sep@gmail.com'];
+  const dirsGrupo = esGrupo(o.municipio) ? directores().filter(c => (o.escuelas || []).includes(c.cct)) : [];
+  const sinCorreo = dirsGrupo.filter(c => !correos(c).length);
+  const paraIni = esGrupo(o.municipio) ? [...new Set(dirsGrupo.flatMap(correos))].join(', ') : (o.destCorreo || guardados[o.destNombre] || '');
+  let deGuardado = ''; try { deGuardado = localStorage.getItem('tequio.remitenteOficio') || ''; } catch (e) {}
+  modal('Enviar ' + esc(o.folio) + ' por correo', `
+    ${esAdmin() && rem.length > 1 ? `<div class="campo"><label for="m-de">Enviar desde</label><select id="m-de">${rem.map(r => `<option ${r === deGuardado ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`
+      : `<div class="campo"><span class="et">Enviar desde</span><div>${esc(rem[0])}</div></div>`}
+    <div class="campo"><label for="m-para">Para</label><input id="m-para" type="email" multiple placeholder="correo@ejemplo.mx, otro@ejemplo.mx" value="${esc(paraIni)}">
+      ${esGrupo(o.municipio) ? `<div class="ayuda">${dirsGrupo.length} direcciones${sinCorreo.length ? ' · sin correo en el Directorio: ' + esc(sinCorreo.map(c => c.escuela).join(', ')) : ''}</div>` : ''}</div>
+    <div class="campo"><label for="m-as">Asunto del correo</label><input id="m-as" value="${esc('Oficio ' + o.folio + ' · ' + o.asunto)}"></div>
+    <div class="campo"><label for="m-msg">Mensaje</label><textarea id="m-msg" style="min-height:160px">${esc(msg)}</textarea></div>
+    <div class="ayuda">Va con el PDF adjunto y queda una copia del correo en el Drive (Oficios Tequio → Correos enviados). Quedan ${S.cuota != null ? S.cuota : '—'} envíos hoy.</div>`,
+    '<button class="boton sec" id="m-no">Cancelar</button><button class="boton terra" id="m-si">Enviar</button>');
+  $('#m-no').onclick = cerrarModal;
+  $('#m-si').onclick = () => conCarga(async () => {
+    const para = $('#m-para').value.trim();
+    if (!para) throw new Error('Escriba el correo del destinatario.');
+    const b = await pdfOficio(o, await recursos());
+    const de = $('#m-de') ? $('#m-de').value : rem[0];
+    try { if ($('#m-de')) localStorage.setItem('tequio.remitenteOficio', de); } catch (e) {}
+    const r = await api('enviarOficio', { id: o.id, de, para, asuntoCorreo: $('#m-as').value, mensaje: $('#m-msg').value, pdf: await blobAB64(b) });
+    poner(S.ofi, r.oficio); if (typeof r.cuota === 'number') S.cuota = r.cuota;
+    guardados[o.destNombre] = para; try { localStorage.setItem('tequio.correosOficio', JSON.stringify(guardados)); } catch (e) {}
+    cerrarModal(); vista.ofiBorrador = null; vEditorOficio();
+    aviso('Oficio enviado por correo.' + (r.nota ? '<br>' + esc(r.nota) : ''), r.nota ? 'aviso' : 'ok', r.nota ? 12000 : 3500);
+  });
+}
+
+async function compartirOficio(o) {
+  await conCarga(async () => {
+    const b = await pdfOficio(o, await recursos());
+    const nombre = nombreArchivoOfi(o) + '.pdf';
+    const texto = `Supervisión Escolar Zona 050 · Oficio ${o.folio}\nAsunto: ${o.asunto}`;
+    archivarPdf(o, b);
+    const archivo = new File([b], nombre, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      try { await navigator.share({ files: [archivo], title: o.folio, text: texto }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    descargarBlob(b, nombre);
+    modal('Enviar por WhatsApp', `<p style="margin-top:0">Se descargó el PDF <b>${esc(nombre)}</b>. WhatsApp no permite adjuntar archivos desde una página en la computadora: abra el chat, pulse el clip y elija el PDF descargado.</p>
+      <a class="boton wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">${ico('i-wa')}Abrir WhatsApp con el mensaje</a>
+      <p class="ayuda">En el teléfono, el botón WhatsApp de Tequio comparte el PDF directo.</p>`, '<button class="boton" id="w-ok">Listo</button>');
+    $('#w-ok').onclick = cerrarModal;
+  });
+}
+
+function formCfgOficios() {
+  const c = S.ofiCfg || {};
+  modal('Configuración de oficios', `
+    <div class="campo"><label for="c-ult">Último número de oficio usado en ${esc(c.anio || hoy().slice(0, 4))}</label><input id="c-ult" type="number" min="0" value="${esc(c.ultimo)}">
+      <div class="ayuda">El siguiente oficio será el número que sigue. Cada 1 de enero la numeración vuelve a empezar en 001.</div></div>
+    <div class="campo"><label for="c-key">Clave de Gemini (Google AI Studio)</label><input id="c-key" type="password" autocomplete="off" placeholder="${c.ia ? 'Ya está configurada · escriba otra para cambiarla' : 'Pegue aquí la clave (empieza con AIza…)'}">
+      <div class="ayuda">Se obtiene gratis en aistudio.google.com con la cuenta de la Supervisión → «Get API key». Se guarda solo en el servidor; nadie la puede ver desde Tequio.${c.modelo ? ' Modelo en uso: ' + esc(c.modelo) + '.' : ''}</div>
+      ${c.ia ? '<label class="casilla"><input type="checkbox" id="c-quitar"> Quitar la clave</label>' : ''}</div>
+    <div class="campo"><label for="c-firma">Firma (PNG con fondo transparente) ${c.firma ? '<span class="chip ok">cargada</span>' : ''}</label><input id="c-firma" type="file" accept="image/png"></div>
+    <div class="campo"><label for="c-sello">Sello (PNG con fondo transparente) ${c.sello ? '<span class="chip ok">cargado</span>' : ''}</label><input id="c-sello" type="file" accept="image/png">
+      <div class="ayuda">La firma y el sello se guardan en el Drive de la Supervisión, en una carpeta privada; no se publican en la página.</div></div>`,
+    '<button class="boton sec" id="c-no">Cancelar</button><button class="boton terra" id="c-si">Guardar</button>');
+  $('#c-no').onclick = cerrarModal;
+  $('#c-si').onclick = () => conCarga(async () => {
+    const d = { ultimo: $('#c-ult').value, anio: c.anio || hoy().slice(0, 4) };
+    const key = $('#c-key').value.trim();
+    if (key) d.geminiKey = key; else if ($('#c-quitar') && $('#c-quitar').checked) d.geminiKey = '';
+    for (const k of ['firma', 'sello']) { const f = $('#c-' + k).files[0]; if (f) { if (f.type !== 'image/png') throw new Error('La ' + k + ' debe ser una imagen PNG.'); d[k] = await blobAB64(f); } }
+    const r = await api('configOficios', d);
+    S.ofiCfg = r.ofiCfg; if (d.firma || d.sello) RECURSOS = null;
+    cerrarModal(); vOficios(); aviso('Configuración guardada.' + (key ? ' La clave de Gemini funciona.' : ''), 'ok', 4000);
+  });
+}
+
 
 /* ---------------- Arranque ---------------- */
 cfg = leerCfg();
