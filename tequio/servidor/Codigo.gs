@@ -11,6 +11,8 @@
  *  · Cada mañana manda los recordatorios del día y los de seguimiento.
  *  · Lleva el checklist de acuerdos de reuniones y CTZ, escuela por escuela.
  *  · Revisa las carpetas de evidencias del Drive «Supervisión 050» (solo nombres y fechas).
+ *  · Permite crear carpetas y subir archivos a ese Drive desde la página.
+ *  · Da acceso de consulta a los directores: su escuela, la agenda y el avance general de la zona.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -38,7 +40,7 @@ const HOJAS = {
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive' };
-const VERSION = 3;
+const VERSION = 4;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -115,7 +117,9 @@ function doPost(e) {
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
     if (!f) return json_({ ok: false, error: 'accion', mensaje: 'Acción desconocida.' });
-    if (q.accion === 'revisarEvidencias') r = f(yo, q.datos || {});  // tarda; se bloquea solo al guardar
+    if (yo.rol === 'director' && SOLO_DIRECTOR.indexOf(q.accion) < 0)
+      return json_({ ok: false, error: 'permiso', mensaje: 'Su enlace de dirección permite consultar y subir evidencias de su escuela.' });
+    if (SIN_BLOQUEO.indexOf(q.accion) >= 0) r = f(yo, q.datos || {});  // tardan; se bloquean solo al guardar
     else {
       const lock = LockService.getScriptLock();
       lock.waitLock(20000);
@@ -127,8 +131,15 @@ function doPost(e) {
   }
 }
 
+// Lo único que puede hacer un enlace de dirección
+const SOLO_DIRECTOR = ['datos', 'subirArchivo'];
+// Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta'];
+// Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
+const MAX_MB = 20;
+
 const ACCIONES = {
-  datos: (yo) => ({
+  datos: (yo) => yo.rol === 'director' ? datosDirector_(yo) : ({
     yo: publico_(yo),
     act: leer_('act').filter(a => visible_(yo, a)),
     seg: leer_('seg').filter(s => visible_(yo, s)),
@@ -295,8 +306,100 @@ const ACCIONES = {
     u.tokenHash = '';
     guardar_('usr', u);
     return { usuario: publico_(u) };
+  },
+
+  /* ---- Directores: un usuario de consulta por escuela ---- */
+
+  // Crea (o actualiza) un usuario para cada director del Directorio. No genera enlaces: eso se hace uno por uno.
+  prepararDirectores: (yo) => {
+    soloAdmin_(yo);
+    const usr = leer_('usr'), cambios = [];
+    leer_('dir').filter(c => c.tipo === 'director' && c.activo && c.cct).forEach(c => {
+      const correo = [c.correo1, c.correo2].filter(Boolean).join(',');
+      const u = usr.find(x => x.rol === 'director' && x.contacto === c.id);
+      if (!u) cambios.push({ id: 'u-d-' + c.cct, nombre: c.nombre, rol: 'director', contacto: c.id, correo: correo, whatsapp: c.whatsapp || '', tokenHash: '', activo: true, creado: ahora_() });
+      else if (u.nombre !== c.nombre || u.correo !== correo || u.whatsapp !== (c.whatsapp || '')) cambios.push(Object.assign(u, { nombre: c.nombre, correo: correo, whatsapp: c.whatsapp || '' }));
+    });
+    guardarVarios_('usr', cambios);
+    return { usr: leer_('usr').map(publico_), cambios: cambios.length };
+  },
+
+  /* ---- Drive: subir archivos y crear carpetas ---- */
+
+  // Sube un archivo a una carpeta de evidencias. Directores: solo a las carpetas de su escuela.
+  subirArchivo: (yo, d) => {
+    const cct = yo.rol === 'director' ? cctDe_(yo) : String(d.cct || '');
+    if (!cct) throw new Error('No se identificó la escuela.');
+    if (yo.rol === 'director' && d.cct && d.cct !== cct) throw new Error('Solo puede subir archivos a las carpetas de su escuela.');
+    const fila = leer_('evi').find(e => e.cct === cct && e.carpetaId === d.carpetaId);
+    if (!fila) throw new Error('La carpeta no pertenece a esa escuela o todavía no se ha revisado. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+    const datos = String(d.datos || '');
+    if (!datos) throw new Error('El archivo llegó vacío.');
+    if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('El archivo pesa más de ' + MAX_MB + ' MB. Súbalo directo al Drive.');
+    const nombre = String(d.nombre || 'archivo').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 180) || 'archivo';
+    const blob = Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'application/octet-stream', nombre);
+    const archivo = DriveApp.getFolderById(fila.carpetaId).createFile(blob);
+    archivo.setDescription(SUBIDO_POR + yo.nombre);
+    bitacora_('archivo', cct, [], nombre + ' → ' + (fila.ruta || 'carpeta principal'), 'subido por ' + yo.nombre);
+    const r = { archivo: { id: archivo.getId(), nombre: nombre, ruta: fila.ruta } };
+    if (d.actualizar !== false) r.evi = revisarEscuela_(cct);
+    return r;
+  },
+
+  // Crea una carpeta con el mismo nombre en varias escuelas, dentro de la ruta indicada ('' = carpeta de la escuela).
+  crearCarpeta: (yo, d) => {
+    if (yo.rol !== 'admin' && yo.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden crear carpetas.');
+    const nombre = String(d.nombre || '').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120);
+    if (!nombre) throw new Error('Escriba el nombre de la carpeta.');
+    const dentro = String(d.dentro || '');
+    const evi = leer_('evi'), nuevas = [], existian = [], sinBase = [];
+    (d.ccts || []).forEach(cct => {
+      const base = evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(dentro));
+      if (!base) { sinBase.push(cct); return; }
+      const padre = DriveApp.getFolderById(base.carpetaId);
+      const ya = padre.getFoldersByName(nombre);
+      if (ya.hasNext()) { existian.push(cct); return; }
+      const f = padre.createFolder(nombre);
+      const ruta = dentro ? dentro + '/' + nombre : nombre;
+      nuevas.push({ id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: f.getId(), directos: '0', archivos: '0', ultimo: '', ultimoPor: '', recientes: [], revisado: ahora_() });
+    });
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try { guardarVarios_('evi', nuevas); } finally { lock.releaseLock(); }
+    if (nuevas.length) bitacora_('carpeta', nombre, [], (dentro ? dentro + '/' : '') + nombre, 'creada en ' + nuevas.length + ' escuelas por ' + yo.nombre);
+    return { creadas: nuevas.map(x => x.cct), existian: existian, sinBase: sinBase, evi: leer_('evi') };
   }
 };
+
+/* ===================== Directores ===================== */
+
+// C.C.T. de la escuela de un usuario director (su contacto en el Directorio es «d-C.C.T.»)
+function cctDe_(u) {
+  const c = leer_('dir').find(x => x.id === u.contacto && x.tipo === 'director');
+  return c ? c.cct : '';
+}
+
+// Lo que ve un director: la agenda completa (sin lo confidencial), lo de su escuela y el avance general de la zona.
+function datosDirector_(yo) {
+  const cct = cctDe_(yo);
+  if (!cct) throw new Error('Su usuario no está ligado a una escuela. Avise a la Supervisión.');
+  const dir = leer_('dir').filter(c => c.activo && (c.tipo === 'director' || c.tipo === 'atp')).map(c => c.cct === cct && c.tipo === 'director' ? c :
+    { id: c.id, tipo: c.tipo, nombre: c.nombre, cargo: c.cargo, cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: c.multigrado, activo: c.activo });
+  return {
+    yo: Object.assign(publico_(yo), { cct: cct }),
+    act: leer_('act').filter(a => !a.confidencial),
+    seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial),
+    dir: dir,
+    usr: leer_('usr').filter(u => u.activo && u.rol !== 'director').map(u => ({ id: u.id, nombre: u.nombre, rol: u.rol, contacto: u.contacto, activo: u.activo })),
+    reu: leer_('reu').filter(r => r.activo),
+    acu: leer_('acu').filter(a => a.activo),
+    // de las demás escuelas solo va el estado (para el avance de la zona), sin observaciones
+    cum: leer_('cum').map(m => m.cct === cct ? m : { id: m.id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado }),
+    evi: leer_('evi').filter(e => e.cct === cct),
+    eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
+    version: VERSION
+  };
+}
 
 /* ===================== Envíos ===================== */
 
@@ -425,6 +528,23 @@ function revisarEvidencias_() {
   return { escuelas: n, carpetas: filas.length };
 }
 
+// Vuelve a revisar solo la carpeta de una escuela (después de subir archivos) y devuelve sus filas
+function revisarEscuela_(cct) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) return leer_('evi').filter(e => e.cct === cct);
+  const filas = [];
+  recorrer_(DriveApp.getFolderById(raiz.carpetaId), '', cct, filas, ahora_());
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    reemplazarTodo_('evi', leer_('evi').filter(e => e.cct !== cct).concat(filas));
+  } finally { lock.releaseLock(); }
+  return filas;
+}
+
+const SUBIDO_POR = 'Subido desde Tequio por ';
+function normRuta_(r) { return String(r || '').normalize('NFC').toLowerCase().trim(); }
+
 // Devuelve { archivos, ultimo, ultimoPor, recientes } de la carpeta y todo lo que tiene dentro
 function recorrer_(carpeta, ruta, cct, filas, ahora) {
   const privada = CARPETAS_PRIVADAS.test(ruta.split('/')[0] || '');
@@ -434,7 +554,8 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
     const a = it.next();
     directos++;
     let por = '';
-    try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {}
+    try { const ds = a.getDescription() || ''; if (ds.indexOf(SUBIDO_POR) === 0) por = ds.slice(SUBIDO_POR.length); } catch (e) {}
+    if (!por) { try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {} }
     recientes.push({ f: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), n: privada ? '' : a.getName(), p: por, id: privada ? '' : a.getId() });
   }
   let total = directos;
