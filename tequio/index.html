@@ -1982,7 +1982,7 @@ const Demo = (() => {
       let o = D.ofi.find(x => x.id === d.id);
       if (!o) { const n = ++D.ofiCfg.ultimo; o = { id: 'ofi-2026-' + String(n).padStart(3, '0'), numero: n, anio: 2026, folio: 'SE-050/' + String(n).padStart(3, '0') + '/2026', pdfId: '', envios: [], creadoPor: D.yo.id, creado: ahora() };
         D.ofi.unshift(o); D.ofiCfg.siguiente = 'SE-050/' + String(n + 1).padStart(3, '0') + '/2026'; }
-      ['fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'escala'].forEach(k => o[k] = d[k]);
+      ['fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'destCorreo', 'escuelas', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'escala'].forEach(k => o[k] = d[k]);
       o.actualizado = ahora();
       return { oficio: copia(o), ofiCfg: copia(D.ofiCfg) };
     },
@@ -1990,7 +1990,7 @@ const Demo = (() => {
       (d.notas ? 'Al respecto, le informo que ' + d.notas.trim().replace(/\.$/, '') + '. ' : '') + 'Por lo anterior, respetuosamente solicito su valioso apoyo para que se brinde la atención correspondiente, a fin de garantizar el adecuado funcionamiento del servicio educativo en beneficio de las niñas y los niños de la zona.\n\n' +
       'Sin otro particular por el momento, agradezco de antemano la atención que se sirva brindar al presente y le reitero la seguridad de mi consideración distinguida.\n\n(Demostración: en la versión real este texto lo redacta Gemini a partir del asunto y sus notas.)' }),
     archivarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.pdfId = ''; return { oficio: copia(o) }; },
-    enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), de: d.de, a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
+    enviarOficio: d => { const o = D.ofi.find(x => x.id === d.id); if (!GRUPOS_DIR[o.municipio]) o.destCorreo = d.para; o.envios = (o.envios || []).concat([{ f: ahora().slice(0, 16), de: d.de, a: d.para }]); D.cuota -= 1; return { oficio: copia(o), cuota: D.cuota }; },
     configOficios: d => { D.ofiCfg.ultimo = +d.ultimo || 0; D.ofiCfg.siguiente = 'SE-050/' + String(D.ofiCfg.ultimo + 1).padStart(3, '0') + '/2026'; if (d.geminiKey != null) D.ofiCfg.ia = !!d.geminiKey; return { ofiCfg: copia(D.ofiCfg) }; },
     recursosOficio: () => ({}),
 
@@ -2062,6 +2062,29 @@ function escuelasDeGrupo(m) {
   return directores().filter(c => m === 'Directores' || (m === 'Multigrado' ? esMultigrado(c) : c.municipio === m.replace('Directores ', '')));
 }
 const presente = o => esGrupo(o.municipio) ? 'P R E S E N T E S' : 'P R E S E N T E';
+// Destinatario a partir de un contacto del Directorio (directores, encargados de despacho y demás)
+const FEM = /^(c\.\s*)?(profra|mtra|lic(da|\.?\s*a)?\b|dra|ing\.?\s*a|c\.\s*p\.\s*a|sra|srita)/i;
+function cargoContacto(c) {
+  let cargo = String(c.cargo || (c.tipo === 'director' ? 'Director(a)' : '')).trim();
+  if (/\(a\)/i.test(cargo)) cargo = FEM.test(String(c.nombre || '').trim()) ? cargo.replace(/o\(a\)/gi, 'a').replace(/r\(a\)/gi, 'ra').replace(/\(a\)/gi, 'a') : cargo.replace(/\(a\)/gi, '');
+  if (c.escuela) cargo += ' de la Escuela Primaria «' + c.escuela + '»';
+  return cargo.toUpperCase().replace(/[«»]/g, '"');
+}
+function destDeContacto(c) {
+  return { destNombre: String(c.nombre || '').toUpperCase(), destCargo: cargoContacto(c),
+    destInst: c.cct ? 'C.C.T. ' + c.cct + (c.municipio ? ', ' + c.municipio.toUpperCase() + ', B.C.' : '') : '', destCorreo: correos(c).join(', '), escuelas: c.cct ? [c.cct] : [] };
+}
+// Personas a quienes ya se les hizo un oficio (se guardan solas con cada oficio)
+function destinatariosUsados() {
+  const vistos = {}, l = [];
+  (S.ofi || []).filter(o => !esGrupo(o.municipio) && o.destNombre).sort((a, b) => String(b.actualizado || b.creado).localeCompare(String(a.actualizado || a.creado))).forEach(o => {
+    const k = (o.destNombre + '|' + o.destCargo).toUpperCase();
+    if (vistos[k]) { vistos[k].veces++; if (!vistos[k].destCorreo && o.destCorreo) vistos[k].destCorreo = o.destCorreo; return; }
+    vistos[k] = { destNombre: o.destNombre, destCargo: o.destCargo, destInst: o.destInst, destCorreo: o.destCorreo || '', municipio: o.municipio, escuelas: o.escuelas || [], veces: 1, ultimo: o.fecha };
+    l.push(vistos[k]);
+  });
+  return l;
+}
 const OFI = { lugar: 'Camalú, San Quintín, B.C.', firmante: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', cargo: 'SUPERVISOR ESCOLAR ZONA 050', cct: '02FIZ0094X' };
 let RECURSOS = null;        // firma y sello (solo Supervisión), en base64
 const BIBLIO = {};          // scripts que se cargan solo al generar archivos
@@ -2309,13 +2332,16 @@ function vEditorOficio() {
     <div class="tarjeta pad ofi-form">
       <div class="campo"><span class="et">¿A quién va dirigido?</span>
         <div class="ayuda" style="margin:0 0 4px">A la autoridad</div>
-        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra dependencia' : 'Jefe ' + m}</button>`).join('')}</div>
+        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra persona' : 'Jefe ' + m}</button>`).join('')}</div>
         <div class="ayuda" style="margin:8px 0 4px">A los directores de la zona</div>
         <div class="seg-op">${Object.keys(GRUPOS_DIR).map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${GRUPOS_DIR[m]}</button>`).join('')}</div>
         <div class="ayuda">${esGrupo(o.municipio) ? 'Al enviarlo por correo se agregan solos los correos de estas direcciones.' : 'San Quintín y Ensenada no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.'}</div></div>
-      <div class="campo"><label for="o-dn">Destinatario</label><input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título"></div>
+      <div class="campo"><div style="display:flex;align-items:end;justify-content:space-between;gap:8px;flex-wrap:wrap"><label for="o-dn">Destinatario</label>
+        <button type="button" class="boton sec chico" id="o-lista">${ico('i-dir')}Elegir de la lista</button></div>
+        <input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título"></div>
       <div class="campo"><label for="o-dc">Cargo</label><input id="o-dc" value="${esc(o.destCargo)}"></div>
       <div class="campo"><label for="o-di">Dependencia</label><input id="o-di" value="${esc(o.destInst)}"></div>
+      ${esGrupo(o.municipio) ? '' : `<div class="campo"><label for="o-dco">Correo del destinatario <span class="mudo" style="font-weight:400">(opcional · se guarda para los siguientes oficios)</span></label><input id="o-dco" type="email" multiple value="${esc(o.destCorreo || '')}"></div>`}
       ${escs.length ? `<div class="campo"><span class="et">${esGrupo(o.municipio) ? 'Escuelas a las que va' : 'Escuelas relacionadas <span class="mudo" style="font-weight:400">(opcional, ayudan a la IA)</span>'}</span>
         <div class="casillas" id="o-esc">${escs.map(c => `<label class="casilla"><input type="checkbox" value="${c.cct}" ${(o.escuelas || []).includes(c.cct) ? 'checked' : ''}> ${esc(c.escuela)}</label>`).join('')}</div></div>` : ''}
       <div class="fila">
@@ -2348,7 +2374,7 @@ function vEditorOficio() {
   let rec = RECURSOS || {};
   const leerForm = () => {
     if (!$('#o-dn')) return;
-    Object.assign(o, { destNombre: $('#o-dn').value, destCargo: $('#o-dc').value, destInst: $('#o-di').value, fecha: $('#o-fe').value || hoy(), referencia: $('#o-re').value,
+    Object.assign(o, { destNombre: $('#o-dn').value, destCargo: $('#o-dc').value, destInst: $('#o-di').value, destCorreo: $('#o-dco') ? $('#o-dco').value.trim() : (o.destCorreo || ''), fecha: $('#o-fe').value || hoy(), referencia: $('#o-re').value,
       asunto: $('#o-as').value, notas: $('#o-no').value, cuerpo: $('#o-cu').value, ccp: $('#o-cc').value,
       escuelas: $$('#o-esc input:checked').map(i => i.value), firma: $('#o-fi') ? $('#o-fi').checked : false, sello: $('#o-se') ? $('#o-se').checked : false });
   };
@@ -2363,7 +2389,7 @@ function vEditorOficio() {
     marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficio(vo, dis.s, rec, dis.t, dis.unaHoja)}</div>`;
     marco.style.height = (marco.querySelector('.hoja').offsetHeight * k) + 'px';
     const de = $('#o-escala'); if (de) de.textContent = dis.s < 1 ? '· ajustado a una hoja (' + Math.round(dis.s * 100) + ' %)' : dis.unaHoja ? '' : '· ocupa dos hojas';
-    const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2]) !== String(guardado[k2])) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []);
+    const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'destCorreo', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []);
       est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
   };
   const programar = () => { clearTimeout(tPrev); tPrev = setTimeout(pintarPrev, 250); };
@@ -2378,6 +2404,7 @@ function vEditorOficio() {
     vEditorOficio();
   });
   $('#b-volver').onclick = () => { vista.ofiEdit = null; vista.ofiBorrador = null; vOficios(); };
+  $('#o-lista').onclick = () => { leerForm(); elegirDestinatario(d => { Object.assign(o, d); vEditorOficio(); }); };
   $('#o-ia').onclick = async () => {
     leerForm();
     if (!o.asunto.trim()) return aviso('Escriba primero el asunto.', 'mal');
@@ -2409,13 +2436,46 @@ function vEditorOficio() {
   fuentesOficio().then(() => { if ($("#o-prev")) pintarPrev(); });
 }
 
+function elegirDestinatario(listo) {
+  const dir = S.dir.filter(c => c.activo !== false && c.activo !== 'false' && c.tipo !== 'atp' && c.nombre);
+  const dirs = dir.filter(c => c.tipo === 'director').sort((a, b) => a.municipio.localeCompare(b.municipio, 'es') || a.escuela.localeCompare(b.escuela, 'es'));
+  const otros = dir.filter(c => c.tipo !== 'director').sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const usados = destinatariosUsados();
+  const items = [
+    ...usados.map((u, i) => ({ g: 'usados', t: u.destNombre, s: u.destCargo + (u.veces > 1 ? ' · ' + u.veces + ' oficios' : ''), d: () => Object.assign({ municipio: u.municipio === 'San Quintín' || u.municipio === 'Ensenada' ? u.municipio : 'Otro' }, u) })),
+    ...dirs.map(c => ({ g: esMultigrado(c) ? 'multi' : 'dir', mun: c.municipio, t: c.nombre, s: (c.cargo || 'Director(a)') + ' · ' + c.escuela + ' · ' + c.municipio, d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
+    ...otros.map(c => ({ g: 'otros', t: c.nombre, s: [c.cargo, c.escuela].filter(Boolean).join(' · '), d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) }))
+  ];
+  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ['dir-Ensenada', 'Directores Ensenada'], ['dir-San Quintín', 'Directores San Quintín'], ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
+  let f = usados.length ? 'usados' : 'todos';
+  modal('Elegir destinatario', `
+    <input id="d-q" type="search" placeholder="Buscar por nombre, escuela o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
+    <div class="filtros" id="d-f">${filtros.map(x => `<button type="button" class="chip" data-f="${x[0]}" style="cursor:pointer;border:0">${x[1]}</button>`).join('')}</div>
+    <div class="lista-act" id="d-l" style="max-height:52vh;overflow:auto;border:1px solid var(--borde);border-radius:10px"></div>
+    <div class="ayuda" style="margin-top:8px">Las personas a quienes se les hace un oficio se guardan solas en «Usados antes». Los directores y encargados vienen del Directorio.</div>`,
+    '<button class="boton sec" id="d-no">Cerrar</button>');
+  const pinta = () => {
+    const q = $('#d-q').value.toLowerCase();
+    $$('#d-f [data-f]').forEach(b => { b.className = 'chip' + (b.dataset.f === f ? ' indigo' : ''); });
+    const l = items.map((x, i) => Object.assign({ i }, x)).filter(x => (f === 'todos' || x.g === f || (f.startsWith('dir-') && (x.g === 'dir' || x.g === 'multi') && x.mun === f.slice(4))) &&
+      (!q || (x.t + ' ' + x.s).toLowerCase().includes(q)));
+    $('#d-l').innerHTML = l.length ? l.map(x => `<button class="act" data-i="${x.i}"><div class="cuerpo"><div class="t">${esc(x.t)}</div><div class="m">${esc(x.s)}</div></div></button>`).join('')
+      : '<div class="vacio peq">' + (f === 'usados' ? 'Aún no hay oficios guardados a personas.' : 'No hay coincidencias.') + '</div>';
+    $$('#d-l [data-i]').forEach(b => b.onclick = () => { const d = items[+b.dataset.i].d(); cerrarModal(); listo(d); });
+  };
+  $('#d-q').oninput = pinta;
+  $$('#d-f [data-f]').forEach(b => b.onclick = () => { f = b.dataset.f; pinta(); });
+  $('#d-no').onclick = cerrarModal;
+  pinta(); $('#d-q').focus();
+}
+
 function formCorreoOficio(o) {
   let guardados = {}; try { guardados = JSON.parse(localStorage.getItem('tequio.correosOficio') || '{}'); } catch (e) {}
   const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar Zona 050`;
   const rem = (S.ofiCfg && S.ofiCfg.remitentes) || ['supervision050sep@gmail.com'];
   const dirsGrupo = esGrupo(o.municipio) ? directores().filter(c => (o.escuelas || []).includes(c.cct)) : [];
   const sinCorreo = dirsGrupo.filter(c => !correos(c).length);
-  const paraIni = esGrupo(o.municipio) ? [...new Set(dirsGrupo.flatMap(correos))].join(', ') : (guardados[o.destNombre] || '');
+  const paraIni = esGrupo(o.municipio) ? [...new Set(dirsGrupo.flatMap(correos))].join(', ') : (o.destCorreo || guardados[o.destNombre] || '');
   let deGuardado = ''; try { deGuardado = localStorage.getItem('tequio.remitenteOficio') || ''; } catch (e) {}
   modal('Enviar ' + esc(o.folio) + ' por correo', `
     ${esAdmin() && rem.length > 1 ? `<div class="campo"><label for="m-de">Enviar desde</label><select id="m-de">${rem.map(r => `<option ${r === deGuardado ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`

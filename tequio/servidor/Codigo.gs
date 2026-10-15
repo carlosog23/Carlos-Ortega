@@ -39,7 +39,7 @@ const HOJAS = {
   cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
   evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
   ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
-        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado']
+        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios' };
@@ -384,7 +384,7 @@ const ACCIONES = {
     const o = Object.assign({}, previo || {}, {
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
       municipio: ['San Quintín', 'Ensenada', 'Otro', 'Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
-      destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300),
+      destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300), destCorreo: String(d.destCorreo || '').slice(0, 500),
       escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
       cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
       firma: yo.rol === 'admin' && !!d.firma, sello: yo.rol === 'admin' && !!d.sello, escala: String(d.escala || '1'),
@@ -460,6 +460,8 @@ const ACCIONES = {
         replyTo: institucional ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, attachments: [pdf], htmlBody: html });
     }
     const envio = { f: ahora_(), por: 'correo', de: de, a: para.join(', '), u: yo.id };
+    // el correo queda guardado con el destinatario para los siguientes oficios
+    if (['Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(o.municipio) < 0) o.destCorreo = para.join(', ');
     try { envio.copia = guardarCorreo_(o, envio, asunto, cuerpo, yo); } catch (e) { nota = (nota ? nota + ' ' : '') + 'No se pudo guardar la copia del correo en el Drive.'; }
     o.envios = (o.envios || []).concat([envio]);
     guardar_('ofi', o);
