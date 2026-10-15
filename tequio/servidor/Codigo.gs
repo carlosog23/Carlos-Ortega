@@ -383,7 +383,7 @@ const ACCIONES = {
     const previo = d.id ? buscar_('ofi', d.id) : null;
     const o = Object.assign({}, previo || {}, {
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
-      municipio: ['San Quintín', 'Ensenada', 'Otro'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
+      municipio: ['San Quintín', 'Ensenada', 'Otro', 'Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
       destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300),
       escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
       cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
@@ -414,6 +414,7 @@ const ACCIONES = {
     const prompt = INSTRUCCIONES_OFICIO +
       '\n\nDATOS DEL OFICIO\n' +
       '- Destinatario: ' + [d.destNombre, d.destCargo, d.destInst].filter(Boolean).join(', ') + '\n' +
+      (['Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? '- Va dirigido a varios directores a la vez: diríjase a ellos en plural (ustedes), como circular de la Supervisión.\n' : '') +
       '- Asunto: ' + d.asunto + '\n' +
       (d.referencia ? '- Referencia: ' + d.referencia + '\n' : '') +
       (esc.length ? '- Escuelas relacionadas: ' + esc.join('; ') + '\n' : '') +

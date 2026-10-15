@@ -2048,8 +2048,20 @@ const ISEP_TXT = 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIF
 const DESTINOS = {
   'San Quintín': { destNombre: 'C. HUMBERTO GARCÍA SOLORIO', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: ISEP_TXT },
   'Ensenada': { destNombre: 'PROFR. ARTURO AGUILAR CITAL', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN ENSENADA', destInst: ISEP_TXT },
-  'Otro': { destNombre: '', destCargo: '', destInst: '' }
+  'Otro': { destNombre: '', destCargo: '', destInst: '' },
+  'Directores': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'ENSENADA Y SAN QUINTÍN, B.C.' },
+  'Directores Ensenada': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'MUNICIPIO DE ENSENADA, B.C.' },
+  'Directores San Quintín': { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: 'ZONA ESCOLAR 050', destInst: 'MUNICIPIO DE SAN QUINTÍN, B.C.' },
+  'Multigrado': { destNombre: 'C.C. ENCARGADOS DE DESPACHO DE LAS ESCUELAS MULTIGRADO', destCargo: 'ZONA ESCOLAR 050', destInst: 'ENSENADA Y SAN QUINTÍN, B.C.' }
 };
+// Oficios a los directores: a qué escuelas va cada grupo
+const GRUPOS_DIR = { 'Directores': 'Todos los directores', 'Directores Ensenada': 'Directores de Ensenada', 'Directores San Quintín': 'Directores de San Quintín', 'Multigrado': 'Encargados multigrado' };
+const esGrupo = m => !!GRUPOS_DIR[m];
+const esMultigrado = c => c.multigrado === true || c.multigrado === 'true';
+function escuelasDeGrupo(m) {
+  return directores().filter(c => m === 'Directores' || (m === 'Multigrado' ? esMultigrado(c) : c.municipio === m.replace('Directores ', '')));
+}
+const presente = o => esGrupo(o.municipio) ? 'P R E S E N T E S' : 'P R E S E N T E';
 const OFI = { lugar: 'Camalú, San Quintín, B.C.', firmante: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', cargo: 'SUPERVISOR ESCOLAR ZONA 050', cct: '02FIZ0094X' };
 let RECURSOS = null;        // firma y sello (solo Supervisión), en base64
 const BIBLIO = {};          // scripts que se cargan solo al generar archivos
@@ -2103,7 +2115,7 @@ function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
       </div>
       <div class="h-dest" style="margin-bottom:${px(16 + 24 * t)}">
         ${[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => `<div>${esc(String(x).toUpperCase())}</div>`).join('')}
-        <div style="letter-spacing:.25em">P R E S E N T E</div>
+        <div style="letter-spacing:.25em">${presente(o)}</div>
       </div>
       ${parr}
       <div class="h-firma" style="margin-top:${px(13 + 90 * t)}">
@@ -2200,7 +2212,7 @@ async function wordOficio(o, rec) {
     ...(o.referencia ? [p([B('Referencia: ', { size: 19 }), tx(o.referencia, { size: 19 })], der)] : []),
     p([B('Asunto: ', { size: 19 }), tx(o.asunto, { size: 19 })], { align: A.RIGHT, after: Math.round(260 + 420 * t), indent: { left: 2200 } }),
     ...[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => p([B(String(x).toUpperCase())], { align: A.LEFT, after: 0, line: 250 })),
-    p([B('P R E S E N T E', { sp: 20 })], { align: A.LEFT, after: Math.round(240 + 360 * t), line: 250 })
+    p([B(presente(o), { sp: 20 })], { align: A.LEFT, after: Math.round(240 + 360 * t), line: 250 })
   ];
   parrafosDe(o.cuerpo).forEach(par => {
     const lineas = par.split('\n');
@@ -2288,20 +2300,23 @@ function vEditorOficio() {
   if (!vista.ofiBorrador) vista.ofiBorrador = guardado ? JSON.parse(JSON.stringify(guardado)) :
     Object.assign({ fecha: hoy(), municipio: 'San Quintín', escuelas: [], referencia: '', asunto: '', cuerpo: '', ccp: 'Archivo.', firma: esAdmin() && !!(S.ofiCfg || {}).firma, sello: esAdmin() && !!(S.ofiCfg || {}).sello, notas: '' }, DESTINOS['San Quintín']);
   const o = vista.ofiBorrador, cfgO = S.ofiCfg || {};
-  const escs = directores().filter(c => o.municipio === 'Otro' || c.municipio === o.municipio);
+  const escs = esGrupo(o.municipio) ? escuelasDeGrupo(o.municipio) : directores().filter(c => o.municipio === 'Otro' || c.municipio === o.municipio);
   $('#vista').innerHTML = `
   <div class="migas"><button id="b-volver">Oficios</button> › <span>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</span></div>
   <div class="titulo-vista"><h1>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</h1>
     <div class="acciones"><span class="chip ${guardado ? 'ok' : 'aviso'}" id="o-estado">${guardado ? 'Guardado' : 'Número al guardar: ' + esc(cfgO.siguiente || '')}</span></div></div>
   <div class="ofi-ed">
     <div class="tarjeta pad ofi-form">
-      <div class="campo"><span class="et">¿A qué autoridad va?</span>
-        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra dependencia' : m}</button>`).join('')}</div>
-        <div class="ayuda">San Quintín y Ensenada no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.</div></div>
+      <div class="campo"><span class="et">¿A quién va dirigido?</span>
+        <div class="ayuda" style="margin:0 0 4px">A la autoridad</div>
+        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra dependencia' : 'Jefe ' + m}</button>`).join('')}</div>
+        <div class="ayuda" style="margin:8px 0 4px">A los directores de la zona</div>
+        <div class="seg-op">${Object.keys(GRUPOS_DIR).map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${GRUPOS_DIR[m]}</button>`).join('')}</div>
+        <div class="ayuda">${esGrupo(o.municipio) ? 'Al enviarlo por correo se agregan solos los correos de estas direcciones.' : 'San Quintín y Ensenada no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.'}</div></div>
       <div class="campo"><label for="o-dn">Destinatario</label><input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título"></div>
       <div class="campo"><label for="o-dc">Cargo</label><input id="o-dc" value="${esc(o.destCargo)}"></div>
       <div class="campo"><label for="o-di">Dependencia</label><input id="o-di" value="${esc(o.destInst)}"></div>
-      ${escs.length ? `<div class="campo"><span class="et">Escuelas relacionadas <span class="mudo" style="font-weight:400">(opcional, ayudan a la IA)</span></span>
+      ${escs.length ? `<div class="campo"><span class="et">${esGrupo(o.municipio) ? 'Escuelas a las que va' : 'Escuelas relacionadas <span class="mudo" style="font-weight:400">(opcional, ayudan a la IA)</span>'}</span>
         <div class="casillas" id="o-esc">${escs.map(c => `<label class="casilla"><input type="checkbox" value="${c.cct}" ${(o.escuelas || []).includes(c.cct) ? 'checked' : ''}> ${esc(c.escuela)}</label>`).join('')}</div></div>` : ''}
       <div class="fila">
         <div class="campo"><label for="o-fe">Fecha</label><input type="date" id="o-fe" value="${o.fecha}"></div>
@@ -2358,7 +2373,8 @@ function vEditorOficio() {
     const ant = DESTINOS[o.municipio], nue = DESTINOS[b.dataset.mun];
     ['destNombre', 'destCargo', 'destInst'].forEach(k => { if (!o[k] || o[k] === ant[k]) o[k] = nue[k]; });
     o.municipio = b.dataset.mun;
-    if (o.municipio !== 'Otro') o.escuelas = (o.escuelas || []).filter(c => (escuelaDe(c) || {}).municipio === o.municipio);
+    if (esGrupo(o.municipio)) o.escuelas = escuelasDeGrupo(o.municipio).map(c => c.cct);
+    else if (o.municipio !== 'Otro') o.escuelas = (o.escuelas || []).filter(c => (escuelaDe(c) || {}).municipio === o.municipio);
     vEditorOficio();
   });
   $('#b-volver').onclick = () => { vista.ofiEdit = null; vista.ofiBorrador = null; vOficios(); };
@@ -2366,7 +2382,7 @@ function vEditorOficio() {
     leerForm();
     if (!o.asunto.trim()) return aviso('Escriba primero el asunto.', 'mal');
     if (o.cuerpo.trim() && !confirm('¿Reemplazar el texto actual por la redacción de la IA? (Se usa el texto actual como borrador.)')) return;
-    const r = await accion('redactarOficio', { asunto: o.asunto, notas: o.notas, referencia: o.referencia, escuelas: o.escuelas, fecha: o.fecha,
+    const r = await accion('redactarOficio', { municipio: o.municipio, asunto: o.asunto, notas: o.notas, referencia: o.referencia, escuelas: o.escuelas, fecha: o.fecha,
       destNombre: o.destNombre, destCargo: o.destCargo, destInst: o.destInst, cuerpo: o.cuerpo });
     if (r && r.texto) { $('#o-cu').value = r.texto.replace(/\n{3,}/g, '\n\n'); pintarPrev(); aviso('Texto redactado. Revíselo y corríjalo antes de guardar.', 'ok', 5000); }
   };
@@ -2397,11 +2413,15 @@ function formCorreoOficio(o) {
   let guardados = {}; try { guardados = JSON.parse(localStorage.getItem('tequio.correosOficio') || '{}'); } catch (e) {}
   const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar Zona 050`;
   const rem = (S.ofiCfg && S.ofiCfg.remitentes) || ['supervision050sep@gmail.com'];
+  const dirsGrupo = esGrupo(o.municipio) ? directores().filter(c => (o.escuelas || []).includes(c.cct)) : [];
+  const sinCorreo = dirsGrupo.filter(c => !correos(c).length);
+  const paraIni = esGrupo(o.municipio) ? [...new Set(dirsGrupo.flatMap(correos))].join(', ') : (guardados[o.destNombre] || '');
   let deGuardado = ''; try { deGuardado = localStorage.getItem('tequio.remitenteOficio') || ''; } catch (e) {}
   modal('Enviar ' + esc(o.folio) + ' por correo', `
     ${esAdmin() && rem.length > 1 ? `<div class="campo"><label for="m-de">Enviar desde</label><select id="m-de">${rem.map(r => `<option ${r === deGuardado ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`
       : `<div class="campo"><span class="et">Enviar desde</span><div>${esc(rem[0])}</div></div>`}
-    <div class="campo"><label for="m-para">Para</label><input id="m-para" type="email" multiple placeholder="correo@ejemplo.mx, otro@ejemplo.mx" value="${esc(guardados[o.destNombre] || '')}"></div>
+    <div class="campo"><label for="m-para">Para</label><input id="m-para" type="email" multiple placeholder="correo@ejemplo.mx, otro@ejemplo.mx" value="${esc(paraIni)}">
+      ${esGrupo(o.municipio) ? `<div class="ayuda">${dirsGrupo.length} direcciones${sinCorreo.length ? ' · sin correo en el Directorio: ' + esc(sinCorreo.map(c => c.escuela).join(', ')) : ''}</div>` : ''}</div>
     <div class="campo"><label for="m-as">Asunto del correo</label><input id="m-as" value="${esc('Oficio ' + o.folio + ' · ' + o.asunto)}"></div>
     <div class="campo"><label for="m-msg">Mensaje</label><textarea id="m-msg" style="min-height:160px">${esc(msg)}</textarea></div>
     <div class="ayuda">Va con el PDF adjunto y queda una copia del correo en el Drive (Oficios Tequio → Correos enviados). Quedan ${S.cuota != null ? S.cuota : '—'} envíos hoy.</div>`,
