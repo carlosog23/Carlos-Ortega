@@ -13,6 +13,7 @@
  *  · Revisa las carpetas de evidencias del Drive «Supervisión 050» (solo nombres y fechas).
  *  · Permite crear carpetas y subir archivos a ese Drive desde la página.
  *  · Da acceso de consulta a los directores: su escuela, la agenda y el avance general de la zona.
+ *  · Genera oficios numerados de la Supervisión, con redacción asistida por IA (Gemini) y envío por correo.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -36,18 +37,20 @@ const HOJAS = {
   reu: ['id', 'titulo', 'tipo', 'fecha', 'horario', 'lugar', 'descripcion', 'activo', 'creadoPor', 'creado', 'actualizado'],
   acu: ['id', 'reunionId', 'seccion', 'numero', 'texto', 'responsable', 'limite', 'plazo', 'nota', 'escuelas', 'orden', 'activo', 'actualizado'],
   cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
-  evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado']
+  evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
+  ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
+        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
-  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive' };
-const VERSION = 4;
+  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios' };
+const VERSION = 5;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes'];
-const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios'];
+const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
    que se entrega por separado porque contiene datos personales. */
@@ -134,7 +137,7 @@ function doPost(e) {
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['datos', 'subirArchivo'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta'];
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -150,6 +153,8 @@ const ACCIONES = {
     cum: leer_('cum'),
     evi: leer_('evi'),
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
+    ofi: leer_('ofi').sort((a, b) => String(b.id).localeCompare(String(a.id))),
+    ofiCfg: cfgOficios_(),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
@@ -368,8 +373,232 @@ const ACCIONES = {
     try { guardarVarios_('evi', nuevas); } finally { lock.releaseLock(); }
     if (nuevas.length) bitacora_('carpeta', nombre, [], (dentro ? dentro + '/' : '') + nombre, 'creada en ' + nuevas.length + ' escuelas por ' + yo.nombre);
     return { creadas: nuevas.map(x => x.cct), existian: existian, sinBase: sinBase, evi: leer_('evi') };
+  },
+
+  /* ---- Oficios de la Supervisión ---- */
+
+  // Guarda un oficio. Si es nuevo, le asigna el siguiente número del año (SE-050/047/2026).
+  guardarOficio: (yo, d) => {
+    soloMesa_(yo);
+    const previo = d.id ? buscar_('ofi', d.id) : null;
+    const o = Object.assign({}, previo || {}, {
+      fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
+      municipio: ['San Quintín', 'Ensenada', 'Otro'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
+      destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300),
+      escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
+      cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
+      firma: yo.rol === 'admin' && !!d.firma, sello: yo.rol === 'admin' && !!d.sello, escala: String(d.escala || '1'),
+      actualizado: ahora_()
+    });
+    if (!o.asunto.trim()) throw new Error('Escriba el asunto del oficio.');
+    if (!previo) {
+      const props = PropertiesService.getScriptProperties();
+      const anio = o.fecha.slice(0, 4);
+      let ultimo = +props.getProperty('OFI_ULTIMO') || ULTIMO_OFICIO_INICIAL;
+      if ((props.getProperty('OFI_ANIO') || '2026') !== anio) ultimo = 0;  // cada año empieza en 001
+      const n = ultimo + 1;
+      props.setProperties({ OFI_ULTIMO: String(n), OFI_ANIO: anio });
+      Object.assign(o, { id: 'ofi-' + anio + '-' + ('00' + n).slice(-3), numero: String(n), anio: anio, folio: folio_(n, anio),
+        pdfId: '', envios: [], creadoPor: yo.id, creado: ahora_() });
+    }
+    guardar_('ofi', o);
+    return { oficio: o, ofiCfg: cfgOficios_() };
+  },
+
+  // Redacta el cuerpo del oficio con Gemini a partir del asunto y las notas
+  redactarOficio: (yo, d) => {
+    soloMesa_(yo);
+    if (!String(d.asunto || '').trim()) throw new Error('Escriba primero el asunto.');
+    const esc = leer_('dir').filter(c => c.tipo === 'director' && (d.escuelas || []).indexOf(c.cct) >= 0)
+      .map(c => 'Esc. Prim. «' + c.escuela + '» (C.C.T. ' + c.cct + ', ' + c.municipio + ')');
+    const prompt = INSTRUCCIONES_OFICIO +
+      '\n\nDATOS DEL OFICIO\n' +
+      '- Destinatario: ' + [d.destNombre, d.destCargo, d.destInst].filter(Boolean).join(', ') + '\n' +
+      '- Asunto: ' + d.asunto + '\n' +
+      (d.referencia ? '- Referencia: ' + d.referencia + '\n' : '') +
+      (esc.length ? '- Escuelas relacionadas: ' + esc.join('; ') + '\n' : '') +
+      '- Fecha del oficio: ' + fechaLarga_(d.fecha || hoy_()) + '\n' +
+      '- Notas de la Supervisión (información que debe incluirse): ' + (String(d.notas || '').trim() || '(sin notas; redacte con base en el asunto)') + '\n' +
+      (String(d.cuerpo || '').trim() ? '- Borrador actual (mejórelo conservando los datos): ' + d.cuerpo + '\n' : '');
+    return { texto: gemini_(prompt) };
+  },
+
+  // Guarda el PDF del oficio en el Drive de la Supervisión (carpeta «Oficios Tequio»)
+  archivarOficio: (yo, d) => {
+    soloMesa_(yo);
+    return { oficio: archivar_(d.id, d.pdf) };
+  },
+
+  // Envía el oficio por correo (con el PDF adjunto) desde la cuenta de la Supervisión
+  enviarOficio: (yo, d) => {
+    soloMesa_(yo);
+    const para = String(d.para || '').split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    if (!para.length) throw new Error('Escriba al menos un correo válido.');
+    if (MailApp.getRemainingDailyQuota() < para.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana o envíelo desde su correo.');
+    const o = archivar_(d.id, d.pdf);
+    const pdf = DriveApp.getFileById(o.pdfId).getBlob().setName(o.folio.replace(/\//g, '-') + '.pdf');
+    const cuerpo = String(d.mensaje || '').trim() || ('Por este medio le hago llegar el oficio ' + o.folio + '. Asunto: ' + o.asunto + '.');
+    MailApp.sendEmail({ to: para.join(','), subject: d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto), name: 'Supervisión Escolar Zona 050',
+      replyTo: 'supervision050sep@gmail.com', attachments: [pdf],
+      htmlBody: '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
+        '<p style="margin-top:18px;color:#555">Supervisión Escolar Zona 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · Tel. 616 165 5622</p></div>' });
+    o.envios = (o.envios || []).concat([{ f: ahora_(), por: 'correo', a: para.join(', '), u: yo.id }]);
+    guardar_('ofi', o);
+    bitacora_('oficio', o.id, para, 'Oficio ' + o.folio, 'enviado por ' + yo.nombre);
+    return { oficio: o, cuota: MailApp.getRemainingDailyQuota() };
+  },
+
+  // Configuración de oficios (solo Supervisión): último número, clave de Gemini, firma y sello
+  configOficios: (yo, d) => {
+    soloAdmin_(yo);
+    const props = PropertiesService.getScriptProperties();
+    if (d.ultimo != null && d.ultimo !== '') {
+      const n = parseInt(d.ultimo, 10);
+      if (!(n >= 0)) throw new Error('El número de oficio no es válido.');
+      props.setProperties({ OFI_ULTIMO: String(n), OFI_ANIO: String(d.anio || hoy_().slice(0, 4)) });
+    }
+    if (d.geminiKey != null) {
+      if (String(d.geminiKey).trim()) { props.setProperty('GEMINI_KEY', String(d.geminiKey).trim()); props.deleteProperty('GEMINI_MODELO'); }
+      else props.deleteProperty('GEMINI_KEY');
+    }
+    ['firma', 'sello'].forEach(k => {
+      if (!d[k]) return;
+      const carpeta = carpetaRecursos_();
+      const previo = props.getProperty(k.toUpperCase() + '_ID');
+      if (previo) { try { DriveApp.getFileById(previo).setTrashed(true); } catch (e) {} }
+      const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(d[k]), 'image/png', k + '-supervision.png'));
+      props.setProperty(k.toUpperCase() + '_ID', f.getId());
+    });
+    if (d.geminiKey && String(d.geminiKey).trim()) gemini_('Responda solo con la palabra: listo');  // prueba la clave
+    return { ofiCfg: cfgOficios_() };
+  },
+
+  // Imágenes de firma y sello para armar el oficio (solo Supervisión)
+  recursosOficio: (yo) => {
+    soloAdmin_(yo);
+    const props = PropertiesService.getScriptProperties(), r = {};
+    ['firma', 'sello'].forEach(k => {
+      const id = props.getProperty(k.toUpperCase() + '_ID');
+      if (id) { try { r[k] = Utilities.base64Encode(DriveApp.getFileById(id).getBlob().getBytes()); } catch (e) {} }
+    });
+    return r;
   }
 };
+
+/* ===================== Oficios ===================== */
+
+// Último oficio hecho antes de usar Tequio (el primero de Tequio será el siguiente)
+const ULTIMO_OFICIO_INICIAL = 46;
+
+const INSTRUCCIONES_OFICIO = [
+  'Usted redacta oficios de la Supervisión Escolar Zona 050 (Primaria Federalizada, ISEP, Baja California), firmados por el Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar.',
+  'Escriba SOLO el cuerpo del oficio: sin encabezado, sin fecha, sin número, sin destinatario, sin «PRESENTE», sin «ATENTAMENTE», sin firma y sin copias.',
+  'Estilo: español formal administrativo de México, claro y respetuoso, en primera persona del supervisor («me permito informarle», «solicito respetuosamente»).',
+  'Estructura: 2 a 4 párrafos. Inicie con «Por medio del presente,» o «Por este conducto,». Desarrolle los hechos o la solicitud con precisión. Cierre con una fórmula como «Lo anterior para su conocimiento y lo que estime conducente. Sin otro particular, le envío un cordial saludo.» o «Sin otro particular por el momento, agradezco de antemano su atención y le envío un cordial saludo.».',
+  'Si hay varias escuelas o datos en lista, puede usar viñetas sencillas iniciando cada renglón con «• ».',
+  'No invente fechas, cifras, nombres, números de oficio ni hechos que no estén en los datos. Si falta un dato indispensable, deje un espacio entre corchetes, por ejemplo [fecha].',
+  'Las escuelas se nombran como Esc. Prim. «Nombre» con su C.C.T. cuando se proporcionen.',
+  'Separe cada párrafo con una línea en blanco. No use negritas, asteriscos, títulos ni formato Markdown. Responda únicamente con el texto del cuerpo.'
+].join('\n');
+
+function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden hacer esto.'); }
+function folio_(n, anio) { return 'SE-050/' + ('00' + n).slice(-3) + '/' + anio; }
+
+function cfgOficios_() {
+  const p = PropertiesService.getScriptProperties();
+  const anio = p.getProperty('OFI_ANIO') || '2026';
+  const ultimo = +p.getProperty('OFI_ULTIMO') || ULTIMO_OFICIO_INICIAL;
+  const anioHoy = hoy_().slice(0, 4);
+  const sig = anio === anioHoy ? ultimo + 1 : 1;
+  return { ultimo: ultimo, anio: anio, siguiente: folio_(sig, anioHoy), ia: !!p.getProperty('GEMINI_KEY'), modelo: p.getProperty('GEMINI_MODELO') || '',
+    firma: !!p.getProperty('FIRMA_ID'), sello: !!p.getProperty('SELLO_ID') };
+}
+
+function carpetaPorNombre_(padre, nombre) {
+  const it = padre.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : padre.createFolder(nombre);
+}
+// «Documentos/Oficios Tequio» en el Drive de la Supervisión (si no existe «Documentos», en la raíz)
+function carpetaOficios_() {
+  const p = PropertiesService.getScriptProperties();
+  const id = p.getProperty('OFI_CARPETA');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  const raiz = DriveApp.getRootFolder();
+  const docs = raiz.getFoldersByName('Documentos');
+  const f = carpetaPorNombre_(docs.hasNext() ? docs.next() : raiz, 'Oficios Tequio');
+  p.setProperty('OFI_CARPETA', f.getId());
+  return f;
+}
+function carpetaRecursos_() { return carpetaPorNombre_(DriveApp.getRootFolder(), 'Tequio · Recursos (no compartir)'); }
+
+function archivar_(id, pdf) {
+  const o = buscar_('ofi', id);
+  if (!o) throw new Error('Oficio no encontrado. Guárdelo primero.');
+  if (!pdf) { if (!o.pdfId) throw new Error('Falta el PDF del oficio.'); return o; }
+  const datos = Utilities.base64Decode(String(pdf));
+  const nombre = o.folio.replace(/\//g, '-') + ' · ' + String(o.asunto).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 80) + '.pdf';
+  if (o.pdfId) { try { DriveApp.getFileById(o.pdfId).setTrashed(true); } catch (e) {} }
+  const f = carpetaOficios_().createFile(Utilities.newBlob(datos, 'application/pdf', nombre));
+  f.setDescription('Generado en Tequio');
+  o.pdfId = f.getId();
+  o.actualizado = ahora_();
+  guardar_('ofi', o);
+  return o;
+}
+
+/* Gemini (Google AI Studio). La clave se guarda solo en las propiedades del servidor. */
+function gemini_(prompt) {
+  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  if (!key) throw new Error('Falta configurar la clave de Gemini en Oficios → Configuración.');
+  for (let intento = 0; intento < 2; intento++) {
+    const modelo = modeloGemini_(key, intento > 0);
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 4096 } })
+    });
+    const c = r.getResponseCode();
+    if (c === 404 && intento === 0) { PropertiesService.getScriptProperties().deleteProperty('GEMINI_MODELO'); continue; }
+    let j = {};
+    try { j = JSON.parse(r.getContentText()); } catch (e) {}
+    if (c === 429) throw new Error('Se alcanzó el límite gratuito de Gemini por ahora. Espere un minuto e intente de nuevo.');
+    if (c === 400 || c === 403) throw new Error('Gemini rechazó la clave. Revísela en Oficios → Configuración.' + (j.error && j.error.message ? ' (' + j.error.message + ')' : ''));
+    if (c !== 200) throw new Error('Gemini no respondió (' + c + '). Intente de nuevo.');
+    const partes = (((j.candidates || [])[0] || {}).content || {}).parts || [];
+    const texto = partes.map(x => x.text || '').join('').replace(/\*\*/g, '').trim();
+    if (!texto) throw new Error('Gemini no devolvió texto. Agregue más detalles en las notas e intente de nuevo.');
+    return texto;
+  }
+}
+
+// Elige el modelo «Flash» más reciente disponible para la clave y lo recuerda
+function modeloGemini_(key, forzar) {
+  const p = PropertiesService.getScriptProperties();
+  if (!forzar && p.getProperty('GEMINI_MODELO')) return p.getProperty('GEMINI_MODELO');
+  let elegido = 'gemini-2.5-flash';
+  try {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key), { muteHttpExceptions: true });
+    if (r.getResponseCode() === 200) {
+      const ms = (JSON.parse(r.getContentText()).models || [])
+        .filter(m => (m.supportedGenerationMethods || []).indexOf('generateContent') >= 0)
+        .map(m => String(m.name).replace(/^models\//, ''))
+        .filter(n => /^gemini-\d/.test(n) && /flash/.test(n) && !/(lite|image|tts|audio|live|embedding|robotics|computer|thinking)/.test(n));
+      const ver = n => parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+      const estables = ms.filter(n => !/(exp|preview)/.test(n));
+      const lista = (estables.length ? estables : ms).sort((a, b) => ver(b) - ver(a) || a.length - b.length);
+      if (lista.length) elegido = lista[0];
+    }
+  } catch (e) {}
+  p.setProperty('GEMINI_MODELO', elegido);
+  return elegido;
+}
+
+/** Ejecute esta función UNA vez después de actualizar: da permiso para crear los PDF y conectarse a Gemini. */
+function autorizarOficios() {
+  const f = carpetaOficios_();
+  carpetaRecursos_();
+  UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });
+  Logger.log('Listo. Los oficios se guardarán en la carpeta «' + f.getName() + '» del Drive. El siguiente número es ' + cfgOficios_().siguiente + '.');
+}
 
 /* ===================== Directores ===================== */
 
