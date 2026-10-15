@@ -39,11 +39,11 @@ const HOJAS = {
   cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
   evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
   ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
-        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo']
+        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios' };
-const VERSION = 5;
+const VERSION = 6;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -137,7 +137,7 @@ function doPost(e) {
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['datos', 'subirArchivo'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio'];
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -384,7 +384,7 @@ const ACCIONES = {
     const o = Object.assign({}, previo || {}, {
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
       municipio: ['San Quintín', 'Ensenada', 'Otro', 'Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
-      destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300), destCorreo: String(d.destCorreo || '').slice(0, 500),
+      destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300), destCorreo: String(d.destCorreo || '').slice(0, 500), recibidoId: String(d.recibidoId || '').slice(0, 100), recibidoNombre: String(d.recibidoNombre || '').slice(0, 200),
       escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
       cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
       firma: yo.rol === 'admin' && !!d.firma, sello: yo.rol === 'admin' && !!d.sello, escala: String(d.escala || '1'),
@@ -424,6 +424,30 @@ const ACCIONES = {
     return { texto: gemini_(prompt) };
   },
 
+  // Lee con la IA un oficio que envió un director (PDF o foto), lo archiva y propone el oficio de seguimiento a la autoridad que corresponde
+  analizarOficioRecibido: (yo, d) => {
+    soloMesa_(yo);
+    const tipo = String(d.tipo || 'application/pdf');
+    if (!/^(application\/pdf|image\/(png|jpeg|webp|heic|heif))$/.test(tipo)) throw new Error('Suba el oficio en PDF o como foto (JPG o PNG).');
+    if (!d.archivo) throw new Error('Falta el archivo.');
+    const datos = Utilities.base64Decode(String(d.archivo));
+    if (datos.length > 15 * 1024 * 1024) throw new Error('El archivo pesa más de 15 MB. Redúzcalo o escanéelo con menos resolución.');
+    const nombre = hoy_() + ' · ' + String(d.nombre || 'Oficio recibido').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 120);
+    const f = carpetaRecibidos_().createFile(Utilities.newBlob(datos, tipo, nombre));
+    f.setDescription('Oficio recibido, subido a Tequio por ' + yo.nombre);
+    const escuelas = leer_('dir').filter(c => c.tipo === 'director')
+      .map(c => '- ' + c.escuela + ' | C.C.T. ' + c.cct + ' | ' + c.municipio + ' | ' + (c.multigrado ? 'multigrado' : 'organización completa') + ' | ' + (c.cargo || 'Director(a)') + ': ' + c.nombre).join('\n');
+    const prompt = INSTRUCCIONES_RECIBIDO + '\n\nESCUELAS DE LA ZONA 050\n' + escuelas + '\n\nFecha de hoy: ' + fechaLarga_(hoy_()) +
+      (String(d.notas || '').trim() ? '\n\nIndicaciones del Supervisor: ' + String(d.notas).trim() : '') +
+      '\n\n' + INSTRUCCIONES_OFICIO.replace('Escriba SOLO el cuerpo del oficio', 'En el campo «cuerpo» escriba SOLO el cuerpo del oficio de seguimiento').replace('Responda únicamente con el texto del cuerpo.', '');
+    let a;
+    const texto = gemini_(prompt, { archivo: String(d.archivo), tipo: tipo, json: true });
+    try { a = JSON.parse(texto.replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { throw new Error('La IA no pudo leer bien el oficio. Intente de nuevo o revise que el archivo sea legible.'); }
+    a.recibidoId = f.getId();
+    a.recibidoNombre = nombre;
+    return { analisis: a };
+  },
+
   // Guarda el PDF del oficio en el Drive de la Supervisión (carpeta «Oficios Tequio»)
   archivarOficio: (yo, d) => {
     soloMesa_(yo);
@@ -438,6 +462,8 @@ const ACCIONES = {
     if (MailApp.getRemainingDailyQuota() < para.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana o envíelo desde su correo.');
     const o = archivar_(d.id, d.pdf);
     const pdf = DriveApp.getFileById(o.pdfId).getBlob().setName(o.folio.replace(/\//g, '-') + '.pdf');
+    const adjuntos = [pdf];
+    if (d.adjuntarRecibido && o.recibidoId) { try { const r = DriveApp.getFileById(o.recibidoId); adjuntos.push(r.getBlob().setName('Anexo · ' + r.getName())); } catch (e) {} }
     const asunto = String(d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto)).slice(0, 250);
     const cuerpo = String(d.mensaje || '').trim() || ('Por este medio le hago llegar el oficio ' + o.folio + '. Asunto: ' + o.asunto + '.');
     const html = '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
@@ -448,7 +474,7 @@ const ACCIONES = {
       let alias = [];
       try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
       if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
-        GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: [pdf] });
+        GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: adjuntos });
         de = CORREO_INSTITUCIONAL;
       } else {
         nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
@@ -457,7 +483,7 @@ const ACCIONES = {
     if (de === CORREO_SUPERVISION) {
       const institucional = yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL;
       MailApp.sendEmail({ to: para.join(','), subject: asunto, name: institucional ? 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050' : 'Supervisión Escolar Zona 050',
-        replyTo: institucional ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, attachments: [pdf], htmlBody: html });
+        replyTo: institucional ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, attachments: adjuntos, htmlBody: html });
     }
     const envio = { f: ahora_(), por: 'correo', de: de, a: para.join(', '), u: yo.id };
     // el correo queda guardado con el destinatario para los siguientes oficios
@@ -510,6 +536,17 @@ const ACCIONES = {
 
 // Último oficio hecho antes de usar Tequio (el primero de Tequio será el siguiente)
 const ULTIMO_OFICIO_INICIAL = 46;
+
+const INSTRUCCIONES_RECIBIDO = [
+  'Usted apoya al Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar de la Zona 050 (Primaria Federalizada, ISEP, Baja California). Se adjunta un oficio o escrito que le envió un director o directora de una escuela de la zona.',
+  'Léalo con cuidado y determine: qué escuela lo envía, quién lo firma, qué problema plantea, qué solicita, y a qué autoridad le compete atenderlo.',
+  'Autoridades inmediatas: si la escuela pertenece al municipio de San Quintín, el oficio de seguimiento va al C. HUMBERTO GARCÍA SOLORIO, Jefe del Departamento de Educación Primaria en San Quintín (ISEP). Si pertenece al municipio de Ensenada, va al PROFR. ARTURO AGUILAR CITAL, Jefe del Departamento de Educación Primaria en Ensenada (ISEP). Nunca mezcle municipios.',
+  'Solo si el asunto claramente compete a otra dependencia distinta del Departamento de Educación Primaria (por ejemplo, el ayuntamiento, la comisión de agua, CFE, Protección Civil, Seguridad Pública), indique autoridad «Otro» con los datos de esa dependencia; aun así mencione en «motivoAutoridad» si conviene marcar copia al Jefe de Departamento.',
+  'Después redacte el oficio de seguimiento que el Supervisor enviará a esa autoridad: haga referencia al escrito del director (número y fecha si los tiene), exponga el planteamiento de forma objetiva y solicite con respeto la atención o intervención que corresponda. No copie textual el escrito del director.',
+  'Responda SOLO con un objeto JSON válido, sin texto adicional, con estas claves:',
+  '{"escuelaCct": "C.C.T. de la escuela de la lista, o vacío si no se identifica", "escuelaNombre": "", "remitente": "nombre y cargo de quien firma", "oficioDirector": "número y fecha del escrito del director, si aparecen", "resumen": "2 a 4 renglones con lo que plantea", "peticiones": ["lo que solicita, una por elemento"], "autoridad": "San Quintín | Ensenada | Otro", "otraDependencia": {"nombre": "", "cargo": "", "dependencia": ""}, "motivoAutoridad": "por qué le compete a esa autoridad", "asunto": "asunto breve del oficio de seguimiento", "referencia": "Oficio [número] de la Dirección de la Esc. Prim. «...», o vacío", "cuerpo": "cuerpo del oficio de seguimiento, párrafos separados por \\n\\n", "ccp": "copias sugeridas, una por renglón separadas por \\n; incluya a la Dirección de la escuela para su conocimiento y «Archivo.»"}',
+  'Si el documento no es legible o no es un oficio escolar, responda el JSON con «resumen» explicando el problema y los demás campos vacíos.'
+].join('\n');
 
 const INSTRUCCIONES_OFICIO = [
   'Usted redacta oficios de la Supervisión Escolar Zona 050 (Primaria Federalizada, ISEP, Baja California), firmados por el Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar.',
@@ -569,6 +606,10 @@ function guardarCorreo_(o, envio, asunto, cuerpo, yo) {
   const f = carpetaCorreos_(envio.f.slice(0, 4)).createFile(Utilities.newBlob(html, 'text/html', 'correo.html').getAs('application/pdf').setName(nombre));
   return f.getId();
 }
+// «Oficios Tequio/Recibidos/AAAA»: los oficios que mandan los directores y se suben a Tequio
+function carpetaRecibidos_() {
+  return carpetaPorNombre_(carpetaPorNombre_(carpetaOficios_(), 'Recibidos'), hoy_().slice(0, 4));
+}
 function carpetaRecursos_() { return carpetaPorNombre_(DriveApp.getRootFolder(), 'Tequio · Recursos (no compartir)'); }
 
 function archivar_(id, pdf) {
@@ -587,14 +628,16 @@ function archivar_(id, pdf) {
 }
 
 /* Gemini (Google AI Studio). La clave se guarda solo en las propiedades del servidor. */
-function gemini_(prompt) {
+function gemini_(prompt, op) {
+  op = op || {};
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!key) throw new Error('Falta configurar la clave de Gemini en Oficios → Configuración.');
   for (let intento = 0; intento < 2; intento++) {
     const modelo = modeloGemini_(key, intento > 0);
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-      payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 4096 } })
+      payload: JSON.stringify({ contents: [{ role: 'user', parts: (op.archivo ? [{ inline_data: { mime_type: op.tipo || 'application/pdf', data: op.archivo } }] : []).concat([{ text: prompt }]) }],
+        generationConfig: Object.assign({ temperature: 0.4, maxOutputTokens: 8192 }, op.json ? { responseMimeType: 'application/json' } : {}) })
     });
     const c = r.getResponseCode();
     if (c === 404 && intento === 0) { PropertiesService.getScriptProperties().deleteProperty('GEMINI_MODELO'); continue; }
@@ -637,6 +680,7 @@ function autorizarOficios() {
   const f = carpetaOficios_();
   carpetaRecursos_();
   carpetaCorreos_();
+  carpetaRecibidos_();
   UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });
   let alias = [];
   try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
@@ -936,6 +980,11 @@ function hoja_(k) {
     sh.getRange(1, 1, 1, HOJAS[k].length).setValues([HOJAS[k]]).setFontWeight('bold').setBackground('#1F3A6B').setFontColor('#FFFFFF');
     sh.setFrozenRows(1);
     sh.getRange(1, 1, sh.getMaxRows(), HOJAS[k].length).setNumberFormat('@');
+  } else if (sh.getLastColumn() < HOJAS[k].length) {  // columnas nuevas de una actualización
+    const n0 = sh.getLastColumn() + 1, n = HOJAS[k].length - n0 + 1;
+    if (sh.getMaxColumns() < HOJAS[k].length) sh.insertColumnsAfter(sh.getMaxColumns(), HOJAS[k].length - sh.getMaxColumns());
+    sh.getRange(1, n0, 1, n).setValues([HOJAS[k].slice(n0 - 1)]).setFontWeight('bold').setBackground('#1F3A6B').setFontColor('#FFFFFF');
+    sh.getRange(1, n0, sh.getMaxRows(), n).setNumberFormat('@');
   }
   return sh;
 }
