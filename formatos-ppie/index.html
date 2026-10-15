@@ -1925,8 +1925,8 @@ async function psPDF(preview){await fonts();const v=PS;const{PDFDocument,Standar
     for(let k=R.ini;k<=R.fin;k++)partes.push(pase(b,psFolio(b,k)));
     if(partes.length%2)partes.push(d=>d.ctr("NOTAS",30,9,F.b,C.lg));
     const S2=partes.length/2,max=preview?Math.min(2,S2):S2;
-    for(let i=0;i<max;i++){const pg=doc.addPage([PW,PH]);
-      [[partes[i],0],[partes[S2+i],396]].forEach(([fn,T])=>{const d=mk(pg,T);d.pg=pg;fn(d)});
+    for(let i=0;i<max;i++){const pg=doc.addPage([PW,PH]);   // folios consecutivos en la misma hoja: arriba y abajo
+      [[partes[2*i],0],[partes[2*i+1],396]].forEach(([fn,T])=>{const d=mk(pg,T);d.pg=pg;fn(d)});
       for(let x=M-14;x<PW-M+14;x+=7)pg.drawLine({start:{x,y:396},end:{x:x+3.5,y:396},thickness:0.5,color:C.lg});
       const ct="CORTAR AQUÍ",cw=F.r.widthOfTextAtSize(ct,6);pg.drawRectangle({x:PW/2-cw/2-6,y:392,width:cw+12,height:8,color:rgb(1,1,1)});pg.drawText(ct,{x:PW/2-cw/2,y:394,size:6,font:F.r,color:C.lg})}}
   doc.setTitle(`Libro de pases de salida - ${tipo} ${nombre}`);doc.setProducer("Tlamatini · Zona 050");doc.setAuthor("Supervisión Escolar Zona 050");
@@ -1972,7 +1972,7 @@ function psView(){S.view="pases";S.letra=null;if(!PS)PS=psInit();setBar("");OUT=
    <section class="card"><h3>Vista previa</h3><p class="help">Muestra las primeras hojas del primer libro, tal como se imprimen.</p>
     <button class="btn ghost" id="ps_prev">Ver vista previa</button><div id="ps_pvw" class="lvpv"></div></section>
    <section class="card"><h3>¿Qué desea hacer con los libros?</h3><p class="muted" style="font-size:15px">Imprima en hojas tamaño <b>Carta</b>, orientación <b>vertical</b>, a una sola cara y al <b>100 %</b>.</p>
-    <ol class="help" style="padding-left:20px;margin:0 0 12px"><li>Cada hoja lleva dos pases. Corte todo el bloque por la línea punteada.</li><li>Ponga el bloque de abajo <b>debajo</b> del de arriba: los folios quedan en orden.</li><li>Engrape o encuaderne por la izquierda.</li></ol>
+    <ol class="help" style="padding-left:20px;margin:0 0 12px"><li>Cada hoja lleva dos pases con folios seguidos (001 arriba, 002 abajo).</li><li>Corte cada hoja por la línea punteada y vaya acomodando los pases en orden.</li><li>Engrape o encuaderne por la izquierda.</li></ol>
     <div class="acts">
      <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
      <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
