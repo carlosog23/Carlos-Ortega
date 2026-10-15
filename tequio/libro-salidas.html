@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California.
+     Todos los derechos reservados. Prohibida su copia, reproducción, modificación o publicación sin autorización escrita del autor. -->
+<meta name="author" content="Mtro. Carlos Gabriel Ortega Gutiérrez">
+<meta name="robots" content="noindex, nofollow, noai, noimageai">
+<script>/* Huella de autoría: solo funciona en el sitio oficial. */
+(function(){var O="https://carlosog23.github.io/Carlos-Ortega/",H=["carlosog23.github.io","localhost","127.0.0.1"],h=location.hostname;
+if(H.indexOf(h)>-1)return;window.__copiaNoAutorizada=true;
+try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURIComponent("/copia-no-autorizada/"+(h||"archivo-local")+location.pathname)+"&t="+encodeURIComponent("Copia no autorizada: "+location.href)+"&rnd="+Math.random()}catch(e){}
+function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta pertenece a la Supervisión Escolar Zona 050 (ISEP) y es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Libro de pases de salida · Zona 050</title>
+<style>
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Regular.ttf) format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Bold.ttf) format('truetype');font-weight:700;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Italic.ttf) format('truetype');font-weight:400;font-style:italic}
+:root{--tinta:#1E2A40;--indigo:#1F3A6B;--marino:#1F2A44;--gris:#5B6475;--borde:#D9D3C7;--papel:#FFFDF8;--arena:#F6F1E7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--arena);color:var(--tinta);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+.cab{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.cab img{height:46px}
+.cab h1{font-size:24px;margin:0;color:var(--indigo);line-height:1.15}
+.cab p{margin:2px 0 0;color:var(--gris);font-size:14px}
+.rej{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.rej{grid-template-columns:minmax(0,1fr)}}
+.tarjeta{background:var(--papel);border:1px solid var(--borde);border-radius:14px;padding:16px}
+.tarjeta h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--indigo);margin:0 0 10px}
+.tarjeta+.tarjeta{margin-top:14px}
+label{display:block;font-weight:600;font-size:14px;margin:0 0 4px}
+.campo{margin-bottom:11px}
+input,select{width:100%;font:inherit;font-size:15px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px;background:#fff;color:var(--tinta);min-height:40px}
+.fila{display:flex;gap:10px}.fila>*{flex:1;min-width:0}
+.ayuda{font-size:13px;color:var(--gris);margin-top:3px}
+.logo-prev{display:flex;align-items:center;gap:10px}
+.logo-prev img{width:48px;height:60px;object-fit:contain;background:#fff;border:1px solid var(--borde);border-radius:8px}
+.libro{border:1px solid var(--borde);border-radius:11px;padding:10px;margin-bottom:10px;background:#fff;position:relative}
+.libro .fila{margin-bottom:8px}
+.libro .quitar{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--gris);font-size:20px;cursor:pointer;line-height:1}
+.libro .num{font-size:12px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.boton{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--indigo);background:var(--indigo);color:#fff;font:inherit;font-weight:600;border-radius:10px;padding:9px 14px;cursor:pointer;min-height:42px}
+.boton.sec{background:#fff;color:var(--indigo)}
+.botones{display:flex;gap:8px;flex-wrap:wrap}
+.casilla{display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:6px}
+.casilla input{width:auto;min-height:0}
+.instr{font-size:14px;margin:0;padding-left:20px}
+.instr li{margin-bottom:4px}
+.resumen{font-size:14px;color:var(--gris);margin:8px 0 0}
+.prev-caja{position:sticky;top:12px}
+.prev-tit{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.prev-tit b{color:var(--indigo)}
+.prev-tit select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+.prev{background:#cfc8bb;border-radius:12px;padding:12px;max-height:82vh;overflow:auto}
+.prev .escala{transform-origin:0 0}
+.prev .hoja{box-shadow:0 2px 12px rgba(0,0,0,.18);margin-bottom:12px}
+#impresion{display:none}
+
+/* ---- Hojas impresas: carta con dos medias cartas ---- */
+.hoja{width:8.5in;height:11in;position:relative;background:#fff;overflow:hidden;font-family:'MontserratOfi',Montserrat,Arial,sans-serif;color:#1b1b1b}
+.mitad{position:absolute;left:0;width:8.5in;height:5.5in;padding:.32in .42in .28in}
+.mitad.arriba{top:0}.mitad.abajo{top:5.5in}
+.corte{position:absolute;top:5.5in;left:0;right:0;border-top:1px dashed #9AA5B1}
+.corte span{position:absolute;left:50%;transform:translate(-50%,-55%);background:#fff;padding:0 8px;font-size:7pt;color:#8a94a0;letter-spacing:.08em}
+.enc{display:grid;grid-template-columns:1.25in 1fr 1.25in;align-items:center;gap:6px}
+.enc .izq{display:flex;align-items:center;gap:6px}
+.enc img{object-fit:contain}
+.i-isep{width:.78in;height:.6in}.i-zona{width:.5in;height:.5in}.i-esc{width:.6in;height:.72in;justify-self:end}
+.tit{text-align:center;line-height:1.28}
+.t1{font-size:6.6pt;font-weight:700;color:#1F3A6B;letter-spacing:.02em}
+.t2{font-size:10.5pt;font-weight:700;color:#1F2A44;margin:2px 0 1px}
+.t3{font-size:6.8pt;color:#555}
+.filete{border-top:2px solid #1F2A44;margin-top:5px;padding-top:2px}.filete::after{content:'';display:block;border-top:.7px solid #9AA5B1}
+.barra{display:flex;justify-content:space-between;align-items:center;margin:10px 0 12px}
+.barra h1{margin:0;font-size:11pt;letter-spacing:.14em;color:#1F2A44}
+.folio{font-size:8.5pt;font-weight:700;color:#1F2A44}
+.folio span{display:inline-block;min-width:.9in;border-bottom:1px solid #333;margin-left:4px;text-align:center;font-size:10pt;letter-spacing:.04em}
+.f{display:flex;gap:14px;align-items:flex-end;margin-bottom:13px;font-size:9.2pt}
+.c{display:flex;align-items:flex-end;gap:5px;flex:1;min-width:0}
+.c b{white-space:nowrap;font-weight:700;color:#1F2A44}
+.c i{flex:1;border-bottom:1px solid #333;height:17px;font-style:normal;padding:0 4px;font-size:9.4pt;line-height:16px;white-space:nowrap;overflow:hidden}
+.motivo{font-size:9.2pt;margin-bottom:12px}
+.motivo b{font-weight:700;color:#1F2A44}
+.ops{display:flex;flex-wrap:wrap;gap:4px 18px;margin:7px 0 10px}
+.op{display:flex;align-items:center;gap:5px}
+.op::before{content:'';width:10px;height:10px;border:1.2px solid #1F2A44;border-radius:2px}
+.linea{border-bottom:1px solid #333;height:20px;margin-bottom:2px}
+.firmas{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:46px;text-align:center;font-size:7.4pt;line-height:1.3}
+.firmas div{border-top:1px solid #333;padding-top:4px}
+.firmas b{display:block;font-size:7.6pt;color:#1F2A44}
+.firmas .aut{font-weight:700;color:#1F2A44;letter-spacing:.06em;font-size:7pt;display:block}
+.nota{margin-top:12px;font-size:6.4pt;color:#555;text-align:center;line-height:1.35}
+/* Portada */
+.portada{display:flex;flex-direction:column;align-items:center;text-align:center;height:100%}
+.portada .logos{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:4px}
+.portada .logos .i-isep{width:1.05in;height:.8in}.portada .logos .i-zona{width:.75in;height:.75in}.portada .logos .i-esc{width:.75in;height:.92in}
+.portada .t1{font-size:7.4pt;margin-top:10px}
+.portada .t2{font-size:12pt;margin:4px 0 2px}
+.portada .t3{font-size:7.6pt}
+.portada .gran{margin:16px 0 4px;font-size:8.6pt;letter-spacing:.3em;color:#555}
+.portada .titulo{font-size:17pt;font-weight:700;color:#1F2A44;letter-spacing:.06em;line-height:1.2}
+.portada .ciclo{font-size:9pt;color:#1F3A6B;margin-top:5px;font-weight:700;letter-spacing:.12em}
+.portada .datos{margin-top:14px;border:1.2px solid #1F2A44;border-radius:6px;padding:9px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;text-align:left;font-size:9.4pt;min-width:4.6in}
+.portada .datos b{color:#1F2A44}
+.portada .pie{margin-top:auto;font-size:6.6pt;color:#777}
+/* Aviso para madres, padres y tutores */
+.aviso h2{font-size:10pt;letter-spacing:.08em;color:#1F2A44;margin:8px 0 6px;text-align:center}
+.aviso p{font-size:7.9pt;line-height:1.42;margin:0 0 5px;text-align:justify}
+.aviso .fund{font-size:7.4pt;line-height:1.38;margin:0 0 6px;padding-left:12px}
+.aviso .fund li{margin-bottom:2px;text-align:justify}
+.aviso .pedir{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;font-size:7.6pt;line-height:1.35;margin:0 0 6px;padding-left:14px}
+.aviso .firmado{font-size:7.4pt;text-align:right;margin-top:6px;color:#1F2A44}
+.vacia{display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:9pt;letter-spacing:.2em}
+
+@media print{
+  @page{size:letter;margin:0}
+  body{background:#fff}
+  .app{display:none}
+  #impresion{display:block}
+  #impresion .hoja{break-after:page;page-break-after:always}
+  #impresion .hoja:last-child{break-after:auto;page-break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="cab"><img src="img/zona050.png" alt=""><div><h1>Libro de pases de salida anticipada</h1><p>Supervisión Escolar Zona 050 · Genera los libros personalizados de cada grupo, con portada, aviso para madres y padres, y folios consecutivos.</p></div></div>
+  <div class="rej">
+    <div>
+      <div class="tarjeta">
+        <h2>Escuela</h2>
+        <div class="campo"><label for="esc">Escuela</label><select id="esc"></select></div>
+        <div class="fila">
+          <div class="campo"><label for="turno">Turno</label><select id="turno"><option>Matutino</option><option>Vespertino</option><option>Tiempo completo</option></select></div>
+          <div class="campo"><label for="ciclo">Ciclo escolar</label><input id="ciclo" value="2026-2027"></div>
+        </div>
+        <div class="campo"><label for="loc">Localidad</label><input id="loc" placeholder="Ej. Ejido Lic. Gustavo Díaz Ordaz, Ensenada, B.C."></div>
+        <div class="campo"><label for="logo">Logo de la escuela</label>
+          <div class="logo-prev"><img id="logo-img" alt=""><input id="logo" type="file" accept="image/png,image/jpeg"></div>
+          <div class="ayuda">Se guarda en esta computadora para la próxima vez.</div></div>
+        <div class="fila">
+          <div class="campo" style="flex:.55"><label for="dtit">Título</label><select id="dtit"><option>Profr.</option><option>Profra.</option><option>Mtro.</option><option>Mtra.</option><option>Lic.</option><option>Dr.</option><option>Dra.</option><option>C.</option></select></div>
+          <div class="campo"><label for="dnom">Director(a) o encargado(a)</label><input id="dnom" placeholder="Nombre completo"></div>
+        </div>
+        <div class="campo"><label for="dcar">Cargo</label><select id="dcar"><option>Director</option><option>Directora</option><option>Encargado de despacho</option><option>Encargada de despacho</option></select></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Libros</h2>
+        <div id="libros"></div>
+        <button type="button" class="boton sec" id="mas">+ Agregar otro grupo</button>
+        <div class="ayuda" style="margin-top:8px">Un libro por maestro y grupo. En multigrado escriba los grados, por ejemplo «1° y 2°».</div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Imprimir</h2>
+        <label class="casilla"><input type="checkbox" id="con-portada" checked> Portada</label>
+        <label class="casilla"><input type="checkbox" id="con-aviso" checked> Aviso para madres, padres y tutores (con fundamento legal)</label>
+        <div class="botones" style="margin-top:8px"><button type="button" class="boton" id="imprimir">Imprimir o guardar en PDF</button></div>
+        <p class="resumen" id="resumen"></p>
+        <ol class="instr" style="margin-top:10px">
+          <li>Imprima en hoja <b>carta</b>, a una cara, con escala <b>100 %</b> y <b>sin márgenes</b> (en «Más opciones», márgenes: ninguno).</li>
+          <li>Corte todo el bloque de hojas por la línea punteada.</li>
+          <li>Ponga el bloque de abajo <b>debajo</b> del bloque de arriba: los folios quedan en orden.</li>
+          <li>Engrape o encuaderne por el lado izquierdo.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="prev-caja">
+      <div class="prev-tit"><b>Vista previa</b><select id="prev-libro" aria-label="Libro en vista previa"></select></div>
+      <div class="ayuda" style="margin:-4px 0 8px">Así sale cada hoja impresa. Arriba va la primera mitad del libro y abajo la segunda, para que al cortar todo el bloque los folios queden en orden.</div>
+      <div class="prev" id="prev"><div class="escala" id="prev-escala"></div></div>
+    </div>
+  </div>
+</div>
+<div id="impresion"></div>
+
+<script>
+const ESCUELAS = [
+  ['Belisario Domínguez', '02DPR0210Z', 'San Quintín'], ['Josefa Ortiz de Domínguez', '02DPR0150B', 'San Quintín'],
+  ['Niños Héroes', '02DPR0862Z', 'San Quintín'], ['13 de Septiembre', '02DPR0077J', 'San Quintín'],
+  ['Pdte. Adolfo López Mateos', '02DPR0379E', 'San Quintín'], ['Emiliano Zapata', '02DPR0425Z', 'San Quintín'],
+  ['Margarita Maza de Juárez', '02DPR0378F', 'San Quintín'], ['Maximino Virgen Flores', '02DPR0684N', 'Ensenada'],
+  ['José Vasconcelos', '02DPR0014Y', 'Ensenada'], ['James S. Yglesias', '02DPR0593W', 'Ensenada'],
+  ['Luis Donaldo Colosio Murrieta', '02DPR0882N', 'Ensenada'], ['Narciso Mendoza', '02DPR0012Z', 'Ensenada'],
+  ['Ignacio Allende', '02DPR0556S', 'Ensenada'], ['José Ma. Pino Suárez', '02DPR0382S', 'Ensenada']
+];
+const CON_LOGO = ['02DPR0684N'];   // logos incluidos en Tequio; los demás se suben una vez
+const LOC_INICIAL = { '02DPR0684N': 'Ejido Lic. Gustavo Díaz Ordaz, Ensenada, B.C.' };
+const CLAVE = 'tequio.libroSalidas';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let datos = { esc: '02DPR0684N', ciclo: '2026-2027', escuelas: {}, libros: [] };
+try { Object.assign(datos, JSON.parse(localStorage.getItem(CLAVE) || '{}')); } catch (e) {}
+let logos = {};
+try { logos = JSON.parse(localStorage.getItem(CLAVE + '.logos') || '{}'); } catch (e) {}
+const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch (e) {} };
+const escuela = () => ESCUELAS.find(e => e[1] === datos.esc) || ESCUELAS[0];
+const de = () => (datos.escuelas[datos.esc] = datos.escuelas[datos.esc] || { turno: 'Matutino', loc: LOC_INICIAL[datos.esc] || '', dtit: 'Profr.', dnom: '', dcar: 'Director', libros: [] });
+const srcLogo = () => logos[datos.esc] || (CON_LOGO.includes(datos.esc) ? 'img/escuelas/' + datos.esc + '.png' : '');
+const pad = n => String(n).padStart(3, '0');
+const gradoTxt = g => /°|º/.test(g) || !/^\d+$/.test(String(g).trim()) ? String(g).trim() : String(g).trim() + '°';
+
+function pintarForm() {
+  $('#esc').innerHTML = ESCUELAS.map(e => `<option value="${e[1]}" ${e[1] === datos.esc ? 'selected' : ''}>${esc(e[0])} · ${e[1]}</option>`).join('');
+  const d = de();
+  $('#turno').value = d.turno; $('#loc').value = d.loc; $('#dtit').value = d.dtit; $('#dnom').value = d.dnom; $('#dcar').value = d.dcar; $('#ciclo').value = datos.ciclo;
+  const l = srcLogo(); $('#logo-img').src = l || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E';
+  if (!d.libros.length) d.libros.push({ doc: '', grado: '', grupo: '', ini: 1, n: 40 });
+  $('#libros').innerHTML = d.libros.map((b, i) => `<div class="libro" data-i="${i}">
+    <div class="num">Libro ${i + 1}</div>${d.libros.length > 1 ? `<button type="button" class="quitar" data-quitar="${i}" aria-label="Quitar">×</button>` : ''}
+    <div class="campo" style="margin-bottom:8px"><label>Docente</label><input data-k="doc" value="${esc(b.doc)}" placeholder="Ej. Profra. Ana López Ruiz"></div>
+    <div class="fila"><div><label>Grado</label><input data-k="grado" value="${esc(b.grado)}" placeholder="3°"></div><div><label>Grupo</label><input data-k="grupo" value="${esc(b.grupo)}" placeholder="A"></div></div>
+    <div class="fila" style="margin-bottom:0"><div><label>Folio inicial</label><input data-k="ini" type="number" min="1" value="${b.ini}"></div><div><label>Número de pases</label><input data-k="n" type="number" min="2" max="300" value="${b.n}"></div></div>
+  </div>`).join('');
+  $$('#libros input').forEach(inp => inp.oninput = () => {
+    const b = d.libros[+inp.closest('.libro').dataset.i], k = inp.dataset.k;
+    b[k] = (k === 'ini' || k === 'n') ? Math.max(1, Math.min(300, parseInt(inp.value, 10) || 1)) : inp.value;
+    guardar(); programar();
+  });
+  $$('[data-quitar]').forEach(x => x.onclick = () => { d.libros.splice(+x.dataset.quitar, 1); guardar(); pintarForm(); pintarPrev(); });
+}
+
+/* ---- Partes del libro (cada una ocupa media carta) ---- */
+function encabezado(d, e) {
+  const l = srcLogo();
+  return `<div class="enc"><div class="izq"><img class="i-isep" src="img/isep.png" alt=""><img class="i-zona" src="img/zona050.png" alt=""></div>
+    <div class="tit"><div class="t1">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA</div>
+      <div class="t2">ESCUELA PRIMARIA «${esc(e[0].toUpperCase())}»</div>
+      <div class="t3">C.C.T. ${e[1]} · TURNO ${esc(d.turno.toUpperCase())} · ZONA ESCOLAR 050</div>
+      ${d.loc ? `<div class="t3">${esc(d.loc)}</div>` : ''}</div>
+    ${l ? `<img class="i-esc" src="${l}" alt="">` : '<span></span>'}</div><div class="filete"></div>`;
+}
+const director = d => (d.dnom ? (d.dtit + ' ' + d.dnom).trim() : '');
+const cargoDe = d => d.dcar === 'Director' ? 'Director de la escuela' : d.dcar === 'Directora' ? 'Directora de la escuela' : d.dcar;
+function pase(d, e, b, folio) {
+  return `${encabezado(d, e)}
+  <div class="barra"><h1>PASE DE SALIDA ANTICIPADA</h1><div class="folio">Folio No.<span>${esc(folio)}</span></div></div>
+  <div class="f"><div class="c"><b>Fecha:</b><i></i></div><div class="c"><b>Hora de salida:</b><i></i></div></div>
+  <div class="f"><div class="c"><b>Nombre del alumno(a):</b><i></i></div></div>
+  <div class="f"><div class="c" style="flex:.45"><b>Grado:</b><i>${esc(gradoTxt(b.grado))}</i></div><div class="c" style="flex:.45"><b>Grupo:</b><i>${esc(b.grupo)}</i></div><div class="c" style="flex:2"><b>Docente:</b><i>${esc(b.doc)}</i></div></div>
+  <div class="motivo"><b>Motivo de la salida:</b>
+    <div class="ops"><span class="op">Cita médica</span><span class="op">Malestar o enfermedad</span><span class="op">Asunto familiar</span><span class="op">Trámite o evento</span><span class="op">Otro</span></div>
+    <div class="f" style="margin-bottom:4px"><div class="c"><b>Especifique:</b><i></i></div></div><div class="linea"></div></div>
+  <div class="f"><div class="c" style="flex:2"><b>Persona que recoge:</b><i></i></div><div class="c"><b>Parentesco:</b><i></i></div></div>
+  <div class="f"><div class="c"><b>Identificación presentada (INE u otra):</b><i></i></div></div>
+  <div class="firmas">
+    <div><b>Padre, madre o tutor</b>Nombre y firma de quien recoge</div>
+    <div><b>Docente de grupo</b>${b.doc ? esc(b.doc) : 'Nombre y firma'}</div>
+    <div><span class="aut">AUTORIZA LA SALIDA</span><b>${esc(cargoDe(d))}</b>${esc(director(d)) || 'Nombre y firma'}</div>
+  </div>
+  <div class="nota">El alumno se entrega únicamente a su padre, madre, tutor o persona autorizada, previa identificación. Este pase queda en el registro de la escuela.</div>`;
+}
+function portada(d, e, b, f1, f2) {
+  const l = srcLogo();
+  return `<div class="portada">
+    <div class="logos"><img class="i-isep" src="img/isep.png" alt=""><img class="i-zona" src="img/zona050.png" alt="">${l ? `<img class="i-esc" src="${l}" alt="">` : ''}</div>
+    <div class="t1">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA</div>
+    <div class="t2">ESCUELA PRIMARIA «${esc(e[0].toUpperCase())}»</div>
+    <div class="t3">C.C.T. ${e[1]} · TURNO ${esc(d.turno.toUpperCase())} · ZONA ESCOLAR 050${d.loc ? ' · ' + esc(d.loc) : ''}</div>
+    <div class="gran">LIBRO DE REGISTRO</div>
+    <div class="titulo">PASES DE SALIDA ANTICIPADA</div>
+    <div class="ciclo">CICLO ESCOLAR ${esc(datos.ciclo)}</div>
+    <div class="datos">
+      <b>Grado y grupo:</b><span>${esc(gradoTxt(b.grado))} «${esc(b.grupo)}»</span>
+      <b>Docente:</b><span>${esc(b.doc)}</span>
+      <b>Folios:</b><span>del ${esc(f1)} al ${esc(f2)}</span>
+      <b>${esc(d.dcar)}:</b><span>${esc(director(d))}</span>
+    </div>
+    <div class="pie">Supervisión Escolar Zona 050 · «Responsabilidad y superación»</div>
+  </div>`;
+}
+function aviso(d, e) {
+  return `${encabezado(d, e)}
+  <div class="aviso">
+    <h2>AVISO A MADRES, PADRES DE FAMILIA Y TUTORES</h2>
+    <p>Durante la jornada escolar, la escuela tiene bajo su cuidado a las alumnas y los alumnos. Por eso, cuando una niña o un niño necesita retirarse antes de la hora de salida, se llena este pase: queda constancia de <b>quién lo recoge, a qué hora y por qué motivo</b>, con la firma de quien lo recibe, del docente y la autorización de la dirección. Es una medida para su seguridad, no un trámite para dificultar la salida.</p>
+    <p><b>Fundamento legal:</b></p>
+    <ul class="fund">
+      <li><b>Artículo 4° de la Constitución Política de los Estados Unidos Mexicanos:</b> en todas las decisiones y actuaciones se velará y cumplirá con el principio del interés superior de la niñez.</li>
+      <li><b>Artículo 73 de la Ley General de Educación:</b> en la educación de menores de dieciocho años se tomarán medidas de protección para preservar su integridad física, psicológica y social, y el personal de la escuela debe protegerlos y cuidarlos en su calidad de responsables durante la jornada.</li>
+      <li><b>Artículo 103 de la Ley General de los Derechos de Niñas, Niños y Adolescentes:</b> quienes ejercen la patria potestad, la tutela o la guarda y custodia deben asegurar que cursen la educación obligatoria, apoyar su permanencia en la escuela y protegerlos contra toda forma de violencia, perjuicio o daño.</li>
+    </ul>
+    <p><b>Le pedimos:</b></p>
+    <ul class="pedir">
+      <li>Recoger personalmente a su hija o hijo, o avisar quién lo hará.</li>
+      <li>Presentar una identificación oficial (INE u otra).</li>
+      <li>Firmar el pase al momento de recogerlo.</li>
+      <li>Solicitar la salida solo por causas justificadas y, cuando se pueda, programar citas fuera del horario escolar.</li>
+    </ul>
+    <p>Por la seguridad de su hija o hijo, no se entregará a personas que no estén autorizadas o que no se identifiquen. Agradecemos su comprensión y apoyo.</p>
+    <div class="firmado">${esc(director(d))}${director(d) ? ' · ' : ''}${esc(cargoDe(d))}</div>
+  </div>`;
+}
+
+// Arma las hojas de un libro: cada carta lleva dos medias cartas. Para que, al cortar el bloque completo, los folios
+// queden en orden, la mitad de arriba lleva la primera parte del libro y la de abajo la segunda.
+function hojasLibro(b, conPortada, conAviso) {
+  const d = de(), e = escuela();
+  const ini = Math.max(1, +b.ini || 1), n = Math.max(1, +b.n || 1);
+  const pref = (gradoTxt(b.grado).replace(/[°º\s]/g, '') + String(b.grupo || '').trim()).toUpperCase();
+  const folio = k => (pref ? pref + '-' : '') + pad(k);
+  const partes = [];
+  if (conPortada) partes.push(portada(d, e, b, folio(ini), folio(ini + n - 1)));
+  if (conAviso) partes.push(aviso(d, e));
+  for (let k = ini; k < ini + n; k++) partes.push(pase(d, e, b, folio(k)));
+  if (partes.length % 2) partes.push('<div class="vacia">NOTAS</div>');
+  const S = partes.length / 2, hojas = [];
+  for (let i = 0; i < S; i++) hojas.push(`<div class="hoja"><div class="mitad arriba">${partes[i]}</div><div class="corte"><span>✂ CORTAR AQUÍ</span></div><div class="mitad abajo">${partes[S + i]}</div></div>`);
+  return hojas;
+}
+const libros = () => de().libros;
+
+let tPrev = null;
+const programar = () => { clearTimeout(tPrev); tPrev = setTimeout(pintarPrev, 250); };
+function pintarPrev() {
+  const ls = libros(), sel = $('#prev-libro'), actual = Math.min(+sel.value || 0, ls.length - 1);
+  sel.innerHTML = ls.map((b, i) => `<option value="${i}" ${i === actual ? 'selected' : ''}>Libro ${i + 1}${b.grado || b.grupo ? ' · ' + esc(gradoTxt(b.grado)) + ' ' + esc(b.grupo) : ''}</option>`).join('');
+  const hojas = hojasLibro(ls[actual] || ls[0], $('#con-portada').checked, $('#con-aviso').checked);
+  const caja = $('#prev'), k = Math.min(1, (caja.clientWidth - 24) / 816);
+  $('#prev-escala').style.transform = `scale(${k})`;
+  $('#prev-escala').style.width = '816px';
+  $('#prev-escala').innerHTML = hojas.slice(0, 3).join('') + (hojas.length > 3 ? `<div style="font:600 18px system-ui;color:#3b4252;padding:8px 4px">… y ${hojas.length - 3} hojas más</div>` : '');
+  $('#prev-escala').style.height = '';
+  const total = ls.reduce((t, b) => t + hojasLibro(b, $('#con-portada').checked, $('#con-aviso').checked).length, 0);
+  $('#resumen').textContent = ls.length + (ls.length === 1 ? ' libro' : ' libros') + ' · ' + total + (total === 1 ? ' hoja carta' : ' hojas carta') + ' en total.';
+}
+
+$('#esc').onchange = () => { datos.esc = $('#esc').value; guardar(); pintarForm(); pintarPrev(); };
+['turno', 'loc', 'dtit', 'dnom', 'dcar'].forEach(id => $('#' + id).addEventListener('input', () => { de()[id] = $('#' + id).value; guardar(); programar(); }));
+$('#ciclo').oninput = () => { datos.ciclo = $('#ciclo').value; guardar(); programar(); };
+$('#mas').onclick = () => { const ls = libros(), u = ls[ls.length - 1] || {}; ls.push({ doc: '', grado: '', grupo: '', ini: 1, n: u.n || 40 }); guardar(); pintarForm(); pintarPrev(); };
+$('#prev-libro').onchange = pintarPrev;
+$('#con-portada').onchange = pintarPrev; $('#con-aviso').onchange = pintarPrev;
+$('#logo').onchange = () => {
+  const f = $('#logo').files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {   // se reduce para que quepa en el navegador
+    const img = new Image();
+    img.onload = () => { const k = Math.min(1, 500 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      logos[datos.esc] = c.toDataURL('image/png');
+      try { localStorage.setItem(CLAVE + '.logos', JSON.stringify(logos)); } catch (e) {}
+      pintarForm(); pintarPrev(); };
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+};
+$('#imprimir').onclick = async () => {
+  const ls = libros();
+  if (ls.some(b => !String(b.doc).trim() || !String(b.grado).trim() || !String(b.grupo).trim())) { alert('Falta el docente, el grado o el grupo en algún libro.'); return; }
+  if (!de().dnom.trim() && !confirm('No escribió el nombre del director(a). ¿Imprimir así?')) return;
+  $('#impresion').innerHTML = ls.flatMap(b => hojasLibro(b, $('#con-portada').checked, $('#con-aviso').checked)).join('');
+  await Promise.all([...document.images].map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+  try { await document.fonts.ready; } catch (e) {}
+  window.print();
+};
+window.addEventListener('resize', programar);
+pintarForm(); pintarPrev();
+</script>
+</body>
+</html>

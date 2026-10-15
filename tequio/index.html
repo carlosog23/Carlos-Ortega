@@ -2308,7 +2308,7 @@ function vOficios() {
   const cfgO = S.ofiCfg || {};
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios</h1>
-    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Subir oficio de un director</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
+    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<a class="boton sec" href="libro-salidas.html" target="_blank" rel="noopener">${ico('i-act')}Libro de pases de salida</a><button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Subir oficio de un director</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
   <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
   <div class="filtros"><input id="f-ofi" type="search" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.ofiBuscar || '')}" style="flex:1;min-width:220px"></div>
   ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-ofi="${o.id}">
