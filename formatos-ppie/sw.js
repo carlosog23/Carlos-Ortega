@@ -2,14 +2,14 @@
    - La página y los datos (.json) se piden primero a internet; si no hay conexión, se usa la copia guardada.
    - Plantillas, librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-10-14i";
+const VERSION = "tlm-2026-10-14j";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
 const NUCLEO = [
   "./", "index.html", "tour.html", "manifest.webmanifest",
   "img/tlamatini-icono.svg", "img/tlamatini-icono-180.png", "img/tlamatini-icono-192.png", "img/tlamatini-icono-512.png",
-  "img/isep.png", "img/se.png", "img/zona050.png", "img/firma-supervisor.png",
+  "img/isep.png", "img/se.png", "img/zona050.png",
   "formatos/calendario.json", "formatos/seguro.json", "formatos/acceso.json", "formatos/normatividad.json", "formatos/pda.json", "formatos/inventarios.json",
   "formatos/A.pdf", "formatos/B.pdf", "formatos/C.pdf", "formatos/D.pdf", "formatos/E.pdf", "formatos/F.pdf", "formatos/G.pdf", "formatos/H.pdf", "formatos/I.pdf",
   "formatos/L.pdf", "formatos/P.pdf", "formatos/S.pdf", "formatos/inventarios.pdf", "formatos/logo_se_lista.jpg",
