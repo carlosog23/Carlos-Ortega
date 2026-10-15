@@ -210,6 +210,7 @@ a.chip{text-decoration:none;color:var(--ink)}.chip.tag{cursor:default;font-size:
 .resume{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:14px;padding:12px 14px;cursor:pointer;min-height:60px}
 .resume .ri{flex:none;font-size:22px;color:var(--accent)}.resume b{display:block}.resume span.ds{display:block;font-size:14px;color:var(--muted)}
 .phf.lvlogo{background:#fff}.phf.lvlogo img{object-fit:contain;padding:6px}
+.pslibro{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:var(--bg)}.pshead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.pslibro .psr{margin:8px 0 0}
 .lvpv{display:flex;flex-direction:column;gap:12px}.lvpv canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 
 /* ===== Diseño institucional azul: banda marino con filete azul Zona 050; interfaz sobria y precisa ===== */
@@ -1032,7 +1033,7 @@ const SECCIONES=[
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Convocatoria, lista de asistencia, minuta de instalación, comités y plan de trabajo, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>5,cntLabel:()=>"5 formatos y guía de requisitos"},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas y de visitas, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -1145,7 +1146,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
 let OUT=null;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
-async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(S.view==="firmas")return prepararFirmas();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
+async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(S.view==="pases")return prepararPases();if(S.view==="firmas")return prepararFirmas();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
   const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||[S.vals.nom,S.vals.pat,S.vals.mat].filter(Boolean).join(" ")||"").split(",")[0].trim().slice(0,40);
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
@@ -1172,7 +1173,7 @@ async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.t
       else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
     else if(act==="print"){
       if(isIOS){const r=await tryShare(o,"");if(r===true){say("ok","<b>Listo.</b>");return}if(r==="cancel"){say("warn","<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
-      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"?" en orientación <b>horizontal</b>":S.view==="firmas"?" en orientación <b>vertical</b>":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
+      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"?" en orientación <b>horizontal</b>":S.view==="firmas"||S.view==="pases"?" en orientación <b>vertical</b>, al 100 %":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
       const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
       if(g===true||g==="anchor")say("ok",isIOS?"<b>PDF listo.</b> En el menú que aparece elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o desde <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b> para imprimir.");
       else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
@@ -1805,6 +1806,203 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=
   wireLogo();
   g("lv_prev").onclick=async()=>{const b=g("lv_prev"),box=g("lv_pvw");if(lvProblemas(v).length){resumen();return}b.disabled=true;b.textContent="Preparando…";
     try{const bytes=await lvPDF(true);const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;box.innerHTML="";
+      for(let i=1;i<=pdf.numPages;i++){const pgp=await pdf.getPage(i);const vp=pgp.getViewport({scale:1.6});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;box.appendChild(c);await pgp.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
+      b.textContent="Actualizar vista previa"}
+    catch(err){box.innerHTML=`<div class="alert"><b>No se pudo mostrar la vista previa.</b> (${esc(err.message||err)})</div>`;b.textContent="Ver vista previa"}
+    finally{b.disabled=false}};
+  app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
+  g("salir").onclick=goBack;resumen();window.scrollTo(0,0)}
+
+/* ---------- Libro de pases de salida anticipada (Dirección) ---------- */
+const PS_KEY="libro-pases";
+let PS=null;
+const PS_ED=["02DPR0379E","02DPR0378F","02DPR0882N","02DPR0012Z","02DPR0556S","02DPR0382S"];   // encargados de despacho
+const PS_MUJ=["02DPR0378F","02DPR0077J","02DPR0593W","02DPR0684N"];                               // titular mujer
+function psFromZona(o,i){const e=ESCUELAS_050[i],ed=PS_ED.includes(e[1]),m=PS_MUJ.includes(e[1]);
+  o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, B.C.`;o.dnom=e[5];o.dtit=m?"Profra.":"Profr.";
+  o.dcar=ed?(m?"Encargada de despacho":"Encargado de despacho"):(m?"Directora":"Director")}
+function psInit(){const s=store.get(PS_KEY,null);if(s)return s;
+  const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",ubic:"",turno:perfil.turno||"Matutino",
+    dtit:"Profr.",dnom:perfil.director||"",dcar:"Director",ciclo:true,cicloTxt:cicloActual(),portada:true,aviso:true,libros:[{doc:perfil.minombre||"",grado:"",grupo:"",n:50,ini:1}]};
+  if(i>=0)psFromZona(o,i);
+  else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.ubic=[perfil.localidad,perfil.municipio].filter(Boolean).join(", ")+(perfil.municipio?", B.C.":"")}
+  return o}
+const psGrado=g=>{g=String(g||"").trim();return/^\d+$/.test(g)?g+"°":g};
+const psPref=b=>(psGrado(b.grado).replace(/[°º\s]/g,"")+String(b.grupo||"").trim()).toUpperCase();
+const psFolio=(b,k)=>(psPref(b)?psPref(b)+"-":"")+String(k).padStart(3,"0");
+function psRango(v,b){const ini=Math.max(1,parseInt(b.ini)||1),n=Math.max(1,parseInt(b.n)||1),partes=n+(v.portada?1:0)+(v.aviso?1:0);return{ini,n,fin:ini+n-1,hojas:Math.ceil(partes/2)}}
+function psProblemas(v){const p=[];if(!v.nombre.trim())p.push("Escriba el nombre de la escuela.");
+  v.libros.forEach((b,i)=>{const t=v.libros.length>1?` (libro ${i+1})`:"";if(!String(b.doc).trim())p.push(`Escriba el nombre del docente${t}.`);
+    if(!String(b.grado).trim()||!String(b.grupo).trim())p.push(`Escriba el grado y el grupo${t}.`);
+    const n=Number(b.n);if(!Number.isInteger(n)||n<1||n>300)p.push(`Los folios por libro deben ser entre 1 y 300${t}.`)});return p}
+
+async function psPDF(preview){await fonts();const v=PS;const{PDFDocument,StandardFonts,rgb}=PDFLib;
+  const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold),i:await doc.embedFont(StandardFonts.HelveticaOblique)};
+  const C={nav:rgb(.122,.165,.267),ind:rgb(.122,.227,.42),gray:rgb(.33,.33,.36),lg:rgb(.6,.65,.69),ink:rgb(.1,.1,.1),line:rgb(.2,.2,.2)};
+  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
+  const logo=await embedLogo(doc);
+  const PW=612,PH=792,M=30,W=PW-2*M;
+  const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),ubic=clean(v.ubic.trim()),
+    turno=clean(v.turno||""),ciclo=v.ciclo?clean(v.cicloTxt.trim()):"",dir=clean([v.dtit,v.dnom.trim()].filter(Boolean).join(" ")),dcar=clean(v.dcar||"Director");
+  const cargoFirma=/^Director$/.test(dcar)?"Director de la escuela":/^Directora$/.test(dcar)?"Directora de la escuela":dcar;
+  const up=t=>t.toLocaleUpperCase("es-MX");
+  const fit=(t,font,size,maxW,min=5)=>{let s=size;while(s>min&&font.widthOfTextAtSize(t,s)>maxW)s-=0.25;return s};
+  const mk=(pg,T)=>{const Y=t=>PH-T-t;return{
+    img:(im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:Y(top)-h+(h-ih)/2,width:iw,height:ih})},
+    txt:(t,x,top,size,font=F.r,color=C.ink)=>{t=clean(t);pg.drawText(t,{x,y:Y(top),size,font,color});return font.widthOfTextAtSize(t,size)},
+    ctr:(t,top,size,font=F.r,color=C.ink,cx=PW/2,maxW=W)=>{t=clean(t);const s=fit(t,font,size,maxW);const w=font.widthOfTextAtSize(t,s);pg.drawText(t,{x:cx-w/2,y:Y(top),size:s,font,color});return w},
+    lin:(x1,x2,top,th=0.7,color=C.line)=>pg.drawLine({start:{x:x1,y:Y(top)},end:{x:x2,y:Y(top)},thickness:th,color}),
+    rect:(x,top,w,h,o={})=>pg.drawRectangle(Object.assign({x,y:Y(top)-h,width:w,height:h},o)),Y}};
+  const encabezado=d=>{d.img(isep,M,16,58,44);d.img(zona,M+62,18,40,40);if(logo)d.img(logo,PW-M-48,12,48,56);
+    d.ctr("INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",28,6.6,F.b,C.ind,PW/2,330);
+    d.ctr(up(`${tipo} «${nombre}»`),41,10.5,F.b,C.nav,PW/2,330);
+    d.ctr([cct&&`C.C.T. ${cct}`,turno&&`TURNO ${up(turno)}`,zn&&`ZONA ESCOLAR ${zn}`].filter(Boolean).join(" · "),51,6.8,F.r,C.gray,PW/2,330);
+    if(ubic)d.ctr(ubic,60,6.8,F.r,C.gray,PW/2,330);
+    d.lin(M,PW-M,72,1.6,C.nav);d.lin(M,PW-M,74.6,0.5,C.lg)};
+  const campo=(d,x,top,w,lab,val)=>{const lw=d.txt(lab,x,top,8.4,F.b,C.nav);d.lin(x+lw+4,x+w,top+2);if(val){const vt=clean(val),s=fit(vt,F.r,9,w-lw-12);d.txt(vt,x+lw+8,top-0.5,s,F.r,C.ink)}};
+  const caja=(d,x,top)=>d.rect(x,top-7.5,8,8,{borderColor:C.nav,borderWidth:0.9});
+
+  const pase=(b,folio)=>(d)=>{encabezado(d);
+    d.txt("PASE DE SALIDA ANTICIPADA",M,94,11.5,F.b,C.nav);
+    d.txt("Folio No.",PW-M-150,94,8.4,F.b,C.nav);d.rect(PW-M-104,80,104,20,{borderColor:C.nav,borderWidth:0.9});d.ctr(folio,94.5,10.5,F.b,C.nav,PW-M-52,98);
+    campo(d,M,118,262,"Fecha:","");campo(d,M+278,118,W-278,"Hora de salida:","");
+    campo(d,M,138,W,"Nombre del alumno(a):","");
+    campo(d,M,158,92,"Grado:",psGrado(b.grado));campo(d,M+104,158,92,"Grupo:",String(b.grupo||"").trim());campo(d,M+208,158,W-208,"Docente:",String(b.doc||"").trim());
+    d.txt("Motivo de la salida:",M,178,8.4,F.b,C.nav);
+    let x=M;["Cita médica","Malestar o enfermedad","Asunto familiar","Trámite o evento","Otro"].forEach(o=>{caja(d,x,192);x+=12+d.txt(o,x+12,192,8.4)+18});
+    campo(d,M,210,W,"Especifique:","");d.lin(M,PW-M,228);
+    campo(d,M,248,350,"Persona que recoge:","");campo(d,M+362,248,W-362,"Parentesco:","");
+    campo(d,M,268,330,"Identificación oficial presentada:","");caja(d,M+344,268);d.txt("Aparece como persona autorizada en el expediente",M+356,268,7.2,F.r,C.gray);
+    const cols=[[M,140],[M+154,140],[M+308,140]];cols.forEach(([cx,w])=>d.lin(cx,cx+w,330));
+    const c=(i,l1,l2,l3,top0=339)=>{const cx=cols[i][0]+cols[i][1]/2;let t=top0;[l1,l2,l3].forEach((l,j)=>{if(!l)return;d.ctr(l[0],t,l[2]||7.2,l[1],C.nav,cx,cols[i][1]);t+=9})};
+    c(0,["Padre, madre o tutor",F.b,7.4],["Nombre y firma de quien recoge",F.r,7]);
+    c(1,["Docente de grupo",F.b,7.4],[String(b.doc||"").trim()||"Nombre y firma",F.r,7]);
+    c(2,["AUTORIZA LA SALIDA",F.b,6.8],[cargoFirma,F.b,7.2],[dir||"Nombre y firma",F.r,7]);
+    d.rect(PW-M-84,286,84,62,{borderColor:C.lg,borderWidth:0.8,borderDashArray:[2.5,2]});d.ctr("Sello de la escuela",320,6.8,F.r,C.lg,PW-M-42,80);
+    d.ctr("Protocolo de Acceso y Salida de Baja California, apartado 6.1: la alumna o el alumno se entrega solo a su madre, padre, tutor o persona autorizada,",368,6.1,F.r,C.gray);
+    d.ctr("previa identificación oficial vigente. Esta autorización se integra al expediente de la alumna o el alumno.",376,6.1,F.r,C.gray)};
+
+  const portada=(b,R)=>(d)=>{d.img(isep,PW/2-122,26,80,60);d.img(zona,PW/2-29,26,58,58);if(logo)d.img(logo,PW/2+50,20,64,72);
+    d.ctr("INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",108,7.4,F.b,C.ind);
+    d.ctr(up(`${tipo} «${nombre}»`),122,12,F.b,C.nav);
+    d.ctr([cct&&`C.C.T. ${cct}`,turno&&`TURNO ${up(turno)}`,zn&&`ZONA ESCOLAR ${zn}`,ubic].filter(Boolean).join(" · "),134,7.4,F.r,C.gray);
+    d.ctr("L I B R O   D E   R E G I S T R O",160,8.4,F.r,C.gray);
+    d.ctr("PASES DE SALIDA ANTICIPADA",182,19,F.b,C.nav);
+    if(ciclo)d.ctr(`CICLO ESCOLAR ${ciclo}`,200,9,F.b,C.ind);
+    const bx=PW/2-170,bw=340;d.rect(bx,214,bw,82,{borderColor:C.nav,borderWidth:1.1});
+    [["Grado y grupo:",`${psGrado(b.grado)} «${String(b.grupo||"").trim()}»`],["Docente:",String(b.doc||"").trim()],["Folios:",`del ${psFolio(b,R.ini)} al ${psFolio(b,R.fin)}`],[`${dcar}:`,dir]].forEach(([l,val],i)=>{
+      const t=232+i*17;d.txt(l,bx+16,t,9.2,F.b,C.nav);const vt=clean(val);d.txt(vt,bx+112,t,fit(vt,F.r,9.4,bw-128),F.r,C.ink)});
+    d.ctr("Supervisión Escolar Zona 050 · «Responsabilidad y superación»",372,6.8,F.r,C.lg)};
+
+  const aviso=()=>(d)=>{encabezado(d);
+    d.ctr("AVISO A MADRES, PADRES DE FAMILIA Y TUTORES",92,10,F.b,C.nav);
+    const P=[
+      {segs:[{t:"Durante la jornada escolar, la escuela tiene bajo su cuidado a las alumnas y los alumnos. Por eso, cuando una niña o un niño necesita retirarse antes de la hora de salida, se llena este pase: queda constancia de"},{t:"quién lo recoge, a qué hora y por qué motivo,",b:1},{t:"con la firma de quien lo recibe, del docente y la autorización de la dirección con el sello de la escuela. Es una medida para su seguridad, no un trámite para dificultar la salida."}]},
+      {segs:[{t:"Fundamento:",b:1,c:C.nav}],gap:1},
+      {bul:1,segs:[{t:"Protocolo de Acceso y Salida en los Centros Educativos de Educación Básica para el Estado de Baja California",b:1},{t:"(Periódico Oficial del Estado, 2 de septiembre de 2022), apartado 6.1: una vez que la alumna o el alumno ingresa al plantel, no puede salir sin autorización de la dirección en conjunto con la madre, padre, tutor o persona autorizada; se llena un formato con el motivo, firmado por quien lo recoge, con la firma de quien autoriza y el sello de la escuela, y se integra a su expediente."}]},
+      {bul:1,segs:[{t:"Artículo 73 de la Ley General de Educación:",b:1},{t:"en la educación de menores de dieciocho años se toman medidas para preservar su integridad física, psicológica y social, y el personal escolar debe protegerlos y cuidarlos durante la jornada."}]},
+      {bul:1,segs:[{t:"Artículo 103 de la Ley General de los Derechos de Niñas, Niños y Adolescentes:",b:1},{t:"madres, padres, tutores y quienes los tienen a su cuidado deben asegurar que cursen la educación obligatoria, apoyar su permanencia en la escuela y protegerlos contra toda forma de violencia, perjuicio o daño."}]},
+      {bul:1,segs:[{t:"Artículo 4° de la Constitución Política de los Estados Unidos Mexicanos:",b:1},{t:"en todas las decisiones se velará por el interés superior de la niñez."}]},
+      {segs:[{t:"Le pedimos:",b:1,c:C.nav}],gap:1},
+      {bul:1,segs:[{t:"Recoger personalmente a su hija o hijo, o que lo haga una persona autorizada en su expediente. Si otra persona lo recogerá, avise a la dirección: se confirmará por llamada al teléfono registrado."}]},
+      {bul:1,segs:[{t:"Presentar identificación oficial vigente, sin gorra ni lentes oscuros que impidan identificarle, y firmar el pase al recogerlo."}]},
+      {bul:1,segs:[{t:"Solicitar la salida solo por causas justificadas y, cuando se pueda, programar citas fuera del horario escolar."}]},
+      {segs:[{t:"Por la seguridad de su hija o hijo, no se entregará a personas que no estén autorizadas o que no se identifiquen. Agradecemos su comprensión y apoyo."}],gap:1}];
+    const draw=(s,dry)=>{let t=102;const lh=s*1.3;P.forEach(p=>{t+=p.gap?s*0.35:0;const x=M+(p.bul?11:0),w=W-(p.bul?11:0);const L=lvWrap(p.segs,w,s);
+        if(!dry&&p.bul)d.txt("•",M+2,t+s*0.85,s,F.b,C.nav);
+        L.forEach((ln,i)=>{if(!dry){let cx=x;const y=d.Y(t+s*0.85+i*lh);const sp=F.r.widthOfTextAtSize(" ",s);
+            const libre=(i<L.length-1)?(w-ln.reduce((a,q)=>a+q.ww,0))/Math.max(1,ln.length-1):sp;
+            ln.forEach((q,j)=>{if(j)cx+=Math.min(libre,sp*3);pg_draw(q,cx,y,s);cx+=q.ww})}});
+        t+=L.length*lh+s*0.3});return t};
+    let pgRef=null;const pg_draw=(q,x,y,s)=>pgRef.drawText(q.w,{x,y,size:s,font:q.b?F.b:F.r,color:q.c||C.ink});pgRef=d.pg;
+    let s=8;while(s>5.8&&draw(s,true)>374)s-=0.2;draw(s,false);
+    d.ctr([dir,cargoFirma].filter(Boolean).join(" · "),384,7.2,F.b,C.nav)};
+
+  const libros=preview?v.libros.slice(0,1):v.libros;
+  for(const b of libros){const R=psRango(v,b),partes=[];
+    if(v.portada)partes.push(portada(b,R));if(v.aviso)partes.push(aviso());
+    for(let k=R.ini;k<=R.fin;k++)partes.push(pase(b,psFolio(b,k)));
+    if(partes.length%2)partes.push(d=>d.ctr("NOTAS",30,9,F.b,C.lg));
+    const S2=partes.length/2,max=preview?Math.min(2,S2):S2;
+    for(let i=0;i<max;i++){const pg=doc.addPage([PW,PH]);
+      [[partes[i],0],[partes[S2+i],396]].forEach(([fn,T])=>{const d=mk(pg,T);d.pg=pg;fn(d)});
+      for(let x=M-14;x<PW-M+14;x+=7)pg.drawLine({start:{x,y:396},end:{x:x+3.5,y:396},thickness:0.5,color:C.lg});
+      const ct="CORTAR AQUÍ",cw=F.r.widthOfTextAtSize(ct,6);pg.drawRectangle({x:PW/2-cw/2-6,y:392,width:cw+12,height:8,color:rgb(1,1,1)});pg.drawText(ct,{x:PW/2-cw/2,y:394,size:6,font:F.r,color:C.lg})}}
+  doc.setTitle(`Libro de pases de salida - ${tipo} ${nombre}`);doc.setProducer("Tlamatini · Zona 050");doc.setAuthor("Supervisión Escolar Zona 050");
+  return await doc.save()}
+
+async function prepararPases(){if(OUT&&OUT.letra==="pases")return OUT;const bytes=await psPDF(false);const v=PS;
+  const grupos=v.libros.map(b=>psGrado(b.grado)+String(b.grupo||"").trim()).join(", ");
+  const filename=`Libro de pases de salida - ${v.nombre} - ${grupos}.pdf`.replace(/[\\/:*?"<>|«»°]/g,"").replace(/\s+/g," ");
+  const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:"pases",filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
+
+function psView(){S.view="pases";S.letra=null;if(!PS)PS=psInit();setBar("");OUT=null;const v=PS;
+  const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
+  const libroHTML=(b,i)=>`<div class="pslibro" data-i="${i}"><div class="pshead"><b>Libro ${i+1}</b>${v.libros.length>1?`<button type="button" class="btn link" data-quitar="${i}">Quitar</button>`:""}</div>
+    <div class="field"><label>Docente</label><input type="text" data-k="doc" value="${esc(b.doc)}" placeholder="Ej. Profra. Ana López Ruiz" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label>Grado</label><input type="text" data-k="grado" value="${esc(b.grado)}" placeholder="3°" autocomplete="off"></div>
+     <div class="field"><label>Grupo</label><input type="text" data-k="grupo" value="${esc(b.grupo)}" placeholder="A" autocomplete="off"></div></div>
+    <div class="row2"><div class="field"><label>Folios por libro</label><input type="number" data-k="n" min="1" max="300" inputmode="numeric" value="${esc(b.n)}"></div>
+     <div class="field"><label>Folio inicial</label><input type="number" data-k="ini" min="1" inputmode="numeric" value="${esc(b.ini)}"></div></div>
+    <div class="chips">${[25,50,100,150].map(n=>`<button type="button" class="chip" data-n="${n}">${n} folios</button>`).join("")}</div>
+    <p class="help psr"></p></div>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de pases de salida anticipada</h2></div></div>
+   <p class="muted">Un libro por grupo para el aula: portada, aviso a madres y padres con el fundamento legal y pases con folio, listos para llenar a mano, como lo pide el Protocolo de Acceso y Salida de Baja California.</p>
+   <section class="card"><h3>Escuela</h3>
+    <div class="field"><label for="ps_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+     <select id="ps_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
+    <div class="field"><label for="ps_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="ps_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
+    <div class="row2"><div class="field"><label for="ps_cct">C.C.T.</label><input type="text" id="ps_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
+     <div class="field"><label for="ps_turno">Turno</label><select id="ps_turno">${["Matutino","Vespertino","Tiempo completo"].map(t=>`<option ${v.turno===t?"selected":""}>${t}</option>`).join("")}</select></div></div>
+    <div class="row2"><div class="field"><label for="ps_zona">Zona escolar</label><input type="text" id="ps_zona" value="${esc(v.zona)}" inputmode="numeric" autocomplete="off"></div>
+     <div class="field"><label for="ps_ubic">Localidad</label><input type="text" id="ps_ubic" value="${esc(v.ubic)}" placeholder="Localidad, municipio, B.C." autocomplete="off"></div></div></section>
+   <section class="card"><h3>Quien autoriza las salidas</h3>
+    <div class="row2"><div class="field"><label for="ps_dtit">Título</label><select id="ps_dtit">${["Profr.","Profra.","Mtro.","Mtra.","Lic.","C."].map(t=>`<option ${v.dtit===t?"selected":""}>${t}</option>`).join("")}</select></div>
+     <div class="field"><label for="ps_dcar">Cargo</label><select id="ps_dcar">${["Director","Directora","Encargado de despacho","Encargada de despacho"].map(t=>`<option ${v.dcar===t?"selected":""}>${t}</option>`).join("")}</select></div></div>
+    <div class="field"><label for="ps_dnom">Nombre</label><input type="text" id="ps_dnom" value="${esc(v.dnom)}" autocomplete="off"></div></section>
+   ${logoWidgetHTML()}
+   <section class="card"><h3>Libros</h3><p class="help">Uno por maestro y grupo. En multigrado escriba los grados, por ejemplo «1° y 2°». Los folios llevan el grado y grupo (3A-001).</p>
+    <div id="ps_libros">${v.libros.map(libroHTML).join("")}</div>
+    <button type="button" class="btn ghost" id="ps_mas">+ Agregar otro grupo</button><div id="ps_res" style="margin-top:10px"></div></section>
+   <section class="card"><h3>Opciones</h3>
+    <div class="opts">${chk("ps_ciclo",v.ciclo,"Poner el ciclo escolar en la portada")}</div>
+    <div class="field" id="ps_cicloF" ${v.ciclo?"":"hidden"}><label for="ps_cicloTxt">Ciclo escolar</label><input type="text" id="ps_cicloTxt" value="${esc(v.cicloTxt)}" autocomplete="off"></div>
+    <div class="opts">${chk("ps_portada",v.portada,"Incluir portada")}${chk("ps_aviso",v.aviso,"Incluir aviso a madres, padres y tutores (con fundamento legal)")}</div></section>
+   <section class="card"><h3>Vista previa</h3><p class="help">Muestra las primeras hojas del primer libro, tal como se imprimen.</p>
+    <button class="btn ghost" id="ps_prev">Ver vista previa</button><div id="ps_pvw" class="lvpv"></div></section>
+   <section class="card"><h3>¿Qué desea hacer con los libros?</h3><p class="muted" style="font-size:15px">Imprima en hojas tamaño <b>Carta</b>, orientación <b>vertical</b>, a una sola cara y al <b>100 %</b>.</p>
+    <ol class="help" style="padding-left:20px;margin:0 0 12px"><li>Cada hoja lleva dos pases. Corte todo el bloque por la línea punteada.</li><li>Ponga el bloque de abajo <b>debajo</b> del de arriba: los folios quedan en orden.</li><li>Engrape o encuaderne por la izquierda.</li></ol>
+    <div class="acts">
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+    <div id="msg"></div></section>
+   <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
+  const g=id=>document.getElementById(id);
+  const guardar=()=>{store.set(PS_KEY,v);OUT=null;resumen()};
+  const leer=()=>{v.nombre=g("ps_nombre").value;v.cct=g("ps_cct").value.toUpperCase();v.turno=g("ps_turno").value;v.zona=g("ps_zona").value;v.ubic=g("ps_ubic").value;
+    v.dtit=g("ps_dtit").value;v.dcar=g("ps_dcar").value;v.dnom=g("ps_dnom").value;v.ciclo=g("ps_ciclo").checked;v.cicloTxt=g("ps_cicloTxt").value;v.portada=g("ps_portada").checked;v.aviso=g("ps_aviso").checked;guardar()};
+  const resumen=()=>{const p=psProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
+    app.querySelectorAll(".pslibro").forEach(el=>{const b=v.libros[+el.dataset.i],R=psRango(v,b);el.querySelector(".psr").innerHTML=`Folios <b>${esc(psFolio(b,R.ini))}</b> al <b>${esc(psFolio(b,R.fin))}</b> · ${R.hojas} hojas carta`;
+      el.querySelectorAll("[data-n]").forEach(c=>c.classList.toggle("sel",+c.dataset.n===+b.n))});
+    if(p.length){g("ps_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
+    const tot=v.libros.reduce((a,b)=>a+psRango(v,b).hojas,0);g("ps_res").innerHTML=`<div class="okmsg"><b>${v.libros.length} ${v.libros.length===1?"libro":"libros"}</b> · ${tot} hojas carta en total${tot>150?" · El PDF puede tardar unos segundos.":""}</div>`};
+  ["ps_nombre","ps_cct","ps_zona","ps_ubic","ps_dnom","ps_cicloTxt"].forEach(id=>g(id).addEventListener("input",leer));
+  ["ps_turno","ps_dtit","ps_dcar","ps_ciclo","ps_portada","ps_aviso"].forEach(id=>g(id).addEventListener("change",leer));
+  app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
+  g("ps_ciclo").addEventListener("change",()=>{g("ps_cicloF").hidden=!g("ps_ciclo").checked});
+  app.querySelectorAll(".pslibro input").forEach(inp=>inp.addEventListener("input",()=>{const b=v.libros[+inp.closest(".pslibro").dataset.i];b[inp.dataset.k]=inp.value;guardar()}));
+  app.querySelectorAll(".pslibro [data-n]").forEach(c=>c.onclick=()=>{const el=c.closest(".pslibro"),b=v.libros[+el.dataset.i];b.n=+c.dataset.n;el.querySelector('[data-k="n"]').value=b.n;guardar()});
+  app.querySelectorAll("[data-quitar]").forEach(x=>x.onclick=()=>{v.libros.splice(+x.dataset.quitar,1);store.set(PS_KEY,v);psView()});
+  g("ps_mas").onclick=()=>{const u=v.libros[v.libros.length-1]||{};v.libros.push({doc:"",grado:"",grupo:"",n:u.n||50,ini:1});store.set(PS_KEY,v);psView();
+    const l=app.querySelectorAll(".pslibro");l[l.length-1].scrollIntoView({block:"center"});l[l.length-1].querySelector("input").focus()};
+  g("ps_sel").onchange=()=>{const s=g("ps_sel").value;leer();v.sel=s;
+    if(s==="otra"){v.nombre="";v.cct="";v.ubic="";v.zona="";v.dnom=""}else if(s!=="")psFromZona(v,+s);
+    store.set(PS_KEY,v);psView()};
+  wireLogo();
+  g("ps_prev").onclick=async()=>{const b=g("ps_prev"),box=g("ps_pvw");if(psProblemas(v).length){resumen();return}b.disabled=true;b.textContent="Preparando…";
+    try{const bytes=await psPDF(true);const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;box.innerHTML="";
       for(let i=1;i<=pdf.numPages;i++){const pgp=await pdf.getPage(i);const vp=pgp.getViewport({scale:1.6});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;box.appendChild(c);await pgp.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
       b.textContent="Actualizar vista previa"}
     catch(err){box.innerHTML=`<div class="alert"><b>No se pudo mostrar la vista previa.</b> (${esc(err.message||err)})</div>`;b.textContent="Ver vista previa"}
@@ -3807,7 +4005,7 @@ function tlmRed(){let b=document.getElementById("sinRed");if(navigator.onLine){i
   if(!b){b=document.createElement("div");b.id="sinRed";b.className="sin-red";b.setAttribute("role","status");b.innerHTML="<b>Sin internet.</b> Puede seguir usando Tlamatini con lo que ya está guardado en este equipo.";document.body.prepend(b)}}
 window.addEventListener("online",tlmRed);window.addEventListener("offline",tlmRed);
 /* respaldo: solo los datos de Tlamatini (no contraseñas ni enlaces de acceso) */
-const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","logo-zona","libro-visitas-logo","tlm-tour-visto"];
+const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","libro-pases","logo-zona","libro-visitas-logo","tlm-tour-visto"];
 const respClave=k=>k.startsWith("ppie-")||RESP_EXACTAS.includes(k);
 function respaldoDescargar(){const datos={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(respClave(k))datos[k]=localStorage.getItem(k)}}catch(e){}
   const n=Object.keys(datos).length;if(!n){alert("Todavía no hay datos guardados para respaldar.");return}
@@ -3846,7 +4044,7 @@ function wireEquipo(){const g=id=>document.getElementById(id);
 function demoBanda(){if(document.getElementById("demoBanda"))return;const b=document.createElement("div");b.id="demoBanda";b.className="demo-banda";b.setAttribute("role","note");
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
   document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
-const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),firmas:()=>lfView(),visitas:()=>lvView(),
+const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),firmas:()=>lfView(),visitas:()=>lvView(),pases:()=>psView(),
   ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),salario:()=>sectionView("salario"),estadistica:()=>sectionView("estadistica"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
 function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
   return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
@@ -4348,7 +4546,7 @@ REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=
    Para activarlo, escriba en USO_CODIGO el nombre de la cuenta de goatcounter.com (ej. "tlamatini").
    El equipo de la Supervisión (con llave de administración) no se cuenta, para no inflar las cifras. */
 const USO_CODIGO="tlamatini";
-const USO_VISTA={home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
+const USO_VISTA={home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",pases:"Libro de pases de salida",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
 function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[S.letra])return`PPIE ${S.letra} · ${ANEXOS[S.letra].name}`;
   if(S.view==="section"&&S.sec){const x=SECCIONES.find(z=>z.id===S.sec);return"Sección · "+(x?x.title:S.sec)}return USO_VISTA[S.view]||S.view||"?"}
 const USO={cola:[],listo:false,ultima:"",activo:(()=>{try{return !!USO_CODIGO&&!localStorage.getItem("gh-token")&&!/^(localhost|127\.)/.test(location.hostname)}catch(e){return false}})()};
