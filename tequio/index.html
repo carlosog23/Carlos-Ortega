@@ -21,7 +21,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='94' fill='%23F4E1C1'/%3E%3Cg fill='none' stroke-width='13' stroke-linecap='round'%3E%3Cpath d='M79.7 56.5 A48 48 0 0 1 120.3 56.5' stroke='%2324427A'/%3E%3Cpath d='M127.5 60.7 A48 48 0 0 1 147.8 95.8' stroke='%23C2603A'/%3E%3Cpath d='M147.8 104.2 A48 48 0 0 1 127.5 139.3' stroke='%2324427A'/%3E%3Cpath d='M120.3 143.5 A48 48 0 0 1 79.7 143.5' stroke='%23C2603A'/%3E%3Cpath d='M72.5 139.3 A48 48 0 0 1 52.2 104.2' stroke='%2324427A'/%3E%3Cpath d='M52.2 95.8 A48 48 0 0 1 72.5 60.7' stroke='%23C2603A'/%3E%3C/g%3E%3Ccircle cx='100' cy='30' r='11' fill='%2324427A'/%3E%3Ccircle cx='160.6' cy='65' r='11' fill='%23C2603A'/%3E%3Ccircle cx='160.6' cy='135' r='11' fill='%2324427A'/%3E%3Ccircle cx='100' cy='170' r='11' fill='%23C2603A'/%3E%3Ccircle cx='39.4' cy='135' r='11' fill='%2324427A'/%3E%3Ccircle cx='39.4' cy='65' r='11' fill='%23C2603A'/%3E%3Ccircle cx='100' cy='100' r='13' fill='%23E8A33D'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Source+Sans+3:wght@400;600;700&family=Montserrat:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Source+Sans+3:wght@400;600;700&display=swap">
 <style>
 :root{
   --indigo:#24427A; --indigo-d:#1F3A6B; --tinta:#1E2A40; --terra:#C2603A; --terra-d:#A9512F; --ambar:#E8A33D;
@@ -139,6 +139,9 @@ main{padding:20px 0 40px}
 
 
 /* Oficios */
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Regular.ttf) format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Bold.ttf) format('truetype');font-weight:700;font-style:normal}
+@font-face{font-family:'MontserratOfi';src:url(fuentes/Montserrat-Italic.ttf) format('truetype');font-weight:400;font-style:italic}
 .ofi-ed{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
 @media (max-width:980px){.ofi-ed{grid-template-columns:minmax(0,1fr)}}
 .ofi-prev{position:sticky;top:76px}
@@ -153,7 +156,7 @@ main{padding:20px 0 40px}
 .ia-caja .boton{margin-top:8px}
 .ofi-botones{display:flex;gap:8px;flex-wrap:wrap}
 .ofi-botones .boton[disabled]{opacity:.45;cursor:not-allowed}
-.hoja{position:relative;width:816px;min-height:1056px;box-sizing:border-box;padding:137px 96px 80px;background:#fff;color:#1b1b1b;font-family:'Montserrat',Arial,sans-serif;text-align:left}
+.hoja{position:relative;width:816px;min-height:1056px;box-sizing:border-box;padding:137px 96px 77px;background:#fff;color:#1b1b1b;font-family:'MontserratOfi','Montserrat',Arial,sans-serif;text-align:left}
 .hoja *{box-sizing:border-box}
 .h-enc{position:absolute;top:33px;left:96px;right:96px;display:grid;grid-template-columns:113px 1fr 113px;align-items:center}
 .h-isep{width:100px;height:75px;object-fit:contain}
@@ -166,9 +169,9 @@ main{padding:20px 0 40px}
 .h-filete::after{content:'';display:block;border-top:.7px solid #9AA5B1}
 .h-datos{text-align:right;font-size:.95em}
 .h-num{color:#1F2A44}
-.h-dest{font-weight:700;line-height:1.04}
+.h-dest{font-weight:700;line-height:1.27}
 .h-p{text-align:justify}
-.h-firma{text-align:center;break-inside:avoid;page-break-inside:avoid}
+.h-firma{line-height:1.27;text-align:center;break-inside:avoid;page-break-inside:avoid}
 .h-at{font-weight:700;letter-spacing:.12em}
 .h-lema{font-style:italic;color:#1F2A44}
 .h-linea{position:relative;height:18px}
@@ -178,7 +181,9 @@ main{padding:20px 0 40px}
 .h-nom{font-weight:700}
 .h-car{font-size:.9em}
 .h-cct{font-size:.8em;color:#555}
-.h-ccp{font-size:7.5pt;line-height:1.2}
+.h-ccp{font-size:7.5pt;line-height:1.219;margin-top:17px}
+.h-cuerpo.abajo{display:flex;flex-direction:column;min-height:842px}
+.h-cuerpo.abajo .h-ccp{margin-top:auto}
 .h-pie{position:absolute;bottom:33px;left:96px;right:96px;border-top:1px solid #1F2A44;padding-top:5px;text-align:center;font-size:7pt;color:#555;line-height:1.35}
 
 /* Seguimiento */
@@ -2070,37 +2075,39 @@ const parrafosDe = txt => String(txt || '').replace(/\r/g, '').split(/\n\s*\n/).
 const lineasCcp = o => String(o.ccp || '').split('\n').map(x => x.trim()).filter(Boolean);
 
 /* ---- La hoja en HTML (vista previa y PDF). s = escala de letra y espacios (1 = normal) ---- */
-function htmlOficio(o, s = 1, rec = {}) {
+function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
+  // s: escala de letra (para que quepa); t: 0 a 1, aire extra cuando la hoja queda vacía; abajo: C.c.p. al pie de la hoja
   const px = v => (v * s).toFixed(2) + 'px';
   const pt = v => (v * 96 / 72 * s).toFixed(2) + 'px';
+  const lh = ((1.125 + 0.4 * t) * 1.219).toFixed(3), pa = 7.3 + 12 * t;
   const parr = parrafosDe(o.cuerpo).map(p => {
     const lineas = p.split('\n');
-    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) return lineas.map(l => `<p class="h-p h-vi" style="margin:0 0 ${px(4)};padding-left:${px(26)};text-indent:-${px(14)}">•&nbsp;&nbsp;${esc(l.trim().replace(/^[•\-–]\s*/, ''))}</p>`).join('');
-    return `<p class="h-p" style="margin:0 0 ${px(7.3)}">${esc(p).replace(/\n/g, '<br>')}</p>`;
+    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) return lineas.map(l => `<p class="h-p h-vi" style="line-height:${lh};margin:0 0 ${px(4 + 3 * t)};padding-left:${px(26)};text-indent:-${px(14)}">•&nbsp;&nbsp;${esc(l.trim().replace(/^[•\-–]\s*/, ''))}</p>`).join('');
+    return `<p class="h-p" style="line-height:${lh};margin:0 0 ${px(pa)}">${esc(p).replace(/\n/g, '<br>')}</p>`;
   }).join('') || `<p class="h-p" style="margin:0;color:#aaa">El texto del oficio aparecerá aquí.</p>`;
-  return `<div class="hoja" style="font-size:${pt(10)};line-height:1.125">
+  return `<div class="hoja" style="font-size:${pt(10)};line-height:1.371">
     <div class="h-enc">
       <img class="h-isep" src="img/isep.png" alt="ISEP">
       <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div>
       <img class="h-zona" src="img/zona050.png" alt="Zona 050">
     </div>
     <div class="h-filete"></div>
-    <div class="h-cuerpo">
-      <div class="h-datos" style="margin-bottom:${px(17)}">
+    <div class="h-cuerpo${abajo ? ' abajo' : ''}"><div class="h-princ">
+      <div class="h-datos" style="margin:${px(40 * t)} 0 ${px(17 + 28 * t)}">
         <p style="margin:0 0 ${px(4)}">${esc(OFI.lugar)}, a ${fechaOficio(o.fecha)}</p>
         <p style="margin:0 0 ${px(4)}"><b>Oficio No.: <span class="h-num">${esc(folioDe(o))}</span></b></p>
         ${o.referencia ? `<p style="margin:0 0 ${px(4)}"><b>Referencia:</b> ${esc(o.referencia)}</p>` : ''}
         <p style="margin:0"><b>Asunto:</b> ${esc(o.asunto || '')}</p>
       </div>
-      <div class="h-dest" style="margin-bottom:${px(16)}">
+      <div class="h-dest" style="margin-bottom:${px(16 + 24 * t)}">
         ${[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => `<div>${esc(String(x).toUpperCase())}</div>`).join('')}
         <div style="letter-spacing:.25em">P R E S E N T E</div>
       </div>
       ${parr}
-      <div class="h-firma" style="margin-top:${px(13)}">
+      <div class="h-firma" style="margin-top:${px(13 + 90 * t)}">
         <div class="h-at">A T E N T A M E N T E</div>
         <div class="h-lema">“Responsabilidad y superación”</div>
-        <div class="h-esp" style="height:${px(110)}"></div>
+        <div class="h-esp" style="height:${px(110 + 24 * t)}"></div>
         <div class="h-linea">
           ${o.firma && rec.firma ? `<img class="h-img-firma" src="data:image/png;base64,${rec.firma}" alt="Firma">` : ''}
           ${o.sello && rec.sello ? `<img class="h-img-sello" src="data:image/png;base64,${rec.sello}" alt="Sello">` : ''}
@@ -2109,41 +2116,55 @@ function htmlOficio(o, s = 1, rec = {}) {
         <div class="h-nom">${OFI.firmante}</div>
         <div class="h-car">${OFI.cargo}</div>
         <div class="h-cct">C.C.T. ${OFI.cct}</div>
-      </div>
-      <div class="h-ccp" style="margin-top:${px(17)}">${lineasCcp(o).map(l => `<div><b>C.c.p.</b> ${esc(l)}</div>`).join('')}</div>
+      </div></div>
+      <div class="h-ccp">${lineasCcp(o).map(l => `<div><b>C.c.p.</b> ${esc(l)}</div>`).join('')}</div>
     </div>
     <div class="h-pie"><div>Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910</div><div>Tel. 616 165 5622 · supervision050sep@gmail.com</div></div>
   </div>`;
 }
-// Busca la escala para que el oficio quepa en una hoja si solo se pasa por poco (unos renglones)
-function escalaQueCabe(o, rec) {
+// Acomoda el oficio en la hoja: si se pasa por poco, reduce un poco la letra; si queda vacía, reparte el espacio
+// (más aire entre párrafos y la firma más abajo) y deja las copias (C.c.p.) al pie de la hoja.
+const ALTO_UTIL = 842;
+let FUENTES_OFI = null;   // la letra del oficio se carga de la propia página para medir igual que en Word
+const fuentesOficio = () => FUENTES_OFI || (FUENTES_OFI = Promise.all(['400 10px MontserratOfi', '700 10px MontserratOfi', 'italic 400 10px MontserratOfi'].map(f => document.fonts.load(f))).catch(() => null));
+function disposicion(o, rec, reserva = 0, escalas = [1, 0.97, 0.94, 0.91, 0.88]) {
   const caja = document.createElement('div');
   caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;visibility:hidden';
   document.body.appendChild(caja);
-  let elegida = 1;
+  const cabe = (s, t) => {
+    caja.innerHTML = htmlOficio(o, s, rec, t, true);
+    const pr = caja.querySelector('.h-princ').offsetHeight, cc = caja.querySelector('.h-ccp').offsetHeight;
+    return pr + (cc ? 18 + cc : 0) <= ALTO_UTIL - reserva;
+  };
   try {
-    for (const s of [1, 0.97, 0.94, 0.91, 0.88]) {
-      caja.innerHTML = htmlOficio(o, s, rec);
-      const c = caja.querySelector('.h-cuerpo');
-      if (c.scrollHeight <= 842) { elegida = s; break; }
-      elegida = 1;  // si ni al 88 % cabe, se deja normal en dos hojas
-    }
+    let s = 0;
+    for (const e of escalas) if (cabe(e, 0)) { s = e; break; }
+    if (!s) return { s: 1, t: 0, unaHoja: false };   // ni reduciendo cabe: dos hojas con letra normal
+    if (s < 1) return { s, t: 0, unaHoja: true };
+    let lo = 0, hi = 1;
+    if (cabe(1, 1)) lo = 1;
+    else for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2; if (cabe(1, m)) lo = m; else hi = m; }
+    return { s: 1, t: Math.round(lo * 100) / 100, unaHoja: true };
   } finally { caja.remove(); }
-  return elegida;
 }
 
 /* ---- Word (.docx) con la misma composición ---- */
 async function wordOficio(o, rec) {
   await cargarScript('lib/docx.iife.js');
-  const D = window.docx, s = +o.escala || 1;
+  await fuentesOficio();
+  const D = window.docx;
+  // Word acomoda el texto un poco distinto que la página: se deja un margen de seguridad (más si hay que reducir la letra)
+  let dis = disposicion(o, rec, 40);
+  if (dis.s < 1 || !dis.unaHoja) { const d2 = disposicion(o, rec, 130, [0.97, 0.94, 0.91, 0.88, 0.85, 0.82]); if (d2.unaHoja) dis = d2; }
+  const s = dis.s, t = dis.t;
   const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: A, BorderStyle, VerticalAlign, Footer, Header, PageNumber,
     HorizontalPositionRelativeFrom: H, VerticalPositionRelativeFrom: V, TextWrappingType } = D;
   const [isep, zona, fuente] = await Promise.all([bytesDe('img/isep.png'), bytesDe('img/zona050.png'), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
   const F = 'Montserrat', AZ = '1F3A6B', OS = '1F2A44', GR = '555555';
-  const z = v => Math.max(12, Math.round(v * s));
-  const t = (text, x = {}) => new TextRun({ text, font: F, size: x.size ? z(x.size) : z(20), bold: x.bold, italics: x.italics, color: x.color, characterSpacing: x.sp });
-  const p = (runs, x = {}) => new Paragraph({ children: typeof runs === 'string' ? [t(runs, x)] : runs, alignment: x.align || A.JUSTIFIED,
-    spacing: { before: x.before || 0, after: x.after != null ? Math.round(x.after * s) : Math.round(110 * s), line: x.line || 270 }, indent: x.indent, keepNext: x.keepNext });
+  const z = v => Math.max(12, Math.floor(v * s + 0.001));  // medios puntos hacia abajo para no crecer al redondear
+  const tx = (text, x = {}) => new TextRun({ text, font: F, size: x.size ? z(x.size) : z(20), bold: x.bold, italics: x.italics, color: x.color, characterSpacing: x.sp });
+  const p = (runs, x = {}) => new Paragraph({ children: typeof runs === 'string' ? [tx(runs, x)] : runs, alignment: x.align || A.JUSTIFIED,
+    spacing: { before: x.before || 0, after: x.after != null ? Math.round(x.after * s) : Math.round(110 * s), line: x.line || 270 }, indent: x.indent, keepNext: x.keepNext, frame: x.frame });
   const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, nb = { top: none, bottom: none, left: none, right: none };
   const celda = (w, children, al) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children });
   const header = new Header({ children: [
@@ -2160,24 +2181,30 @@ async function wordOficio(o, rec) {
     new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '9AA5B1', space: 1 } }, spacing: { after: 0 }, children: [] })
   ] });
   const pie = (x) => new TextRun({ text: x, font: F, size: 14, color: GR });
+  // Las copias (C.c.p.) van al pie de la hoja cuando el oficio cabe en una; si ocupa dos, siguen a la firma
+  const ccp = lineasCcp(o);
+  const parCcp = x => new Paragraph({ alignment: A.LEFT, spacing: { before: 0, after: x, line: 240 },
+    children: ccp.flatMap((l, i) => [...(i ? [new TextRun({ break: 1 })] : []), tx('C.c.p. ', { bold: true, size: 15 }), tx(l, { size: 15 })]) });
   const footer = new Footer({ children: [
+    ...(dis.unaHoja && ccp.length ? [parCcp(160)] : []),
     new Paragraph({ alignment: A.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: OS, space: 4 } }, spacing: { after: 20 }, children: [pie('Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910')] }),
     new Paragraph({ alignment: A.CENTER, spacing: { after: 0 }, children: [pie('Tel. 616 165 5622 · supervision050sep@gmail.com     Página '), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 14, color: GR }), pie(' de '), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 14, color: GR })] })
   ] });
-  const B = (x, y = {}) => t(x, Object.assign({ bold: true }, y));
+  const B = (x, y = {}) => tx(x, Object.assign({ bold: true }, y));
   const der = { align: A.RIGHT, after: 60 };
+  const lineaCuerpo = Math.round(270 + 96 * t), tras = Math.round((110 + 180 * t) * s);
   const kids = [
-    p([t(OFI.lugar + ', a ' + fechaOficio(o.fecha), { size: 19 })], der),
+    p([tx(OFI.lugar + ', a ' + fechaOficio(o.fecha), { size: 19 })], Object.assign({}, der, { before: Math.round(600 * t) })),
     p([B('Oficio No.: ', { size: 19 }), B(o.folio, { size: 19, color: OS })], der),
-    ...(o.referencia ? [p([B('Referencia: ', { size: 19 }), t(o.referencia, { size: 19 })], der)] : []),
-    p([B('Asunto: ', { size: 19 }), t(o.asunto, { size: 19 })], { align: A.RIGHT, after: 260, indent: { left: 2200 } }),
+    ...(o.referencia ? [p([B('Referencia: ', { size: 19 }), tx(o.referencia, { size: 19 })], der)] : []),
+    p([B('Asunto: ', { size: 19 }), tx(o.asunto, { size: 19 })], { align: A.RIGHT, after: Math.round(260 + 420 * t), indent: { left: 2200 } }),
     ...[o.destNombre, o.destCargo, o.destInst].filter(Boolean).map(x => p([B(String(x).toUpperCase())], { align: A.LEFT, after: 0, line: 250 })),
-    p([B('P R E S E N T E', { sp: 20 })], { align: A.LEFT, after: 240, line: 250 })
+    p([B('P R E S E N T E', { sp: 20 })], { align: A.LEFT, after: Math.round(240 + 360 * t), line: 250 })
   ];
   parrafosDe(o.cuerpo).forEach(par => {
     const lineas = par.split('\n');
-    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) lineas.forEach(l => kids.push(p([t('•\t' + l.trim().replace(/^[•\-–]\s*/, ''))], { after: 60, indent: { left: 540, hanging: 260 } })));
-    else kids.push(new Paragraph({ alignment: A.JUSTIFIED, spacing: { after: Math.round(110 * s), line: 270 }, children: lineas.flatMap((l, i) => i ? [new TextRun({ break: 1 }), t(l)] : [t(l)]) }));
+    if (lineas.every(l => /^[•\-–]\s/.test(l.trim()))) lineas.forEach(l => kids.push(p([tx('•\t' + l.trim().replace(/^[•\-–]\s*/, ''))], { after: Math.round(60 + 45 * t), line: lineaCuerpo, indent: { left: 540, hanging: 260 } })));
+    else kids.push(new Paragraph({ alignment: A.JUSTIFIED, spacing: { after: tras, line: lineaCuerpo }, children: lineas.flatMap((l, i) => i ? [new TextRun({ break: 1 }), tx(l)] : [tx(l)]) }));
   });
   const flota = (data, w, h, x, y, zi) => new ImageRun({ type: 'png', data, transformation: { width: w, height: h }, floating: { horizontalPosition: { relative: H.MARGIN, offset: Math.round(x * 914400) },
     verticalPosition: { relative: V.PARAGRAPH, offset: Math.round(y * 914400) }, allowOverlap: true, behindDocument: false, lockAnchor: true, layoutInCell: true, wrap: { type: TextWrappingType.NONE }, zIndex: zi } });
@@ -2185,14 +2212,14 @@ async function wordOficio(o, rec) {
   if (o.firma && rec.firma) imgs.push(flota(b64aBytes(rec.firma), 104, 133, (6.5 - 104 / 96) / 2, -1.30, 20));
   if (o.sello && rec.sello) imgs.push(flota(b64aBytes(rec.sello), 72, 127, 4.75, -1.05, 10));
   kids.push(
-    p([B('A T E N T A M E N T E', { sp: 10 })], { align: A.CENTER, after: 40, keepNext: true, before: Math.round(190 * s) }),
-    p([t('“Responsabilidad y superación”', { italics: true, color: OS })], { align: A.CENTER, after: 0, keepNext: true }),
-    new Paragraph({ keepNext: true, spacing: { before: 0, after: 0, line: Math.round(1650 * s), lineRule: 'exact' }, children: [t(' ')] }),
-    new Paragraph({ alignment: A.CENTER, keepNext: true, spacing: { before: 0, after: 0 }, children: [...imgs, t('_________________________________________', { color: '777777' })] }),
+    p([B('A T E N T A M E N T E', { sp: 10 })], { align: A.CENTER, after: 40, keepNext: true, before: Math.round((190 + 1350 * t) * s) }),
+    p([tx('“Responsabilidad y superación”', { italics: true, color: OS })], { align: A.CENTER, after: 0, keepNext: true }),
+    new Paragraph({ keepNext: true, spacing: { before: 0, after: 0, line: Math.round((1650 + 360 * t) * s), lineRule: 'exact' }, children: [tx(' ')] }),
+    new Paragraph({ alignment: A.CENTER, keepNext: true, spacing: { before: 0, after: 0 }, children: [...imgs, tx('_________________________________________', { color: '777777' })] }),
     p([B(OFI.firmante)], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
-    p([t(OFI.cargo, { size: 18 })], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
-    p([t('C.C.T. ' + OFI.cct, { size: 16, color: GR })], { align: A.CENTER, after: 260, line: 250 }),
-    ...lineasCcp(o).map(l => p([t('C.c.p. ', { bold: true, size: 15 }), t(l, { size: 15 })], { align: A.LEFT, after: 20, line: 240 }))
+    p([tx(OFI.cargo, { size: 18 })], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
+    p([tx('C.C.T. ' + OFI.cct, { size: 16, color: GR })], { align: A.CENTER, after: dis.unaHoja ? 0 : 260, line: 250 }),
+    ...(!dis.unaHoja && ccp.length ? [parCcp(0)] : [])
   );
   const doc = new Document({ creator: 'Supervisión Escolar Zona 050 · Tequio', title: o.folio + ' · ' + o.asunto,
     fonts: fuente ? [{ name: F, data: fuente, characterSet: D.CharacterSet.ANSI }] : undefined,
@@ -2203,10 +2230,11 @@ async function wordOficio(o, rec) {
 /* ---- PDF a partir de la hoja HTML ---- */
 async function pdfOficio(o, rec) {
   await cargarScript('lib/html2pdf.bundle.min.js');
-  await document.fonts.ready;
+  await fuentesOficio();
   const caja = document.createElement('div');
   caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;background:#fff';
-  caja.innerHTML = htmlOficio(o, +o.escala || 1, rec);
+  const dis = disposicion(o, rec);
+  caja.innerHTML = htmlOficio(o, dis.s, rec, dis.t, dis.unaHoja);
   document.body.appendChild(caja);
   try {
     await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
@@ -2312,12 +2340,13 @@ function vEditorOficio() {
   const pintarPrev = () => {
     if (!$('#o-prev')) return;
     leerForm();
-    o.escala = String(escalaQueCabe(Object.assign({}, o, { folio: folioDe(guardado || o) }), rec));
+    const vo = Object.assign({}, o, { folio: folioDe(guardado || o) }), dis = disposicion(vo, rec);
+    o.escala = String(dis.s);
     const marco = $('#o-prev'); if (!marco) return;
     const w = marco.clientWidth || 600, k = Math.min(1, w / 816);
-    marco.style.height = (1056 * k) + 'px';
-    marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficio(Object.assign({}, o, { folio: folioDe(guardado || o) }), +o.escala, rec)}</div>`;
-    const de = $('#o-escala'); if (de) de.textContent = +o.escala < 1 ? '· ajustado a una hoja (' + Math.round(o.escala * 100) + ' %)' : '';
+    marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficio(vo, dis.s, rec, dis.t, dis.unaHoja)}</div>`;
+    marco.style.height = (marco.querySelector('.hoja').offsetHeight * k) + 'px';
+    const de = $('#o-escala'); if (de) de.textContent = dis.s < 1 ? '· ajustado a una hoja (' + Math.round(dis.s * 100) + ' %)' : dis.unaHoja ? '' : '· ocupa dos hojas';
     const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2]) !== String(guardado[k2])) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []);
       est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
   };
@@ -2360,6 +2389,7 @@ function vEditorOficio() {
   // la vista previa usa la firma y el sello reales
   if (esAdmin() && (cfgO.firma || cfgO.sello) && !RECURSOS) recursos().then(r => { rec = r; pintarPrev(); }).catch(() => {});
   pintarPrev();
+  fuentesOficio().then(() => { if ($("#o-prev")) pintarPrev(); });
 }
 
 function formCorreoOficio(o) {
