@@ -394,9 +394,13 @@ const ACCIONES = {
     if (!previo) {
       const props = PropertiesService.getScriptProperties();
       const anio = o.fecha.slice(0, 4);
-      let ultimo = +props.getProperty('OFI_ULTIMO') || ULTIMO_OFICIO_INICIAL;
+      const guardado = props.getProperty('OFI_ULTIMO');
+      let ultimo = guardado !== null && guardado !== '' ? +guardado : ULTIMO_OFICIO_INICIAL;
       if ((props.getProperty('OFI_ANIO') || '2026') !== anio) ultimo = 0;  // cada año empieza en 001
-      const n = ultimo + 1;
+      // si ese número ya se usó (por ejemplo, después de corregir el conteo), se toma el siguiente libre
+      const usados = leer_('ofi').filter(x => String(x.anio) === anio).map(x => +x.numero);
+      let n = ultimo + 1;
+      while (usados.indexOf(n) >= 0) n++;
       props.setProperties({ OFI_ULTIMO: String(n), OFI_ANIO: anio });
       Object.assign(o, { id: 'ofi-' + anio + '-' + ('00' + n).slice(-3), numero: String(n), anio: anio, folio: folio_(n, anio),
         pdfId: '', envios: [], creadoPor: yo.id, creado: ahora_() });
@@ -565,7 +569,7 @@ function folio_(n, anio) { return 'SE-050/' + ('00' + n).slice(-3) + '/' + anio;
 function cfgOficios_() {
   const p = PropertiesService.getScriptProperties();
   const anio = p.getProperty('OFI_ANIO') || '2026';
-  const ultimo = +p.getProperty('OFI_ULTIMO') || ULTIMO_OFICIO_INICIAL;
+  const g = p.getProperty('OFI_ULTIMO'), ultimo = g !== null && g !== '' ? +g : ULTIMO_OFICIO_INICIAL;
   const anioHoy = hoy_().slice(0, 4);
   const sig = anio === anioHoy ? ultimo + 1 : 1;
   return { ultimo: ultimo, anio: anio, siguiente: folio_(sig, anioHoy), ia: !!p.getProperty('GEMINI_KEY'), modelo: p.getProperty('GEMINI_MODELO') || '',

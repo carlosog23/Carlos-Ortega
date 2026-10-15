@@ -2309,7 +2309,7 @@ function vOficios() {
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios</h1>
     <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Subir oficio de un director</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
-  <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
+  <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>${esAdmin() ? ' <button type="button" class="boton sec chico" id="b-ofi-num" style="margin-left:4px">Cambiar el número</button>' : ''}. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
   <div class="filtros"><input id="f-ofi" type="search" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.ofiBuscar || '')}" style="flex:1;min-width:220px"></div>
   ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-ofi="${o.id}">
     <div class="fecha"><b>${esc(String(o.numero).padStart(3, '0'))}</b><span>${esc(o.anio)}</span></div>
@@ -2320,6 +2320,7 @@ function vOficios() {
   $('#b-ofi-nuevo').onclick = () => { vista.ofiEdit = 'nuevo'; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); };
   $('#b-ofi-recibido').onclick = subirOficioRecibido;
   if ($('#b-ofi-cfg')) $('#b-ofi-cfg').onclick = formCfgOficios;
+  if ($('#b-ofi-num')) $('#b-ofi-num').onclick = formNumeroOficio;
   $('#f-ofi').oninput = e => { vista.ofiBuscar = e.target.value; const pos = e.target.selectionStart; vOficios(); const i = $('#f-ofi'); i.focus(); i.setSelectionRange(pos, pos); };
   $$('[data-ofi]').forEach(b => b.onclick = () => { vista.ofiEdit = b.dataset.ofi; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); });
 }
@@ -2571,6 +2572,26 @@ async function compartirOficio(o) {
       <p class="ayuda">En el teléfono, el botón WhatsApp de Tequio comparte el PDF directo.</p>`, '<button class="boton" id="w-ok">Listo</button>');
     $('#w-ok').onclick = cerrarModal;
   });
+}
+
+// Para seguir el conteo cuando se hicieron oficios en otra computadora o a mano
+function formNumeroOficio() {
+  const c = S.ofiCfg || {}, anio = hoy().slice(0, 4);
+  const sig = String(c.siguiente || '').split('/')[1] || '';
+  modal('Número del siguiente oficio', `
+    <p style="margin-top:0">Si se hicieron oficios fuera de Tequio (en otra computadora o a mano), escriba en qué número debe seguir el conteo.</p>
+    <div class="campo"><label for="n-sig">El siguiente oficio será el número</label>
+      <div style="display:flex;align-items:center;gap:8px"><span>SE-050/</span><input id="n-sig" type="number" min="1" max="999" value="${+sig || ''}" style="width:110px"><span>/${anio}</span></div>
+      <div class="ayuda" id="n-ayuda"></div></div>`,
+    '<button class="boton sec" id="n-no">Cancelar</button><button class="boton terra" id="n-si">Guardar</button>');
+  const usados = (S.ofi || []).filter(o => String(o.anio) === anio).map(o => +o.numero);
+  const revisar = () => { const n = +$('#n-sig').value;
+    $('#n-ayuda').innerHTML = !n ? '' : usados.includes(n) ? `<b>Ojo:</b> el SE-050/${String(n).padStart(3, '0')}/${anio} ya existe en Tequio; se usará el siguiente número libre.` : `Los siguientes oficios serán ${String(n).padStart(3, '0')}, ${String(n + 1).padStart(3, '0')}, ${String(n + 2).padStart(3, '0')}…`; };
+  $('#n-sig').oninput = revisar; revisar();
+  $('#n-no').onclick = cerrarModal;
+  $('#n-si').onclick = () => { const n = parseInt($('#n-sig').value, 10);
+    if (!(n >= 1 && n <= 999)) return aviso('Escriba un número entre 1 y 999.', 'mal');
+    accion('configOficios', { ultimo: n - 1, anio }, r => { S.ofiCfg = r.ofiCfg; cerrarModal(); vOficios(); aviso('El siguiente oficio será el ' + esc(r.ofiCfg.siguiente) + '.', 'ok', 4000); }); };
 }
 
 function formCfgOficios() {
