@@ -41,6 +41,9 @@ input,select{width:100%;font:inherit;font-size:15px;border:1px solid var(--borde
 .libro{border:1px solid var(--borde);border-radius:11px;padding:10px;margin-bottom:10px;background:#fff;position:relative}
 .libro .fila{margin-bottom:8px}
 .libro .quitar{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--gris);font-size:20px;cursor:pointer;line-height:1}
+.rapidos{display:flex;gap:6px;flex-wrap:wrap}
+.rapidos button{border:1px solid var(--borde);background:#fff;border-radius:8px;padding:4px 12px;font:inherit;font-size:14px;cursor:pointer;color:var(--tinta)}
+.rapidos button.sel{background:var(--indigo);border-color:var(--indigo);color:#fff}
 .libro .num{font-size:12px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .boton{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--indigo);background:var(--indigo);color:#fff;font:inherit;font-weight:600;border-radius:10px;padding:9px 14px;cursor:pointer;min-height:42px}
 .boton.sec{background:#fff;color:var(--indigo)}
@@ -203,6 +206,12 @@ const escuela = () => ESCUELAS.find(e => e[1] === datos.esc) || ESCUELAS[0];
 const de = () => (datos.escuelas[datos.esc] = datos.escuelas[datos.esc] || { turno: 'Matutino', loc: LOC_INICIAL[datos.esc] || '', dtit: 'Profr.', dnom: '', dcar: 'Director', libros: [] });
 const srcLogo = () => logos[datos.esc] || (CON_LOGO.includes(datos.esc) ? 'img/escuelas/' + datos.esc + '.png' : '');
 const pad = n => String(n).padStart(3, '0');
+const prefijo = b => (gradoTxt(b.grado).replace(/[°º\s]/g, '') + String(b.grupo || '').trim()).toUpperCase();
+const folioDe = (b, k) => (prefijo(b) ? prefijo(b) + '-' : '') + pad(k);
+function rango(b) {
+  const ini = Math.max(1, +b.ini || 1), n = Math.max(1, +b.n || 1), extra = ($('#con-portada') && $('#con-portada').checked ? 1 : 0) + ($('#con-aviso') && $('#con-aviso').checked ? 1 : 0);
+  return 'Folios del ' + folioDe(b, ini) + ' al ' + folioDe(b, ini + n - 1) + ' · ' + Math.ceil((n + extra) / 2) + ' hojas carta.';
+}
 const gradoTxt = g => /°|º/.test(g) || !/^\d+$/.test(String(g).trim()) ? String(g).trim() : String(g).trim() + '°';
 
 function pintarForm() {
@@ -210,18 +219,23 @@ function pintarForm() {
   const d = de();
   $('#turno').value = d.turno; $('#loc').value = d.loc; $('#dtit').value = d.dtit; $('#dnom').value = d.dnom; $('#dcar').value = d.dcar; $('#ciclo').value = datos.ciclo;
   const l = srcLogo(); $('#logo-img').src = l || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E';
-  if (!d.libros.length) d.libros.push({ doc: '', grado: '', grupo: '', ini: 1, n: 40 });
+  if (!d.libros.length) d.libros.push({ doc: '', grado: '', grupo: '', ini: 1, n: 50 });
   $('#libros').innerHTML = d.libros.map((b, i) => `<div class="libro" data-i="${i}">
     <div class="num">Libro ${i + 1}</div>${d.libros.length > 1 ? `<button type="button" class="quitar" data-quitar="${i}" aria-label="Quitar">×</button>` : ''}
     <div class="campo" style="margin-bottom:8px"><label>Docente</label><input data-k="doc" value="${esc(b.doc)}" placeholder="Ej. Profra. Ana López Ruiz"></div>
     <div class="fila"><div><label>Grado</label><input data-k="grado" value="${esc(b.grado)}" placeholder="3°"></div><div><label>Grupo</label><input data-k="grupo" value="${esc(b.grupo)}" placeholder="A"></div></div>
-    <div class="fila" style="margin-bottom:0"><div><label>Folio inicial</label><input data-k="ini" type="number" min="1" value="${b.ini}"></div><div><label>Número de pases</label><input data-k="n" type="number" min="2" max="300" value="${b.n}"></div></div>
+    <div class="fila" style="margin-bottom:6px"><div><label>Folios por libro</label><input data-k="n" type="number" min="1" max="300" value="${b.n}"></div><div><label>Folio inicial</label><input data-k="ini" type="number" min="1" value="${b.ini}"></div></div>
+    <div class="rapidos">${[25, 50, 100, 150].map(v => `<button type="button" data-n="${v}" class="${+b.n === v ? 'sel' : ''}">${v}</button>`).join('')}</div>
+    <div class="ayuda rango">${rango(b)}</div>
   </div>`).join('');
   $$('#libros input').forEach(inp => inp.oninput = () => {
-    const b = d.libros[+inp.closest('.libro').dataset.i], k = inp.dataset.k;
-    b[k] = (k === 'ini' || k === 'n') ? Math.max(1, Math.min(300, parseInt(inp.value, 10) || 1)) : inp.value;
+    const caja = inp.closest('.libro'), b = d.libros[+caja.dataset.i], k = inp.dataset.k;
+    b[k] = k === 'n' ? Math.max(1, Math.min(300, parseInt(inp.value, 10) || 1)) : k === 'ini' ? Math.max(1, parseInt(inp.value, 10) || 1) : inp.value;
+    caja.querySelector('.rango').textContent = rango(b);
+    caja.querySelectorAll('[data-n]').forEach(x => x.classList.toggle('sel', +x.dataset.n === +b.n));
     guardar(); programar();
   });
+  $$('#libros [data-n]').forEach(x => x.onclick = () => { const caja = x.closest('.libro'); d.libros[+caja.dataset.i].n = +x.dataset.n; guardar(); pintarForm(); pintarPrev(); });
   $$('[data-quitar]').forEach(x => x.onclick = () => { d.libros.splice(+x.dataset.quitar, 1); guardar(); pintarForm(); pintarPrev(); });
 }
 
@@ -302,8 +316,7 @@ function aviso(d, e) {
 function hojasLibro(b, conPortada, conAviso) {
   const d = de(), e = escuela();
   const ini = Math.max(1, +b.ini || 1), n = Math.max(1, +b.n || 1);
-  const pref = (gradoTxt(b.grado).replace(/[°º\s]/g, '') + String(b.grupo || '').trim()).toUpperCase();
-  const folio = k => (pref ? pref + '-' : '') + pad(k);
+  const folio = k => folioDe(b, k);
   const partes = [];
   if (conPortada) partes.push(portada(d, e, b, folio(ini), folio(ini + n - 1)));
   if (conAviso) partes.push(aviso(d, e));
@@ -333,9 +346,9 @@ function pintarPrev() {
 $('#esc').onchange = () => { datos.esc = $('#esc').value; guardar(); pintarForm(); pintarPrev(); };
 ['turno', 'loc', 'dtit', 'dnom', 'dcar'].forEach(id => $('#' + id).addEventListener('input', () => { de()[id] = $('#' + id).value; guardar(); programar(); }));
 $('#ciclo').oninput = () => { datos.ciclo = $('#ciclo').value; guardar(); programar(); };
-$('#mas').onclick = () => { const ls = libros(), u = ls[ls.length - 1] || {}; ls.push({ doc: '', grado: '', grupo: '', ini: 1, n: u.n || 40 }); guardar(); pintarForm(); pintarPrev(); };
+$('#mas').onclick = () => { const ls = libros(), u = ls[ls.length - 1] || {}; ls.push({ doc: '', grado: '', grupo: '', ini: 1, n: u.n || 50 }); guardar(); pintarForm(); pintarPrev(); };
 $('#prev-libro').onchange = pintarPrev;
-$('#con-portada').onchange = pintarPrev; $('#con-aviso').onchange = pintarPrev;
+$('#con-portada').onchange = () => { pintarForm(); pintarPrev(); }; $('#con-aviso').onchange = () => { pintarForm(); pintarPrev(); };
 $('#logo').onchange = () => {
   const f = $('#logo').files[0]; if (!f) return;
   const r = new FileReader();
