@@ -11,7 +11,8 @@ if(H.indexOf(h)>-1)return;window.__copiaNoAutorizada=true;
 try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURIComponent("/copia-no-autorizada/"+(h||"archivo-local")+location.pathname)+"&t="+encodeURIComponent("Copia no autorizada: "+location.href)+"&rnd="+Math.random()}catch(e){}
 function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta pertenece a la Supervisión Escolar Zona 050 (ISEP) y es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}</style></head><body>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}.blanco{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#FBF6EC;border:1px dashed #C2603A;border-radius:14px;padding:10px 14px;margin:0 0 14px;font-size:15px}.blanco .btn{flex:none}
+</style></head><body>
 <title>Tlamatini · Un camino para la labor docente</title>
 <meta name="theme-color" content="#1F3A6B">
 <link rel="icon" type="image/svg+xml" href="img/tlamatini-icono.svg">
@@ -1097,10 +1098,12 @@ function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";co
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
   for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref?A.pref:"Anexo "+S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
+   ${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">🖨 Imprimir en blanco</button></div>`:""}
    <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
    ${st.intro&&A.intro?A.intro():""}<form class="card" id="frm" novalidate>${html}</form>`;
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
   document.getElementById("frm").onsubmit=e=>{e.preventDefault()};
+  {const bb=document.getElementById("blanco");if(bb)bb.onclick=()=>{readStep();imprimirBlanco(S.letra,bb)}}
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>{if(i.type==="radio")app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked));else i.closest(".opt").classList.toggle("on",i.checked)}));
   app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{const el=document.getElementById(c.dataset.for);const f=fields.find(x=>"f_"+x.id===c.dataset.for);if(f&&f.chipAppend){el.value=el.value.replace(/@.*$/,"")+c.dataset.v;el.focus()}else el.value=c.dataset.v});
   app.querySelectorAll(".chip[data-fill]").forEach(c=>c.onclick=()=>{const f=fields.find(x=>x.id===c.dataset.fill);const set=f.fillChips[+c.dataset.i].set;for(const[k,v]of Object.entries(set)){const el=document.getElementById("f_"+k);if(el)el.value=v}});
@@ -1133,12 +1136,14 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
      <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button>
     </div>
     <div id="msg"></div>
+    <button class="btn link" id="blancoR">🖨 Imprimir el formato oficial en blanco (para llenar a mano)</button>
     <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
   setBar(`<button class="btn ghost" id="prev">Anterior</button><button class="btn ghost" id="inicio">Inicio</button>`);
   app.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;stepView()});
   document.getElementById("salir").onclick=goBack;document.getElementById("inicio").onclick=()=>{S.sec=null;home()};
   document.getElementById("prev").onclick=()=>{S.step=A.steps.length-1;stepView()};
   document.getElementById("nuevo").onclick=()=>{store.del("ppie-draft-"+S.letra);openAnexo(S.letra)};
+  document.getElementById("blancoR").onclick=e=>imprimirBlanco(S.letra,e.currentTarget);
   OUT=null;if(!issues.length)prepararPDF().catch(()=>{});
   app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));window.scrollTo(0,0)}
 
@@ -1182,6 +1187,30 @@ async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.t
       else if(g==="cancel")say("warn","<b>Guardado cancelado.</b>");else if(g==="busy")say("warn","Ya hay una ventana abierta; respóndala primero.");else linkMsg(o)}}
   catch(e){say("warn",`<b>No se pudo generar el PDF.</b> Intente de nuevo. (${esc(e&&(e.code||e.message)||e)})`)}
   finally{btn.disabled=false;btn.innerHTML=label}}
+
+/* ---------- imprimir cualquier PDF generado (mismo camino que los formatos oficiales) ---------- */
+let PMODE="save";
+function pToast(html,ms=9000){let t=document.getElementById("pToast");if(!t){t=document.createElement("div");t.id="pToast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");
+  t.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9998;max-width:min(92vw,560px);background:#1E2A40;color:#fff;border-radius:14px;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25)";
+  t.onclick=()=>t.hidden=true;document.body.appendChild(t)}t.innerHTML=html;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,ms)}
+async function entregarPDF(blob,filename,hint=""){const m=PMODE;PMODE="save";const o={filename,blob,file:new File([blob],filename,{type:"application/pdf"})};
+  if(m==="print"){
+    if(isIOS){const r=await tryShare(o,"");if(r===true)return;if(r==="cancel"){pToast("<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
+    if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){pToast(`<b>Se abrió la ventana de impresión.</b> Elija su impresora, tamaño <b>Carta</b> y escala al <b>100 %</b> (tamaño real)${hint}.`);return}
+    const g=await trySave(o);
+    if(g==="link"){const u=URL.createObjectURL(blob);pToast(`<b>Toque para abrir el PDF</b> y desde ahí imprimirlo: <a href="${u}" target="_blank" rel="noopener" style="color:#FFD58A">Abrir el PDF</a>`,20000);return}
+    if(g===true||g==="anchor")pToast(isIOS?"<b>PDF listo.</b> En el menú elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b>.");
+    return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* Botón «Imprimir» junto a «Descargar PDF»: genera exactamente el mismo PDF y lo manda a la impresora */
+function botonImprimir(id){return`<button class="btn primary act" id="${id}"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>`}
+function wireImprimir(id,fn){const b=document.getElementById(id);if(b)b.onclick=e=>{PMODE="print";fn(e.currentTarget)}}
+/* Formato oficial en blanco, tal cual el original, para llenarlo a mano */
+async function imprimirBlanco(L,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";const prev=S.vals;
+  try{S.vals={};const bytes=await generar(L);const blob=new Blob([bytes],{type:"application/pdf"});PMODE="print";
+    await entregarPDF(blob,`${ARCHIVO[L]||"Formato "+L} - en blanco.pdf`,ANEXOS[L]?.back?" e impresión a <b>doble cara</b>":"")}
+  catch(e){pToast(`<b>No se pudo preparar el formato.</b> Intente de nuevo. (${esc(e&&e.message||e)})`)}
+  finally{S.vals=prev;btn.disabled=false;btn.innerHTML=label}}
 
 function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d?d.vals:{};S.step=d?Math.min(d.step,ANEXOS[L].steps.length-1):0;stepView();loadForm(L).catch(()=>{})}
 
@@ -2408,7 +2437,7 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
      <button type="button" class="btn ghost dxaddit" data-si="${si}">+ Agregar un punto</button>
      <button type="button" class="btn link dxdelsec" data-si="${si}" style="padding:6px 0">Quitar esta sección</button></section>`).join("")}
    <button class="btn ghost" id="dxAddSec">+ Agregar una sección</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="dxWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="dxPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="dxWord">⬇ Descargar para Word (editable)</button>${botonImprimir("dxPrint")}<button class="btn ghost act" id="dxPDF">⬇ Descargar PDF</button></div>
     <button class="btn link" id="dxNuevo">Empezar de nuevo (borra grupo y escuela)</button></section>
    <p class="foot">La lectura de la realidad se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -2424,7 +2453,7 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
   g("dxNuevo").onclick=()=>{if(!confirm("¿Empezar de nuevo? Se borrará la lectura de grupo y de escuela."))return;DX=null;store.del("ppie-dx");dxView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("dxWord").onclick=()=>{leer();dxWord()};
-  g("dxPDF").onclick=e=>{leer();dxPDF(e.currentTarget)};
+  g("dxPDF").onclick=e=>{leer();dxPDF(e.currentTarget)};wireImprimir("dxPrint",b=>{leer();dxPDF(b)});
   window.scrollTo(0,0)}
 function dxHeaderHTML(){const C=dxCur(),d=C.datos,def=DX_PLANTILLA[C.nivel].datos;
   return`<h1 style="text-align:center;font-size:18pt;margin:0 0 4pt">${esc(C.titulo)}</h1>
@@ -2454,7 +2483,7 @@ async function dxPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
       space(22);pg.drawText(clean(s.t),{x:M,y:y-13,size:13,font:HELVB,color:blu});y-=20;
       for(const it of its){if(it.q){space(14);par(it.q,10.5,HELVB,ink,3)}par(it.a,10.5,HELV,ink,3.5);y-=4}y-=4}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`${C.titulo} - ${(C.datos.grupo||C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`${C.titulo} - ${(C.datos.grupo||C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---------- Programa de Mejora Continua (PMC), guiado por preguntas ----------
@@ -2508,7 +2537,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
      <button type="button" class="btn ghost pmaddc" data-ai="${ai}">+ Agregar acción</button>
      <button type="button" class="btn link pmdela" data-ai="${ai}" style="padding:6px 0">Quitar este aspecto</button></section>`).join("")}
    <button class="btn ghost" id="pmAddA">+ Agregar un aspecto de atención</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="pmPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">⬇ Descargar para Word (editable)</button>${botonImprimir("pmPrint")}<button class="btn ghost act" id="pmPDF">⬇ Descargar PDF</button></div>
     <button class="btn link" id="pmNuevo">Empezar un PMC nuevo</button></section>
    <p class="foot">El PMC se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -2531,7 +2560,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   if(g("pmImport"))g("pmImport").onclick=()=>{const r=dxResumen();if(!r)return;if(PM.lectura&&PM.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();PM.lectura=r;pmSave();pmView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("pmWord").onclick=()=>{leer();pmWord()};
-  g("pmPDF").onclick=e=>{leer();pmPDF(e.currentTarget)};
+  g("pmPDF").onclick=e=>{leer();pmPDF(e.currentTarget)};wireImprimir("pmPrint",b=>{leer();pmPDF(b)});
   window.scrollTo(0,0)}
 function pmWord(){const esc2=t=>esc(t).replace(/\n/g,"<br>");
   const asp=[...PM.aspectos].map((a,i)=>({a,i})).sort((x,y)=>(parseFloat(x.a.prioridad)||99)-(parseFloat(y.a.prioridad)||99));
@@ -2576,7 +2605,7 @@ async function pmPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
           const meta=[c.responsable&&"Resp.: "+c.responsable,c.periodo&&"Periodo: "+c.periodo,c.recursos&&"Recursos: "+c.recursos,c.evidencias&&"Evidencias: "+c.evidencias].filter(Boolean).join("  ·  ");
           if(meta)par(meta,9,HELV,gray,2.5,20);y-=2})}});
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`Programa de Mejora Continua - ${(PM.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`Programa de Mejora Continua - ${(PM.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---------- Programa Analítico (NEM): tres planos, por escuela o por grupo, con banco de contenidos y PDA ----------
@@ -2660,7 +2689,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
      <div class="field"><label>Descripción del codiseño</label><textarea class="pco" data-f="descripcion" rows="3">${esc(p.descripcion)}</textarea></div>
      <button type="button" class="btn link pcoddel" data-pi="${pi}" style="padding:4px 0">Quitar proyecto</button></section>`).join("")}
    <button class="btn ghost" id="paAddCod">+ Agregar proyecto / situación de aprendizaje</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="paWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="paPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="paWord">⬇ Descargar para Word (editable)</button>${botonImprimir("paPrint")}<button class="btn ghost act" id="paPDF">⬇ Descargar PDF</button></div>
     <button class="btn link" id="paNuevo">Empezar de nuevo (borra escuela y grupo)</button></section>
    <p class="foot">El Programa Analítico se guarda solo en este dispositivo. Nada se envía a internet. Contenidos y PDA oficiales del Programa Sintético (Plan 2022), fases 3, 4 y 5. Puede editarlos si lo requiere.</p>`;
   app.querySelectorAll(".pacampo").forEach(d=>{if(paOpen.includes(d.dataset.camp))d.open=true});
@@ -2695,7 +2724,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
   g("paNuevo").onclick=()=>{if(!confirm("¿Empezar de nuevo? Se borrará el programa analítico de escuela y de grupo."))return;PA=null;store.del("ppie-pa");paView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("paWord").onclick=()=>{leer();paWord()};
-  g("paPDF").onclick=e=>{leer();paPDF(e.currentTarget)};
+  g("paPDF").onclick=e=>{leer();paPDF(e.currentTarget)};wireImprimir("paPrint",b=>{leer();paPDF(b)});
   window.scrollTo(0,0)}
 function paDocModel(){const C=paCur();const fase=C.fase;const grados=PA.nivel==="grupo"?[+C.grado]:((BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados:[]);
   const titulo=PA.nivel==="grupo"?`Programa Analítico · ${C.grado}°`:`Programa Analítico · ${BANCO?BANCO.fases[fase].nombre:"Fase "+fase}`;
@@ -2750,7 +2779,7 @@ async function paPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
       const meta=[p.metodologia&&"Metodología: "+p.metodologia,(p.campos||[]).length&&"Campos: "+p.campos.join(", "),p.periodo&&"Periodo: "+p.periodo].filter(Boolean).join("  ·  ");
       if(meta)par(meta,9.5,HELV,gray,2.5,8);if(p.descripcion)par(p.descripcion,10,HELV,ink,2.5,8)});
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`${titulo} - ${(C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`${titulo} - ${(C.datos.escuela||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---------- Planeación didáctica (NEM) ----------
@@ -2861,7 +2890,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
    <section class="card"><h3>Inclusión</h3>
     <div class="field"><label>Ajustes razonables</label><p class="help">Para alumnos que lo requieran (apoyos, tiempos, materiales, organización), sin modificar los aprendizajes esperados.</p><textarea class="pl_inc" data-k="ajustes" rows="3">${esc(PL.ajustes)}</textarea></div>
     <div class="field"><label>Adecuaciones curriculares</label><p class="help">Cuando se ajustan los contenidos u objetivos para un alumno en particular.</p><textarea class="pl_inc" data-k="adecuaciones" rows="3">${esc(PL.adecuaciones)}</textarea></div></section>
-   <section class="card"><div class="acts"><button class="btn primary act" id="plWord">⬇ Descargar para Word (editable)</button><button class="btn ghost act" id="plPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="plWord">⬇ Descargar para Word (editable)</button>${botonImprimir("plPrint")}<button class="btn ghost act" id="plPDF">⬇ Descargar PDF</button></div>
     <button class="btn link" id="plNuevo">Empezar una planeación nueva</button></section>
    <p class="foot">La planeación se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -2903,7 +2932,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
   g("plNuevo").onclick=()=>{if(!confirm("¿Empezar una planeación nueva? Se borrará la actual."))return;PL=null;store.del("ppie-plan");plView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("plWord").onclick=()=>{leer();plWord()};
-  g("plPDF").onclick=e=>{leer();plPDF(e.currentTarget)};
+  g("plPDF").onclick=e=>{leer();plPDF(e.currentTarget)};wireImprimir("plPrint",b=>{leer();plPDF(b)});
   // mark agregar contenido manual editable inline: open edit via prompt-less -> allow editing text by converting to inputs is heavy; keep simple: tapping name edits
   app.querySelectorAll(".plcont b").forEach(b=>b.onclick=()=>{const i=+b.closest(".plcont").dataset.i;const nv=prompt("Contenido:",PL.contenidos[i].c);if(nv!=null){PL.contenidos[i].c=nv;const pd=prompt("PDA:",PL.contenidos[i].pda||"");if(pd!=null)PL.contenidos[i].pda=pd;plSave();plView()}});
   window.scrollTo(0,0)}
@@ -2961,7 +2990,7 @@ async function plPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
     h2("Evaluación formativa");kv("Instrumentos",PL.evaluacion.instrumentos.join(", "));kv("Criterios",PL.evaluacion.criterios);kv("Momentos",PL.evaluacion.momentos);
     h2("Inclusión");kv("Ajustes razonables",PL.ajustes);kv("Adecuaciones curriculares",PL.adecuaciones);
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`Planeación - ${(PL.proyecto.nombre||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`Planeación - ${(PL.proyecto.nombre||"").replace(/[\\/:*?"<>|]/g,"")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 
@@ -3064,7 +3093,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
     ${firmaWidgetHTML()}
     <label class="opt ${RC.usarFirma?"on":""}" style="display:inline-flex;margin-top:4px"><input type="checkbox" id="rc_usarfirma" ${RC.usarFirma?"checked":""}>Incluir mi firma digital</label>
     ${esAut?`<p class="help">La autorización lleva un espacio para que el tutor marque «Autorizo / No autorizo» y firme.</p>`:esCit?`<p class="help">El citatorio incluye un acuse de enterado para confirmar asistencia.</p>`:`<label class="opt ${RC.acuse?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_acuse" ${RC.acuse?"checked":""}>Incluir acuse de enterado (para firmar y devolver)</label>`}</section>
-   <section class="card"><label class="opt ${RC.dosHoja?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_dos" ${RC.dosHoja?"checked":""}>Dos por hoja (media carta)</label><p class="help">Acomoda dos copias en cada hoja carta, con una línea de corte al centro. Ahorra papel en los recados generales. Aplica al PDF.</p><div class="acts"><button class="btn primary act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
+   <section class="card"><label class="opt ${RC.dosHoja?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_dos" ${RC.dosHoja?"checked":""}>Dos por hoja (media carta)</label><p class="help">Acomoda dos copias en cada hoja carta, con una línea de corte al centro. Ahorra papel en los recados generales. Aplica al PDF.</p><div class="acts">${botonImprimir("rcPrint")}<button class="btn ghost act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
    <p class="foot">La comunicación y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{const v=id=>{const e=g(id);return e?e.value:(RC[id.slice(3)]||"")};
@@ -3084,7 +3113,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
   g("rc_usarfirma").addEventListener("change",()=>{leer();g("rc_usarfirma").closest(".opt").classList.toggle("on",g("rc_usarfirma").checked)});
   wireFirma();
   g("salir").onclick=()=>{leer();goBack()};
-  g("rc_pdf").onclick=e=>{leer();rcPDF(e.currentTarget)};
+  g("rc_pdf").onclick=e=>{leer();rcPDF(e.currentTarget)};wireImprimir("rcPrint",b=>{leer();rcPDF(b)});
   g("rc_word").onclick=()=>{leer();rcWord()};
   window.scrollTo(0,0)}
 /* ---- firma digital: dibujar o subir ---- */
@@ -3193,7 +3222,7 @@ async function rcPDF(btn){const t=btn.textContent;btn.disabled=true;btn.textCont
       doc=out}
     else await rcDibujar(doc,612,792,50);
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=RC.dosHoja?rcFile("pdf").replace(/\.pdf$/," (2 por hoja).pdf"):rcFile("pdf");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=RC.dosHoja?rcFile("pdf").replace(/\.pdf$/," (2 por hoja).pdf"):rcFile("pdf");URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t}}
 /* ---- Word ---- */
@@ -3268,7 +3297,7 @@ function invView(){S.view="inventario";S.letra=null;setBar("");if(!INV)INV=invNu
    ${k!=="resguardo"&&k!=="transferencia"?`<section class="card"><div class="field"><label>Resguardante <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" data-f="resguardante" value="${esc(INV.resguardante)}" autocomplete="off"><p class="help">Nombre que aparece en la firma de «Resguardante». Si lo deja vacío, se firma a mano.</p></div></section>`:""}
    <section class="card"><h3>Bienes</h3><p class="help">Caben ${cap} bienes por hoja. Si captura más, se agregan hojas del mismo formato.</p>${itemsHTML}
     <div class="acts"><button type="button" class="btn ghost act" id="inv_add">+ Agregar bien</button></div></section>
-   <section class="card"><div class="acts"><button class="btn primary act" id="inv_pdf">⬇ Descargar formato (PDF)</button><button type="button" class="btn link" id="inv_nuevo">Empezar uno nuevo</button></div></section>
+   <section class="card"><div class="acts">${botonImprimir("invPrint")}<button class="btn ghost act" id="inv_pdf">⬇ Descargar formato (PDF)</button><button type="button" class="btn link" id="inv_nuevo">Empezar uno nuevo</button></div></section>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=INV;for(let j=0;j<p.length-1;j++)o=o[p[j]];o[p[p.length-1]]=e.value});invSave()};
   app.querySelectorAll("[data-f]").forEach(e=>e.addEventListener("change",leer));
@@ -3279,7 +3308,7 @@ function invView(){S.view="inventario";S.letra=null;setBar("");if(!INV)INV=invNu
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{leer();INV.items.splice(+b.dataset.del,1);if(!INV.items.length)INV.items.push(invItem());invSave();invView()});
   document.getElementById("inv_nuevo").onclick=()=>{if(!confirm("¿Borrar los bienes capturados y empezar un formato nuevo? Se conservan los datos de la escuela."))return;leer();INV.items=[invItem(),invItem(),invItem()];INV.resguardante="";INV.rfc="";INV.forma="";INV.r=invCentroVacio();invSave();invView()};
   document.getElementById("salir").onclick=()=>{leer();goBack()};
-  document.getElementById("inv_pdf").onclick=e=>{leer();invPDF(e.currentTarget)};
+  document.getElementById("inv_pdf").onclick=e=>{leer();invPDF(e.currentTarget)};wireImprimir("invPrint",b=>{leer();invPDF(b)});
   window.scrollTo(0,0)}
 function invMonto(v){const s=String(v||"").trim();if(!s)return"";const n=Number(s.replace(/[$,\s]/g,""));return isFinite(n)&&/\d/.test(s)?"$"+n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}):s}
 async function invPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
@@ -3314,7 +3343,7 @@ async function invPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textCo
       if(pages>1){const lt=`Hoja ${p+1} de ${pages}`;pg.drawText(lt,{x:G.page[0]-30-F.widthOfTextAtSize(lt,7.5),y:22,size:7.5,font:F,color:ink})}}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
     const quien=(INV.c.nombre||"").replace(/^Escuela Primaria\s*/i,"").replace(/[\\/:*?"<>|]/g,"").trim();
-    a.download=`${T.n.replace(/[·\/]/g,"-").replace(/\s+-\s+/g," - ")} - ${quien||fecha.replace(/\//g,"-")||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`${T.n.replace(/[·\/]/g,"-").replace(/\s+-\s+/g," - ")} - ${quien||fecha.replace(/\//g,"-")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el formato: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
 /* ---------- Consejo de Participación Escolar (CPE): convocatoria, lista, minuta, comités, plan de trabajo ---------- */
@@ -3429,7 +3458,7 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
    <section class="card"><h3>Presidente(a) del Consejo</h3><div class="row2">${cpIn("pres.nom","Nombre(s)",CP.pres.nom)}${cpIn("pres.ap1","Primer apellido",CP.pres.ap1)}</div>${cpIn("pres.ap2","Segundo apellido",CP.pres.ap2)}</section>
    <section class="card"><h3>Formato</h3><div>${docBtns}</div></section>
    ${cuerpo}
-   ${doc!=="req"?`<section class="card"><div class="acts"><button class="btn primary act" id="cp_pdf">⬇ Descargar ${esc(CP_DOCS.find(d=>d[0]===doc)[1].toLowerCase())} (PDF)</button></div></section>`:""}
+   ${doc!=="req"?`<section class="card"><div class="acts">${botonImprimir("cpPrint")}<button class="btn ghost act" id="cp_pdf">⬇ Descargar ${esc(CP_DOCS.find(d=>d[0]===doc)[1].toLowerCase())} (PDF)</button></div></section>`:""}
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=CP;for(let j=0;j<p.length-1;j++)o=o[p[j]];o[p[p.length-1]]=e.type==="checkbox"?e.checked:e.value});cpSave()};
   const rer=fn=>()=>{leer();fn();cpSave();const y=window.scrollY;cpView();window.scrollTo(0,y)};
@@ -3442,7 +3471,7 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
   app.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=rer(()=>CP.comites.splice(+b.dataset.cdel,1)));
   app.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=rer(()=>{CP.plan.filas.splice(+b.dataset.pdel,1);if(!CP.plan.filas.length)CP.plan.filas.push({meta:"",acc:"",resp:"",req:"",fecha:""})}));
   document.getElementById("salir").onclick=()=>{leer();goBack()};
-  const pdfB=document.getElementById("cp_pdf");if(pdfB)pdfB.onclick=e=>{leer();cpPDF(e.currentTarget)};
+  const pdfB=document.getElementById("cp_pdf");if(pdfB)pdfB.onclick=e=>{leer();cpPDF(e.currentTarget)};wireImprimir("cpPrint",b=>{leer();cpPDF(b)});
   window.scrollTo(0,0)}
 /* ---- PDF ---- */
 function cpParts(iso){const p=parseDate(iso);return p?[String(p.d).padStart(2,"0"),String(p.m).padStart(2,"0"),String(p.y)]:["","",""]}
@@ -3504,7 +3533,7 @@ async function cpPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textCon
         if(pages.length>1)pages.forEach((p,i)=>{const lt=`Hoja ${i+1} de ${pages.length}`;p.drawText(lt,{x:792-40-F.widthOfTextAtSize(lt,7.5),y:12,size:7.5,font:F,color:ink})})}}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
     const nom=CP_DOCS.find(d=>d[0]===k)[1];const quien=(E.nombre||"").replace(/^Escuela Primaria\s*/i,"").replace(/[\\/:*?"<>|]/g,"").trim();
-    a.download=`${nom} CPE ${CP.ciclo} - ${quien||today()}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`${nom} CPE ${CP.ciclo} - ${quien||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el formato: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
 /* ---- Minuta de instalación: plantilla oficial de 10 hojas; los párrafos con fecha/ciclo se reescriben con Carlito (métrica de Calibri) ---- */
@@ -3610,7 +3639,7 @@ function asView(){S.view="asistencia";S.letra=null;setBar("");if(!AS)AS=asNuevo(
     <div class="acts" style="margin-top:6px"><button type="button" class="btn link" id="as_todos">Todo el ciclo</button><button type="button" class="btn link" id="as_ninguno">Ninguno</button></div>
     <label class="opt ${AS.sombrear?"on":""}" style="display:inline-flex"><input type="checkbox" data-f="sombrear" ${AS.sombrear?"checked":""}>Sombrear los días sin clases (CTE, suspensiones y vacaciones)</label>
     <div class="field"><label>Renglones en blanco al final <span class="muted" style="font-weight:400">(para altas)</span></label><select data-f="extra">${[0,1,2,3,5].map(x=>`<option ${+AS.extra===x?"selected":""}>${x}</option>`).join("")}</select></div></section>
-   <section class="card"><div class="acts"><button class="btn primary act" id="as_go">⬇ Descargar lista (PDF)</button></div>${CAL?"":`<p class="help"><b>Ojo:</b> no se pudo cargar el calendario oficial; los días sin clases no se marcarán.</p>`}</section>
+   <section class="card"><div class="acts">${botonImprimir("asPrint")}<button class="btn ghost act" id="as_go">⬇ Descargar lista (PDF)</button></div>${CAL?"":`<p class="help"><b>Ojo:</b> no se pudo cargar el calendario oficial; los días sin clases no se marcarán.</p>`}</section>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{AS[e.dataset.f]=e.type==="checkbox"?e.checked:e.value});AS.meses=[...app.querySelectorAll("[data-mes]")].filter(x=>x.checked).map(x=>x.dataset.mes);asSave()};
@@ -3623,7 +3652,7 @@ function asView(){S.view="asistencia";S.letra=null;setBar("");if(!AS)AS=asNuevo(
       AS.origen=`Se leyeron ${r.alumnos.length} alumnos de «${f.name}».`;asSave();asView()}
     catch(err){m.innerHTML="<b>No se pudo leer el PDF.</b> "+esc(err.message||"")}};
   g("salir").onclick=()=>{leer();goBack()};
-  g("as_go").onclick=e=>{leer();asPDF(e.currentTarget)};
+  g("as_go").onclick=e=>{leer();asPDF(e.currentTarget)};wireImprimir("asPrint",b=>{leer();asPDF(b)});
   window.scrollTo(0,0)}
 async function asPDF(btn){const t0=btn.textContent;
   const al=AS.alumnos.split("\n").map(s=>s.trim()).filter(Boolean);
@@ -3667,7 +3696,7 @@ async function asPDF(btn){const t0=btn.textContent;
           const t="Días sin clases (sombreados): "+Object.entries(grupos).map(([k,v])=>`${v.join(", ")} (${lab[k]})`).join("; ")+".";txt(pg,t,34.7,bodyBot+14,{s:7,w:569,col:PDFLib.rgb(.25,.25,.25)})}}}}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
     const ms=AS.meses.slice().sort();const nom=ms.length===1?`${AS_MESES[+ms[0].slice(5)-1].toLowerCase()} ${ms[0].slice(0,4)}`:`${ms.length} meses`;
-    a.download=`Lista de asistencia ${AS.grado}${AS.grupo} - ${nom}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    a.download=`Lista de asistencia ${AS.grado}${AS.grupo} - ${nom}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar la lista: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
 /* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
