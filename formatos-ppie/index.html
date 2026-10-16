@@ -4296,6 +4296,8 @@ function dirAluHTML(){const gs=dirGrupos();let F=S.dirGrupo;
    <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">📷 Tomar foto de una ficha o lista<input type="file" accept="image/*" capture="environment" data-a="foto" hidden></label>
    <p class="help">Puede subir varios a la vez: listas de RELweb, su Excel del grupo, fichas de inscripción o de datos en PDF o Word, fotos y PDF escaneados. Las fotos se leen en este dispositivo; tómelas de frente, con buena luz y que se vea toda la hoja. Tlamatini reconoce los datos, junta a cada alumno por su CURP o su nombre y completa lo que falte, sin repetirlos. Después revise y complete cada ficha.</p>
    ${dirAcciones("alumnos")}
+   ${DIR.alumnos.some(dirActivo)?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="impLista">🖨 Imprimir la lista con datos</button><button type="button" class="btn ghost" data-a="impFichas">🖨 Imprimir las fichas completas</button></div>
+    <p class="help" style="margin-top:-4px">Se imprime ${F&&F!=="bajas"?"el grupo elegido abajo":"toda su base"}, sin las bajas. La lista lleva un renglón por alumno con tutores, teléfonos, emergencia y salud; las fichas, una hoja por alumno con todos sus datos.</p>`:""}
    ${DIR.alumnos.length?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="emerg">Directorio de emergencia (Word)</button><button type="button" class="btn primary dir-share" data-a="compartir">Guardar o enviar mi base (archivo)</button></div>`:""}</section>
    ${gs.length>1||nB?`<div class="chips dir-chips" role="group" aria-label="Grupos"><button type="button" class="chip ${!F?"sel":""}" data-g="">Todos (${DIR.alumnos.length-nB})</button>${gs.length>1?gs.map(g=>`<button type="button" class="chip ${F===g.k?"sel":""}" data-g="${esc(g.k)}">${esc(dirGLabel(g.grado,g.grupo))} (${g.n})</button>`).join(""):""}${nB?`<button type="button" class="chip ${F==="bajas"?"sel":""}" data-g="bajas">Bajas (${nB})</button>`:""}</div>`:""}
    ${L.length?`<div class="group-title">${L.length} alumno${L.length>1?"s":""} · ${compl} ficha${compl===1?"":"s"} completa${compl===1?"":"s"}</div>
@@ -4320,6 +4322,8 @@ function dirWire(T){const msg=t=>{const m=document.getElementById("dir_msg");if(
     S.dirGrupo=undefined;dirView("alumnos");msg(out.join("<br>"))};
   if(q("compartir"))q("compartir").onclick=()=>dirCompartirView(T);
   if(q("emerg"))q("emerg").onclick=dirEmergencia;
+  if(q("impLista"))q("impLista").onclick=e=>dirImprimirBase("lista",e.currentTarget);
+  if(q("impFichas"))q("impFichas").onclick=e=>dirImprimirBase("fichas",e.currentTarget);
   app.querySelectorAll(".dir-it").forEach(b=>b.onclick=()=>dirEditar(T,+b.dataset.i));
   app.querySelectorAll(".dir-chips .chip").forEach(b=>b.onclick=()=>{S.dirGrupo=b.dataset.g;dirView("alumnos")});
   const yo=document.getElementById("dir_yo");if(yo)yo.onchange=()=>{const m=DIR.maestros.find(x=>x.id===yo.value);if(m)dirSoyYo(m);else{DIR.yo=null;dirSave()}dirView("maestros")}}
@@ -4549,6 +4553,59 @@ async function dirCompilar(file){const nm=file.name,ext=(nm.match(/\.([a-z0-9]+)
     throw new Error("no encontré datos de alumnos.")}
   throw new Error("formato no reconocido. Use PDF, foto, Excel (.xlsx o .csv) o Word (.docx).")}
 function dirOcrMsg(t){const m=document.getElementById("dir_msg");if(m)m.innerHTML=t}
+
+/* --- imprimir la base de alumnos (lista horizontal o fichas por alumno) --- */
+async function dirImprimirBase(modo,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();const F=S.dirGrupo&&S.dirGrupo!=="bajas"?S.dirGrupo:"";
+    const L=DIR.alumnos.filter(a=>dirActivo(a)&&(!F||((a.grado||"?")+"|"+(a.grupo||""))===F)).sort(dirOrden);if(!L.length)throw new Error("No hay alumnos para imprimir.");
+    const doc=await PDFLib.PDFDocument.create();const R=await doc.embedFont(PDFLib.StandardFonts.Helvetica),B=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const inst=await embedInst(doc),logo=await embedLogo(doc);const ink=PDFLib.rgb(.12,.16,.25),gris=PDFLib.rgb(.42,.42,.42),linea=PDFLib.rgb(.72,.72,.72),fondo=PDFLib.rgb(.93,.95,.98),azul=PDFLib.rgb(.14,.26,.48);
+    const t=x=>clean(String(x??"")).replace(/\n+/g," · ");
+    const wrap=(txt,w,sz,f=R)=>{const out=[];for(const par of clean(String(txt??"")).split("\n")){let cur="";for(const wd of par.split(/\s+/).filter(Boolean)){const c=cur?cur+" "+wd:wd;if(f.widthOfTextAtSize(c,sz)<=w)cur=c;else{if(cur)out.push(cur);cur=wd;while(f.widthOfTextAtSize(cur,sz)>w&&cur.length>1){let k=cur.length;while(k>1&&f.widthOfTextAtSize(cur.slice(0,k),sz)>w)k--;out.push(cur.slice(0,k));cur=cur.slice(k)}}}if(cur)out.push(cur)}return out};
+    const hoy=new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+    const enc=(pg,W,H,sub)=>{let x=30;const top=H-28;if(inst){const s=Math.min(46/inst.height,90/inst.width);pg.drawImage(inst,{x,y:top-inst.height*s,width:inst.width*s,height:inst.height*s})}
+      if(logo){const s=Math.min(46/logo.height,90/logo.width);pg.drawImage(logo,{x:W-30-logo.width*s,y:top-logo.height*s,width:logo.width*s,height:logo.height*s})}
+      const c=(txt,y,sz,f)=>{const tx=t(txt);pg.drawText(tx,{x:(W-f.widthOfTextAtSize(tx,sz))/2,y,size:sz,font:f,color:ink})};
+      c(perfil.escuela||"Escuela",top-10,11,B);c([perfil.cct?"C.C.T. "+perfil.cct:"",perfil.zona?"Zona Escolar "+perfil.zona:"",perfil.turno?"Turno "+perfil.turno:""].filter(Boolean).join(" · "),top-23,8.5,R);c(sub,top-38,10.5,B);
+      pg.drawLine({start:{x:30,y:top-50},end:{x:W-30,y:top-50},thickness:.8,color:azul});return top-62};
+    const pie=(pg,W,n,tot)=>{const tx=t(`Datos personales de menores: uso exclusivo del personal de la escuela. Resguárdese y no se comparta. · Impreso el ${hoy} · Tlamatini · Hoja ${n} de ${tot}`);pg.drawText(tx,{x:(W-R.widthOfTextAtSize(tx,6.5))/2,y:18,size:6.5,font:R,color:gris})};
+    const grupos=[...new Set(L.map(a=>(a.grado||"?")+"|"+(a.grupo||"")))];
+    if(modo==="lista"){const W=792,H=612;const cols=[["#",18],["Nombre del alumno",150],["CURP",108],["Nacimiento",54],["Sexo",36],["Madre, padre o tutor · teléfono",150],["Emergencia · teléfono",118],["Recogen / se va solo",98]];
+      const cel=a=>[null,a.nombre,a.curp,a.fnac,a.sexo?a.sexo.charAt(0):"",[[a.t1nom,a.t1tel].filter(Boolean).join(" · "),[a.t2nom,a.t2tel].filter(Boolean).join(" · ")].filter(Boolean).join("\n"),
+        [a.e1nom,a.e1tel].filter(Boolean).join(" · "),a.vaSolo?"Se retira solo":String(a.recogen||"").split("\n").filter(s=>s.trim()).join("; ")];
+      for(const gk of grupos){const LG=L.filter(a=>(a.grado||"?")+"|"+(a.grupo||"")===gk);const[gr,gp]=gk.split("|");
+        const docente=(DIR.maestros.find(m=>m.grado===gr&&(m.grupo||"")===gp)||{}).nombre||(perfil.grado&&dirGrado(perfil.grado)===gr?perfil.minombre:"")||"";
+        const sub=`Base de datos de alumnos · ${dirGLabel(gr,gp)}${docente?" · "+docente:""}`;
+        let pg=doc.addPage([W,H]),y=enc(pg,W,H,sub);
+        const head=()=>{let x=30;pg.drawRectangle({x:30,y:y-14,width:W-60,height:14,color:azul});cols.forEach(([h,w])=>{pg.drawText(t(h),{x:x+3,y:y-10,size:7.2,font:B,color:PDFLib.rgb(1,1,1)});x+=w});y-=14};head();
+        LG.forEach((a,i)=>{const v=cel(a);const ls=cols.map(([h,w],k)=>k===0?[String(i+1)]:wrap(v[k]||"",w-6,7.4));const sal=[a.alergias?"Alergias: "+a.alergias:"",a.padec?"Padece: "+a.padec:"",a.medic?"Medicamento: "+a.medic:"",a.sangre&&a.sangre!=="No sabe"?"Sangre "+a.sangre:"",a.usaer?"USAER":"",a.bap?"BAP: "+a.bap:""].filter(Boolean).join(" · ");
+          const sl=sal?wrap(sal,W-60-24,6.8):[];const h=Math.max(...ls.map(l=>l.length))*9+5+(sl.length?sl.length*8+2:0);
+          if(y-h<34){pg=doc.addPage([W,H]);y=enc(pg,W,H,sub+" (continuación)");head()}
+          if(i%2)pg.drawRectangle({x:30,y:y-h,width:W-60,height:h,color:fondo});let x=30;
+          ls.forEach((l,k)=>{l.forEach((tx,j)=>pg.drawText(tx,{x:x+3,y:y-9-j*9,size:7.4,font:k===1?B:R,color:ink}));x+=cols[k][1]});
+          sl.forEach((tx,j)=>pg.drawText(tx,{x:30+21,y:y-h+4+(sl.length-1-j)*8,size:6.8,font:R,color:PDFLib.rgb(.6,.15,.1)}));
+          pg.drawLine({start:{x:30,y:y-h},end:{x:W-30,y:y-h},thickness:.4,color:linea});y-=h});
+        const res=`${LG.length} alumnos · ${LG.filter(a=>a.sexo==="Hombre").length} hombres · ${LG.filter(a=>a.sexo==="Mujer").length} mujeres`;if(y>44)pg.drawText(t(res),{x:30,y:y-12,size:7.5,font:B,color:ink})}}
+    else{const W=612,H=792;const secs=[];let cur=null;DF_ALU.forEach(f=>{if(f.sec){cur={t:f.sec,f:[]};secs.push(cur)}else if(cur&&!["baja","bajaMotivo"].includes(f.k))cur.f.push(f)});
+      L.forEach(a=>{let pg=doc.addPage([W,H]);const sub="Ficha del alumno · "+dirGLabel(a.grado,a.grupo);let y=enc(pg,W,H,sub);
+        pg.drawText(t(a.nombre),{x:30,y:y-6,size:14,font:B,color:ink});y-=24;
+        for(const sc of secs){const items=sc.f.map(f=>{let v=a[f.k];if(f.t==="check")v=v?"Sí":"No";return[f.l,String(v??"").trim()]});if(sc.t==="Datos del alumno")items.splice(0,1);
+          if(sc.t==="Altas y bajas"&&!a.alta)continue;if(y<110){pg=doc.addPage([W,H]);y=enc(pg,W,H,sub+" (continuación)");pg.drawText(t(a.nombre),{x:30,y:y-6,size:11,font:B,color:ink});y-=20}
+          pg.drawRectangle({x:30,y:y-14,width:W-60,height:14,color:fondo});pg.drawText(t(sc.t),{x:35,y:y-10,size:8.6,font:B,color:azul});y-=18;
+          let col=0,rowH=0;for(const[l,v]of items){const half=items.length>2&&(l.length<34)&&(v.length<40)&&!/autorizad|barreras|observ|domicilio/i.test(l);const w=half?(W-70)/2:W-60;
+            if(!half&&col){y-=rowH;col=0;rowH=0}const x=30+(half&&col?(W-60)/2+10:0);const lv=wrap(v||"—",w-4,8.6);
+            pg.drawText(t(l),{x,y:y-7,size:6.5,font:R,color:gris});lv.slice(0,6).forEach((tx,j)=>pg.drawText(tx,{x,y:y-17-j*9.6,size:8.6,font:R,color:v?ink:linea}));
+            const hh=12+Math.min(lv.length,6)*9.6;pg.drawLine({start:{x,y:y-hh+2},end:{x:x+w,y:y-hh+2},thickness:.4,color:linea});
+            if(half&&!col){col=1;rowH=hh}else{y-=Math.max(hh,rowH);col=0;rowH=0}}
+          if(col){y-=rowH}y-=6}
+        if(y<72){pg=doc.addPage([W,H]);y=enc(pg,W,H,sub+" (continuación)")}
+        pg.drawText(t("Nombre y firma de la madre, padre o tutor"),{x:W-230,y:44,size:7,font:R,color:gris});pg.drawLine({start:{x:W-240,y:56},end:{x:W-30,y:56},thickness:.6,color:ink})})}
+    const ps=doc.getPages();ps.forEach((pg,i)=>pie(pg,pg.getWidth(),i+1,ps.length));
+    doc.setTitle(modo==="lista"?"Base de datos de alumnos":"Fichas de alumnos");doc.setProducer("Tlamatini · Zona 050");
+    const blob=new Blob([await doc.save()],{type:"application/pdf"});const gtxt=F?dirGLabel(...F.split("|")).replace(/[«»°]/g,""):"todos";
+    PMODE="print";await entregarPDF(blob,`${modo==="lista"?"Lista de alumnos":"Fichas de alumnos"} ${gtxt} - ${today()}.pdf`,modo==="lista"?" en orientación <b>horizontal</b>":"")}
+  catch(e){pToast(`<b>No se pudo preparar la impresión.</b> ${esc(e.message||e)}`)}
+  finally{btn.disabled=false;btn.innerHTML=label}}
 /* --- directorio de emergencia (Word) --- */
 function dirEmergencia(){const F=S.dirGrupo||"";const L=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F).sort(dirOrden);if(!L.length)return;
   const td='style="border:1px solid #999;padding:4px 6px;vertical-align:top"',th='style="background:#24427A;color:#fff;border:1px solid #999;padding:5px 6px;text-align:left"';
