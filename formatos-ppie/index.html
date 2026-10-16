@@ -4284,8 +4284,9 @@ function dirAluHTML(){const gs=dirGrupos();let F=S.dirGrupo;
    <p class="help">Para cada <b>docente</b>: suba la lista de su grupo (el PDF de RELweb o la plantilla de Excel) y complete la ficha de cada alumno: tutores, contactos de emergencia, quién puede recogerlo, salud y apoyos.</p>
    <div class="row2" style="gap:8px;grid-template-columns:1fr 1fr"><div class="field"><label for="dir_gr">Grado de la lista</label><input type="text" id="dir_gr" value="${esc(pg)}" placeholder="Ej. 3"></div><div class="field"><label for="dir_gp">Grupo</label><input type="text" id="dir_gp" value="${esc(pp)}" placeholder="Ej. A"></div></div>
    <p class="help" style="margin-top:-4px">Se usan si el archivo no trae el grado y el grupo.</p>
-   <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">Subir archivos de mis alumnos (PDF, Excel o Word)<input type="file" accept="application/pdf,.pdf,.xlsx,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-a="todo" multiple hidden></label>
-   <p class="help">Puede subir varios a la vez: listas de RELweb, su Excel del grupo, fichas de inscripción o de datos en PDF o Word. Tlamatini reconoce los datos, junta a cada alumno por su CURP o su nombre y completa lo que falte, sin repetirlos. Después revise y complete cada ficha.</p>
+   <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">Subir archivos de mis alumnos (PDF, fotos, Excel o Word)<input type="file" accept="image/*,application/pdf,.pdf,.xlsx,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-a="todo" multiple hidden></label>
+   <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">📷 Tomar foto de una ficha o lista<input type="file" accept="image/*" capture="environment" data-a="foto" hidden></label>
+   <p class="help">Puede subir varios a la vez: listas de RELweb, su Excel del grupo, fichas de inscripción o de datos en PDF o Word, fotos y PDF escaneados. Las fotos se leen en este dispositivo; tómelas de frente, con buena luz y que se vea toda la hoja. Tlamatini reconoce los datos, junta a cada alumno por su CURP o su nombre y completa lo que falte, sin repetirlos. Después revise y complete cada ficha.</p>
    ${dirAcciones("alumnos")}
    ${DIR.alumnos.length?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="emerg">Directorio de emergencia (Word)</button><button type="button" class="btn primary dir-share" data-a="compartir">Enviar a la dirección</button></div>`:""}</section>
    ${gs.length>1?`<div class="chips dir-chips" role="group" aria-label="Grupos"><button type="button" class="chip ${!F?"sel":""}" data-g="">Todos (${DIR.alumnos.length})</button>${gs.map(g=>`<button type="button" class="chip ${F===g.k?"sel":""}" data-g="${esc(g.k)}">${esc(dirGLabel(g.grado,g.grupo))} (${g.n})</button>`).join("")}</div>`:""}
@@ -4304,6 +4305,8 @@ function dirWire(T){const msg=t=>{const m=document.getElementById("dir_msg");if(
   if(q("pdf"))q("pdf").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;msg("Leyendo la lista…");
     const out=[];for(const f of fs){try{out.push(await dirLeerPDF(f))}catch(x){out.push(`«${esc(f.name)}»: no se pudo leer.`)}}
     S.dirGrupo=undefined;dirView("alumnos");msg(out.join("<br>"))};
+  if(q("foto"))q("foto").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;msg("Preparando la lectura de la foto… (la primera vez tarda un poco más)");
+    let r;try{r=await dirCompilar(f)}catch(x){r=`Foto: ${esc(x.message||"no se pudo leer.")}`}S.dirGrupo=undefined;dirView("alumnos");msg(r)};
   if(q("todo"))q("todo").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;msg("Leyendo los archivos…");
     const out=[];for(const f of fs){try{out.push(await dirCompilar(f))}catch(x){out.push(`«${esc(f.name)}»: ${esc(x.message||"no se pudo leer.")}`)}}
     S.dirGrupo=undefined;dirView("alumnos");msg(out.join("<br>"))};
@@ -4433,7 +4436,26 @@ async function dirLeerPDF(file){const g0=document.getElementById("dir_gr"),p0=do
   return`«${esc(file.name)}» (${fuente}): ${dirGLabel(gr||"?",gp)}, ${lista.length} alumnos · ${r.nuevos} nuevos, ${r.act} ya estaban.${!gr?" <b>Escriba el grado y el grupo</b> arriba y vuelva a subirlo.":""}`}
 
 
-/* --- compilar cualquier archivo de alumnos (PDF, Excel, CSV, Word) en la base --- */
+
+/* --- lectura de fotos y PDF escaneados (OCR en el dispositivo, sin internet externo) --- */
+let OCR_W=null;
+async function ocrWorker(prog){if(OCR_W)return OCR_W;await loadScript("lib/ocr/tesseract.min.js");const base=new URL("lib/ocr/",location.href).href;
+  OCR_W=await Tesseract.createWorker("spa",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base+"lang",gzip:true,workerBlobURL:false,
+    logger:m=>{if(prog&&m.status==="recognizing text")prog(Math.round(m.progress*100))}});return OCR_W}
+async function ocrImagen(fuente,prog){const w=await ocrWorker(prog);const{data}=await w.recognize(fuente);return data.text||""}
+async function ocrPDF(file,prog){const L=await pdfjs();const pdf=await L.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  for(let i=1;i<=Math.min(pdf.numPages,15);i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:2.2});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;out.push(await ocrImagen(c,p=>prog&&prog(`página ${i} de ${pdf.numPages}: ${p} %`)))}
+  return out.join("\n")}
+/* corrige confusiones típicas de la lectura de CURP (O/0, I/1, S/5, B/8, Z/2) según la posición */
+function ocrCurps(t){const A={"0":"O","1":"I","5":"S","8":"B","2":"Z","6":"G"},N={O:"0",Q:"0",D:"0",I:"1",L:"1",S:"5",B:"8",Z:"2",G:"6",T:"7"};
+  return t.toUpperCase().replace(/[A-Z0-9]{4}\s?[A-Z0-9]{6}\s?[A-Z0-9]{6}\s?[A-Z0-9]{2}/g,tok=>{const c=tok.replace(/\s/g,"");if(c.length!==18)return tok;
+    const ch=[...c].map((x,i)=>{const dig=(i>=4&&i<=9)||i===17;const let_=i<4||(i>=10&&i<=15);if(dig)return N[x]||x;if(let_)return A[x]||x;return x});
+    if(ch[10]!=="H"&&ch[10]!=="M"&&ch[10]!=="X")return tok;const r=ch.join("");return AL_CURP_RE.test(r)?r:tok})}
+function ocrTextoAlumnos(txt){/* conserva minúsculas del texto; solo sustituye las CURP corregidas */
+  const fixed=ocrCurps(txt);const cur=fixed.match(new RegExp(AL_CURP_RE.source,"g"))||[];let out=txt;const raw=txt.toUpperCase().match(/[A-Z0-9]{4}\s?[A-Z0-9]{6}\s?[A-Z0-9]{6}\s?[A-Z0-9]{2}/g)||[];
+  raw.forEach(r=>{const f=ocrCurps(r);if(AL_CURP_RE.test(f))out=out.replace(new RegExp(r.replace(/\s/g,"\\s?"),"i"),f)});return out}
+/* --- compilar cualquier archivo de alumnos (PDF, Excel, CSV, Word, fotos) en la base --- */
 const FICHA_ALIAS={nombre:["nombre del alumno","nombre de la alumna","nombre del educando","nombre completo del alumno","alumno a","alumno","alumna","educando","nombre completo"],
   curp:["curp del alumno","curp"],fnac:["fecha de nacimiento","f de nacimiento","nacimiento"],sexo:["sexo","genero"],grado:["grado"],grupo:["grupo"],
   domicilio:["domicilio del alumno","domicilio particular","domicilio","direccion"],
@@ -4483,9 +4505,21 @@ function dirDeFilas(filas){let hi=-1,map=null;for(let i=0;i<Math.min(filas.lengt
   return{lista:out,cols:Object.values(map).map(k=>C.find(f=>f.k===k).l)}}
 async function dirCompilar(file){const nm=file.name,ext=(nm.match(/\.([a-z0-9]+)$/i)||[])[1]?.toLowerCase()||"";
   const g0=document.getElementById("dir_gr"),p0=document.getElementById("dir_gp");const gr0=dirGrado(g0?g0.value:""),gp0=dirGrupo(p0?p0.value:"");
-  const fin=(lista,fuente)=>{lista.forEach(a=>{if(!a.grado)a.grado=gr0;if(!a.grupo)a.grupo=gp0;if(a.grado)a.grado=dirGrado(a.grado);if(a.grupo)a.grupo=dirGrupo(a.grupo);dirAlumnoCurp(a)});
+  const fin=(lista,fuente)=>{lista.forEach(a=>{const ya=DIR.alumnos.find(x=>(a.curp&&x.curp===a.curp)||(!a.curp&&dirN(x.nombre)===dirN(a.nombre)));
+      if(ya){if(ya.nombre&&a.nombre&&!a._ficha)delete a.nombre;if(ya.grado&&!a.grado)a.grado=ya.grado;if(ya.grupo&&!a.grupo)a.grupo=ya.grupo}delete a._ficha;
+      if(!a.grado)a.grado=gr0;if(!a.grupo)a.grupo=gp0;if(a.grado)a.grado=dirGrado(a.grado);if(a.grupo)a.grupo=dirGrupo(a.grupo);dirAlumnoCurp(a)});
     const r=dirFusionar("alumnos",lista);return`«${esc(nm)}» (${fuente}): ${lista.length===1?esc(lista[0].nombre||"1 alumno"):lista.length+" alumnos"} · ${r.nuevos} nuevo${r.nuevos===1?"":"s"}, ${r.act} actualizado${r.act===1?"":"s"}.`};
   if(ext==="xlsx"||ext==="csv"){return`«${esc(nm)}» (Excel): `+await dirLeerTabla(file,"alumnos")}
+  const deTextoOCR=(txt,fuente)=>{const t=ocrTextoAlumnos(txt);const curps=[...new Set(t.toUpperCase().match(new RegExp(AL_CURP_RE.source,"g"))||[])];
+    if(curps.length>1){const l=alParse(t).map(a=>({nombre:a.nombre,curp:a.curp}));let sin=0;
+      t.split("\n").forEach(ln=>{const m=ln.match(/^\s*\d{1,3}[\s.)-]+([A-Za-z0-9]{15,22})\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ \*\/.'-]{4,})$/);
+        if(m&&!AL_CURP_RE.test(ocrCurps(m[1]))){const nom=alLimpiaNombre(m[2]);if(!l.some(x=>dirN(x.nombre)===dirN(nom))){l.push({nombre:nom});sin++}}});
+      if(l.length)return fin(l,fuente+", lista")+(sin?` <b>${sin} sin CURP legible:</b> captúrela en su ficha.`:"")+" <b>Revise los nombres:</b> la lectura de fotos puede tener errores."}
+    const o=fichaDeTexto(t);o._ficha=1;if(o.nombre||o.curp)return fin([o],fuente+", ficha")+" <b>Revise la ficha:</b> la lectura de fotos puede tener errores.";
+    throw new Error("no pude leer datos de alumnos en la imagen. Tome la foto de frente, con buena luz y sin sombras, o capture los datos a mano.")};
+  if(/^image\//i.test(file.type)||/^(jpe?g|png|webp|bmp|gif|heic|heif)$/.test(ext)){
+    if(/heic|heif/.test(ext)||/heic|heif/i.test(file.type))throw new Error("las fotos HEIC del iPhone no se pueden leer aquí; tome la foto desde Tlamatini con el botón «Tomar foto» o compártala como JPG.");
+    const txt=await ocrImagen(file,p=>dirOcrMsg(`Leyendo «${esc(nm)}»: ${p} %`));return deTextoOCR(txt,"foto")}
   if(ext==="docx"){const d=await docxLeer(file);for(const t of d.tablas){const r=dirDeFilas(t);if(r&&r.lista.length>1)return fin(r.lista,"tabla de Word")}
     const curps=[...new Set((d.texto.toUpperCase().match(new RegExp(AL_CURP_RE.source,"g"))||[]))];
     if(curps.length>1){const l=alParse(d.texto).map(a=>({nombre:a.nombre,curp:a.curp}));if(l.length)return fin(l,"lista en Word")}
@@ -4497,9 +4531,10 @@ async function dirCompilar(file){const nm=file.name,ext=(nm.match(/\.([a-z0-9]+)
     const txt=await alExtraer(file);const curps=[...new Set((txt.toUpperCase().match(new RegExp(AL_CURP_RE.source,"g"))||[]))];
     if(curps.length>1||/reporte de inscripci|lista de asistencia|relweb|clave ct/i.test(txt)){const r=await dirLeerPDF(file);return r}
     const o=fichaDeTexto(txt);if(o.nombre||o.curp)return fin([o],"ficha PDF");
-    if(!txt.trim())throw new Error("el PDF es una imagen escaneada; súbalo como PDF con texto o capture los datos a mano.");
+    if(txt.replace(/\s/g,"").length<40){const t2=await ocrPDF(file,p=>dirOcrMsg(`Leyendo el PDF escaneado «${esc(nm)}», ${p}`));return deTextoOCR(t2,"PDF escaneado")}
     throw new Error("no encontré datos de alumnos.")}
-  throw new Error("formato no reconocido. Use PDF, Excel (.xlsx o .csv) o Word (.docx).")}
+  throw new Error("formato no reconocido. Use PDF, foto, Excel (.xlsx o .csv) o Word (.docx).")}
+function dirOcrMsg(t){const m=document.getElementById("dir_msg");if(m)m.innerHTML=t}
 /* --- directorio de emergencia (Word) --- */
 function dirEmergencia(){const F=S.dirGrupo||"";const L=DIR.alumnos.filter(a=>!F||((a.grado||"?")+"|"+(a.grupo||""))===F).sort(dirOrden);if(!L.length)return;
   const td='style="border:1px solid #999;padding:4px 6px;vertical-align:top"',th='style="background:#24427A;color:#fff;border:1px solid #999;padding:5px 6px;text-align:left"';
