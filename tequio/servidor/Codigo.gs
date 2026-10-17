@@ -14,6 +14,7 @@
  *  · Permite crear carpetas y subir archivos a ese Drive desde la página.
  *  · Da acceso de consulta a los directores: su escuela, la agenda y el avance general de la zona.
  *  · Genera oficios numerados de la Supervisión, con redacción asistida por IA (Gemini) y envío por correo.
+ *  · Concentra los resultados del SisAT (3 momentos) por grupo, grado, escuela y zona, y lee las gráficas con IA.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -39,17 +40,20 @@ const HOJAS = {
   cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
   evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
   ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
-        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre']
+        'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre'],
+  sis: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'lec', 'tex', 'cal', 'tip', 'fuente', 'cargadoPor', 'actualizado'],
+  sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
-  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios' };
-const VERSION = 6;
+  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
+  sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones' };
+const VERSION = 7;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -135,9 +139,9 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'subirArchivo'];
+const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio'];
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -155,9 +159,116 @@ const ACCIONES = {
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
     ofi: leer_('ofi').sort((a, b) => String(b.id).localeCompare(String(a.id))),
     ofiCfg: cfgOficios_(),
+    sis: leer_('sis'),
+    sic: leer_('sic'),
+    sisCfg: { ia: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') },
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
+
+  /* ---- SisAT (Sistema de Alerta Temprana): resultados por grupo y observaciones ---- */
+
+  // Guarda los grupos de UNA escuela en UN momento; reemplaza lo que hubiera de esa escuela y momento.
+  sisatGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo), m = momentoValido_(d.momento), cct = String(d.cct || '');
+    if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+    const vistos = {};
+    const nuevos = (d.grupos || []).map(g => {
+      const grado = String(g.grado || '').replace(/\D/g, '').slice(0, 1), grupo = String(g.grupo || '').trim().toUpperCase().slice(0, 12);
+      if (!/^[1-6]$/.test(grado)) throw new Error('Grado no válido en uno de los grupos: «' + (g.grado || '') + '».');
+      const k = grado + '-' + (grupo || 'U');
+      if (vistos[k]) throw new Error('El grupo ' + grado + '° ' + grupo + ' aparece dos veces.');
+      vistos[k] = 1;
+      return { id: [ciclo, m, cct, k].join('|'), ciclo: ciclo, momento: String(m), cct: cct, grado: grado, grupo: grupo,
+        lec: niveles_(g.lec), tex: niveles_(g.tex), cal: niveles_(g.cal), tip: tipos_(g.tip),
+        fuente: String(d.fuente || g.fuente || '').slice(0, 200), cargadoPor: yo.id, actualizado: ahora_() };
+    });
+    if (!nuevos.length) throw new Error('No hay grupos que guardar.');
+    const resto = leer_('sis').filter(x => !(x.ciclo === ciclo && String(x.momento) === String(m) && x.cct === cct));
+    reemplazarTodo_('sis', resto.concat(nuevos));
+    bitacora_('sisat', cct, [], 'SisAT ' + ciclo + ' · Momento ' + m, nuevos.length + ' grupos guardados por ' + yo.nombre);
+    return { sis: leer_('sis') };
+  },
+
+  sisatEliminar: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo), m = String(momentoValido_(d.momento)), cct = String(d.cct || '');
+    reemplazarTodo_('sis', leer_('sis').filter(x => !(x.ciclo === ciclo && String(x.momento) === m && x.cct === cct)));
+    return { sis: leer_('sis') };
+  },
+
+  // Lista los PDF o imágenes de la carpeta «SISAT / Momento N» de la escuela en el Drive de evidencias
+  sisatArchivos: (yo, d) => {
+    soloMesa_(yo);
+    const m = momentoValido_(d.momento), c = carpetaSisat_(String(d.cct || ''), m, false);
+    if (!c.carpeta) return { archivos: [], ruta: c.ruta, mensaje: c.mensaje };
+    const lista = [], it = c.carpeta.getFiles();
+    while (it.hasNext()) {
+      const a = it.next(), t = a.getMimeType();
+      if (!/pdf|image\//.test(t)) continue;
+      if (c.filtrar && !c.filtrar.test(a.getName())) continue;
+      lista.push({ id: a.getId(), nombre: a.getName(), tipo: t, kb: Math.round(a.getSize() / 1024), fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm") });
+    }
+    lista.sort((x, y) => y.fecha.localeCompare(x.fecha));
+    return { archivos: lista, ruta: c.ruta };
+  },
+
+  // Lee con IA las gráficas del SisAT (un archivo del Drive o uno que se sube) y devuelve los números para revisarlos.
+  // No guarda resultados: la Supervisión los revisa y luego pulsa «Guardar».
+  sisatLeer: (yo, d) => {
+    soloMesa_(yo);
+    const m = momentoValido_(d.momento), cct = String(d.cct || '');
+    let datos, tipo, nombre, archivoId = '';
+    if (d.fileId) {
+      const a = DriveApp.getFileById(String(d.fileId));
+      if (a.getSize() > MAX_MB * 1024 * 1024) throw new Error('El archivo pesa más de ' + MAX_MB + ' MB.');
+      datos = Utilities.base64Encode(a.getBlob().getBytes()); tipo = a.getMimeType(); nombre = a.getName(); archivoId = a.getId();
+    } else {
+      datos = String(d.datos || ''); tipo = d.tipo || 'application/pdf';
+      nombre = String(d.nombre || 'SisAT.pdf').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160);
+      if (!datos) throw new Error('El archivo llegó vacío.');
+      if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('El archivo pesa más de ' + MAX_MB + ' MB.');
+      if (d.guardarEnDrive !== false && cct) {  // se guarda en la carpeta SISAT/Momento N de la escuela
+        const c = carpetaSisat_(cct, m, true);
+        if (c.carpeta) {
+          const f = c.carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), tipo, nombre));
+          f.setDescription(SUBIDO_POR + yo.nombre); archivoId = f.getId();
+        }
+      }
+    }
+    if (!/pdf|image\//.test(tipo)) throw new Error('Suba el PDF o las imágenes de las gráficas del SisAT.');
+    const texto = gemini_(PROMPT_SISAT_(m), { archivo: datos, tipo: tipo, json: true, temperatura: 0, max: 16384 });
+    let j;
+    try { j = JSON.parse(texto.replace(/^```(json)?|```$/g, '').trim()); } catch (e) { throw new Error('La IA no devolvió datos legibles. Intente de nuevo o capture a mano.'); }
+    const limpio = g => ({ etiqueta: String(g.grupo || g.etiqueta || ''), lec: niveles_(g.lec, true), tex: niveles_(g.tex, true), cal: niveles_(g.cal, true), tip: tipos_(g.tip, true) });
+    return { leido: { grupos: (j.grupos || []).map(limpio), escuela: j.escuela ? limpio(j.escuela) : null,
+      exploracion: j.exploracionUsada || m, notas: String(j.notas || '').slice(0, 600) }, archivo: { id: archivoId, nombre: nombre } };
+  },
+
+  // Observaciones y acciones de mejora por nivel: zona, grado de la zona, escuela, grado de la escuela o grupo
+  sisatComentar: (yo, d) => {
+    const ciclo = cicloValido_(d.ciclo), m = String(d.momento) === 't' ? 't' : String(momentoValido_(d.momento));
+    const nivel = String(d.nivel || ''), ref = String(d.ref || '');
+    if (['zona', 'zgrado', 'escuela', 'grado', 'grupo'].indexOf(nivel) < 0) throw new Error('Nivel no válido.');
+    if (yo.rol === 'director') {
+      const cct = cctDe_(yo);
+      if (['escuela', 'grado', 'grupo'].indexOf(nivel) < 0 || ref.split('|')[0] !== cct) throw new Error('Solo puede comentar los resultados de su escuela.');
+    }
+    const previa = d.id ? buscar_('sic', d.id) : null;
+    if (previa && previa.autor !== yo.id && yo.rol !== 'admin') throw new Error('Solo puede cambiar sus propias observaciones.');
+    if (d.borrar) {
+      if (!previa) return { sic: comentariosPara_(yo) };
+      reemplazarTodo_('sic', leer_('sic').filter(x => x.id !== previa.id));
+      return { sic: comentariosPara_(yo) };
+    }
+    const texto = String(d.texto || '').trim().slice(0, 4000);
+    if (!texto) throw new Error('Escriba la observación.');
+    guardar_('sic', { id: previa ? previa.id : 'sic-' + Utilities.getUuid().slice(0, 8), ciclo: ciclo, momento: m, nivel: nivel, ref: ref,
+      tipo: d.tipo === 'accion' ? 'accion' : 'observacion', texto: texto, autor: previa ? previa.autor : yo.id, autorNombre: previa ? previa.autorNombre : yo.nombre,
+      creado: previa ? previa.creado : ahora_(), actualizado: ahora_() });
+    return { sic: comentariosPara_(yo) };
+  },
 
   /* ---- Checklist de acuerdos de reuniones ---- */
 
@@ -651,7 +762,7 @@ function gemini_(prompt, op) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ role: 'user', parts: (op.archivo ? [{ inline_data: { mime_type: op.tipo || 'application/pdf', data: op.archivo } }] : []).concat([{ text: prompt }]) }],
-        generationConfig: Object.assign({ temperature: 0.4, maxOutputTokens: 8192 }, op.json ? { responseMimeType: 'application/json' } : {}) })
+        generationConfig: Object.assign({ temperature: op.temperatura == null ? 0.4 : op.temperatura, maxOutputTokens: op.max || 8192 }, op.json ? { responseMimeType: 'application/json' } : {}) })
     });
     const c = r.getResponseCode();
     if (c === 404 && intento === 0) { PropertiesService.getScriptProperties().deleteProperty('GEMINI_MODELO'); continue; }
@@ -729,8 +840,70 @@ function datosDirector_(yo) {
     cum: leer_('cum').map(m => m.cct === cct ? m : { id: m.id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado }),
     evi: leer_('evi').filter(e => e.cct === cct),
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
+    // SisAT: su escuela completa; de las demás solo los números por grado, sin decir de qué escuela son (para el promedio de la zona)
+    sis: leer_('sis').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, momento: x.momento, cct: '', grado: x.grado, grupo: '', lec: x.lec, tex: x.tex, cal: x.cal, tip: x.tip }),
+    sic: comentariosPara_(yo),
     version: VERSION
   };
+}
+
+/* ===================== SisAT ===================== */
+
+function cicloValido_(c) {
+  c = String(c || '');
+  if (!/^20\d\d-20\d\d$/.test(c)) throw new Error('Ciclo escolar no válido.');
+  return c;
+}
+function momentoValido_(m) {
+  m = +m;
+  if ([1, 2, 3].indexOf(m) < 0) throw new Error('El momento debe ser 1, 2 o 3.');
+  return m;
+}
+const numero_ = (v, nulo) => { if (v === null || v === undefined || v === '') return nulo ? null : 0; const n = Math.round(+v); return isFinite(n) && n >= 0 ? Math.min(n, 99999) : (nulo ? null : 0); };
+function niveles_(o, nulo) { o = o || {}; return { ne: numero_(o.ne, nulo), ed: numero_(o.ed, nulo), ra: numero_(o.ra, nulo) }; }
+function tipos_(o, nulo) { o = o || {}; return { sa: numero_(o.sa, nulo), ca: numero_(o.ca, nulo), inc: numero_(o.inc, nulo) }; }
+function comentariosPara_(yo) {
+  const l = leer_('sic');
+  if (yo.rol !== 'director') return l;
+  const cct = cctDe_(yo);
+  return l.filter(x => ['escuela', 'grado', 'grupo'].indexOf(x.nivel) >= 0 && String(x.ref).split('|')[0] === cct);
+}
+
+// Carpeta «…SISAT…/Momento N» dentro de la carpeta de la escuela en el Drive de evidencias.
+// Si no hay subcarpeta del momento: con crear=true la crea; si no, usa la carpeta SISAT filtrando por nombre.
+function carpetaSisat_(cct, m, crear) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) return { carpeta: null, ruta: '', mensaje: 'No se encontró la carpeta de la escuela en el Drive de evidencias. Revise las evidencias primero.' };
+  const sinAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const esc = DriveApp.getFolderById(raiz.carpetaId);
+  let sis = null;
+  const it = esc.getFolders();
+  while (it.hasNext()) { const f = it.next(); if (/sisat/.test(sinAcento(f.getName()))) { sis = f; break; } }
+  if (!sis) {
+    if (!crear) return { carpeta: null, ruta: '', mensaje: 'La escuela no tiene carpeta del SisAT en el Drive.' };
+    sis = esc.createFolder('07-SISAT');
+  }
+  const ordinal = ['', 'primer', 'segundo', 'tercer'][m];
+  const reMom = new RegExp('(momento\\s*0?' + m + '\\b|\\bm\\s*0?' + m + '\\b|' + ordinal + '\\w*\\s+momento)');
+  const it2 = sis.getFolders();
+  while (it2.hasNext()) { const f = it2.next(); if (reMom.test(sinAcento(f.getName()))) return { carpeta: f, ruta: sis.getName() + '/' + f.getName() }; }
+  if (crear) { const f = sis.createFolder('Momento ' + m); return { carpeta: f, ruta: sis.getName() + '/' + f.getName() }; }
+  return { carpeta: sis, ruta: sis.getName(), filtrar: reMom };
+}
+
+function PROMPT_SISAT_(m) {
+  return [
+    'Eres un capturista de datos muy cuidadoso. Recibes las gráficas del SisAT (Sistema de Alerta Temprana) de UNA escuela primaria de México, exportadas desde la herramienta oficial del SisAT.',
+    'Cada página corresponde a un grupo: arriba dice «Grado-Grupo» (por ejemplo «6-B») y «Evaluación Sisat: Graficas de grupo». Una página que dice «Graficas de Escuela» es el concentrado de toda la escuela, aunque el selector de grupo muestre otro valor.',
+    'En cada página hay una tabla «Exploración 1» (y quizá «Exploración 2» o «Exploración 3») con los renglones Lectura, Texto Esc. y Calcúlo Mat. y las columnas NE, NE%, ED, ED%, RA, RA% (NE = nivel esperado, ED = en desarrollo, RA = requiere apoyo).',
+    'Abajo hay una tabla de cálculo mental por tipo de respuesta con los renglones «Aciertos sin apoyo visual», «Aciertos con apoyo visual» y «Respuestas incorrectas», y columnas Momento 1, Momento 2 (y quizá Momento 3), cada una con número y porcentaje.',
+    'Extrae los NÚMEROS DE ALUMNOS (NE, ED, RA; no los porcentajes) de la Exploración ' + m + ', y de la tabla de cálculo mental la cantidad (no el porcentaje) de la columna Momento ' + m + '.',
+    'Si la Exploración ' + m + ' está vacía en todas las páginas, usa la última exploración que sí tenga datos y escribe su número en «exploracionUsada».',
+    'Copia los números exactamente como aparecen. No calcules, no redondees y no inventes. Si un número no se puede leer, escribe null. Si un renglón dice texto en vez de números, escribe null.',
+    'Responde SOLO con JSON con esta forma exacta:',
+    '{"exploracionUsada": ' + m + ', "grupos": [{"grupo": "6-B", "lec": {"ne": 0, "ed": 0, "ra": 0}, "tex": {"ne": 0, "ed": 0, "ra": 0}, "cal": {"ne": 0, "ed": 0, "ra": 0}, "tip": {"sa": 0, "ca": 0, "inc": 0}}], "escuela": {"lec": {...}, "tex": {...}, "cal": {...}, "tip": {...}} o null, "notas": "lo que no se pudo leer"}',
+    'En «grupos» van solo las páginas de grupo, en el orden en que aparecen; la página «Graficas de Escuela» va en «escuela».'
+  ].join('\n');
 }
 
 /* ===================== Envíos ===================== */
