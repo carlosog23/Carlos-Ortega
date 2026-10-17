@@ -354,6 +354,19 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .dir-chips{margin:0 0 10px}.dir-prog{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:-4px 0 10px}.dir-prog span{display:block;height:100%;background:var(--ok)}
 .dir-chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0}.dir-chk input{margin-top:4px;width:20px;height:20px;flex:none}
 @media (max-width:420px){.dir-acts{grid-template-columns:minmax(0,1fr)}}
+.dc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.dc-it{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.dc-it.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dc-ck{padding-top:6px;flex:none}.dc-ck input{width:22px;height:22px;accent-color:var(--accent)}
+.dc-ty{flex:none;font-size:11px;font-weight:800;letter-spacing:.03em;border-radius:6px;padding:6px 5px;min-width:46px;text-align:center;color:#fff;margin-top:2px}
+.dc-pdf{background:#B3261E}.dc-doc{background:#1F5BB5}.dc-xls{background:#1E7A46}.dc-csv{background:#5C6B7A}.dc-otro{background:#6B5B4B}
+.dc-tx{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}.dc-tx b{overflow-wrap:anywhere;line-height:1.3}
+.dc-m{font-size:13px;color:var(--muted)}
+.dc-ac{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.btn.sm{min-height:38px;padding:6px 12px;font-size:14px}
+.btn.dc-del{color:var(--warn);border-color:var(--warn-soft)}
+.dc-sum{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.dc-op{display:flex;gap:10px;align-items:flex-start;cursor:pointer}.dc-op input{width:22px;height:22px;flex:none;accent-color:var(--accent)}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -1022,12 +1035,14 @@ const ICON={
  cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>',
 money:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg>',
  people:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 13.5c3 0 6 1.8 6 5"/></svg>',
+ folder:'<svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 13h8M8 16h5"/></svg>',
  school:'<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10M10 20v-5h4v5"/></svg>'};
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
  {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
  {id:"misalumnos",icon:"people",title:"Mis alumnos",desc:"Su base de datos del grupo: captúrela o suba sus archivos (PDF, Excel o Word) y Tlamatini los junta. Con ella se llenan solos los formatos.",grupos:[],view:()=>{S.dirGrupo=undefined;dirView("alumnos")},count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.filter(a=>!String(a.baja||"").trim()).length:0;return n?`${n} alumno${n>1?"s":""} en su base`:"Crear mi base de alumnos"}},
  {id:"directorio",icon:"people",title:"Directorio de la comunidad escolar",desc:"Escuelas de la zona, maestros con grado y grupo, y alumnos con tutores, emergencias y quién los recoge.",grupos:[],view:()=>dirView(),count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.length:0,m=(typeof DIR!=="undefined")?DIR.maestros.length:0;return n||m?[m?m+" maestro"+(m>1?"s":""):"",n?n+" alumno"+(n>1?"s":""):""].filter(Boolean).join(" · "):"Personalice su escuela"}},
+ {id:"misdocs",icon:"folder",title:"Mis documentos",desc:"Todo lo que ha generado en Tlamatini: véalo, imprímalo o envíelo de nuevo, o bórrelo cuando ya no lo necesite.",grupos:[],view:()=>docsView(),count:()=>1,cntLabel:()=>docsCntLabel()},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
@@ -1166,7 +1181,7 @@ async function tryShare(o,text){if(!navigator.share||!navigator.canShare)return 
 let TOP=false;try{TOP=window.top===window.self}catch(e){TOP=false}
 function anchorSave(o){try{const u=URL.createObjectURL(o.blob);const a=document.createElement("a");a.href=u;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return"anchor"}catch(e){return false}}
 /* Orden: 1) navegador directo  2) menú de compartir del teléfono  3) descarga de Claude (solo miembros)  4) enlace para abrir el PDF */
-async function trySave(o,share=true){if(TOP)return anchorSave(o);
+async function trySave(o,share=true){docsReg(o.blob,o.filename);if(TOP)return anchorSave(o);
   if(share){const r=await tryShare(o,"");if(r===true)return"shared";if(r==="cancel")return"cancel"}
   const dl=await getDL();if(dl){try{await dl.save({filename:o.filename,data:o.blob});return true}catch(e){if(e&&e.code==="declined")return"cancel";if(e&&e.code==="rate_limited")return"busy"}}
   return"link"}
@@ -1174,7 +1189,7 @@ function linkMsg(o){const u=URL.createObjectURL(o.blob);say("warn",`<b>Toque el 
 function tryPrintFrame(o){return new Promise(res=>{try{const u=URL.createObjectURL(o.blob);const fr=document.createElement("iframe");fr.style.cssText="position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";fr.src=u;
   let done=false;fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();done=true;res(true)}catch(e){res(false)}},300)};document.body.appendChild(fr);setTimeout(()=>{if(!done)res(false)},6000);setTimeout(()=>{fr.remove();URL.revokeObjectURL(u)},120000)}catch(e){res(false)}})}
 async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";
-  try{const o=await prepararPDF();
+  try{const o=await prepararPDF();docsReg(o.blob,o.filename);
     if(act==="share"){const r=await tryShare(o,ARCHIVO[S.letra]||o.filename);
       if(r===true)say("ok","<b>Listo.</b> El formato se envió por la aplicación que eligió.");
       else if(r==="cancel")say("warn","<b>Envío cancelado.</b> Toque el botón de nuevo cuando quiera.");
@@ -1196,7 +1211,7 @@ let PMODE="save";
 function pToast(html,ms=9000){let t=document.getElementById("pToast");if(!t){t=document.createElement("div");t.id="pToast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");
   t.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9998;max-width:min(92vw,560px);background:#1E2A40;color:#fff;border-radius:14px;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25)";
   t.onclick=()=>t.hidden=true;document.body.appendChild(t)}t.innerHTML=html;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,ms)}
-async function entregarPDF(blob,filename,hint=""){const m=PMODE;PMODE="save";const o={filename,blob,file:new File([blob],filename,{type:"application/pdf"})};
+async function entregarPDF(blob,filename,hint=""){docsReg(blob,filename);const m=PMODE;PMODE="save";const o={filename,blob,file:new File([blob],filename,{type:"application/pdf"})};
   if(m==="print"){
     if(isIOS){const r=await tryShare(o,"");if(r===true)return;if(r==="cancel"){pToast("<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
     if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){pToast(`<b>Se abrió la ventana de impresión.</b> Elija su impresora, tamaño <b>Carta</b> y escala al <b>100 %</b> (tamaño real)${hint}.`);return}
@@ -1205,6 +1220,115 @@ async function entregarPDF(blob,filename,hint=""){const m=PMODE;PMODE="save";con
     if(g===true||g==="anchor")pToast(isIOS?"<b>PDF listo.</b> En el menú elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b>.");
     return}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* ---------- Mis documentos: registro de todo lo que genera Tlamatini (solo en este dispositivo) ----------
+   Cada PDF, Word, Excel o CSV que se descarga, imprime o envía se guarda aquí para volver a verlo,
+   imprimirlo o enviarlo. Se puede borrar uno por uno, varios o todos, y fijar un borrado automático. */
+const DOCS_DB="tlamatini-docs";let DOCS_N=null,DOCS_SKIP=false,DOCS_Q=Promise.resolve();
+const DOCS_SEL=new Set();let DOCS_F={q:"",sec:""};
+function docsDB(){if(!docsDB.p){docsDB.p=new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error("Este navegador no permite guardar documentos."));
+  const r=indexedDB.open(DOCS_DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("docs"))r.result.createObjectStore("docs",{keyPath:"id"})};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});docsDB.p.catch(()=>{docsDB.p=null})}return docsDB.p}
+function docsTx(mode,fn){return docsDB().then(db=>new Promise((res,rej)=>{const t=db.transaction("docs",mode);const s=t.objectStore("docs");let out;
+  const rq=fn(s);if(rq)rq.onsuccess=()=>{out=rq.result};t.oncomplete=()=>res(out);t.onerror=t.onabort=()=>rej(t.error)}))}
+const docsAll=()=>docsTx("readonly",s=>s.getAll()).then(a=>(a||[]).sort((x,y)=>y.fecha-x.fecha));
+const docsGet=id=>docsTx("readonly",s=>s.get(id));
+const docsPut=r=>docsTx("readwrite",s=>s.put(r));
+const docsDelete=id=>docsTx("readwrite",s=>s.delete(id));
+const docsClear=()=>docsTx("readwrite",s=>s.clear());
+const docsAuto=()=>store.get("tlm-docs-auto",true);
+const docsDias=()=>+store.get("tlm-docs-dias",0)||0;
+function docsTipo(n,t){const e=(String(n).match(/\.([a-z0-9]+)$/i)||[])[1]||"";const x=e.toLowerCase();
+  if(x==="pdf"||/pdf/.test(t||""))return{k:"pdf",l:"PDF"};if(x==="doc"||x==="docx")return{k:"doc",l:"Word"};
+  if(x==="xlsx"||x==="xls")return{k:"xls",l:"Excel"};if(x==="csv")return{k:"csv",l:"CSV"};return{k:"otro",l:x.toUpperCase()||"Archivo"}}
+function docsTam(b){return b<1024?b+" B":b<1048576?Math.round(b/1024)+" KB":(b/1048576).toFixed(1).replace(/\.0$/,"")+" MB"}
+function docsFecha(ms){const d=new Date(ms),h=new Date();const hh=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  const dia=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();const dd=Math.round((dia(h)-dia(d))/86400000);
+  if(dd===0)return"Hoy, "+hh;if(dd===1)return"Ayer, "+hh;
+  const M=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];return`${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}, ${hh}`}
+/* Registra un archivo generado. Si es el mismo (mismo nombre y tamaño, o mismo nombre en los últimos 10 min: reimpresión o corrección) se actualiza en lugar de duplicarse. */
+function docsReg(blob,nombre){
+  try{if(DOCS_SKIP||DEMO||!docsAuto()||!blob||!nombre||!blob.size)return;
+    if(/\.json$/i.test(nombre)||/^Plantilla Tlamatini/i.test(nombre))return;
+    const x=(typeof SECCIONES!=="undefined"&&SECCIONES.find(z=>z.id===S.sec))||null;const seccion=x?x.title:"";
+    DOCS_Q=DOCS_Q.then(async()=>{const all=await docsAll();const now=Date.now();const ex=all.find(d=>d.nombre===nombre&&(d.tam===blob.size||now-d.fecha<600000));
+      if(ex){if(now-ex.fecha>5000)ex.veces=(ex.veces||1)+1;ex.fecha=now;ex.blob=blob;ex.tam=blob.size;ex.tipo=blob.type||ex.tipo;if(!ex.seccion&&seccion)ex.seccion=seccion;await docsPut(ex)}
+      else{await docsPut({id:now.toString(36)+Math.random().toString(36).slice(2,7),nombre:String(nombre),tipo:blob.type||"",tam:blob.size,fecha:now,creado:now,seccion,veces:1,blob});
+        DOCS_N=all.length+1;if(all.length===0){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+          setTimeout(()=>pToast("<b>Guardado en «Mis documentos».</b> Desde el inicio puede volver a verlo, imprimirlo o borrarlo.",7000),9500)}}
+      docsCntHome()}).catch(()=>{})}catch(e){}}
+/* Las descargas de Word, Excel y CSV usan enlaces: se registran al hacer clic */
+(()=>{const orig=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){
+  try{const n=this.download,h=this.href||"";if(n&&h.startsWith("blob:")&&!DOCS_SKIP){fetch(h).then(r=>r.blob()).then(b=>docsReg(b,n)).catch(()=>{})}}catch(e){}
+  return orig.apply(this,arguments)}})();
+function docsCntLabel(){return DOCS_N==null?"Sus archivos generados":DOCS_N?`${DOCS_N} documento${DOCS_N>1?"s":""} guardado${DOCS_N>1?"s":""}`:"Aquí aparecerá lo que genere"}
+function docsCntHome(){const c=document.querySelector('.sec[data-s="misdocs"] .cnt');if(c)c.textContent=docsCntLabel()}
+async function docsLimpiar(){const d=docsDias();if(!d)return 0;const lim=Date.now()-d*86400000;const all=await docsAll();let n=0;
+  for(const x of all)if(x.fecha<lim){await docsDelete(x.id);n++}return n}
+function docsInit(){docsLimpiar().catch(()=>{}).then(()=>docsAll()).then(a=>{DOCS_N=a.length;docsCntHome()}).catch(()=>{DOCS_N=null})}
+async function docsAbrir(id,modo,btn){const d=await docsGet(id);if(!d){pToast("Ese documento ya no está guardado.");return docsView()}
+  const o={filename:d.nombre,blob:d.blob,file:new File([d.blob],d.nombre,{type:d.tipo||d.blob.type||"application/octet-stream"})};const T=docsTipo(d.nombre,d.tipo);
+  const lbl=btn?btn.innerHTML:"";if(btn){btn.disabled=true;btn.textContent="Abriendo…"}
+  DOCS_SKIP=true;
+  try{if(modo==="ver"){const u=URL.createObjectURL(d.blob);const w=window.open(u,"_blank");
+      if(!w){const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}
+      setTimeout(()=>URL.revokeObjectURL(u),300000)}
+    else if(modo==="imprimir"){PMODE="print";await entregarPDF(d.blob,d.nombre)}
+    else if(modo==="enviar"){const r=await tryShare(o,d.nombre);if(r===true)pToast("<b>Listo.</b> Se envió por la aplicación que eligió.");
+      else if(r==="cancel")pToast("Envío cancelado.");else{anchorSave(o);pToast("<b>Este equipo no permite enviarlo directo.</b> Se guardó en <b>Descargas</b>: adjúntelo desde su correo o WhatsApp.",11000)}}
+    else{anchorSave(o);pToast(T.k==="pdf"?"<b>PDF guardado</b> en <b>Descargas</b>.":`<b>Archivo de ${T.l} guardado</b> en <b>Descargas</b>. Ábralo con ${T.l==="Word"?"Word o Google Docs":T.l==="Excel"?"Excel o Google Sheets":"la aplicación que corresponda"}.`)}}
+  catch(e){pToast(`<b>No se pudo abrir.</b> (${esc(e&&e.message||e)})`)}
+  finally{setTimeout(()=>{DOCS_SKIP=false},200);if(btn){btn.disabled=false;btn.innerHTML=lbl}}}
+async function docsBorrar(ids,todos){
+  if(todos){if(!confirm("¿Borrar TODOS los documentos guardados en este dispositivo?\n\nEsta acción no se puede deshacer. Los archivos que ya descargó en su equipo no se borran."))return;await docsClear()}
+  else{if(!ids.length)return;if(!confirm(ids.length===1?"¿Borrar este documento de «Mis documentos»?\n\nNo se puede deshacer.":`¿Borrar los ${ids.length} documentos seleccionados?\n\nNo se puede deshacer.`))return;
+    for(const id of ids)await docsDelete(id)}
+  DOCS_SEL.clear();docsView(true)}
+async function docsView(keep){const y0=window.scrollY;S.view="misdocs";S.sec="misdocs";S.letra=null;setBar("");
+  const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini · Zona 050</div><h2>Mis documentos</h2></div></div>`;
+  let all=[],err="";try{await docsLimpiar();all=await docsAll()}catch(e){err=e&&e.message||String(e)}
+  DOCS_N=all.length;for(const id of [...DOCS_SEL])if(!all.some(d=>d.id===id))DOCS_SEL.delete(id);
+  const secs=[...new Set(all.map(d=>d.seccion||"Otros"))].sort();if(DOCS_F.sec&&!secs.includes(DOCS_F.sec))DOCS_F.sec="";
+  const q=DOCS_F.q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const vis=all.filter(d=>(!DOCS_F.sec||(d.seccion||"Otros")===DOCS_F.sec)&&(!q||(d.nombre+" "+(d.seccion||"")).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q)));
+  const total=all.reduce((s,d)=>s+(d.tam||0),0);const dias=docsDias();const auto=docsAuto();
+  const item=d=>{const T=docsTipo(d.nombre,d.tipo);const pdf=T.k==="pdf";const ck=DOCS_SEL.has(d.id);
+    return`<li class="dc-it${ck?" sel":""}"><label class="dc-ck" aria-label="Seleccionar"><input type="checkbox" data-ck="${d.id}"${ck?" checked":""}></label>
+     <span class="dc-ty dc-${T.k}" aria-hidden="true">${esc(T.l)}</span>
+     <div class="dc-tx"><b>${esc(d.nombre.replace(/\.[a-z0-9]+$/i,""))}</b>
+      <span class="dc-m">${esc(docsFecha(d.fecha))} · ${T.l} · ${docsTam(d.tam||0)}${d.seccion?" · "+esc(d.seccion):""}${(d.veces||1)>1?` · generado ${d.veces} veces`:""}</span>
+      <div class="dc-ac">${pdf?`<button class="btn ghost sm" data-a="ver" data-id="${d.id}">Ver</button><button class="btn ghost sm" data-a="imprimir" data-id="${d.id}">🖨 Imprimir</button>`:`<button class="btn ghost sm" data-a="guardar" data-id="${d.id}">Abrir</button>`}
+       <button class="btn ghost sm" data-a="enviar" data-id="${d.id}">Enviar</button>${pdf?`<button class="btn ghost sm" data-a="guardar" data-id="${d.id}">Descargar</button>`:""}
+       <button class="btn ghost sm dc-del" data-a="borrar" data-id="${d.id}">Borrar</button></div></div></li>`};
+  app.innerHTML=top+`
+   <p class="muted">Aquí quedan todos los formatos y documentos que genera en Tlamatini (PDF, Word y Excel), para que pueda <b>volver a verlos, imprimirlos o enviarlos</b> sin llenarlos de nuevo. Se guardan <b>solo en este dispositivo</b>; nada se sube a internet.</p>
+   ${err?`<div class="alert"><b>No se pudo abrir el registro de documentos.</b> ${esc(err)}</div>`:""}
+   ${all.length?`<section class="card dc-bar">
+     <input type="search" id="dc_q" placeholder="Buscar por nombre, alumno, escuela…" value="${esc(DOCS_F.q)}" aria-label="Buscar documento">
+     ${secs.length>1?`<div class="chips"><button class="chip${DOCS_F.sec?"":" sel"}" data-sec="">Todos (${all.length})</button>${secs.map(s=>`<button class="chip${DOCS_F.sec===s?" sel":""}" data-sec="${esc(s)}">${esc(s)} (${all.filter(d=>(d.seccion||"Otros")===s).length})</button>`).join("")}</div>`:""}
+     <div class="dc-sum"><span>${vis.length===all.length?`${all.length} documento${all.length>1?"s":""}`:`${vis.length} de ${all.length}`} · ${docsTam(total)} en total</span>
+      <span><button class="btn link" id="dc_all">${vis.length&&vis.every(d=>DOCS_SEL.has(d.id))?"Quitar selección":"Seleccionar todos"}</button></span></div>
+     ${DOCS_SEL.size?`<button class="btn primary dc-bulk" id="dc_delsel">Borrar seleccionados (${DOCS_SEL.size})</button>`:""}
+    </section>
+    ${vis.length?`<ul class="dc-list">${vis.map(item).join("")}</ul>`:`<div class="soon">No hay documentos que coincidan con la búsqueda.</div>`}`
+   :`<div class="soon" style="color:var(--ink)">Todavía no hay documentos guardados. Cuando descargue, imprima o envíe un formato desde cualquier sección, aparecerá aquí automáticamente.</div>`}
+   <section class="card"><h3>Opciones</h3>
+    <label class="dc-op"><input type="checkbox" id="dc_auto"${auto?" checked":""}> <span>Guardar aquí automáticamente cada documento que genere</span></label>
+    <div class="field"><label for="dc_dias">Borrar automáticamente los documentos con más de:</label>
+     <select id="dc_dias">${[[0,"Nunca (los borro yo)"],[30,"30 días"],[90,"3 meses"],[180,"6 meses"],[365,"1 año"]].map(([v,t])=>`<option value="${v}"${dias===v?" selected":""}>${t}</option>`).join("")}</select></div>
+    ${all.length?`<button class="btn ghost dc-del" id="dc_delall">Borrar todos los documentos</button>`:""}
+    <p class="help">Algunos documentos llevan datos personales de alumnos o del personal. Si usa un equipo compartido, bórrelos al terminar o fije un borrado automático. Si borra los datos del navegador o desinstala la app, también se borran estos documentos; los archivos que ya descargó en su equipo no se afectan.</p></section>`;
+  document.getElementById("salir").onclick=()=>{S.sec=null;home()};
+  const qi=document.getElementById("dc_q");if(qi){qi.oninput=()=>{DOCS_F.q=qi.value;clearTimeout(qi._t);qi._t=setTimeout(async()=>{const p=qi.selectionStart;await docsView(true);const n=document.getElementById("dc_q");if(n){n.focus();try{n.setSelectionRange(p,p)}catch(e){}}},250)}}
+  app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{DOCS_F.sec=b.dataset.sec;docsView(true)});
+  app.querySelectorAll("[data-ck]").forEach(c=>c.onchange=()=>{c.checked?DOCS_SEL.add(c.dataset.ck):DOCS_SEL.delete(c.dataset.ck);docsView(true)});
+  app.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.id,a=b.dataset.a;if(a==="borrar")docsBorrar([id]);else docsAbrir(id,a,b)});
+  {const b=document.getElementById("dc_all");if(b)b.onclick=()=>{if(vis.every(d=>DOCS_SEL.has(d.id)))vis.forEach(d=>DOCS_SEL.delete(d.id));else vis.forEach(d=>DOCS_SEL.add(d.id));docsView(true)}}
+  {const b=document.getElementById("dc_delsel");if(b)b.onclick=()=>docsBorrar([...DOCS_SEL])}
+  {const b=document.getElementById("dc_delall");if(b)b.onclick=()=>docsBorrar([],true)}
+  document.getElementById("dc_auto").onchange=e=>{store.set("tlm-docs-auto",e.target.checked);pToast(e.target.checked?"Los documentos nuevos se guardarán aquí.":"Los documentos nuevos <b>ya no</b> se guardarán aquí. Los que ya están se conservan.")};
+  document.getElementById("dc_dias").onchange=async e=>{store.set("tlm-docs-dias",+e.target.value);const n=await docsLimpiar().catch(()=>0);if(n)pToast(`Se borraron ${n} documento${n>1?"s":""} antiguo${n>1?"s":""}.`);docsView(true)};
+  window.scrollTo(0,keep?y0:0)}
+docsInit();
 /* Botón «Imprimir» junto a «Descargar PDF»: genera exactamente el mismo PDF y lo manda a la impresora */
 function botonImprimir(id){return`<button class="btn primary act" id="${id}"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>`}
 function wireImprimir(id,fn){const b=document.getElementById(id);if(b)b.onclick=e=>{PMODE="print";fn(e.currentTarget)}}
@@ -4804,8 +4928,8 @@ if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO
   /* apartados visitados */
   new MutationObserver(()=>{const a=usoApartado();if(a===USO.ultima||/^(setup|setupsub|setupotra)$/.test(S.view))return;USO.ultima=a;usoContar("ver/"+a,a,true)}).observe(document.getElementById("app"),{childList:true});
   /* formatos generados: toda descarga o envío por compartir */
-  const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true)}}catch(e){}return clk.apply(this,arguments)};
-  if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files)usoContar("genera/"+usoApartado(),"Compartido",true)}catch(e){}return sh(d)}}}
+  const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download&&!DOCS_SKIP){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true)}}catch(e){}return clk.apply(this,arguments)};
+  if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files&&!DOCS_SKIP)usoContar("genera/"+usoApartado(),"Compartido",true)}catch(e){}return sh(d)}}}
 </script>
 
 </body></html>
