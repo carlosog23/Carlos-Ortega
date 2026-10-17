@@ -2157,7 +2157,7 @@ function vSisat() {
     `<button data-sm="t" aria-pressed="${tend}">Tendencia</button>`;
   const faltan = !esDirector() && esAdmin() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
   const cab = `<div class="titulo-vista"><h1>SisAT · Alerta temprana</h1>
-    <div class="acciones"><button class="boton terra" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">Descargar análisis</button><button class="boton sec" id="b-sis-imp">Imprimir</button></div></div>
+    <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">Descargar análisis</button><button class="boton sec" id="b-sis-imp">Imprimir</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
       <select id="s-ciclo" aria-label="Ciclo escolar">${sisCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
@@ -2337,6 +2337,8 @@ function sisEnlazar(v) {
   if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vSisat(); };
   if ($('#b-sis-orden')) $('#b-sis-orden').onclick = () => { v.orden = v.orden === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-con1')) $('#b-sis-con1').onclick = () => { v.con1 = !v.con1; vSisat(); };
+  $$('[data-simp]').forEach(b => b.onclick = () => { const [cct, m] = b.dataset.simp.split('|'); sisImportarEscuela(cct, +m); });
+  if ($('#b-sis-zimp')) $('#b-sis-zimp').onclick = () => sisImportarZona(typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-oal')) $('#b-sis-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-doc')) $('#b-sis-doc').onclick = () => sisDescargar(v);
   if ($('#b-sis-imp')) $('#b-sis-imp').onclick = () => window.print();
@@ -2404,7 +2406,7 @@ function sisFormCarga(cct, m) {
     const g = (r.leido.grupos || []).map(x => Object.assign(sisEtiqueta(x.etiqueta), x));
     sisEditor(s.cct, s.m, { grupos: g, escuela: r.leido.escuela, notas: r.leido.notas, exploracion: r.leido.exploracion, fuente: r.archivo.nombre }, r.archivo);
   };
-  $('#c-xdrive').onclick = () => { const s = falta(); if (s) sisExcelDesdeDrive(s.cct, s.m); };
+  $('#c-xdrive').onclick = () => { const s = falta(); if (s) { cerrarModal(); sisImportarEscuela(s.cct, s.m); } };
   $('#c-xarch').onchange = e => { const s = falta(); const fs = Array.from(e.target.files); e.target.value = ''; if (s) sisExcelSubidos(s.cct, s.m, fs); };
   if (esDirector()) return;
   $('#c-drive').onclick = async () => {
@@ -2609,6 +2611,44 @@ function sisNormAlumno(a) {
 }
 
 /* ---- Carga desde los Excel ---- */
+// Lee de una vez todos los Excel de la carpeta del momento; si todo cuadra, guarda sin preguntar
+async function sisLeerDeDrive(cct, m) {
+  const r = await api('sisatArchivos', { cct, momento: m, excel: true });
+  if (!r.archivos.length) return { sinArchivos: true, mensaje: r.mensaje || 'No hay Excel en ' + (r.ruta || 'la carpeta del SisAT') + '.' };
+  const b = await api('sisatBajar', { cct, momento: m, ids: r.archivos.map(a => a.id) });
+  return { leidos: await Promise.all(b.archivos.map(a => sisLeerArchivo({ id: a.id, nombre: a.nombre, fecha: a.fecha, bytes: b64aBytes(a.datos) }).catch(e => ({ nombre: a.nombre, error: e.message })))) };
+}
+async function sisImportarEscuela(cct, m) {
+  const r = await conCarga(() => sisLeerDeDrive(cct, m));
+  if (!r) return;
+  if (r.sinArchivos) { aviso(esc(r.mensaje) + ' La escuela debe subir ahí los archivos de la herramienta del SisAT (herrLectura, herrTextos y herrCalculo de cada grupo).', 'mal', 9000); return; }
+  await sisRevisarExcel(cct, m, r.leidos, { subir: false, auto: true });
+}
+async function sisImportarZona(m) {
+  const v = sisV(), escs = filtroEscuelas(), res = [];
+  const caja = modal('Leer los Excel de todas las escuelas', `<p style="margin-top:0">Momento ${m}, ciclo ${esc(v.ciclo)}. Tequio lee los Excel de la carpeta del SisAT de cada escuela y guarda los resultados de cada alumno.</p><div id="z-prog" class="peq"></div>`, '');
+  for (const [i, c] of escs.entries()) {
+    $('#z-prog', caja).innerHTML = `Leyendo ${i + 1} de ${escs.length}: <b>${esc(c.escuela)}</b>…<br>` + res.map(x => x.linea).join('<br>');
+    let r;
+    try { const d = await sisLeerDeDrive(c.cct, m); r = d.sinArchivos ? d : await sisRevisarExcel(c.cct, m, d.leidos, { subir: false, auto: true, lote: true }); }
+    catch (e) { r = { error: e.message }; }
+    r = r || { error: 'no se pudo leer' };
+    res.push({ c, r, linea: r.ok ? `✓ ${esc(c.escuela)}: ${r.grupos} grupos, ${r.alumnos} alumnos` : r.sinArchivos ? `— ${esc(c.escuela)}: sin Excel en su carpeta` : r.pendiente ? `⚠ ${esc(c.escuela)}: hay que asignar grado y grupo` : `✕ ${esc(c.escuela)}: ${esc(r.error)}` });
+  }
+  const ok = res.filter(x => x.r.ok), pend = res.filter(x => x.r.pendiente), sin = res.filter(x => x.r.sinArchivos), mal = res.filter(x => x.r.error);
+  $('#z-prog', caja).innerHTML = `
+    <div class="aviso-caja" style="background:var(--ok-f);border-color:var(--ok)"><b>${ok.length} escuela${ok.length === 1 ? '' : 's'} guardada${ok.length === 1 ? '' : 's'}</b> con sus alumnos (${ok.reduce((s, x) => s + x.r.alumnos, 0)} alumnos).</div>
+    ${pend.length ? `<div class="aviso-caja"><b>Falta asignar grado y grupo (${pend.length}):</b> Tequio no pudo reconocer algunos grupos. Pulse cada escuela para asignarlos.<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${pend.map(x => `<button class="boton sec chico" data-zrev="${x.c.cct}">${esc(x.c.escuela)}</button>`).join('')}</div></div>` : ''}
+    ${sin.length ? `<p class="peq"><b>Sin Excel en su carpeta del Momento ${m}:</b> ${sin.map(x => esc(x.c.escuela)).join(', ')}.</p>` : ''}
+    ${mal.length ? `<p class="peq" style="color:var(--alerta)"><b>Con error:</b> ${mal.map(x => esc(x.c.escuela) + ' (' + esc(x.r.error) + ')').join('; ')}.</p>` : ''}
+    <div style="margin-top:10px"><button class="boton" id="z-listo">Ver el análisis</button></div>`;
+  $$('[data-zrev]', caja).forEach(btn => btn.onclick = async () => {
+    const cct = btn.dataset.zrev; cerrarModal();
+    const d = await conCarga(() => sisLeerDeDrive(cct, m));
+    if (d && d.leidos) sisRevisarExcel(cct, m, d.leidos, { subir: false });
+  });
+  $('#z-listo', caja).onclick = () => { cerrarModal(); Object.assign(v, { m }); vSisat(); };
+}
 async function sisExcelDesdeDrive(cct, m, alTerminar) {
   const r = await accion('sisatArchivos', { cct, momento: m, excel: true });
   if (!r) return;
@@ -2663,6 +2703,8 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
     const s = sisSugerir(g.claves, previos);
     g.grado = s ? s.grado : ''; g.grupo = s ? s.grupo : ''; g.sug = s;
   });
+  // Los que no se reconocen por nombre: se comparan con los grupos que ya estaban guardados en este momento (por ejemplo, desde las gráficas)
+  sisAsignarPorConteo(grupos, (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === m && r.cct === cct).map(sisNorm));
   grupos.sort((x, y) => (x.grado || '9').localeCompare(y.grado || '9') || x.grupo.localeCompare(y.grupo) || y.alumnos.length - x.alumnos.length);
   const hay = (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === m && r.cct === cct);
   const pintar = () => {
@@ -2675,7 +2717,7 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
           <div class="campo" style="margin:0"><label for="x-gr${i}">Grado</label><select id="x-gr${i}" data-xgr="${i}"><option value="">—</option>${[1, 2, 3, 4, 5, 6].map(n => `<option ${String(n) === g.grado ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
           <div class="campo" style="margin:0"><label for="x-gp${i}">Grupo</label><input id="x-gp${i}" data-xgp="${i}" value="${esc(g.grupo)}" maxlength="6" style="width:64px" placeholder="A"></div>
         </div>
-        <div class="sis-xg-b"><b>${nl} alumno${nl === 1 ? '' : 's'}</b> ${g.sug ? `<span class="peq" style="color:var(--ok)">· sugerido: ${g.sug.grado}° ${esc(g.sug.grupo)} (${g.sug.coincidencia}% de los alumnos coinciden con el Momento anterior)</span>` : ''}
+        <div class="sis-xg-b"><b>${nl} alumno${nl === 1 ? '' : 's'}</b> ${g.sug ? `<span class="peq" style="color:var(--ok)">· ${g.sug.porConteo ? `asignado a ${g.sug.grado}° ${esc(g.sug.grupo)}: sus resultados coinciden con los que ya tenía ese grupo` : `sugerido: ${g.sug.grado}° ${esc(g.sug.grupo)} (${g.sug.coincidencia}% de los alumnos coinciden con el Momento anterior)`}</span>` : ''}
           <div class="peq" style="margin:4px 0">${herr}</div>
           <div class="peq mudo">Requieren apoyo: lectura ${ra('lec')} · textos ${ra('tex')} · cálculo ${ra('cal')}</div>
           <details class="peq" style="margin-top:4px"><summary>Ver alumnos</summary><div class="sis-xg-l">${g.alumnos.map(a => esc(a.alumno)).join('<br>')}</div></details>
@@ -2685,6 +2727,39 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
     $$('[data-xgp]').forEach(s => s.oninput = () => { grupos[+s.dataset.xgp].grupo = s.value.trim().toUpperCase(); revisar(); });
     revisar();
   };
+  const problemas = () => {
+    const msgs = [];
+    grupos.forEach((g, i) => { if (!/^[1-6]$/.test(g.grado)) msgs.push(`Al grupo ${i + 1} (${g.alumnos.length} alumnos, empieza con ${g.alumnos[0] ? g.alumnos[0].alumno : '—'}) le falta el grado.`); });
+    const vistos = {}; grupos.forEach(g => { const k = g.grado + '-' + g.grupo; if (g.grado && vistos[k]) msgs.push(`El grupo ${g.grado}° ${g.grupo} está dos veces.`); vistos[k] = 1; });
+    return msgs;
+  };
+  const guardar = async subir => {
+    const usados = new Set(); grupos.forEach(g => Object.values(g.arch).forEach(f => usados.add(f)));
+    const payload = grupos.map(g => {
+      const agg = sisDeAlumnos(g.alumnos);
+      return Object.assign({ grado: g.grado, grupo: g.grupo }, agg, { alumnos: g.alumnos.map(a => ({ alumno: a.alumno, lec: a.lec || null, tex: a.tex || null, cal: a.cal || null })) });
+    });
+    let r;
+    if (origen.lote) { try { r = await api('sisatGuardar', { ciclo: v.ciclo, momento: m, cct, fuente: 'Excel de la herramienta del SisAT (' + usados.size + ' archivos)', grupos: payload }); } catch (e) { return { error: e.message }; } }
+    else r = await accion('sisatGuardar', { ciclo: v.ciclo, momento: m, cct, fuente: 'Excel de la herramienta del SisAT (' + usados.size + ' archivos)', grupos: payload });
+    if (!r) return null;
+    S.sis = r.sis;
+    delete SIA[v.ciclo + '|' + cct];
+    if (subir) {
+      let ok = 0;
+      await conCarga(async () => { for (const f of usados) { try { await api('sisatSubir', { cct, momento: m, nombre: f.nombre, datos: await blobAB64(new Blob([f.original])), tipo: f.tipoMime || 'application/vnd.ms-excel' }); ok++; } catch (e) {} } });
+      if (ok < usados.size) aviso(`Se guardaron los resultados, pero solo ${ok} de ${usados.size} archivos se copiaron al Drive.`, 'mal', 9000);
+    }
+    return { ok: true, grupos: payload.length, alumnos: payload.reduce((s, g) => s + g.alumnos.length, 0) };
+  };
+  // Sin dudas (todos los grupos con grado y sin repetir): se guarda directo
+  if (origen.auto && grupos.length && !problemas().length && !errores.length) {
+    const r = await guardar(false);
+    if (origen.lote) return r || { error: 'No se pudo guardar.' };
+    if (r && r.ok) { if (alTerminar) alTerminar(); cerrarModal(); Object.assign(v, { nivel: 'escuela', cct, m }); vSisat(); window.scrollTo(0, 0); aviso(`Listo: se leyeron los Excel y se guardaron ${r.grupos} grupos y ${r.alumnos} alumnos.`, 'ok', 7000); }
+    return r;
+  }
+  if (origen.lote) return { pendiente: true };
   const revisar = () => {
     const msgs = [];
     grupos.forEach((g, i) => { if (!/^[1-6]$/.test(g.grado)) msgs.push(`Al grupo ${i + 1} (${g.alumnos.length} alumnos, empieza con ${g.alumnos[0] ? g.alumnos[0].alumno : '—'}) le falta el grado.`); });
@@ -2713,27 +2788,36 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
     if (!grupos.length) return;
     if (msgs.some(x => /falta el grado|dos veces/.test(x))) { aviso('Falta el grado de algún grupo o hay grupos repetidos.', 'mal'); return; }
     if (msgs.length && !confirm('Hay ' + msgs.length + ' aviso(s). ¿Guardar de todos modos?')) return;
-    const subir = origen.subir && $('#x-subir') && $('#x-subir').checked;
-    const usados = new Set(); grupos.forEach(g => Object.values(g.arch).forEach(f => usados.add(f)));
-    const payload = grupos.map(g => {
-      const agg = sisDeAlumnos(g.alumnos);
-      return Object.assign({ grado: g.grado, grupo: g.grupo }, agg, { alumnos: g.alumnos.map(a => ({ alumno: a.alumno, lec: a.lec || null, tex: a.tex || null, cal: a.cal || null })) });
-    });
-    const r = await accion('sisatGuardar', { ciclo: v.ciclo, momento: m, cct, fuente: 'Excel de la herramienta del SisAT (' + usados.size + ' archivos)', grupos: payload });
-    if (!r) return;
-    S.sis = r.sis;
-    delete SIA[v.ciclo + '|' + cct];
-    if (subir) {
-      let ok = 0;
-      await conCarga(async () => { for (const f of usados) { try { await api('sisatSubir', { cct, momento: m, nombre: f.nombre, datos: await blobAB64(new Blob([f.original])), tipo: f.tipoMime || 'application/vnd.ms-excel' }); ok++; } catch (e) {} } });
-      if (ok < usados.size) aviso(`Se guardaron los resultados, pero solo ${ok} de ${usados.size} archivos se copiaron al Drive.`, 'mal', 9000);
-    }
+    const r = await guardar(origen.subir && $('#x-subir') && $('#x-subir').checked);
+    if (!r || !r.ok) return;
     cerrarModal();
     if (alTerminar) alTerminar();
     Object.assign(v, { nivel: 'escuela', cct, m }); vSisat(); window.scrollTo(0, 0);
-    const n = payload.reduce((s, g) => s + g.alumnos.length, 0);
-    aviso(`Resultados guardados: ${payload.length} grupos y ${n} alumnos.`, 'ok');
+    aviso(`Resultados guardados: ${r.grupos} grupos y ${r.alumnos} alumnos.`, 'ok');
   };
+}
+// Asigna grado y grupo comparando los resultados de cada Excel con los grupos ya guardados (cuántos alumnos en cada nivel)
+function sisAsignarPorConteo(grupos, filas) {
+  if (!filas.length) return;
+  const usados = new Set(grupos.filter(g => g.grado).map(g => g.grado + '|' + g.grupo));
+  const pares = [];
+  grupos.filter(g => !g.grado).forEach(g => {
+    const a = sisDeAlumnos(g.alumnos);
+    filas.forEach(r => {
+      if (usados.has(r.grado + '|' + r.grupo)) return;
+      let d = 0; ['lec', 'tex', 'cal'].forEach(h => ['ne', 'ed', 'ra'].forEach(k => { d += Math.abs((r[h][k] || 0) - a[h][k]); }));
+      pares.push({ g, r, d });
+    });
+  });
+  pares.sort((x, y) => x.d - y.d);
+  pares.forEach(p => {
+    if (p.g.grado || usados.has(p.r.grado + '|' + p.r.grupo)) return;
+    if (p.d > Math.max(3, Math.round(p.g.alumnos.length * 0.15))) return;
+    // si otro grupo guardado queda igual de cerca, no se adivina
+    if (pares.some(q => q.g === p.g && q.r !== p.r && q.d === p.d && !usados.has(q.r.grado + '|' + q.r.grupo))) return;
+    p.g.grado = p.r.grado; p.g.grupo = p.r.grupo; p.g.sug = { grado: p.r.grado, grupo: p.r.grupo, porConteo: true };
+    usados.add(p.r.grado + '|' + p.r.grupo);
+  });
 }
 
 /* ---- Dónde enfocarse: componentes y preguntas con más bajo resultado ----
@@ -2921,8 +3005,10 @@ function sisSeccionAlumnos(v, m, sin1) {
     const x = SIA[v.ciclo + '|' + v.cct] || {};
     const motivo = x.viejo ? `El servidor de Tequio todavía no tiene la versión nueva, por eso no se pueden ver los alumnos. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}`
       : x.error ? 'No se pudieron traer los alumnos: ' + esc(x.error)
-      : 'Estos resultados se cargaron desde las gráficas en PDF o a mano, que solo traen cuántos alumnos hay en cada nivel, no sus nombres. Para ver a los alumnos en rezago, cargue este momento con los <b>Excel de la herramienta del SisAT</b> (Cargar resultados → Leer los Excel del Drive de la escuela).';
-    return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Alumnos en rezago</div><div class="aviso-caja" style="margin:0">${motivo}</div></div>`;
+      : 'Lo que se ve arriba se cargó desde las gráficas en PDF o a mano, que no traen los nombres de los alumnos ni sus respuestas.';
+    const puede = !x.viejo && (!esDirector() || v.cct === miCct());
+    return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Alumnos en rezago</div><div class="aviso-caja" style="margin:0">${motivo}
+      ${puede ? `<div style="margin-top:10px"><button class="boton terra" data-simp="${v.cct}|${m}">Leer los Excel del Drive de esta escuela</button> <span class="peq">Tequio los lee, reconoce cada grupo y guarda a cada alumno.</span></div>` : ''}</div></div>`;
   }
   const mPrev = [1, 2].filter(x => x < m).reverse().find(x => r.todos.some(a => a.momento === x));
   const prev = {}; if (mPrev) r.todos.filter(a => a.momento === mPrev).forEach(a => { prev[a.clave] = a; });
