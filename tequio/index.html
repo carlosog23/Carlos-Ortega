@@ -378,6 +378,21 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-obs{border-top:1px solid var(--borde);padding:10px 0}
 .sis-mini-b{background:none;border:0;color:var(--indigo);text-decoration:underline;cursor:pointer;font-size:13px;padding:4px 6px;min-height:32px}
 .sis-opc{display:flex;gap:8px;flex-wrap:wrap}
+.sis-comp-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:1000px){.sis-comp-g{grid-template-columns:minmax(0,1fr)}}
+.sis-comp-g h3{font-size:15px;margin:0 0 8px}
+.sis-cb{display:grid;grid-template-columns:minmax(0,11em) 1fr 3.6em;gap:8px;align-items:center;font-size:13px;margin-bottom:5px}
+.sis-cb-n{color:var(--tinta);line-height:1.2}.sis-cb-b{display:flex;height:11px;border-radius:999px;background:var(--arena-2);overflow:hidden}.sis-cb-b i{display:block;height:100%}
+.sis-cb-p{text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}
+.sis-nv{display:inline-block;min-width:28px;text-align:center;border-radius:6px;padding:1px 5px;font-size:12px;font-weight:700;color:#fff}
+.sis-nv.ne{background:#2E7D4F}.sis-nv.ed{background:#E8A33D;color:#3B2A0A}.sis-nv.ra{background:#B3261E}
+.sis-al td{white-space:nowrap}.sis-al tr.sis-al-3 td:first-child{border-left:4px solid var(--alerta)}
+.sis-cuenta{display:flex;gap:10px 28px;flex-wrap:wrap;padding:4px 14px 10px}.sis-cuenta b{font-family:'Fraunces',serif;font-size:26px;display:block;line-height:1.1}.sis-cuenta span{font-size:13px;color:var(--gris)}
+.sis-mas-c{margin-top:12px}.sis-mas-c summary{cursor:pointer;color:var(--indigo);font-weight:600;font-size:14px}
+.sis-arch-l{max-height:300px;overflow:auto}.sis-arch-l .sis-arch{cursor:pointer}
+.sis-xg{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--borde);align-items:flex-start;flex-wrap:wrap}
+.sis-xg-a{display:flex;gap:8px}.sis-xg-a select,.sis-xg-a input{padding:7px;border:1px solid var(--borde);border-radius:8px;font:inherit;background:#fff}
+.sis-xg-b{flex:1;min-width:220px}.sis-xg-l{max-height:160px;overflow:auto;padding:6px 0;columns:2;column-gap:18px}
 .sis-arch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--borde)}
 .modal.ancha{max-width:1100px}
 .sis-ed input{width:52px;padding:6px 4px;border:1px solid var(--borde);border-radius:6px;font:inherit;font-size:14px;text-align:center;background:#fff}
@@ -562,7 +577,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -2031,10 +2046,10 @@ const SIS_SUGERENCIA = {
   tex: 'Escritura diaria con propósito real (recados, cartas, instructivos, notas); borrador, revisión entre pares y versión final; trabajar puntuación, conectores y ortografía dentro de los propios textos del alumnado.',
   cal: 'Rutina diaria de 10 minutos de cálculo mental (dobles, complementos a 10, descomposición, sumas y restas de memoria); pedir que expliquen su estrategia y retirar poco a poco el apoyo visual.'
 };
-function sisDiagnostico(a, prev, hijos, ctx) {
+function sisDiagListas(a, prev, hijos, ctx) {
   const F = [], A = [], G = [];
   const nom = h => SIS_H.find(x => x[0] === h)[1];
-  if (!a || !a.grupos) return '';
+  if (!a || !a.grupos) return null;
   SIS_H.forEach(([h]) => {
     const o = a[h]; if (!o.n) return;
     if (o.pra >= SIS_PRIORIDAD) A.push(`<b>${nom(h)}:</b> ${sisFmt(o.pra)} requiere apoyo (${o.ra} de ${o.n} alumnos). Es foco rojo.`);
@@ -2068,6 +2083,7 @@ function sisDiagnostico(a, prev, hijos, ctx) {
       else if (dn >= 5) F.push(`<b>${nom(h)}:</b> el nivel esperado subió ${dn} puntos desde el Momento ${ctx.mPrev}.`);
     });
   }
+  sisDiagComp(ctx.comp, F, A, G);
   SIS_H.forEach(([h]) => { if (a[h].n && a[h].pra >= 25) G.push(`<b>${nom(h)}.</b> ${SIS_SUGERENCIA[h]}`); });
   if (t.n && t.ca > t.sa && !(a.cal.pra >= 25)) G.push(`<b>Cálculo mental.</b> ${SIS_SUGERENCIA.cal}`);
   if (A.length) G.push('Registrar en el CTE las acciones para cada alumno en «requiere apoyo» y revisar su avance en el siguiente momento del SisAT.');
@@ -2075,6 +2091,11 @@ function sisDiagnostico(a, prev, hijos, ctx) {
     const vis = conDatos.filter(x => x.a.maxRa >= SIS_PRIORIDAD).slice().sort((x, y) => y.a.maxRa - x.a.maxRa).slice(0, 5);
     if (vis.length) G.push(`Priorizar el acompañamiento de la Mesa Técnica en: ${vis.map(x => '<b>' + esc(x.etq) + '</b>').join(', ')}.`);
   }
+  return { F, A, G };
+}
+function sisDiagnostico(a, prev, hijos, ctx) {
+  const d = sisDiagListas(a, prev, hijos, ctx); if (!d) return '';
+  const { F, A, G } = d;
   const li = l => l.length ? `<ul>${l.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="mudo peq">Nada que destacar.</p>';
   return `<div class="tarjeta pad sis-diag"><div class="seccion-t" style="padding:0 0 6px">Diagnóstico${ctx.mPrev ? ' y avance' : ''}</div>
     ${ctx.nota ? `<p class="ayuda" style="margin:0 0 10px">${ctx.nota}</p>` : ''}
@@ -2133,7 +2154,7 @@ function vSisat() {
     `<button data-sm="t" aria-pressed="${tend}">Tendencia</button>`;
   const faltan = !esDirector() && esAdmin() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
   const cab = `<div class="titulo-vista"><h1>SisAT · Alerta temprana</h1>
-    <div class="acciones">${!esDirector() ? `<button class="boton terra" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button>` : ''}<button class="boton sec" id="b-sis-imp">Imprimir</button></div></div>
+    <div class="acciones"><button class="boton terra" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">Descargar análisis</button><button class="boton sec" id="b-sis-imp">Imprimir</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
       <select id="s-ciclo" aria-label="Ciclo escolar">${sisCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
@@ -2208,8 +2229,10 @@ function sisCuerpoMomento(v, pred) {
       <span class="peq">${SIS_H.filter(([h]) => x[h].pra >= SIS_PRIORIDAD).map(([h, , c]) => `${c} <b style="color:var(--alerta)">${sisFmt(x[h].pra)}</b>`).join(' · ')}</span></button>`).join('')}${prio.length > 8 ? '</details>' : ''}</div></div>` : '';
   const nota = sin1 && filas.some(r => r.grado === '1') ? `En este concentrado <b>1.° grado no se cuenta en lectura ni en escritura</b> (sí en cálculo): al inicio del ciclo aún no leen ni escriben de forma convencional y su resultado es el punto de partida, no un rezago. <button class="boton sec chico" id="b-sis-con1" style="text-transform:none;letter-spacing:0">Contar 1.° grado</button>`
     : (+m === 1 && v.con1 && (v.nivel === 'zona' || v.nivel === 'escuela') ? `Se está contando 1.° grado en lectura y escritura. <button class="boton sec chico" id="b-sis-con1" style="text-transform:none;letter-spacing:0">Quitar 1.° grado</button>` : '');
+  const comp = sisCompSuma(filas, sin1);
   return cobertura + sisTarjetas(a, prev, mPrev) + sisLeyenda() +
-    sisDiagnostico(a, prev, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel, mPrev, prioritarios: prio, nota }) + prioHtml + tablas;
+    sisDiagnostico(a, prev, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel, mPrev, prioritarios: prio, nota, comp }) +
+    sisComponentes(comp) + sisSeccionAlumnos(v, m, sin1) + prioHtml + tablas;
 }
 function sisMiniGrafica(serie) {   // serie: [{m, pne, pra}]
   const W = 300, H = 120, x = i => 30 + i * 120, y = p => 100 - p * 0.9;
@@ -2234,7 +2257,13 @@ function sisCuerpoTendencia(v, pred) {
         <tr><td>Req. apoyo</td>${serie.map(s => `<td>${sisFmt(s.pra)}</td>`).join('')}</tr></table>
       ${c.length >= 2 ? `<div class="peq" style="margin-top:6px">Del M${pri.m} al M${ult.m}: esperado ${sisDelta(ult.pne, pri.pne)} · req. apoyo ${sisDelta(ult.pra, pri.pra, true)}</div>` : '<div class="peq mudo" style="margin-top:6px">La tendencia aparece cuando haya dos momentos.</div>'}
     </div>`; }).join('')}</div>`;
-  // conclusiones
+  const { F, A } = sisTendListas(con);
+  const li = l => l.length ? `<ul>${l.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="mudo peq">Sin datos suficientes.</p>';
+  const concl = `<div class="tarjeta pad sis-diag"><div class="seccion-t" style="padding:0 0 6px">Conclusión de la tendencia</div>
+    <div class="sis-diag-g" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><h3 class="bien">Avances</h3>${li(F)}</div><div><h3 class="mal">Sin avance o retroceso</h3>${li(A)}</div></div></div>`;
+  return sisTendResto(v, ms, tarj, concl);
+}
+function sisTendListas(con) {
   const F = [], A = [];
   if (con.length >= 2) {
     const p = con[0], u = con[con.length - 1];
@@ -2248,10 +2277,9 @@ function sisCuerpoTendencia(v, pred) {
     });
     if (u.a.ind != null && p.a.ind != null) (u.a.ind >= p.a.ind ? F : A).push(`Índice general: ${p.a.ind} en el M${p.m} → ${u.a.ind} en el M${u.m}.`);
   }
-  const li = l => l.length ? `<ul>${l.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="mudo peq">Sin datos suficientes.</p>';
-  const concl = `<div class="tarjeta pad sis-diag"><div class="seccion-t" style="padding:0 0 6px">Conclusión de la tendencia</div>
-    <div class="sis-diag-g" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><h3 class="bien">Avances</h3>${li(F)}</div><div><h3 class="mal">Sin avance o retroceso</h3>${li(A)}</div></div></div>`;
-  // hijos por índice en cada momento
+  return { F, A };
+}
+function sisTendHijos(v, ms) {
   let filasH = [];
   if (v.nivel === 'zona' && !esDirector()) filasH = filtroEscuelas().map(c => ({ etq: c.escuela, f: r => r.cct === c.cct, ir: `data-sesc="${c.cct}"` }));
   else if (v.nivel === 'zona' || v.nivel === 'escuela') filasH = ['1', '2', '3', '4', '5', '6'].map(gr => ({ etq: gr + '.° grado', f: r => r.grado === gr, ir: v.nivel === 'escuela' ? `data-sgr="${gr}"` : (esDirector() ? '' : `data-szg="${gr}"`) }));
@@ -2260,13 +2288,16 @@ function sisCuerpoTendencia(v, pred) {
     ms.forEach(x => x.f.forEach(r => { vistos[r.cct + '|' + r.grupo] = r; }));
     filasH = Object.values(vistos).map(r => ({ etq: (v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : 'Grupo ') + sisNomGrupo(r), f: q => q.cct === r.cct && q.grupo === r.grupo, ir: `data-sgrp="${r.cct}|${r.grado}|${esc(r.grupo)}"` }));
   }
-  const filasT = filasH.map(h => ({ h, ind: ms.map(x => { const f = x.f.filter(h.f); return f.length ? sisSuma(f, false).ind : null; }) })).filter(o => o.ind.some(x => x != null));
+  return filasH.map(h => ({ h, ind: ms.map(x => { const f = x.f.filter(h.f); return f.length ? sisSuma(f, false).ind : null; }) })).filter(o => o.ind.some(x => x != null));
+}
+function sisTendResto(v, ms, tarj, concl) {
+  const filasT = sisTendHijos(v, ms);
   const tabla = filasT.length ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Índice por momento</div><div class="matriz-caja"><table class="matriz sis-tab">
     <thead><tr><th class="esc-col">${v.nivel === 'zona' && !esDirector() ? 'Escuela' : v.nivel === 'grado' || v.nivel === 'zgrado' ? 'Grupo' : 'Grado'}</th><th>M1</th><th>M2</th><th>M3</th><th>Cambio</th></tr></thead>
     <tbody>${filasT.map(o => { const c = o.ind.filter(x => x != null); return `<tr><td class="esc-col">${o.h.ir ? `<button class="sis-ir" ${o.h.ir}>${esc(o.h.etq)}</button>` : esc(o.h.etq)}</td>
       ${o.ind.map(x => `<td><span class="sis-ind" style="background:${sisColorInd(x)}">${x == null ? '—' : x}</span></td>`).join('')}
       <td>${c.length >= 2 ? sisDelta(c[c.length - 1], c[0]).replace(' pts', '') : '<span class="mudo">—</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>` : '';
-  return tarj + concl + tabla;
+  return tarj + concl + sisTendenciaAlumnos(v) + tabla;
 }
 
 /* ---- Observaciones y acciones de mejora por nivel ---- */
@@ -2303,8 +2334,10 @@ function sisEnlazar(v) {
   if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vSisat(); };
   if ($('#b-sis-orden')) $('#b-sis-orden').onclick = () => { v.orden = v.orden === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-con1')) $('#b-sis-con1').onclick = () => { v.con1 = !v.con1; vSisat(); };
+  if ($('#b-sis-oal')) $('#b-sis-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
+  if ($('#b-sis-doc')) $('#b-sis-doc').onclick = () => sisDescargar(v);
   if ($('#b-sis-imp')) $('#b-sis-imp').onclick = () => window.print();
-  if ($('#b-sis-cargar')) $('#b-sis-cargar').onclick = () => sisFormCarga(v.nivel === 'zona' || v.nivel === 'zgrado' ? '' : v.cct, typeof v.m === 'number' ? v.m : 1);
+  if ($('#b-sis-cargar')) $('#b-sis-cargar').onclick = () => sisFormCarga(esDirector() ? miCct() : v.nivel === 'zona' || v.nivel === 'zgrado' ? '' : v.cct, typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-semilla')) $('#b-sis-semilla').onclick = async () => {
     for (const p of SIS_SEMILLA) {
       if ((S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) continue;
@@ -2327,24 +2360,31 @@ function sisEnlazar(v) {
 /* ---- Carga de resultados (Supervisión y Mesa Técnica) ---- */
 function sisFormCarga(cct, m) {
   const v = sisV();
-  const escs = directores();
+  const escs = esDirector() ? directores().filter(c => c.cct === miCct()) : directores();
+  const viejo = S.version && S.version < 8;
   modal('Cargar resultados del SisAT', `
-    <div class="fila dos"><div class="campo"><label for="c-esc">Escuela</label><select id="c-esc"><option value="">Elija la escuela…</option>${escs.map(c => `<option value="${c.cct}" ${c.cct === cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
+    <div class="fila dos"><div class="campo"><label for="c-esc">Escuela</label><select id="c-esc" ${esDirector() ? 'disabled' : ''}>${esDirector() ? '' : '<option value="">Elija la escuela…</option>'}${escs.map(c => `<option value="${c.cct}" ${c.cct === cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
       <div class="campo"><label for="c-m">Momento</label><select id="c-m">${[1, 2, 3].map(x => `<option value="${x}" ${x === m ? 'selected' : ''}>Momento ${x}</option>`).join('')}</select></div></div>
-    <p class="ayuda" style="margin-top:0">Ciclo ${esc(v.ciclo)}. Tequio lee con IA las gráficas que exporta el SisAT (PDF o imágenes) y le muestra los números para revisarlos antes de guardar.</p>
+    <p class="ayuda" style="margin-top:0">Ciclo ${esc(v.ciclo)}. Lo principal son los <b>Excel que descarga la herramienta del SisAT</b> (herrLectura, herrTextos y herrCalculo de cada grupo): traen el resultado de cada alumno y de cada componente.${esDirector() ? '' : ' Si una escuela solo tiene las gráficas en PDF, Tequio también puede leerlas con IA.'}</p>
+    ${viejo ? `<div class="aviso-caja" style="border-color:var(--alerta)">Para leer los Excel, el servidor de Tequio necesita la versión nueva. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</div>` : ''}
     <div id="c-estado"></div>
     <div class="sis-opc">
-      <button class="boton" id="c-drive">${ico('i-carpeta')}Buscar en el Drive de la escuela</button>
+      <button class="boton" id="c-xdrive" ${viejo ? 'disabled' : ''}>${ico('i-carpeta')}Leer los Excel del Drive de la escuela</button>
+      <label class="boton sec" style="cursor:pointer">${ico('i-mas')}Subir Excel<input type="file" id="c-xarch" accept=".xls,.xlsx,.html,.htm,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden ${viejo ? 'disabled' : ''}></label>
+    </div>
+    ${esDirector() ? '' : `<details class="sis-mas-c"><summary>Otras formas de cargar (gráficas en PDF o captura por grupo)</summary>
+    <div class="sis-opc" style="margin-top:8px">
+      <button class="boton sec" id="c-drive">${ico('i-carpeta')}Gráficas en el Drive (IA)</button>
       <label class="boton sec" style="cursor:pointer">${ico('i-mas')}Subir PDF o imágenes<input type="file" id="c-arch" accept="application/pdf,image/*" hidden></label>
       <button class="boton sec" id="c-mano">${ico('i-lapiz')}Capturar a mano</button>
-    </div>
+    </div></details>`}
     <div id="c-lista"></div>`, '');
   const sel = () => ({ cct: $('#c-esc').value, m: +$('#c-m').value });
   const estado = () => {
     const { cct, m } = sel();
     const hay = cct ? (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === m && r.cct === cct) : [];
     $('#c-estado').innerHTML = hay.length ? `<div class="aviso-caja" style="margin:0 0 10px">Esta escuela ya tiene <b>${hay.length} grupos</b> guardados en el Momento ${m}. Si carga de nuevo, se reemplazan.
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec chico" id="c-editar">Revisar o corregir lo guardado</button>${esAdmin() ? '<button class="boton peligro chico" id="c-borrar">Eliminar</button>' : ''}</div></div>` : '';
+      ${esDirector() ? '' : `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec chico" id="c-editar">Revisar o corregir lo guardado</button>${esAdmin() ? '<button class="boton peligro chico" id="c-borrar">Eliminar</button>' : ''}</div>`}</div>` : '';
     if ($('#c-editar')) $('#c-editar').onclick = () => sisEditor(cct, m, { grupos: hay.map(sisNorm).sort((x, y) => y.grado.localeCompare(x.grado) || y.grupo.localeCompare(x.grupo)) }, null);
     if ($('#c-borrar')) $('#c-borrar').onclick = async () => {
       if (!confirm('¿Eliminar los resultados del Momento ' + m + ' de ' + nombreEscuela(cct) + '?')) return;
@@ -2361,6 +2401,9 @@ function sisFormCarga(cct, m) {
     const g = (r.leido.grupos || []).map(x => Object.assign(sisEtiqueta(x.etiqueta), x));
     sisEditor(s.cct, s.m, { grupos: g, escuela: r.leido.escuela, notas: r.leido.notas, exploracion: r.leido.exploracion, fuente: r.archivo.nombre }, r.archivo);
   };
+  $('#c-xdrive').onclick = () => { const s = falta(); if (s) sisExcelDesdeDrive(s.cct, s.m); };
+  $('#c-xarch').onchange = e => { const s = falta(); const fs = Array.from(e.target.files); e.target.value = ''; if (s) sisExcelSubidos(s.cct, s.m, fs); };
+  if (esDirector()) return;
   $('#c-drive').onclick = async () => {
     const s = falta(); if (!s) return;
     const r = await accion('sisatArchivos', { cct: s.cct, momento: s.m });
@@ -2441,6 +2484,685 @@ function sisEditor(cct, m, d, archivo) {
   };
 }
 
+/* ---- Excel de la herramienta oficial del SisAT ----
+   La herramienta en línea exporta un archivo por grupo y por herramienta (herrLectura, herrTextos, herrCalculo).
+   Aunque terminan en .xls son páginas HTML con una tabla: Alumno, componentes I a VI (o reactivos I a X), PTS, (PV) y NIVEL.
+   No traen escuela, grado ni grupo: la escuela sale de su carpeta y el grado y grupo se asignan al revisar
+   (Tequio los sugiere comparando los nombres con los momentos anteriores). */
+const SIS_COMP = {
+  lec: ['Fluidez', 'Precisión', 'Atención a palabras complejas', 'Uso de la voz', 'Seguridad y disposición', 'Comprensión'],
+  tex: ['Legibilidad', 'Propósito comunicativo', 'Relación entre palabras y oraciones', 'Diversidad de vocabulario', 'Puntuación', 'Ortografía']
+};
+const SIS_ROM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const sisSinAc = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+const sisClave = n => sisSinAc(n).toUpperCase().replace(/[^A-ZÑ]+/g, ' ').trim();
+// «AGUILERA / ROJAS * NICOLE AITANA» → «Aguilera Rojas Nicole Aitana»
+const sisNombreAlumno = n => String(n || '').replace(/[\/*]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().replace(/(^|[\s'-])([a-zñáéíóúü])/g, (x, a, b) => a + b.toUpperCase());
+const sisNivTxt = t => { t = sisSinAc(t).toUpperCase(); return /REQUIERE/.test(t) ? 'RA' : /DESARROLLO/.test(t) ? 'ED' : /ESPERADO/.test(t) ? 'NE' : ''; };
+const sisNivPts = (h, p) => p == null ? '' : h === 'cal' ? (p >= 8 ? 'NE' : p >= 5 ? 'ED' : 'RA') : (p >= 15 ? 'NE' : p >= 10 ? 'ED' : 'RA');
+const SIS_HERR = { lec: 'Lectura', tex: 'Producción de textos', cal: 'Cálculo mental' };
+
+// Renglones (arreglos de texto) de un archivo: HTML disfrazado de .xls o un Excel de verdad
+async function sisRenglones(nombre, bytes) {
+  const inicio = new TextDecoder('utf-8').decode(bytes.slice(0, 4000)).replace(/^﻿/, '').trimStart();
+  if (/^<(!doctype|html|head|body|table|meta|div|\?xml)/i.test(inicio) || /<table/i.test(inicio)) {
+    let texto = new TextDecoder('utf-8').decode(bytes);
+    if (/�/.test(texto.slice(0, 20000))) texto = new TextDecoder('windows-1252').decode(bytes);
+    const doc = new DOMParser().parseFromString(texto, 'text/html');
+    return $$('tr', doc).map(tr => Array.from(tr.cells).map(td => td.textContent.replace(/\s+/g, ' ').trim()));
+  }
+  await cargarScript('lib/xlsx.full.min.js');
+  const wb = window.XLSX.read(bytes, { type: 'array' });
+  let filas = [];
+  wb.SheetNames.forEach(n => { if (!filas.length || filas.length < 3) filas = window.XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' }).map(r => r.map(c => String(c).replace(/\s+/g, ' ').trim())); });
+  return filas;
+}
+
+// Lee un archivo del SisAT: herramienta (lec, tex o cal) y resultado de cada alumno
+async function sisLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
+  const filas = await sisRenglones(a.nombre, a.bytes);
+  const hi = filas.findIndex(r => r.some(c => /^PTS$/i.test(c)) && r.some(c => c === 'I'));
+  if (hi < 0) return Object.assign({}, a, { error: 'No tiene la tabla de resultados del SisAT.' });
+  const cab = filas[hi].map(c => c.toUpperCase());
+  const cols = SIS_ROM.map(r => cab.indexOf(r)).filter(i => i >= 0);
+  const iP = cab.indexOf('PTS'), iV = cab.indexOf('PV'), iN = cab.indexOf('NIVEL');
+  const nom = sisSinAc(a.nombre).toLowerCase();
+  const tipo = cols.length >= 10 || iV >= 0 || /calc/.test(nom) ? 'cal' : /text|escri|produc/.test(nom) ? 'tex' : /lect/.test(nom) ? 'lec' : '';
+  const num = x => { const n = parseInt(String(x).replace(/[^\d]/g, ''), 10); return isFinite(n) ? n : null; };
+  const alumnos = [];
+  filas.slice(hi + 1).forEach(r => {
+    const nombre = r[0] || '';
+    if (r.length <= iP || !/[A-Za-zÑñ]{2}/.test(nombre) || /^(alumno|total|promedio)/i.test(nombre)) return;
+    const c = cols.map(i => String(r[i] || '').toLowerCase().replace(/\s+/g, ''));
+    const p = num(r[iP]), v = iV >= 0 ? num(r[iV]) : null;
+    const h = tipo || 'lec';
+    alumnos.push({ alumno: sisNombreAlumno(nombre), clave: sisClave(nombre), c, p, v, n: (iN >= 0 && sisNivTxt(r[iN])) || sisNivPts(h, p) });
+  });
+  if (!alumnos.length) return Object.assign({}, a, { error: 'La tabla no tiene alumnos.' });
+  return Object.assign({}, a, { tipo, componentes: cols.length, alumnos, bytes: undefined, original: a.bytes });
+}
+
+// Junta en grupos los archivos que tienen a los mismos alumnos (uno de lectura, uno de textos y uno de cálculo por grupo)
+function sisAgrupar(leidos) {
+  const grupos = [], avisos = [];
+  const coincide = (a, b) => { const B = new Set(b); let n = 0; a.forEach(x => { if (B.has(x)) n++; }); return n / Math.max(1, Math.min(a.length, b.length)); };
+  const orden = { lec: 0, tex: 1, cal: 2, '': 3 };
+  leidos.filter(x => !x.error).sort((x, y) => orden[x.tipo] - orden[y.tipo]).forEach(f => {
+    const claves = f.alumnos.map(x => x.clave);
+    let mejor = null, mc = 0;
+    grupos.forEach(g => { const c = coincide(claves, g.claves); if (c > mc) { mc = c; mejor = g; } });
+    if (mejor && mc >= 0.6) {
+      const t = f.tipo || (mejor.arch.lec ? 'tex' : 'lec');
+      if (mejor.arch[t]) {   // el mismo grupo dos veces: se queda el más reciente
+        const viejo = mejor.arch[t];
+        if (String(f.fecha || '') > String(viejo.fecha || '')) mejor.arch[t] = f;
+        avisos.push(`«${mejor.arch[t].nombre}» y «${(mejor.arch[t] === f ? viejo : f).nombre}» son ${SIS_HERR[t].toLowerCase()} del mismo grupo; se usa el más reciente (${mejor.arch[t].nombre}).`);
+      } else mejor.arch[t] = f;
+      claves.forEach(k => { if (mejor.claves.indexOf(k) < 0) mejor.claves.push(k); });
+    } else grupos.push({ arch: { [f.tipo || 'lec']: f }, claves: claves.slice() });
+  });
+  grupos.forEach(g => {
+    const porClave = {};
+    ['lec', 'tex', 'cal'].forEach(h => { const f = g.arch[h]; if (!f) return;
+      f.alumnos.forEach(x => { const o = porClave[x.clave] || (porClave[x.clave] = { alumno: x.alumno, clave: x.clave }); o[h] = { c: x.c, p: x.p, v: x.v, n: x.n }; }); });
+    g.alumnos = Object.values(porClave).sort((x, y) => x.clave.localeCompare(y.clave, 'es'));
+    g.faltan = ['lec', 'tex', 'cal'].filter(h => !g.arch[h]);
+  });
+  return { grupos, avisos };
+}
+
+// Concentrado de un grupo a partir de sus alumnos (lo que se guarda por grupo y alimenta zona, grado y escuela)
+function sisDeAlumnos(als) {
+  const g = { tip: { sa: 0, ca: 0, inc: 0 }, comp: { lec: { s: [0, 0, 0, 0, 0, 0], n: 0 }, tex: { s: [0, 0, 0, 0, 0, 0], n: 0 }, cal: { s: Array(10).fill(0), v: Array(10).fill(0), n: 0 } } };
+  ['lec', 'tex', 'cal'].forEach(h => { g[h] = { ne: 0, ed: 0, ra: 0 }; });
+  als.forEach(a => ['lec', 'tex', 'cal'].forEach(h => {
+    const r = a[h]; if (!r || !r.n) return;
+    g[h][r.n.toLowerCase()]++;
+    const cp = g.comp[h]; cp.n++;
+    if (h === 'cal') (r.c || []).slice(0, 10).forEach((x, i) => {
+      if (x === '1v' || x === 'v') { g.tip.ca++; cp.s[i]++; cp.v[i]++; } else if (x === '1') { g.tip.sa++; cp.s[i]++; } else g.tip.inc++;
+    });
+    else (r.c || []).slice(0, 6).forEach((x, i) => { cp.s[i] += Math.max(0, Math.min(3, +x || 0)); });
+  }));
+  ['lec', 'tex', 'cal'].forEach(h => { if (!g.comp[h].n) delete g.comp[h]; });
+  return g;
+}
+
+/* ---- Alumnos de una escuela (se piden al servidor solo cuando se consulta esa escuela) ---- */
+const SIA = {};   // 'ciclo|cct' → { alumnos: [], cargando: Promise }
+function sisAlumnosDe(ciclo, cct) { const x = SIA[ciclo + '|' + cct]; return x && x.alumnos ? x.alumnos : null; }
+async function sisPedirAlumnos(ciclo, cct, forzar) {
+  const k = ciclo + '|' + cct;
+  if (!cct || !S || (S.version && S.version < 8)) return [];
+  if (SIA[k] && !forzar) return SIA[k].cargando || SIA[k].alumnos;
+  SIA[k] = { cargando: api('sisatAlumnos', { ciclo, cct }).then(r => { SIA[k] = { alumnos: (r.alumnos || []).map(sisNormAlumno) }; return SIA[k].alumnos; })
+    .catch(e => { delete SIA[k]; aviso(esc(e.message), 'mal', 8000); return []; }) };
+  return SIA[k].cargando;
+}
+function sisNormAlumno(a) {
+  const r = x => x && typeof x === 'object' && !Array.isArray(x) ? { c: x.c || [], p: x.p == null ? null : +x.p, v: x.v == null ? null : +x.v, n: x.n || '' } : null;
+  return Object.assign({}, a, { momento: +a.momento, grado: String(a.grado), grupo: String(a.grupo || ''), num: +a.num || 0, lec: r(a.lec), tex: r(a.tex), cal: r(a.cal), clave: sisClave(a.alumno) });
+}
+
+/* ---- Carga desde los Excel ---- */
+async function sisExcelDesdeDrive(cct, m, alTerminar) {
+  const r = await accion('sisatArchivos', { cct, momento: m, excel: true });
+  if (!r) return;
+  const caja = $('#c-lista');
+  if (!r.archivos.length) {
+    caja.innerHTML = `<div class="aviso-caja" style="margin-top:12px">${esc(r.mensaje || 'No hay archivos de Excel en ' + (r.ruta || 'la carpeta del SisAT') + '.')} La escuela debe subir ahí los archivos que descarga de la herramienta del SisAT (herrLectura, herrTextos y herrCalculo de cada grupo), o puede subirlos usted con «Subir Excel».</div>`;
+    return;
+  }
+  caja.innerHTML = `<div class="seccion-t" style="padding:12px 0 4px">En ${esc(r.ruta)} · ${r.archivos.length} archivo${r.archivos.length === 1 ? '' : 's'}</div>
+    <div class="sis-arch-l">${r.archivos.map(a => `<label class="sis-arch"><span><input type="checkbox" data-cx="${a.id}" checked> <b>${esc(a.nombre)}</b><br><span class="peq mudo">${fechaCorta(a.fecha.slice(0, 10))} ${a.fecha.slice(11, 16)} · ${a.kb} KB</span></span></label>`).join('')}</div>
+    <div style="margin-top:10px"><button class="boton" id="c-leer-x">Leer los seleccionados</button></div>`;
+  $('#c-leer-x').onclick = async () => {
+    const ids = $$('[data-cx]').filter(x => x.checked).map(x => x.dataset.cx);
+    if (!ids.length) { aviso('Seleccione al menos un archivo.', 'mal'); return; }
+    const b = await accion('sisatBajar', { cct, momento: m, ids });
+    if (!b) return;
+    const leidos = await conCarga(() => Promise.all(b.archivos.map(a => sisLeerArchivo({ id: a.id, nombre: a.nombre, fecha: a.fecha, bytes: b64aBytes(a.datos) }).catch(e => ({ nombre: a.nombre, error: e.message })))));
+    if (leidos) sisRevisarExcel(cct, m, leidos, { ruta: b.ruta, subir: false }, alTerminar);
+  };
+}
+async function sisExcelSubidos(cct, m, archivos, alTerminar) {
+  const lista = Array.from(archivos || []);
+  if (!lista.length) return;
+  const grandes = lista.filter(f => f.size > 5 * 1024 * 1024);
+  if (grandes.length) { aviso('Estos archivos pesan más de 5 MB y no parecen del SisAT: ' + esc(grandes.map(f => f.name).join(', ')), 'mal', 9000); return; }
+  const leidos = await conCarga(() => Promise.all(lista.map(async f => {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    return sisLeerArchivo({ nombre: f.name, fecha: new Date(f.lastModified || Date.now()).toISOString().slice(0, 16), bytes, tipoMime: f.type }).catch(e => ({ nombre: f.name, error: e.message }));
+  })));
+  if (leidos) sisRevisarExcel(cct, m, leidos, { subir: true }, alTerminar);
+}
+
+// Sugerencia de grado y grupo: el grupo de otro momento del ciclo con más alumnos en común
+function sisSugerir(claves, previos) {
+  const porGrupo = {};
+  previos.forEach(a => { const k = a.grado + '|' + a.grupo; (porGrupo[k] = porGrupo[k] || new Set()).add(a.clave); });
+  let mejor = null, mc = 0;
+  Object.entries(porGrupo).forEach(([k, set]) => { let n = 0; claves.forEach(c => { if (set.has(c)) n++; }); const c = n / Math.max(1, Math.min(claves.length, set.size)); if (c > mc) { mc = c; mejor = k; } });
+  if (!mejor || mc < 0.5) return null;
+  const [grado, grupo] = mejor.split('|');
+  return { grado, grupo, coincidencia: Math.round(mc * 100) };
+}
+
+async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
+  const v = sisV();
+  const previos = (await sisPedirAlumnos(v.ciclo, cct)).filter(a => a.momento !== m);
+  // Si la herramienta de un archivo no se reconoce por el nombre, se elige en la revisión
+  const dudosos = leidos.filter(x => !x.error && !x.tipo);
+  let { grupos, avisos } = sisAgrupar(leidos);
+  const errores = leidos.filter(x => x.error);
+  grupos.forEach(g => {
+    const s = sisSugerir(g.claves, previos);
+    g.grado = s ? s.grado : ''; g.grupo = s ? s.grupo : ''; g.sug = s;
+  });
+  grupos.sort((x, y) => (x.grado || '9').localeCompare(y.grado || '9') || x.grupo.localeCompare(y.grupo) || y.alumnos.length - x.alumnos.length);
+  const hay = (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === m && r.cct === cct);
+  const pintar = () => {
+    $('#x-grupos').innerHTML = grupos.map((g, i) => {
+      const nl = g.alumnos.length;
+      const herr = ['lec', 'tex', 'cal'].map(h => g.arch[h] ? `<span class="chip ok" title="${esc(g.arch[h].nombre)}">✓ ${SIS_HERR[h]}</span>` : `<span class="chip" style="background:var(--alerta-f);color:var(--alerta)">Falta ${SIS_HERR[h].toLowerCase()}</span>`).join(' ');
+      const ra = h => g.alumnos.filter(a => a[h] && a[h].n === 'RA').length;
+      return `<div class="sis-xg">
+        <div class="sis-xg-a">
+          <div class="campo" style="margin:0"><label for="x-gr${i}">Grado</label><select id="x-gr${i}" data-xgr="${i}"><option value="">—</option>${[1, 2, 3, 4, 5, 6].map(n => `<option ${String(n) === g.grado ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+          <div class="campo" style="margin:0"><label for="x-gp${i}">Grupo</label><input id="x-gp${i}" data-xgp="${i}" value="${esc(g.grupo)}" maxlength="6" style="width:64px" placeholder="A"></div>
+        </div>
+        <div class="sis-xg-b"><b>${nl} alumno${nl === 1 ? '' : 's'}</b> ${g.sug ? `<span class="peq" style="color:var(--ok)">· sugerido: ${g.sug.grado}° ${esc(g.sug.grupo)} (${g.sug.coincidencia}% de los alumnos coinciden con el Momento anterior)</span>` : ''}
+          <div class="peq" style="margin:4px 0">${herr}</div>
+          <div class="peq mudo">Requieren apoyo: lectura ${ra('lec')} · textos ${ra('tex')} · cálculo ${ra('cal')}</div>
+          <details class="peq" style="margin-top:4px"><summary>Ver alumnos</summary><div class="sis-xg-l">${g.alumnos.map(a => esc(a.alumno)).join('<br>')}</div></details>
+        </div></div>`;
+    }).join('') || '<div class="aviso-caja">No se encontraron resultados de alumnos en los archivos.</div>';
+    $$('[data-xgr]').forEach(s => s.onchange = () => { grupos[+s.dataset.xgr].grado = s.value; revisar(); });
+    $$('[data-xgp]').forEach(s => s.oninput = () => { grupos[+s.dataset.xgp].grupo = s.value.trim().toUpperCase(); revisar(); });
+    revisar();
+  };
+  const revisar = () => {
+    const msgs = [];
+    grupos.forEach((g, i) => { if (!/^[1-6]$/.test(g.grado)) msgs.push(`Al grupo ${i + 1} (${g.alumnos.length} alumnos, empieza con ${g.alumnos[0] ? g.alumnos[0].alumno : '—'}) le falta el grado.`); });
+    const vistos = {}; grupos.forEach(g => { const k = g.grado + '-' + g.grupo; if (g.grado && vistos[k]) msgs.push(`El grupo ${g.grado}° ${g.grupo} está dos veces.`); vistos[k] = 1; });
+    grupos.forEach(g => { if (g.faltan.length && g.grado) msgs.push(`${g.grado}° ${g.grupo}: falta el archivo de ${g.faltan.map(h => SIS_HERR[h].toLowerCase()).join(' y ')}.`); });
+    $('#x-rev').innerHTML = msgs.length ? `<div class="aviso-caja"><b>Revise:</b><ul style="margin:6px 0 0 18px;padding:0">${msgs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '<div class="aviso-caja" style="background:var(--ok-f);border-color:var(--ok)"><b>✓ Listo para guardar.</b></div>';
+    return msgs;
+  };
+  const ve = modal(`${esc(nombreEscuela(cct))} · Momento ${m} · Excel del SisAT`, `
+    <p class="ayuda" style="margin-top:0">Se leyeron ${leidos.length - errores.length} de ${leidos.length} archivos y se formaron <b>${grupos.length} grupo${grupos.length === 1 ? '' : 's'}</b> juntando los archivos que tienen a los mismos alumnos.
+      Los archivos de la herramienta no dicen el grado ni el grupo: ${previos.length ? 'Tequio los sugiere comparando los nombres con el momento anterior;' : 'escríbalos para cada grupo (abra «Ver alumnos» si necesita identificarlo);'} revíselos antes de guardar.</p>
+    ${hay.length ? `<div class="aviso-caja">Esta escuela ya tiene ${hay.length} grupos guardados en el Momento ${m}: <b>se reemplazarán</b> con lo que guarde aquí.</div>` : ''}
+    ${errores.length ? `<div class="aviso-caja" style="border-color:var(--alerta)"><b>No se pudieron leer:</b> ${errores.map(x => esc(x.nombre) + ' (' + esc(x.error) + ')').join('; ')}.</div>` : ''}
+    ${avisos.length ? `<div class="aviso-caja"><ul style="margin:0 0 0 18px;padding:0">${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${dudosos.length ? `<div class="aviso-caja">No se reconoció si ${dudosos.length === 1 ? 'este archivo es' : 'estos archivos son'} de lectura o de producción de textos; se tomaron como lectura: ${dudosos.map(x => esc(x.nombre)).join(', ')}. Si no es así, cámbieles el nombre (que diga «Lectura» o «Textos») y cárguelos otra vez.</div>` : ''}
+    ${+m === 1 ? '<p class="ayuda">En el Momento 1, 1.° grado suele salir completo en «requiere apoyo» en lectura y textos: aún no leen ni escriben de forma convencional. Es el punto de partida, no un rezago.</p>' : ''}
+    <div id="x-rev"></div>
+    <div id="x-grupos"></div>
+    ${origen.subir ? '<label class="peq" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="x-subir" checked> Guardar también los archivos en la carpeta del SisAT de la escuela (Momento ' + m + ')</label>' : ''}`,
+    '<button class="boton sec" id="x-no">Cancelar</button><button class="boton terra" id="x-si">Guardar resultados</button>');
+  ve.querySelector('.modal').classList.add('ancha');
+  pintar();
+  $('#x-no').onclick = cerrarModal;
+  $('#x-si').onclick = async () => {
+    const msgs = revisar();
+    if (!grupos.length) return;
+    if (msgs.some(x => /falta el grado|dos veces/.test(x))) { aviso('Falta el grado de algún grupo o hay grupos repetidos.', 'mal'); return; }
+    if (msgs.length && !confirm('Hay ' + msgs.length + ' aviso(s). ¿Guardar de todos modos?')) return;
+    const subir = origen.subir && $('#x-subir') && $('#x-subir').checked;
+    const usados = new Set(); grupos.forEach(g => Object.values(g.arch).forEach(f => usados.add(f)));
+    const payload = grupos.map(g => {
+      const agg = sisDeAlumnos(g.alumnos);
+      return Object.assign({ grado: g.grado, grupo: g.grupo }, agg, { alumnos: g.alumnos.map(a => ({ alumno: a.alumno, lec: a.lec || null, tex: a.tex || null, cal: a.cal || null })) });
+    });
+    const r = await accion('sisatGuardar', { ciclo: v.ciclo, momento: m, cct, fuente: 'Excel de la herramienta del SisAT (' + usados.size + ' archivos)', grupos: payload });
+    if (!r) return;
+    S.sis = r.sis;
+    delete SIA[v.ciclo + '|' + cct];
+    if (subir) {
+      let ok = 0;
+      await conCarga(async () => { for (const f of usados) { try { await api('sisatSubir', { cct, momento: m, nombre: f.nombre, datos: await blobAB64(new Blob([f.original])), tipo: f.tipoMime || 'application/vnd.ms-excel' }); ok++; } catch (e) {} } });
+      if (ok < usados.size) aviso(`Se guardaron los resultados, pero solo ${ok} de ${usados.size} archivos se copiaron al Drive.`, 'mal', 9000);
+    }
+    cerrarModal();
+    if (alTerminar) alTerminar();
+    Object.assign(v, { nivel: 'escuela', cct, m }); vSisat(); window.scrollTo(0, 0);
+    const n = payload.reduce((s, g) => s + g.alumnos.length, 0);
+    aviso(`Resultados guardados: ${payload.length} grupos y ${n} alumnos.`, 'ok');
+  };
+}
+
+/* ---- Análisis por componente y por alumno (cuando los resultados vienen de los Excel) ---- */
+// Suma de componentes de varios grupos. sin1: en concentrados del Momento 1, 1.° grado no cuenta en lectura ni textos.
+function sisCompSuma(filas, sin1) {
+  const c = { lec: { s: [0, 0, 0, 0, 0, 0], n: 0 }, tex: { s: [0, 0, 0, 0, 0, 0], n: 0 }, cal: { s: Array(10).fill(0), v: Array(10).fill(0), n: 0 } };
+  let hay = false;
+  filas.forEach(r => {
+    const k = r.comp && !Array.isArray(r.comp) ? r.comp : null; if (!k) return;
+    ['lec', 'tex', 'cal'].forEach(h => {
+      const o = k[h]; if (!o || !o.n) return;
+      if (sin1 && h !== 'cal' && String(r.grado) === '1') return;
+      hay = true; c[h].n += +o.n;
+      (o.s || []).forEach((x, i) => { if (i < c[h].s.length) c[h].s[i] += +x || 0; });
+      if (h === 'cal') (o.v || []).forEach((x, i) => { if (i < 10) c.cal.v[i] += +x || 0; });
+    });
+  });
+  return hay ? c : null;
+}
+const sisCompPc = (c, h, i) => c && c[h] && c[h].n ? Math.round(c[h].s[i] * 1000 / (c[h].n * (h === 'cal' ? 1 : 3))) / 10 : null;
+const sisCompColor = p => p == null ? 'var(--borde)' : p >= 81 ? '#2E7D4F' : p >= 56 ? '#E8A33D' : '#B3261E';
+const sisCompTxt = p => p >= 81 ? 'manejo adecuado' : p >= 56 ? 'avance significativo' : 'poco avance';
+// Componente más bajo y más alto de lectura o textos
+function sisCompExtremos(c, h) {
+  if (!c || !c[h] || !c[h].n) return null;
+  const l = SIS_COMP[h].map((nom, i) => ({ nom, p: sisCompPc(c, h, i) })).sort((x, y) => x.p - y.p);
+  return { bajo: l[0], alto: l[l.length - 1], lista: l };
+}
+
+function sisComponentes(c, titulo) {
+  if (!c) return '';
+  const barra = (nom, p, extra) => `<div class="sis-cb"><span class="sis-cb-n">${esc(nom)}</span><span class="sis-cb-b"><i style="width:${p || 0}%;background:${sisCompColor(p)}"></i></span><b class="sis-cb-p" style="color:${sisCompColor(p)}">${sisFmt(p)}</b>${extra || ''}</div>`;
+  const bloque = h => {
+    if (!c[h] || !c[h].n) return '';
+    const e = sisCompExtremos(c, h);
+    return `<div><h3>${SIS_H.find(x => x[0] === h)[1]} <span class="peq mudo" style="font-weight:400">· ${c[h].n} alumnos</span></h3>
+      ${SIS_COMP[h].map((nom, i) => barra(SIS_ROM[i] + '. ' + nom, sisCompPc(c, h, i))).join('')}
+      <p class="peq" style="margin:6px 0 0">Componente más bajo: <b>${esc(e.bajo.nom.toLowerCase())}</b> (${sisFmt(e.bajo.p)}, ${sisCompTxt(e.bajo.p)}).</p></div>`;
+  };
+  let cal = '';
+  if (c.cal && c.cal.n) {
+    const n = c.cal.n;
+    cal = `<div><h3>Cálculo mental por reactivo <span class="peq mudo" style="font-weight:400">· ${n} alumnos</span></h3>
+      ${c.cal.s.map((x, i) => { const sa = x - c.cal.v[i], ca = c.cal.v[i], inc = n - x, P = q => Math.round(q * 1000 / n) / 10;
+        return `<div class="sis-cb"><span class="sis-cb-n">Reactivo ${SIS_ROM[i]}</span><span class="sis-cb-b sis-barra" role="img" aria-label="Sin apoyo ${P(sa)}%, con apoyo ${P(ca)}%, incorrectas ${P(inc)}%"><i class="ne" style="width:${P(sa)}%"></i><i class="ed" style="width:${P(ca)}%"></i><i class="ra" style="width:${P(inc)}%"></i></span><b class="sis-cb-p">${sisFmt(P(x))}</b></div>`; }).join('')}
+      <div class="sis-tip" style="margin-top:6px"><span><i class="ne"></i>Acierto sin apoyo visual</span><span><i class="ed"></i>Acierto con apoyo visual</span><span><i class="ra"></i>Incorrecta</span></div>
+      <p class="peq mudo" style="margin:4px 0 0">El manual advierte que los reactivos no bastan para saber qué operación se le dificulta al grupo; sirven para ver si resuelven con estrategia propia o necesitan el apoyo visual.</p></div>`;
+  }
+  return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">${titulo || 'Componentes de cada habilidad'}</div>
+    <div class="sis-comp-g">${bloque('lec')}${bloque('tex')}${cal}</div>
+    <div class="sis-ley" style="margin:10px 0 0"><span><i style="background:#2E7D4F"></i>81 a 100%: manejo adecuado</span><span><i style="background:#E8A33D"></i>56 a 80%: avance significativo</span><span><i style="background:#B3261E"></i>55% o menos: poco avance</span></div></div>`;
+}
+
+// Diagnóstico por componente (se agrega a fortalezas y focos de atención)
+function sisDiagComp(c, F, A, G) {
+  if (!c) return;
+  ['lec', 'tex'].forEach(h => {
+    const e = sisCompExtremos(c, h); if (!e) return;
+    const nom = SIS_H.find(x => x[0] === h)[1];
+    const bajos = e.lista.filter(x => x.p <= 55);
+    if (bajos.length) A.push(`<b>${nom}:</b> poco avance en ${bajos.map(x => '<b>' + esc(x.nom.toLowerCase()) + '</b> (' + sisFmt(x.p) + ')').join(', ')}.`);
+    else if (e.bajo.p <= 80) A.push(`<b>${nom}:</b> el componente más bajo es ${esc(e.bajo.nom.toLowerCase())} (${sisFmt(e.bajo.p)}).`);
+    if (e.alto.p >= 81) F.push(`<b>${nom}:</b> ${esc(e.alto.nom.toLowerCase())} es una fortaleza (${sisFmt(e.alto.p)}).`);
+    if (h === 'lec') {
+      const seg = e.lista.find(x => /Seguridad/.test(x.nom)), comp = e.lista.find(x => /Comprensi/.test(x.nom));
+      if (seg && comp && seg.p - comp.p >= 15) G.push('<b>Lectura.</b> El alumnado muestra disposición ante la lectura pero comprende poco: aproveche esa disposición como punto de partida y trabaje la comprensión con preguntas antes, durante y después de leer.');
+    }
+  });
+}
+
+/* ---- Alumnos ---- */
+const SIS_NV = { NE: 2, ED: 1, RA: 0 };
+const sisChipNiv = n => n ? `<span class="sis-nv ${n.toLowerCase()}" title="${({ NE: 'Nivel esperado', ED: 'En desarrollo', RA: 'Requiere apoyo' })[n]}">${n}</span>` : '<span class="mudo">—</span>';
+function sisAlumnosVista(v, m, pred) {
+  const cct = v.cct;
+  if (!['escuela', 'grado', 'grupo'].includes(v.nivel) || !cct) return null;
+  if (esDirector() && cct !== miCct()) return null;
+  const todos = sisAlumnosDe(v.ciclo, cct);
+  if (!todos) { sisPedirAlumnos(v.ciclo, cct).then(() => { const w = sisV(); if (w.cct === cct && w.ciclo === v.ciclo && $('#sis-al-espera')) vSisat(); }); return { cargando: true }; }
+  const enNivel = a => v.nivel === 'escuela' || (a.grado === v.grado && (v.nivel === 'grado' || a.grupo === v.grupo));
+  return { todos: todos.filter(enNivel) };
+}
+// Cuántas habilidades en «requiere apoyo» (en el Momento 1, 1.° grado solo cuenta cálculo si así se ve el concentrado)
+const sisNumRA = (a, sin1) => ['lec', 'tex', 'cal'].filter(h => a[h] && a[h].n === 'RA' && !(sin1 && h !== 'cal' && a.grado === '1')).length;
+function sisCambio(a, b) {   // nivel de un alumno de un momento a otro
+  if (!a || !b || !a.n || !b.n) return '';
+  const d = SIS_NV[b.n] - SIS_NV[a.n];
+  return d > 0 ? '<span class="sis-d bien" title="Subió de nivel">▲</span>' : d < 0 ? '<span class="sis-d mal" title="Bajó de nivel">▼</span>' : '<span class="sis-d igual" title="Mismo nivel">=</span>';
+}
+function sisSeccionAlumnos(v, m, sin1) {
+  const r = sisAlumnosVista(v, m);
+  if (!r) return '';
+  if (r.cargando) return '<div class="tarjeta pad" id="sis-al-espera" style="margin-bottom:16px"><span class="mudo">Cargando los resultados por alumno…</span></div>';
+  const deM = r.todos.filter(a => a.momento === m);
+  if (!deM.length) return '';
+  const mPrev = [1, 2].filter(x => x < m).reverse().find(x => r.todos.some(a => a.momento === x));
+  const prev = {}; if (mPrev) r.todos.filter(a => a.momento === mPrev).forEach(a => { prev[a.clave] = a; });
+  if (v.nivel === 'grupo') {
+    const orden = v.ordenAl === 'nombre' ? deM.slice().sort((x, y) => x.alumno.localeCompare(y.alumno, 'es'))
+      : deM.slice().sort((x, y) => sisNumRA(y) - sisNumRA(x) || ((x.lec ? x.lec.p : 99) + (x.cal ? x.cal.p : 99)) - ((y.lec ? y.lec.p : 99) + (y.cal ? y.cal.p : 99)));
+    const celda = (a, h) => { const x = a[h]; if (!x) return '<td class="mudo">—</td>';
+      const ant = prev[a.clave] ? prev[a.clave][h] : null;
+      return `<td>${sisChipNiv(x.n)} <span class="peq">${x.p == null ? '' : x.p + (h === 'cal' ? '/10' : '/18')}${h === 'cal' && x.v ? ' · ' + x.v + ' con apoyo' : ''}</span> ${mPrev ? sisCambio(ant, x) : ''}</td>`; };
+    const n3 = deM.filter(a => sisNumRA(a) === 3).length;
+    return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos del grupo (${deM.length})
+      <button class="boton sec chico" id="b-sis-oal" style="margin-left:8px;text-transform:none;letter-spacing:0">Ordenar por ${v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'}</button></div>
+      ${n3 ? `<div class="aviso-caja" style="margin:0 14px 10px">${n3} alumno${n3 === 1 ? ' requiere' : 's requieren'} apoyo en las tres habilidades: su atención es de la mayor prioridad (manual del SisAT, paso 2).</div>` : ''}
+      <div class="matriz-caja"><table class="matriz sis-al"><thead><tr><th class="esc-col">Alumno</th><th>Lectura</th><th>Textos</th><th>Cálculo</th></tr></thead>
+      <tbody>${orden.map(a => `<tr class="${sisNumRA(a) === 3 ? 'sis-al-3' : ''}"><td class="esc-col">${esc(a.alumno)}</td>${celda(a, 'lec')}${celda(a, 'tex')}${celda(a, 'cal')}</tr>`).join('')}</tbody></table></div>
+      <div class="peq mudo" style="padding:8px 14px">NE nivel esperado · ED en desarrollo · RA requiere apoyo. Lectura y textos sobre 18 puntos; cálculo, aciertos de 10.${mPrev ? ` ▲ ▼ = cambio de nivel respecto al Momento ${mPrev}.` : ''}</div></div>`;
+  }
+  // Escuela o grado: los que más apoyo necesitan
+  const cuenta = [0, 0, 0, 0]; deM.forEach(a => cuenta[sisNumRA(a, sin1)]++);
+  const urg = deM.filter(a => sisNumRA(a, sin1) >= 2).sort((x, y) => sisNumRA(y, sin1) - sisNumRA(x, sin1) || x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo) || x.alumno.localeCompare(y.alumno, 'es'));
+  const fila = a => `<tr><td class="esc-col">${esc(a.alumno)}</td><td>${a.grado}° ${esc(a.grupo)}</td>${['lec', 'tex', 'cal'].map(h => `<td>${a[h] ? sisChipNiv(a[h].n) : '—'}</td>`).join('')}<td>${sisNumRA(a, sin1)}</td></tr>`;
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos que requieren apoyo</div>
+    <div class="sis-cuenta">${[3, 2, 1, 0].map(k => `<div><b style="color:${k >= 2 ? 'var(--alerta)' : k === 1 ? 'var(--ambar)' : 'var(--ok)'}">${cuenta[k]}</b><span>${k ? 'en ' + (k === 1 ? 'una habilidad' : k === 2 ? 'dos habilidades' : 'las tres') : 'en ninguna'}</span></div>`).join('')}</div>
+    ${sin1 && deM.some(a => a.grado === '1') ? '<p class="peq mudo" style="margin:0 14px 8px">En este concentrado, a 1.° grado solo se le cuenta cálculo (Momento 1).</p>' : ''}
+    ${urg.length ? `<details class="sis-mas" ${urg.length <= 15 ? 'open' : ''}><summary>${urg.length} alumno${urg.length === 1 ? '' : 's'} en «requiere apoyo» en dos o tres habilidades</summary>
+      <div class="matriz-caja"><table class="matriz sis-al"><thead><tr><th class="esc-col">Alumno</th><th>Grupo</th><th>Lectura</th><th>Textos</th><th>Cálculo</th><th>Hab.</th></tr></thead><tbody>${urg.map(fila).join('')}</tbody></table></div></details>` : '<p class="peq" style="margin:0 14px 12px;color:var(--ok)">Ningún alumno requiere apoyo en dos o más habilidades.</p>'}</div>`;
+}
+
+// Tendencia por alumno: quién subió, quién sigue igual y quién no ha salido de «requiere apoyo»
+function sisTendenciaAlumnos(v) {
+  const r = sisAlumnosVista(v);
+  if (!r) return '';
+  if (r.cargando) return '<div class="tarjeta pad" id="sis-al-espera" style="margin-bottom:16px"><span class="mudo">Cargando los resultados por alumno…</span></div>';
+  const ms = [1, 2, 3].filter(m => r.todos.some(a => a.momento === m));
+  if (ms.length < 2) return '';
+  const p = ms[0], u = ms[ms.length - 1];
+  const de = m => { const o = {}; r.todos.filter(a => a.momento === m).forEach(a => { o[a.clave] = a; }); return o; };
+  const A = de(p), B = de(u);
+  const ambos = Object.keys(B).filter(k => A[k]);
+  const filas = SIS_H.map(([h, nom]) => {
+    const c = { sube: 0, igual: 0, baja: 0, siguenRA: [] };
+    ambos.forEach(k => { const a = A[k][h], b = B[k][h]; if (!a || !b || !a.n || !b.n) return; const d = SIS_NV[b.n] - SIS_NV[a.n]; d > 0 ? c.sube++ : d < 0 ? c.baja++ : c.igual++; if (a.n === 'RA' && b.n === 'RA') c.siguenRA.push(B[k]); });
+    return { h, nom, c };
+  });
+  const siempre = ambos.map(k => B[k]).filter(a => ['lec', 'tex', 'cal'].every(h => A[a.clave][h] && a[h] && A[a.clave][h].n === 'RA' && a[h].n === 'RA'));
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Movimiento de los alumnos del Momento ${p} al Momento ${u}</div>
+    <div class="matriz-caja"><table class="matriz sis-tab"><thead><tr><th class="esc-col">Habilidad</th><th>Subieron de nivel</th><th>Mismo nivel</th><th>Bajaron</th><th>Siguen en «requiere apoyo»</th></tr></thead>
+    <tbody>${filas.map(f => `<tr><td class="esc-col"><b>${f.nom}</b></td><td style="color:var(--ok);font-weight:700">${f.c.sube}</td><td>${f.c.igual}</td><td style="color:var(--alerta);font-weight:700">${f.c.baja}</td><td>${f.c.siguenRA.length}</td></tr>`).join('')}</tbody></table></div>
+    <p class="peq mudo" style="margin:8px 14px">Se comparan ${ambos.length} alumnos que aparecen en los dos momentos.</p>
+    ${siempre.length ? `<details class="sis-mas" open><summary>${siempre.length} alumno${siempre.length === 1 ? ' sigue' : 's siguen'} en «requiere apoyo» en las tres habilidades</summary>
+      <div style="padding:6px 14px 12px;columns:2;column-gap:24px">${siempre.map(a => `${esc(a.alumno)} <span class="peq mudo">${a.grado}° ${esc(a.grupo)}</span>`).join('<br>')}</div></details>` : ''}</div>`;
+}
+
+/* ---- Descarga del análisis (PDF o Word) con gráficas ---- */
+const SIS_FUENTE = "\"MontserratOfi\", Arial, Helvetica, sans-serif";
+const SIS_COL = { ne: '#2E7D4F', ed: '#E8A33D', ra: '#B3261E', az: '#1F3A6B', gris: '#555555', linea: '#D9D2C3' };
+function sisLienzo(w, h) {
+  const c = document.createElement('canvas'), k = 2.5; c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const x = c.getContext('2d'); x.scale(k, k); x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); x.textBaseline = 'middle';
+  return { c, x, w, h };
+}
+const sisPng = L => { const url = L.c.toDataURL('image/png'); return { url, bytes: b64aBytes(url.split(',')[1]), w: L.w, h: L.h }; };
+function sisTexto(x, t, px, py, o = {}) { x.font = `${o.bold ? '700 ' : ''}${o.size || 11}px ${SIS_FUENTE}`; x.fillStyle = o.color || '#1E2A40'; x.textAlign = o.align || 'left'; x.fillText(t, px, py); }
+function sisRecorta(x, t, max, size) { x.font = `${size || 11}px ${SIS_FUENTE}`; if (x.measureText(t).width <= max) return t; while (t.length > 3 && x.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; }
+
+// Barras 100 % apiladas: esperado, en desarrollo, requiere apoyo
+function sisGrafNiveles(filas, titulo) {
+  const W = 640, izq = 170, der = 20, alto = 30, top = titulo ? 34 : 10, H = top + filas.length * alto + 44;
+  const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
+  if (titulo) sisTexto(x, titulo, 0, 14, { bold: true, size: 13, color: SIS_COL.az });
+  filas.forEach((f, i) => {
+    const y = top + i * alto;
+    sisTexto(x, sisRecorta(x, f.etq, izq - 12, 11), 0, y + 11, { size: 11 });
+    if (!f.n) { sisTexto(x, 'Sin datos', izq, y + 11, { size: 10, color: SIS_COL.gris }); return; }
+    let px = izq;
+    [['ne', f.pne], ['ed', f.ped], ['ra', f.pra]].forEach(([k, p]) => {
+      const w = ancho * (p || 0) / 100; x.fillStyle = SIS_COL[k]; x.fillRect(px, y + 2, w, 18);
+      if (p >= 7) sisTexto(x, Math.round(p) + '%', px + w / 2, y + 11, { size: 10, bold: true, align: 'center', color: k === 'ed' ? '#3B2A0A' : '#fff' });
+      px += w;
+    });
+  });
+  const ly = top + filas.length * alto + 18;
+  [['ne', 'Nivel esperado'], ['ed', 'En desarrollo'], ['ra', 'Requiere apoyo']].forEach(([k, t], i) => { const lx = izq + i * 150; x.fillStyle = SIS_COL[k]; x.fillRect(lx, ly - 5, 11, 11); sisTexto(x, t, lx + 16, ly, { size: 10.5 }); });
+  return sisPng(L);
+}
+// Componentes de lectura o textos (porcentaje del puntaje posible)
+function sisGrafComp(comp, h) {
+  const W = 640, izq = 230, der = 50, alto = 26, top = 34, H = top + 6 * alto + 40;
+  const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
+  sisTexto(x, SIS_H.find(q => q[0] === h)[1] + ' · componentes (' + comp[h].n + ' alumnos)', 0, 14, { bold: true, size: 13, color: SIS_COL.az });
+  [55, 80].forEach(p => { const gx = izq + ancho * p / 100; x.strokeStyle = SIS_COL.linea; x.setLineDash([3, 3]); x.beginPath(); x.moveTo(gx, top - 4); x.lineTo(gx, top + 6 * alto); x.stroke(); x.setLineDash([]); sisTexto(x, p + '%', gx, top + 6 * alto + 9, { size: 9, align: 'center', color: SIS_COL.gris }); });
+  SIS_COMP[h].forEach((nom, i) => {
+    const y = top + i * alto, p = sisCompPc(comp, h, i) || 0, col = p >= 81 ? SIS_COL.ne : p >= 56 ? SIS_COL.ed : SIS_COL.ra;
+    sisTexto(x, sisRecorta(x, SIS_ROM[i] + '. ' + nom, izq - 10, 11), 0, y + 9, { size: 11 });
+    x.fillStyle = '#F1E4CC'; x.fillRect(izq, y, ancho, 18); x.fillStyle = col; x.fillRect(izq, y, ancho * p / 100, 18);
+    sisTexto(x, (Math.round(p * 10) / 10).toLocaleString('es-MX') + '%', W - 4, y + 9, { size: 11, bold: true, align: 'right', color: col });
+  });
+  const ly = top + 6 * alto + 26;
+  [[SIS_COL.ne, '81-100%: manejo adecuado'], [SIS_COL.ed, '56-80%: avance significativo'], [SIS_COL.ra, '55% o menos: poco avance']].forEach(([c, t], i) => { const lx = i * 205; x.fillStyle = c; x.fillRect(lx, ly - 5, 11, 11); sisTexto(x, t, lx + 16, ly, { size: 10 }); });
+  return sisPng(L);
+}
+// Cálculo mental: cada reactivo con aciertos sin apoyo, con apoyo e incorrectas
+function sisGrafCalc(comp) {
+  const n = comp.cal.n, W = 640, izq = 90, der = 50, alto = 22, top = 34, H = top + 10 * alto + 34;
+  const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
+  sisTexto(x, 'Cálculo mental · respuestas por reactivo (' + n + ' alumnos)', 0, 14, { bold: true, size: 13, color: SIS_COL.az });
+  comp.cal.s.forEach((s, i) => {
+    const y = top + i * alto, sa = (s - comp.cal.v[i]) / n, ca = comp.cal.v[i] / n, inc = (n - s) / n;
+    sisTexto(x, 'Reactivo ' + SIS_ROM[i], 0, y + 8, { size: 11 });
+    let px = izq; [[SIS_COL.ne, sa], [SIS_COL.ed, ca], [SIS_COL.ra, inc]].forEach(([c, p]) => { x.fillStyle = c; x.fillRect(px, y, ancho * p, 16); px += ancho * p; });
+    sisTexto(x, Math.round(s * 100 / n) + '%', W - 4, y + 8, { size: 11, bold: true, align: 'right' });
+  });
+  const ly = top + 10 * alto + 18;
+  [[SIS_COL.ne, 'Acierto sin apoyo visual'], [SIS_COL.ed, 'Acierto con apoyo visual'], [SIS_COL.ra, 'Incorrecta']].forEach(([c, t], i) => { const lx = izq + i * 175; x.fillStyle = c; x.fillRect(lx, ly - 5, 11, 11); sisTexto(x, t, lx + 16, ly, { size: 10 }); });
+  return sisPng(L);
+}
+// Tendencia: nivel esperado y requiere apoyo en los tres momentos, una gráfica por habilidad
+function sisGrafTend(ms) {
+  const W = 640, H = 230, pw = 196, gap = 26;
+  const L = sisLienzo(W, H), x = L.x;
+  SIS_H.forEach(([h, nom], k) => {
+    const ox = k * (pw + gap), top = 30, alto = 140, X = i => ox + 30 + i * ((pw - 44) / 2), Y = p => top + alto - alto * p / 100;
+    sisTexto(x, nom, ox + pw / 2, 12, { bold: true, size: 12, align: 'center', color: SIS_COL.az });
+    [0, 50, 100].forEach(p => { x.strokeStyle = SIS_COL.linea; x.beginPath(); x.moveTo(ox + 26, Y(p)); x.lineTo(ox + pw - 8, Y(p)); x.stroke(); sisTexto(x, String(p), ox + 22, Y(p), { size: 9, align: 'right', color: SIS_COL.gris }); });
+    [1, 2, 3].forEach((m, i) => sisTexto(x, 'M' + m, X(i), top + alto + 14, { size: 10, align: 'center', color: SIS_COL.gris }));
+    [['pne', SIS_COL.ne], ['pra', SIS_COL.ra]].forEach(([q, col]) => {
+      const pts = ms.map((o, i) => o.a && o.a[h].n ? [X(i), Y(o.a[h][q])] : null).filter(Boolean);
+      x.strokeStyle = col; x.lineWidth = 2.5; x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.stroke(); x.lineWidth = 1;
+      pts.forEach(p => { x.fillStyle = col; x.beginPath(); x.arc(p[0], p[1], 4, 0, 7); x.fill(); });
+    });
+  });
+  [[SIS_COL.ne, 'Nivel esperado'], [SIS_COL.ra, 'Requiere apoyo']].forEach(([c, t], i) => { const lx = 200 + i * 140; x.fillStyle = c; x.fillRect(lx, 214, 11, 11); sisTexto(x, t, lx + 16, 219, { size: 10.5 }); });
+  return sisPng(L);
+}
+
+// Modelo del informe: una lista de bloques que luego se convierten en PDF o en Word
+async function sisInforme(v) {
+  const pred = sisPred(v), tend = v.m === 't', B = [];
+  const conAl = ['escuela', 'grado', 'grupo'].includes(v.nivel) && v.cct && (!esDirector() || v.cct === miCct());
+  if (conAl) await sisPedirAlumnos(v.ciclo, v.cct);
+  const pc = (x, n) => n ? (Math.round(x * 1000 / n) / 10).toLocaleString('es-MX') + '%' : '—';
+  const nivelTabla = a => ({ t: 'tabla', cab: ['Habilidad', 'Nivel esperado', 'En desarrollo', 'Requiere apoyo', 'Alumnos'],
+    filas: SIS_H.map(([h, nom]) => { const o = a[h]; return [nom, o.n ? `${o.ne} (${pc(o.ne, o.n)})` : '—', o.n ? `${o.ed} (${pc(o.ed, o.n)})` : '—', o.n ? `${o.ra} (${pc(o.ra, o.n)})` : '—', String(o.n || 0)]; }) });
+  const hijosDe = (filas, sin1) => {
+    const g = rs => sisSuma(rs, sin1);
+    if (v.nivel === 'zona' && !esDirector()) return { titulo: 'Por escuela', col: 'Escuela', l: filtroEscuelas().map(c => { const rs = filas.filter(r => r.cct === c.cct); return { etq: c.escuela, a: rs.length ? g(rs) : null }; }).filter(x => x.a) };
+    if (v.nivel === 'zona' || v.nivel === 'escuela') return { titulo: 'Por grado', col: 'Grado', l: ['1', '2', '3', '4', '5', '6'].map(gr => { const rs = filas.filter(r => r.grado === gr); return { etq: gr + '.° grado', a: rs.length ? sisSuma(rs, false) : null }; }).filter(x => x.a) };
+    if (v.nivel === 'zgrado' || v.nivel === 'grado') return { titulo: 'Por grupo', col: 'Grupo', l: filas.map(r => ({ etq: (v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : '') + sisNomGrupo(r), a: sisSuma([r], false) })) };
+    return { l: [] };
+  };
+  let n = 0; const H = t => B.push({ t: 'h', x: (++n) + '. ' + t });
+  if (!tend) {
+    const m = v.m, filas = sisFilas(m).filter(pred);
+    if (!filas.length) throw new Error('No hay resultados del Momento ' + m + ' en este nivel.');
+    const sin1 = sisSin1(v, m), a = sisSuma(filas, sin1);
+    const mPrev = m > 1 ? [1, 2].filter(x => x < m).reverse().find(x => sisFilas(x).some(pred)) : null;
+    const prev = mPrev ? sisSuma(sisFilas(mPrev).filter(pred), sisSin1(v, mPrev)) : null;
+    H('Resultados generales');
+    B.push({ t: 'p', x: `${a.grupos} grupo${a.grupos === 1 ? '' : 's'} · ${a.alumnos} alumnos evaluados.${mPrev ? ` Se compara con el Momento ${mPrev}.` : ''}` });
+    B.push(nivelTabla(a));
+    B.push({ t: 'img', g: sisGrafNiveles(SIS_H.map(([h, nom]) => Object.assign({ etq: nom }, a[h])), 'Distribución por nivel de logro') });
+    if (a.tip.n) B.push({ t: 'p', x: `<b>Cálculo mental:</b> ${sisFmt(a.tip.psa)} de las respuestas fueron aciertos sin apoyo visual, ${sisFmt(a.tip.pca)} con apoyo visual y ${sisFmt(a.tip.pinc)} incorrectas.` });
+    if (sin1 && filas.some(r => r.grado === '1')) B.push({ t: 'nota', x: 'En este concentrado 1.° grado no se cuenta en lectura ni en producción de textos (sí en cálculo): al inicio del ciclo aún no leen ni escriben de forma convencional.' });
+    const hj = hijosDe(filas, sin1), prio = v.nivel === 'grupo' ? [] : sisPrioritarios(filas, sin1), comp = sisCompSuma(filas, sin1);
+    const d = sisDiagListas(a, prev, hj.l, { nivel: v.nivel, mPrev, prioritarios: prio, comp });
+    H('Diagnóstico' + (mPrev ? ' y avance' : ''));
+    B.push({ t: 'sub', x: 'Fortalezas', c: SIS_COL.ne }, { t: 'lista', l: d.F.length ? d.F : ['Nada que destacar.'] });
+    B.push({ t: 'sub', x: 'Focos de atención', c: SIS_COL.ra }, { t: 'lista', l: d.A.length ? d.A : ['Nada que destacar.'] });
+    B.push({ t: 'sub', x: 'Sugerencias para la asesoría', c: SIS_COL.az }, { t: 'lista', l: d.G.length ? d.G : ['Nada que destacar.'] });
+    if (comp) {
+      H('Componentes de cada habilidad');
+      B.push({ t: 'p', x: 'Porcentaje del puntaje posible en cada componente (manual del SisAT): de 81 a 100% manejo adecuado; de 56 a 80% avance significativo; 55% o menos, poco avance.' });
+      ['lec', 'tex'].forEach(h => { if (comp[h] && comp[h].n) B.push({ t: 'img', g: sisGrafComp(comp, h) }); });
+      if (comp.cal && comp.cal.n) B.push({ t: 'img', g: sisGrafCalc(comp) });
+    }
+    if (hj.l.length > 1) {
+      H(hj.titulo);
+      B.push({ t: 'tabla', cab: [hj.col, 'Lectura: req. apoyo', 'Textos: req. apoyo', 'Cálculo: req. apoyo', 'Índice'], filas: hj.l.map(x => [x.etq, ...SIS_H.map(([h]) => x.a[h].n ? sisFmt(x.a[h].pra) : '—'), x.a.ind == null ? '—' : String(x.a.ind)]) });
+      B.push({ t: 'nota', x: 'Índice: cada alumno en nivel esperado vale 100, en desarrollo 50 y que requiere apoyo 0 (promedio de las tres habilidades).' });
+    }
+    if (prio.length) { H('Grupos prioritarios'); B.push({ t: 'lista', l: prio.map(({ r, a: x }) => '<b>' + esc((v.nivel === 'zona' || v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : '') + sisNomGrupo(r)) + '</b>: ' + SIS_H.filter(([h]) => x[h].pra >= SIS_PRIORIDAD).map(([h, nom]) => nom.toLowerCase() + ' ' + sisFmt(x[h].pra)).join(' · ') + ' requiere apoyo') }); }
+    const al = conAl ? (sisAlumnosDe(v.ciclo, v.cct) || []).filter(x => x.momento === m && (v.nivel === 'escuela' || (x.grado === v.grado && (v.nivel === 'grado' || x.grupo === v.grupo)))) : [];
+    if (al.length) {
+      const mp = [1, 2].filter(x => x < m).reverse().find(x => (sisAlumnosDe(v.ciclo, v.cct) || []).some(q => q.momento === x));
+      const antes = {}; if (mp) sisAlumnosDe(v.ciclo, v.cct).filter(q => q.momento === mp).forEach(q => { antes[q.clave] = q; });
+      const niv = (q, h) => q[h] ? q[h].n + (q[h].p != null ? ' · ' + q[h].p + (h === 'cal' ? '/10' : '/18') : '') : '—';
+      const flecha = (q, h) => { const p = antes[q.clave]; if (!p || !p[h] || !q[h]) return ''; const dd = SIS_NV[q[h].n] - SIS_NV[p[h].n]; return dd > 0 ? ' ▲' : dd < 0 ? ' ▼' : ' ='; };
+      if (v.nivel === 'grupo') {
+        H('Resultados por alumno');
+        const ord = al.slice().sort((x, y) => sisNumRA(y) - sisNumRA(x) || x.alumno.localeCompare(y.alumno, 'es'));
+        B.push({ t: 'tabla', chica: true, cab: ['Alumno', 'Lectura', 'Textos', 'Cálculo', 'Hab. en RA'], filas: ord.map(q => [q.alumno, niv(q, 'lec') + flecha(q, 'lec'), niv(q, 'tex') + flecha(q, 'tex'), niv(q, 'cal') + flecha(q, 'cal'), String(sisNumRA(q))]) });
+        B.push({ t: 'nota', x: 'NE nivel esperado · ED en desarrollo · RA requiere apoyo. Lectura y textos sobre 18 puntos; cálculo, aciertos de 10.' + (mp ? ` ▲ ▼ = cambio de nivel respecto al Momento ${mp}.` : '') });
+      } else {
+        const sin1b = sisSin1(v, m);
+        const urg = al.filter(q => sisNumRA(q, sin1b) >= 2).sort((x, y) => sisNumRA(y, sin1b) - sisNumRA(x, sin1b) || x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo) || x.alumno.localeCompare(y.alumno, 'es'));
+        const cuenta = [0, 0, 0, 0]; al.forEach(q => cuenta[sisNumRA(q, sin1b)]++);
+        H('Alumnos que requieren apoyo');
+        B.push({ t: 'p', x: `De ${al.length} alumnos: <b>${cuenta[3]}</b> requieren apoyo en las tres habilidades, <b>${cuenta[2]}</b> en dos, <b>${cuenta[1]}</b> en una y <b>${cuenta[0]}</b> en ninguna.` });
+        if (urg.length) B.push({ t: 'tabla', chica: true, cab: ['Alumno', 'Grupo', 'Lectura', 'Textos', 'Cálculo', 'Hab. en RA'], filas: urg.map(q => [q.alumno, q.grado + '° ' + q.grupo, niv(q, 'lec'), niv(q, 'tex'), niv(q, 'cal'), String(sisNumRA(q, sin1b))]) });
+      }
+    }
+  } else {
+    const ms = [1, 2, 3].map(m => { const f = sisFilas(m).filter(pred); return { m, f, a: f.length ? sisSuma(f, sisSin1(v, m)) : null }; });
+    const con = ms.filter(x => x.a);
+    if (!con.length) throw new Error('No hay resultados en este nivel.');
+    H('Resultados en los tres momentos');
+    B.push({ t: 'tabla', cab: ['Habilidad', 'Indicador', 'Momento 1', 'Momento 2', 'Momento 3'], filas: SIS_H.flatMap(([h, nom]) => [[nom, 'Nivel esperado', ...ms.map(x => x.a && x.a[h].n ? sisFmt(x.a[h].pne) : '—')], ['', 'Requiere apoyo', ...ms.map(x => x.a && x.a[h].n ? sisFmt(x.a[h].pra) : '—')]]) });
+    B.push({ t: 'img', g: sisGrafTend(ms) });
+    const { F, A } = sisTendListas(con);
+    H('Conclusión de la tendencia');
+    B.push({ t: 'sub', x: 'Avances', c: SIS_COL.ne }, { t: 'lista', l: F.length ? F : ['Sin datos suficientes.'] });
+    B.push({ t: 'sub', x: 'Sin avance o retroceso', c: SIS_COL.ra }, { t: 'lista', l: A.length ? A : ['Sin datos suficientes.'] });
+    const hj = sisTendHijos(v, ms);
+    if (hj.length) { H('Índice por momento'); B.push({ t: 'tabla', cab: ['', 'M1', 'M2', 'M3'], filas: hj.map(o => [o.h.etq, ...o.ind.map(x => x == null ? '—' : String(x))]) }); }
+    if (conAl) {
+      const todos = (sisAlumnosDe(v.ciclo, v.cct) || []).filter(a => v.nivel === 'escuela' || (a.grado === v.grado && (v.nivel === 'grado' || a.grupo === v.grupo)));
+      const msA = [1, 2, 3].filter(m => todos.some(a => a.momento === m));
+      if (msA.length >= 2) {
+        const p = msA[0], u = msA[msA.length - 1], de = m => { const o = {}; todos.filter(a => a.momento === m).forEach(a => { o[a.clave] = a; }); return o; };
+        const A1 = de(p), B1 = de(u), ambos = Object.keys(B1).filter(k => A1[k]);
+        H(`Movimiento de los alumnos (Momento ${p} → Momento ${u})`);
+        B.push({ t: 'tabla', cab: ['Habilidad', 'Subieron de nivel', 'Mismo nivel', 'Bajaron', 'Siguen en requiere apoyo'], filas: SIS_H.map(([h, nom]) => {
+          const c = [0, 0, 0, 0]; ambos.forEach(k => { const a = A1[k][h], b = B1[k][h]; if (!a || !b || !a.n || !b.n) return; const dd = SIS_NV[b.n] - SIS_NV[a.n]; c[dd > 0 ? 0 : dd < 0 ? 2 : 1]++; if (a.n === 'RA' && b.n === 'RA') c[3]++; });
+          return [nom, ...c.map(String)]; }) });
+        const siempre = ambos.map(k => B1[k]).filter(a => ['lec', 'tex', 'cal'].every(h => A1[a.clave][h] && a[h] && A1[a.clave][h].n === 'RA' && a[h].n === 'RA'));
+        if (siempre.length) B.push({ t: 'p', x: `<b>Siguen en «requiere apoyo» en las tres habilidades (${siempre.length}):</b> ${esc(siempre.map(a => a.alumno + ' (' + a.grado + '° ' + a.grupo + ')').join(', '))}.` });
+      }
+    }
+  }
+  const obs = (S.sic || []).filter(c => c.ciclo === v.ciclo && String(c.momento) === String(v.m) && c.nivel === v.nivel && c.ref === sisRef(v)).sort((x, y) => String(x.creado).localeCompare(String(y.creado)));
+  if (obs.length) { H('Observaciones y acciones de mejora'); B.push({ t: 'lista', l: obs.map(c => `<b>${c.tipo === 'accion' ? 'Acción de mejora' : 'Observación'}</b> (${esc(nombreCorto(c.autorNombre))}, ${fechaCorta(String(c.creado).slice(0, 10))}): ${esc(c.texto)}`) }); }
+  return { titulo: 'Análisis del SisAT', nivel: sisTitulo(v), sub: 'Ciclo escolar ' + v.ciclo + ' · ' + (tend ? 'Tendencia de los tres momentos' : 'Momento ' + v.m), fecha: fechaOficio(hoy()), B };
+}
+
+// Texto con <b> → tramos para Word
+function sisTramos(html) {
+  const dec = t => { const d = document.createElement('textarea'); d.innerHTML = t; return d.value; };
+  return String(html).split(/(<b>[\s\S]*?<\/b>)/).filter(Boolean).map(t => /^<b>/.test(t) ? { t: dec(t.replace(/<\/?[^>]+>/g, '')), b: true } : { t: dec(t.replace(/<[^>]+>/g, '')) });
+}
+
+function sisHtmlInforme(I) {
+  const tabla = b => `<table class="it ${b.chica ? 'chica' : ''}"><thead><tr>${b.cab.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.filas.map(f => `<tr>${f.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const cuerpo = I.B.map(b => b.t === 'h' ? `<h2>${esc(b.x)}</h2>` : b.t === 'sub' ? `<h3 style="color:${b.c}">${esc(b.x)}</h3>` : b.t === 'p' ? `<p>${b.x}</p>` : b.t === 'nota' ? `<p class="nota">${esc(b.x)}</p>`
+    : b.t === 'lista' ? `<ul>${b.l.map(x => `<li>${x}</li>`).join('')}</ul>` : b.t === 'tabla' ? tabla(b) : b.t === 'img' ? `<div class="ig"><img src="${b.g.url}" style="width:${Math.min(624, b.g.w)}px"></div>` : '').join('');
+  return `<div class="sis-inf"><style>
+    .sis-inf{width:816px;padding:44px 64px 40px;box-sizing:border-box;background:#fff;color:#1E2A40;font:12.5px/1.5 MontserratOfi,Arial,sans-serif}
+    .sis-inf .enc{display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;border-bottom:3px double #1F3A6B;padding-bottom:10px;margin-bottom:16px}
+    .sis-inf .enc img{max-width:100%}.sis-inf .enc .c{text-align:center}.sis-inf .enc .t1{font-weight:700;color:#1F3A6B;font-size:10.5px}.sis-inf .enc .t2{color:#555;font-size:10px}.sis-inf .enc .t3{font-weight:700;letter-spacing:1px;font-size:13px}
+    .sis-inf h1{font-size:22px;color:#1F3A6B;margin:0}.sis-inf .niv{font-size:17px;font-weight:700;margin:2px 0}.sis-inf .sub{color:#555;margin:0 0 14px}
+    .sis-inf h2{font-size:15px;color:#1F3A6B;border-bottom:1px solid #D9D2C3;padding-bottom:3px;margin:18px 0 8px;break-after:avoid;page-break-after:avoid}
+    .sis-inf h3{font-size:13px;margin:10px 0 4px;break-after:avoid;page-break-after:avoid}
+    .sis-inf p{margin:0 0 8px}.sis-inf .nota{font-size:11px;color:#555}.sis-inf ul{margin:0 0 8px;padding-left:20px}.sis-inf li{margin-bottom:4px;break-inside:avoid;page-break-inside:avoid}
+    .sis-inf table.it{border-collapse:collapse;width:100%;margin:4px 0 10px;font-size:11.5px}.sis-inf table.it.chica{font-size:10.5px}
+    .sis-inf .it th{background:#1F3A6B;color:#fff;text-align:left;padding:5px 7px}.sis-inf .it td{padding:4px 7px;border-bottom:1px solid #E4D8C3}.sis-inf .it tr{break-inside:avoid;page-break-inside:avoid}
+    .sis-inf .ig{text-align:center;margin:6px 0 12px;break-inside:avoid;page-break-inside:avoid}
+    .sis-inf .pie{margin-top:20px;border-top:1px solid #1F3A6B;padding-top:6px;text-align:center;font-size:10px;color:#555}
+  </style>
+  <div class="enc"><img src="img/isep.png" alt=""><div class="c"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div><img src="img/zona050.png" alt=""></div>
+  <h1>${esc(I.titulo)}</h1><div class="niv">${esc(I.nivel)}</div><p class="sub">${esc(I.sub)} · Elaborado el ${esc(I.fecha)}</p>
+  ${cuerpo}
+  <div class="pie">Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados del SisAT</div></div>`;
+}
+
+async function sisPdfInforme(I) {
+  await cargarScript('lib/html2pdf.bundle.min.js');
+  try { await fuentesOficio(); } catch (e) {}
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;background:#fff';
+  caja.innerHTML = sisHtmlInforme(I);
+  document.body.appendChild(caja);
+  try {
+    await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+    return await window.html2pdf().set({ margin: [0.35, 0, 0.45, 0], image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'li', '.ig', 'h2', 'h3'] } }).from(caja.firstElementChild).outputPdf('blob');
+  } finally { caja.remove(); }
+}
+
+async function sisWordInforme(I) {
+  await cargarScript('lib/docx.iife.js');
+  const D = window.docx;
+  const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: Al, BorderStyle, VerticalAlign, Footer, Header, PageNumber, ShadingType } = D;
+  const [isep, zona] = await Promise.all([bytesDe('img/isep.png'), bytesDe('img/zona050.png')]);
+  const F = 'Arial', AZ = '1F3A6B', GR = '555555';
+  const tx = (t, o = {}) => new TextRun({ text: t, font: F, size: o.size || 20, bold: o.bold, color: o.color, italics: o.it });
+  const runs = (html, o = {}) => sisTramos(html).map(r => tx(r.t, Object.assign({}, o, { bold: o.bold || r.b })));
+  const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, nb = { top: none, bottom: none, left: none, right: none };
+  const header = new Header({ children: [
+    new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [1600, 6160, 1600], borders: Object.assign({}, nb, { insideHorizontal: none, insideVertical: none }), rows: [new TableRow({ children: [
+      new TableCell({ width: { size: 1600, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 92, height: 69 } })] })] }),
+      new TableCell({ width: { size: 6160, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [
+        new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx(ISEP_TXT, { size: 13, bold: true, color: AZ })] }),
+        new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx('DEPARTAMENTO DE EDUCACIÓN PRIMARIA', { size: 14, color: GR })] }),
+        new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx('SUPERVISIÓN ESCOLAR ZONA 050', { size: 18, bold: true })] }),
+        new Paragraph({ alignment: Al.CENTER, children: [tx('PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct, { size: 14, color: GR })] })] }),
+      new TableCell({ width: { size: 1600, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: Al.RIGHT, children: [new ImageRun({ type: 'png', data: zona, transformation: { width: 72, height: 72 } })] })] })
+    ] })] }),
+    new Paragraph({ border: { bottom: { style: BorderStyle.DOUBLE, size: 6, color: AZ, space: 1 } }, spacing: { before: 60, after: 0 }, children: [] })
+  ] });
+  const footer = new Footer({ children: [new Paragraph({ alignment: Al.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: AZ, space: 4 } }, children: [
+    tx('Supervisión Escolar Zona 050 · Análisis generado con Tequio · Página ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 15, color: GR }), tx(' de ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 15, color: GR })] })] });
+  const borde = { style: BorderStyle.SINGLE, size: 4, color: 'E4D8C3' }, bt = { top: borde, bottom: borde, left: borde, right: borde };
+  const tablaW = b => {
+    const n = b.cab.length, total = 9360, primera = n >= 5 ? 3000 : 3400, resto = Math.floor((total - primera) / (n - 1)), anchos = [primera].concat(Array(n - 1).fill(resto));
+    anchos[0] = total - resto * (n - 1);
+    const sz = b.chica ? 16 : 18;
+    const celda = (t, i, cab) => new TableCell({ width: { size: anchos[i], type: WidthType.DXA }, borders: bt, shading: cab ? { type: ShadingType.CLEAR, fill: AZ, color: 'auto' } : undefined,
+      margins: { top: 40, bottom: 40, left: 90, right: 90 }, children: [new Paragraph({ children: [tx(String(t), { size: sz, bold: cab, color: cab ? 'FFFFFF' : undefined })] })] });
+    return new Table({ width: { size: total, type: WidthType.DXA }, columnWidths: anchos, rows: [new TableRow({ tableHeader: true, children: b.cab.map((c, i) => celda(c, i, true)) })].concat(b.filas.map(f => new TableRow({ cantSplit: true, children: f.map((c, i) => celda(c, i, false)) }))) });
+  };
+  const kids = [
+    new Paragraph({ spacing: { before: 120, after: 0 }, children: [tx(I.titulo, { size: 36, bold: true, color: AZ })] }),
+    new Paragraph({ spacing: { after: 0 }, children: [tx(I.nivel, { size: 28, bold: true })] }),
+    new Paragraph({ spacing: { after: 200 }, children: [tx(I.sub + ' · Elaborado el ' + I.fecha, { size: 19, color: GR })] })
+  ];
+  I.B.forEach(b => {
+    if (b.t === 'h') kids.push(new Paragraph({ keepNext: true, spacing: { before: 240, after: 100 }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'D9D2C3', space: 2 } }, children: [tx(b.x, { size: 26, bold: true, color: AZ })] }));
+    else if (b.t === 'sub') kids.push(new Paragraph({ keepNext: true, spacing: { before: 120, after: 40 }, children: [tx(b.x, { size: 22, bold: true, color: b.c.replace('#', '') })] }));
+    else if (b.t === 'p') kids.push(new Paragraph({ spacing: { after: 120 }, children: runs(b.x) }));
+    else if (b.t === 'nota') kids.push(new Paragraph({ spacing: { after: 120 }, children: [tx(b.x, { size: 17, color: GR, it: true })] }));
+    else if (b.t === 'lista') b.l.forEach(x => kids.push(new Paragraph({ bullet: { level: 0 }, spacing: { after: 60 }, children: runs(x) })));
+    else if (b.t === 'tabla') { kids.push(tablaW(b)); kids.push(new Paragraph({ spacing: { after: 80 }, children: [] })); }
+    else if (b.t === 'img') { const w = Math.min(600, b.g.w), h = Math.round(b.g.h * w / b.g.w); kids.push(new Paragraph({ alignment: Al.CENTER, spacing: { after: 160 }, children: [new ImageRun({ type: 'png', data: b.g.bytes, transformation: { width: w, height: h } })] })); }
+  });
+  const doc = new Document({ creator: 'Supervisión Escolar Zona 050 · Tequio', title: I.titulo + ' · ' + I.nivel,
+    sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1900, bottom: 1100, left: 1440, right: 1440, header: 450, footer: 450 } } }, headers: { default: header }, footers: { default: footer }, children: kids }] });
+  return Packer.toBlob(doc);
+}
+
+function sisDescargar(v) {
+  modal('Descargar el análisis', `<p style="margin-top:0">Se descarga el análisis de <b>${esc(sisTitulo(v))}</b> (${v.m === 't' ? 'tendencia' : 'Momento ' + v.m}, ciclo ${esc(v.ciclo)}) con sus gráficas, el diagnóstico${['escuela', 'grado', 'grupo'].includes(v.nivel) ? ', los alumnos que requieren apoyo' : ''} y las observaciones registradas.</p>
+    ${['escuela', 'grado', 'grupo'].includes(v.nivel) ? '<p class="ayuda">Incluye nombres de alumnos: compártalo solo con quien corresponda.</p>' : ''}`,
+    '<button class="boton sec" id="d-no">Cancelar</button><button class="boton sec" id="d-word">Word</button><button class="boton terra" id="d-pdf">PDF</button>');
+  $('#d-no').onclick = cerrarModal;
+  const nombre = () => ('SisAT ' + v.ciclo + ' ' + (v.m === 't' ? 'Tendencia' : 'M' + v.m) + ' ' + sisTitulo(v)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
+  const hacer = async tipo => { cerrarModal(); const blob = await conCarga(async () => { const I = await sisInforme(v); return tipo === 'pdf' ? sisPdfInforme(I) : sisWordInforme(I); }); if (blob) { descargarBlob(blob, nombre() + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Análisis descargado.', 'ok'); } };
+  $('#d-pdf').onclick = () => hacer('pdf');
+  $('#d-word').onclick = () => hacer('word');
+}
+
 /* ---------------- Demostración ---------------- */
 const Demo = (() => {
   let D = null;
@@ -2453,6 +3175,24 @@ const Demo = (() => {
     ['Luis Donaldo Colosio Murrieta', '02DPR0882N', 'Ensenada', true], ['Narciso Mendoza', '02DPR0012Z', 'Ensenada', true],
     ['Ignacio Allende', '02DPR0556S', 'Ensenada', true], ['José Ma. Pino Suárez', '02DPR0382S', 'Ensenada', true]
   ];
+  // Alumnos de ejemplo, inventados a partir de los concentrados de cada grupo (para mostrar el análisis por alumno y por componente)
+  function demoAlumnos(sis) {
+    const out = [];
+    let sem = 11; const az = () => (sem = (sem * 9301 + 49297) % 233280) / 233280;
+    const PTS = { NE: [15, 18], ED: [10, 14], RA: [6, 9] }, PC = { NE: [8, 10], ED: [5, 7], RA: [0, 4] };
+    const seis = nv => { const [lo, hi] = PTS[nv], p = lo + Math.floor(az() * (hi - lo + 1)), c = Array(6).fill(1); let r = p - 6, k = 0; while (r > 0 && k++ < 200) { const j = Math.floor(az() * 6); if (c[j] < 3) { c[j]++; r--; } } return { c: c.map(String), p: c.reduce((a, b) => a + b, 0), n: nv }; };
+    const diez = nv => { const [lo, hi] = PC[nv], p = lo + Math.floor(az() * (hi - lo + 1)), orden = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => az() - .5), c = Array(10).fill('0');
+      orden.slice(0, p).forEach(k => { c[k] = az() < .35 ? '1v' : '1'; }); return { c, p, v: c.filter(x => x === '1v').length, n: nv }; };
+    sis.forEach(r => {
+      const lista = h => ['ne', 'ed', 'ra'].flatMap(k => Array(r[h][k]).fill(k.toUpperCase()));
+      const L = lista('lec'), T = lista('tex'), C = lista('cal'), n = Math.max(L.length, T.length, C.length);
+      const als = [];
+      for (let i = 0; i < n; i++) als.push({ alumno: 'Alumno de ejemplo ' + r.grado + (r.grupo || '') + '-' + String(i + 1).padStart(2, '0'), lec: L[i] ? seis(L[i]) : null, tex: T[i] ? seis(T[i]) : null, cal: C[i] ? diez(C[i]) : null });
+      r.comp = sisDeAlumnos(als).comp;
+      als.forEach((a, i) => out.push(Object.assign({ id: r.id + '|' + (i + 1), ciclo: r.ciclo, momento: r.momento, cct: r.cct, grado: r.grado, grupo: r.grupo, num: String(i + 1) }, a)));
+    });
+    return out;
+  }
   function iniciar() {
     const h = hoy();
     const dir = ESC.map((e, i) => ({ id: 'd-' + e[1], tipo: 'director', nombre: 'Dirección de ejemplo ' + (i + 1), cargo: e[3] ? 'Encargado(a) de despacho' : 'Director(a)', cct: e[1], escuela: e[0], municipio: e[2], multigrado: e[3], correo1: 'direccion' + (i + 1) + '@ejemplo.mx', correo2: '', whatsapp: '', activo: true }));
@@ -2527,13 +3267,13 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 5,
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 8,
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
         referencia: '', asunto: 'Informe de visitas de acompañamiento del mes de septiembre', ccp: 'Archivo.', firma: false, sello: false, escala: '1', pdfId: '', envios: [], creadoPor: usr[0].id, creado: ahora(), actualizado: ahora(),
         cuerpo: 'Por medio del presente, me permito informar a usted que durante el mes de septiembre la Supervisión Escolar Zona 050 realizó visitas de acompañamiento técnico-pedagógico a las escuelas primarias de la zona, conforme al programa de trabajo del ciclo escolar 2026-2027.\n\nEn dichas visitas se dio seguimiento a la elaboración del Programa Analítico, a la organización del Consejo Técnico Escolar y a las condiciones de seguridad de los planteles. Los registros y evidencias correspondientes quedan a su disposición en esta Supervisión.\n\nSin otro particular por el momento, aprovecho la ocasión para enviarle un cordial saludo.' }],
       ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] },
-      sis, sic, sisCfg: { ia: true } };
+      sis, sic, sisCfg: { ia: true }, sia: demoAlumnos(sis) };
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -2563,12 +3303,17 @@ const Demo = (() => {
     },
     prepararDirectores: () => ({ usr: copia(D.usr), cambios: 0 }),
     sisatGuardar: d => {
-      D.sis = D.sis.filter(x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct)).concat(d.grupos.map(g => ({ id: [d.ciclo, d.momento, d.cct, g.grado + '-' + g.grupo].join('|'),
-        ciclo: d.ciclo, momento: String(d.momento), cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', lec: g.lec, tex: g.tex, cal: g.cal, tip: g.tip, fuente: d.fuente || '', cargadoPor: D.yo.id, actualizado: ahora() })));
+      const fuera = x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct);
+      D.sis = D.sis.filter(fuera).concat(d.grupos.map(g => ({ id: [d.ciclo, d.momento, d.cct, g.grado + '-' + g.grupo].join('|'),
+        ciclo: d.ciclo, momento: String(d.momento), cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', lec: g.lec, tex: g.tex, cal: g.cal, tip: g.tip, comp: g.comp || null, fuente: d.fuente || '', cargadoPor: D.yo.id, actualizado: ahora() })));
+      D.sia = D.sia.filter(fuera).concat(d.grupos.flatMap(g => (g.alumnos || []).map((a, i) => ({ id: [d.ciclo, d.momento, d.cct, g.grado + '-' + g.grupo, i + 1].join('|'), ciclo: d.ciclo, momento: String(d.momento), cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', num: String(i + 1), alumno: a.alumno, lec: a.lec, tex: a.tex, cal: a.cal }))));
       return { sis: copia(D.sis) };
     },
+    sisatAlumnos: d => ({ alumnos: copia(D.sia.filter(x => x.ciclo === d.ciclo && x.cct === d.cct)) }),
+    sisatBajar: () => ({ archivos: [], ruta: '07-SISAT' }),
+    sisatSubir: d => ({ archivo: { id: uid('x'), nombre: d.nombre, ruta: '07-SISAT/Momento ' + d.momento } }),
     sisatEliminar: d => { D.sis = D.sis.filter(x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct)); return { sis: copia(D.sis) }; },
-    sisatArchivos: d => ({ ruta: '07-SISAT/Momento ' + d.momento, archivos: [{ id: 'demo-sisat', nombre: 'Gráficas SISAT ' + d.momento + 'er momento (ejemplo).pdf', tipo: 'application/pdf', kb: 1075, fecha: ahora().slice(0, 16) }] }),
+    sisatArchivos: d => d.excel ? ({ ruta: '07-SISAT/Momento ' + d.momento, archivos: [], mensaje: 'En la demostración no hay Excel en el Drive. Pruebe con «Subir Excel» y los archivos que descarga la herramienta del SisAT.' }) : ({ ruta: '07-SISAT/Momento ' + d.momento, archivos: [{ id: 'demo-sisat', nombre: 'Gráficas SISAT ' + d.momento + 'er momento (ejemplo).pdf', tipo: 'application/pdf', kb: 1075, fecha: ahora().slice(0, 16) }] }),
     sisatLeer: d => {
       const g = SIS_SEMILLA[0].grupos, suma = (h, k) => g.reduce((s, x) => s + x[h][k], 0);
       const esc0 = {}; ['lec', 'tex', 'cal'].forEach(h => { esc0[h] = { ne: suma(h, 'ne'), ed: suma(h, 'ed'), ra: suma(h, 'ra') }; }); esc0.tip = { sa: suma('tip', 'sa'), ca: suma('tip', 'ca'), inc: suma('tip', 'inc') };

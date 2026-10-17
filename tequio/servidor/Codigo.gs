@@ -14,7 +14,8 @@
  *  · Permite crear carpetas y subir archivos a ese Drive desde la página.
  *  · Da acceso de consulta a los directores: su escuela, la agenda y el avance general de la zona.
  *  · Genera oficios numerados de la Supervisión, con redacción asistida por IA (Gemini) y envío por correo.
- *  · Concentra los resultados del SisAT (3 momentos) por grupo, grado, escuela y zona, y lee las gráficas con IA.
+ *  · Concentra los resultados del SisAT (3 momentos) por grupo, grado, escuela y zona: lee los Excel de la herramienta
+ *    oficial (resultado de cada alumno y componente) y, como respaldo, las gráficas con IA.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -41,19 +42,20 @@ const HOJAS = {
   evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
   ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
         'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre'],
-  sis: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'lec', 'tex', 'cal', 'tip', 'fuente', 'cargadoPor', 'actualizado'],
+  sis: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'lec', 'tex', 'cal', 'tip', 'fuente', 'cargadoPor', 'actualizado', 'comp'],
+  sia: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'num', 'alumno', 'lec', 'tex', 'cal', 'cargadoPor', 'actualizado'],
   sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
-  sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones' };
-const VERSION = 7;
+  sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos' };
+const VERSION = 8;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -139,9 +141,9 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar'];
+const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer'];
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -169,9 +171,9 @@ const ACCIONES = {
   /* ---- SisAT (Sistema de Alerta Temprana): resultados por grupo y observaciones ---- */
 
   // Guarda los grupos de UNA escuela en UN momento; reemplaza lo que hubiera de esa escuela y momento.
+  // Si los grupos traen «alumnos» (leídos de los Excel de la herramienta oficial), se guardan también los resultados de cada alumno.
   sisatGuardar: (yo, d) => {
-    soloMesa_(yo);
-    const ciclo = cicloValido_(d.ciclo), m = momentoValido_(d.momento), cct = String(d.cct || '');
+    const ciclo = cicloValido_(d.ciclo), m = momentoValido_(d.momento), cct = cctPermitido_(yo, d.cct);
     if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
     const vistos = {};
     const nuevos = (d.grupos || []).map(g => {
@@ -182,31 +184,87 @@ const ACCIONES = {
       vistos[k] = 1;
       return { id: [ciclo, m, cct, k].join('|'), ciclo: ciclo, momento: String(m), cct: cct, grado: grado, grupo: grupo,
         lec: niveles_(g.lec), tex: niveles_(g.tex), cal: niveles_(g.cal), tip: tipos_(g.tip),
-        fuente: String(d.fuente || g.fuente || '').slice(0, 200), cargadoPor: yo.id, actualizado: ahora_() };
+        fuente: String(d.fuente || g.fuente || '').slice(0, 200), cargadoPor: yo.id, actualizado: ahora_(), comp: componentes_(g.comp),
+        _alumnos: Array.isArray(g.alumnos) ? g.alumnos : null };
     });
     if (!nuevos.length) throw new Error('No hay grupos que guardar.');
+    const alumnos = [];
+    nuevos.forEach(g => {
+      (g._alumnos || []).slice(0, 80).forEach((a, i) => {
+        const nombre = String(a.alumno || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        if (!nombre) return;
+        alumnos.push({ id: [ciclo, m, cct, g.grado + '-' + (g.grupo || 'U'), i + 1].join('|'), ciclo: ciclo, momento: String(m), cct: cct, grado: g.grado, grupo: g.grupo,
+          num: String(i + 1), alumno: nombre, lec: resAlumno_(a.lec, 6), tex: resAlumno_(a.tex, 6), cal: resAlumno_(a.cal, 10), cargadoPor: yo.id, actualizado: ahora_() });
+      });
+      delete g._alumnos;
+    });
     const resto = leer_('sis').filter(x => !(x.ciclo === ciclo && String(x.momento) === String(m) && x.cct === cct));
     reemplazarTodo_('sis', resto.concat(nuevos));
-    bitacora_('sisat', cct, [], 'SisAT ' + ciclo + ' · Momento ' + m, nuevos.length + ' grupos guardados por ' + yo.nombre);
-    return { sis: leer_('sis') };
+    // Los alumnos de esa escuela y momento se reemplazan siempre: si la nueva carga no trae alumnos (captura por grupo), se borran los anteriores
+    const restoA = leer_('sia').filter(x => !(x.ciclo === ciclo && String(x.momento) === String(m) && x.cct === cct));
+    reemplazarTodo_('sia', restoA.concat(alumnos));
+    bitacora_('sisat', cct, [], 'SisAT ' + ciclo + ' · Momento ' + m, nuevos.length + ' grupos' + (alumnos.length ? ' y ' + alumnos.length + ' alumnos' : '') + ' guardados por ' + yo.nombre);
+    return yo.rol === 'director' ? { sis: datosDirector_(yo).sis } : { sis: leer_('sis') };
+  },
+
+  // Resultados de cada alumno de UNA escuela en un ciclo (todos los momentos). Se piden solo al consultar esa escuela.
+  sisatAlumnos: (yo, d) => {
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    return { cct: cct, ciclo: ciclo, alumnos: leer_('sia').filter(x => x.ciclo === ciclo && x.cct === cct) };
+  },
+
+  // Devuelve el contenido de los Excel del SisAT (de la carpeta de la escuela) para leerlos en la página
+  sisatBajar: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), m = momentoValido_(d.momento);
+    const c = carpetaSisat_(cct, m, false);
+    if (!c.carpeta) throw new Error(c.mensaje || 'La escuela no tiene carpeta del SisAT.');
+    const permitidos = {}, it = c.carpeta.getFiles();
+    while (it.hasNext()) { const a = it.next(); permitidos[a.getId()] = a; }
+    let total = 0;
+    const archivos = (d.ids || []).slice(0, 120).map(id => {
+      const a = permitidos[String(id)];
+      if (!a) throw new Error('Uno de los archivos no está en la carpeta del SisAT de la escuela.');
+      if (a.getSize() > 5 * 1024 * 1024) throw new Error('El archivo «' + a.getName() + '» pesa más de 5 MB; no parece de la herramienta del SisAT.');
+      total += a.getSize();
+      if (total > 40 * 1024 * 1024) throw new Error('Son demasiados archivos para leerlos juntos. Elija menos.');
+      return { id: a.getId(), nombre: a.getName(), tipo: a.getMimeType(), fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), datos: Utilities.base64Encode(a.getBlob().getBytes()) };
+    });
+    return { archivos: archivos, ruta: c.ruta };
+  },
+
+  // Guarda en la carpeta «SISAT / Momento N» de la escuela un Excel que se sube desde la página
+  sisatSubir: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), m = momentoValido_(d.momento);
+    const datos = String(d.datos || '');
+    if (!datos) throw new Error('El archivo llegó vacío.');
+    if (datos.length * 0.75 > 5 * 1024 * 1024) throw new Error('El archivo pesa más de 5 MB; no parece de la herramienta del SisAT.');
+    const nombre = String(d.nombre || 'SisAT.xls').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'SisAT.xls';
+    const c = carpetaSisat_(cct, m, true);
+    if (!c.carpeta) throw new Error(c.mensaje || 'No se encontró la carpeta del SisAT.');
+    const f = c.carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'application/vnd.ms-excel', nombre));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    return { archivo: { id: f.getId(), nombre: nombre, ruta: c.ruta } };
   },
 
   sisatEliminar: (yo, d) => {
     soloMesa_(yo);
     const ciclo = cicloValido_(d.ciclo), m = String(momentoValido_(d.momento)), cct = String(d.cct || '');
     reemplazarTodo_('sis', leer_('sis').filter(x => !(x.ciclo === ciclo && String(x.momento) === m && x.cct === cct)));
+    reemplazarTodo_('sia', leer_('sia').filter(x => !(x.ciclo === ciclo && String(x.momento) === m && x.cct === cct)));
     return { sis: leer_('sis') };
   },
 
   // Lista los PDF o imágenes de la carpeta «SISAT / Momento N» de la escuela en el Drive de evidencias
+  // Con excel=true lista los Excel de la herramienta oficial (los .xls que exporta son páginas HTML).
   sisatArchivos: (yo, d) => {
-    soloMesa_(yo);
-    const m = momentoValido_(d.momento), c = carpetaSisat_(String(d.cct || ''), m, false);
+    const cct = cctPermitido_(yo, d.cct);
+    if (!d.excel) soloMesa_(yo);
+    const m = momentoValido_(d.momento), c = carpetaSisat_(cct, m, false);
     if (!c.carpeta) return { archivos: [], ruta: c.ruta, mensaje: c.mensaje };
     const lista = [], it = c.carpeta.getFiles();
     while (it.hasNext()) {
       const a = it.next(), t = a.getMimeType();
-      if (!/pdf|image\//.test(t)) continue;
+      if (d.excel ? !esExcel_(a.getName(), t) : !/pdf|image\//.test(t)) continue;
       if (c.filtrar && !c.filtrar.test(a.getName())) continue;
       lista.push({ id: a.getId(), nombre: a.getName(), tipo: t, kb: Math.round(a.getSize() / 1024), fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm") });
     }
@@ -841,7 +899,7 @@ function datosDirector_(yo) {
     evi: leer_('evi').filter(e => e.cct === cct),
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
     // SisAT: su escuela completa; de las demás solo los números por grado, sin decir de qué escuela son (para el promedio de la zona)
-    sis: leer_('sis').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, momento: x.momento, cct: '', grado: x.grado, grupo: '', lec: x.lec, tex: x.tex, cal: x.cal, tip: x.tip }),
+    sis: leer_('sis').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, momento: x.momento, cct: '', grado: x.grado, grupo: '', lec: x.lec, tex: x.tex, cal: x.cal, tip: x.tip, comp: x.comp }),
     sic: comentariosPara_(yo),
     version: VERSION
   };
@@ -862,6 +920,38 @@ function momentoValido_(m) {
 const numero_ = (v, nulo) => { if (v === null || v === undefined || v === '') return nulo ? null : 0; const n = Math.round(+v); return isFinite(n) && n >= 0 ? Math.min(n, 99999) : (nulo ? null : 0); };
 function niveles_(o, nulo) { o = o || {}; return { ne: numero_(o.ne, nulo), ed: numero_(o.ed, nulo), ra: numero_(o.ra, nulo) }; }
 function tipos_(o, nulo) { o = o || {}; return { sa: numero_(o.sa, nulo), ca: numero_(o.ca, nulo), inc: numero_(o.inc, nulo) }; }
+// La escuela con la que puede trabajar el usuario: un director solo la suya; la Supervisión y la Mesa Técnica, cualquiera del Directorio
+function cctPermitido_(yo, cct) {
+  cct = String(cct || '');
+  if (yo.rol === 'director') {
+    const mia = cctDe_(yo);
+    if (cct && cct !== mia) throw new Error('Solo puede trabajar con los resultados de su escuela.');
+    return mia;
+  }
+  soloMesa_(yo);
+  if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+  return cct;
+}
+// Los .xls de la herramienta del SisAT son páginas HTML; también se aceptan .xlsx/.xls de Excel
+function esExcel_(nombre, tipo) {
+  return /\.(xlsx?|html?)$/i.test(nombre) || /spreadsheet|ms-excel|text\/html/.test(tipo);
+}
+// Resultado de un alumno en una herramienta: c = puntaje de cada componente o reactivo, p = puntos, v = aciertos con apoyo visual, n = nivel
+function resAlumno_(o, largo) {
+  if (!o) return null;
+  const c = (Array.isArray(o.c) ? o.c : []).slice(0, largo).map(x => String(x == null ? '' : x).trim().toLowerCase().slice(0, 3));
+  const n = { NE: 'NE', ED: 'ED', RA: 'RA' }[String(o.n || '').toUpperCase()] || '';
+  return { c: c, p: numero_(o.p, true), v: numero_(o.v, true), n: n };
+}
+// Suma por componente de un grupo: lec y tex = puntos de cada componente (I a VI) y alumnos; cal = aciertos por reactivo (I a X), con apoyo visual y alumnos
+function componentes_(o) {
+  if (!o) return null;
+  const arr = (a, l) => (Array.isArray(a) ? a : []).slice(0, l).map(x => numero_(x));
+  const r = {};
+  ['lec', 'tex'].forEach(h => { if (o[h]) r[h] = { s: arr(o[h].s, 6), n: numero_(o[h].n) }; });
+  if (o.cal) r.cal = { s: arr(o.cal.s, 10), v: arr(o.cal.v, 10), n: numero_(o.cal.n) };
+  return r;
+}
 function comentariosPara_(yo) {
   const l = leer_('sic');
   if (yo.rol !== 'director') return l;
