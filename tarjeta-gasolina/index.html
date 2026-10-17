@@ -324,6 +324,24 @@ function parseTicket(raw, hoyStr){
           precio_litro:precio!=null?r2(precio):null,combustible,estacion,folio};
 }
 
+/* Lector con IA (Gemini, vía Apps Script del autor). Si no responde, se usa el lector del teléfono. */
+const LECTOR_IA='';
+const aBase64=b=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(b)});
+async function leerConIA(blob){
+  if(!LECTOR_IA||navigator.onLine===false)return null;
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),30000);
+  try{
+    const resp=await fetch(LECTOR_IA,{method:'POST',body:JSON.stringify({imagen:await aBase64(blob),tipo:blob.type||'image/jpeg'}),signal:ctl.signal});
+    const j=await resp.json();if(!j||!j.ok||!j.datos)return null;
+    const d=j.datos;if(d.legible===false)return {legible:false};
+    const num=v=>{const n=typeof v==='number'?v:parseFloat(String(v==null?'':v).replace(/[^0-9.]/g,''));return isFinite(n)&&n>0?n:null};
+    const txt=v=>v!=null&&String(v).trim()&&String(v)!=='null'?String(v).trim():null;
+    const fecha=typeof d.fecha==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha)?d.fecha:null;
+    const imp=num(d.importe),lit=num(d.litros),pl=num(d.precio_litro);
+    return {legible:!!(imp||lit||fecha),fecha,importe:imp!=null?Math.round(imp*100)/100:null,litros:lit!=null?Math.round(lit*1000)/1000:null,
+      precio_litro:pl!=null?Math.round(pl*100)/100:null,combustible:txt(d.combustible),estacion:txt(d.estacion),folio:txt(d.folio),ia:true};
+  }catch(e){return null}finally{clearTimeout(t)}
+}
 const TJS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 let ocrWorker=null,ocrCarga=null,lecturaN=0,progreso=null;
 function cargarScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const sc=document.createElement('script');sc.src=src;sc.onload=()=>res();sc.onerror=()=>rej(new Error('red'));document.head.append(sc)})}
@@ -352,7 +370,12 @@ function prepararImagen(blob){
 async function leerTicket(file,ref){
   const r=$('#tkRead');limpiarLectura();const n=++lecturaN;
   const vigente=()=>n===lecturaN&&foto===ref;
-  r.hidden=false;r.textContent=ocrWorker?'Leyendo los datos del ticket…':'Preparando el lector de tickets (la primera vez tarda un poco más)…';
+  r.hidden=false;r.textContent='Leyendo los datos del ticket…';
+  if(LECTOR_IA){
+    const di=await leerConIA(ref);if(!vigente())return;
+    if(di&&di.legible){mostrarLectura(di);return}
+  }
+  r.textContent=ocrWorker?'Leyendo los datos del ticket…':'Preparando el lector de tickets (la primera vez tarda un poco más)…';
   try{
     const lienzo=await prepararImagen(file);if(!lienzo)throw new Error('imagen');
     const w=await obtenerLector();if(!vigente())return;
