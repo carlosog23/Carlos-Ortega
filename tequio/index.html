@@ -391,6 +391,10 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-foco{border-left:3px solid var(--borde);padding:4px 0 6px 10px;margin-bottom:8px}.sis-foco .peq{margin-top:2px;line-height:1.4}.sis-foco-t{font-size:14px}
 .sis-sub-t{font-weight:700;color:var(--alerta);padding:4px 14px 6px;font-size:14px}
 .sis-deb{text-align:left!important;white-space:normal!important;font-size:12.5px;min-width:220px;max-width:380px;line-height:1.35}
+.sis-dop{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:10px 12px;border:1px solid var(--borde);border-radius:10px;margin:6px 0;cursor:pointer;background:#fff}
+.sis-dop input[type=radio],.sis-dop input[type=checkbox]{width:18px!important;height:18px;min-height:0;margin:0;flex:none;padding:0}
+.sis-dop>span{font-weight:600}.sis-dop select{width:auto!important;min-width:120px;padding:6px 8px;border:1px solid var(--borde);border-radius:8px;font:inherit}
+.sis-dsub{flex-basis:100%;display:flex!important;gap:8px;align-items:center;margin:2px 0 0 28px;font-weight:400}
 .sis-mas-c{margin-top:12px}.sis-mas-c summary{cursor:pointer;color:var(--indigo);font-weight:600;font-size:14px}
 .sis-arch-l{max-height:300px;overflow:auto}.sis-arch-l .sis-arch{cursor:pointer}
 .sis-xg{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--borde);align-items:flex-start;flex-wrap:wrap}
@@ -2157,7 +2161,7 @@ function vSisat() {
     `<button data-sm="t" aria-pressed="${tend}">Tendencia</button>`;
   const faltan = !esDirector() && esAdmin() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
   const cab = `<div class="titulo-vista"><h1>SisAT · Alerta temprana</h1>
-    <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">Descargar análisis</button><button class="boton sec" id="b-sis-imp">Imprimir</button></div></div>
+    <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Imprimir o descargar</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
       <select id="s-ciclo" aria-label="Ciclo escolar">${sisCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
@@ -2341,7 +2345,7 @@ function sisEnlazar(v) {
   if ($('#b-sis-zimp')) $('#b-sis-zimp').onclick = () => sisImportarZona(typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-oal')) $('#b-sis-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-doc')) $('#b-sis-doc').onclick = () => sisDescargar(v);
-  if ($('#b-sis-imp')) $('#b-sis-imp').onclick = () => window.print();
+
   if ($('#b-sis-cargar')) $('#b-sis-cargar').onclick = () => sisFormCarga(esDirector() ? miCct() : v.nivel === 'zona' || v.nivel === 'zgrado' ? '' : v.cct, typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-semilla')) $('#b-sis-semilla').onclick = async () => {
     for (const p of SIS_SEMILLA) {
@@ -3471,19 +3475,53 @@ async function sisInformeVarios(v, modo) {
   return I;
 }
 function sisDescargar(v) {
-  const varios = v.nivel === 'escuela' || v.nivel === 'grado';
-  modal('Descargar el análisis', `<p style="margin-top:0">Se descarga el análisis de <b>${esc(sisTitulo(v))}</b> (${v.m === 't' ? 'tendencia' : 'Momento ' + v.m}, ciclo ${esc(v.ciclo)}) con sus gráficas, el diagnóstico, dónde enfocarse${['escuela', 'grado', 'grupo'].includes(v.nivel) ? ', los alumnos en rezago' : ''} y las observaciones registradas.</p>
-    ${varios ? `<div class="campo"><label>Qué incluir</label>
-      <label class="peq" style="display:flex;gap:8px;margin:4px 0"><input type="radio" name="d-modo" value="solo" checked> Solo ${v.nivel === 'escuela' ? 'la escuela' : 'el grado'}</label>
-      ${v.nivel === 'escuela' ? '<label class="peq" style="display:flex;gap:8px;margin:4px 0"><input type="radio" name="d-modo" value="grados"> La escuela y cada grado</label>' : ''}
-      <label class="peq" style="display:flex;gap:8px;margin:4px 0"><input type="radio" name="d-modo" value="grupos"> ${v.nivel === 'escuela' ? 'La escuela y cada grupo' : 'El grado y cada grupo'}</label>
-      ${v.nivel === 'escuela' ? '<label class="peq" style="display:flex;gap:8px;margin:4px 0"><input type="radio" name="d-modo" value="todo"> La escuela, cada grado y cada grupo</label>' : ''}
-      <p class="ayuda" style="margin:2px 0 0">Cada grado o grupo empieza en hoja nueva, para entregarle a cada docente su parte.</p></div>` : ''}
-    ${['escuela', 'grado', 'grupo'].includes(v.nivel) ? '<p class="ayuda">Incluye nombres de alumnos: compártalo solo con quien corresponda.</p>' : ''}`,
-    '<button class="boton sec" id="d-no">Cancelar</button><button class="boton sec" id="d-word">Word</button><button class="boton terra" id="d-pdf">PDF</button>');
+  const enEscuela = ['escuela', 'grado', 'grupo'].includes(v.nivel) && v.cct;
+  // Grados y grupos de la escuela con resultados en este momento (o en cualquiera, si es la tendencia)
+  const filas = enEscuela ? (v.m === 't' ? [1, 2, 3].flatMap(x => sisFilas(x)) : sisFilas(v.m)).filter(r => r.cct === v.cct) : [];
+  const grupos = []; const vistos = {};
+  filas.slice().sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo)).forEach(r => { const k = r.grado + '|' + r.grupo; if (!vistos[k]) { vistos[k] = 1; grupos.push(r); } });
+  const grados = Array.from(new Set(grupos.map(r => r.grado)));
+  const op = (val, txt, extra) => `<label class="sis-dop"><input type="radio" name="d-que" value="${val}" ${(v.nivel === 'escuela' && val === 'escuela') || v.nivel === val ? 'checked' : ''}> <span>${txt}</span>${extra || ''}</label>`;
+  const cuerpo = enEscuela ? `<p style="margin-top:0"><b>${esc(nombreEscuela(v.cct))}</b> · ${v.m === 't' ? 'tendencia de los tres momentos' : 'Momento ' + v.m} · ciclo ${esc(v.ciclo)}</p>
+    <div><div style="font-weight:700;margin-bottom:4px">¿Qué quiere imprimir?</div>
+      ${op('escuela', 'Toda la escuela', `<label class="peq sis-dsub"><input type="checkbox" id="d-esc-todo"> con cada grado y cada grupo en hojas aparte</label>`)}
+      ${op('grado', 'Un grado', ` <select id="d-grado" aria-label="Grado">${grados.map(g => `<option value="${g}" ${g === v.grado ? 'selected' : ''}>${g}.° grado</option>`).join('')}</select>
+        <label class="peq sis-dsub"><input type="checkbox" id="d-gr-todo"> con cada uno de sus grupos en hojas aparte</label>`)}
+      ${op('grupo', 'Un grupo', ` <select id="d-grupo" aria-label="Grupo">${grupos.map(r => `<option value="${r.grado}|${esc(r.grupo)}" ${r.grado === v.grado && r.grupo === v.grupo ? 'selected' : ''}>${sisNomGrupo(r)}</option>`).join('')}</select>`)}
+    </div>
+    <p class="ayuda">Lleva las gráficas, el diagnóstico, dónde enfocarse, los alumnos en rezago con sus nombres y las observaciones. Compártalo solo con quien corresponda.</p>`
+    : `<p style="margin-top:0">Análisis de <b>${esc(sisTitulo(v))}</b> (${v.m === 't' ? 'tendencia' : 'Momento ' + v.m}, ciclo ${esc(v.ciclo)}) con sus gráficas, el diagnóstico, dónde enfocarse y las observaciones.${!esDirector() ? ' Para imprimir por escuela, grado o grupo, entre primero a la escuela.' : ''}</p>`;
+  modal('Imprimir o descargar el análisis', cuerpo,
+    '<button class="boton sec" id="d-no">Cancelar</button><button class="boton sec" id="d-word">Word</button><button class="boton sec" id="d-pdf">PDF</button><button class="boton terra" id="d-imp">Imprimir</button>');
   $('#d-no').onclick = cerrarModal;
-  const nombre = () => ('SisAT ' + v.ciclo + ' ' + (v.m === 't' ? 'Tendencia' : 'M' + v.m) + ' ' + sisTitulo(v)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
-  const hacer = async tipo => { const sel = $('[name="d-modo"]:checked'), modo = sel ? sel.value : 'solo'; cerrarModal(); const blob = await conCarga(async () => { const I = await sisInformeVarios(v, modo); return tipo === 'pdf' ? sisPdfInforme(I) : sisWordInforme(I); }); if (blob) { descargarBlob(blob, nombre() + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Análisis descargado.', 'ok'); } };
+  // Al elegir el grado o el grupo en la lista, se marca esa opción
+  if ($('#d-grado')) $('#d-grado').onchange = () => { $('[name="d-que"][value="grado"]').checked = true; };
+  if ($('#d-grupo')) $('#d-grupo').onchange = () => { $('[name="d-que"][value="grupo"]').checked = true; };
+  const destino = () => {
+    if (!enEscuela) return { w: v, modo: 'solo' };
+    const que = ($('[name="d-que"]:checked') || {}).value || 'escuela';
+    if (que === 'grado') { const g = $('#d-grado').value; return { w: Object.assign({}, v, { nivel: 'grado', grado: g, grupo: '' }), modo: $('#d-gr-todo').checked ? 'grupos' : 'solo' }; }
+    if (que === 'grupo') { const [g, gp] = $('#d-grupo').value.split('|'); return { w: Object.assign({}, v, { nivel: 'grupo', grado: g, grupo: gp }), modo: 'solo' }; }
+    return { w: Object.assign({}, v, { nivel: 'escuela', grado: '', grupo: '' }), modo: $('#d-esc-todo').checked ? 'todo' : 'solo' };
+  };
+  const nombre = w => ('SisAT ' + w.ciclo + ' ' + (w.m === 't' ? 'Tendencia' : 'M' + w.m) + ' ' + sisTitulo(w)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
+  const hacer = async tipo => {
+    const { w, modo } = destino();
+    // Para imprimir se abre la ventana en el momento del clic (si no, el navegador la bloquea) y luego se carga el PDF
+    const ventana = tipo === 'imp' ? window.open('', '_blank') : null;
+    if (ventana) ventana.document.write('<p style="font:16px system-ui;padding:24px">Preparando el análisis para imprimir…</p>');
+    cerrarModal();
+    const blob = await conCarga(async () => { const I = await sisInformeVarios(w, modo); return tipo === 'word' ? sisWordInforme(I) : sisPdfInforme(I); });
+    if (!blob) { if (ventana) ventana.close(); return; }
+    if (tipo === 'imp') {
+      const url = URL.createObjectURL(blob);
+      if (ventana) { ventana.location.href = url; aviso('Se abrió el análisis en otra pestaña: imprímalo con Ctrl + P o el botón de imprimir.', 'ok', 8000); }
+      else { descargarBlob(blob, nombre(w) + '.pdf'); aviso('El navegador bloqueó la pestaña nueva: se descargó el PDF para imprimirlo.', 'ok', 8000); }
+      return;
+    }
+    descargarBlob(blob, nombre(w) + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Análisis descargado.', 'ok');
+  };
+  $('#d-imp').onclick = () => hacer('imp');
   $('#d-pdf').onclick = () => hacer('pdf');
   $('#d-word').onclick = () => hacer('word');
 }
