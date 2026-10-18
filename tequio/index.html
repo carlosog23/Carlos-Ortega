@@ -397,6 +397,16 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-dsub{flex-basis:100%;display:flex!important;gap:8px;align-items:center;margin:2px 0 0 28px;font-weight:400}
 .sis-ruta{background:#FFF8EC;border:1px solid #F0D9A8;border-radius:12px;padding:12px 16px;margin-bottom:14px}.sis-ruta h3{font-size:16px;margin:0 0 4px;color:var(--terra-d)}
 .sis-ruta ol{margin:0;padding-left:22px}.sis-ruta li{margin-bottom:8px;line-height:1.4}
+.sis-ver{font-weight:700;min-width:240px;border-color:var(--indigo)!important}
+.sis-tabs{margin:0 0 14px;max-width:420px}
+.sis-cmp-p{margin-bottom:16px}.sis-cmp-f{display:flex;flex-wrap:wrap;gap:10px 14px}.sis-cmp-f select{min-width:200px}
+.sis-cmp-sel{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;margin-top:12px}.sis-cmp-sel label{display:flex;gap:8px;align-items:center;font-size:14px}
+.sis-cmp-sel input{width:18px;height:18px}
+.sis-cmp-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}@media (max-width:900px){.sis-cmp-g{grid-template-columns:minmax(0,1fr)}}.sis-cmp-g h3{font-size:15px;margin:0 0 8px}
+.sis-cmp-det{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 24px;padding:4px 14px 14px}.sis-cmp-det h3{font-size:15px;margin:6px 0}
+.sis-cmp-e{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid var(--borde)}
+.sis-rank-f{display:grid;grid-template-columns:2.2em minmax(0,1.4fr) minmax(0,1fr) 4.5em;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--borde)}
+.sis-rank-n{font-family:'Fraunces',serif;font-size:20px;color:var(--indigo);text-align:center}.sis-rank-e{display:flex;flex-direction:column}.sis-rank-b{height:14px}.sis-rank-v{text-align:right;font-variant-numeric:tabular-nums}
 .sis-mas-c{margin-top:12px}.sis-mas-c summary{cursor:pointer;color:var(--indigo);font-weight:600;font-size:14px}
 .sis-arch-l{max-height:300px;overflow:auto}.sis-arch-l .sis-arch{cursor:pointer}
 .sis-xg{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--borde);align-items:flex-start;flex-wrap:wrap}
@@ -2166,14 +2176,18 @@ function vSisat() {
     <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Imprimir o descargar</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
+      <select id="s-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
+        : `<option value="zona" ${['zona', 'zgrado'].includes(v.nivel) ? 'selected' : ''}>Toda la zona</option><optgroup label="Escuelas">${directores().map(c => `<option value="${c.cct}" ${!['zona', 'zgrado'].includes(v.nivel) && v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</optgroup>`}</select>
       <select id="s-ciclo" aria-label="Ciclo escolar">${sisCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
       ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `<select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>` : ''}
     </div>
     <div class="seg-op sis-mom" role="group" aria-label="Momento del SisAT">${momBtns}</div>
     ${migas}
-    <h2 class="sis-h2">${esc(sisTitulo(v))}</h2>`;
-  const cuerpo = tend ? sisCuerpoTendencia(v, pred) : sisCuerpoMomento(v, pred);
-  $('#vista').innerHTML = cab + cuerpo + sisObservaciones(v);
+    <h2 class="sis-h2">${esc(sisTitulo(v))}</h2>
+    ${v.nivel === 'zona' && !esDirector() ? `<div class="seg-op sis-tabs" role="group" aria-label="Vista de la zona"><button data-svista="resumen" aria-pressed="${v.vista !== 'comp'}">Resumen de la zona</button><button data-svista="comp" aria-pressed="${v.vista === 'comp'}">Comparativos</button></div>` : ''}`;
+  const comparar = v.nivel === 'zona' && !esDirector() && v.vista === 'comp';
+  const cuerpo = comparar ? sisCuerpoComparativo(v) : tend ? sisCuerpoTendencia(v, pred) : sisCuerpoMomento(v, pred);
+  $('#vista').innerHTML = cab + cuerpo + (comparar ? '' : sisObservaciones(v));
   sisEnlazar(v);
 }
 function sisMigas(v) {
@@ -2343,6 +2357,14 @@ function sisEnlazar(v) {
   if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vSisat(); };
   if ($('#b-sis-orden')) $('#b-sis-orden').onclick = () => { v.orden = v.orden === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-con1')) $('#b-sis-con1').onclick = () => { v.con1 = !v.con1; vSisat(); };
+  if ($('#s-ver')) $('#s-ver').onchange = e => { const x = e.target.value; ir(x === 'zona' ? { nivel: 'zona' } : { nivel: 'escuela', cct: x, grado: '', grupo: '' }); };
+  $$('[data-svista]').forEach(b => b.onclick = () => { v.vista = b.dataset.svista; vSisat(); });
+  const cmp = () => sisCmpV(v);
+  if ($('#cmp-tipo')) $('#cmp-tipo').onchange = e => { cmp().tipo = e.target.value; vSisat(); };
+  if ($('#cmp-grado')) $('#cmp-grado').onchange = e => { cmp().grado = e.target.value; vSisat(); };
+  if ($('#cmp-crit')) $('#cmp-crit').onchange = e => { cmp().crit = e.target.value; vSisat(); };
+  if ($('#cmp-orden')) $('#cmp-orden').onchange = e => { cmp().orden = e.target.value; vSisat(); };
+  $$('[data-cmpsel]').forEach(x => x.onchange = () => { cmp().sel = $$('[data-cmpsel]').filter(y => y.checked).map(y => y.dataset.cmpsel); vSisat(); });
   $$('[data-simp]').forEach(b => b.onclick = () => { const [cct, m] = b.dataset.simp.split('|'); sisImportarEscuela(cct, +m); });
   if ($('#b-sis-zimp')) $('#b-sis-zimp').onclick = () => sisImportarZona(typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-oal')) $('#b-sis-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
@@ -3187,6 +3209,141 @@ function sisTendenciaAlumnos(v) {
       <div style="padding:6px 14px 12px;columns:2;column-gap:24px">${siempre.map(a => `${esc(a.alumno)} <span class="peq mudo">${a.grado}° ${esc(a.grupo)}</span>`).join('<br>')}</div></details>` : ''}</div>`;
 }
 
+/* ---- Comparativos de la zona (Supervisión y Mesa Técnica) ---- */
+// Escuelas del turno vespertino (las demás se toman como matutinas)
+const SIS_VESPERTINAS = [];
+const sisTurno = cct => SIS_VESPERTINAS.includes(cct) ? 'Vespertino' : 'Matutino';
+const SIS_CRITERIOS = [
+  ['ind', 'Índice general', 1], ['lec.pne', 'Lectura · nivel esperado', 1], ['tex.pne', 'Producción de textos · nivel esperado', 1], ['cal.pne', 'Cálculo mental · nivel esperado', 1],
+  ['lec.pra', 'Lectura · requiere apoyo', -1], ['tex.pra', 'Producción de textos · requiere apoyo', -1], ['cal.pra', 'Cálculo mental · requiere apoyo', -1]
+];
+const sisValor = (a, crit) => { if (!a) return null; if (crit === 'ind') return a.ind; const [h, k] = crit.split('.'); return a[h] && a[h].n ? a[h][k] : null; };
+function sisCmpV(v) { if (!v.cmp) v.cmp = { tipo: 'multi', grado: '', sel: [], crit: 'ind', orden: 'desc' }; return v.cmp; }
+
+// Bloques de escuelas que se comparan, según el tipo de comparativo
+function sisCmpGrupos(v, filas) {
+  const c = sisCmpV(v), escs = filtroEscuelas();
+  const de = l => filas.filter(r => l.some(e => e.cct === r.cct));
+  if (c.tipo === 'multi') return [['Multigrado', escs.filter(e => e.multigrado)], ['Organización completa', escs.filter(e => !e.multigrado)]].map(([n, l]) => ({ etq: n, escs: l, filas: de(l) }));
+  if (c.tipo === 'turno') return [['Turno matutino', escs.filter(e => sisTurno(e.cct) === 'Matutino')], ['Turno vespertino', escs.filter(e => sisTurno(e.cct) === 'Vespertino')]].map(([n, l]) => ({ etq: n, escs: l, filas: de(l) }));
+  if (c.tipo === 'mun') return ['San Quintín', 'Ensenada'].map(n => { const l = escs.filter(e => e.municipio === n); return { etq: 'Municipio de ' + n, escs: l, filas: de(l) }; });
+  if (c.tipo === 'elegir') return c.sel.map(cct => { const e = escs.find(x => x.cct === cct) || { cct, escuela: nombreEscuela(cct) }; return { etq: e.escuela, escs: [e], filas: de([e]) }; });
+  return [];
+}
+
+function sisCuerpoComparativo(v) {
+  const c = sisCmpV(v), m = v.m;
+  if (m === 't') return '<div class="tarjeta vacio">Los comparativos se hacen por momento: elija el Momento 1, 2 o 3.</div>';
+  const sin1 = +m === 1 && !v.con1;
+  let filas = sisFilas(m).filter(r => filtroEscuelas().some(e => e.cct === r.cct));
+  if (c.grado) filas = filas.filter(r => r.grado === c.grado);
+  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', 'San Quintín vs. Ensenada'], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
+  const panel = `<div class="tarjeta pad sis-cmp-p">
+    <div class="sis-cmp-f">
+      <div class="campo" style="margin:0"><label for="cmp-tipo">Comparar</label><select id="cmp-tipo">${tipos.map(([k, t]) => `<option value="${k}" ${c.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="campo" style="margin:0"><label for="cmp-grado">Grados</label><select id="cmp-grado"><option value="">Todos los grados</option>${[1, 2, 3, 4, 5, 6].map(g => `<option value="${g}" ${c.grado === String(g) ? 'selected' : ''}>Solo ${g}.° grado</option>`).join('')}</select></div>
+      ${c.tipo === 'rank' ? `<div class="campo" style="margin:0"><label for="cmp-crit">Ordenar por</label><select id="cmp-crit">${SIS_CRITERIOS.map(([k, t]) => `<option value="${k}" ${c.crit === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="campo" style="margin:0"><label for="cmp-orden">Orden</label><select id="cmp-orden"><option value="desc" ${c.orden === 'desc' ? 'selected' : ''}>De mayor a menor</option><option value="asc" ${c.orden === 'asc' ? 'selected' : ''}>De menor a mayor</option></select></div>` : ''}
+    </div>
+    ${c.tipo === 'elegir' ? `<div class="sis-cmp-sel">${filtroEscuelas().map(e => `<label><input type="checkbox" data-cmpsel="${e.cct}" ${c.sel.includes(e.cct) ? 'checked' : ''}> ${esc(e.escuela)}</label>`).join('')}</div><p class="peq mudo" style="margin:4px 0 0">Marque dos o más escuelas.</p>` : ''}
+    ${c.tipo === 'turno' && !SIS_VESPERTINAS.length ? '<div class="aviso-caja" style="margin:10px 0 0">Falta indicar en Tequio qué escuelas son del turno vespertino.</div>' : ''}
+    ${sin1 ? '<p class="peq mudo" style="margin:8px 0 0">Momento 1: a 1.° grado solo se le cuenta cálculo (aún no leen ni escriben de forma convencional).</p>' : ''}
+  </div>`;
+  if (!filas.length) return panel + `<div class="tarjeta vacio">No hay resultados del Momento ${m}${c.grado ? ' en ' + c.grado + '.° grado' : ''}.</div>`;
+  if (c.tipo === 'rank') return panel + sisRanking(v, filas, sin1);
+  const G = sisCmpGrupos(v, filas).map(g => Object.assign(g, { a: g.filas.length ? sisSuma(g.filas, sin1) : null, comp: sisCompSuma(g.filas, sin1) }));
+  if (c.tipo === 'elegir' && G.length < 2) return panel + '<div class="tarjeta vacio">Marque al menos dos escuelas para compararlas.</div>';
+  return panel + sisCmpResultado(G, c);
+}
+
+function sisCmpResultado(G, c) {
+  const con = G.filter(g => g.a);
+  const fila = g => `<tr><td class="esc-col"><b>${esc(g.etq)}</b><div class="peq mudo">${g.escs.length} escuela${g.escs.length === 1 ? '' : 's'}${g.a ? ' · ' + g.a.grupos + ' grupos · ' + g.a.alumnos + ' alumnos' : ' · sin resultados'}</div></td>
+    ${SIS_H.map(([h]) => { const o = g.a ? g.a[h] : null; return `<td class="sis-celda">${o && o.n ? `${sisBarra(o, 10)}<span class="peq"><b style="color:var(--ok)">${sisFmt(o.pne)}</b> esp. · <b style="color:var(--alerta)">${sisFmt(o.pra)}</b> apoyo</span>` : '<span class="sis-sin">—</span>'}</td>`; }).join('')}
+    <td><span class="sis-ind" style="background:${sisColorInd(g.a && g.a.ind)}">${g.a && g.a.ind != null ? g.a.ind : '—'}</span></td></tr>`;
+  const tabla = `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Comparativo por nivel de logro</div><div class="matriz-caja"><table class="matriz sis-tab">
+    <thead><tr><th class="esc-col"></th>${SIS_H.map(([, nom]) => `<th>${nom}</th>`).join('')}<th>Índice</th></tr></thead><tbody>${G.map(fila).join('')}</tbody></table></div>
+    ${sisLeyenda()}</div>`;
+  // Gráfica: nivel esperado y requiere apoyo de cada bloque en cada habilidad
+  const colores = ['#24427A', '#C2603A', '#2E7D4F', '#8A5BB0', '#B08A4E', '#4A90A4'];
+  const graf = `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">Nivel esperado por habilidad</div>
+    <div class="sis-cmp-g">${SIS_H.map(([h, nom]) => `<div><h3>${nom}</h3>${G.map((g, i) => { const o = g.a ? g.a[h] : null; const p = o && o.n ? o.pne : 0;
+      return `<div class="sis-cb"><span class="sis-cb-n">${esc(g.etq)}</span><span class="sis-cb-b"><i style="width:${p}%;background:${colores[i % colores.length]}"></i></span><b class="sis-cb-p">${o && o.n ? sisFmt(o.pne) : '—'}</b></div>`; }).join('')}</div>`).join('')}</div></div>`;
+  const L = sisCmpConclusiones(G);
+  const concl = L.length ? `<div class="tarjeta pad sis-diag" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Lo que muestra el comparativo</div><ul>${L.map(x => `<li>${x}</li>`).join('')}</ul></div>` : '';
+  // Detalle: escuelas de cada bloque
+  const det = c.tipo !== 'elegir' ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Escuelas de cada bloque</div><div class="sis-cmp-det">${G.map(g => `<div><h3>${esc(g.etq)}</h3>${g.escs.map(e => { const a = g.filas.some(r => r.cct === e.cct) ? sisSuma(g.filas.filter(r => r.cct === e.cct), false) : null;
+      return `<div class="sis-cmp-e"><button class="sis-ir" data-sesc="${e.cct}">${esc(e.escuela)}</button><span class="sis-ind" style="background:${sisColorInd(a && a.ind)}">${a && a.ind != null ? a.ind : '—'}</span></div>`; }).join('')}</div>`).join('')}</div></div>` : '';
+  return concl + tabla + graf + det;
+}
+
+function sisCmpConclusiones(G) {
+  const con = G.filter(g => g.a);
+  const L = [];
+  if (con.length >= 2) {
+    SIS_H.forEach(([h, nom]) => {
+      const vals = con.filter(g => g.a[h].n).map(g => ({ g, ne: g.a[h].pne, ra: g.a[h].pra })); if (vals.length < 2) return;
+      const ord = vals.slice().sort((x, y) => y.ne - x.ne), mej = ord[0], peor = ord[ord.length - 1], dif = Math.round((mej.ne - peor.ne) * 10) / 10;
+      if (dif >= 3) L.push(`<b>${nom}:</b> ${esc(mej.g.etq)} tiene ${dif} puntos más de alumnos en nivel esperado que ${esc(peor.g.etq)} (${sisFmt(mej.ne)} contra ${sisFmt(peor.ne)}); en «requiere apoyo», ${sisFmt(mej.ra)} contra ${sisFmt(peor.ra)}.`);
+      else L.push(`<b>${nom}:</b> resultados parecidos (diferencia de ${dif} puntos en nivel esperado).`);
+    });
+    const ord = con.filter(g => g.a.ind != null).sort((x, y) => y.a.ind - x.a.ind);
+    if (ord.length >= 2) L.push(`<b>Índice general:</b> ${ord.map(g => esc(g.etq) + ' ' + g.a.ind).join(' · ')}.`);
+    // componentes: dónde está la mayor brecha
+    ['lec', 'tex'].forEach(h => {
+      const cs = con.filter(g => g.comp && g.comp[h] && g.comp[h].n); if (cs.length < 2) return;
+      let mejor = null;
+      SIS_COMP[h].forEach((nom, i) => { const ps = cs.map(g => sisCompPc(g.comp, h, i)); const d = Math.max(...ps) - Math.min(...ps); if (!mejor || d > mejor.d) mejor = { nom, d: Math.round(d * 10) / 10, i, ps }; });
+      if (mejor && mejor.d >= 5) { const k = mejor.ps.indexOf(Math.min(...mejor.ps)); L.push(`<b>${SIS_H.find(x => x[0] === h)[1]}:</b> la mayor diferencia está en <b>${esc(mejor.nom.toLowerCase())}</b> (${mejor.d} puntos); el más bajo es ${esc(cs[k].etq)} con ${sisFmt(mejor.ps[k])}.`); }
+    });
+  }
+  return L;
+}
+function sisRanking(v, filas, sin1) {
+  const c = sisCmpV(v);
+  const crit = SIS_CRITERIOS.find(x => x[0] === c.crit) || SIS_CRITERIOS[0];
+  const l = filtroEscuelas().map(e => { const rs = filas.filter(r => r.cct === e.cct); const a = rs.length ? sisSuma(rs, sin1) : null; return { e, a, val: sisValor(a, crit[0]) }; });
+  const con = l.filter(x => x.val != null).sort((x, y) => c.orden === 'asc' ? x.val - y.val : y.val - x.val), sin = l.filter(x => x.val == null);
+  const max = Math.max(1, ...con.map(x => x.val));
+  const pct = crit[0] !== 'ind';
+  const color = x => crit[2] > 0 ? sisColorInd(x.val) : (x.val >= 40 ? 'var(--alerta)' : x.val >= 25 ? 'var(--ambar)' : 'var(--ok)');
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Escuelas por ${esc(crit[1].toLowerCase())} · ${c.orden === 'asc' ? 'de menor a mayor' : 'de mayor a menor'}</div>
+    <div class="sis-rank">${con.map((x, i) => `<div class="sis-rank-f"><span class="sis-rank-n">${i + 1}</span>
+      <span class="sis-rank-e"><button class="sis-ir" data-sesc="${x.e.cct}">${esc(x.e.escuela)}</button><span class="peq mudo">${x.e.multigrado ? 'Multigrado' : 'Org. completa'} · ${esc(x.e.municipio)}${SIS_VESPERTINAS.length ? ' · ' + sisTurno(x.e.cct) : ''} · ${x.a.alumnos} alumnos</span></span>
+      <span class="sis-cb-b sis-rank-b"><i style="width:${Math.round(x.val * 100 / max)}%;background:${color(x)}"></i></span>
+      <b class="sis-rank-v">${pct ? sisFmt(x.val) : x.val}</b></div>`).join('')}</div>
+    ${sin.length ? `<p class="peq mudo" style="margin:8px 14px">Sin resultados en este momento: ${sin.map(x => esc(x.e.escuela)).join(', ')}.</p>` : ''}
+    <p class="peq mudo" style="margin:8px 14px">${crit[0] === 'ind' ? 'Índice: cada alumno en nivel esperado vale 100, en desarrollo 50 y que requiere apoyo 0 (promedio de las tres habilidades).' : 'Porcentaje de alumnos de la escuela en ese nivel.'}</p></div>`;
+}
+
+// Comparativo para imprimir o descargar
+async function sisInformeComparativo(v) {
+  const c = sisCmpV(v), m = v.m, sin1 = +m === 1 && !v.con1, B = [];
+  let filas = sisFilas(m).filter(r => filtroEscuelas().some(e => e.cct === r.cct));
+  if (c.grado) filas = filas.filter(r => r.grado === c.grado);
+  if (!filas.length) throw new Error('No hay resultados para comparar en este momento.');
+  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: 'San Quintín y Ensenada', elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
+  if (c.tipo === 'rank') {
+    const crit = SIS_CRITERIOS.find(x => x[0] === c.crit) || SIS_CRITERIOS[0];
+    const l = filtroEscuelas().map(e => { const rs = filas.filter(r => r.cct === e.cct); const a = rs.length ? sisSuma(rs, sin1) : null; return { e, a, val: sisValor(a, crit[0]) }; }).filter(x => x.val != null)
+      .sort((x, y) => c.orden === 'asc' ? x.val - y.val : y.val - x.val);
+    B.push({ t: 'h', x: 'Escuelas por ' + crit[1].toLowerCase() + (c.orden === 'asc' ? ' (de menor a mayor)' : ' (de mayor a menor)') });
+    B.push({ t: 'tabla', cab: ['Lugar', 'Escuela', 'Tipo', crit[1], 'Índice'], anchos: [9, 38, 21, 18, 14], filas: l.map((x, i) => [String(i + 1), x.e.escuela, (x.e.multigrado ? 'Multigrado' : 'Org. completa') + ' · ' + x.e.municipio, crit[0] === 'ind' ? String(x.val) : sisFmt(x.val), x.a.ind == null ? '—' : String(x.a.ind)]) });
+    B.push({ t: 'img', g: sisGrafNiveles(l.map(x => Object.assign({ etq: x.e.escuela }, x.a[(crit[0].split('.')[0] === 'ind' ? 'lec' : crit[0].split('.')[0])])), 'Distribución por nivel · ' + (crit[0] === 'ind' ? 'lectura' : SIS_H.find(h => h[0] === crit[0].split('.')[0])[1].toLowerCase())) });
+  } else {
+    const G = sisCmpGrupos(v, filas).map(g => Object.assign(g, { a: g.filas.length ? sisSuma(g.filas, sin1) : null, comp: sisCompSuma(g.filas, sin1) })).filter(g => g.a);
+    if (G.length < 2) throw new Error('Se necesitan al menos dos grupos de escuelas con resultados.');
+    B.push({ t: 'h', x: 'Lo que muestra el comparativo' });
+    B.push({ t: 'lista', l: sisCmpConclusiones(G) });
+    B.push({ t: 'h', x: 'Comparativo por nivel de logro' });
+    B.push({ t: 'tabla', cab: ['', 'Lectura (esp. / apoyo)', 'Textos (esp. / apoyo)', 'Cálculo (esp. / apoyo)', 'Índice'], anchos: [28, 19, 19, 19, 15], filas: G.map(g => [g.etq + ' (' + g.escs.length + ' esc., ' + g.a.alumnos + ' al.)', ...SIS_H.map(([h]) => g.a[h].n ? sisFmt(g.a[h].pne) + ' / ' + sisFmt(g.a[h].pra) : '—'), g.a.ind == null ? '—' : String(g.a.ind)]) });
+    SIS_H.forEach(([h, nom]) => B.push({ t: 'img', g: sisGrafNiveles(G.map(g => Object.assign({ etq: g.etq }, g.a[h])), nom) }));
+    if (c.tipo !== 'elegir') { B.push({ t: 'h', x: 'Escuelas de cada bloque' }); B.push({ t: 'lista', l: G.map(g => `<b>${esc(g.etq)}:</b> ${esc(g.escs.map(e => e.escuela).join(', '))}`) }); }
+  }
+  if (sin1) B.push({ t: 'nota', x: 'Momento 1: a 1.° grado solo se le cuenta cálculo (aún no leen ni escriben de forma convencional).' });
+  return { titulo: 'Comparativo del SisAT', nivel: nombres[c.tipo] + (c.grado ? ' · ' + c.grado + '.° grado' : ''), sub: 'Ciclo escolar ' + v.ciclo + ' · Momento ' + m, fecha: fechaOficio(hoy()), B };
+}
+
 /* ---- Descarga del análisis (PDF o Word) con gráficas ---- */
 const SIS_FUENTE = "\"MontserratOfi\", Arial, Helvetica, sans-serif";
 const SIS_COL = { ne: '#2E7D4F', ed: '#E8A33D', ra: '#B3261E', az: '#1F3A6B', gris: '#555555', linea: '#D9D2C3' };
@@ -3549,6 +3706,7 @@ function sisSubniveles(v, modo) {
   return L;
 }
 async function sisInformeVarios(v, modo) {
+  if (v.nivel === 'zona' && v.vista === 'comp' && !esDirector()) return sisInformeComparativo(v);
   const I = await sisInforme(v);
   if (modo === 'solo') return I;
   for (const sv of sisSubniveles(v, modo)) {
@@ -3574,6 +3732,7 @@ function sisDescargar(v) {
       ${op('grupo', 'Un grupo', ` <select id="d-grupo" aria-label="Grupo">${grupos.map(r => `<option value="${r.grado}|${esc(r.grupo)}" ${r.grado === v.grado && r.grupo === v.grupo ? 'selected' : ''}>${sisNomGrupo(r)}</option>`).join('')}</select>`)}
     </div>
     <p class="ayuda">Lleva las gráficas, el diagnóstico, dónde enfocarse, los alumnos en rezago con sus nombres y las observaciones. Compártalo solo con quien corresponda.</p>`
+    : v.nivel === 'zona' && v.vista === 'comp' && !esDirector() ? `<p style="margin-top:0">Se imprime el <b>comparativo</b> que tiene en pantalla, con su tabla, gráficas y conclusiones.</p>`
     : `<p style="margin-top:0">Análisis de <b>${esc(sisTitulo(v))}</b> (${v.m === 't' ? 'tendencia' : 'Momento ' + v.m}, ciclo ${esc(v.ciclo)}) con sus gráficas, el diagnóstico, dónde enfocarse y las observaciones.${!esDirector() ? ' Para imprimir por escuela, grado o grupo, entre primero a la escuela.' : ''}</p>`;
   modal('Imprimir o descargar el análisis', cuerpo,
     '<button class="boton sec" id="d-no">Cancelar</button><button class="boton sec" id="d-word">Word</button><button class="boton sec" id="d-pdf">PDF</button><button class="boton terra" id="d-imp">Imprimir</button>');
