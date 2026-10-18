@@ -412,6 +412,15 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-xg{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--borde);align-items:flex-start;flex-wrap:wrap}
 .sis-xg-a{display:flex;gap:8px}.sis-xg-a select,.sis-xg-a input{padding:7px;border:1px solid var(--borde);border-radius:8px;font:inherit;background:#fff}
 .sis-xg-b{flex:1;min-width:220px}.sis-xg-l{max-height:160px;overflow:auto;padding:6px 0;columns:2;column-gap:18px}
+.eia-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+@media (max-width:1000px){.eia-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:560px){.eia-kpis{grid-template-columns:minmax(0,1fr)}}
+.eia-num{font-family:'Fraunces',serif;font-size:34px;line-height:1.1;margin:2px 0 6px;font-variant-numeric:tabular-nums}.eia-num small{font-size:16px;font-family:inherit;color:var(--gris)}
+.eia-campos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 26px;padding:4px 14px 10px}@media (max-width:760px){.eia-campos{grid-template-columns:minmax(0,1fr)}}
+.eia-campo-t{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}.eia-campo .sis-barra{margin-bottom:3px}
+.eia-cmp-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}@media (max-width:900px){.eia-cmp-g{grid-template-columns:minmax(0,1fr)}}.eia-cmp-g h3{font-size:15px;margin:0 0 8px}
+.eia-mapa{font-size:12.5px}.eia-mapa td.eia-c{text-align:center;font-weight:700;min-width:22px;padding:4px 2px;border:1px solid #fff}.eia-mapa .eia-sep{border-left:3px solid var(--tinta)!important}
+.eia-mapa th.eia-mc{padding:4px 2px;font-size:11px;white-space:nowrap;vertical-align:bottom}.eia-mapa th.eia-mc span{writing-mode:vertical-rl;transform:rotate(180deg);display:inline-block}
+.eia-cruce{margin:4px 14px 12px;padding:10px 12px;border:1px solid #F0D9A8;background:#FFF8EC;border-radius:10px}
 .sis-arch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--borde)}
 .modal.ancha{max-width:1100px}
 .sis-ed input{width:52px;padding:6px 4px;border:1px solid var(--borde);border-radius:6px;font:inherit;font-size:14px;text-align:center;background:#fff}
@@ -455,6 +464,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l1.8 1.8L8.5 4.5M3.5 12.5l1.8 1.8 3.2-3.3M3.5 19l1.8 1.8 3.2-3.3M12 6.5h8.5M12 13h8.5M12 19.5h8.5"/></symbol>
   <symbol id="i-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/><path d="M8.5 13.2l2.2 2.2 4.6-4.6"/></symbol>
   <symbol id="i-graf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></symbol>
+  <symbol id="i-eia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l2 2 4-4M9 16h6"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -596,7 +606,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -686,8 +696,8 @@ function portada(mensaje) {
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf']];
-  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -708,7 +718,7 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat })[vista.tab]();
+  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia })[vista.tab]();
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -3596,7 +3606,7 @@ function sisHtmlInforme(I) {
       : b.t === 'titulo' ? `<div class="tit2">${esc(b.x)}</div><p class="sub">${esc(I.sub)}</p>`
       : b.t === 'lista' ? `<ul>${b.l.map(x => `<li>${x}</li>`).join('')}</ul>` : b.t === 'tabla' ? tabla(b) : b.t === 'img' ? `<div class="ig"><img src="${b.g.url}" style="width:${Math.min(624, b.g.w)}px"></div>` : '';
   });
-  partes[partes.length - 1] += '<div class="pie">Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados del SisAT</div>';
+  partes[partes.length - 1] += '<div class="pie">' + esc(I.pie || 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados del SisAT') + '</div>';
   return partes;
 }
 
@@ -3769,6 +3779,1184 @@ function sisDescargar(v) {
   $('#d-word').onclick = () => hacer('word');
 }
 
+/* ---------------- EIA · Ejercicios Integradores del Aprendizaje ----------------
+   Banco de datos: cada criterio de la rúbrica con su campo formativo, el contenido y el PDA de cada grado,
+   las sugerencias didácticas y las lecciones de los libros de texto (retroalimentación oficial SEP 2025-2026,
+   ejerciciosintegradores.sep.gob.mx, y programas sintéticos de las fases 3, 4 y 5). */
+const EIA_CAMPOS = [['LEN', 'Lenguajes', 'Lenguajes'], ['SAB', 'Saberes y pensamiento científico', 'Saberes'], ['ETI', 'Ética, naturaleza y sociedades', 'Ética'], ['HUM', 'De lo humano y lo comunitario', 'De lo humano']];
+const EIA_NV = ['Sin evidencias', 'Requiere apoyo', 'En proceso de desarrollo', 'Aprendizaje desarrollado'];
+const EIA_NVC = ['Sin evid.', 'Req. apoyo', 'En proceso', 'Desarrollado'];
+const EIA_COL = ['#8C1D18', '#D9622B', '#E8B53D', '#2E7D4F'];
+const EIA_BLOQ = {
+  /* ---------- Fase 3 (1.° y 2.°) ---------- */
+  f3grafias: { campo: 'LEN', que: 'Usa grafías para representar palabras conocidas (escribir el nombre del tipo de basura que va en cada bote).',
+    g: { 1: ['Uso de convenciones de la escritura presentes en la cotidianeidad.', 'Reconoce espacios, alineación y direccionalidad entre palabras y enunciados.'],
+      2: ['Escritura de nombres en la lengua materna.', 'Compara características de letras como c, s, z, b, v, h, g, j, i, y, ll, k, q, r, w, x, entre otras.'] },
+    sug: ['Practicar el trazo de letras en cuadrículas de distintos tamaños.', 'Escribir mensajes breves con propósito real: buenos deseos para el grupo, recados para la familia.', 'Escribir el nombre de objetos del salón y del entorno; comparar cómo empiezan y terminan las palabras.', 'Elaborar letreros con título, una idea, un dibujo y un marco creativo.'],
+    lib: { 1: 'Múltiples lenguajes: «El origen de las letras» (pp. 100-103); Trazos y palabras: «Día Mundial del Agua» (pp. 17-20) y sección «Trazar»; Proyectos de aula: «Nombrario del grupo» (pp. 20-27); Proyectos comunitarios: «¡Hagámoslo entre todxs!» (pp. 46-55); Nuestros saberes: «Mensajes» (pp. 33-34).',
+      2: 'Trazos y palabras: «Protección civil. Educación vial» (pp. 62-68); «¡Ponle un toque más humano a tus mensajes!» (pp. 69-71).' } },
+  f3numeros: { campo: 'SAB', que: 'Representa cantidades con números convencionales: cuenta lo que recolectó cada equipo, decide quién juntó más y lo anota en el cuadro.',
+    g: { 1: ['Estudio de los números.', 'Cuenta, ordena, representa, lee y escribe cantidades de colecciones, primero hasta 5, después hasta 10 y gradualmente hasta 100.'],
+      2: ['Estudio de los números.', 'Cuenta, ordena, representa, lee y escribe colecciones de menos de 1000 elementos e identifica regularidades en unidades, decenas y centenas.'] },
+    sug: ['Contar todos los días colecciones reales: semillas (frijol, haba, lenteja), tapas, lápices, alumnos presentes; registrar el número.', 'Jugar en el patio a contar balones, conos o aros y comparar quién tiene más o menos.', 'Repasar el trazo de los números con el libro Múltiples lenguajes: trazos y números.', 'Pasar del conteo con dibujos o rayitas a la escritura del número convencional.'],
+    lib: { 1: 'Múltiples lenguajes: «Los números» (p. 40); Trazos y números: «Muchos o pocos» (p. 11), «Cuidemos a los animales» (pp. 12-16), «Números en todos lados» (pp. 20-25) y secciones «Trazar» y «Contar».',
+      2: 'Trazos y números: «Los tejidos de mi país» (pp. 6-7), «El calendario y nuestras festividades» (pp. 10-21), «Cuenta de uno en uno» (p. 26), «Acomodar los juguetes» (pp. 40-42), «En un rectángulo» (pp. 44-46) y secciones «Trazar» y «Contar».' } },
+  f3basura: { campo: 'ETI', que: 'Expresa soluciones para el problema de contaminación por exceso de basura en la escuela.',
+    g: { 1: ['Respeto, cuidado y empatía hacia la naturaleza, como parte de un todo interdependiente.', 'Comprende cómo las acciones humanas pueden preservar, modificar o dañar los componentes sociales y naturales del entorno.'],
+      2: ['Impacto de las actividades humanas en la naturaleza y sustentabilidad.', 'Relaciona actividades con efectos negativos en la naturaleza y plantea cambios en acciones individuales, familiares y comunitarias.'] },
+    sug: ['Organizar una mesa redonda sobre la basura en lugares públicos (plazas, mercados, ferias) y en la propia escuela.', 'Construir con el grupo una propuesta de solución con una meta clara y al menos tres actividades.', 'Separar la basura en el salón, compostear lo orgánico y reusar envases.', 'Repasar las nociones de cuidado, conservación y regeneración con plantas y animales cercanos.'],
+    lib: { 1: 'Proyectos escolares: «Cada cosa en su lugar» (pp. 28-39), «Nuestros hábitos de consumo responsable» (pp. 254-265); Nuestros saberes: «Acciones del ser humano en el entorno natural» (pp. 128-129), «Cuidado del entorno» (pp. 130-131), «Activismo ambiental» (pp. 138-139).',
+      2: 'Proyectos de aula: «Cuidamos el agua, cuidamos nuestros derechos» (pp. 144-151), «Cuídame, también soy tu casa» (pp. 176-185); Proyectos comunitarios: «Acciones comunitarias sostenibles» (pp. 156-165).' } },
+  f3riesgo: { campo: 'HUM', que: 'Identifica riesgos a la integridad física por acumular basura en la escuela.',
+    g: { 1: ['Situaciones de riesgo social en las familias, la escuela y la comunidad.', 'Reconoce situaciones de riesgo y la importancia del autocuidado, la no violencia y la convivencia pacífica.'],
+      2: ['Situaciones de riesgo social en las familias, la escuela y la comunidad.', 'Propone prácticas de autocuidado, no violencia y convivencia pacífica ante situaciones de riesgo.'] },
+    sug: ['Repasar las nociones de salud, integridad física y prevención.', 'Recapitular las medidas de higiene cotidianas y su papel para prevenir infecciones.', 'Analizar los riesgos de la basura acumulada: malos olores, insectos, fauna nociva, cortaduras.', 'Organizar jornadas de limpieza del salón y del hogar, divertidas y habituales.'],
+    lib: { 1: 'Proyectos de aula: «La salud, ¡mi gran derecho!» (pp. 210-219).',
+      2: 'Proyectos escolares: «Cuidemos juntos nuestro medio ambiente» (pp. 252-263); Proyectos comunitarios: «Agua que no has de beber… ¡No la dejes correr!» (pp. 116-125), «Feria de la salud» (pp. 208-217).' } },
+  f3paisaje: { campo: 'ETI', que: 'Reconoce los cambios en la cantidad de agua de un paisaje con el paso del tiempo y propone acciones para conservar el agua de la naturaleza.',
+    g: { 1: ['Cambios en la naturaleza del lugar donde vive y su relación con las actividades humanas, con la noción de tiempo (antes, durante, después).', 'Reconoce las formas de nombrar y entender las actividades humanas y su orden temporal según su contexto.'],
+      2: ['Cambios en la naturaleza del lugar donde vive y su relación con las actividades humanas.', 'Analiza actividades humanas con efectos negativos en la naturaleza y plantea cambios individuales, familiares y comunitarios para su cuidado.'] },
+    sug: ['Comparar fotografías de la comunidad de antes y de ahora; señalar diferencias en ríos, presas, arroyos y vegetación.', 'Platicar con personas adultas mayores sobre los cambios en el agua de la comunidad.', 'Proponer en grupo acciones concretas para cuidar el agua en la escuela y en casa.'],
+    lib: { 1: 'Proyectos escolares: «Cada cosa en su lugar» (pp. 28-39); Nuestros saberes: «Cuidado del entorno» (pp. 130-131), «Activismo ambiental» (pp. 138-139).',
+      2: 'Proyectos de aula: «Cuidamos el agua, cuidamos nuestros derechos» (pp. 144-151); Proyectos comunitarios: «Acciones comunitarias sostenibles» (pp. 156-165).' } },
+  f3noagua: { campo: 'SAB', que: 'Identifica algunas consecuencias de no cuidar el agua (dibujo de lo que pasaría).',
+    g: { 1: ['Impacto de las actividades humanas en el entorno natural y acciones socioculturales para su cuidado.', 'Identifica actividades personales, familiares y comunitarias que afectan la naturaleza y la salud, y las califica como positivas o negativas.'],
+      2: ['Impacto de las actividades humanas en el entorno natural y acciones socioculturales para su cuidado.', 'Describe y representa el efecto de las actividades humanas en plantas, animales, agua, suelo y aire, y toma decisiones de menor impacto.'] },
+    sug: ['Hacer un experimento de filtrado de agua con arena y piedras y reflexionar sobre el desperdicio.', 'Diseñar con el grupo una maqueta de captación de agua de lluvia con material de reúso.', 'Practicar en casa hábitos para no desperdiciar agua y registrarlos.'],
+    lib: { 1: 'Trazos y números y Nuestros saberes: «Acciones del ser humano en el entorno natural» (pp. 128-129).',
+      2: 'Proyectos comunitarios: «Agua que no has de beber… ¡No la dejes correr!» (pp. 116-125); Proyectos de aula: «Cuidamos el agua, cuidamos nuestros derechos» (pp. 144-151).' } },
+  f3letrero: { campo: 'LEN', que: 'Elabora un letrero sobre el cuidado del agua con recursos propios, de manera individual.',
+    g: { 1: ['Uso de convenciones de la escritura presentes en la cotidianeidad (letreros, avisos, carteles).', 'Identifica la función de letreros y avisos de su entorno y escribe palabras y frases breves con intención comunicativa.'],
+      2: ['Escritura de textos breves con propósito comunicativo (letreros, avisos, carteles).', 'Elabora letreros y avisos con un mensaje claro, apoyándose en dibujos y en la escritura convencional.'] },
+    sug: ['Recorrer la escuela para localizar letreros: qué dicen, cómo están escritos, qué llama la atención.', 'Elaborar un letrero individual con título, una idea breve y un dibujo.', 'Comunicar el mensaje a la clase, a la familia o a la comunidad.'],
+    lib: { 1: 'Nuestros saberes: «Mensajes» (pp. 33-34), «Campaña» (pp. 35-38), «Cartel» (pp. 39-42); Proyectos de aula: «Nombrario del grupo» (pp. 20-27).',
+      2: 'Trazos y palabras: «Protección civil. Educación vial» (pp. 62-68), «¡Ponle un toque más humano a tus mensajes!» (pp. 69-71).' } },
+  f3higiene: { campo: 'HUM', que: 'Expresa cómo se usa el agua para la higiene y la limpieza como medida para cuidar la salud.',
+    g: { 1: ['Acciones individuales que repercuten en la conservación y mejora de la salud.', 'Reconoce la importancia de los hábitos de higiene y limpieza para el cuidado personal y de otros seres vivos.'],
+      2: ['Acciones individuales que repercuten en la conservación y mejora de la salud.', 'Reflexiona sobre situaciones y comportamientos que ponen en riesgo la salud y promueve cuidados personales.'] },
+    sug: ['Repasar las medidas de higiene diarias y para qué sirven.', 'Fantasía dirigida: ¿qué pasaría si el agua solo alcanzara para beber? Identificar los efectos en la salud.', 'Asignar tareas de limpieza en casa que usen agua (lavar trastes, trapear) cuidando el consumo.'],
+    lib: { 1: 'Proyectos de aula: «La salud, ¡mi gran derecho!» (pp. 210-219).',
+      2: 'Proyectos comunitarios: «Agua que no has de beber… ¡No la dejes correr!» (pp. 116-125), «Feria de la salud» (pp. 208-217); Proyectos escolares: «Cuidemos juntos nuestro medio ambiente» (pp. 252-263).' } },
+
+  /* ---------- Fase 4 (3.° y 4.°) ---------- */
+  f4tiempo: { campo: 'SAB', que: 'Ordena cronológicamente acontecimientos en una tabla y los describe con claridad.',
+    g: { 3: ['Medición del tiempo.', 'Lee relojes de manecillas y digitales; compara y ordena la duración de actividades usando hora, media hora, cuarto de hora y minutos.'],
+      4: ['Medición del tiempo.', 'Comprende y usa expresiones de temporalidad: quincena, bimestre, semestre, lustro, siglo, milenio, entre otras.'] },
+    sug: ['Usar el calendario para ubicar hechos familiares, escolares y comunitarios (suelen confundir el orden y la duración de días y meses).', 'Ordenar en una línea del tiempo sucesos de su vida y de su familia.', 'Registrar en tablas de dos entradas sucesos con su fecha y describirlos con oraciones completas.'],
+    lib: { 3: 'Nuestros saberes: «Listados» (p. 89) y «Organización, interpretación y comunicación de la información» (p. 152); Proyectos de aula: «Tu historia de transformación» (pp. 26-41).',
+      4: 'Proyectos de aula: «Un viaje a través del tiempo» (pp. 80-95); Proyectos comunitarios: «Así eran las familias de mi comunidad» (pp. 10-21).' } },
+  f4datos: { campo: 'SAB', que: 'Organiza e interpreta datos en tablas, explica su respuesta y presenta el resultado.',
+    g: { 3: ['Organización e interpretación de datos.', 'Recolecta, organiza, representa e interpreta datos en tablas de frecuencias y pictogramas para responder preguntas de su interés.'],
+      4: ['Organización e interpretación de datos.', 'Organiza e interpreta datos en tablas de frecuencias y gráficas de barras; reconoce la moda.'] },
+    sug: ['Hacer encuestas en el grupo (mascotas, juegos, comidas): definir pregunta, registrar en tabla y contar la frecuencia de cada dato.', 'Enseñar los términos columna, fila, variable y frecuencia; leer la tabla en voz alta.', 'Pedir que expliquen por escrito cómo llegaron a la respuesta, no solo el número.', 'Registrar compras por categorías o tareas de la casa durante una semana e interpretar la tabla.'],
+    lib: { 3: 'Nuestros saberes: «Organización, interpretación y comunicación de la información» (p. 152); Proyectos comunitarios: «¡Ganar, ganar!» (pp. 102-113); Proyectos de aula: «Somos diferentes, pero jugamos juntos» (pp. 116-131).',
+      4: 'Proyectos comunitarios: «Comprar con responsabilidad» (pp. 110-121); Proyectos escolares: «Desalinizando el agua» (pp. 168-183).' } },
+  f4cambios: { campo: 'ETI', que: 'Reconoce permanencias y cambios en su comunidad, los argumenta y elabora un croquis organizado.',
+    g: { 3: ['Valoración de los ecosistemas: características del territorio como espacio de vida.', 'Representa cartográficamente las características del territorio de su comunidad (croquis con referencias).'],
+      4: ['Representaciones cartográficas de la entidad y del país.', 'Elabora mapas considerando los puntos cardinales e indaga cambios en los componentes del ecosistema por causas físicas o sociales.'] },
+    sug: ['Comparar fotos antiguas y actuales de la comunidad: qué permanece y qué cambió, y por qué.', 'Elaborar el croquis de la escuela y del camino a casa con referencias, simbología y puntos cardinales.', 'Círculos de diálogo para argumentar las causas de los cambios, con participación de las familias.'],
+    lib: { 3: 'Proyectos de aula: «Mis primeros pasos en la conservación: croquis de mi comunidad» (pp. 176-185), «¡Un pasado muy dulce que nos une está en peligro!» (pp. 164-175); Proyectos comunitarios: «Recorrido por nuestro espacio vital» (pp. 180-193); Proyectos escolares: «Cómo cuidamos los ecosistemas» (pp. 196-209).',
+      4: 'Proyectos de aula: «De la cartografía a la riqueza de México» (pp. 206-217); Proyectos comunitarios: «Conocer el lugar donde vivo» (pp. 252-261), «Una historia de mi comunidad» (pp. 302-311); Proyectos escolares: «Los cambios en los ecosistemas» (pp. 198-207).' } },
+  f4pertenencia: { campo: 'HUM', que: 'Identifica relaciones de parentesco y reconoce su pertenencia familiar y comunitaria.',
+    g: { 3: ['Sentido de pertenencia a la familia y la comunidad.', 'Identifica eventos importantes de la historia de su comunidad; indaga ideas, prácticas culturales y acuerdos familiares y comunitarios.'],
+      4: ['Sentido de pertenencia a la familia y la comunidad.', 'Reconstruye la historia de su familia, escuela y comunidad a partir de narraciones o documentos.'] },
+    sug: ['Elaborar el árbol genealógico con fotos o dibujos y nombrar los parentescos (abuelos, tíos, primos).', 'Entrevistar a un familiar sobre las tradiciones de la familia y de la comunidad.', 'Plantear situaciones en las que se sientan parte de un grupo y expresen qué aportan.'],
+    lib: { 3: 'Múltiples lenguajes: «Soy único y vivo con dignidad» (pp. 128-129); Proyectos de aula: «Libro cartonero para reconocer quiénes somos» (pp. 264-279); Proyectos comunitarios: «¿A dónde pertenezco?» (pp. 262-283), «Galería de mi comunidad» (pp. 296-307).',
+      4: 'Proyectos comunitarios: «Así eran las familias de mi comunidad» (pp. 10-21), «Una historia de mi comunidad» (pp. 302-311); Proyectos de aula: «Tendedero de emociones y decisiones» (pp. 340-351).' } },
+  f4historia: { campo: 'LEN', que: 'Narra su historia familiar con secuencia temporal, detalle de los sucesos y elementos visuales.',
+    g: { 3: ['Narración de sucesos del pasado y del presente.', 'Identifica relaciones de causa-efecto en una narración; planea, escribe, revisa y corrige textos en orden cronológico.'],
+      4: ['Narración de sucesos del pasado y del presente.', 'Establece relaciones causales y temporales entre acontecimientos; usa conectores secuenciales y temporales (primero, después, luego, finalmente).'] },
+    sug: ['Narrar de forma oral, con o sin dibujos, antes de escribir; identificar inicio, desarrollo y desenlace.', 'Dar orden temporal con días, meses y años y con conectores (antes, después, cuando).', 'Revisar el texto en parejas: ¿se entiende el orden?, ¿hay detalles?, ¿el dibujo apoya la historia?'],
+    lib: { 3: 'Proyectos de aula: «Tu historia de transformación» (pp. 26-41), «Libros cartoneros para contar historias diferentes» (pp. 86-99); Proyectos comunitarios: «¡Descubro las historias de mi comunidad!» (pp. 10-19), «Una historia extraordinaria» (pp. 20-31), «Álbum de mi comunidad» (pp. 32-47).',
+      4: 'Proyectos de aula: «Un viaje a través del tiempo» (pp. 80-95); Proyectos comunitarios: «Así eran las familias de mi comunidad» (pp. 10-21), «¿Qué nos cuenta el otro?» (pp. 64-79), «Cuéntame tu historia y pon a volar tu imaginación» (pp. 96-107).' } },
+  f4usoagua: { campo: 'SAB', que: 'Identifica el uso del agua y explica qué acciones consumen más y provocan escasez.',
+    g: { 3: ['Impacto de las actividades humanas en el entorno natural.', 'Indaga y describe el impacto de las actividades humanas en la naturaleza y establece relaciones de causa-efecto con la salud.'],
+      4: ['Impacto de las actividades humanas en el entorno natural.', 'Propone y practica acciones de consumo responsable para prevenir la contaminación de agua, aire y suelo, y la generación de residuos.'] },
+    sug: ['Medir en casa cuánta agua se usa en bañarse, lavar trastes o regar, y comparar.', 'Investigar la sequía en Baja California y su relación con el uso agrícola y doméstico del agua.', 'Proponer y practicar acciones de ahorro y explicar por qué funcionan.'],
+    lib: { 3: 'Múltiples lenguajes: «Vivo en sociedad y cuido el medio ambiente» (pp. 178-179); Proyectos de aula: «Gotita a gotita se acaba la agüita» (pp. 10-25); Proyectos comunitarios: «¿Cómo hacemos ladrillos con residuos?» (pp. 162-177).',
+      4: 'Múltiples lenguajes: «Xiye y el cambio climático» (pp. 66-69); Nuestros saberes: «Contaminación del agua» (p. 89), «Escasez del agua» (p. 94); Proyectos escolares: «Desalinizando el agua» (pp. 168-183).' } },
+  f4cuidaagua: { campo: 'ETI', que: 'Propone acciones individuales, familiares y comunitarias para conservar el agua.',
+    g: { 3: ['Toma de decisiones ante situaciones de riesgo; valoración de los ecosistemas.', 'Dialoga y analiza las consecuencias de sus acciones y cómo interactúa con los ecosistemas.'],
+      4: ['Toma de decisiones ante situaciones de riesgo; valoración de los ecosistemas.', 'Comprende y valora riesgos y consecuencias; analiza formas de interacción como el consumo sustentable y la agroecología.'] },
+    sug: ['Hacer un plan de cuidado del agua del grupo con acciones de cada nivel: yo, mi familia, mi comunidad.', 'Círculos de diálogo sobre qué pasaría si se acabara el agua en la comunidad.', 'Dar seguimiento a los compromisos con un registro semanal.'],
+    lib: { 3: 'Proyectos de aula: «Clasificamos, reducimos y reutilizamos» (pp. 246-263); Proyectos escolares: «Prevenimos los riesgos en la escuela para cuidarnos» (pp. 242-251).',
+      4: 'Proyectos comunitarios: «Comprar con responsabilidad» (pp. 110-121), «Reciclamos la vida» (pp. 150-161), «Ayudemos a prevenir» (pp. 208-219).' } },
+  f4valores: { campo: 'HUM', que: 'Expresa acciones solidarias, identifica los valores que promueven el cuidado del agua y argumenta sobre ellos.',
+    g: { 3: ['Sentido de pertenencia: prácticas y valores compartidos.', 'Observa y describe prácticas socioculturales e identifica valores y proyectos compartidos.'],
+      4: ['Los afectos y su influencia en el bienestar.', 'Considera sus reacciones emocionales ante situaciones comunes e identifica las más adecuadas para el bien común.'] },
+    sug: ['Comentar con la familia qué valores se ven en acciones cotidianas (ayudar a un vecino, compartir el agua).', 'Fortalecer la argumentación: «es importante porque…», en círculos de diálogo.', 'Analizar historias de solidaridad en la comunidad y nombrar el valor que muestran.'],
+    lib: { 3: 'Proyectos de aula: «Siento, pienso, decido» (pp. 294-311); Proyectos escolares: «Acordamos reglas para convivir mejor» (pp. 278-287).',
+      4: 'Múltiples lenguajes: «Decido con libertad y responsabilidad» (pp. 94-95); Proyectos de aula: «Tomamos decisiones asertivas en 3,2,1 ¡acción!» (pp. 326-339); Proyectos escolares: «Saber escuchar para tomar acuerdos» (pp. 264-271).' } },
+  f4narr: { campo: 'LEN', que: 'Narra la escasez de agua con una secuencia lógica, cohesión y coherencia, y con personajes.',
+    g: { 3: ['Narración de sucesos.', 'Identifica relaciones de causa-efecto en una narración.'],
+      4: ['Narración de sucesos.', 'Establece relaciones causales y temporales entre acontecimientos.'] },
+    sug: ['Narrar primero de forma oral y después escribirlo para un familiar lejano.', 'Revisar que tenga inicio, desarrollo y cierre, personajes y tiempos definidos.', 'Lectura diaria y revisión de ortografía con diccionario.'],
+    lib: { 3: 'Proyectos de aula: «Gotita a gotita se acaba la agüita» (pp. 10-25); Múltiples lenguajes: «La protectora de las aguas» (p. 207).',
+      4: 'Múltiples lenguajes: «El monumento de la caja de agua» (pp. 14-15); Nuestros saberes: «Escasez del agua» (p. 94); Proyectos comunitarios: «Cuéntame tu historia y pon a volar tu imaginación» (pp. 96-107).' } },
+
+  /* ---------- Fase 5 (5.° y 6.°) ---------- */
+  f5alimentacion: { campo: 'HUM', que: 'Identifica causas de una mala alimentación, propone ideas para una estrategia y valora si es viable en la escuela.',
+    g: { 5: ['Acciones individuales que repercuten en la conservación y mejora de la salud.', 'Analiza los hábitos alimentarios de la familia y la comunidad para valorar su impacto en favor de un consumo responsable.'],
+      6: ['Acciones individuales que repercuten en la conservación y mejora de la salud.', 'Comprende los riesgos de consumir alimentos procesados y ultraprocesados para la salud y el ambiente, y favorece prácticas alimentarias saludables.'] },
+    sug: ['Listar los alimentos de la cooperativa escolar, clasificarlos y decidir con qué frecuencia conviene comerlos.', 'Analizar el plato del bien comer y las etiquetas de advertencia de los productos.', 'Diseñar un menú saludable y una estrategia escolar realista: qué, quién, cuándo y con qué recursos.'],
+    lib: { 5: 'Proyectos de aula: «¡Un menú saludable!» (pp. 160-169); Proyectos escolares: «¿Qué le sucedió a mi almuerzo?» (pp. 122-145); Proyectos comunitarios: «Maíz, el sabor de México» (pp. 240-251); Nuestros saberes: «Hábitos alimenticios y dieta sana» (p. 79).',
+      6: 'Proyectos de aula: «El poder de la alimentación» (pp. 142-155); Nuestros saberes: «Alimentación saludable» (p. 237).' } },
+  f5solar: { campo: 'ETI', que: 'Explica los beneficios del solar maya para la alimentación y el ambiente, y ejemplifica cómo producir alimentos sin dañar el ambiente.',
+    g: { 5: ['Sustentabilidad de la biodiversidad: estilos de vida y modelos de desarrollo y su impacto.', 'Analiza críticamente los estilos de vida y modelos de desarrollo dominantes y su impacto en plantas, animales, suelos, agua y salud.'],
+      6: ['Sustentabilidad de la biodiversidad: estilos de vida y modelos de desarrollo y su impacto.', 'Analiza las implicaciones socioambientales de la mercantilización de la biodiversidad y propone alternativas sustentables.'] },
+    sug: ['Introducir la agroecología con ejemplos locales: huerto escolar, composta, traspatio.', 'Visitar o investigar un huerto o granja de la comunidad que cuide el ambiente.', 'Comparar en una tabla la producción convencional y la agroecológica: beneficios y daños.'],
+    lib: { 5: 'Proyectos comunitarios: «Maíz, el sabor de México» (pp. 240-251), «Los servicios públicos satisfacen las necesidades de la comunidad» (pp. 216-231); Nuestros saberes: «Desarrollo sustentable de su comunidad» (p. 202).',
+      6: 'Proyectos escolares: «¡Cultivamos soluciones!» (pp. 38-49); Proyectos comunitarios: «Ingenieras e ingenieros a la obra, por mí y por todos los seres vivos» (pp. 100-119); Nuestros saberes: «Cuidado del ambiente» (p. 99).' } },
+  f5multiplicacion: { campo: 'SAB', que: 'Resuelve problemas de su contexto con multiplicaciones (hasta tres por dos cifras) con el algoritmo convencional y relaciona los datos con el problema.',
+    g: { 5: ['Multiplicación y división: su relación como operaciones inversas.', 'Resuelve situaciones problemáticas que implican multiplicar números fraccionarios y decimales por un número natural.'],
+      6: ['Multiplicación y división: su relación como operaciones inversas.', 'Resuelve situaciones problemáticas que implican dividir números decimales entre naturales.'] },
+    sug: ['Problemas cotidianos: costo de varios artículos, material para un proyecto, cantidades para una receta.', 'Revisar paso a paso el algoritmo (acomodo, productos parciales, llevar) y estimar antes de calcular.', 'Juegos de tablero donde para avanzar se resuelva bien una multiplicación.', 'Subrayar en el problema los datos que se usan y explicar por qué.'],
+    lib: { 5: 'Nuestros saberes: «Multiplicaciones hasta decenas de millares» (p. 106), «Consumo responsable» (p. 104).',
+      6: 'Nuestros saberes (multiplicación y división con decimales); Proyectos de aula: «El poder de la alimentación» (pp. 142-155).' } },
+  f5proceso: { campo: 'LEN', que: 'Describe de manera lógica un proceso (la estrategia) y reconoce la importancia del orden de los pasos.',
+    g: { 5: ['Descripción de personas, lugares, hechos y procesos.', 'Describe personas, lugares y hechos con frases adjetivas, símiles e imágenes, y mantiene la referencia con pronombres y sinónimos.'],
+      6: ['Descripción de personas, lugares, hechos y procesos.', 'Usa adverbios, frases adverbiales y nexos temporales para indicar secuencia, simultaneidad y duración.'] },
+    sug: ['Leer y escribir instructivos y recetas; numerar los pasos y usar primero, después, al final.', 'Describir de forma oral y escrita procesos conocidos (preparar un alimento, sembrar).', 'Ejercicios de observación del entorno y descripciones con detalle.'],
+    lib: { 5: 'Proyectos de aula: «¡Que fluyan las descripciones!» (pp. 10-21); Múltiples lenguajes: «Imaginar + poner manos a la obra = creatividad» (pp. 98-101); Nuestros saberes: «Descripción» (p. 16).',
+      6: 'Proyectos de aula: «Textos que no son cuento» (pp. 36-49); Nuestros saberes: «Técnicas en las descripciones» (p. 32), «Conectores lógicos: causales y temporales» (p. 15).' } },
+  f5cuerpo: { campo: 'SAB', que: 'Explica la importancia de reconocer las diferencias entre los cuerpos y sus cambios, y su relación con problemas sociales como el acoso.',
+    g: { 5: ['Etapas del desarrollo humano y salud sexual y reproductiva.', 'Describe la infancia, adolescencia, madurez y vejez: características, necesidades, responsabilidades y cuidados.'],
+      6: ['Etapas del desarrollo humano y salud sexual y reproductiva.', 'Reconoce factores (consumo de alcohol y otras sustancias, entre otros) que propician conductas violentas vinculadas a la sexualidad.'] },
+    sug: ['Compartir en equipos cómo crecen y cambian los seres vivos y dibujar las etapas de la vida humana.', 'Lecturas sobre diversidad humana y personajes con discapacidad, con enfoque de respeto e inclusión.', 'Debate sobre un caso de acoso: qué derechos se vulneran y qué hacer para prevenirlo.'],
+    lib: { 5: 'Proyectos de aula: «¿Qué está pasando con mi cuerpo?» (pp. 144-159); Proyectos escolares: «El cuerpo parlanchín» (pp. 290-301); Nuestros saberes: «Etapas de desarrollo» (p. 75).',
+      6: 'Proyectos escolares: «Mi familia, mi escuela, mi comunidad y yo practico la inclusión» (pp. 290-299); Proyectos comunitarios: «Hábitos con-sentidos» (pp. 290-301); Nuestros saberes: «Salud humana» (p. 67).' } },
+  f5genero: { campo: 'HUM', que: 'Identifica el problema planteado, juzga acciones justas e injustas, toma postura y valora la distribución de actividades en la comunidad.',
+    g: { 5: ['Equidad de género en las familias, la escuela y la comunidad.', 'Reflexiona sobre situaciones asociadas con la diversidad de identidades y género para proponer acciones contra la discriminación.'],
+      6: ['Equidad de género en las familias, la escuela y la comunidad.', 'Analiza situaciones de discriminación por identidad o género para reconocer formas de violencia y participar en su prevención.'] },
+    sug: ['Presentar casos y pedir que decidan si son justos o injustos y por qué.', 'Registrar en casa y en la escuela cómo se reparten las tareas y analizarlo en grupo.', 'Tarjetas con frases o imágenes de la comunidad para tomar postura y argumentar.'],
+    lib: { 5: 'Múltiples lenguajes: «Brechas de género» (pp. 28-31); Proyectos de aula: «¡Qué polémico!» (pp. 34-49); Proyectos escolares: «La perspectiva de género desde la música» (pp. 46-57); Proyectos comunitarios: «La niñez unida contra la violencia de género» (pp. 204-215).',
+      6: 'Proyectos escolares: «Mujeres y hombres caminamos codo a codo sin discriminar» (pp. 324-335); Proyectos comunitarios: «Violencia de género: un problema social que nos afecta» (pp. 216-229); Nuestros saberes: «Roles de género» (p. 196).' } },
+  f5expositivo: { campo: 'LEN', que: 'Comprende y produce textos expositivos: reconoce problemas y sus consecuencias, identifica problemas locales y escribe una carta.',
+    g: { 5: ['Comprensión y producción de textos explicativos.', 'Establece relaciones causales con expresiones como en consecuencia, por lo tanto, debido a, a causa de, porque.'],
+      6: ['Comprensión y producción de textos explicativos.', 'Reconoce y emplea relaciones de causa-consecuencia y organiza las oraciones con primero, luego, después, finalmente.'] },
+    sug: ['Antes de leer, preguntar qué saben; después, parafrasear y relacionar con lo que ya sabían.', 'Hacer diagramas de causa-efecto de problemas de la comunidad.', 'Escribir una carta formal a una autoridad con el problema, sus consecuencias y una petición; revisarla entre pares.'],
+    lib: { 5: 'Múltiples lenguajes: «Adiós, querido amigo» (pp. 24-27); Proyectos escolares: «En tus manos está tener agua tibia» (pp. 146-157); Nuestros saberes: «Carta formal de petición a alguna autoridad» (p. 41).',
+      6: 'Proyectos de aula: «¿Por qué ellos sí y nosotras no?» (pp. 88-97); Proyectos comunitarios: «Textos discontinuos para la igualdad» (pp. 10-19); Nuestros saberes: «Textos expositivos» (p. 11).' } },
+  f5derechos: { campo: 'ETI', que: 'Identifica fuentes para reconocer el maltrato y fuentes e instancias para prevenir, denunciar y pedir apoyo.',
+    g: { 5: ['El derecho a la protección de la integridad propia y de todas las personas.', 'Indaga en fuentes las luchas por los derechos humanos, las consecuencias de no respetarlos y se compromete a promoverlos.'],
+      6: ['El derecho a la protección de la integridad propia y de todas las personas.', 'Reconoce que los derechos humanos son universales, indivisibles, interdependientes, progresivos, inalienables e irrenunciables.'] },
+    sug: ['Usar guías de prevención del maltrato infantil (UNICEF) y ubicar instancias de ayuda de la localidad (DIF, Procuraduría de Protección, 911).', 'Representaciones en el aula: qué hacer y a quién acudir ante una situación de riesgo.', 'Trabajar dignidad, integridad y derechos con cuentos o historietas de situaciones cercanas.'],
+    lib: { 5: 'Proyectos de aula: «Los principios éticos en mis derechos» (pp. 206-215), «Somos diferentes y merecemos respeto. ¡No al acoso escolar!» (pp. 216-225), «Comité de Niñas y Niños Valientes» (pp. 344-357); Nuestros saberes: «Integridad personal y protección» (p. 170).',
+      6: 'Proyectos de aula: «Manifiesto a favor de los derechos de la niñez» (pp. 222-235); Proyectos escolares: «Los prejuicios que determinan historias y limitan derechos» (pp. 218-235); Nuestros saberes: «Derechos de las niñas y los niños» (p. 233).' } }
+};
+// Criterios de cada fase en el orden del formato oficial de captura: [EIA, consigna e inciso, bloque, nombre del criterio]
+const EIA_FASES = {
+  F3: { grados: ['1', '2'], eias: ['La basura de la escuela', 'Hablemos sobre el agua'], cr: [
+    [1, '1A1', 'f3grafias', 'Uso de grafías'], [1, '2A1', 'f3numeros', 'Uso de números convencionales'], [1, '2A2', 'f3numeros', 'Conteo'],
+    [1, '3A1', 'f3basura', 'Acción para combatir la basura en la escuela'], [1, '4A1', 'f3riesgo', 'Peligros o daños a la salud'],
+    [2, '1A1', 'f3paisaje', 'Cambios en el paisaje'], [2, '2A1', 'f3noagua', 'Consecuencias de no cuidar el agua'], [2, '3A1', 'f3letrero', 'Elaboración de un letrero'],
+    [2, '3A2', 'f3paisaje', 'Acción para cuidar el agua'], [2, '4A1', 'f3higiene', 'Uso del agua para cuidar la salud']] },
+  F4: { grados: ['3', '4'], eias: ['De allá vengo… de aquí soy', 'La falta de agua, un problema que nos afecta a todos'], cr: [
+    [1, '1A1', 'f4tiempo', 'Ordenación cronológica'], [1, '1A2', 'f4tiempo', 'Descripción clara de los acontecimientos'],
+    [1, '1B1', 'f4datos', 'Interpretación de datos'], [1, '1B2', 'f4datos', 'Explicación de la respuesta'], [1, '1B3', 'f4datos', 'Presentación del resultado'],
+    [1, '2A1', 'f4cambios', 'Permanencias'], [1, '2A2', 'f4cambios', 'Cambios'], [1, '2A3', 'f4cambios', 'Argumentación de los cambios'], [1, '2B1', 'f4cambios', 'Organización y elementos del croquis'],
+    [1, '3A1', 'f4pertenencia', 'Relaciones de parentesco'], [1, '3B1', 'f4pertenencia', 'Pertenencia familiar y comunitaria'],
+    [1, '4A1', 'f4historia', 'Secuencia temporal'], [1, '4A2', 'f4historia', 'Descripción detallada de sucesos'], [1, '4A3', 'f4historia', 'Elementos visuales'],
+    [2, '1A1', 'f4usoagua', 'Identificación del uso del agua'], [2, '1B1', 'f4usoagua', 'Acciones que más agua consumen'],
+    [2, '2A1', 'f4cuidaagua', 'Propuestas para cuidar el agua'],
+    [2, '3A1', 'f4valores', 'Acciones de solidaridad'], [2, '3B1', 'f4valores', 'Valores para cuidar el agua'], [2, '3C1', 'f4valores', 'Identificación de valores'], [2, '3C2', 'f4valores', 'Argumentación sobre los valores'],
+    [2, '4A1', 'f4datos', 'Organización de datos en una tabla'], [2, '4B1', 'f4datos', 'Interpretación de la tabla'],
+    [2, '5A1', 'f4narr', 'Secuencia narrativa'], [2, '5A2', 'f4narr', 'Cohesión y coherencia'], [2, '5A3', 'f4narr', 'Participación de personajes']] },
+  F5: { grados: ['5', '6'], eias: ['Somos lo que comemos', 'Actuemos contra la violencia infantil y la inequidad de género'], cr: [
+    [1, '1A1', 'f5alimentacion', 'Causas de una mala alimentación'], [1, '1B1', 'f5alimentacion', 'Ideas para una estrategia'], [1, '1B2', 'f5alimentacion', 'Viabilidad de la estrategia'],
+    [1, '2A1', 'f5solar', 'Solar maya: beneficios para la alimentación'], [1, '2B1', 'f5solar', 'Solar maya: beneficios para el ambiente'], [1, '2C1', 'f5solar', 'Producir alimentos sin dañar el ambiente'],
+    [1, '3A1', 'f5multiplicacion', 'Algoritmo de la multiplicación'], [1, '3B1', 'f5multiplicacion', 'Correspondencia de datos'],
+    [1, '4A1', 'f5proceso', 'Estructura de la estrategia'], [1, '4B1', 'f5proceso', 'Importancia del orden en un proceso'],
+    [2, '1A1', 'f5cuerpo', 'Diferencias entre los cuerpos'], [2, '1B1', 'f5cuerpo', 'Qué haría ante el acoso a un amigo con discapacidad'], [2, '1C1', 'f5cuerpo', 'Cambios físicos'],
+    [2, '1C2', 'f5cuerpo', 'Proyección hacia el futuro'], [2, '1C3', 'f5cuerpo', 'Etapas de la vida'],
+    [2, '2A1', 'f5genero', 'Identificación del problema'], [2, '2B1', 'f5genero', 'Acciones justas e injustas'], [2, '2C1', 'f5genero', 'Toma de postura'], [2, '2D1', 'f5genero', 'Distribución de actividades en la comunidad'],
+    [2, '3A1', 'f5expositivo', 'Comprensión de textos'], [2, '3A2', 'f5expositivo', 'Problemas y sus consecuencias'], [2, '3B1', 'f5expositivo', 'Problemas locales'], [2, '3C1', 'f5expositivo', 'Elaboración de una carta'],
+    [2, '4A1', 'f5derechos', 'Fuentes para reconocer el maltrato'], [2, '4B1', 'f5derechos', 'Fuentes para prevenir, denunciar y pedir apoyo']] }
+};
+const eiaFase = g => +g <= 2 ? 'F3' : +g <= 4 ? 'F4' : 'F5';
+
+/* Descifra .xls (BIFF8) protegidos con la contraseña de solo lectura «VelvetSweatshop» (RC4 y RC4 CryptoAPI) */
+const EIA_XLS = (() => {
+  function md5(bytes) {
+    const K = new Uint32Array(64), S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+    for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+    const n = bytes.length, len = ((n + 8 >> 6) + 1) * 64, m = new Uint8Array(len); m.set(bytes); m[n] = 0x80;
+    const bits = n * 8; for (let i = 0; i < 8; i++) m[len - 8 + i] = Math.floor(bits / Math.pow(2, 8 * i)) & 255;
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476; const W = new Uint32Array(16);
+    for (let o = 0; o < len; o += 64) {
+      for (let i = 0; i < 16; i++) W[i] = m[o + i * 4] | m[o + i * 4 + 1] << 8 | m[o + i * 4 + 2] << 16 | m[o + i * 4 + 3] << 24;
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        let F, g;
+        if (i < 16) { F = (B & C) | (~B & D); g = i; } else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+        else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; } else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+        const s = S[(i >> 4) * 4 + (i & 3)]; F = (F + A + K[i] + W[g]) >>> 0; A = D; D = C; C = B; B = (B + ((F << s) | (F >>> (32 - s)))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    const r = new Uint8Array(16); [a0, b0, c0, d0].forEach((v, i) => { for (let j = 0; j < 4; j++) r[i * 4 + j] = (v >>> (8 * j)) & 255; }); return r;
+  }
+  async function sha1(bytes) { return new Uint8Array(await crypto.subtle.digest('SHA-1', bytes)); }
+  function rc4(key, data) {
+    const s = new Uint8Array(256); for (let i = 0; i < 256; i++) s[i] = i;
+    for (let i = 0, j = 0; i < 256; i++) { j = (j + s[i] + key[i % key.length]) & 255; const t = s[i]; s[i] = s[j]; s[j] = t; }
+    const out = new Uint8Array(data.length);
+    for (let k = 0, i = 0, j = 0; k < data.length; k++) { i = (i + 1) & 255; j = (j + s[i]) & 255; const t = s[i]; s[i] = s[j]; s[j] = t; out[k] = data[k] ^ s[(s[i] + s[j]) & 255]; }
+    return out;
+  }
+  const u16 = p => { const b = new Uint8Array(p.length * 2); for (let i = 0; i < p.length; i++) { b[i * 2] = p.charCodeAt(i) & 255; b[i * 2 + 1] = p.charCodeAt(i) >> 8; } return b; };
+  const cat = (...a) => { const r = new Uint8Array(a.reduce((s, x) => s + x.length, 0)); let o = 0; a.forEach(x => { r.set(x, o); o += x.length; }); return r; };
+  const le32 = n => new Uint8Array([n & 255, n >> 8 & 255, n >> 16 & 255, n >>> 24 & 255]);
+  // Claves por bloque de 1024 bytes
+  async function generador(fp, pass) {
+    const v = new DataView(fp.buffer, fp.byteOffset, fp.byteLength);
+    const tipo = v.getUint16(0, true); if (tipo !== 1) throw new Error('El archivo usa una protección que no se puede leer (XOR).');
+    const vMaj = v.getUint16(2, true), vMin = v.getUint16(4, true);
+    if (vMaj === 1 && vMin === 1) {   // RC4 (MD5)
+      const salt = fp.slice(6, 22), ver = fp.slice(22, 38), hash = fp.slice(38, 54);
+      const h0 = md5(u16(pass)).slice(0, 5); let buf = new Uint8Array(0); for (let i = 0; i < 16; i++) buf = cat(buf, h0, salt);
+      const h1 = md5(buf).slice(0, 5);
+      const clave = b => md5(cat(h1, le32(b)));
+      const k0 = rc4(clave(0), cat(ver, hash));
+      if (md5(k0.slice(0, 16)).some((x, i) => x !== k0[16 + i])) throw new Error('El archivo tiene una contraseña distinta a la del formato oficial.');
+      return clave;
+    }
+    if (vMin === 2 && vMaj >= 2 && vMaj <= 4) {   // RC4 CryptoAPI (SHA-1)
+      const hsz = v.getUint32(10, true), H = fp.slice(14, 14 + hsz), hv = new DataView(H.buffer, H.byteOffset, H.byteLength);
+      let bitsKey = hv.getUint32(16, true) || 40; const rest = fp.slice(14 + hsz);
+      const salt = rest.slice(4, 20), ver = rest.slice(20, 36), hlen = new DataView(rest.buffer, rest.byteOffset + 36, 4).getUint32(0, true), hash = rest.slice(40, 40 + hlen);
+      const h0 = await sha1(cat(salt, u16(pass)));
+      const claves = {};
+      const clave = async b => { if (!claves[b]) { const h = await sha1(cat(h0, le32(b))); const k = new Uint8Array(16); k.set(h.slice(0, bitsKey / 8)); claves[b] = bitsKey === 40 ? k : h.slice(0, bitsKey / 8); } return claves[b]; };
+      const k0 = rc4(await clave(0), cat(ver, hash));
+      const hv2 = await sha1(k0.slice(0, 16));
+      if (hv2.slice(0, hlen).some((x, i) => x !== k0[16 + i])) throw new Error('El archivo tiene una contraseña distinta a la del formato oficial.');
+      return clave;
+    }
+    throw new Error('Protección del archivo no reconocida.');
+  }
+  const SIN_CIFRAR = new Set([0x0809, 0x002F, 0x0194, 0x0195, 0x00E1, 0x0196, 0x0138]);  // BOF, FILEPASS, UsrExcl, FileLock, InterfaceHdr, RRDInfo, RRDHead
+  async function descifrarLibro(wb, pass) {
+    const dv = new DataView(wb.buffer, wb.byteOffset, wb.byteLength);
+    let p = 0, fp = null;
+    while (p + 4 <= wb.length) { const t = dv.getUint16(p, true), l = dv.getUint16(p + 2, true); if (t === 0x2F) { fp = wb.slice(p + 4, p + 4 + l); break; } p += 4 + l; }
+    if (!fp) return null;   // no está protegido
+    const clave = await generador(fp, pass);
+    // flujo con solo los datos que van cifrados; lo demás en cero
+    const cif = new Uint8Array(wb.length), mascara = new Uint8Array(wb.length);   // 1 = tomar descifrado
+    p = 0;
+    while (p + 4 <= wb.length) {
+      const t = dv.getUint16(p, true), l = dv.getUint16(p + 2, true), d = p + 4;
+      if (!SIN_CIFRAR.has(t)) {
+        const ini = t === 0x0085 ? d + 4 : d;   // BoundSheet8: lbPlyPos sin cifrar
+        cif.set(wb.subarray(ini, d + l), ini); mascara.fill(1, ini, d + l);
+      }
+      p = d + l;
+    }
+    const dec = new Uint8Array(wb.length);
+    for (let b = 0; b * 1024 < wb.length; b++) {
+      const k = await clave(b), ini = b * 1024, fin = Math.min(wb.length, ini + 1024);
+      dec.set(rc4(k, cif.subarray(ini, fin)), ini);
+    }
+    const out = wb.slice();
+    for (let i = 0; i < out.length; i++) if (mascara[i]) out[i] = dec[i];
+    // FILEPASS → registro inofensivo del mismo tamaño (para no mover las posiciones de las hojas)
+    p = 0; const ov = new DataView(out.buffer);
+    while (p + 4 <= out.length) { const t = ov.getUint16(p, true), l = ov.getUint16(p + 2, true); if (t === 0x2F) { ov.setUint16(p, 0x0868, true); out.fill(0, p + 4, p + 4 + l); break; } p += 4 + l; }
+    return out;
+  }
+  // bytes de un .xls → bytes legibles por SheetJS (si no está protegido, se devuelven igual)
+  async function abrir(bytes, X) {
+    let cfb; try { cfb = X.CFB.read(bytes, { type: 'array' }); } catch (e) { return bytes; }
+    const ent = X.CFB.find(cfb, 'Workbook') || X.CFB.find(cfb, 'Book');
+    if (!ent || !ent.content) return bytes;
+    const wb = ent.content instanceof Uint8Array ? ent.content : new Uint8Array(ent.content);
+    const dec = await descifrarLibro(wb, 'VelvetSweatshop');
+    if (!dec) return bytes;
+    ent.content = dec; ent.size = dec.length;
+    return new Uint8Array(X.CFB.write(cfb, { type: 'array', fileType: 'cfb' }));
+  }
+  return { abrir, md5 };
+})();
+
+/* ---- Estado y datos ---- */
+const EIA_REZ = 0.5, EIA_ALTO = 0.75, EIA_RIESGO = 0.3;   // proporción de criterios en 0 o 1 para rezago, rezago alto y riesgo
+function eiaV() {
+  if (!vista.eia) vista.eia = { ciclo: cicloActual(), nivel: esDirector() ? 'escuela' : 'zona', cct: miCct(), grado: '', grupo: '', vista: 'resumen', orden: 'necesidad' };
+  return vista.eia;
+}
+function eiaNorm(r) {
+  const cr = (Array.isArray(r.cr) ? r.cr : []).map(c => [0, 1, 2, 3].map(i => +((c || [])[i]) || 0));
+  const rz = r.rz && typeof r.rz === 'object' ? r.rz : {};
+  return Object.assign({}, r, { grado: String(r.grado), grupo: String(r.grupo || ''), n: +r.n || 0, cr, rz: { r: +rz.r || 0, a: +rz.a || 0, g: +rz.g || 0 } });
+}
+function eiaFilas() { const v = eiaV(); return (S.eig || []).filter(r => r.ciclo === v.ciclo).map(eiaNorm); }
+function eiaCiclos() { const s = new Set((S.eig || []).map(r => r.ciclo)); s.add(cicloActual()); return Array.from(s).sort().reverse(); }
+const eiaIndice = d => { const t = d[0] + d[1] + d[2] + d[3]; return t ? Math.round((d[1] + 2 * d[2] + 3 * d[3]) * 100 / (3 * t)) : null; };
+const eiaEtq = x => `EIA ${x.e} · ${x.k[0]}${x.k.slice(1).toLowerCase()}`;
+const eiaCampoNom = k => (EIA_CAMPOS.find(c => c[0] === k) || [k, k, k])[1];
+const eiaCampoCorto = k => (EIA_CAMPOS.find(c => c[0] === k) || [k, k, k])[2];
+
+// Estado de un alumno a partir de sus valoraciones (0 a 3)
+function eiaEstado(v) {
+  const val = (v || []).filter(x => x !== null && x !== '' && x !== undefined).map(Number).filter(x => x >= 0 && x <= 3);
+  if (!val.length) return null;
+  const b = val.filter(x => x <= 1).length, p = b / val.length;
+  return { ind: Math.round(val.reduce((s, x) => s + x, 0) * 100 / (3 * val.length)), bajos: b, total: val.length, ceros: val.filter(x => x === 0).length,
+    nivel: p >= EIA_ALTO ? 'alto' : p >= EIA_REZ ? 'rezago' : p >= EIA_RIESGO ? 'riesgo' : 'ok' };
+}
+// Concentrado de un grupo: por criterio, cuántos alumnos en 0, 1, 2 y 3; y cuántos en rezago
+function eiaDeAlumnos(grado, als) {
+  const def = EIA_FASES[eiaFase(grado)], cr = def.cr.map(() => [0, 0, 0, 0]), rz = { r: 0, a: 0, g: 0 };
+  als.forEach(a => {
+    (a.v || []).forEach((x, i) => { if (x === null || x === '' || x === undefined || !cr[i]) return; const n = +x; if (n >= 0 && n <= 3) cr[i][n]++; });
+    const e = eiaEstado(a.v); if (!e) return;
+    if (e.nivel === 'alto' || e.nivel === 'rezago') rz.r++; if (e.nivel === 'alto') rz.a++; if (e.nivel === 'riesgo') rz.g++;
+  });
+  return { n: als.length, cr, rz };
+}
+function eiaSuma(filas) {
+  const a = { grupos: filas.length, n: 0, rz: 0, rza: 0, rzg: 0, F: {}, campo: {}, dist: [0, 0, 0, 0] };
+  EIA_CAMPOS.forEach(([k]) => { a.campo[k] = [0, 0, 0, 0]; });
+  filas.forEach(r => {
+    const f = eiaFase(r.grado), def = EIA_FASES[f];
+    a.n += r.n; a.rz += r.rz.r; a.rza += r.rz.a; a.rzg += r.rz.g;
+    const F = a.F[f] || (a.F[f] = { n: 0, grupos: 0, grados: new Set(), cr: def.cr.map(() => [0, 0, 0, 0]) });
+    F.n += r.n; F.grupos++; F.grados.add(r.grado);
+    def.cr.forEach((c, i) => { const x = r.cr[i]; if (!x) return; const cp = EIA_BLOQ[c[2]].campo; for (let k = 0; k < 4; k++) { F.cr[i][k] += x[k]; a.campo[cp][k] += x[k]; a.dist[k] += x[k]; } });
+  });
+  const t = a.dist.reduce((s, x) => s + x, 0);
+  a.ind = eiaIndice(a.dist); a.prz = sisPc(a.rz, a.n); a.prza = sisPc(a.rza, a.n); a.plog = sisPc(a.dist[3], t); a.pdif = sisPc(a.dist[0] + a.dist[1], t);
+  a.cind = {}; EIA_CAMPOS.forEach(([k]) => { a.cind[k] = eiaIndice(a.campo[k]); });
+  return a;
+}
+// Criterios de una fase con sus porcentajes, del que más falló al que menos
+function eiaCriterios(a, fase) {
+  const F = a.F[fase]; if (!F) return [];
+  return EIA_FASES[fase].cr.map((c, i) => {
+    const d = F.cr[i], t = d[0] + d[1] + d[2] + d[3];
+    return { i, fase, e: c[0], k: c[1], b: c[2], nom: c[3], campo: EIA_BLOQ[c[2]].campo, d, t, pdif: sisPc(d[0] + d[1], t), p0: sisPc(d[0], t), plog: sisPc(d[3], t), ind: eiaIndice(d) };
+  }).filter(x => x.t).sort((x, y) => y.pdif - x.pdif || x.ind - y.ind);
+}
+// Contenidos (bloques de criterios) de una fase, del más urgente al menos
+function eiaContenidos(a, fase) {
+  const por = {};
+  eiaCriterios(a, fase).forEach(x => { const o = por[x.b] || (por[x.b] = { b: x.b, campo: x.campo, cr: [], d: [0, 0, 0, 0] }); o.cr.push(x); for (let k = 0; k < 4; k++) o.d[k] += x.d[k]; });
+  return Object.values(por).map(o => { const t = o.d.reduce((s, x) => s + x, 0); return Object.assign(o, { pdif: sisPc(o.d[0] + o.d[1], t), ind: eiaIndice(o.d), cr: o.cr.sort((x, y) => y.pdif - x.pdif) }); })
+    .sort((x, y) => y.pdif - x.pdif);
+}
+const eiaColorInd = i => i == null ? 'var(--borde)' : i >= 67 ? 'var(--ok)' : i >= 50 ? 'var(--ambar)' : 'var(--alerta)';
+const eiaColorDif = p => p == null ? 'var(--gris)' : p >= 50 ? 'var(--alerta)' : p >= 30 ? 'var(--ambar)' : 'var(--ok)';
+function eiaBarra(d, alto = 12) {
+  const t = d ? d[0] + d[1] + d[2] + d[3] : 0;
+  if (!t) return '<span class="sis-sin">Sin datos</span>';
+  const p = d.map(x => x * 100 / t);
+  return `<span class="sis-barra" style="height:${alto}px" role="img" aria-label="${EIA_NV.map((n, i) => n + ' ' + sisFmt(p[i])).join(', ')}">${p.map((x, i) => `<i style="width:${x}%;background:${EIA_COL[i]}"></i>`).join('')}</span>`;
+}
+function eiaLeyenda() {
+  return `<div class="sis-ley">${EIA_NV.map((n, i) => `<span><i style="background:${EIA_COL[i]}"></i>${i} · ${n}</span>`).join('')}
+    <span class="mudo">Índice: promedio de las valoraciones sobre 3, en escala de 0 a 100. Rezago: alumno con la mitad o más de los criterios en 0 o 1.</span></div>`;
+}
+
+/* ---- Alumnos de una escuela (se piden al servidor solo al consultarla) ---- */
+const EIAA = {};
+function eiaAlumnosDe(ciclo, cct) { const x = EIAA[ciclo + '|' + cct]; return x && x.alumnos ? x.alumnos : null; }
+function eiaNormAlumno(a) {
+  const v = (Array.isArray(a.v) ? a.v : []).map(x => x === null || x === '' || x === undefined ? null : +x);
+  return Object.assign({}, a, { grado: String(a.grado), grupo: String(a.grupo || ''), num: +a.num || 0, v, est: eiaEstado(v), clave: sisClave(a.alumno), cruce: eiaClaveCruce(a.alumno) });
+}
+const eiaClaveCruce = n => sisClave(n).split(' ').filter(Boolean).sort().join(' ');
+async function eiaPedirAlumnos(ciclo, cct, forzar) {
+  const k = ciclo + '|' + cct;
+  if (!cct || !S) return [];
+  if (EIAA[k] && !forzar) return EIAA[k].cargando || EIAA[k].alumnos;
+  EIAA[k] = { cargando: api('eiaAlumnos', { ciclo, cct }).then(r => { EIAA[k] = { alumnos: (r.alumnos || []).map(eiaNormAlumno) }; return EIAA[k].alumnos; })
+    .catch(e => { EIAA[k] = { alumnos: [], error: e.message }; return []; }) };
+  return EIAA[k].cargando;
+}
+function eiaAlumnosVista(v) {
+  if (!['escuela', 'grado', 'grupo'].includes(v.nivel) || !v.cct || (esDirector() && v.cct !== miCct())) return null;
+  const todos = eiaAlumnosDe(v.ciclo, v.cct);
+  if (!todos) { eiaPedirAlumnos(v.ciclo, v.cct).then(() => { const w = eiaV(); if (w.cct === v.cct && $('#eia-al-espera')) vEia(); }); return { cargando: true }; }
+  return { todos: todos.filter(a => v.nivel === 'escuela' || (a.grado === v.grado && (v.nivel === 'grado' || a.grupo === v.grupo))) };
+}
+// Lo que más le cuesta a un alumno: criterios en 0 (y si no hay, en 1), agrupados por campo
+function eiaDebilidades(a) {
+  const def = EIA_FASES[eiaFase(a.grado)];
+  let l = def.cr.map((c, i) => ({ c, x: a.v[i] })).filter(o => o.x === 0);
+  if (!l.length) l = def.cr.map((c, i) => ({ c, x: a.v[i] })).filter(o => o.x === 1);
+  const por = {};
+  l.forEach(o => { const cp = EIA_BLOQ[o.c[2]].campo; (por[cp] = por[cp] || []).push(o.c[3].toLowerCase()); });
+  return Object.entries(por).map(([cp, n]) => eiaCampoCorto(cp) + ': ' + n.slice(0, 2).join(', ') + (n.length > 2 ? ' y ' + (n.length - 2) + ' más' : ''));
+}
+
+/* ---- Lectura de los Excel del formato oficial de captura ---- */
+const EIA_HOJAS = { PRIMERO: '1', SEGUNDO: '2', TERCERO: '3', CUARTO: '4', QUINTO: '5', SEXTO: '6' };
+async function eiaLibros(nombre, bytes, prof = 0) {
+  await cargarScript('lib/xlsx.full.min.js');
+  const X = window.XLSX;
+  if (bytes[0] === 0x50 && bytes[1] === 0x4B) {   // zip: un .xlsx o un .zip con archivos dentro
+    let z = null; try { z = X.CFB.read(bytes, { type: 'array' }); } catch (e) {}
+    if (z && !z.FullPaths.some(p => /\[Content_Types\]\.xml$/i.test(p))) {
+      if (prof > 1) return [];
+      const out = [];
+      for (let i = 0; i < z.FileIndex.length; i++) {
+        const f = z.FileIndex[i], p = z.FullPaths[i];
+        if (f.type !== 2 || !/\.(xlsx|xlsm|xls)$/i.test(p) || /(^|\/)(__MACOSX|~\$)/.test(p)) continue;
+        const b = f.content instanceof Uint8Array ? f.content : new Uint8Array(f.content);
+        (await eiaLibros(nombre + ' › ' + p.split('/').pop(), b, prof + 1)).forEach(x => out.push(x));
+      }
+      return out;
+    }
+  }
+  try { return [{ nombre, wb: X.read(bytes, { type: 'array' }) }]; }
+  catch (e) {
+    if (!/password|protect|encrypt/i.test(e.message)) throw e;
+    return [{ nombre, wb: X.read(await EIA_XLS.abrir(bytes, X), { type: 'array' }) }];
+  }
+}
+// Una hoja de grado: encabezados, criterios y alumnos
+function eiaLeerHoja(nomHoja, filas) {
+  const T = x => String(x == null ? '' : x).replace(/\s+/g, ' ').trim();
+  const hc = filas.findIndex(r => r.filter(c => /CONSIGNA/i.test(T(c))).length >= 3);
+  if (hc < 0) return null;
+  const cols = [], keys = [];
+  filas[hc].forEach((c, i) => { const m = T(c).toUpperCase().match(/CONSIGNA\W*(\d+)\W*INCISO\W*([A-Z])\s*(\d)/); if (m) { cols.push(i); keys.push(m[1] + m[2] + m[3]); } });
+  let hn = -1;
+  for (let j = hc; j >= Math.max(0, hc - 6); j--) if (filas[j].some(c => /NOMBRE/i.test(T(c)))) { hn = j; break; }
+  if (hn < 0) return null;
+  const cab = filas[hn].map(c => T(c).toUpperCase());
+  const iNom = cab.findIndex(c => /NOMBRE/.test(c)), iGrp = cab.findIndex(c => /^GRUPO/.test(c)), iSexo = cab.findIndex(c => /^SEXO/.test(c)), iNum = cab.findIndex(c => /LISTA/.test(c));
+  // grado: por el nombre de la hoja o por la celda «GRADO»
+  let grado = EIA_HOJAS[sisSinAc(nomHoja).toUpperCase().trim()] || '';
+  if (!grado) for (const r of filas.slice(0, hn)) { const k = r.findIndex(c => /^GRADO$/i.test(T(c))); if (k >= 0) { const g = r.slice(k + 1).map(T).find(Boolean); if (/^[1-6]/.test(g || '')) { grado = g[0]; break; } } }
+  if (!grado) { const m = sisSinAc(nomHoja).match(/([1-6])/); if (m) grado = m[1]; }
+  let cct = '';
+  for (const r of filas.slice(0, hn)) { const k = r.findIndex(c => /^C\.?C\.?T/i.test(T(c))); if (k >= 0) { cct = r.slice(k + 1).map(T).find(x => /^\d{2}[A-Z]{3}\d{4}[A-Z]$/i.test(x)) || ''; if (cct) break; } }
+  return { grado, cct: cct.toUpperCase(), hc, cols, keys, iNom, iGrp, iSexo, iNum };
+}
+// Coloca cada columna del archivo en su criterio oficial (por orden; si el formato cambió, por consigna e inciso)
+function eiaMapa(grado, keys) {
+  const def = EIA_FASES[eiaFase(grado)].cr;
+  if (keys.length === def.length && keys.every((k, i) => k === def[i][1])) return keys.map((k, i) => i);
+  const vistos = {};
+  return keys.map(k => { const n = vistos[k] = (vistos[k] || 0) + 1; let c = 0; return def.findIndex(d => d[1] === k && ++c === n); });
+}
+async function eiaLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
+  const res = { nombre: a.nombre, fecha: a.fecha || '', id: a.id || '', grados: {}, cct: '', avisos: [] };
+  let libros;
+  try { libros = await eiaLibros(a.nombre, a.bytes); } catch (e) { return Object.assign(res, { error: 'No se pudo abrir: ' + e.message }); }
+  if (!libros.length) return Object.assign(res, { error: 'No trae archivos de Excel.' });
+  const X = window.XLSX;
+  libros.forEach(({ nombre, wb }) => {
+    wb.SheetNames.forEach(sn => {
+      const filas = X.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: '' });
+      const h = eiaLeerHoja(sn, filas);
+      if (!h) return;
+      if (!h.grado) { res.avisos.push(`«${nombre}», hoja ${sn}: no se pudo saber el grado.`); return; }
+      if (h.cct && !res.cct) res.cct = h.cct;
+      const mapa = eiaMapa(h.grado, h.keys), largo = EIA_FASES[eiaFase(h.grado)].cr.length;
+      if (mapa.some(i => i < 0)) res.avisos.push(`«${nombre}», ${h.grado}.° grado: hay columnas que no corresponden al formato oficial; se omitieron.`);
+      filas.slice(h.hc + 1).forEach((r, j) => {
+        const nombreA = String(r[h.iNom] || '').replace(/\s+/g, ' ').trim();
+        if (!/[A-Za-zÑñÁÉÍÓÚáéíóú]{2}/.test(nombreA)) return;
+        const v = Array(largo).fill(null);
+        let hay = 0, malos = 0;
+        h.cols.forEach((c, k) => {
+          const i = mapa[k]; if (i < 0) return;
+          const x = r[c]; if (x === '' || x == null) return;
+          const n = Number(String(x).trim());
+          if ([0, 1, 2, 3].includes(n)) { v[i] = n; hay++; } else malos++;
+        });
+        if (!hay) return;
+        const grupo = String(h.iGrp >= 0 ? r[h.iGrp] : '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+        const g = res.grados[h.grado] || (res.grados[h.grado] = {});
+        const al = { num: +r[h.iNum] || (j + 1), alumno: nombreA, sexo: String(h.iSexo >= 0 ? r[h.iSexo] : '').toUpperCase().trim().slice(0, 1), v, grupo };
+        (g[grupo] = g[grupo] || []).push(al);
+        if (malos) res.avisos.push(`${nombreA} (${h.grado}.° ${grupo}): tiene valoraciones fuera de 0 a 3; se dejaron vacías.`);
+      });
+    });
+  });
+  if (!Object.keys(res.grados).length) return Object.assign(res, { error: 'No tiene el formato oficial de captura de los EIA o no trae alumnos.' });
+  return res;
+}
+// Junta lo leído de varios archivos de una escuela; si un alumno aparece dos veces, se queda el archivo más reciente
+function eiaJuntar(leidos, cct) {
+  const grupos = {}, avisos = [], fuentes = [];
+  leidos.filter(x => !x.error).sort((x, y) => String(x.fecha).localeCompare(String(y.fecha))).forEach(f => {
+    fuentes.push(f.nombre);
+    f.avisos.forEach(x => avisos.push(x));
+    if (f.cct && cct && f.cct !== cct) avisos.unshift(`<b>«${esc(f.nombre)}» dice C.C.T. ${esc(f.cct)}</b> (${esc(nombreEscuela(f.cct))}), no ${esc(cct)}. Revise que sea el archivo de esta escuela.`);
+    Object.entries(f.grados).forEach(([gr, gs]) => Object.entries(gs).forEach(([gp, als]) => {
+      const k = gr + '|' + gp, G = grupos[k] || (grupos[k] = { grado: gr, grupo: gp, por: {} });
+      als.forEach(a => { const c = sisClave(a.alumno); if (G.por[c]) avisos.push(`${a.alumno} (${gr}.° ${gp}) aparece en más de un archivo: se usa «${f.nombre}».`); G.por[c] = a; });
+    }));
+  });
+  const l = Object.values(grupos).map(g => ({ grado: g.grado, grupo: g.grupo, alumnos: Object.values(g.por).sort((x, y) => (x.num - y.num) || x.alumno.localeCompare(y.alumno, 'es')) }))
+    .sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo));
+  // si un grado trae alumnos con grupo y sin grupo, los sin grupo se marcan
+  const sinGrupo = l.filter(g => !g.grupo && l.some(o => o.grado === g.grado && o.grupo));
+  if (sinGrupo.length) avisos.push('Hay alumnos sin grupo en ' + sinGrupo.map(g => g.grado + '.°').join(', ') + ' grado; se guardan aparte como «sin grupo».');
+  return { grupos: l, avisos, fuentes, malos: leidos.filter(x => x.error) };
+}
+
+/* ---- Vista principal ---- */
+function vEia() {
+  if (!S.eig) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>EIA</h1></div><div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Para guardar y consultar los resultados de los Ejercicios Integradores del Aprendizaje, el servidor de Tequio necesita la versión nueva. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</p></div>`;
+    return;
+  }
+  const v = eiaV();
+  if (esDirector() && v.nivel !== 'zona') v.cct = miCct();
+  const pred = sisPred(v);
+  const cab = `<div class="titulo-vista"><h1>EIA · Ejercicios Integradores</h1>
+    <div class="acciones">${!esDirector() ? `<button class="boton terra" id="b-eia-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-eia-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-eia-doc">${ico('i-graf')}Imprimir o descargar</button></div></div>
+    <div class="filtros sis-filtros">
+      <select id="e-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
+        : `<option value="zona" ${['zona', 'zgrado'].includes(v.nivel) ? 'selected' : ''}>Toda la zona</option><optgroup label="Escuelas">${directores().map(c => `<option value="${c.cct}" ${!['zona', 'zgrado'].includes(v.nivel) && v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</optgroup>`}</select>
+      <select id="e-ciclo" aria-label="Ciclo escolar">${eiaCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `<select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>` : ''}
+    </div>
+    ${eiaMigas(v)}
+    <h2 class="sis-h2">${esc(sisTitulo(v))}</h2>
+    ${v.nivel === 'zona' && !esDirector() ? `<div class="seg-op sis-tabs" role="group" aria-label="Vista de la zona"><button data-evista="resumen" aria-pressed="${v.vista !== 'comp'}">Resumen de la zona</button><button data-evista="comp" aria-pressed="${v.vista === 'comp'}">Comparativos</button></div>` : ''}`;
+  const comparar = v.nivel === 'zona' && !esDirector() && v.vista === 'comp';
+  $('#vista').innerHTML = cab + (comparar ? eiaCuerpoComparativo(v) : eiaCuerpo(v, pred));
+  eiaEnlazar(v);
+}
+function eiaMigas(v) {
+  const p = [], b = (n, t) => `<button data-enav="${n}">${esc(t)}</button>`;
+  p.push(v.nivel === 'zona' ? `<span>${esDirector() ? 'Zona (promedio)' : 'Zona 050'}</span>` : b('zona', esDirector() ? 'Zona (promedio)' : 'Zona 050'));
+  if (v.nivel === 'zgrado') p.push(`<span>${v.grado}.° grado en la zona</span>`);
+  if (['escuela', 'grado', 'grupo'].includes(v.nivel)) {
+    p.push(v.nivel === 'escuela' ? `<span>${esc(nombreEscuela(v.cct))}</span>` : b('escuela', nombreEscuela(v.cct)));
+    if (v.nivel === 'grado' || v.nivel === 'grupo') p.push(v.nivel === 'grado' ? `<span>${v.grado}.° grado</span>` : b('grado', v.grado + '.° grado'));
+    if (v.nivel === 'grupo') p.push(`<span>Grupo ${esc(sisNomGrupo(v))}</span>`);
+  }
+  if (esDirector() && v.nivel === 'zona') p.push(b('escuela', 'Mi escuela'));
+  return `<nav class="migas" aria-label="Nivel">${p.join(' › ')}</nav>`;
+}
+function eiaTarjetas(a) {
+  return `<div class="eia-kpis">
+    <div class="tarjeta pad sis-kpi"><div class="sis-kpi-t">Alumnos evaluados</div><div class="eia-num">${a.n}</div><div class="peq mudo">${a.grupos} grupo${a.grupos === 1 ? '' : 's'} · contestaron los dos EIA</div></div>
+    <div class="tarjeta pad sis-kpi"><div class="sis-kpi-t">Índice general</div><div class="eia-num" style="color:${eiaColorInd(a.ind)}">${a.ind == null ? '—' : a.ind}</div>${eiaBarra(a.dist, 14)}</div>
+    <div class="tarjeta pad sis-kpi"><div class="sis-kpi-t">Alumnos en rezago</div><div class="eia-num" style="color:var(--alerta)">${a.rz} <small>${sisFmt(a.prz)}</small></div><div class="peq mudo">${a.rza} con rezago alto (¾ o más de los criterios en 0 o 1)</div></div>
+    <div class="tarjeta pad sis-kpi"><div class="sis-kpi-t">Aprendizaje desarrollado</div><div class="eia-num" style="color:var(--ok)">${sisFmt(a.plog)}</div><div class="peq mudo">de las valoraciones en 3 · ${sisFmt(a.pdif)} en 0 o 1</div></div>
+  </div>`;
+}
+function eiaCampos(a, titulo) {
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">${titulo || 'Por campo formativo'}</div><div class="eia-campos">${EIA_CAMPOS.map(([k, nom]) => { const d = a.campo[k], t = d[0] + d[1] + d[2] + d[3];
+    return `<div class="eia-campo"><div class="eia-campo-t"><b>${nom}</b><span class="sis-ind" style="background:${eiaColorInd(a.cind[k])}">${a.cind[k] == null ? '—' : a.cind[k]}</span></div>${eiaBarra(d, 12)}
+      <div class="peq mudo">${t ? `${sisFmt(sisPc(d[0] + d[1], t))} en 0 o 1 · ${sisFmt(sisPc(d[3], t))} desarrollado` : 'Sin datos'}</div></div>`; }).join('')}</div>${eiaLeyenda()}</div>`;
+}
+function eiaTabla(items, titulo, primera) {
+  if (!items.length) return '';
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">${titulo}</div><div class="matriz-caja"><table class="matriz sis-tab">
+    <thead><tr><th class="esc-col">${primera}</th><th>Alumnos</th><th>Distribución</th>${EIA_CAMPOS.map(c => `<th>${c[2]}</th>`).join('')}<th>Rezago</th><th>Índice</th></tr></thead>
+    <tbody>${items.map(it => { const a = it.a; return `<tr>
+      <td class="esc-col">${it.ir ? `<button class="sis-ir" ${it.ir}>${esc(it.etq)}</button>` : `<b>${esc(it.etq)}</b>`}${it.sub ? `<div class="peq mudo">${it.sub}</div>` : ''}</td>
+      <td>${a ? a.n : '—'}</td><td class="sis-celda">${a ? eiaBarra(a.dist, 9) : '<span class="sis-sin">—</span>'}</td>
+      ${EIA_CAMPOS.map(([k]) => `<td><b style="color:${eiaColorInd(a && a.cind[k])}">${a && a.cind[k] != null ? a.cind[k] : '—'}</b></td>`).join('')}
+      <td><span class="sis-ra" style="color:${a && a.prz >= 30 ? 'var(--alerta)' : 'var(--tinta)'}">${a ? sisFmt(a.prz) : '—'}</span></td>
+      <td><span class="sis-ind" style="background:${eiaColorInd(a && a.ind)}">${a && a.ind != null ? a.ind : '—'}</span></td></tr>`; }).join('')}</tbody></table></div></div>`;
+}
+// Diagnóstico automático
+function eiaDiagListas(a, hijos, ctx) {
+  const F = [], A = [], G = [];
+  if (!a || !a.n) return null;
+  const camps = EIA_CAMPOS.map(([k, nom]) => ({ k, nom, ind: a.cind[k] })).filter(x => x.ind != null).sort((x, y) => y.ind - x.ind);
+  if (camps.length >= 2) {
+    F.push(`El campo con mejor resultado es <b>${camps[0].nom}</b> (índice ${camps[0].ind}).`);
+    A.push(`El campo que más apoyo necesita es <b>${camps[camps.length - 1].nom}</b> (índice ${camps[camps.length - 1].ind}).`);
+  }
+  if (a.prz >= 30) A.push(`<b>${a.rz} de ${a.n} alumnos (${sisFmt(a.prz)})</b> están en rezago: la mitad o más de sus criterios en 0 o 1.${a.rza ? ` De ellos, ${a.rza} con rezago alto.` : ''}`);
+  else if (a.n) F.push(`Solo ${sisFmt(a.prz)} del alumnado está en rezago (${a.rz} de ${a.n}).`);
+  if (a.dist[0] && sisPc(a.dist[0], a.dist.reduce((s, x) => s + x, 0)) >= 15) A.push(`${sisFmt(sisPc(a.dist[0], a.dist.reduce((s, x) => s + x, 0)))} de las respuestas no tuvo evidencias (0): revisar si los alumnos no entendieron la consigna o no alcanzaron a responder.`);
+  Object.keys(a.F).sort().forEach(f => {
+    const c = eiaCriterios(a, f); if (!c.length) return;
+    const gr = Array.from(a.F[f].grados).sort().map(g => g + '.°').join(' y ');
+    const peores = c.filter(x => x.pdif >= 40).slice(0, 3), mejores = c.slice().sort((x, y) => y.plog - x.plog).filter(x => x.plog >= 40).slice(0, 2);
+    if (peores.length) A.push(`<b>${gr} (${f.replace('F', 'fase ')}):</b> donde más fallaron fue ${peores.map(x => `«${esc(x.nom.toLowerCase())}» (${sisFmt(x.pdif)} en 0 o 1)`).join(', ')}.`);
+    if (mejores.length) F.push(`<b>${gr}:</b> ${mejores.map(x => `«${esc(x.nom.toLowerCase())}» (${sisFmt(x.plog)} desarrollado)`).join(' y ')}.`);
+    const cont = eiaContenidos(a, f).filter(o => o.pdif >= 35).slice(0, 2);
+    cont.forEach(o => G.push(`<b>${gr} · ${eiaCampoCorto(o.campo)}:</b> retomar ${Array.from(new Set(Array.from(a.F[f].grados).sort().map(g => '«' + esc(EIA_BLOQ[o.b].g[g][0].replace(/\.$/, '')) + '»'))).join(' y ')}. ${esc(EIA_BLOQ[o.b].sug[0])}`));
+  });
+  const conDatos = (hijos || []).filter(x => x.a && x.a.ind != null);
+  if (conDatos.length >= 2) {
+    const ord = conDatos.slice().sort((x, y) => y.a.ind - x.a.ind);
+    F.push(`Mejor resultado: <b>${esc(ord[0].etq)}</b> (índice ${ord[0].a.ind}).`);
+    A.push(`Mayor necesidad: <b>${esc(ord[ord.length - 1].etq)}</b> (índice ${ord[ord.length - 1].a.ind}, ${sisFmt(ord[ord.length - 1].a.prz)} en rezago).`);
+  }
+  if (a.rz) G.push('Registrar en el CTE las acciones para cada alumno en rezago y revisarlas con la evaluación formativa del grupo.');
+  if (ctx.nivel === 'zona' && conDatos.length && !esDirector()) {
+    const vis = conDatos.filter(x => x.a.prz >= 35).sort((x, y) => y.a.prz - x.a.prz).slice(0, 5);
+    if (vis.length) G.push(`Priorizar el acompañamiento de la Mesa Técnica en: ${vis.map(x => '<b>' + esc(x.etq) + '</b>').join(', ')}.`);
+  }
+  return { F, A, G };
+}
+function eiaDiagnostico(a, hijos, ctx) {
+  const d = eiaDiagListas(a, hijos, ctx); if (!d) return '';
+  const li = l => l.length ? `<ul>${l.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p class="mudo peq">Nada que destacar.</p>';
+  return `<div class="tarjeta pad sis-diag"><div class="seccion-t" style="padding:0 0 6px">Diagnóstico</div><div class="sis-diag-g">
+    <div><h3 class="bien">Fortalezas</h3>${li(d.F)}</div><div><h3 class="mal">Focos de atención</h3>${li(d.A)}</div><div><h3>Sugerencias para la asesoría</h3>${li(d.G)}</div></div></div>`;
+}
+// Consignas donde más fallaron (una tabla por fase)
+function eiaSeccionConsignas(a) {
+  const fases = Object.keys(a.F).sort();
+  return fases.map(f => {
+    const c = eiaCriterios(a, f); if (!c.length) return '';
+    const gr = Array.from(a.F[f].grados).sort().map(g => g + '.°').join(' y ');
+    const fila = x => `<tr><td class="esc-col"><b>${esc(x.nom)}</b><div class="peq mudo">${eiaEtq(x)} · ${esc(EIA_FASES[f].eias[x.e - 1])} · ${eiaCampoCorto(x.campo)}</div></td>
+      <td class="sis-celda">${eiaBarra(x.d, 10)}<span class="peq">${x.d.join(' · ')}</span></td>
+      <td><b style="color:${eiaColorDif(x.pdif)}">${sisFmt(x.pdif)}</b></td><td>${sisFmt(x.p0)}</td><td><span class="sis-ind" style="background:${eiaColorInd(x.ind)}">${x.ind}</span></td></tr>`;
+    const tabla = l => `<div class="matriz-caja"><table class="matriz sis-tab"><thead><tr><th class="esc-col">Criterio (consigna)</th><th>Alumnos en 0 · 1 · 2 · 3</th><th>En 0 o 1</th><th>Sin evid.</th><th>Índice</th></tr></thead><tbody>${l.map(fila).join('')}</tbody></table></div>`;
+    return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Consignas donde más fallaron · ${gr} grado (${f.replace('F', 'fase ')}, ${a.F[f].n} alumnos)</div>
+      ${tabla(c.slice(0, 8))}${c.length > 8 ? `<details class="sis-mas"><summary>Ver los otros ${c.length - 8} criterios</summary>${tabla(c.slice(8))}</details>` : ''}</div>`;
+  }).join('');
+}
+// Ruta de trabajo para el docente: contenidos a retomar, con su PDA del grado, sugerencias y libros
+function eiaRuta(a, grado, alumnos, max = 4) {
+  const f = eiaFase(grado);
+  let l = eiaContenidos(a, f).filter(o => o.pdif >= 30);
+  if (!l.length) l = eiaContenidos(a, f).filter(o => o.pdif >= 15).slice(0, 2);
+  return l.slice(0, max).map(o => {
+    const B = EIA_BLOQ[o.b], g = B.g[grado] || B.g[EIA_FASES[f].grados[0]];
+    const quien = (alumnos || []).filter(al => al.grado === grado && o.cr.some(x => al.v[x.i] != null && al.v[x.i] <= 1)).map(al => al.alumno);
+    return { b: o.b, campo: o.campo, pdif: o.pdif, cr: o.cr, contenido: g[0], pda: g[1], que: B.que, sug: B.sug, lib: (B.lib || {})[grado] || '', quien };
+  });
+}
+function eiaRutaHtml(r, grado, titulo) {
+  if (!r.length) return '';
+  return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">${titulo || `Ruta de trabajo para el docente · ${grado}.° grado`}</div>
+    <p class="peq mudo" style="margin:0 0 10px">Contenidos del programa sintético que conviene retomar, del más urgente al menos, según los criterios donde más alumnos quedaron en 0 o 1.</p>
+    ${r.map((x, k) => `<div class="sis-ruta"><h3>${k + 1}. ${esc(x.contenido.replace(/\.$/, ''))} <span class="peq" style="font-weight:400;color:var(--tinta)">· ${eiaCampoNom(x.campo)} · <b style="color:${eiaColorDif(x.pdif)}">${sisFmt(x.pdif)} en 0 o 1</b></span></h3>
+      <p class="peq" style="margin:2px 0 6px"><b>PDA de ${grado}.°:</b> ${esc(x.pda)}</p>
+      <p class="peq" style="margin:0 0 6px"><b>Lo que se observó:</b> ${x.cr.map(c => `${esc(c.nom.toLowerCase())} (${sisFmt(c.pdif)})`).join(' · ')}. ${esc(x.que)}</p>
+      <div class="peq"><b>Qué trabajar:</b><ul style="margin:4px 0 6px">${x.sug.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
+      ${x.lib ? `<p class="peq" style="margin:0 0 6px"><b>Libros de texto (${grado}.°):</b> ${esc(x.lib)}</p>` : ''}
+      ${x.quien.length ? `<details class="peq"><summary style="cursor:pointer;color:var(--indigo)">${x.quien.length} alumno${x.quien.length === 1 ? '' : 's'} con 0 o 1 en este contenido</summary><div style="columns:2;column-gap:20px;margin-top:4px">${x.quien.map(esc).join('<br>')}</div></details>` : ''}
+    </div>`).join('')}</div>`;
+}
+// En la zona o la escuela: los contenidos más urgentes de cada grado
+function eiaRutasPorGrado(filas, alumnos, titulo) {
+  const grados = Array.from(new Set(filas.map(r => r.grado))).sort();
+  const filasR = grados.map(g => { const a = eiaSuma(filas.filter(r => r.grado === g)); const r = eiaRuta(a, g, alumnos, 3); return { g, a, r }; }).filter(x => x.r.length);
+  if (!filasR.length) return '';
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">${titulo || 'Qué retomar en cada grado'}</div><div class="matriz-caja"><table class="matriz sis-tab">
+    <thead><tr><th class="esc-col">Grado</th><th style="text-align:left">Contenidos a retomar (del más urgente al menos)</th></tr></thead>
+    <tbody>${filasR.map(x => `<tr><td class="esc-col"><b>${x.g}.° grado</b><div class="peq mudo">${x.a.n} alumnos</div></td><td class="sis-deb" style="max-width:none">${x.r.map((y, k) => `<div style="margin-bottom:4px"><b>${k + 1}. ${esc(y.contenido.replace(/\.$/, ''))}</b> <span class="mudo">(${eiaCampoCorto(y.campo)}, <b style="color:${eiaColorDif(y.pdif)}">${sisFmt(y.pdif)}</b> en 0 o 1)</span><br><span class="peq">PDA: ${esc(y.pda)}</span></div>`).join('')}</td></tr>`).join('')}</tbody></table></div>
+    <p class="peq mudo" style="margin:8px 14px">Para ver las sugerencias, los libros y los alumnos de cada contenido, entre al grado o al grupo.</p></div>`;
+}
+function eiaCuerpo(v, pred) {
+  const filas = eiaFilas().filter(pred);
+  if (!filas.length) return `<div class="tarjeta vacio">Todavía no hay resultados de los EIA del ciclo ${esc(v.ciclo)}${v.nivel === 'zona' ? '' : ' para este nivel'}. Use «${esDirector() ? 'Cargar resultados' : 'Leer los Excel de todas las escuelas'}»: Tequio lee el Excel del formato oficial de captura que cada escuela subió a su carpeta «09-Ejercicios Integradores del Aprendizaje».</div>`;
+  const a = eiaSuma(filas);
+  let hijos = [], tablas = '', cobertura = '', extra = '';
+  if (v.nivel === 'zona') {
+    if (!esDirector()) {
+      const escs = filtroEscuelas(), conD = escs.filter(c => filas.some(r => r.cct === c.cct));
+      cobertura = `<div class="peq mudo" style="margin:-6px 0 12px">${conD.length} de ${escs.length} escuelas con resultados · ${a.grupos} grupos · ${a.n} alumnos${conD.length < escs.length ? ' · Sin resultados: ' + escs.filter(c => !conD.includes(c)).map(c => esc(c.escuela)).join(', ') : ''}</div>`;
+      hijos = escs.map(c => { const rs = filas.filter(r => r.cct === c.cct); return { etq: c.escuela, a: rs.length ? eiaSuma(rs) : null, ir: `data-eesc="${c.cct}"`, sub: (c.multigrado ? 'Multigrado · ' : '') + c.municipio + (atpDe(c.cct) ? ' · ' + esc(nombreCorto(atpDe(c.cct).nombre)) : '') }; });
+      const ord = v.orden === 'nombre' ? hijos : hijos.slice().sort((x, y) => (x.a ? x.a.ind : 999) - (y.a ? y.a.ind : 999));
+      tablas += eiaTabla(ord, `Por escuela <button class="boton sec chico" id="b-eia-orden" style="margin-left:8px;text-transform:none;letter-spacing:0">Ordenar por ${v.orden === 'nombre' ? 'necesidad' : 'nombre'}</button>`, 'Escuela');
+    } else cobertura = '<div class="peq mudo" style="margin:-6px 0 12px">Promedio de las escuelas de la zona con resultados. Los datos de cada escuela solo los ve la Supervisión.</div>';
+    const grados = ['1', '2', '3', '4', '5', '6'].map(g => { const rs = filas.filter(r => r.grado === g); return { etq: g + '.° grado', a: rs.length ? eiaSuma(rs) : null, ir: esDirector() ? '' : `data-ezg="${g}"`, sub: rs.length ? rs.length + ' grupo' + (rs.length === 1 ? '' : 's') : '' }; }).filter(x => x.a);
+    tablas += eiaTabla(grados, 'Por grado en toda la zona', 'Grado');
+    if (esDirector()) hijos = grados;
+    extra = eiaRutasPorGrado(filas, null, 'Contenidos a reforzar en la zona, por grado');
+  } else if (v.nivel === 'zgrado') {
+    hijos = filas.slice().sort((x, y) => nombreEscuela(x.cct).localeCompare(nombreEscuela(y.cct), 'es') || x.grupo.localeCompare(y.grupo))
+      .map(r => ({ etq: nombreEscuela(r.cct) + ' · ' + sisNomGrupo(r), a: eiaSuma([r]), ir: `data-egrp="${r.cct}|${r.grado}|${esc(r.grupo)}"` }));
+    tablas += eiaTabla(hijos, 'Grupos de ' + v.grado + '.° grado en la zona', 'Escuela y grupo');
+    extra = eiaRutaHtml(eiaRuta(a, v.grado, null), v.grado, `Contenidos a reforzar en ${v.grado}.° grado en la zona`);
+  } else if (v.nivel === 'escuela') {
+    const grados = ['1', '2', '3', '4', '5', '6'].map(g => { const rs = filas.filter(r => r.grado === g); return { etq: g + '.° grado', a: rs.length ? eiaSuma(rs) : null, ir: `data-egr="${g}"`, sub: rs.map(sisNomGrupo).join(', ') }; }).filter(x => x.a);
+    hijos = filas.slice().sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo)).map(r => ({ etq: sisNomGrupo(r), a: eiaSuma([r]), ir: `data-egrp="${r.cct}|${r.grado}|${esc(r.grupo)}"` }));
+    cobertura = `<div class="peq mudo" style="margin:-6px 0 12px">${a.grupos} grupos · ${a.n} alumnos${filas[0] && filas[0].fuente ? ' · Fuente: ' + esc(filas[0].fuente) : ''}</div>`;
+    tablas += eiaTabla(grados, 'Por grado', 'Grado') + eiaTabla(hijos, 'Por grupo', 'Grupo');
+    const al = eiaAlumnosVista(v);
+    extra = eiaRutasPorGrado(filas, al && al.todos);
+  } else {
+    if (v.nivel === 'grado') { hijos = filas.map(r => ({ etq: 'Grupo ' + sisNomGrupo(r), a: eiaSuma([r]), ir: `data-egrp="${r.cct}|${r.grado}|${esc(r.grupo)}"` })); if (hijos.length > 1) tablas += eiaTabla(hijos, 'Grupos de ' + v.grado + '.° grado', 'Grupo'); }
+    const al = eiaAlumnosVista(v);
+    extra = eiaRutaHtml(eiaRuta(a, v.grado, al && al.todos), v.grado);
+  }
+  return cobertura + eiaTarjetas(a) + eiaCampos(a) + eiaDiagnostico(a, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel }) + extra + eiaSeccionConsignas(a) +
+    eiaSeccionAlumnos(v) + eiaSeccionRezagoZona(v, filas) + tablas;
+}
+
+/* ---- Alumnos en rezago ---- */
+const EIA_NIVELES_AL = [['alto', 'Rezago alto: ¾ o más de los criterios en 0 o 1', 'var(--alerta)'], ['rezago', 'En rezago: la mitad o más de los criterios en 0 o 1', '#B26B00'], ['riesgo', 'En riesgo: entre 30 y 49% de los criterios en 0 o 1', '#7A6400'], ['ok', 'Sin rezago', 'var(--ok)']];
+function eiaTablaAlumnos(l, conGrupo, conEscuela) {
+  return `<div class="matriz-caja"><table class="matriz sis-al"><thead><tr><th class="esc-col">Alumno</th>${conEscuela ? '<th>Escuela</th>' : ''}${conGrupo ? '<th>Grupo</th>' : ''}<th>Índice</th><th>En 0 o 1</th><th>Lo que más le cuesta</th></tr></thead>
+    <tbody>${l.map(a => `<tr><td class="esc-col">${esc(a.alumno)}</td>${conEscuela ? `<td class="sis-deb">${esc(nombreEscuela(a.cct))}</td>` : ''}${conGrupo ? `<td>${a.grado}° ${esc(a.grupo)}</td>` : ''}
+      <td><span class="sis-ind" style="background:${eiaColorInd(a.est.ind)}">${a.est.ind}</span></td><td>${a.est.bajos} de ${a.est.total}</td><td class="sis-deb">${eiaDebilidades(a).map(esc).join('<br>') || '—'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function eiaSeccionAlumnos(v) {
+  const r = eiaAlumnosVista(v);
+  if (!r) return '';
+  if (r.cargando) return '<div class="tarjeta pad" id="eia-al-espera" style="margin-bottom:16px"><span class="mudo">Cargando los resultados por alumno…</span></div>';
+  const al = r.todos.filter(a => a.est);
+  if (!al.length) { const x = EIAA[v.ciclo + '|' + v.cct] || {}; return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Alumnos en rezago</div><div class="aviso-caja" style="margin:0">${x.error ? 'No se pudieron traer los alumnos: ' + esc(x.error) : 'No hay alumnos guardados para este nivel.'}</div></div>`; }
+  const conGrupo = v.nivel !== 'grupo';
+  const por = {}; EIA_NIVELES_AL.forEach(([k]) => { por[k] = al.filter(a => a.est.nivel === k).sort((x, y) => x.est.ind - y.est.ind); });
+  let html = `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos en rezago</div>
+    <div class="sis-cuenta">${EIA_NIVELES_AL.map(([k, t, c]) => `<div><b style="color:${c}">${por[k].length}</b><span>${t.split(':')[0].toLowerCase()}</span></div>`).join('')}</div>
+    ${por.alto.length ? `<div class="sis-sub-t">${EIA_NIVELES_AL[0][1]} (${por.alto.length})</div>${eiaTablaAlumnos(por.alto, conGrupo)}` : '<p class="peq" style="margin:0 14px 10px;color:var(--ok)">Ningún alumno tiene rezago alto.</p>'}
+    ${por.rezago.length ? `<details class="sis-mas" open><summary>${EIA_NIVELES_AL[1][1]} (${por.rezago.length})</summary>${eiaTablaAlumnos(por.rezago, conGrupo)}</details>` : ''}
+    ${por.riesgo.length ? `<details class="sis-mas"><summary>${EIA_NIVELES_AL[2][1]} (${por.riesgo.length})</summary>${eiaTablaAlumnos(por.riesgo, conGrupo)}</details>` : ''}
+    <div class="peq mudo" style="padding:8px 14px">Índice del alumno: promedio de sus valoraciones sobre 3 (0 a 100). «Lo que más le cuesta»: criterios en 0 (sin evidencias) o, si no tiene, en 1.</div>
+    ${eiaCruceSisat(v, al)}</div>`;
+  if (v.nivel === 'grupo') html += eiaMapaGrupo(v, al);
+  return html;
+}
+// Cruce con el SisAT: alumnos en rezago en los EIA que también requieren apoyo en el SisAT
+function eiaCruceSisat(v, al) {
+  const sa = sisAlumnosDe(v.ciclo, v.cct);
+  if (!sa) { if (S.sis) sisPedirAlumnos(v.ciclo, v.cct).then(() => { if ($('#eia-cruce-espera')) vEia(); }); return S.sis ? '<div class="peq mudo" id="eia-cruce-espera" style="padding:0 14px 10px">Buscando los resultados del SisAT para cruzarlos…</div>' : ''; }
+  const ms = [3, 2, 1].find(m => sa.some(a => a.momento === m));
+  if (!ms) return '';
+  const de = {}; sa.filter(a => a.momento === ms).forEach(a => { de[eiaClaveCruce(a.alumno)] = a; });
+  const rz = al.filter(a => a.est.nivel === 'alto' || a.est.nivel === 'rezago');
+  const ambos = rz.map(a => ({ a, s: de[a.cruce] })).filter(o => o.s && sisNumRA(o.s) >= 2);
+  const enc = al.filter(a => de[a.cruce]).length;
+  if (!enc) return '';
+  return `<div class="eia-cruce"><div class="sis-sub-t" style="padding-left:0">Cruce con el SisAT (Momento ${ms}): atención prioritaria</div>
+    <p class="peq" style="margin:0 0 6px">${ambos.length ? `<b>${ambos.length}</b> alumno${ambos.length === 1 ? ' está' : 's están'} en rezago en los EIA <b>y</b> en «requiere apoyo» en dos o más habilidades del SisAT:` : `Ningún alumno en rezago de los EIA está también en «requiere apoyo» en dos o más habilidades del SisAT.`} <span class="mudo">(${enc} de ${al.length} alumnos coinciden por nombre en ambas evaluaciones.)</span></p>
+    ${ambos.length ? `<div class="peq" style="columns:2;column-gap:20px">${ambos.map(o => `${esc(o.a.alumno)} <span class="mudo">${o.a.grado}° ${esc(o.a.grupo)} · EIA ${o.a.est.ind} · SisAT: ${['lec', 'tex', 'cal'].filter(h => o.s[h] && o.s[h].n === 'RA').map(h => SIS_H.find(x => x[0] === h)[2].toLowerCase()).join(', ')}</span>`).join('<br>')}</div>` : ''}</div>`;
+}
+// Mapa del grupo: cada alumno y cada criterio con su valoración
+function eiaMapaGrupo(v, al) {
+  const def = EIA_FASES[eiaFase(v.grado)];
+  const orden = v.ordenAl === 'nombre' ? al.slice().sort((x, y) => x.num - y.num || x.alumno.localeCompare(y.alumno, 'es')) : al.slice().sort((x, y) => x.est.ind - y.est.ind);
+  const cab = def.cr.map((c, i) => `<th class="eia-mc" title="${esc('EIA ' + c[0] + ' · ' + c[1] + ' · ' + c[3])}"><span>${c[0]}·${c[1][0]}${c[1].slice(1).toLowerCase()}</span></th>`).join('');
+  const sep = i => i > 0 && def.cr[i][0] !== def.cr[i - 1][0] ? ' eia-sep' : '';
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Mapa del grupo: cada alumno en cada criterio (${al.length})
+      <button class="boton sec chico" id="b-eia-oal" style="margin-left:8px;text-transform:none;letter-spacing:0">Ordenar por ${v.ordenAl === 'nombre' ? 'necesidad' : 'número de lista'}</button></div>
+    <div class="matriz-caja"><table class="matriz eia-mapa"><thead><tr><th class="esc-col">Alumno</th><th>Índice</th>${cab}</tr></thead>
+    <tbody>${orden.map(a => `<tr><td class="esc-col">${esc(a.alumno)}</td><td><span class="sis-ind" style="background:${eiaColorInd(a.est.ind)}">${a.est.ind}</span></td>${def.cr.map((c, i) => { const x = a.v[i]; return `<td class="eia-c${sep(i)}" style="${x == null ? '' : `background:${EIA_COL[x]};color:${x === 2 ? '#3B2A0A' : '#fff'}`}">${x == null ? '·' : x}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="peq mudo" style="padding:8px 14px">Columnas: EIA · consigna e inciso (pase el cursor para ver el nombre del criterio). ${def.eias.map((t, i) => `EIA ${i + 1}: «${esc(t)}»`).join(' · ')}.</div></div>`;
+}
+// Zona: rezago por escuela (con los concentrados) y alumnos con rezago alto (cargando los alumnos de cada escuela)
+function eiaSeccionRezagoZona(v, filas) {
+  if (esDirector() || !['zona', 'zgrado'].includes(v.nivel)) return '';
+  const ccts = Array.from(new Set(filas.map(r => r.cct))).filter(Boolean);
+  const faltan = ccts.filter(c => !eiaAlumnosDe(v.ciclo, c));
+  if (faltan.length) {
+    Promise.all(faltan.map(c => eiaPedirAlumnos(v.ciclo, c))).then(() => { const w = eiaV(); if (['zona', 'zgrado'].includes(w.nivel) && $('#eia-al-espera')) vEia(); });
+    return '<div class="tarjeta pad" id="eia-al-espera" style="margin-bottom:16px"><span class="mudo">Cargando a los alumnos de las escuelas…</span></div>';
+  }
+  const al = ccts.flatMap(c => eiaAlumnosDe(v.ciclo, c)).filter(a => a.est && (v.nivel !== 'zgrado' || a.grado === v.grado));
+  const alto = al.filter(a => a.est.nivel === 'alto').sort((x, y) => nombreEscuela(x.cct).localeCompare(nombreEscuela(y.cct), 'es') || x.grado.localeCompare(y.grado) || x.est.ind - y.est.ind);
+  const rez = al.filter(a => a.est.nivel === 'rezago');
+  if (!al.length) return '';
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos en rezago ${v.nivel === 'zgrado' ? 'de ' + v.grado + '.° grado ' : ''}en la zona</div>
+    <div class="sis-cuenta"><div><b style="color:var(--alerta)">${alto.length}</b><span>rezago alto</span></div><div><b style="color:#B26B00">${rez.length}</b><span>en rezago</span></div><div><b>${al.length}</b><span>alumnos evaluados</span></div></div>
+    ${alto.length ? `<details class="sis-mas"><summary>Alumnos con rezago alto (${alto.length})</summary>${eiaTablaAlumnos(alto, true, true)}</details>` : ''}</div>`;
+}
+
+/* ---- Comparativos (Supervisión y Mesa Técnica) ---- */
+const EIA_CRITERIOS = [['ind', 'Índice general', 1], ['rez', 'Alumnos en rezago (%)', -1], ['log', 'Aprendizaje desarrollado (%)', 1]].concat(EIA_CAMPOS.map(([k, nom]) => ['c.' + k, nom + ' · índice', 1]));
+const eiaValor = (a, crit) => !a ? null : crit === 'ind' ? a.ind : crit === 'rez' ? a.prz : crit === 'log' ? a.plog : a.cind[crit.slice(2)];
+function eiaCmpV(v) { if (!v.cmp) v.cmp = { tipo: 'multi', grado: '', sel: [], crit: 'ind', orden: 'desc' }; return v.cmp; }
+function eiaCuerpoComparativo(v) {
+  const c = eiaCmpV(v);
+  let filas = eiaFilas().filter(r => filtroEscuelas().some(e => e.cct === r.cct));
+  if (c.grado) filas = filas.filter(r => r.grado === c.grado);
+  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', 'San Quintín vs. Ensenada'], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
+  const panel = `<div class="tarjeta pad sis-cmp-p"><div class="sis-cmp-f">
+      <div class="campo" style="margin:0"><label for="ecmp-tipo">Comparar</label><select id="ecmp-tipo">${tipos.map(([k, t]) => `<option value="${k}" ${c.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="campo" style="margin:0"><label for="ecmp-grado">Grados</label><select id="ecmp-grado"><option value="">Todos los grados</option>${[1, 2, 3, 4, 5, 6].map(g => `<option value="${g}" ${c.grado === String(g) ? 'selected' : ''}>Solo ${g}.° grado</option>`).join('')}</select></div>
+      ${c.tipo === 'rank' ? `<div class="campo" style="margin:0"><label for="ecmp-crit">Ordenar por</label><select id="ecmp-crit">${EIA_CRITERIOS.map(([k, t]) => `<option value="${k}" ${c.crit === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="campo" style="margin:0"><label for="ecmp-orden">Orden</label><select id="ecmp-orden"><option value="desc" ${c.orden === 'desc' ? 'selected' : ''}>De mayor a menor</option><option value="asc" ${c.orden === 'asc' ? 'selected' : ''}>De menor a mayor</option></select></div>` : ''}
+    </div>
+    ${c.tipo === 'elegir' ? `<div class="sis-cmp-sel">${filtroEscuelas().map(e => `<label><input type="checkbox" data-ecmpsel="${e.cct}" ${c.sel.includes(e.cct) ? 'checked' : ''}> ${esc(e.escuela)}</label>`).join('')}</div><p class="peq mudo" style="margin:4px 0 0">Marque dos o más escuelas.</p>` : ''}</div>`;
+  if (!filas.length) return panel + `<div class="tarjeta vacio">No hay resultados de los EIA${c.grado ? ' en ' + c.grado + '.° grado' : ''} en este ciclo.</div>`;
+  if (c.tipo === 'rank') return panel + eiaRanking(v, filas);
+  const G = sisCmpGrupos(Object.assign({}, v, { cmp: c }), filas).map(g => Object.assign(g, { a: g.filas.length ? eiaSuma(g.filas) : null }));
+  if (c.tipo === 'elegir' && G.length < 2) return panel + '<div class="tarjeta vacio">Marque al menos dos escuelas para compararlas.</div>';
+  return panel + eiaCmpResultado(G, c);
+}
+function eiaCmpConclusiones(G) {
+  const con = G.filter(g => g.a), L = [];
+  if (con.length < 2) return L;
+  EIA_CAMPOS.forEach(([k, nom]) => {
+    const vals = con.filter(g => g.a.cind[k] != null).map(g => ({ g, x: g.a.cind[k] })); if (vals.length < 2) return;
+    const ord = vals.slice().sort((x, y) => y.x - x.x), d = ord[0].x - ord[ord.length - 1].x;
+    L.push(d >= 4 ? `<b>${nom}:</b> ${esc(ord[0].g.etq)} tiene ${d} puntos más de índice que ${esc(ord[ord.length - 1].g.etq)} (${ord[0].x} contra ${ord[ord.length - 1].x}).` : `<b>${nom}:</b> resultados parecidos (diferencia de ${d} puntos).`);
+  });
+  const r = con.slice().sort((x, y) => y.a.prz - x.a.prz);
+  L.push(`<b>Rezago:</b> ${r.map(g => esc(g.etq) + ' ' + sisFmt(g.a.prz)).join(' · ')}.`);
+  const o = con.filter(g => g.a.ind != null).sort((x, y) => y.a.ind - x.a.ind);
+  if (o.length >= 2) L.push(`<b>Índice general:</b> ${o.map(g => esc(g.etq) + ' ' + g.a.ind).join(' · ')}.`);
+  return L;
+}
+function eiaCmpResultado(G, c) {
+  const fila = g => `<tr><td class="esc-col"><b>${esc(g.etq)}</b><div class="peq mudo">${g.escs.length} escuela${g.escs.length === 1 ? '' : 's'}${g.a ? ' · ' + g.a.grupos + ' grupos · ' + g.a.n + ' alumnos' : ' · sin resultados'}</div></td>
+    <td class="sis-celda">${g.a ? eiaBarra(g.a.dist, 10) : '—'}</td>${EIA_CAMPOS.map(([k]) => `<td><b style="color:${eiaColorInd(g.a && g.a.cind[k])}">${g.a && g.a.cind[k] != null ? g.a.cind[k] : '—'}</b></td>`).join('')}
+    <td>${g.a ? sisFmt(g.a.prz) : '—'}</td><td><span class="sis-ind" style="background:${eiaColorInd(g.a && g.a.ind)}">${g.a && g.a.ind != null ? g.a.ind : '—'}</span></td></tr>`;
+  const tabla = `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Comparativo por campo formativo</div><div class="matriz-caja"><table class="matriz sis-tab">
+    <thead><tr><th class="esc-col"></th><th>Distribución</th>${EIA_CAMPOS.map(x => `<th>${x[2]}</th>`).join('')}<th>Rezago</th><th>Índice</th></tr></thead><tbody>${G.map(fila).join('')}</tbody></table></div>${eiaLeyenda()}</div>`;
+  const colores = ['#24427A', '#C2603A', '#2E7D4F', '#8A5BB0', '#B08A4E', '#4A90A4'];
+  const graf = `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">Índice por campo formativo</div><div class="eia-cmp-g">${EIA_CAMPOS.map(([k, nom]) => `<div><h3>${nom}</h3>${G.map((g, i) => { const x = g.a ? g.a.cind[k] : null;
+    return `<div class="sis-cb"><span class="sis-cb-n">${esc(g.etq)}</span><span class="sis-cb-b"><i style="width:${x || 0}%;background:${colores[i % colores.length]}"></i></span><b class="sis-cb-p">${x == null ? '—' : x}</b></div>`; }).join('')}</div>`).join('')}</div></div>`;
+  const L = eiaCmpConclusiones(G);
+  const concl = L.length ? `<div class="tarjeta pad sis-diag" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Lo que muestra el comparativo</div><ul>${L.map(x => `<li>${x}</li>`).join('')}</ul></div>` : '';
+  const det = c.tipo !== 'elegir' ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Escuelas de cada bloque</div><div class="sis-cmp-det">${G.map(g => `<div><h3>${esc(g.etq)}</h3>${g.escs.map(e => { const rs = g.filas.filter(r => r.cct === e.cct), a = rs.length ? eiaSuma(rs) : null;
+    return `<div class="sis-cmp-e"><button class="sis-ir" data-eesc="${e.cct}">${esc(e.escuela)}</button><span class="sis-ind" style="background:${eiaColorInd(a && a.ind)}">${a && a.ind != null ? a.ind : '—'}</span></div>`; }).join('')}</div>`).join('')}</div></div>` : '';
+  return concl + tabla + graf + det;
+}
+function eiaRankLista(filas, c) {
+  const crit = EIA_CRITERIOS.find(x => x[0] === c.crit) || EIA_CRITERIOS[0];
+  const l = filtroEscuelas().map(e => { const rs = filas.filter(r => r.cct === e.cct); const a = rs.length ? eiaSuma(rs) : null; return { e, a, val: eiaValor(a, crit[0]) }; });
+  return { crit, con: l.filter(x => x.val != null).sort((x, y) => c.orden === 'asc' ? x.val - y.val : y.val - x.val), sin: l.filter(x => x.val == null) };
+}
+function eiaRanking(v, filas) {
+  const c = eiaCmpV(v), { crit, con, sin } = eiaRankLista(filas, c);
+  const max = Math.max(1, ...con.map(x => x.val)), pct = ['rez', 'log'].includes(crit[0]);
+  const color = x => crit[2] > 0 ? eiaColorInd(x.val) : (x.val >= 40 ? 'var(--alerta)' : x.val >= 25 ? 'var(--ambar)' : 'var(--ok)');
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Escuelas por ${esc(crit[1].toLowerCase())} · ${c.orden === 'asc' ? 'de menor a mayor' : 'de mayor a menor'}</div>
+    <div class="sis-rank">${con.map((x, i) => `<div class="sis-rank-f"><span class="sis-rank-n">${i + 1}</span>
+      <span class="sis-rank-e"><button class="sis-ir" data-eesc="${x.e.cct}">${esc(x.e.escuela)}</button><span class="peq mudo">${x.e.multigrado ? 'Multigrado' : 'Org. completa'} · ${esc(x.e.municipio)} · ${sisTurno(x.e.cct)} · ${x.a.n} alumnos</span></span>
+      <span class="sis-cb-b sis-rank-b"><i style="width:${Math.round(x.val * 100 / max)}%;background:${color(x)}"></i></span><b class="sis-rank-v">${pct ? sisFmt(x.val) : x.val}</b></div>`).join('')}</div>
+    ${sin.length ? `<p class="peq mudo" style="margin:8px 14px">Sin resultados: ${sin.map(x => esc(x.e.escuela)).join(', ')}.</p>` : ''}</div>`;
+}
+
+/* ---- Eventos ---- */
+function eiaEnlazar(v) {
+  const ir = cambios => { Object.assign(v, cambios); vEia(); window.scrollTo(0, 0); };
+  $$('[data-enav]').forEach(b => b.onclick = () => ir({ nivel: b.dataset.enav, ...(b.dataset.enav === 'escuela' && esDirector() ? { cct: miCct() } : {}) }));
+  $$('[data-eesc]').forEach(b => b.onclick = () => ir({ nivel: 'escuela', cct: b.dataset.eesc, vista: 'resumen' }));
+  $$('[data-ezg]').forEach(b => b.onclick = () => ir({ nivel: 'zgrado', grado: b.dataset.ezg }));
+  $$('[data-egr]').forEach(b => b.onclick = () => ir({ nivel: 'grado', grado: b.dataset.egr }));
+  $$('[data-egrp]').forEach(b => b.onclick = () => { const [cct, grado, grupo] = b.dataset.egrp.split('|'); if (esDirector() && cct !== miCct()) return; ir({ nivel: 'grupo', cct, grado, grupo }); });
+  if ($('#e-ciclo')) $('#e-ciclo').onchange = e => { v.ciclo = e.target.value; vEia(); };
+  if ($('#e-ver')) $('#e-ver').onchange = e => { const x = e.target.value; ir(x === 'zona' ? { nivel: 'zona' } : { nivel: 'escuela', cct: x, grado: '', grupo: '' }); };
+  if ($('#f-mun')) $('#f-mun').onchange = e => { vista.municipio = e.target.value; vEia(); };
+  if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vEia(); };
+  if ($('#b-eia-orden')) $('#b-eia-orden').onclick = () => { v.orden = v.orden === 'nombre' ? 'necesidad' : 'nombre'; vEia(); };
+  if ($('#b-eia-oal')) $('#b-eia-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vEia(); };
+  $$('[data-evista]').forEach(b => b.onclick = () => { v.vista = b.dataset.evista; vEia(); });
+  const cmp = () => eiaCmpV(v);
+  if ($('#ecmp-tipo')) $('#ecmp-tipo').onchange = e => { cmp().tipo = e.target.value; vEia(); };
+  if ($('#ecmp-grado')) $('#ecmp-grado').onchange = e => { cmp().grado = e.target.value; vEia(); };
+  if ($('#ecmp-crit')) $('#ecmp-crit').onchange = e => { cmp().crit = e.target.value; vEia(); };
+  if ($('#ecmp-orden')) $('#ecmp-orden').onchange = e => { cmp().orden = e.target.value; vEia(); };
+  $$('[data-ecmpsel]').forEach(x => x.onchange = () => { cmp().sel = $$('[data-ecmpsel]').filter(y => y.checked).map(y => y.dataset.ecmpsel); vEia(); });
+  if ($('#b-eia-zimp')) $('#b-eia-zimp').onclick = () => eiaImportarZona();
+  if ($('#b-eia-cargar')) $('#b-eia-cargar').onclick = () => eiaFormCarga(esDirector() ? miCct() : ['zona', 'zgrado'].includes(v.nivel) ? '' : v.cct);
+  if ($('#b-eia-doc')) $('#b-eia-doc').onclick = () => eiaDescargar(v);
+}
+
+/* ---- Carga de resultados ---- */
+async function eiaLeerDeDrive(cct) {
+  const r = await api('eiaArchivos', { cct });
+  if (!r.archivos.length) return { sinArchivos: true, mensaje: r.mensaje || 'No hay archivos de Excel en ' + (r.ruta || 'la carpeta de los EIA') + '.' };
+  const b = await api('eiaBajar', { cct, ids: r.archivos.map(a => a.id) });
+  const leidos = [];
+  for (const a of b.archivos) leidos.push(await eiaLeerArchivo({ id: a.id, nombre: a.nombre, fecha: a.fecha, bytes: b64aBytes(a.datos) }).catch(e => ({ nombre: a.nombre, error: e.message, grados: {}, avisos: [] })));
+  return { leidos, ruta: r.ruta, omitidos: b.omitidos || [] };
+}
+async function eiaGuardarEscuela(cct, J, fuente) {
+  const v = eiaV();
+  const r = await api('eiaGuardar', { ciclo: v.ciclo, cct, fuente: String(fuente || '').slice(0, 200), grupos: J.grupos });
+  S.eig = r.eig; delete EIAA[v.ciclo + '|' + cct];
+  return r;
+}
+function eiaFormCarga(cct) {
+  const v = eiaV(), escs = esDirector() ? directores().filter(c => c.cct === miCct()) : directores();
+  modal('Cargar resultados de los EIA', `
+    <div class="campo"><label for="ec-esc">Escuela</label><select id="ec-esc" ${esDirector() ? 'disabled' : ''}>${esDirector() ? '' : '<option value="">Elija la escuela…</option>'}${escs.map(c => `<option value="${c.cct}" ${c.cct === cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
+    <p class="ayuda" style="margin-top:0">Ciclo ${esc(v.ciclo)}. Se lee el <b>Excel del formato oficial de captura</b> de los EIA (pestañas PRIMERO a SEXTO, con la valoración de cada alumno en cada consigna). Tequio lo busca en la carpeta «09-Ejercicios Integradores del Aprendizaje» de la escuela; también acepta .xls protegidos, .xlsx y .zip.</p>
+    <div class="sis-opc">
+      <button class="boton" id="ec-drive">${ico('i-carpeta')}Leer el Excel del Drive de la escuela</button>
+      <label class="boton sec" style="cursor:pointer">${ico('i-mas')}Subir Excel<input type="file" id="ec-arch" accept=".xls,.xlsx,.xlsm,.zip" multiple hidden></label>
+    </div><div id="ec-estado"></div>`, '<button class="boton sec" id="ec-no">Cerrar</button>');
+  $('#ec-no').onclick = cerrarModal;
+  const escuela = () => { const c = esDirector() ? miCct() : $('#ec-esc').value; if (!c) aviso('Elija la escuela.', 'mal'); return c; };
+  $('#ec-drive').onclick = async () => {
+    const c = escuela(); if (!c) return;
+    const r = await conCarga(() => eiaLeerDeDrive(c)); if (!r) return;
+    if (r.sinArchivos) { $('#ec-estado').innerHTML = `<div class="aviso-caja" style="margin-top:12px">${esc(r.mensaje)} La escuela debe subir ahí el Excel de captura de los EIA, o puede subirlo usted con «Subir Excel».</div>`; return; }
+    eiaRevisar(c, r.leidos, { ruta: r.ruta, omitidos: r.omitidos });
+  };
+  $('#ec-arch').onchange = async e => {
+    const c = escuela(); const files = Array.from(e.target.files || []); if (!c || !files.length) return;
+    const grandes = files.filter(f => f.size > 20 * 1024 * 1024);
+    if (grandes.length) { aviso('Estos archivos pesan más de 20 MB: ' + esc(grandes.map(f => f.name).join(', ')), 'mal', 9000); return; }
+    const leidos = await conCarga(async () => { const out = []; for (const f of files) { const bytes = new Uint8Array(await f.arrayBuffer()); out.push(Object.assign(await eiaLeerArchivo({ nombre: f.name, fecha: new Date(f.lastModified || Date.now()).toISOString().slice(0, 16), bytes }), { original: bytes, tipoMime: f.type })); } return out; });
+    if (leidos) eiaRevisar(c, leidos, { subir: true });
+  };
+}
+// Muestra lo leído para revisarlo antes de guardar
+function eiaRevisar(cct, leidos, origen) {
+  const J = eiaJuntar(leidos, cct);
+  const total = J.grupos.reduce((s, g) => s + g.alumnos.length, 0);
+  const malos = J.malos.length ? `<p class="peq" style="color:var(--alerta)"><b>No se pudieron leer:</b> ${J.malos.map(x => esc(x.nombre) + ' (' + esc(x.error) + ')').join('; ')}.</p>` : '';
+  const omit = origen.omitidos && origen.omitidos.length ? `<p class="peq mudo">No se bajaron (muy pesados o no son Excel): ${origen.omitidos.map(esc).join(', ')}.</p>` : '';
+  const previo = (S.eig || []).some(r => r.ciclo === eiaV().ciclo && r.cct === cct);
+  modal('Revisar los resultados de los EIA', `<p style="margin-top:0"><b>${esc(nombreEscuela(cct))}</b> · ${origen.ruta ? 'En ' + esc(origen.ruta) + ' · ' : ''}${J.fuentes.length} archivo${J.fuentes.length === 1 ? '' : 's'} leído${J.fuentes.length === 1 ? '' : 's'}</p>
+    ${malos}${omit}
+    ${J.grupos.length ? `<div class="matriz-caja"><table class="matriz sis-tab"><thead><tr><th class="esc-col">Grupo</th><th>Alumnos</th><th>En rezago</th><th>Índice</th></tr></thead><tbody>${J.grupos.map(g => { const c = eiaDeAlumnos(g.grado, g.alumnos), a = eiaSuma([eiaNorm(Object.assign({ grado: g.grado, grupo: g.grupo }, c))]);
+      return `<tr><td class="esc-col"><b>${g.grado}° ${esc(g.grupo || '(sin grupo)')}</b></td><td>${g.alumnos.length}</td><td>${c.rz.r}</td><td><span class="sis-ind" style="background:${eiaColorInd(a.ind)}">${a.ind == null ? '—' : a.ind}</span></td></tr>`; }).join('')}</tbody></table></div>
+      <p class="peq">${total} alumnos en ${J.grupos.length} grupos.${previo ? ' <b>Se reemplazarán los resultados que ya tenía esta escuela en este ciclo.</b>' : ''}</p>` : '<div class="aviso-caja">No se encontró ningún alumno con valoraciones.</div>'}
+    ${J.avisos.length ? `<details class="sis-mas-c" ${J.avisos.some(x => /C\.C\.T\./.test(x)) ? 'open' : ''}><summary>Avisos (${J.avisos.length})</summary><ul class="peq">${J.avisos.slice(0, 40).map(x => `<li>${/<b>/.test(x) ? x : esc(x)}</li>`).join('')}</ul></details>` : ''}`,
+    `<button class="boton sec" id="er-no">Cancelar</button>${J.grupos.length ? '<button class="boton" id="er-si">Guardar</button>' : ''}`);
+  $('#er-no').onclick = cerrarModal;
+  if ($('#er-si')) $('#er-si').onclick = async () => {
+    cerrarModal();
+    const ok = await conCarga(async () => {
+      if (origen.subir) for (const f of leidos.filter(x => x.original && !x.error)) { try { await api('eiaSubir', { cct, nombre: f.nombre, datos: await blobAB64(new Blob([f.original])), tipo: f.tipoMime || 'application/vnd.ms-excel' }); } catch (e) { aviso('No se pudo guardar «' + esc(f.nombre) + '» en el Drive: ' + esc(e.message), 'mal', 8000); } }
+      return eiaGuardarEscuela(cct, J, J.fuentes.join(', '));
+    });
+    if (!ok) return;
+    const v = eiaV(); if (!esDirector()) Object.assign(v, { nivel: 'escuela', cct, vista: 'resumen' }); else Object.assign(v, { nivel: 'escuela' });
+    vEia(); aviso(`Resultados guardados: ${total} alumnos.`, 'ok');
+  };
+}
+async function eiaImportarZona() {
+  const v = eiaV(), escs = filtroEscuelas(), res = [];
+  const caja = modal('Leer los Excel de todas las escuelas', `<p style="margin-top:0">Ciclo ${esc(v.ciclo)}. Tequio busca en la carpeta «09-Ejercicios Integradores del Aprendizaje» de cada escuela el Excel de captura de los EIA, lo lee y guarda a cada alumno.</p><div id="ez-prog" class="peq"></div>`, '');
+  for (const [i, c] of escs.entries()) {
+    $('#ez-prog', caja).innerHTML = `Leyendo ${i + 1} de ${escs.length}: <b>${esc(c.escuela)}</b>…<br>` + res.map(x => x.linea).join('<br>');
+    let r;
+    try {
+      const d = await eiaLeerDeDrive(c.cct);
+      if (d.sinArchivos) r = d;
+      else {
+        const J = eiaJuntar(d.leidos, c.cct), total = J.grupos.reduce((s, g) => s + g.alumnos.length, 0);
+        const otraEsc = J.avisos.some(x => /C\.C\.T\./.test(x));
+        if (!total) r = { error: J.malos.length ? J.malos.map(x => x.error).join('; ') : 'el archivo no trae alumnos' };
+        else if (otraEsc) r = { pendiente: true, J, d };
+        else { await eiaGuardarEscuela(c.cct, J, J.fuentes.join(', ')); r = { ok: true, grupos: J.grupos.length, alumnos: total }; }
+      }
+    } catch (e) { r = { error: e.message }; }
+    res.push({ c, r, linea: r.ok ? `✓ ${esc(c.escuela)}: ${r.grupos} grupos, ${r.alumnos} alumnos` : r.sinArchivos ? `— ${esc(c.escuela)}: sin Excel en su carpeta` : r.pendiente ? `⚠ ${esc(c.escuela)}: el archivo dice otra C.C.T.; revíselo` : `✕ ${esc(c.escuela)}: ${esc(r.error)}` });
+  }
+  const ok = res.filter(x => x.r.ok), pend = res.filter(x => x.r.pendiente), sin = res.filter(x => x.r.sinArchivos), mal = res.filter(x => x.r.error);
+  $('#ez-prog', caja).innerHTML = `<div class="aviso-caja" style="background:var(--ok-f);border-color:var(--ok)"><b>${ok.length} escuela${ok.length === 1 ? '' : 's'} guardada${ok.length === 1 ? '' : 's'}</b> (${ok.reduce((s, x) => s + x.r.alumnos, 0)} alumnos).</div>
+    ${pend.length ? `<div class="aviso-caja"><b>Revisar (${pend.length}):</b> el archivo de su carpeta dice otra C.C.T. Pulse cada escuela para revisarlo y decidir si se guarda.<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${pend.map(x => `<button class="boton sec chico" data-ezrev="${x.c.cct}">${esc(x.c.escuela)}</button>`).join('')}</div></div>` : ''}
+    ${sin.length ? `<p class="peq"><b>Sin Excel en su carpeta:</b> ${sin.map(x => esc(x.c.escuela)).join(', ')}.</p>` : ''}
+    ${mal.length ? `<p class="peq" style="color:var(--alerta)"><b>Con error:</b> ${mal.map(x => esc(x.c.escuela) + ' (' + esc(x.r.error) + ')').join('; ')}.</p>` : ''}
+    <div style="margin-top:10px"><button class="boton" id="ez-listo">Ver el análisis</button></div>`;
+  $$('[data-ezrev]', caja).forEach(b => b.onclick = () => { const x = pend.find(p => p.c.cct === b.dataset.ezrev); cerrarModal(); eiaRevisar(x.c.cct, x.r.d.leidos, { ruta: x.r.d.ruta }); });
+  $('#ez-listo', caja).onclick = () => { cerrarModal(); Object.assign(v, { nivel: 'zona', vista: 'resumen' }); vEia(); };
+}
+
+/* ---- Informe para imprimir o descargar (PDF o Word) ---- */
+function eiaGrafNiveles(filas, titulo) {   // filas: [{etq, d:[n0..n3]}]
+  const W = 640, izq = 190, der = 20, alto = 28, top = titulo ? 34 : 10, H = top + filas.length * alto + 44;
+  const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
+  if (titulo) sisTexto(x, titulo, 0, 14, { bold: true, size: 13, color: SIS_COL.az });
+  filas.forEach((f, i) => {
+    const y = top + i * alto, t = f.d ? f.d.reduce((s, q) => s + q, 0) : 0;
+    sisTexto(x, sisRecorta(x, f.etq, izq - 12, 11), 0, y + 10, { size: 11 });
+    if (!t) { sisTexto(x, 'Sin datos', izq, y + 10, { size: 10, color: SIS_COL.gris }); return; }
+    let px = izq;
+    f.d.forEach((q, k) => { const p = q * 100 / t, w = ancho * p / 100; x.fillStyle = EIA_COL[k]; x.fillRect(px, y + 1, w, 18); if (p >= 7) sisTexto(x, Math.round(p) + '%', px + w / 2, y + 10, { size: 10, bold: true, align: 'center', color: k === 2 ? '#3B2A0A' : '#fff' }); px += w; });
+  });
+  const ly = top + filas.length * alto + 18;
+  EIA_NVC.forEach((t, i) => { const lx = i * 155; x.fillStyle = EIA_COL[i]; x.fillRect(lx, ly - 5, 11, 11); sisTexto(x, i + ' · ' + t, lx + 16, ly, { size: 10.5 }); });
+  return sisPng(L);
+}
+async function eiaInforme(v) {
+  const pred = sisPred(v), B = [];
+  const filas = eiaFilas().filter(pred);
+  if (!filas.length) throw new Error('No hay resultados de los EIA en este nivel.');
+  const conAl = ['escuela', 'grado', 'grupo'].includes(v.nivel) && v.cct && (!esDirector() || v.cct === miCct());
+  if (conAl) { await eiaPedirAlumnos(v.ciclo, v.cct); if (S.sis) await sisPedirAlumnos(v.ciclo, v.cct); }
+  const todos = conAl ? (eiaAlumnosDe(v.ciclo, v.cct) || []).filter(a => a.est && (v.nivel === 'escuela' || (a.grado === v.grado && (v.nivel === 'grado' || a.grupo === v.grupo)))) : [];
+  const a = eiaSuma(filas);
+  let n = 0; const H = t => B.push({ t: 'h', x: (++n) + '. ' + t });
+  H('Resultados generales');
+  B.push({ t: 'p', x: `${a.grupos} grupo${a.grupos === 1 ? '' : 's'} · <b>${a.n} alumnos</b> que contestaron los dos EIA · índice general <b>${a.ind}</b> · <b>${a.rz}</b> alumnos en rezago (${sisFmt(a.prz)}), ${a.rza} con rezago alto.` });
+  B.push({ t: 'tabla', cab: ['Campo formativo', '0 · Sin evid.', '1 · Req. apoyo', '2 · En proceso', '3 · Desarrollado', 'Índice'], anchos: [32, 14, 14, 14, 14, 12],
+    filas: EIA_CAMPOS.map(([k, nom]) => { const d = a.campo[k], t = d.reduce((s, x) => s + x, 0); return [nom, ...d.map(x => t ? sisFmt(sisPc(x, t)) : '—'), a.cind[k] == null ? '—' : String(a.cind[k])]; }) });
+  B.push({ t: 'img', g: eiaGrafNiveles(EIA_CAMPOS.map(([k, nom]) => ({ etq: nom, d: a.campo[k] })), 'Valoraciones por campo formativo') });
+  const hj = v.nivel === 'zona' && !esDirector() ? { t: 'Por escuela', col: 'Escuela', l: filtroEscuelas().map(c => { const rs = filas.filter(r => r.cct === c.cct); return { etq: c.escuela, a: rs.length ? eiaSuma(rs) : null }; }).filter(x => x.a) }
+    : ['zona', 'escuela'].includes(v.nivel) ? { t: 'Por grado', col: 'Grado', l: ['1', '2', '3', '4', '5', '6'].map(g => { const rs = filas.filter(r => r.grado === g); return { etq: g + '.° grado', a: rs.length ? eiaSuma(rs) : null }; }).filter(x => x.a) }
+    : ['zgrado', 'grado'].includes(v.nivel) ? { t: 'Por grupo', col: 'Grupo', l: filas.map(r => ({ etq: (v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : '') + sisNomGrupo(r), a: eiaSuma([r]) })) } : { l: [] };
+  const d = eiaDiagListas(a, hj.l, { nivel: v.nivel });
+  H('Diagnóstico');
+  B.push({ t: 'sub', x: 'Fortalezas', c: SIS_COL.ne }, { t: 'lista', l: d.F.length ? d.F : ['Nada que destacar.'] });
+  B.push({ t: 'sub', x: 'Focos de atención', c: SIS_COL.ra }, { t: 'lista', l: d.A.length ? d.A : ['Nada que destacar.'] });
+  B.push({ t: 'sub', x: 'Sugerencias para la asesoría', c: SIS_COL.az }, { t: 'lista', l: d.G.length ? d.G : ['Nada que destacar.'] });
+  // Ruta de trabajo
+  const grados = Array.from(new Set(filas.map(r => r.grado))).sort();
+  const un = ['grado', 'grupo', 'zgrado'].includes(v.nivel) ? [v.grado] : grados;
+  const rutas = un.map(g => ({ g, r: eiaRuta(un.length > 1 ? eiaSuma(filas.filter(r => r.grado === g)) : a, g, todos, un.length > 1 ? 3 : 4) })).filter(x => x.r.length);
+  if (rutas.length) {
+    H(un.length > 1 ? 'Qué retomar en cada grado' : 'Ruta de trabajo para el docente');
+    B.push({ t: 'p', x: 'Contenidos del programa sintético que conviene retomar, del más urgente al menos, según los criterios donde más alumnos quedaron en 0 (sin evidencias) o 1 (requiere apoyo).' });
+    rutas.forEach(({ g, r }) => {
+      if (un.length > 1) B.push({ t: 'sub', x: g + '.° grado', c: SIS_COL.az });
+      r.forEach((x, k) => {
+        B.push({ t: 'p', x: `<b>${k + 1}. ${esc(x.contenido.replace(/\.$/, ''))}</b> (${eiaCampoNom(x.campo)}; ${sisFmt(x.pdif)} en 0 o 1). <b>PDA de ${g}.°:</b> ${esc(x.pda)}` });
+        if (un.length === 1) {
+          B.push({ t: 'lista', l: [`<b>Lo que se observó:</b> ${esc(x.cr.map(c => c.nom.toLowerCase() + ' (' + sisFmt(c.pdif) + ')').join(' · '))}. ${esc(x.que)}`]
+            .concat(x.sug.map(s => '<b>Qué trabajar:</b> ' + esc(s)), x.lib ? [`<b>Libros de texto:</b> ${esc(x.lib)}`] : [], x.quien.length ? [`<b>Alumnos con 0 o 1 (${x.quien.length}):</b> ${esc(x.quien.join(', '))}`] : []) });
+        }
+      });
+    });
+  }
+  // Consignas
+  Object.keys(a.F).sort().forEach(f => {
+    const c = eiaCriterios(a, f); if (!c.length) return;
+    H(`Consignas donde más fallaron · ${Array.from(a.F[f].grados).sort().map(g => g + '.°').join(' y ')} grado`);
+    B.push({ t: 'tabla', chica: true, anchos: [40, 10, 10, 10, 10, 10, 10], cab: ['Criterio (EIA · consigna)', '0', '1', '2', '3', 'En 0 o 1', 'Índice'],
+      filas: c.map(x => [x.nom + '\n' + eiaEtq(x) + ' · ' + eiaCampoCorto(x.campo), ...x.d.map(String), sisFmt(x.pdif), String(x.ind)]) });
+    B.push({ t: 'img', g: eiaGrafNiveles(c.slice(0, 10).map(x => ({ etq: x.nom, d: x.d })), 'Los 10 criterios con más alumnos en 0 o 1') });
+  });
+  if (hj.l.length > 1) {
+    H(hj.t);
+    B.push({ t: 'tabla', cab: [hj.col, 'Alumnos', ...EIA_CAMPOS.map(c => c[2]), 'Rezago', 'Índice'], filas: hj.l.map(x => [x.etq, String(x.a.n), ...EIA_CAMPOS.map(([k]) => x.a.cind[k] == null ? '—' : String(x.a.cind[k])), sisFmt(x.a.prz), String(x.a.ind)]) });
+  }
+  if (todos.length) {
+    const conGrupo = v.nivel !== 'grupo';
+    const tablaA = l => ({ t: 'tabla', chica: true, anchos: conGrupo ? [28, 8, 8, 10, 46] : [30, 8, 10, 52], cab: ['Alumno'].concat(conGrupo ? ['Grupo'] : [], ['Índice', 'En 0 o 1', 'Lo que más le cuesta']),
+      filas: l.map(q => [q.alumno].concat(conGrupo ? [q.grado + '° ' + q.grupo] : [], [String(q.est.ind), q.est.bajos + ' de ' + q.est.total, eiaDebilidades(q).join('\n') || '—'])) });
+    const alto = todos.filter(q => q.est.nivel === 'alto').sort((x, y) => x.est.ind - y.est.ind), rez = todos.filter(q => q.est.nivel === 'rezago').sort((x, y) => x.est.ind - y.est.ind), rie = todos.filter(q => q.est.nivel === 'riesgo').sort((x, y) => x.est.ind - y.est.ind);
+    H('Alumnos en rezago');
+    B.push({ t: 'p', x: `De ${todos.length} alumnos: <b>${alto.length}</b> con rezago alto, <b>${rez.length}</b> en rezago, <b>${rie.length}</b> en riesgo y <b>${todos.length - alto.length - rez.length - rie.length}</b> sin rezago.` });
+    if (alto.length) { B.push({ t: 'sub', x: EIA_NIVELES_AL[0][1] + ' (' + alto.length + ')', c: SIS_COL.ra }); B.push(tablaA(alto)); }
+    if (rez.length) { B.push({ t: 'sub', x: EIA_NIVELES_AL[1][1] + ' (' + rez.length + ')', c: '#B26B00' }); B.push(tablaA(rez)); }
+    if (rie.length) { B.push({ t: 'sub', x: EIA_NIVELES_AL[2][1] + ' (' + rie.length + ')', c: '#7A6400' }); B.push(tablaA(rie)); }
+    // Cruce con el SisAT
+    const sa = sisAlumnosDe(v.ciclo, v.cct) || [], ms = [3, 2, 1].find(m => sa.some(q => q.momento === m));
+    if (ms) {
+      const de = {}; sa.filter(q => q.momento === ms).forEach(q => { de[eiaClaveCruce(q.alumno)] = q; });
+      const ambos = alto.concat(rez).map(q => ({ q, s: de[q.cruce] })).filter(o => o.s && sisNumRA(o.s) >= 2);
+      if (ambos.length) {
+        H(`Atención prioritaria: rezago en los EIA y en el SisAT (Momento ${ms})`);
+        B.push({ t: 'tabla', chica: true, cab: ['Alumno', 'Grupo', 'Índice EIA', 'SisAT: requiere apoyo en'], anchos: [36, 10, 14, 40], filas: ambos.map(o => [o.q.alumno, o.q.grado + '° ' + o.q.grupo, String(o.q.est.ind), ['lec', 'tex', 'cal'].filter(h => o.s[h] && o.s[h].n === 'RA').map(h => SIS_H.find(x => x[0] === h)[1].toLowerCase()).join(', ')]) });
+      }
+    }
+    if (v.nivel === 'grupo') {
+      const def = EIA_FASES[eiaFase(v.grado)];
+      H('Valoraciones de todos los alumnos del grupo');
+      B.push({ t: 'tabla', chica: true, cab: ['Alumno', 'Índ.'].concat(def.cr.map(c => c[0] + '·' + c[1].toLowerCase())), filas: todos.slice().sort((x, y) => x.num - y.num).map(q => [q.alumno, String(q.est.ind)].concat(q.v.map(x => x == null ? '·' : String(x)))),
+        anchos: (() => { const w = Math.max(2.2, Math.floor(70 / def.cr.length * 10) / 10), r = [100 - 6 - w * def.cr.length, 6]; return r.concat(Array(def.cr.length).fill(w)); })() });
+      B.push({ t: 'nota', x: def.cr.map(c => `${c[0]}·${c[1].toLowerCase()} ${c[3]}`).join(' · ') });
+    }
+  }
+  B.push({ t: 'nota', x: 'Valoraciones de la rúbrica: 0 sin evidencias, 1 requiere apoyo, 2 en proceso de desarrollo, 3 aprendizaje desarrollado. Índice: promedio sobre 3 en escala de 0 a 100. Rezago: alumno con la mitad o más de sus criterios en 0 o 1 (alto: tres cuartas partes o más). Contenidos, PDA, sugerencias y libros: retroalimentación oficial de los EIA (SEP) y programas sintéticos.' });
+  return { titulo: 'Análisis de los Ejercicios Integradores del Aprendizaje', nivel: sisTitulo(v), sub: 'Ciclo escolar ' + v.ciclo, fecha: fechaOficio(hoy()), B,
+    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados de los EIA' };
+}
+async function eiaInformeComparativo(v) {
+  const c = eiaCmpV(v), B = [];
+  let filas = eiaFilas().filter(r => filtroEscuelas().some(e => e.cct === r.cct));
+  if (c.grado) filas = filas.filter(r => r.grado === c.grado);
+  if (!filas.length) throw new Error('No hay resultados para comparar.');
+  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: 'San Quintín y Ensenada', elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
+  if (c.tipo === 'rank') {
+    const { crit, con } = eiaRankLista(filas, c);
+    B.push({ t: 'h', x: 'Escuelas por ' + crit[1].toLowerCase() + (c.orden === 'asc' ? ' (de menor a mayor)' : ' (de mayor a menor)') });
+    B.push({ t: 'tabla', cab: ['Lugar', 'Escuela', 'Tipo', crit[1], 'Rezago', 'Índice'], anchos: [8, 34, 20, 14, 12, 12], filas: con.map((x, i) => [String(i + 1), x.e.escuela, (x.e.multigrado ? 'Multigrado' : 'Org. completa') + ' · ' + x.e.municipio, ['rez', 'log'].includes(crit[0]) ? sisFmt(x.val) : String(x.val), sisFmt(x.a.prz), String(x.a.ind)]) });
+    B.push({ t: 'img', g: eiaGrafNiveles(con.map(x => ({ etq: x.e.escuela, d: x.a.dist })), 'Distribución de las valoraciones') });
+  } else {
+    const G = sisCmpGrupos(Object.assign({}, v, { cmp: c }), filas).map(g => Object.assign(g, { a: g.filas.length ? eiaSuma(g.filas) : null })).filter(g => g.a);
+    if (G.length < 2) throw new Error('Se necesitan al menos dos grupos de escuelas con resultados.');
+    B.push({ t: 'h', x: 'Lo que muestra el comparativo' }, { t: 'lista', l: eiaCmpConclusiones(G) });
+    B.push({ t: 'h', x: 'Comparativo por campo formativo' });
+    B.push({ t: 'tabla', cab: ['', ...EIA_CAMPOS.map(x => x[2]), 'Rezago', 'Índice'], anchos: [28, 12, 12, 12, 12, 12, 12], filas: G.map(g => [g.etq + ' (' + g.escs.length + ' esc., ' + g.a.n + ' al.)', ...EIA_CAMPOS.map(([k]) => g.a.cind[k] == null ? '—' : String(g.a.cind[k])), sisFmt(g.a.prz), String(g.a.ind)]) });
+    B.push({ t: 'img', g: eiaGrafNiveles(G.map(g => ({ etq: g.etq, d: g.a.dist })), 'Distribución de las valoraciones') });
+    if (c.tipo !== 'elegir') B.push({ t: 'h', x: 'Escuelas de cada bloque' }, { t: 'lista', l: G.map(g => `<b>${esc(g.etq)}:</b> ${esc(g.escs.map(e => e.escuela).join(', '))}`) });
+  }
+  return { titulo: 'Comparativo de los EIA', nivel: nombres[c.tipo] + (c.grado ? ' · ' + c.grado + '.° grado' : ''), sub: 'Ciclo escolar ' + v.ciclo, fecha: fechaOficio(hoy()), B,
+    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados de los EIA' };
+}
+async function eiaInformeVarios(v, modo) {
+  if (v.nivel === 'zona' && v.vista === 'comp' && !esDirector()) return eiaInformeComparativo(v);
+  const I = await eiaInforme(v);
+  if (modo === 'solo') return I;
+  const filas = eiaFilas().filter(sisPred(v)).sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo));
+  const L = [];
+  if (v.nivel === 'escuela') Array.from(new Set(filas.map(r => r.grado))).forEach(g => { const gs = filas.filter(r => r.grado === g); if (modo !== 'grupos' && gs.length > 1) L.push(Object.assign({}, v, { nivel: 'grado', grado: g })); if (modo !== 'grados' || gs.length === 1) gs.forEach(r => L.push(Object.assign({}, v, { nivel: 'grupo', grado: r.grado, grupo: r.grupo }))); });
+  else if (v.nivel === 'grado') filas.forEach(r => L.push(Object.assign({}, v, { nivel: 'grupo', grado: r.grado, grupo: r.grupo })));
+  for (const sv of L) { let J; try { J = await eiaInforme(sv); } catch (e) { continue; } I.B.push({ t: 'salto' }, { t: 'titulo', x: sisTitulo(sv) }); J.B.forEach(b => I.B.push(b)); }
+  return I;
+}
+function eiaDescargar(v) {
+  const enEscuela = ['escuela', 'grado', 'grupo'].includes(v.nivel) && v.cct;
+  const filas = enEscuela ? eiaFilas().filter(r => r.cct === v.cct).sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo)) : [];
+  const grados = Array.from(new Set(filas.map(r => r.grado)));
+  const op = (val, txt, extra) => `<label class="sis-dop"><input type="radio" name="ed-que" value="${val}" ${v.nivel === val ? 'checked' : ''}> <span>${txt}</span>${extra || ''}</label>`;
+  const cuerpo = enEscuela && filas.length ? `<p style="margin-top:0"><b>${esc(nombreEscuela(v.cct))}</b> · EIA · ciclo ${esc(v.ciclo)}</p>
+    <div><div style="font-weight:700;margin-bottom:4px">¿Qué quiere imprimir?</div>
+      ${op('escuela', 'Toda la escuela', '<label class="peq sis-dsub"><input type="checkbox" id="ed-esc-todo"> con cada grado y cada grupo en hojas aparte</label>')}
+      ${op('grado', 'Un grado', ` <select id="ed-grado" aria-label="Grado">${grados.map(g => `<option value="${g}" ${g === v.grado ? 'selected' : ''}>${g}.° grado</option>`).join('')}</select><label class="peq sis-dsub"><input type="checkbox" id="ed-gr-todo"> con cada uno de sus grupos en hojas aparte</label>`)}
+      ${op('grupo', 'Un grupo', ` <select id="ed-grupo" aria-label="Grupo">${filas.map(r => `<option value="${r.grado}|${esc(r.grupo)}" ${r.grado === v.grado && r.grupo === v.grupo ? 'selected' : ''}>${sisNomGrupo(r)}</option>`).join('')}</select>`)}
+    </div><p class="ayuda">Lleva las gráficas, el diagnóstico, la ruta de trabajo con contenidos, PDA, sugerencias y libros, las consignas donde más fallaron y los alumnos en rezago con sus nombres. Compártalo solo con quien corresponda.</p>`
+    : v.nivel === 'zona' && v.vista === 'comp' && !esDirector() ? '<p style="margin-top:0">Se imprime el <b>comparativo</b> que tiene en pantalla, con su tabla, gráfica y conclusiones.</p>'
+    : `<p style="margin-top:0">Análisis de <b>${esc(sisTitulo(v))}</b> (EIA, ciclo ${esc(v.ciclo)}) con sus gráficas, el diagnóstico, qué retomar en cada grado y las consignas donde más fallaron.</p>`;
+  modal('Imprimir o descargar el análisis de los EIA', cuerpo, '<button class="boton sec" id="ed-no">Cancelar</button><button class="boton sec" id="ed-word">Word</button><button class="boton sec" id="ed-pdf">PDF</button><button class="boton terra" id="ed-imp">Imprimir</button>');
+  $('#ed-no').onclick = cerrarModal;
+  if ($('#ed-grado')) $('#ed-grado').onchange = () => { $('[name="ed-que"][value="grado"]').checked = true; };
+  if ($('#ed-grupo')) $('#ed-grupo').onchange = () => { $('[name="ed-que"][value="grupo"]').checked = true; };
+  const destino = () => {
+    if (!enEscuela || !filas.length) return { w: v, modo: 'solo' };
+    const que = ($('[name="ed-que"]:checked') || {}).value || 'escuela';
+    if (que === 'grado') return { w: Object.assign({}, v, { nivel: 'grado', grado: $('#ed-grado').value, grupo: '' }), modo: $('#ed-gr-todo').checked ? 'grupos' : 'solo' };
+    if (que === 'grupo') { const [g, gp] = $('#ed-grupo').value.split('|'); return { w: Object.assign({}, v, { nivel: 'grupo', grado: g, grupo: gp }), modo: 'solo' }; }
+    return { w: Object.assign({}, v, { nivel: 'escuela', grado: '', grupo: '' }), modo: $('#ed-esc-todo').checked ? 'todo' : 'solo' };
+  };
+  const nombre = w => ('EIA ' + w.ciclo + ' ' + sisTitulo(w)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
+  const hacer = async tipo => {
+    const { w, modo } = destino();
+    const ventana = tipo === 'imp' ? window.open('', '_blank') : null;
+    if (ventana) ventana.document.write('<p style="font:16px system-ui;padding:24px">Preparando el análisis para imprimir…</p>');
+    cerrarModal();
+    const blob = await conCarga(async () => { const I = await eiaInformeVarios(w, modo); return tipo === 'word' ? sisWordInforme(I) : sisPdfInforme(I); });
+    if (!blob) { if (ventana) ventana.close(); return; }
+    if (tipo === 'imp') {
+      const url = URL.createObjectURL(blob);
+      if (ventana) { ventana.location.href = url; aviso('Se abrió el análisis en otra pestaña: imprímalo con Ctrl + P o el botón de imprimir.', 'ok', 8000); }
+      else { descargarBlob(blob, nombre(w) + '.pdf'); aviso('El navegador bloqueó la pestaña nueva: se descargó el PDF para imprimirlo.', 'ok', 8000); }
+      return;
+    }
+    descargarBlob(blob, nombre(w) + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Análisis descargado.', 'ok');
+  };
+  $('#ed-imp').onclick = () => hacer('imp'); $('#ed-pdf').onclick = () => hacer('pdf'); $('#ed-word').onclick = () => hacer('word');
+}
+
+/* ---- Datos de ejemplo para la demostración ---- */
+function eiaDemoDatos(ESC, ciclo) {
+  const eig = [], eia = [];
+  let sem = 23; const az = () => (sem = (sem * 9301 + 49297) % 233280) / 233280;
+  const NOM = ['Sofía', 'Mateo', 'Valentina', 'Santiago', 'Regina', 'Leonardo', 'Camila', 'Emiliano', 'Ximena', 'Diego', 'Renata', 'Sebastián', 'Mía', 'Gael', 'Victoria', 'Iker', 'Natalia', 'Matías', 'Romina', 'Daniel', 'Aitana', 'Ángel', 'Fernanda', 'Thiago'];
+  const APE = ['García', 'Hernández', 'López', 'Martínez', 'González', 'Pérez', 'Rodríguez', 'Sánchez', 'Ramírez', 'Cruz', 'Flores', 'Gómez', 'Morales', 'Vázquez', 'Reyes', 'Jiménez', 'Torres', 'Díaz', 'Ruiz', 'Mendoza'];
+  ESC.forEach((e, j) => {
+    const grupos = e[3] ? ['1', '2', '3', '4', '5', '6'].map(g => ({ grado: g, grupo: 'A' })) : ['1', '2', '3', '4', '5', '6'].flatMap(g => (j % 2 ? ['A'] : ['A', 'B']).map(gp => ({ grado: g, grupo: gp })));
+    if (j === 6) return;   // una escuela sin resultados todavía
+    grupos.forEach(g => {
+      const def = EIA_FASES[eiaFase(g.grado)], n = e[3] ? 3 + Math.round(az() * 5) : 20 + Math.round(az() * 9);
+      const base = 1.55 + (j % 5) * .16 + (g.grupo === 'B' ? -.15 : 0);
+      const dif = def.cr.map((c, i) => ((i * 7 + j * 3 + +g.grado) % 5) * .22 - .3);   // criterios más difíciles que otros
+      const als = [];
+      for (let i = 0; i < n; i++) {
+        const hab = base + (az() - .5) * 2.2;
+        const v = def.cr.map((c, k) => Math.max(0, Math.min(3, Math.round(hab - dif[k] + (az() - .5) * 1.4))));
+        als.push({ num: i + 1, alumno: (APE[Math.floor(az() * APE.length)] + ' ' + APE[Math.floor(az() * APE.length)] + ' ' + NOM[Math.floor(az() * NOM.length)]).toUpperCase(), sexo: az() < .5 ? 'H' : 'M', v });
+      }
+      const c = eiaDeAlumnos(g.grado, als), k = g.grado + '-' + (g.grupo || 'U');
+      eig.push({ id: [ciclo, e[1], k].join('|'), ciclo, cct: e[1], grado: g.grado, grupo: g.grupo, n: c.n, cr: c.cr, rz: c.rz, fuente: 'Ejemplo', cargadoPor: 'u-carlos', actualizado: new Date().toISOString().slice(0, 16) });
+      als.forEach(a => eia.push(Object.assign({ id: [ciclo, e[1], k, a.num].join('|'), ciclo, cct: e[1], grado: g.grado, grupo: g.grupo }, a)));
+    });
+  });
+  return { eig, eiaAl: eia };
+}
+function eiaDemoGuardar(D, d) {
+  const fuera = x => !(x.ciclo === d.ciclo && x.cct === d.cct);
+  const nuevos = [], als = [];
+  (d.grupos || []).forEach(g => { const c = eiaDeAlumnos(g.grado, g.alumnos || []), k = g.grado + '-' + (g.grupo || 'U');
+    nuevos.push({ id: [d.ciclo, d.cct, k].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', n: c.n, cr: c.cr, rz: c.rz, fuente: d.fuente || '', cargadoPor: 'u-carlos', actualizado: new Date().toISOString().slice(0, 16) });
+    (g.alumnos || []).forEach((a, i) => als.push({ id: [d.ciclo, d.cct, k, i + 1].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', num: a.num || i + 1, alumno: a.alumno, sexo: a.sexo, v: a.v })); });
+  D.eig = D.eig.filter(fuera).concat(nuevos); D.eiaAl = D.eiaAl.filter(fuera).concat(als);
+  return { eig: JSON.parse(JSON.stringify(D.eig)) };
+}
+
 /* ---------------- Demostración ---------------- */
 const Demo = (() => {
   let D = null;
@@ -3873,13 +5061,14 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 8,
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 9,
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
         referencia: '', asunto: 'Informe de visitas de acompañamiento del mes de septiembre', ccp: 'Archivo.', firma: false, sello: false, escala: '1', pdfId: '', envios: [], creadoPor: usr[0].id, creado: ahora(), actualizado: ahora(),
         cuerpo: 'Por medio del presente, me permito informar a usted que durante el mes de septiembre la Supervisión Escolar Zona 050 realizó visitas de acompañamiento técnico-pedagógico a las escuelas primarias de la zona, conforme al programa de trabajo del ciclo escolar 2026-2027.\n\nEn dichas visitas se dio seguimiento a la elaboración del Programa Analítico, a la organización del Consejo Técnico Escolar y a las condiciones de seguridad de los planteles. Los registros y evidencias correspondientes quedan a su disposición en esta Supervisión.\n\nSin otro particular por el momento, aprovecho la ocasión para enviarle un cordial saludo.' }],
       ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] },
       sis, sic, sisCfg: { ia: true }, sia: demoAlumnos(sis) };
+    Object.assign(D, eiaDemoDatos(ESC, ciclo));
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -3890,7 +5079,8 @@ const Demo = (() => {
       return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
         usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
-        sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct) }));
+        sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
+        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined }));
     },
     subirArchivo: d => {
       const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
@@ -3916,6 +5106,11 @@ const Demo = (() => {
       return { sis: copia(D.sis) };
     },
     sisatAlumnos: d => ({ alumnos: copia(D.sia.filter(x => x.ciclo === d.ciclo && x.cct === d.cct)) }),
+    eiaGuardar: d => eiaDemoGuardar(D, d),
+    eiaAlumnos: d => ({ alumnos: copia(D.eiaAl.filter(x => x.ciclo === d.ciclo && x.cct === d.cct)) }),
+    eiaArchivos: () => ({ ruta: '09-Ejercicios Integradores del Aprendizaje', archivos: [], mensaje: 'En la demostración no hay archivos en el Drive. Pruebe con «Subir Excel» y el formato de captura de los EIA.' }),
+    eiaBajar: () => ({ archivos: [], omitidos: [], ruta: '09-Ejercicios Integradores del Aprendizaje' }),
+    eiaSubir: d => ({ archivo: { id: uid('x'), nombre: d.nombre, ruta: '09-Ejercicios Integradores del Aprendizaje' } }),
     sisatBajar: () => ({ archivos: [], ruta: '07-SISAT' }),
     sisatSubir: d => ({ archivo: { id: uid('x'), nombre: d.nombre, ruta: '07-SISAT/Momento ' + d.momento } }),
     sisatEliminar: d => { D.sis = D.sis.filter(x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct)); return { sis: copia(D.sis) }; },

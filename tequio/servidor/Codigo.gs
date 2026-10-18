@@ -44,18 +44,21 @@ const HOJAS = {
         'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre'],
   sis: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'lec', 'tex', 'cal', 'tip', 'fuente', 'cargadoPor', 'actualizado', 'comp'],
   sia: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'num', 'alumno', 'lec', 'tex', 'cal', 'cargadoPor', 'actualizado'],
-  sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado']
+  sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado'],
+  eig: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'n', 'cr', 'rz', 'fuente', 'cargadoPor', 'actualizado'],
+  eia: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'num', 'alumno', 'sexo', 'v', 'cargadoPor', 'actualizado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
-  sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos' };
-const VERSION = 8;
+  sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos' };
+const VERSION = 9;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -141,9 +144,11 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos'];
+const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos'];
+const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+  'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -164,6 +169,7 @@ const ACCIONES = {
     sis: leer_('sis'),
     sic: leer_('sic'),
     sisCfg: { ia: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') },
+    eig: leer_('eig'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
@@ -302,6 +308,99 @@ const ACCIONES = {
     const limpio = g => ({ etiqueta: String(g.grupo || g.etiqueta || ''), lec: niveles_(g.lec, true), tex: niveles_(g.tex, true), cal: niveles_(g.cal, true), tip: tipos_(g.tip, true) });
     return { leido: { grupos: (j.grupos || []).map(limpio), escuela: j.escuela ? limpio(j.escuela) : null,
       exploracion: j.exploracionUsada || m, notas: String(j.notas || '').slice(0, 600) }, archivo: { id: archivoId, nombre: nombre } };
+  },
+
+  /* ---- EIA (Ejercicios Integradores del Aprendizaje): resultados por grupo y por alumno ---- */
+
+  // Guarda los grupos de UNA escuela en UN ciclo con la valoración (0 a 3) de cada alumno en cada criterio; reemplaza lo anterior de esa escuela y ciclo.
+  // El concentrado de cada grupo (alumnos en 0, 1, 2 y 3 por criterio, y alumnos en rezago) se calcula aquí, a partir de los alumnos.
+  eiaGuardar: (yo, d) => {
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+    const vistos = {}, grupos = [], alumnos = [];
+    (d.grupos || []).forEach(g => {
+      const grado = String(g.grado || '').replace(/\D/g, '').slice(0, 1), grupo = String(g.grupo || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+      if (!/^[1-6]$/.test(grado)) throw new Error('Grado no válido en uno de los grupos: «' + (g.grado || '') + '».');
+      const k = grado + '-' + (grupo || 'U');
+      if (vistos[k]) throw new Error('El grupo ' + grado + '° ' + grupo + ' aparece dos veces.');
+      vistos[k] = 1;
+      const largo = EIA_LARGO_[grado], als = [];
+      (Array.isArray(g.alumnos) ? g.alumnos : []).slice(0, 80).forEach((a, i) => {
+        const nombre = String(a.alumno || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        if (!nombre) return;
+        const v = [];
+        for (let j = 0; j < largo; j++) { const x = (a.v || [])[j]; const n = x === null || x === undefined || x === '' ? null : Math.round(+x); v.push(n >= 0 && n <= 3 ? n : null); }
+        const al = { id: [ciclo, cct, k, i + 1].join('|'), ciclo: ciclo, cct: cct, grado: grado, grupo: grupo, num: String(numero_(a.num) || i + 1), alumno: nombre,
+          sexo: /^[HM]$/.test(String(a.sexo || '').toUpperCase()) ? String(a.sexo).toUpperCase() : '', v: v, cargadoPor: yo.id, actualizado: ahora_() };
+        als.push(al); alumnos.push(al);
+      });
+      if (!als.length) return;
+      const cr = []; for (let j = 0; j < largo; j++) cr.push([0, 0, 0, 0]);
+      const rz = { r: 0, a: 0, g: 0 };
+      als.forEach(a => {
+        a.v.forEach((x, j) => { if (x !== null) cr[j][x]++; });
+        const e = eiaEstado_(a.v); if (!e) return;
+        if (e >= 0.5) rz.r++; if (e >= 0.75) rz.a++; if (e >= 0.3 && e < 0.5) rz.g++;
+      });
+      grupos.push({ id: [ciclo, cct, k].join('|'), ciclo: ciclo, cct: cct, grado: grado, grupo: grupo, n: String(als.length), cr: cr, rz: rz,
+        fuente: String(d.fuente || '').slice(0, 200), cargadoPor: yo.id, actualizado: ahora_() });
+    });
+    if (!grupos.length) throw new Error('No hay alumnos con valoraciones que guardar.');
+    reemplazarTodo_('eig', leer_('eig').filter(x => !(x.ciclo === ciclo && x.cct === cct)).concat(grupos));
+    reemplazarTodo_('eia', leer_('eia').filter(x => !(x.ciclo === ciclo && x.cct === cct)).concat(alumnos));
+    bitacora_('eia', cct, [], 'EIA ' + ciclo, grupos.length + ' grupos y ' + alumnos.length + ' alumnos guardados por ' + yo.nombre);
+    return yo.rol === 'director' ? { eig: datosDirector_(yo).eig } : { eig: leer_('eig') };
+  },
+
+  // Valoraciones de cada alumno de UNA escuela en un ciclo. Se piden solo al consultar esa escuela.
+  eiaAlumnos: (yo, d) => {
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    return { cct: cct, ciclo: ciclo, alumnos: leer_('eia').filter(x => x.ciclo === ciclo && x.cct === cct) };
+  },
+
+  // Lista los Excel (y .zip u hojas de cálculo de Google) de la carpeta «09-Ejercicios Integradores del Aprendizaje» de la escuela y sus subcarpetas
+  eiaArchivos: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), c = carpetaEia_(cct, false);
+    if (!c.carpeta) return { archivos: [], ruta: c.ruta, mensaje: c.mensaje };
+    return { archivos: archivosEia_(c.carpeta, '', 0).sort((x, y) => y.fecha.localeCompare(x.fecha)), ruta: c.ruta };
+  },
+
+  // Devuelve el contenido de esos archivos para leerlos en la página (las hojas de Google se convierten a Excel)
+  eiaBajar: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), c = carpetaEia_(cct, false);
+    if (!c.carpeta) throw new Error(c.mensaje || 'La escuela no tiene carpeta de los EIA.');
+    const permitidos = {};
+    archivosEia_(c.carpeta, '', 0).forEach(a => { permitidos[a.id] = a; });
+    let total = 0;
+    const archivos = [], omitidos = [];
+    (d.ids || []).slice(0, 40).forEach(id => {
+      const p = permitidos[String(id)];
+      if (!p) throw new Error('Uno de los archivos no está en la carpeta de los EIA de la escuela.');
+      if (p.kb > 20 * 1024 || total + p.kb > 40 * 1024) { omitidos.push(p.nombre); return; }
+      const f = DriveApp.getFileById(p.id);
+      let bytes;
+      if (p.tipo === MimeType.GOOGLE_SHEETS) {
+        const r = UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/' + p.id + '/export?format=xlsx', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+        if (r.getResponseCode() !== 200) { omitidos.push(p.nombre); return; }
+        bytes = r.getContent();
+      } else bytes = f.getBlob().getBytes();
+      total += Math.round(bytes.length / 1024);
+      archivos.push({ id: p.id, nombre: p.ruta + p.nombre + (p.tipo === MimeType.GOOGLE_SHEETS ? '.xlsx' : ''), tipo: p.tipo, fecha: p.fecha, datos: Utilities.base64Encode(bytes) });
+    });
+    return { archivos: archivos, omitidos: omitidos, ruta: c.ruta };
+  },
+
+  // Guarda en la carpeta de los EIA de la escuela un Excel que se sube desde la página
+  eiaSubir: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), datos = String(d.datos || '');
+    if (!datos) throw new Error('El archivo llegó vacío.');
+    if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('El archivo pesa más de ' + MAX_MB + ' MB.');
+    const nombre = String(d.nombre || 'EIA.xlsx').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'EIA.xlsx';
+    const c = carpetaEia_(cct, true);
+    if (!c.carpeta) throw new Error(c.mensaje || 'No se encontró la carpeta de los EIA.');
+    const f = c.carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'application/vnd.ms-excel', nombre));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    return { archivo: { id: f.getId(), nombre: nombre, ruta: c.ruta } };
   },
 
   // Observaciones y acciones de mejora por nivel: zona, grado de la zona, escuela, grado de la escuela o grupo
@@ -901,6 +1000,8 @@ function datosDirector_(yo) {
     // SisAT: su escuela completa; de las demás solo los números por grado, sin decir de qué escuela son (para el promedio de la zona)
     sis: leer_('sis').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, momento: x.momento, cct: '', grado: x.grado, grupo: '', lec: x.lec, tex: x.tex, cal: x.cal, tip: x.tip, comp: x.comp }),
     sic: comentariosPara_(yo),
+    // EIA: igual que el SisAT, su escuela completa y de las demás solo los números por grado
+    eig: leer_('eig').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, cct: '', grado: x.grado, grupo: '', n: x.n, cr: x.cr, rz: x.rz }),
     version: VERSION
   };
 }
@@ -979,6 +1080,39 @@ function carpetaSisat_(cct, m, crear) {
   while (it2.hasNext()) { const f = it2.next(); if (reMom.test(sinAcento(f.getName()))) return { carpeta: f, ruta: sis.getName() + '/' + f.getName() }; }
   if (crear) { const f = sis.createFolder('Momento ' + m); return { carpeta: f, ruta: sis.getName() + '/' + f.getName() }; }
   return { carpeta: sis, ruta: sis.getName(), filtrar: reMom };
+}
+
+/* ===================== EIA ===================== */
+
+// Criterios de la rúbrica por grado (formato oficial de captura): fase 3 = 10, fase 4 = 26, fase 5 = 25
+const EIA_LARGO_ = { '1': 10, '2': 10, '3': 26, '4': 26, '5': 25, '6': 25 };
+// Proporción de criterios de un alumno en 0 o 1 (null si no tiene valoraciones)
+function eiaEstado_(v) {
+  const val = (v || []).filter(x => x !== null && x !== undefined);
+  if (!val.length) return null;
+  return val.filter(x => x <= 1).length / val.length;
+}
+// Carpeta «09-Ejercicios Integradores del Aprendizaje» dentro de la carpeta de la escuela en el Drive de evidencias
+function carpetaEia_(cct, crear) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) return { carpeta: null, ruta: '', mensaje: 'No se encontró la carpeta de la escuela en el Drive de evidencias. Revise las evidencias primero.' };
+  const sinAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const esc = DriveApp.getFolderById(raiz.carpetaId), it = esc.getFolders();
+  while (it.hasNext()) { const f = it.next(); if (/ejercicios\s+integradores|(^|[^a-z])eia([^a-z]|$)/.test(sinAcento(f.getName()))) return { carpeta: f, ruta: f.getName() }; }
+  if (!crear) return { carpeta: null, ruta: '', mensaje: 'La escuela no tiene la carpeta «09-Ejercicios Integradores del Aprendizaje» en el Drive.' };
+  const f = esc.createFolder('09-Ejercicios Integradores del Aprendizaje');
+  return { carpeta: f, ruta: f.getName() };
+}
+// Excel, .zip y hojas de Google de una carpeta y de sus subcarpetas (hasta dos niveles)
+function archivosEia_(carpeta, ruta, prof) {
+  const l = [], it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const a = it.next(), t = a.getMimeType(), n = a.getName();
+    if (!(esExcel_(n, t) || /\.zip$/i.test(n) || /zip/.test(t) || t === MimeType.GOOGLE_SHEETS) || /^~\$/.test(n)) continue;
+    l.push({ id: a.getId(), nombre: n, ruta: ruta, tipo: t, kb: Math.round(a.getSize() / 1024), fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm") });
+  }
+  if (prof < 2) { const sub = carpeta.getFolders(); while (sub.hasNext()) { const f = sub.next(); archivosEia_(f, ruta + f.getName() + '/', prof + 1).forEach(x => l.push(x)); } }
+  return l;
 }
 
 function PROMPT_SISAT_(m) {
