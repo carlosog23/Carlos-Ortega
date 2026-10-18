@@ -565,6 +565,7 @@ function leerCfg() {
     return c;
   }
   if (h.get('demo') !== null) { history.replaceState(null, '', location.pathname + location.search); return { demo: true }; }
+  if (h.get('consulta') !== null) return { demo: true, lectura: true, dir: h.get('consulta') === 'director' };
   try { const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); if (c && c.s && c.k) return c; } catch (e) {}
   return null;
 }
@@ -706,7 +707,7 @@ function pintar() {
   const tabs = pestanas();
   if (!tabs.find(t => t[0] === vista.tab)) vista.tab = 'agenda';
   $('#app').innerHTML = `
-  ${cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
+  ${cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
   <header class="barra"><div class="envoltura">
     <a class="marca" href="#" id="b-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
     <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}</button>`).join('')}</nav>
@@ -5194,7 +5195,11 @@ const Demo = (() => {
       return { cum: copia(r) };
     }
   };
-  return { llamar: (accion, datos) => new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
+  // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
+  const LECTURA = ['datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias'];
+  return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
+    ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
+    : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
 })();
 
 /* =========================================================
