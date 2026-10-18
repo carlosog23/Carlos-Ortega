@@ -395,6 +395,8 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-dop input[type=radio],.sis-dop input[type=checkbox]{width:18px!important;height:18px;min-height:0;margin:0;flex:none;padding:0}
 .sis-dop>span{font-weight:600}.sis-dop select{width:auto!important;min-width:120px;padding:6px 8px;border:1px solid var(--borde);border-radius:8px;font:inherit}
 .sis-dsub{flex-basis:100%;display:flex!important;gap:8px;align-items:center;margin:2px 0 0 28px;font-weight:400}
+.sis-ruta{background:#FFF8EC;border:1px solid #F0D9A8;border-radius:12px;padding:12px 16px;margin-bottom:14px}.sis-ruta h3{font-size:16px;margin:0 0 4px;color:var(--terra-d)}
+.sis-ruta ol{margin:0;padding-left:22px}.sis-ruta li{margin-bottom:8px;line-height:1.4}
 .sis-mas-c{margin-top:12px}.sis-mas-c summary{cursor:pointer;color:var(--indigo);font-weight:600;font-size:14px}
 .sis-arch-l{max-height:300px;overflow:auto}.sis-arch-l .sis-arch{cursor:pointer}
 .sis-xg{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--borde);align-items:flex-start;flex-wrap:wrap}
@@ -2239,7 +2241,7 @@ function sisCuerpoMomento(v, pred) {
   const comp = sisCompSuma(filas, sin1);
   return cobertura + sisTarjetas(a, prev, mPrev) + sisLeyenda() +
     sisDiagnostico(a, prev, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel, mPrev, prioritarios: prio, nota, comp }) +
-    sisComponentes(comp) + sisSeccionFocos(sisFocos(comp, sisAlumnosNivelM(v, m), m, Array.from(new Set(filas.map(r => r.grado)))), m) + sisSeccionAlumnos(v, m, sin1) + sisSeccionRezagoZona(v, m, filas, sin1) + prioHtml + tablas;
+    sisComponentes(comp) + sisSeccionFocos(sisFocos(comp, sisAlumnosNivelM(v, m), m, Array.from(new Set(filas.map(r => r.grado))), filas), m) + sisSeccionAlumnos(v, m, sin1) + sisSeccionRezagoZona(v, m, filas, sin1) + prioHtml + tablas;
 }
 function sisMiniGrafica(serie) {   // serie: [{m, pne, pra}]
   const W = 300, H = 120, x = i => 30 + i * 120, y = p => 100 - p * 0.9;
@@ -2858,7 +2860,47 @@ const sisGradoMaterial = (grado, m) => +m === 1 && +grado > 1 ? String(+grado - 
 const sisPregunta = (grado, m, i) => { const l = SIS_PREG[sisGradoMaterial(grado, m)]; return l && l[i] ? l[i][0] + ' (respuesta: ' + l[i][1] + ')' : ''; };
 
 // Lo más bajo de cada habilidad. al = alumnos del nivel y momento (para contar a quiénes les fue mal); grados = grados presentes
-function sisFocos(comp, al, m, grados) {
+/* ---- Contenidos de cada pregunta de cálculo mental (primaria) y qué trabajar en el aula ---- */
+const SIS_TEMAS = {
+  conteo: ['Conteo y sucesión numérica', 'Contar de uno en uno hacia adelante y hacia atrás desde cualquier número (no siempre desde 1), con la recta numérica, el tablero del 100 y juegos de turnos; decir el número anterior y el siguiente.'],
+  suma10: ['Sumas básicas hasta 10 y dobles', 'Dominar de memoria las sumas hasta 10 y los dobles (5 + 5, 6 + 6) con dedos, regletas, dados y tarjetas; juegos rápidos de 5 minutos al día.'],
+  quitar: ['Resta en situaciones de quitar', 'Representar con objetos y dibujos situaciones de quitar («tenía 5, se comió 2»); que el alumno diga la operación y la resuelva sin contar todo de nuevo.'],
+  resta10: ['Restas básicas hasta 20', 'Relacionar cada resta con su suma (10 − 5 porque 5 + 5 = 10); restar contando hacia atrás o completando, con la recta numérica.'],
+  complemento: ['Cuánto falta (complemento a 10, 100 o 1000)', 'Practicar «¿cuánto le falta a… para llegar a…?» contando hacia adelante en saltos (de 298 a 300 son 2, de 300 a 400 son 100); usar la recta numérica y el dinero.'],
+  decenas: ['Valor posicional: sumar y restar decenas y centenas', 'Material base 10, billetes y monedas: componer y descomponer números (47 = 40 + 7), sumar y restar 10, 100 o decenas completas sin hacer la cuenta en vertical.'],
+  transformacion: ['Suma con transformación («llevar»)', 'Estrategia de pasar por la decena: 8 + 6 = 8 + 2 + 4; 26 + 9 = 26 + 10 − 1; 58 + 12 = 58 + 2 + 10. Que expliquen en voz alta cómo lo pensaron.'],
+  desagrupar: ['Resta con transformación («pedir prestado»)', 'Restar por partes: 80 − 11 = 80 − 10 − 1; 100 − 89 contando de 89 a 100. Usar la recta numérica y material base 10 para desagrupar una decena.'],
+  series: ['Series y patrones numéricos', 'Descubrir la regla de una serie (de cuánto en cuánto sube o baja, o si se duplica) y continuarla; que los alumnos inventen series para sus compañeros.'],
+  repetida: ['Suma repetida (base de la multiplicación)', 'Agrupar de 2 en 2, de 5 en 5 y de 10 en 10 con objetos; pasar de 5 + 5 + 5 a «3 veces 5».'],
+  tablas: ['Tablas de multiplicar', 'Construir las tablas con arreglos rectangulares y patrones (dobles, ×5, ×9 con los dedos); práctica diaria breve y juegos de memoria, empezando por las que más fallan (×7, ×8, ×9).'],
+  decenasx: ['Multiplicar y dividir entre 10, 100 y 1000', 'Tabla de valor posicional: qué pasa con cada cifra al multiplicar o dividir entre 10, 100 o 1000 (23 × 1000, 650 ÷ 10, 800 ÷ 20 = 80 ÷ 2), entendiéndolo, no como «agregar ceros».'],
+  division: ['División (reparto y «cuántas veces cabe»)', 'Repartir con material y relacionar la división con la multiplicación (20 ÷ 4: ¿4 por cuánto da 20?); mitades y cuartos de números conocidos.'],
+  decimales: ['Números decimales (suma, resta, dobles y mitades)', 'Trabajar con dinero (pesos y centavos) y la recta numérica en décimos y centésimos; completar el entero (0.25 + 0.75, 4.70 + 0.30) y decir los decimales como «cero punto veinticinco».'],
+  fracIgual: ['Suma y resta de fracciones con igual denominador', 'Tiras de papel, círculos y doblado: sumar o quitar partes del mismo tamaño (2/5 + 1/5 = 3/5) y cuánto le falta a una fracción para el entero.'],
+  fracDist: ['Suma y resta de fracciones con distinto denominador', 'Fracciones equivalentes con tiras de fracciones (1/2 = 2/4 = 4/8, 1/3 = 2/6); convertir a partes del mismo tamaño antes de sumar o restar; usar el reloj y el dinero (1/2 + 1/4 de hora).'],
+  fracMult: ['Multiplicación de fracciones', 'Modelo de área y «parte de una parte» (la mitad de 2/3) con papel doblado antes de pasar a la regla.'],
+  combinadas: ['Operaciones combinadas (jerarquía)', 'Problemas de dos pasos y el orden de las operaciones: primero multiplicar y después sumar (25 × 4 + 15); que escriban el razonamiento.']
+};
+// Contenido de cada pregunta según la lista oficial de cada grado (Anexo 3)
+const SIS_PREG_TEMA = {
+  1: ['conteo', 'suma10', 'suma10', 'quitar', 'resta10', 'decenas', 'resta10', 'complemento', 'decenas', 'transformacion'],
+  2: ['transformacion', 'repetida', 'decenas', 'decenas', 'complemento', 'decenas', 'decenas', 'decenas', 'decenas', 'decenas'],
+  3: ['transformacion', 'complemento', 'decenas', 'decenas', 'transformacion', 'desagrupar', 'series', 'series', 'tablas', 'tablas'],
+  4: ['decenas', 'complemento', 'decenasx', 'division', 'division', 'decimales', 'decimales', 'decimales', 'decenasx', 'complemento'],
+  5: ['decimales', 'decimales', 'fracIgual', 'fracIgual', 'series', 'complemento', 'division', 'fracDist', 'fracIgual', 'decimales'],
+  6: ['combinadas', 'decenasx', 'decenas', 'decimales', 'decimales', 'decenasx', 'fracDist', 'fracDist', 'fracDist', 'fracMult']
+};
+const sisTemaDe = (grado, m, i) => { const l = SIS_PREG_TEMA[sisGradoMaterial(grado, m)]; return l ? l[i] : ''; };
+// Contenidos de cálculo ordenados del más difícil al más fácil, para un grado (comp de ese grado)
+function sisContenidosCal(comp, grado, m) {
+  if (!comp || !comp.cal || !comp.cal.n) return [];
+  const n = comp.cal.n, por = {};
+  comp.cal.s.forEach((s, i) => { const t = sisTemaDe(grado, m, i); if (!t) return; (por[t] = por[t] || { clave: t, preg: [], inc: 0 }); por[t].preg.push(i); por[t].inc += (n - s); });
+  return Object.values(por).map(t => Object.assign(t, { pinc: Math.round(t.inc * 1000 / (n * t.preg.length)) / 10, nom: SIS_TEMAS[t.clave][0], trabajar: SIS_TEMAS[t.clave][1] }))
+    .sort((x, y) => y.pinc - x.pinc);
+}
+
+function sisFocos(comp, al, m, grados, filas) {
   if (!comp) return null;
   const r = {};
   ['lec', 'tex'].forEach(h => {
@@ -2870,26 +2912,53 @@ function sisFocos(comp, al, m, grados) {
   if (comp.cal && comp.cal.n) {
     const n = comp.cal.n;
     const un = grados && grados.length === 1 ? grados[0] : null;
-    r.cal = comp.cal.s.map((s, i) => ({ i, inc: Math.round((n - s) * 1000 / n) / 10, va: s ? Math.round(comp.cal.v[i] * 1000 / s) / 10 : 0, preg: un ? sisPregunta(un, m, i) : '' }))
-      .sort((x, y) => y.inc - x.inc).slice(0, 3);
     r.calVisual = comp.cal.s.reduce((a, b) => a + b, 0) ? Math.round(comp.cal.v.reduce((a, b) => a + b, 0) * 1000 / comp.cal.s.reduce((a, b) => a + b, 0)) / 10 : 0;
     r.grado = un;
+    if (un) {
+      r.cal = comp.cal.s.map((s, i) => ({ i, inc: Math.round((n - s) * 1000 / n) / 10, va: s ? Math.round(comp.cal.v[i] * 1000 / s) / 10 : 0, preg: sisPregunta(un, m, i) }));
+      r.temas = sisContenidosCal(comp, un, m);
+    } else if (filas) {   // varios grados: cada grado tiene sus propias preguntas
+      r.porGrado = (grados || []).slice().sort().map(g => ({ grado: g, temas: sisContenidosCal(sisCompSuma(filas.filter(x => x.grado === g), false), g, m) })).filter(x => x.temas.length);
+    }
   }
+  // Ruta de trabajo: lo más urgente primero (contenidos de cálculo y componentes de lectura y textos)
+  const ruta = [];
+  (r.temas || []).filter(t => t.pinc >= 30).forEach(t => ruta.push({ peso: t.pinc, h: 'cal', titulo: t.nom, dato: `${sisFmt(t.pinc)} de respuestas incorrectas (pregunta${t.preg.length > 1 ? 's' : ''} ${t.preg.map(i => i + 1).join(' y ')})`, trabajar: t.trabajar }));
+  (r.porGrado || []).forEach(g => g.temas.filter(t => t.pinc >= 40).slice(0, 1).forEach(t => ruta.push({ peso: t.pinc, h: 'cal', titulo: `${g.grado}.° grado: ${t.nom.toLowerCase()}`, dato: `${sisFmt(t.pinc)} de respuestas incorrectas (pregunta${t.preg.length > 1 ? 's' : ''} ${t.preg.map(i => i + 1).join(' y ')})`, trabajar: t.trabajar })));
+  ['lec', 'tex'].forEach(h => (r[h] || []).filter(x => x.p <= 80).forEach(x => ruta.push({ peso: 100 - x.p, h, titulo: (h === 'lec' ? 'Lectura: ' : 'Textos: ') + x.nom.toLowerCase(), dato: `${sisFmt(x.p)} del puntaje posible`, trabajar: SIS_FOCO[h][x.i][1] })));
+  r.ruta = ruta.sort((x, y) => y.peso - x.peso).slice(0, r.porGrado ? 8 : 5);
+  // Conclusión en una frase: dónde está el problema principal de cada habilidad
+  const fr = [];
+  if (r.temas && r.temas[0] && r.temas[0].pinc >= 30) fr.push(`en cálculo mental, en <b>${esc(r.temas[0].nom.toLowerCase())}</b> (${sisFmt(r.temas[0].pinc)} de respuestas incorrectas)` + (r.temas[1] && r.temas[1].pinc >= 40 ? ` y en <b>${esc(r.temas[1].nom.toLowerCase())}</b> (${sisFmt(r.temas[1].pinc)})` : ''));
+  if (!r.temas && r.porGrado && r.porGrado.some(g => g.temas[0] && g.temas[0].pinc >= 40)) fr.push('en cálculo mental, en un contenido distinto en cada grado: ' + r.porGrado.filter(g => g.temas[0] && g.temas[0].pinc >= 40).map(g => `${g.grado}.° <b>${esc(g.temas[0].nom.toLowerCase())}</b>`).join(', '));
+  if (r.lec && r.lec[0] && r.lec[0].p <= 80) fr.push(`en lectura, en <b>${esc(r.lec[0].nom.toLowerCase())}</b> (${sisFmt(r.lec[0].p)})`);
+  if (r.tex && r.tex[0] && r.tex[0].p <= 80) fr.push(`en producción de textos, en <b>${esc(r.tex[0].nom.toLowerCase())}</b> (${sisFmt(r.tex[0].p)})`);
+  r.conclusion = fr.length ? 'El problema principal está ' + fr.join('; ') + '.' : '';
   return r;
 }
 function sisSeccionFocos(f, m) {
   if (!f) return '';
+  const mat = g => `material de ${sisGradoMaterial(g, m)}.° grado${+m === 1 && +g > 1 ? ', el del grado anterior, como se aplica en el Momento 1' : ''}`;
+  const ruta = f.ruta && f.ruta.length ? `<div class="sis-ruta"><h3>Ruta de trabajo para el docente</h3>${f.conclusion ? `<p style="margin:0 0 6px">${f.conclusion}</p>` : ''}<p class="peq mudo" style="margin:0 0 8px">En este orden, de lo más urgente a lo menos: lo que más se equivocaron los alumnos y qué hacer en el aula.</p>
+    <ol>${f.ruta.map(x => `<li><b>${esc(x.titulo)}</b> <span class="peq" style="color:var(--alerta)">· ${esc(x.dato)}</span><div class="peq">${esc(x.trabajar)}</div></li>`).join('')}</ol>
+    ${f.calVisual >= 50 ? `<p class="peq" style="margin:6px 0 0"><b>Además:</b> ${sisFmt(f.calVisual)} de los aciertos de cálculo necesitó la tarjeta de apoyo visual; practique el cálculo dictado de forma oral, sin apoyo escrito.</p>` : ''}</div>` : '';
   const bloque = h => !f[h] ? '' : `<div><h3>${SIS_H.find(x => x[0] === h)[1]}</h3>${f[h].map(x => `<div class="sis-foco">
       <div class="sis-foco-t"><b>${SIS_ROM[x.i]}. ${esc(x.nom)}</b> <span style="color:${sisCompColor(x.p)};font-weight:700">${sisFmt(x.p)}</span>${x.en1 ? ` <span class="peq mudo">· ${x.en1} alumno${x.en1 === 1 ? '' : 's'} con el puntaje más bajo</span>` : ''}</div>
       <div class="peq"><b>Qué se observa:</b> ${esc(SIS_FOCO[h][x.i][0])}</div>
       <div class="peq"><b>Qué trabajar:</b> ${esc(SIS_FOCO[h][x.i][1])}</div></div>`).join('')}</div>`;
-  const cal = !f.cal ? '' : `<div><h3>Cálculo mental${f.grado ? ` <span class="peq mudo" style="font-weight:400">· preguntas del material de ${sisGradoMaterial(f.grado, m)}.° grado</span>` : ''}</h3>${f.cal.map(x => `<div class="sis-foco">
-      <div class="sis-foco-t"><b>Pregunta ${x.i + 1}${x.preg ? ': ' + esc(x.preg) : ''}</b> <span style="color:var(--alerta);font-weight:700">${sisFmt(x.inc)} incorrecta</span></div>
-      ${x.va >= 50 ? `<div class="peq">De los que acertaron, ${sisFmt(x.va)} necesitó la tarjeta de apoyo visual.</div>` : ''}</div>`).join('')}
-      ${!f.grado ? '<p class="peq mudo">Las preguntas cambian por grado: vea cada grado o grupo para saber qué se preguntó.</p>' : !f.cal[0].preg ? `<p class="peq mudo">Vea en la ficha de cálculo ${+m === 1 && +f.grado > 1 ? 'del grado anterior (en el Momento 1 se aplica ese material)' : 'del grado'} qué se preguntó en cada número.</p>` : ''}
-      <div class="peq" style="margin-top:6px"><b>Qué trabajar:</b> ${f.calVisual >= 50 ? 'más de la mitad de los aciertos fue con apoyo visual: practicar el cálculo con presentación solo verbal (dictado oral de operaciones). ' : ''}Plantear cada día retos de cálculo que se resuelvan de distintas formas, pedir que expliquen cómo lo hicieron y socializar las estrategias; no solo aplicar el algoritmo escrito.</div></div>`;
-  return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">Dónde enfocarse: lo que salió más bajo</div>
-    <div class="sis-comp-g">${bloque('lec')}${bloque('tex')}${cal}</div></div>`;
+  let cal = '';
+  if (f.temas) {
+    cal = `<div><h3>Cálculo mental por contenido <span class="peq mudo" style="font-weight:400">· ${mat(f.grado)}</span></h3>${f.temas.map(t => `<div class="sis-foco" style="border-left-color:${t.pinc >= 50 ? 'var(--alerta)' : t.pinc >= 30 ? 'var(--ambar)' : 'var(--ok)'}">
+      <div class="sis-foco-t"><b>${esc(t.nom)}</b> <span style="color:${t.pinc >= 50 ? 'var(--alerta)' : t.pinc >= 30 ? '#9A6A00' : 'var(--ok)'};font-weight:700">${sisFmt(t.pinc)} incorrecta${t.pinc >= 50 ? ' · prioridad' : ''}</span></div>
+      <div class="peq">${t.preg.map(i => { const c = f.cal[i]; return `Pregunta ${i + 1}: ${esc(c.preg || '')} — ${sisFmt(c.inc)} incorrecta${c.va >= 50 ? ` (de los que acertaron, ${sisFmt(c.va)} con apoyo visual)` : ''}`; }).join('<br>')}</div>
+      ${t.pinc >= 30 ? `<div class="peq"><b>Qué trabajar:</b> ${esc(t.trabajar)}</div>` : ''}</div>`).join('')}</div>`;
+  } else if (f.porGrado) {
+    cal = `<div><h3>Cálculo mental: contenidos con más dificultad por grado</h3>${f.porGrado.map(g => `<div class="sis-foco"><div class="sis-foco-t"><b>${g.grado}.° grado</b> <span class="peq mudo">(${mat(g.grado)})</span></div>
+      <div class="peq">${g.temas.slice(0, 2).map(t => `<b>${esc(t.nom)}</b>: ${sisFmt(t.pinc)} incorrecta (pregunta${t.preg.length > 1 ? 's' : ''} ${t.preg.map(i => i + 1).join(', ')})`).join('<br>')}</div></div>`).join('')}
+      <p class="peq mudo">Entre a cada grado o grupo para ver cada pregunta y qué trabajar.</p></div>`;
+  }
+  return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">Dónde enfocarse y qué trabajar</div>
+    ${ruta}<div class="sis-comp-g">${bloque('lec')}${bloque('tex')}${cal}</div></div>`;
 }
 
 /* ---- Rezago: alumnos en rojo en las tres habilidades, o con puntajes muy bajos ---- */
@@ -2899,7 +2968,14 @@ function sisDebilidades(a) {
   const d = [];
   ['lec', 'tex'].forEach(h => { const c = a[h] && a[h].c; if (!c) return; const b = c.map((x, i) => String(x) === '1' ? SIS_COMP[h][i].toLowerCase() : null).filter(Boolean);
     if (b.length === 6) d.push(`${h === 'lec' ? 'Lectura' : 'Textos'}: todos los componentes en el nivel más bajo`); else if (b.length) d.push(`${h === 'lec' ? 'Lectura' : 'Textos'}: ${b.join(', ')}`); });
-  if (a.cal && a.cal.c) { const f = a.cal.c.map((x, i) => x === '0' || x === '' ? i + 1 : null).filter(Boolean); if (f.length === 10) d.push('Cálculo: ninguna correcta'); else if (f.length) d.push('Cálculo: falló ' + (f.length > 6 ? f.length + ' de 10' : 'la' + (f.length > 1 ? 's preguntas ' : ' pregunta ') + f.join(', '))); }
+  if (a.cal && a.cal.c) {
+    const f = a.cal.c.map((x, i) => x === '0' || x === '' ? i : null).filter(x => x != null);
+    if (f.length === 10) d.push('Cálculo: ninguna correcta');
+    else if (f.length) {
+      const por = {}; f.forEach(i => { const t = sisTemaDe(a.grado, a.momento, i) || 'otro'; (por[t] = por[t] || []).push(i + 1); });
+      d.push('Cálculo: ' + Object.entries(por).map(([t, l]) => (SIS_TEMAS[t] ? SIS_TEMAS[t][0].toLowerCase() : 'preguntas') + ' (' + l.join(', ') + ')').join('; '));
+    }
+  }
   return d;
 }
 function sisRezago(al, sin1) {
@@ -3160,13 +3236,13 @@ function sisGrafComp(comp, h) {
   return sisPng(L);
 }
 // Cálculo mental: cada reactivo con aciertos sin apoyo, con apoyo e incorrectas
-function sisGrafCalc(comp) {
-  const n = comp.cal.n, W = 640, izq = 90, der = 50, alto = 22, top = 34, H = top + 10 * alto + 34;
+function sisGrafCalc(comp, etq) {
+  const n = comp.cal.n, W = 640, izq = etq ? 250 : 90, der = 50, alto = 22, top = 34, H = top + 10 * alto + 34;
   const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
   sisTexto(x, 'Cálculo mental · respuestas por reactivo (' + n + ' alumnos)', 0, 14, { bold: true, size: 13, color: SIS_COL.az });
   comp.cal.s.forEach((s, i) => {
     const y = top + i * alto, sa = (s - comp.cal.v[i]) / n, ca = comp.cal.v[i] / n, inc = (n - s) / n;
-    sisTexto(x, 'Reactivo ' + SIS_ROM[i], 0, y + 8, { size: 11 });
+    sisTexto(x, etq ? sisRecorta(x, etq(i), izq - 10, 10.5) : 'Reactivo ' + SIS_ROM[i], 0, y + 8, { size: etq ? 10.5 : 11 });
     let px = izq; [[SIS_COL.ne, sa], [SIS_COL.ed, ca], [SIS_COL.ra, inc]].forEach(([c, p]) => { x.fillStyle = c; x.fillRect(px, y, ancho * p, 16); px += ancho * p; });
     sisTexto(x, Math.round(s * 100 / n) + '%', W - 4, y + 8, { size: 11, bold: true, align: 'right' });
   });
@@ -3231,7 +3307,8 @@ async function sisInforme(v) {
       H('Componentes de cada habilidad');
       B.push({ t: 'p', x: 'Porcentaje del puntaje posible en cada componente (manual del SisAT): de 81 a 100% manejo adecuado; de 56 a 80% avance significativo; 55% o menos, poco avance.' });
       ['lec', 'tex'].forEach(h => { if (comp[h] && comp[h].n) B.push({ t: 'img', g: sisGrafComp(comp, h) }); });
-      if (comp.cal && comp.cal.n) B.push({ t: 'img', g: sisGrafCalc(comp) });
+      const gr1 = Array.from(new Set(filas.map(r => r.grado)));
+      if (comp.cal && comp.cal.n) B.push({ t: 'img', g: sisGrafCalc(comp, gr1.length === 1 ? (i => (i + 1) + '. ' + ((SIS_TEMAS[sisTemaDe(gr1[0], m, i)] || ['—'])[0])) : null) });
     }
     if (hj.l.length > 1) {
       H(hj.titulo);
@@ -3240,16 +3317,23 @@ async function sisInforme(v) {
     }
     if (prio.length) { H('Grupos prioritarios'); B.push({ t: 'lista', l: prio.map(({ r, a: x }) => '<b>' + esc((v.nivel === 'zona' || v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : '') + sisNomGrupo(r)) + '</b>: ' + SIS_H.filter(([h]) => x[h].pra >= SIS_PRIORIDAD).map(([h, nom]) => nom.toLowerCase() + ' ' + sisFmt(x[h].pra)).join(' · ') + ' requiere apoyo') }); }
     const al = conAl ? (sisAlumnosDe(v.ciclo, v.cct) || []).filter(x => x.momento === m && (v.nivel === 'escuela' || (x.grado === v.grado && (v.nivel === 'grado' || x.grupo === v.grupo)))) : [];
-    const fc = sisFocos(comp, al, m, Array.from(new Set(filas.map(r => r.grado))));
+    const fc = sisFocos(comp, al, m, Array.from(new Set(filas.map(r => r.grado))), filas);
     if (fc) {
-      H('Dónde enfocarse: lo que salió más bajo');
-      ['lec', 'tex'].forEach(h => { if (!fc[h]) return; B.push({ t: 'sub', x: SIS_H.find(q => q[0] === h)[1], c: SIS_COL.az });
+      H('Dónde enfocarse y qué trabajar');
+      if (fc.ruta && fc.ruta.length) {
+        B.push({ t: 'sub', x: 'Ruta de trabajo para el docente (de lo más urgente a lo menos)', c: SIS_COL.ra });
+        if (fc.conclusion) B.push({ t: 'p', x: fc.conclusion });
+        B.push({ t: 'lista', l: fc.ruta.map((x, k) => `<b>${k + 1}. ${esc(x.titulo)}</b> (${esc(x.dato)}). ${esc(x.trabajar)}`) });
+        if (fc.calVisual >= 50) B.push({ t: 'p', x: `<b>Además:</b> ${sisFmt(fc.calVisual)} de los aciertos de cálculo necesitó apoyo visual; practicar el cálculo dictado de forma oral.` });
+      }
+      ['lec', 'tex'].forEach(h => { if (!fc[h]) return; B.push({ t: 'sub', x: SIS_H.find(q => q[0] === h)[1] + ': componentes más bajos', c: SIS_COL.az });
         B.push({ t: 'lista', l: fc[h].map(x => `<b>${SIS_ROM[x.i]}. ${esc(x.nom)} (${sisFmt(x.p)}${x.en1 ? ', ' + x.en1 + ' alumno' + (x.en1 === 1 ? '' : 's') + ' con el puntaje más bajo' : ''}).</b> Qué se observa: ${esc(SIS_FOCO[h][x.i][0])} Qué trabajar: ${esc(SIS_FOCO[h][x.i][1])}`) }); });
-      if (fc.cal) {
-        B.push({ t: 'sub', x: 'Cálculo mental' + (fc.grado ? ' (preguntas del material de ' + sisGradoMaterial(fc.grado, m) + '.° grado' + (+m === 1 && +fc.grado > 1 ? ': en el Momento 1 se aplica el del grado anterior)' : ')') : ''), c: SIS_COL.az });
-        B.push({ t: 'lista', l: fc.cal.map(x => `<b>Pregunta ${x.i + 1}${x.preg ? ': ' + esc(x.preg) : ''}</b>: ${sisFmt(x.inc)} de respuestas incorrectas${x.va >= 50 ? `; de los que acertaron, ${sisFmt(x.va)} necesitó apoyo visual` : ''}.`) });
-        if (fc.grado && !fc.cal[0].preg) B.push({ t: 'nota', x: `Vea en la ficha de cálculo ${+m === 1 && +fc.grado > 1 ? 'del grado anterior (en el Momento 1 se aplica ese material)' : 'del grado'} qué se preguntó en cada número.` });
-        B.push({ t: 'p', x: `<b>Qué trabajar:</b> ${fc.calVisual >= 50 ? 'más de la mitad de los aciertos fue con apoyo visual: practicar el cálculo con presentación solo verbal. ' : ''}Retos diarios de cálculo que se resuelvan de distintas formas; pedir que expliquen cómo lo resolvieron y compartir las estrategias en el grupo.` });
+      if (fc.temas) {
+        B.push({ t: 'sub', x: `Cálculo mental por contenido (material de ${sisGradoMaterial(fc.grado, m)}.° grado${+m === 1 && +fc.grado > 1 ? ', el del grado anterior, como se aplica en el Momento 1' : ''})`, c: SIS_COL.az });
+        B.push({ t: 'tabla', chica: true, anchos: [24, 12, 40, 24], cab: ['Contenido', 'Incorrectas', 'Preguntas', 'Prioridad'], filas: fc.temas.map(t => [t.nom, sisFmt(t.pinc), t.preg.map(i => (i + 1) + '. ' + (fc.cal[i].preg || '') + ' — ' + sisFmt(fc.cal[i].inc)).join('\n'), t.pinc >= 50 ? 'Alta: trabajar ya' : t.pinc >= 30 ? 'Media' : 'Se domina']) });
+      } else if (fc.porGrado) {
+        B.push({ t: 'sub', x: 'Cálculo mental: contenidos con más dificultad por grado', c: SIS_COL.az });
+        B.push({ t: 'lista', l: fc.porGrado.map(g => `<b>${g.grado}.° grado:</b> ` + g.temas.slice(0, 2).map(t => `${esc(t.nom.toLowerCase())} (${sisFmt(t.pinc)} incorrecta, pregunta${t.preg.length > 1 ? 's' : ''} ${t.preg.map(i => i + 1).join(', ')})`).join('; ')) });
       }
     }
     if (!esDirector() && ['zona', 'zgrado'].includes(v.nivel)) {
@@ -3346,7 +3430,7 @@ const SIS_INF_CSS = `.sis-inf{width:816px;padding:44px 64px 40px;box-sizing:bord
     .sis-inf .pie{margin-top:20px;border-top:1px solid #1F3A6B;padding-top:6px;text-align:center;font-size:10px;color:#555}`;
 // Partes del documento (cada grado o grupo empieza en hoja nueva); la primera lleva el encabezado
 function sisHtmlInforme(I) {
-  const tabla = b => `<table class="it ${b.chica ? 'chica' : ''}">${b.anchos ? `<colgroup>${b.anchos.map(a => `<col style="width:${a}%">`).join('')}</colgroup>` : ''}<thead><tr>${b.cab.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.filas.map(f => `<tr>${f.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const tabla = b => `<table class="it ${b.chica ? 'chica' : ''}">${b.anchos ? `<colgroup>${b.anchos.map(a => `<col style="width:${a}%">`).join('')}</colgroup>` : ''}<thead><tr>${b.cab.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.filas.map(f => `<tr>${f.map(c => `<td>${esc(c).replace(/\n/g, '<br>')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   const partes = [`<div class="enc"><img src="img/isep.png" alt=""><div class="c"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div><img src="img/zona050.png" alt=""></div>
   <h1>${esc(I.titulo)}</h1><div class="niv">${esc(I.nivel)}</div><p class="sub">${esc(I.sub)} · Elaborado el ${esc(I.fecha)}</p>`];
   I.B.forEach(b => {
@@ -3421,7 +3505,7 @@ async function sisWordInforme(I) {
     if (b.anchos) { anchos = b.anchos.map(a => Math.floor(total * a / 100)); anchos[anchos.length - 1] += total - anchos.reduce((x, y) => x + y, 0); }
     const sz = b.chica ? 16 : 18;
     const celda = (t, i, cab) => new TableCell({ width: { size: anchos[i], type: WidthType.DXA }, borders: bt, shading: cab ? { type: ShadingType.CLEAR, fill: AZ, color: 'auto' } : undefined,
-      margins: { top: 40, bottom: 40, left: 90, right: 90 }, children: [new Paragraph({ children: [tx(String(t), { size: sz, bold: cab, color: cab ? 'FFFFFF' : undefined })] })] });
+      margins: { top: 40, bottom: 40, left: 90, right: 90 }, children: String(t).split('\n').map(l => new Paragraph({ children: [tx(l, { size: sz, bold: cab, color: cab ? 'FFFFFF' : undefined })] })) });
     return new Table({ width: { size: total, type: WidthType.DXA }, columnWidths: anchos, rows: [new TableRow({ tableHeader: true, children: b.cab.map((c, i) => celda(c, i, true)) })].concat(b.filas.map(f => new TableRow({ cantSplit: true, children: f.map((c, i) => celda(c, i, false)) }))) });
   };
   const kids = [
