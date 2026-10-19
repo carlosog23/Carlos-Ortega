@@ -1,8 +1,10 @@
 /* Tlamatini · trabajador de servicio: permite instalar la app y usarla sin internet.
    - La página y los datos (.json) se piden primero a internet; si no hay conexión, se usa la copia guardada.
-   - Plantillas, librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
+   - Las plantillas oficiales (formatos/*.pdf) también se piden primero a internet, para que al cambiar un formato
+     se use el nuevo de inmediato; sin conexión se usa la copia guardada.
+   - Librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-10-19a";
+const VERSION = "tlm-2026-10-19b";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
@@ -41,6 +43,9 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil((async () => {
     for (const k of await caches.keys()) if (k.startsWith("tlm-base-") && k !== BASE) await caches.delete(k);
+    /* borrar las plantillas PDF guardadas de versiones anteriores: se vuelven a descargar al usarse */
+    const ex = await caches.open(EXTRA);
+    for (const r of await ex.keys()) if (/\/formatos\/[^?]*\.pdf(\?|$)/.test(r.url)) await ex.delete(r);
     await self.clients.claim();
   })());
 });
@@ -53,7 +58,7 @@ self.addEventListener("message", e => {
   }
 });
 
-const esDato = url => /\.json(\?|$)/.test(url.pathname);
+const esDato = url => /\.json(\?|$)/.test(url.pathname) || /\/formatos\/[^/]+\.pdf$/.test(url.pathname);
 const esNuestro = url => url.origin === self.location.origin;
 const esExternoPermitido = url => /(^|\.)cdnjs\.cloudflare\.com$|(^|\.)fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
 
