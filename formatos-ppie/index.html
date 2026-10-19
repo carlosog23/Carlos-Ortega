@@ -1052,7 +1052,7 @@ const SECCIONES=[
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
- {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Convocatoria, lista de asistencia, minuta de instalación, comités y plan de trabajo, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>5,cntLabel:()=>"5 formatos y guía de requisitos"},
+ {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
@@ -3494,32 +3494,46 @@ async function invPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textCo
     a.download=`${T.n.replace(/[·\/]/g,"-").replace(/\s+-\s+/g," - ")} - ${quien||fecha.replace(/\//g,"-")||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el formato: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
-/* ---------- Consejo de Participación Escolar (CPE): convocatoria, lista, minuta, comités, plan de trabajo ---------- */
-/* Plantillas oficiales: formatos/consejo.pdf (convocatoria, lista, comités x3, plan) y formatos/minuta-consejo.pdf (minuta, 10 hojas). */
-const CP_KEY="ppie-consejo";let CP=null,CP_TPL=null,CP_MIN=null,CP_FONTS=null;
-const CP_DOCS=[["conv","Convocatoria"],["lista","Lista de asistencia"],["minuta","Minuta de instalación"],["comites","Comités"],["plan","Plan de trabajo"],["req","Requisitos de validación (guía)"]];
-const CP_COM_FIJOS=[["s","Comité Participativo de Salud Escolar"],["p","Comité de Protección Civil y Seguridad Escolar"],["a","Comité de Alimentación Saludable"],["i","Comité de Infraestructura Escolar"],["c","Comité de Contraloría Social"]];
+/* ---------- Consejo de Participación Escolar (CPE): convocatoria, lista, minuta, comités, plan de trabajo, alta y baja ---------- */
+/* Plantillas oficiales 2026: formatos/consejo.pdf (0 convocatoria, 1 lista, 2-4 comités, 5 plan, 6 alta y baja) y formatos/minuta-consejo.pdf (minuta, 8 hojas). */
+const CP_KEY="ppie-consejo";let CP=null,CP_TPL=null,CP_MIN=null;
+const CP_DOCS=[["conv","Convocatoria"],["lista","Lista de asistencia"],["minuta","Minuta de instalación"],["comites","Comités"],["plan","Plan de trabajo"],["ab","Alta y baja de integrantes"],["req","Requisitos de validación (guía)"]];
+const CP_COM_FIJOS=[["p","Comité de Protección Civil y Emergencia Escolar"],["s","Comité de Salud Escolar y Prevención del Consumo de Sustancias Nocivas para la Salud"],["c","Comité de Contraloría Social"],["i","Comité de Infraestructura Escolar"],["v","Comité de Convivencia Escolar y Desaliento de las Prácticas que Generan Violencia"]];
 const cpPersona=()=>({n:"",c:"",t:""});
 const cpComite=(nombre,fijo)=>({nombre,fijo:fijo||"",on:true,coord:cpPersona(),int:[cpPersona(),cpPersona(),cpPersona(),cpPersona(),cpPersona()]});
 const cpMiembro=()=>({cargo:"",calidad:"",curp:"",nom:"",ap1:"",ap2:"",genero:"",escol:"",correo:"",tel:"",hnom:"",hap1:"",hap2:"",hgrado:""});
+const cpAB=()=>({fecha:today(),horaIni:"",horaFin:"",bajaTipo:"",bajas:[0,1,2,3].map(()=>({n:"",rep:"",fecha:""})),motivos:"",altaTipo:"",altas:[0,1,2,3].map(()=>({n:"",rep:"",tel:"",curp:""})),firmas:[0,1,2,3,4].map(()=>({n:"",cargo:""})),supervisor:SUP_NOMBRE});
 function cpCiclo(){const d=new Date(),y=d.getFullYear();return d.getMonth()>=7?`${y}-${y+1}`:`${y-1}-${y}`}
-function cpEscDe(i){const e=ESCUELAS_050[i],c=CENTROS[i];return{sel:String(i),nombre:"Escuela Primaria "+e[0],cct:e[1],nivel:"Primaria",zona:"050",sector:"",turno:"",mun:e[2],loc:e[3],dom:e[4],tel:"",correo:"",director:c.resp,padres:"",alumnos:""}}
-function cpEscVacia(){return{sel:"otra",nombre:"",cct:"",nivel:"Primaria",zona:"",sector:"",turno:"",mun:"",loc:"",dom:"",tel:"",correo:"",director:"",padres:"",alumnos:""}}
+function cpEscDe(i){const e=ESCUELAS_050[i],c=CENTROS[i];return{sel:String(i),nombre:"Escuela Primaria "+e[0],cct:e[1],nivel:"Primaria",subsistema:"Federalizado",zona:"050",sector:"",turno:"",mun:e[2],loc:e[3],dom:e[4],tel:"",correo:"",director:c.resp,padres:"",alumnos:""}}
+function cpEscVacia(){return{sel:"otra",nombre:"",cct:"",nivel:"Primaria",subsistema:"",zona:"",sector:"",turno:"",mun:"",loc:"",dom:"",tel:"",correo:"",director:"",padres:"",alumnos:""}}
 function cpNuevo(){const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
-  return{doc:"conv",ciclo:cpCiclo(),esc:i>=0?cpEscDe(i):cpEscVacia(),pres:{nom:"",ap1:"",ap2:""},
-    conv:{emision:today(),sesion:"1",ext:"",temas:["","","","",""],lugar:"",turno:"",fecha:"",hora:"",firmaDir:true,firmaPres:true},
+  return{ver:2026,doc:"conv",ciclo:cpCiclo(),esc:i>=0?cpEscDe(i):cpEscVacia(),pres:{nom:"",ap1:"",ap2:""},
+    conv:{emision:today(),sesion:"1",ext:"",temas:["","","",""],lugar:"",turno:"",fecha:"",hora:"",firmaDir:true,firmaPres:true},
     lista:{fecha:today(),nombres:""},
-    minuta:{fecha:today(),horaIni:"",horaFin:"",virtual:false,herr:{zoom:false,meet:false,whatsapp:false,messenger:false,email:false,tel:false},otros:"",relatoria:"",
+    minuta:{fecha:today(),horaIni:"",horaFin:"",medio:{tel:false,whatsapp:false,correo:false,escrito:false},medioOtro:"",virtual:false,herr:{zoom:false,meet:false,whatsapp:false,messenger:false,email:false,tel:false},otros:"",relatoria:"",
       miembros:[cpMiembro(),cpMiembro(),cpMiembro()],numInt:"",phijo:"",pgrado:"",pacred:"",votos:"",asuntos:"",acuerdos:"",maestro:"",supervisor:SUP_NOMBRE},
     comites:CP_COM_FIJOS.map(([k,n])=>cpComite(n,k)),
-    plan:{filas:[{meta:"",acc:"",resp:"",req:"",fecha:""}]}}}
-(function(){const d=store.get(CP_KEY,null);if(d&&d.esc&&d.conv)CP=d})();
+    plan:{fecha:today(),filas:[{meta:"",acc:"",resp:"",req:"",fecha:""}]},
+    ab:cpAB()}}
+/* Pasa los datos guardados con los formatos anteriores a los formatos 2026 sin perder lo capturado */
+function cpMigrar(d){const n=cpNuevo();
+  for(const k of ["conv","lista","minuta","plan"])d[k]=Object.assign({},n[k],d[k]||{});
+  d.esc=Object.assign({},n.esc,{subsistema:""},d.esc||{});if(d.esc.sel&&d.esc.sel!=="otra"&&!d.esc.subsistema)d.esc.subsistema="Federalizado";
+  if(!d.ab)d.ab=cpAB();if(!d.minuta.medio)d.minuta.medio=n.minuta.medio;
+  d.conv.temas=(d.conv.temas||[]).concat(["","","",""]).slice(0,4);
+  if(d.ver!==2026){const tiene=c=>c&&[c.coord].concat(c.int||[]).some(p=>p&&(p.n||p.c||p.t));const old=d.comites||[];const by=f=>old.find(c=>c.fijo===f);const libres=old.filter(c=>!c.fijo);
+    const nuevos=CP_COM_FIJOS.map(([k,nom])=>{const o=by(k);return o?Object.assign(o,{nombre:nom,fijo:k}):cpComite(nom,k)});
+    const ali=by("a");if(ali&&ali.on&&tiene(ali))nuevos.push(Object.assign(ali,{fijo:"",nombre:ali.nombre||"Comité de Alimentación Saludable"}));
+    libres.forEach(c=>nuevos.push(c));d.comites=nuevos;d.ver=2026}
+  return d}
+(function(){const d=store.get(CP_KEY,null);if(d&&d.esc&&d.conv){try{CP=cpMigrar(d)}catch(e){CP=null}}})();
 const cpSave=()=>store.set(CP_KEY,CP);
 const cpPresNombre=()=>[CP.pres.nom,CP.pres.ap1,CP.pres.ap2].map(s=>(s||"").trim()).filter(Boolean).join(" ");
 /* ---- vista ---- */
 function cpIn(path,lab,val,o={}){const t=o.type||"text";return`<div class="field"><label>${lab}${o.opt?` <span class="muted" style="font-weight:400">(opcional)</span>`:""}</label><input type="${t}" data-f="${path}" value="${esc(val??"")}" ${o.list?`list="${o.list}"`:""} ${o.ph?`placeholder="${esc(o.ph)}"`:""} ${o.mode?`inputmode="${o.mode}"`:""} autocomplete="off"></div>`}
 function cpTa(path,lab,val,rows,help){return`<div class="field"><label>${lab}</label><textarea data-f="${path}" rows="${rows||4}">${esc(val||"")}</textarea>${help?`<p class="help">${help}</p>`:""}</div>`}
 function cpChk(path,lab,on){return`<label class="opt ${on?"on":""}" style="display:inline-flex;margin:4px 6px 4px 0"><input type="checkbox" data-f="${path}" ${on?"checked":""}>${lab}</label>`}
+function cpSel(path,lab,val,ops){return`<div class="field"><label>${lab}</label><select data-f="${path}"><option value="">—</option>${ops.map(([v,t])=>`<option value="${v}" ${val===v?"selected":""}>${t}</option>`).join("")}</select></div>`}
 function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();const E=CP.esc,doc=CP.doc;
   const docBtns=CP_DOCS.map(([k,n])=>`<button type="button" class="btn ${doc===k?"primary":"ghost"}" data-doc="${k}" style="margin:4px 6px 4px 0">${esc(n)}</button>`).join("");
   let cuerpo="";
@@ -3529,29 +3543,30 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
      <div class="field"><label>Sesión</label><select data-f="conv.sesion">${[["1","1ª · Inicial"],["2","2ª · Seguimiento"],["3","3ª · Sesión de cierre"],["ext","Sesión extraordinaria"]].map(([v,t])=>`<option value="${v}" ${C.sesion===v?"selected":""}>${t}</option>`).join("")}</select>
       <p class="help">La 1ª y 3ª sesión son con toda la comunidad educativa; la 2ª, solo con los integrantes del Consejo.</p></div>
      ${C.sesion==="ext"?`<div class="field"><label>Número de sesión extraordinaria</label><select data-f="conv.ext"><option value="">—</option>${[1,2,3,4,5].map(n=>`<option ${C.ext===String(n)?"selected":""}>${n}</option>`).join("")}</select></div>`:""}
-     <div class="field"><label>Además se abordarán los siguientes temas <span class="muted" style="font-weight:400">(opcional, hasta 5)</span></label>${C.temas.map((t,i)=>`<input type="text" data-f="conv.temas.${i}" value="${esc(t)}" autocomplete="off" style="margin-bottom:6px">`).join("")}</div>
-     ${cpIn("conv.lugar","Se llevará a cabo en (nombre de la escuela y lugar)",C.lugar||E.nombre,{ph:E.nombre})}
+     <div class="field"><label>Además se abordarán los siguientes temas <span class="muted" style="font-weight:400">(opcional, hasta 4)</span></label>${C.temas.map((t,i)=>`<input type="text" data-f="conv.temas.${i}" value="${esc(t)}" autocomplete="off" style="margin-bottom:6px">`).join("")}</div>
+     ${cpIn("conv.lugar","Se llevará a cabo en (nombre de la escuela y lugar de la publicación)",C.lugar||E.nombre,{ph:E.nombre})}
      <div class="row2"><div class="field"><label>Turno</label><select data-f="conv.turno"><option value="">—</option>${[["M","Matutino"],["V","Vespertino"],["TC","Tiempo completo"]].map(([v,t])=>`<option value="${v}" ${C.turno===v?"selected":""}>${t}</option>`).join("")}</select></div>
       ${cpIn("conv.hora","Hora",C.hora,{type:"time"})}</div>
      ${cpIn("conv.fecha","Fecha de la sesión",C.fecha,{type:"date"})}
      <div>${cpChk("conv.firmaDir","Poner el nombre del director(a)",C.firmaDir)}${cpChk("conv.firmaPres","Poner el nombre del presidente(a)",C.firmaPres)}</div></section>`}
   else if(doc==="lista"){const L=CP.lista;
     cuerpo=`<section class="card"><h3>Lista de asistencia</h3>${cpIn("lista.fecha","Fecha",L.fecha,{type:"date"})}
-     ${cpTa("lista.nombres","Nombres ya escritos (opcional)",L.nombres,5,"Uno por renglón. Si quiere, agregue el teléfono después de una coma: «María López, 616 123 4567». Si lo deja vacío, la lista sale en blanco para que firmen. Caben 16 por hoja; si hay más, se agregan hojas.")}</section>`}
+     ${cpTa("lista.nombres","Nombres ya escritos (opcional)",L.nombres,5,"Uno por renglón. Si quiere, agregue el teléfono después de una coma: «María López, 616 123 4567». Si lo deja vacío, la lista sale en blanco para que firmen. Caben 15 por hoja; si hay más, se agregan hojas.")}</section>`}
   else if(doc==="minuta"){const M=CP.minuta;
     const mHTML=M.miembros.map((m,i)=>`<div class="invit"><div class="invit_h"><b>Integrante ${i+1}</b><button type="button" class="btn link" data-mdel="${i}">Quitar</button></div>
-      <div class="row2">${cpIn(`minuta.miembros.${i}.cargo`,"Cargo en el Consejo",m.cargo,{list:"cp_cargos"})}${cpIn(`minuta.miembros.${i}.calidad`,"En calidad de",m.calidad,{list:"cp_calidad"})}</div>
+      <div class="row2">${cpIn(`minuta.miembros.${i}.cargo`,"Cargo en el Consejo",m.cargo,{list:"cp_cargos"})}${cpIn(`minuta.miembros.${i}.calidad`,"En calidad de consejero",m.calidad,{list:"cp_calidad"})}</div>
       <div class="row2">${cpIn(`minuta.miembros.${i}.nom`,"Nombre(s)",m.nom)}${cpIn(`minuta.miembros.${i}.ap1`,"Apellido paterno",m.ap1)}</div>
       <div class="row2">${cpIn(`minuta.miembros.${i}.ap2`,"Apellido materno",m.ap2)}${cpIn(`minuta.miembros.${i}.genero`,"Género",m.genero,{list:"cp_genero"})}</div>
       <div class="row2">${cpIn(`minuta.miembros.${i}.curp`,"CURP",m.curp)}${cpIn(`minuta.miembros.${i}.escol`,"Escolaridad",m.escol,{list:"cp_escol"})}</div>
       <div class="row2">${cpIn(`minuta.miembros.${i}.correo`,"Correo electrónico",m.correo,{type:"email"})}${cpIn(`minuta.miembros.${i}.tel`,"Teléfono",m.tel,{mode:"tel"})}</div>
       <div class="row2">${cpIn(`minuta.miembros.${i}.hnom`,"Nombre(s) del hijo(a)",m.hnom)}${cpIn(`minuta.miembros.${i}.hap1`,"Apellido paterno del hijo(a)",m.hap1)}</div>
-      <div class="row2">${cpIn(`minuta.miembros.${i}.hap2`,"Apellido materno del hijo(a)",m.hap2)}${cpIn(`minuta.miembros.${i}.hgrado`,"Grado del hijo(a)",m.hgrado)}</div></div>`).join("");
+      <div class="row2">${cpIn(`minuta.miembros.${i}.hap2`,"Apellido materno del hijo(a)",m.hap2)}${cpIn(`minuta.miembros.${i}.hgrado`,"Grado del hijo(a) inscrito",m.hgrado)}</div></div>`).join("");
     cuerpo=`<section class="card"><h3>Sesión de instalación</h3>
      <div class="row2">${cpIn("minuta.fecha","Fecha",M.fecha,{type:"date"})}<div class="row2" style="gap:8px">${cpIn("minuta.horaIni","Hora de inicio",M.horaIni,{type:"time"})}${cpIn("minuta.horaFin","Hora de cierre",M.horaFin,{type:"time"})}</div></div>
-     <p class="help">La minuta indica que, en caso de no ser presencial, la sesión puede hacerse por medios digitales. Si fue así, marque la herramienta usada:</p>
-     <div>${cpChk("minuta.virtual","La sesión fue por medios digitales",M.virtual)}</div>
-     ${M.virtual?`<div>${[["zoom","Zoom"],["meet","Meet"],["whatsapp","WhatsApp"],["messenger","Messenger"],["email","Correo"],["tel","Teléfono"]].map(([k,n])=>cpChk("minuta.herr."+k,n,M.herr[k])).join("")}</div>${cpIn("minuta.otros","Otra herramienta",M.otros,{opt:true})}`:""}
+     <div class="field"><label>El orden establecido en la convocatoria se dio a conocer mediante</label><div>${[["tel","Teléfono"],["whatsapp","WhatsApp"],["correo","Correo electrónico"],["escrito","Por escrito"]].map(([k,n])=>cpChk("minuta.medio."+k,n,M.medio[k])).join("")}</div></div>
+     ${cpIn("minuta.medioOtro","Otros medios",M.medioOtro,{opt:true})}
+     <div>${cpChk("minuta.virtual","La sesión no fue presencial: se hizo por medios digitales",M.virtual)}</div>
+     ${M.virtual?`<p class="help">Se anotará al inicio de la relatoría, sin modificar el texto del formato oficial. Marque la herramienta usada:</p><div>${[["zoom","Zoom"],["meet","Meet"],["whatsapp","WhatsApp"],["messenger","Messenger"],["email","Correo"],["tel","Teléfono"]].map(([k,n])=>cpChk("minuta.herr."+k,n,M.herr[k])).join("")}</div>${cpIn("minuta.otros","Otra herramienta",M.otros,{opt:true})}`:""}
      ${cpTa("minuta.relatoria","Relatoría de la sesión según el orden del día",M.relatoria,6)}</section>
     <section class="card"><h3>Integrantes del Consejo</h3><p class="help">Caben 25 integrantes en el formato.</p>${mHTML}
      ${M.miembros.length<25?`<div class="acts"><button type="button" class="btn ghost act" id="cp_madd">+ Agregar integrante</button></div>`:""}
@@ -3559,50 +3574,63 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
      <datalist id="cp_calidad"><option value="Madre de familia"><option value="Padre de familia"><option value="Tutor(a)"><option value="Docente"><option value="Director(a)"><option value="Representante sindical"><option value="Miembro de la comunidad"></datalist>
      <datalist id="cp_genero"><option value="Mujer"><option value="Hombre"></datalist>
      <datalist id="cp_escol"><option value="Primaria"><option value="Secundaria"><option value="Bachillerato"><option value="Licenciatura"><option value="Posgrado"><option value="Sin escolaridad"></datalist></section>
-    <section class="card"><h3>Elección del presidente(a)</h3><p class="help">Nombre del presidente(a): se toma de «Presidente(a) del Consejo», arriba.</p>
+    <section class="card"><h3>Elección del presidente(a)</h3><p class="help">Nombre del presidente(a): se toma de «Presidente(a) del Consejo», arriba. Como secretario(a) técnico(a) aparece el director(a) de la escuela.</p>
      ${cpIn("minuta.numInt","Número de integrantes del Consejo",M.numInt,{mode:"numeric",ph:String(M.miembros.filter(m=>m.nom||m.ap1).length||"")})}
      <div class="row2">${cpIn("minuta.phijo","Nombre completo del hijo(a) del presidente(a)",M.phijo)}${cpIn("minuta.pgrado","Grado",M.pgrado)}</div>
      <div class="row2">${cpIn("minuta.pacred","Forma de acreditación",M.pacred)}${cpIn("minuta.votos","Total de votos",M.votos,{mode:"numeric"})}</div></section>
     <section class="card"><h3>Asuntos generales y firmas</h3>
      <div class="row2">${cpTa("minuta.asuntos","Asuntos generales",M.asuntos,3)}${cpTa("minuta.acuerdos","Acuerdos aprobados",M.acuerdos,3)}</div>
-     <div class="row2">${cpIn("minuta.maestro","Maestro(a) de grupo que firma",M.maestro,{opt:true})}${cpIn("minuta.supervisor","Vo. Bo. Supervisor(a)",M.supervisor)}</div></section>`}
+     <div class="row2">${cpIn("minuta.maestro","Maestro(a) de grupo que firma",M.maestro,{opt:true})}${cpIn("minuta.supervisor","Vo. Bo. Inspector(a) o Supervisor(a)",M.supervisor)}</div></section>`}
   else if(doc==="comites"){
     const per=(p,base,lab)=>`<div class="row2">${cpIn(base+".n",lab,p.n)}<div class="row2" style="gap:8px">${cpIn(base+".c","Correo",p.c,{type:"email"})}${cpIn(base+".t","Teléfono",p.t,{mode:"tel"})}</div></div>`;
-    cuerpo=`<section class="card"><h3>Comités</h3><p class="help">Deben integrarse por lo menos 4 comités (siempre y cuando apliquen). El de Contraloría Social es para escuelas con programa federal; el de Infraestructura, siempre y cuando aplique. Desmarque los que no lleve su escuela y agregue los que necesite con su propio nombre.</p>
+    cuerpo=`<section class="card"><h3>Comités</h3><p class="help">Todas las escuelas deben integrar como mínimo 5 comités (siempre y cuando aplique). El formato específico de Contraloría Social es solo para escuelas con programa federal. Desmarque el que no aplique a su escuela (su recuadro sale en blanco) y agregue los que necesite con su propio nombre.</p>
      ${CP.comites.map((c,i)=>`<div class="invit"><div class="invit_h">${c.fijo?`<label class="opt ${c.on?"on":""}" style="display:inline-flex;min-height:0;padding:6px 10px"><input type="checkbox" data-f="comites.${i}.on" ${c.on?"checked":""}><b>${esc(c.nombre)}</b></label>`:`<b>Comité adicional</b><button type="button" class="btn link" data-cdel="${i}">Quitar</button>`}</div>
        ${c.on?`${c.fijo?"":cpIn(`comites.${i}.nombre`,"Nombre del comité",c.nombre,{ph:"Comité de …"})}
        ${per(c.coord,`comites.${i}.coord`,"Coordinador(a)")}
        ${c.int.map((p,j)=>per(p,`comites.${i}.int.${j}`,`Integrante ${j+1}`)).join("")}`:""}</div>`).join("")}
      <div class="acts"><button type="button" class="btn ghost act" id="cp_cadd">+ Agregar otro comité</button></div></section>`}
   else if(doc==="plan"){
-    cuerpo=`<section class="card"><h3>Plan de trabajo</h3><p class="help">Una meta por renglón del plan. Si no caben en una hoja, se agregan hojas del mismo formato.</p>
+    cuerpo=`<section class="card"><h3>Plan de trabajo</h3>${cpIn("plan.fecha","Fecha",CP.plan.fecha,{type:"date"})}<p class="help">Una meta por renglón del plan. Si no caben en una hoja, se agregan hojas del mismo formato.</p>
      ${CP.plan.filas.map((f,i)=>`<div class="invit"><div class="invit_h"><b>Meta ${i+1}</b><button type="button" class="btn link" data-pdel="${i}">Quitar</button></div>
       ${cpTa(`plan.filas.${i}.meta`,"Meta",f.meta,2)}${cpTa(`plan.filas.${i}.acc`,"Acciones",f.acc,3)}
       <div class="row2">${cpTa(`plan.filas.${i}.resp`,"Responsables",f.resp,2)}${cpTa(`plan.filas.${i}.req`,"Requerimientos",f.req,2)}</div>
       ${cpIn(`plan.filas.${i}.fecha`,"Fecha de realización",f.fecha,{ph:"Ej. noviembre 2026"})}</div>`).join("")}
      <div class="acts"><button type="button" class="btn ghost act" id="cp_padd">+ Agregar meta</button></div></section>`}
+  else if(doc==="ab"){const A=CP.ab,rep=[["P","Padres"],["D","Docentes"]],tipo=[["P","Presidente"],["C","Consejero"]];
+    cuerpo=`<section class="card"><h3>Sesión extraordinaria de alta y baja</h3><p class="help">Para actualizar el acta constitutiva cuando un integrante deja el Consejo o entra uno nuevo. La minuta la valida la Coordinación Municipal de Participación Social y Convivencia Escolar.</p>
+     <div class="row2">${cpIn("ab.fecha","Fecha",A.fecha,{type:"date"})}<div class="row2" style="gap:8px">${cpIn("ab.horaIni","Hora de inicio",A.horaIni,{type:"time"})}${cpIn("ab.horaFin","Hora de cierre",A.horaFin,{type:"time"})}</div></div></section>
+    <section class="card"><h3>Baja de integrante</h3>${cpSel("ab.bajaTipo","Se da de baja a",A.bajaTipo,tipo)}
+     ${A.bajas.map((b,i)=>`<div class="invit"><div class="invit_h"><b>Baja ${i+1}</b></div>${cpIn(`ab.bajas.${i}.n`,"Nombre del consejero",b.n)}<div class="row2">${cpSel(`ab.bajas.${i}.rep`,"En representación de",b.rep,rep)}${cpIn(`ab.bajas.${i}.fecha`,"Fecha de la baja",b.fecha,{type:"date"})}</div></div>`).join("")}
+     ${cpTa("ab.motivos","Motivos de la baja",A.motivos,2)}</section>
+    <section class="card"><h3>Alta de integrante</h3>${cpSel("ab.altaTipo","Se da de alta a",A.altaTipo,tipo)}
+     ${A.altas.map((b,i)=>`<div class="invit"><div class="invit_h"><b>Alta ${i+1}</b></div>${cpIn(`ab.altas.${i}.n`,"Nombre del consejero",b.n)}<div class="row2">${cpSel(`ab.altas.${i}.rep`,"En representación de",b.rep,rep)}${cpIn(`ab.altas.${i}.tel`,"Teléfono(s)",b.tel,{mode:"tel"})}</div>${cpIn(`ab.altas.${i}.curp`,"CURP",b.curp)}</div>`).join("")}</section>
+    <section class="card"><h3>Firman los que intervinieron</h3><p class="help">Opcional: si los deja vacíos, se firman a mano.</p>
+     ${A.firmas.map((f,i)=>`<div class="row2">${cpIn(`ab.firmas.${i}.n`,`Nombre ${i+1}`,f.n)}${cpIn(`ab.firmas.${i}.cargo`,"Cargo",f.cargo,{list:"cp_cargos2"})}</div>`).join("")}
+     <datalist id="cp_cargos2"><option value="Presidente(a) del Consejo"><option value="Consejero(a)"><option value="Director(a)"><option value="Docente"><option value="Madre de familia"><option value="Padre de familia"></datalist>
+     ${cpIn("ab.supervisor","Vo. Bo. Supervisor(a)",A.supervisor)}</section>`}
   else{
-    cuerpo=`<section class="card"><h3>Requisitos de validación</h3>
-     <p><b>Sesión de instalación</b> (Art. 43): dar a conocer programas, ruta de mejora, normalidad mínima, plantilla de personal y plan de trabajo, y conformar los comités.</p>
-     <p class="help">Para validación: minuta de instalación, convocatoria, plantilla de personal, lista de asistencia, formato de integración de comités y evidencia de la reunión. En la plataforma REPASE se captura el acta de instalación y el Comité Participativo de Salud Escolar.</p>
-     <p><b>Sesión de seguimiento</b> (Art. 44): compartir avances, proponer actividades y reconocimientos.</p>
-     <p class="help">Para validación: convocatoria, acta de sesión REPASE, lista de asistencia y evidencia de la reunión.</p>
-     <p><b>Sesión de cierre</b> (Art. 45): informe por escrito de acciones, actividades de los comités y recursos recibidos (origen, monto y destino), que se hace público con un cartel en la escuela.</p>
-     <p class="help">Para validación: convocatoria, acta de sesión REPASE, evidencia fotográfica del informe de transparencia, lista de asistencia y evidencia de la reunión.</p>
-     <div class="acts"><a class="btn ghost act" href="formatos/requisitos-consejo.pdf" target="_blank" rel="noopener">Ver la hoja original de requisitos</a></div></section>`}
+    cuerpo=`<section class="card"><h3>Requisitos de validación de actas</h3>
+     <p><b>Sesión de instalación</b> (Art. 43): dar a conocer la incorporación de la escuela a programas federales, estatales y municipales; el Programa Escolar de Mejora Continua, sus metas y objetivos; las acciones para atender la normalidad mínima; la plantilla del personal y el plan de trabajo; y conformar los comités. Todas las escuelas deben integrar como mínimo 5 comités (siempre y cuando aplique): protección civil y emergencia escolar; salud escolar y prevención del consumo de sustancias nocivas; contraloría social; infraestructura escolar; y convivencia escolar y desaliento de las prácticas que generan violencia. El formato específico de Contraloría Social es solo para escuelas con programa federal.</p>
+     <p class="help">Documentos: convocatoria, minuta de instalación, plantilla de personal, lista de asistencia, formato de integración de comités, plan de trabajo y evidencia de la reunión (fotos, capturas de pantalla, correos). En la plataforma REPASE se captura el acta de instalación.</p>
+     <p><b>Sesión de seguimiento</b> (Art. 44): compartir avances de las actividades, proponer actividades deportivas y recreativas que fortalezcan el logro de los aprendizajes, y proponer estímulos y reconocimientos de carácter social.</p>
+     <p class="help">Documentos: convocatoria, lista de asistencia y evidencia de la reunión. En REPASE se captura el acta de sesión de seguimiento; para registrarla, el acta de instalación debe estar registrada y cerrada.</p>
+     <p><b>Sesión de cierre</b> (Art. 45): informe por escrito de las acciones realizadas, las actividades de los comités y los recursos materiales o financieros recibidos (origen, naturaleza o monto y destino). El informe se hace público con un cartel en un lugar visible de la escuela.</p>
+     <p class="help">Documentos: convocatoria, evidencia fotográfica del informe de transparencia, lista de asistencia y evidencia de la reunión. En REPASE se captura el acta de rendición de cuentas.</p>
+     <div class="acts"><a class="btn ghost act" href="formatos/requisitos-consejo.pdf" target="_blank" rel="noopener">Ver la hoja oficial de requisitos</a></div></section>`}
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Participación social</div><h2>Consejo de Participación Escolar</h2></div></div>
-   <p class="muted">Llene una vez los datos de la escuela y del presidente(a); se usan en todos los formatos. Luego elija el formato, complételo y descárguelo en PDF con el diseño oficial.</p>
+   <p class="muted">Llene una vez los datos de la escuela y del presidente(a); se usan en todos los formatos. Luego elija el formato, complételo y descárguelo en PDF con el diseño oficial 2026.</p>
    <section class="card"><h3>Datos de la escuela</h3>
     ${cpIn("ciclo","Ciclo escolar",CP.ciclo)}
     <div class="field"><label>Escuela</label><select id="cp_esc"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${E.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${E.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
     ${cpIn("esc.nombre","Nombre de la escuela",E.nombre)}
     <div class="row2">${cpIn("esc.cct","C.C.T.",E.cct)}${cpIn("esc.zona","Zona escolar",E.zona)}</div>
     <div class="row2">${cpIn("esc.sector","Sector escolar",E.sector,{opt:true})}<div class="field"><label>Turno</label><select data-f="esc.turno"><option value="">—</option>${["Matutino","Vespertino","Tiempo completo"].map(t=>`<option ${E.turno===t?"selected":""}>${t}</option>`).join("")}</select></div></div>
+    <div class="row2">${cpIn("esc.nivel","Nivel",E.nivel)}${cpIn("esc.subsistema","Subsistema",E.subsistema,{ph:"Federalizado"})}</div>
     <div class="row2">${cpIn("esc.mun","Municipio",E.mun)}${cpIn("esc.loc","Localidad",E.loc)}</div>
     ${cpIn("esc.dom","Domicilio",E.dom)}
     <div class="row2">${cpIn("esc.tel","Teléfono",E.tel,{mode:"tel"})}${cpIn("esc.correo","Correo institucional",E.correo,{type:"email"})}</div>
     ${cpIn("esc.director","Director(a) o quien ejerce la función directiva",E.director)}
-    <div class="row2">${cpIn("esc.padres","Total de padres de familia",E.padres,{mode:"numeric"})}${cpIn("esc.alumnos","Total de alumnos",E.alumnos,{mode:"numeric"})}</div></section>
+    ${cpIn("esc.padres","Total de padres de familia",E.padres,{mode:"numeric"})}</section>
    <section class="card"><h3>Presidente(a) del Consejo</h3><div class="row2">${cpIn("pres.nom","Nombre(s)",CP.pres.nom)}${cpIn("pres.ap1","Primer apellido",CP.pres.ap1)}</div>${cpIn("pres.ap2","Segundo apellido",CP.pres.ap2)}</section>
    <section class="card"><h3>Formato</h3><div>${docBtns}</div></section>
    ${cuerpo}
@@ -3623,6 +3651,7 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
   window.scrollTo(0,0)}
 /* ---- PDF ---- */
 function cpParts(iso){const p=parseDate(iso);return p?[String(p.d).padStart(2,"0"),String(p.m).padStart(2,"0"),String(p.y)]:["","",""]}
+function cpMes(iso){const p=parseDate(iso);return p?MESES[p.m-1]:""}
 async function cpPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
   try{await fonts();const doc=await PDFLib.PDFDocument.create();const F=await doc.embedFont(PDFLib.StandardFonts.Helvetica),FB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
     const ink=PDFLib.rgb(0.05,0.05,0.15),E=CP.esc,k=CP.doc;
@@ -3631,114 +3660,126 @@ async function cpPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textCon
       while(f.widthOfTextAtSize(t,s)>w&&s>5.5)s-=0.25;let c=t;while(f.widthOfTextAtSize(c,s)>w&&c.length>1)c=c.slice(0,-1);
       const tw=f.widthOfTextAtSize(c,s);let X=x;if(o.align==="c")X=x+(w-tw)/2;else if(o.align==="r")X=x+w-tw;
       pg.drawText(c,{x:X,y:pg.getHeight()-T,size:s,font:f,color:o.color||ink})};
+    /* centrado en un tramo [x0,x1] */
+    const putc=(pg,txt,x0,x1,T,o={})=>put(pg,txt,x0+2,T,Object.assign({w:x1-x0-4,align:"c"},o));
     const wrap=(txt,f,s,w)=>{const out=[];for(const para of clean(txt).split("\n")){if(!para.trim()){out.push("");continue}let ln="";for(const wd of para.split(/\s+/)){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){out.push(ln);ln=wd}else ln=te}if(ln)out.push(ln)}return out};
     /* bloque de texto en un rectángulo (x,T arriba, w,h) */
     const box=(pg,txt,x,T,w,h,o={})=>{const f=o.font||F;let s=o.size||9,L;for(;s>=5.5;s-=0.25){L=wrap(txt,f,s,w);if(L.length*s*1.18<=h)break}
       L.slice(0,Math.floor(h/(s*1.18))).forEach((l,i)=>pg.drawText(l,{x,y:pg.getHeight()-(T+s*0.95+i*s*1.18),size:s,font:f,color:ink}))};
-    if(k==="minuta"){await cpMinuta(doc,{F,FB,put,box,ink});}
+    /* marca X centrada en (cx,cy) medidos desde arriba; anillo para elegir opciones */
+    const mark=(pg,cx,cy,s=11)=>{const tw=FB.widthOfTextAtSize("X",s);pg.drawText("X",{x:cx-tw/2,y:pg.getHeight()-cy-s*0.36,size:s,font:FB,color:ink})};
+    const ring=(pg,cx,cy,r)=>pg.drawEllipse({x:cx,y:pg.getHeight()-cy,xScale:r,yScale:r,borderColor:PDFLib.rgb(0.07,0.2,0.55),borderWidth:2});
+    const H={F,FB,put,putc,box,wrap,mark,ink};
+    if(k==="minuta"){await cpMinuta(doc,H);}
     else{if(!CP_TPL)CP_TPL=await(await fetch("formatos/consejo.pdf")).arrayBuffer();const src=await PDFLib.PDFDocument.load(CP_TPL);
       const add=async i=>{const[p]=await doc.copyPages(src,[i]);doc.addPage(p);return p};
-      if(k==="conv"){const C=CP.conv,pg=await add(0);const[d,m,a]=cpParts(C.emision);
-        put(pg,d,58,108,{w:13,align:"c",size:10});put(pg,m,80,108,{w:21,align:"c",size:10});put(pg,a,109,108,{w:23,align:"c",size:10});
-        const X=(cx,cy)=>{const s=13,tw=FB.widthOfTextAtSize("X",s);pg.drawText("X",{x:cx-tw/2,y:612-cy-s*0.36,size:s,font:FB,color:ink})};
-        const ring=(cx,cy,r)=>pg.drawEllipse({x:cx,y:612-cy,xScale:r,yScale:r,borderColor:PDFLib.rgb(0.07,0.2,0.55),borderWidth:2});
-        if(C.sesion==="1")X(737,157);else if(C.sesion==="2")X(737,238);else if(C.sesion==="3")X(737,278);
-        else{X(422,352);const n=+C.ext;if(n>=1&&n<=5)ring([515,540.5,566,591.5,617][n-1],353.5,12)}
-        [367.5,385,404,422.5,441.5].forEach((ly,i)=>put(pg,C.temas[i],43,ly-3,{w:255,size:9}));
-        put(pg,E.zona,703,352,{w:56,size:10});put(pg,C.lugar||E.nombre,398,391,{w:334,size:9.5,align:"c"});
-        if(C.turno)ring({M:373,V:394,TC:415}[C.turno],424,12);
-        const[fd,fm,fa]=cpParts(C.fecha);put(pg,fd,492.5,423,{w:31.5,align:"c",size:10});put(pg,fm,528.5,423,{w:31.5,align:"c",size:10});put(pg,fa,565,423,{w:38.5,align:"c",size:10});
-        if(C.hora){const[h,mi]=C.hora.split(":");put(pg,h,650,423,{w:26,align:"c",size:10});put(pg,mi,684,423,{w:24,align:"c",size:10})}
-        if(C.firmaDir)put(pg,E.director,19,580,{w:158,align:"c",size:8.5,bold:true});if(C.firmaPres)put(pg,cpPresNombre(),194,580,{w:158,align:"c",size:8.5,bold:true})}
+      if(k==="conv"){const C=CP.conv,pg=await add(0);const[d,,a]=cpParts(C.emision);
+        putc(pg,d,216.6,240.5,92.5,{size:10});putc(pg,cpMes(C.emision),300.9,389.1,92.5,{size:10});putc(pg,a,432.2,478.1,92.5,{size:10});
+        if(C.sesion==="1")mark(pg,731.2,141.8,14);else if(C.sesion==="2")mark(pg,731.2,193.7,14);else if(C.sesion==="3")mark(pg,731.2,241.4,14);
+        else{mark(pg,157.3,402,13);const n=+C.ext;if(n>=1&&n<=5)ring(pg,[191.8,221,250,279.2,307.2][n-1],402.5,12)}
+        [[350,743.6,291.5],[46,742,309.4],[46,742,327.2],[46,742,345.1]].forEach(([x0,x1,T],i)=>put(pg,C.temas[i],x0,T,{w:x1-x0,size:9.5}));
+        putc(pg,E.zona,405,442.2,404.5,{size:10});putc(pg,C.lugar||E.nombre,206.5,743.9,434.8,{size:9.5});
+        if(C.turno)ring(pg,{M:108,V:130.7,TC:153}[C.turno],463.5,10.5);
+        const[fd,,fa]=cpParts(C.fecha);putc(pg,fd,242.2,279.3,466,{size:10});putc(pg,cpMes(C.fecha),281.2,345.8,466,{size:9.5});putc(pg,fa,347.5,390.9,466,{size:10});
+        if(C.hora)putc(pg,C.hora,440.5,486.1,469.8,{size:10});
+        if(C.firmaDir)putc(pg,E.director,59.6,249.5,552,{size:8.5,bold:true});if(C.firmaPres)putc(pg,cpPresNombre(),262,451.8,552,{size:8.5,bold:true})}
       else if(k==="lista"){const L=CP.lista;const rows=L.nombres.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{const i=s.lastIndexOf(",");return i>0&&/\d/.test(s.slice(i))?[s.slice(0,i).trim(),s.slice(i+1).trim()]:[s,""]});
-        const tops=[196,219.8,244.2,268.2,292.5,316.8,340.8,365,389.2,413.2,437.5,461.8,486,510,534.2,556.5,578.8];const n=Math.max(1,Math.ceil(rows.length/16));
-        for(let p=0;p<n;p++){const pg=await add(1);const[d,m,a]=cpParts(L.fecha);
-          put(pg,d,639.5,121,{w:31,align:"c",size:9});put(pg,m,674.5,121,{w:32,align:"c",size:9});put(pg,a,710,121,{w:43.5,align:"c",size:9});
-          put(pg,E.nombre,41,153,{w:281,align:"c",size:9.5});put(pg,E.cct,330,153,{w:141,align:"c",size:9.5});put(pg,E.zona,476.5,153,{w:118,align:"c",size:9.5});put(pg,E.mun,600.5,153,{w:150,align:"c",size:9.5});
-          rows.slice(p*16,p*16+16).forEach((r,i)=>{const T=(tops[i]+tops[i+1])/2+3.5;put(pg,r[0],47,T,{w:288,size:9.5});put(pg,r[1],344,T,{w:200,size:9.5})});
+        const tops=[163.1,189.2,216.4,243.5,270.7,297.8,325,352.2,379.3,406.5,433.7,460.8,488,515.1,542.3,568.6];const POR=15,n=Math.max(1,Math.ceil(rows.length/POR));
+        for(let p=0;p<n;p++){const pg=await add(1);const[d,,a]=cpParts(L.fecha);
+          putc(pg,d,615.5,639.9,77.4,{size:9});putc(pg,cpMes(L.fecha),643.3,711.6,77.4,{size:9});putc(pg,a,715.5,751.8,77.4,{size:9});
+          cpCabecera(pg,H,[[39.5,289.2],[289.2,416.4],[416.4,523.6],[523.6,574.5],[574.5,752.5]],115);
+          rows.slice(p*POR,p*POR+POR).forEach((r,i)=>{const T=(tops[i]+tops[i+1])/2+3.5;put(pg,r[0],47,T,{w:276,size:9.5});put(pg,r[1],337,T,{w:200,size:9.5})});
           if(n>1){const lt=`Hoja ${p+1} de ${n}`;pg.drawText(lt,{x:792-40-F.widthOfTextAtSize(lt,7.5),y:14,size:7.5,font:F,color:ink})}}}
-      else if(k==="comites"){const act=CP.comites.filter(c=>c.on&&(c.fijo||c.nombre.trim()));const by=f=>act.find(c=>c.fijo===f);const used=new Set();const pages=[];
-        if(by("s")&&by("p")&&by("a")){pages.push({t:3,dy:1,slots:[by("s"),by("p"),by("a")],named:[1,1,1]});["s","p","a"].forEach(f=>used.add(by(f)))}
-        if(by("i")&&by("c")){used.add(by("i"));used.add(by("c"));const rest=act.find(c=>!used.has(c));if(rest)used.add(rest);pages.push({t:4,dy:0,slots:[by("i"),by("c"),rest],named:[1,1,0]})}
-        const resto=act.filter(c=>!used.has(c));for(let i=0;i<resto.length;i+=3)pages.push({t:2,dy:0,slots:resto.slice(i,i+3),named:[0,0,0]});
-        if(!pages.length)pages.push({t:2,dy:0,slots:[],named:[0,0,0]});
-        const white=PDFLib.rgb(1,1,1);
-        for(const P of pages){const pg=await add(P.t),dy=P.dy;
-          const hb=125+dy;put(pg,E.nombre,26,hb,{w:233,align:"c",size:8.5});put(pg,E.cct,265,hb,{w:133,align:"c",size:8.5});put(pg,E.turno,402.5,hb,{w:112,align:"c",size:8.5});put(pg,E.zona,518,hb,{w:50,align:"c",size:8.5});put(pg,E.mun,573,hb,{w:186,align:"c",size:8.5});
-          P.slots.forEach((c,b)=>{if(!c)return;const base=[187.3,331.2,475.2][b]+dy;const ys=[0,20,39.5,59,78.5,98.2].map(v=>base+v-3.2);
-            if(!P.named[b]){const nm=c.nombre.replace(/^\s*comit[eé]\s*(de\s+)?/i,"").trim();const top=[205,357,502][b]+dy+15;const L=wrap(nm,FB,8.5,90).slice(0,5);L.forEach((l,i)=>{const tw=FB.widthOfTextAtSize(l,8.5);pg.drawText(l,{x:74-tw/2,y:612-(top+i*10.5),size:8.5,font:FB,color:white})})}
-            [c.coord].concat(c.int).forEach((p,i)=>{put(pg,p.n,235,ys[i],{w:188,size:8.5});put(pg,p.c,433,ys[i],{w:166,size:8});put(pg,p.t,609,ys[i],{w:148,size:8.5})})})}}
-      else if(k==="plan"){const cols=[19,148,328,478.5,634.5,762.5],keys=["meta","acc","resp","req","fecha"],s=8,lh=9.6,pad=4;
-        const filas=CP.plan.filas.filter(f=>keys.some(q=>String(f[q]||"").trim()));
-        const head=async()=>{const pg=await add(5);put(pg,E.nombre,127,166,{w:344,size:9.5});put(pg,E.cct,520,166,{w:132,size:9.5});put(pg,E.zona,704,166,{w:56,size:9.5});
-          put(pg,E.director,134,188,{w:340,size:9.5});put(pg,cpPresNombre(),318,214.5,{w:340,size:9.5});return pg};
-        let pg=await head(),T=263+pad,pages=[pg];
+      else if(k==="comites"){const act=CP.comites.filter(c=>c.on&&(c.fijo||c.nombre.trim()));const by=f=>act.find(c=>c.fijo===f);
+        const extra=act.filter(c=>!c.fijo);
+        /* Hoja 1: protección civil, salud y contraloría; hoja 2: infraestructura, convivencia y un comité libre; hoja 3: tres comités libres */
+        const pages=[{t:2,slots:[by("p"),by("s"),by("c")],libre:[0,0,0],cols:[224.1,412.3,612,753]},
+                     {t:3,slots:[by("i"),by("v"),extra[0]],libre:[0,0,1],cols:[231.1,428.3,620,753]}];
+        for(let i=1;i<extra.length;i+=3)pages.push({t:4,slots:extra.slice(i,i+3),libre:[2,2,2],cols:[231.4,428.6,620.3,753]});
+        const terra=PDFLib.rgb(0.76,0.51,0.36),edges=[17,35.4,53.9,73.5,93,112.5,133.1];
+        for(const P of pages){const pg=await add(P.t);
+          cpCabecera(pg,H,[[39,289],[289,416.4],[416.4,523.7],[523.7,574.7],[574.7,753]],114);
+          P.slots.forEach((c,b)=>{if(!c)return;const Bt=[147.1,290.4,433.7][b];const C=P.cols;
+            if(P.libre[b]){const nm=clean(P.libre[b]===1?c.nombre.replace(/^\s*comit[eé]\s*/i,""):c.nombre).toUpperCase();
+              const s=10,L=wrap(nm,FB,s,94).slice(0,P.libre[b]===1?4:8),lh=12,top=P.libre[b]===1?Bt+80.5:Bt+66.5-(L.length*lh)/2+s*0.8;
+              L.forEach((l,i)=>{const tw=FB.widthOfTextAtSize(l,s);pg.drawText(l,{x:90-tw/2,y:612-(top+i*lh),size:s,font:FB,color:terra})})}
+            [c.coord].concat(c.int).forEach((p,i)=>{const T=Bt+(edges[i]+edges[i+1])/2+3.2;put(pg,p.n,C[0]+5,T,{w:C[1]-C[0]-10,size:8.5});put(pg,p.c,C[1]+5,T,{w:C[2]-C[1]-10,size:8});put(pg,p.t,C[2]+5,T,{w:C[3]-C[2]-10,size:8.5})})})}}
+      else if(k==="plan"){const cols=[40.7,177.2,331.5,487.7,639.6,752.5],keys=["meta","acc","resp","req","fecha"],s=8,lh=9.6,pad=4,T0=192.5,BOT=556;
+        const filas=CP.plan.filas.filter(f=>keys.some(q=>String(f[q]||"").trim()));const[pd,,pa]=cpParts(CP.plan.fecha);
+        const head=async()=>{const pg=await add(5);
+          putc(pg,pd,614.5,638.9,72.4,{size:9});putc(pg,cpMes(CP.plan.fecha),642.3,710.6,72.4,{size:9});putc(pg,pa,714.5,750.8,72.4,{size:9});
+          put(pg,E.nombre,142,104.6,{w:605,size:9.5});put(pg,E.director,146,124,{w:600,size:9.5});
+          put(pg,E.cct,70,143.4,{w:126,size:9.5});put(pg,E.turno,231,143.4,{w:101,size:9.5});put(pg,E.zona,365,143.4,{w:64,size:9.5});put(pg,E.subsistema,486,143.4,{w:109,size:9.5});put(pg,E.nivel,626,143.4,{w:122,size:9.5});
+          put(pg,cpPresNombre(),307,163.2,{w:440,size:9.5});return pg};
+        let pg=await head(),T=T0+pad,pages=[pg];
         for(const f of filas){const L=keys.map((q,i)=>wrap(f[q]||"",F,s,cols[i+1]-cols[i]-pad*2));const h=Math.max(...L.map(x=>x.length))*lh+pad;
-          if(T+h>592&&T>263+pad+1){pg=await head();pages.push(pg);T=263+pad}
-          let rows=L;const maxR=Math.floor((592-T)/lh);rows=L.map(x=>x.slice(0,maxR));
+          if(T+h>BOT&&T>T0+pad+1){pg=await head();pages.push(pg);T=T0+pad}
+          const maxR=Math.floor((BOT-T)/lh);const rows=L.map(x=>x.slice(0,maxR));
           rows.forEach((ls,i)=>ls.forEach((l,j)=>pg.drawText(l,{x:cols[i]+pad,y:612-(T+s+j*lh),size:s,font:F,color:ink})));
-          T+=Math.min(h,maxR*lh+pad);if(T<591)pg.drawLine({start:{x:19,y:612-T+1},end:{x:762.5,y:612-T+1},thickness:0.5,color:PDFLib.rgb(0.6,0.6,0.6)});T+=pad}
-        if(pages.length>1)pages.forEach((p,i)=>{const lt=`Hoja ${i+1} de ${pages.length}`;p.drawText(lt,{x:792-40-F.widthOfTextAtSize(lt,7.5),y:12,size:7.5,font:F,color:ink})})}}
+          T+=Math.min(h,maxR*lh+pad);if(T<BOT-1)pg.drawLine({start:{x:41,y:612-T+1},end:{x:752,y:612-T+1},thickness:0.5,color:PDFLib.rgb(0.6,0.6,0.6)});T+=pad}
+        if(pages.length>1)pages.forEach((p,i)=>{const lt=`Hoja ${i+1} de ${pages.length}`;p.drawText(lt,{x:792-40-F.widthOfTextAtSize(lt,7.5),y:12,size:7.5,font:F,color:ink})})}
+      else if(k==="ab"){const A=CP.ab,pg=await add(6);
+        putc(pg,E.nombre,43,345.8,103,{size:9.5});putc(pg,E.cct,345.8,485.3,103,{size:9.5});putc(pg,E.zona,485.3,567.5,103,{size:9.5});
+        const p=parseDate(A.fecha);const[hi,mi]=(A.horaIni||"").split(":");
+        putc(pg,E.mun,110.1,220,131.6,{size:9});putc(pg,hi,401,420.5,131.6,{size:9});putc(pg,mi,425.9,446.2,131.6,{size:9});
+        putc(pg,p?String(p.d):"",504.7,525,131.6,{size:9});putc(pg,cpMes(A.fecha),66.1,155.6,142.7,{size:9});putc(pg,p?String(p.y):"",194.2,234.8,142.7,{size:9});
+        if(A.bajaTipo)mark(pg,A.bajaTipo==="P"?221.4:295.7,221.7,10);
+        const bT=[268,286,304.7,323.9],bC=[265.8,283.8,302.7,321.7];
+        A.bajas.forEach((b,i)=>{put(pg,b.n,45,bT[i],{w:295,size:9});if(b.rep)mark(pg,b.rep==="P"?377.4:410.4,bC[i],8.5);
+          const[d,m,y]=cpParts(b.fecha);putc(pg,d,451,486.4,bC[i]-1.2,{size:8.5});putc(pg,m,489.5,525,bC[i]-1.2,{size:8.5});putc(pg,y,527.7,563.1,bC[i]-1.2,{size:8.5})});
+        const mL=wrap((A.motivos||"").replace(/\s*\n\s*/g," "),F,9,434);if(mL[0])put(pg,mL[0],128,345.5,{w:434,size:9});if(mL.length>1)put(pg,mL.slice(1).join(" "),46,359.6,{w:516,size:9});
+        if(A.altaTipo)mark(pg,A.altaTipo==="P"?217.4:290.9,378.1,10);
+        const aT=[422.4,442.2,460.9,480],aC=[421.9,439.9,458.6,477.8];
+        A.altas.forEach((b,i)=>{put(pg,b.n,44,aT[i],{w:214,size:9});if(b.rep)mark(pg,b.rep==="P"?291.4:325.4,aC[i],8.5);
+          putc(pg,b.tel,357.1,461.1,aT[i],{size:8.5});putc(pg,(b.curp||"").toUpperCase(),462.9,567,aT[i],{size:8.5})});
+        const[hf,mf]=(A.horaFin||"").split(":");putc(pg,hf,474.4,494.1,506.3,{size:9});putc(pg,mf,498.3,517.1,506.3,{size:9});
+        [563.8,586.3,607.8,629.5,651.3].forEach((T,i)=>{const f=A.firmas[i]||{};putc(pg,f.n,42,229,T,{size:8.5});putc(pg,f.cargo,232,419,T,{size:8.5})});
+        putc(pg,E.director,39.2,292.3,728.5,{size:9,bold:true});putc(pg,A.supervisor,312.9,566,728.5,{size:9,bold:true})}}
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
     const nom=CP_DOCS.find(d=>d[0]===k)[1];const quien=(E.nombre||"").replace(/^Escuela Primaria\s*/i,"").replace(/[\\/:*?"<>|]/g,"").trim();
     a.download=`${nom} CPE ${CP.ciclo} - ${quien||today()}.pdf`;URL.revokeObjectURL(a.href);await entregarPDF(blob,a.download)}
   catch(e){alert("No se pudo generar el formato: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
-/* ---- Minuta de instalación: plantilla oficial de 10 hojas; los párrafos con fecha/ciclo se reescriben con Carlito (métrica de Calibri) ---- */
-async function cpMinuta(doc,H){const{F,put,box,ink}=H,M=CP.minuta,E=CP.esc;
+/* renglón «Datos de identificación de la escuela»: nombre, C.C.T., turno, zona, municipio */
+function cpCabecera(pg,H,cols,T){const E=CP.esc;[E.nombre,E.cct,E.turno,E.zona,E.mun].forEach((v,i)=>H.putc(pg,v,cols[i][0],cols[i][1],T,{size:9.5}))}
+/* ---- Minuta de instalación: plantilla oficial 2026 de 8 hojas; solo se llenan los espacios, el texto oficial no se modifica ---- */
+async function cpMinuta(doc,H){const{F,FB,put,putc,box,mark}=H,M=CP.minuta,E=CP.esc;
   if(!CP_MIN)CP_MIN=await(await fetch("formatos/minuta-consejo.pdf")).arrayBuffer();
-  await loadScript("lib/fontkit.min.js");doc.registerFontkit(window.fontkit);
-  if(!CP_FONTS)CP_FONTS=await Promise.all(["formatos/fonts/carlito.ttf","formatos/fonts/carlito-bold.ttf"].map(async u=>new Uint8Array(await(await fetch(u)).arrayBuffer())));
-  const CR=await doc.embedFont(CP_FONTS[0],{subset:true}),CB=await doc.embedFont(CP_FONTS[1],{subset:true});
   const src=await PDFLib.PDFDocument.load(CP_MIN);const pgs=await doc.copyPages(src,src.getPageIndices());pgs.forEach(p=>doc.addPage(p));
-  const W=PDFLib.rgb(1,1,1),blank=(pg,x0,T0,x1,T1)=>pg.drawRectangle({x:x0,y:792-T1,width:x1-x0,height:T1-T0,color:W});
-  const[d,mm,yy]=cpParts(M.fecha);const p=parseDate(M.fecha);const mes=p?MESES[p.m-1]:"";const dia=p?String(p.d):"";
-  /* párrafo justificado con negritas marcadas entre ** ** */
-  const parrafo=(pg,txt,x0,x1,T,ind,size,pitch)=>{const toks=[];txt.split("**").forEach((seg,i)=>seg.split(/(\s+)/).forEach(w=>{if(w&&!/^\s+$/.test(w))toks.push({w:clean(w),b:i%2===1})}));
-    const sp=CR.widthOfTextAtSize(" ",size),wd=t=>(t.b?CB:CR).widthOfTextAtSize(t.w,size);let lines=[],cur=[],cw=0,first=true;
-    for(const t of toks){const avail=x1-x0-(first?ind:0);const add=(cur.length?sp:0)+wd(t);if(cw+add>avail&&cur.length){lines.push({t:cur,ind:first?ind:0});first=false;cur=[t];cw=wd(t)}else{cur.push(t);cw+=add}}
-    if(cur.length)lines.push({t:cur,ind:first?ind:0,last:true});
-    lines.forEach((L,i)=>{const words=L.t.reduce((a,t)=>a+wd(t),0),gaps=L.t.length-1,avail=x1-x0-L.ind;const g=(!L.last&&gaps>0)?(avail-words)/gaps:sp;let x=x0+L.ind;
-      L.t.forEach(t=>{pg.drawText(t.w,{x,y:792-(T+i*pitch),size,font:t.b?CB:CR,color:PDFLib.rgb(0,0,0)});x+=wd(t)+g})});return lines.length};
-  const v=s=>(s&&String(s).trim())||"________";
-  /* Hoja 1: datos del centro escolar */
-  const p1=pgs[0],c1=(val,T0,T1,x0=200.3,x1=567.7)=>put(p1,val,x0+5,(T0+T1)/2+3.4,{w:x1-x0-10,size:10,font:CR});
-  c1(E.nombre,126.7,151.7);c1(E.cct,152.3,183);c1(E.nivel,183.6,208.6);c1(E.zona,209.2,234);c1(E.sector,234.6,259.6);c1(E.dom,260.2,285);c1(E.tel,285.6,310.6);
-  c1(E.padres,311.2,336,200.3,313.1);c1(E.alumnos,311.2,336,448.4,567.7);c1(E.mun,336.6,361.6);c1(E.director,362.2,389.8);c1(E.correo,390.4,415.3);
-  blank(p1,35,530.5,578,609.5);
-  const hIni=M.horaIni?M.horaIni:"",hFin=M.horaFin?M.horaFin:"";
-  parrafo(p1,`En la localidad de ${v(E.loc)} del municipio de ${v(E.mun)} del Estado de Baja California, siendo las ${v(hIni)} horas del día ${v(dia)} del mes de ${v(mes)} del año ${v(yy)}, el C. Director(a) de la Escuela o equivalente responsable, de acuerdo a las atribuciones que me confiere el artículo **36 en su primer párrafo** de los Lineamientos para la Constitución, organización y funcionamiento de los Consejos de Participación Escolar, y en caso de no ser posible celebrar la sesión de manera presencial, se podrán realizar sesiones mediante medios digitales de comunicación a fin de dar certeza al proceso de integración de los nuevos miembros que formarán parte en el acta de Instalación del Consejo de Participación Escolar ${CP.ciclo}.`,37,575,539,36,9.5,9.5);
-  /* Hoja 2: herramienta digital, ciclo en el orden del día, relatoría */
-  const p2=pgs[1],X=(cx,T)=>{const tw=CB.widthOfTextAtSize("X",9);p2.drawText("X",{x:cx-tw/2,y:792-T,size:9,font:CB,color:ink})};
-  if(M.virtual){const h=M.herr;if(h.zoom)X(526.5,100.9);if(h.meet)X(565.6,100.9);if(h.whatsapp)X(83.8,110.4);if(h.messenger)X(144.1,110.4);if(h.email)X(183.2,110.4);if(h.tel)X(241.9,110.4);
-    if(M.otros)put(p2,M.otros,280,109.5,{w:150,size:8.5,font:CR})}
-  blank(p2,443,203.6,488,213.2);p2.drawText(CP.ciclo,{x:443.5,y:792-211.2,size:10,font:CR,color:PDFLib.rgb(0,0,0)});
-  box(p2,M.relatoria,38,340,522,256,{size:9.5,font:CR});
-  /* Hojas 3 a 9: integrantes */
-  const tops=[[2,[109.5,268.5,413.4,558.3]],[3,[95.5,254.4,413.4,572.3]],[4,[95.5,254.4,413.4,572.3]],[5,[95.5,240.5,399.4,572.3]],[6,[95.5,254.4,413.4,572.3]],[7,[95.5,254.4,413.4,572.3]],[8,[95.5]]];
-  const slots=[];tops.forEach(([pi,ts])=>ts.forEach(t=>slots.push([pi,t])));
-  const C4=[[31.8,167.5],[168,303.9],[304.4,440.1],[440.6,576.5]];
-  const cel=(pg,val,col,T0,T1)=>put(pg,val,col[0]+3,(T0+T1)/2+3.2,{w:col[1]-col[0]-6,size:9,font:CR,align:"c"});
-  M.miembros.filter(m=>Object.values(m).some(x=>String(x||"").trim())).slice(0,25).forEach((m,i)=>{const[pi,Lt]=slots[i],pg=pgs[pi];
-    const r1=[Lt+12.5,Lt+26.6],r2=[Lt+41.6,Lt+55.7],r3=[Lt+70.7,Lt+84.8],r4=[Lt+113.8,Lt+127.8];
-    cel(pg,m.cargo,C4[0],...r1);cel(pg,m.calidad,C4[1],...r1);cel(pg,(m.curp||"").toUpperCase(),[304.4,576.5],...r1);
-    cel(pg,m.nom,C4[0],...r2);cel(pg,m.ap1,C4[1],...r2);cel(pg,m.ap2,C4[2],...r2);cel(pg,m.genero,C4[3],...r2);
-    cel(pg,m.escol,C4[0],...r3);cel(pg,m.correo,[168,440.1],...r3);cel(pg,m.tel,C4[3],...r3);
-    cel(pg,m.hnom,C4[0],...r4);cel(pg,m.hap1,C4[1],...r4);cel(pg,m.hap2,C4[2],...r4);cel(pg,m.hgrado,C4[3],...r4)});
-  /* Hoja 9: presidente electo */
-  const p9=pgs[8],nInt=M.numInt||String(M.miembros.filter(m=>m.nom||m.ap1).length||"");
-  put(p9,nInt,42.2,243,{w:28.5,align:"c",size:10,font:CR});
-  const C3=[[42.4,216.3],[216.9,391.4],[392,566.9]];
-  [CP.pres.ap1,CP.pres.ap2,CP.pres.nom].forEach((t,i)=>put(p9,t,C3[i][0]+4,339,{w:C3[i][1]-C3[i][0]-8,align:"c",size:10,font:CR}));
-  [M.phijo,M.pgrado,M.pacred].forEach((t,i)=>put(p9,t,C3[i][0]+4,426,{w:C3[i][1]-C3[i][0]-8,align:"c",size:10,font:CR}));
-  put(p9,M.votos,51,480.5,{w:28.5,align:"c",size:10,font:CR});put(p9,E.director,48,565,{w:516,align:"c",size:10.5,font:CR});
-  /* Hoja 10: asuntos, cierre y firmas */
-  const p10=pgs[9];box(p10,M.asuntos,46,121,260,70,{size:9,font:CR});box(p10,M.acuerdos,315,121,260,70,{size:9,font:CR});
-  blank(p10,35,211,578,241.5);
-  const[hh,mi]=(hFin||":").split(":");
-  parrafo(p10,`No habiendo otro asunto que tratar, se cierra la presente MINUTA, siendo las ${hh||"___"}:${mi||"___"} horas del día ${v(dia)} del mes de ${v(mes)} del año ${v(yy)}, con fundamento en los artículos 68 y 69 de la Ley General de Educación, articulo 37 del capítulo VI del acuerdo número 02/05/2016 por el que se establecen los lineamientos para la constitución`,37,575,219.3,0,10,9.5);
-  const firma=(t,cx,T)=>put(p10,t,cx-120,T,{w:240,align:"c",size:10,bold:true});
-  firma(cpPresNombre(),313.3,310);firma(E.director,306.3,401.5);firma(M.maestro,305.5,503);firma(M.supervisor,172.8,611)}
+  const p=parseDate(M.fecha),dia=p?String(p.d):"",mes=p?MESES[p.m-1]:"",yy=p?String(p.y).slice(2):"";
+  /* Hoja 1: datos del centro escolar, párrafo de apertura, medio de la convocatoria y relatoría */
+  const p1=pgs[0],R=(v,x0,x1,T)=>put(p1,v,x0,T,{w:x1-x0,size:9});
+  R(E.nombre,80,572,116.8);R(E.cct,186,273,133.6);R(E.turno,305,377,133.6);R(E.zona,438,465,133.6);R(E.sector,533,573,133.6);
+  R(E.dom,85,446,150.6);R(E.tel,491,573,150.6);R(E.padres,155,185,167.4);R(E.mun,235,319,167.4);R(E.correo,409,573,167.4);R(E.director,282,573,184.4);
+  putc(p1,E.mun,143.3,271.9,209.8,{size:9.5});putc(p1,M.horaIni,493.5,521.4,209.6,{size:9});
+  putc(p1,dia,58.4,83.2,225,{size:9.5});putc(p1,mes,144.9,251.8,224.8,{size:9.5});putc(p1,yy,312.9,330.1,224.2,{size:9.5});
+  const md=M.medio||{};[["tel",94.75],["whatsapp",176.95],["correo",301.35],["escrito",383.1]].forEach(([k,cx])=>{if(md[k])mark(p1,cx,341.25,10)});
+  put(p1,M.medioOtro,434,342.2,{w:138,size:9});
+  let rel=M.relatoria||"";
+  if(M.virtual){const h=M.herr||{},n=[["zoom","Zoom"],["meet","Meet"],["whatsapp","WhatsApp"],["messenger","Messenger"],["email","correo electrónico"],["tel","teléfono"]].filter(([k])=>h[k]).map(x=>x[1]);if(M.otros)n.push(M.otros);
+    const lista=n.length>1?n.slice(0,-1).join(", ")+" y "+n[n.length-1]:n[0]||"";
+    rel=`Por no ser posible celebrarla de manera presencial, la sesión se realizó mediante medios digitales de comunicación${lista?" ("+lista+")":""}.`+(rel?"\n"+rel:"")}
+  box(p1,rel,46,563,522,163,{size:9.5});
+  /* Hojas 2 a 7: integrantes (4 en la hoja 2, 5 en las hojas 3 a 6 y 1 en la hoja 7) */
+  const slots=[];[231.8,361.3,490.8,620.3].forEach(B=>slots.push([1,B,0]));
+  for(let pi=2;pi<=5;pi++)[99.2,228.7,358.2,487.7,617.2].forEach(B=>slots.push([pi,B,7.5]));slots.push([6,99.2,7.5]);
+  const C1=[[44.7,218.2],[221,338.5],[341.8,458.8],[461.4,565.4]],C2=[[45.2,215.8],[218.7,312.5],[315,463.6],[466.4,565.4]];
+  M.miembros.filter(m=>Object.values(m).some(x=>String(x||"").trim())).slice(0,25).forEach((m,i)=>{const[pi,B,dx]=slots[i],pg=pgs[pi];
+    put(pg,m.cargo,145+dx,B+13.2,{w:156,size:9});put(pg,m.calidad,428+dx,B+13.2,{w:138,size:9});
+    const fila=(vals,cols,rel)=>vals.forEach((v,j)=>putc(pg,v,cols[j][0]+dx,cols[j][1]+dx,B+rel-3,{size:8.5}));
+    fila([m.nom,m.ap1,m.ap2,m.genero],C1,39.2);fila([(m.curp||"").toUpperCase(),m.escol,m.correo,m.tel],C2,66.5);fila([m.hnom,m.hap1,m.hap2,m.hgrado],C1,94.7)});
+  /* Hoja 7: número de integrantes, presidente electo, votos, secretario técnico, asuntos y acuerdos */
+  const p7=pgs[6],nInt=M.numInt||String(M.miembros.filter(m=>m.nom||m.ap1).length||"");
+  putc(p7,nInt,48,84.4,240.2,{size:11});putc(p7,M.votos,47.1,83.5,387.4,{size:11});
+  [[CP.pres.ap1,51.6,211.6],[CP.pres.ap2,215.3,375.4],[CP.pres.nom,378.5,570.9]].forEach(([t,a,b])=>putc(p7,t,a,b,307.5,{size:9.5}));
+  [[M.phijo,51.5,287.9],[M.pgrado,291.1,375.3],[M.pacred,378.4,570.9]].forEach(([t,a,b])=>putc(p7,t,a,b,344,{size:9.5}));
+  putc(p7,E.director,48,575,450,{size:10});
+  box(p7,M.asuntos,53,506,247,222,{size:9});box(p7,M.acuerdos,312,506,258,222,{size:9});
+  /* Hoja 8: cierre y firmas */
+  const p8=pgs[7],W=PDFLib.rgb(1,1,1),sobre=(t,x0,x1,top)=>{if(!String(t||"").trim())return;p8.drawRectangle({x:x0,y:792-(top+11.2),width:x1-x0,height:5.5,color:W});putc(p8,t,x0,x1,top+8.6,{size:9.5})};
+  const[hh,mi]=(M.horaFin||"").split(":");sobre(hh,461.5,488.4,98);sobre(mi,490.9,512.9,98);sobre(dia,62.7,84.7,111);sobre(mes,148,257.9,111);sobre(yy,315.4,337.4,111);
+  const firma=(t,x0,x1,T)=>putc(p8,t,x0,x1,T,{size:10,bold:true});
+  firma(cpPresNombre(),158.4,453.6,241.5);firma(E.director,158.4,453.6,375.3);firma(M.maestro,158.4,453.6,509.1);firma(M.supervisor,51.2,268.1,671.8)}
 /* ---------- Lista de asistencia mensual de alumnos (formato de RELweb) ---------- */
 /* Reproduce la hoja oficial (oficio, 612x1008) y le agrega: maestro, mes, número de cada día hábil y días sin clases sombreados según el calendario oficial. */
 const AS_KEY="ppie-asistencia";let AS=null;

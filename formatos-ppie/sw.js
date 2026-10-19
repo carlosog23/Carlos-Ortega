@@ -2,7 +2,7 @@
    - La página y los datos (.json) se piden primero a internet; si no hay conexión, se usa la copia guardada.
    - Plantillas, librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-10-17a";
+const VERSION = "tlm-2026-10-19a";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
