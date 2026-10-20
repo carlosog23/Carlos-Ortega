@@ -2184,7 +2184,7 @@ function vSisat() {
     `<button data-sm="t" aria-pressed="${tend}">Tendencia</button>`;
   const faltan = !esDirector() && esAdmin() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
   const cab = `<div class="titulo-vista"><h1>SisAT · Alerta temprana</h1>
-    <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Imprimir o descargar</button></div></div>
+    <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Imprimir o descargar</button><button class="boton sec" id="b-sis-ins">${ico('i-lapiz')}Insumo para la lectura de la realidad</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
       <select id="s-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
@@ -2380,6 +2380,7 @@ function sisEnlazar(v) {
   if ($('#b-sis-zimp')) $('#b-sis-zimp').onclick = () => sisImportarZona(typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-oal')) $('#b-sis-oal').onclick = () => { v.ordenAl = v.ordenAl === 'nombre' ? 'necesidad' : 'nombre'; vSisat(); };
   if ($('#b-sis-doc')) $('#b-sis-doc').onclick = () => sisDescargar(v);
+  if ($('#b-sis-ins')) $('#b-sis-ins').onclick = () => insDescargar(v);
 
   if ($('#b-sis-cargar')) $('#b-sis-cargar').onclick = () => sisFormCarga(esDirector() ? miCct() : v.nivel === 'zona' || v.nivel === 'zgrado' ? '' : v.cct, typeof v.m === 'number' ? v.m : 1);
   if ($('#b-sis-semilla')) $('#b-sis-semilla').onclick = async () => {
@@ -4312,7 +4313,7 @@ function vEia() {
   if (esDirector() && v.nivel !== 'zona') v.cct = miCct();
   const pred = sisPred(v);
   const cab = `<div class="titulo-vista"><h1>EIA · Ejercicios Integradores</h1>
-    <div class="acciones">${!esDirector() ? `<button class="boton terra" id="b-eia-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-eia-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-eia-doc">${ico('i-graf')}Imprimir o descargar</button></div></div>
+    <div class="acciones">${!esDirector() ? `<button class="boton terra" id="b-eia-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-eia-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-eia-doc">${ico('i-graf')}Imprimir o descargar</button><button class="boton sec" id="b-eia-ins">${ico('i-lapiz')}Insumo para la lectura de la realidad</button></div></div>
     <div class="filtros sis-filtros">
       <select id="e-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
         : `<option value="zona" ${['zona', 'zgrado'].includes(v.nivel) ? 'selected' : ''}>Toda la zona</option><optgroup label="Escuelas">${directores().map(c => `<option value="${c.cct}" ${!['zona', 'zgrado'].includes(v.nivel) && v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</optgroup>`}</select>
@@ -4648,6 +4649,7 @@ function eiaEnlazar(v) {
   if ($('#b-eia-zimp')) $('#b-eia-zimp').onclick = () => eiaImportarZona();
   if ($('#b-eia-cargar')) $('#b-eia-cargar').onclick = () => eiaFormCarga(esDirector() ? miCct() : ['zona', 'zgrado'].includes(v.nivel) ? '' : v.cct);
   if ($('#b-eia-doc')) $('#b-eia-doc').onclick = () => eiaDescargar(v);
+  if ($('#b-eia-ins')) $('#b-eia-ins').onclick = () => insDescargar(v);
 }
 
 /* ---- Carga de resultados ---- */
@@ -4920,6 +4922,262 @@ function eiaDescargar(v) {
     descargarBlob(blob, nombre(w) + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Análisis descargado.', 'ok');
   };
   $('#ed-imp').onclick = () => hacer('imp'); $('#ed-pdf').onclick = () => hacer('pdf'); $('#ed-word').onclick = () => hacer('word');
+}
+
+/* ==== Insumo para la lectura de la realidad (SisAT + EIA) ==== */
+// Junta los resultados de los dos instrumentos en un documento para el primer plano del programa analítico
+const INS_CAMPO_SIS = { lec: 'LEN', tex: 'LEN', cal: 'SAB' };
+const insSinHtml = t => String(t || '').replace(/<[^>]+>/g, '');
+function insCiclos() { const s = new Set((S.sis || []).map(r => r.ciclo).concat((S.eig || []).map(r => r.ciclo))); s.add(cicloActual()); return Array.from(s).sort().reverse(); }
+// Resultados de un nivel: SisAT del momento pedido (o el más reciente con datos) y EIA del ciclo
+function insFuentes(w) {
+  const pred = sisPred(w);
+  const sisDe = m => (S.sis || []).filter(r => r.ciclo === w.ciclo && +r.momento === +m).map(sisNorm).filter(pred);
+  const m = !w.m || w.m === 'auto' ? [3, 2, 1].find(x => sisDe(x).length) : +w.m;
+  const sis = m ? sisDe(m) : [];
+  const eia = (S.eig || []).filter(r => r.ciclo === w.ciclo).map(eiaNorm).filter(pred);
+  return { m: sis.length ? m : null, sis, eia };
+}
+function insQuien(w) {
+  if (w.nivel === 'zona') return 'la Zona Escolar 050';
+  if (w.nivel === 'zgrado') return w.grado + '.° grado de la Zona Escolar 050';
+  if (w.nivel === 'escuela') return 'la escuela ' + nombreEscuela(w.cct);
+  if (w.nivel === 'grado') return w.grado + '.° grado de la escuela ' + nombreEscuela(w.cct);
+  return 'el grupo ' + sisNomGrupo(w) + ' de la escuela ' + nombreEscuela(w.cct);
+}
+// Problemáticas a partir de los datos, de la más urgente a la menos
+function insProblematicas(F, aS, aE, fc, w) {
+  const P = [];
+  if (aS) {
+    SIS_H.forEach(([h, nom]) => {
+      const o = aS[h]; if (!o.n || o.pra < 25) return;
+      let det = '';
+      if (fc && (h === 'lec' || h === 'tex') && fc[h] && fc[h][0]) det = `; el componente más bajo es «${fc[h][0].nom.toLowerCase()}» (${sisFmt(fc[h][0].p)} del puntaje posible)`;
+      if (fc && h === 'cal' && fc.temas && fc.temas[0]) det = `; donde más se equivocan es en ${fc.temas[0].nom.toLowerCase()} (${sisFmt(fc.temas[0].pinc)} de respuestas incorrectas)`;
+      if (fc && h === 'cal' && !fc.temas && fc.porGrado) { const l = fc.porGrado.filter(g => g.temas[0] && g.temas[0].pinc >= 40); if (l.length) det = '; con más dificultad en ' + l.map(g => `${g.grado}.° ${g.temas[0].nom.toLowerCase()}`).join(', '); }
+      P.push({ peso: o.pra + 10, campo: INS_CAMPO_SIS[h], fuente: 'SisAT, Momento ' + F.m, corto: `${nom.toLowerCase()} (${sisFmt(o.pra)} requiere apoyo)`,
+        txt: `<b>${sisFmt(o.pra)} del alumnado requiere apoyo en ${nom.toLowerCase()}</b> (${o.ra} de ${o.n} alumnos)${esc(det)}.` });
+    });
+    if (fc && fc.temas) fc.temas.filter(t => t.pinc >= 50).slice(0, 2).forEach(t => { if (aS.cal.pra >= 25 && t === fc.temas[0]) return;
+      P.push({ peso: t.pinc - 5, campo: 'SAB', fuente: 'SisAT, Momento ' + F.m, corto: `cálculo: ${t.nom.toLowerCase()}`, txt: `<b>Cálculo mental: ${esc(t.nom.toLowerCase())}</b>, con ${sisFmt(t.pinc)} de respuestas incorrectas.` }); });
+    ['lec', 'tex'].forEach(h => { if (!fc || !fc[h] || aS[h].pra >= 25) return; fc[h].filter(x => x.p <= 55).slice(0, 1).forEach(x =>
+      P.push({ peso: 100 - x.p - 20, campo: 'LEN', fuente: 'SisAT, Momento ' + F.m, corto: `${h === 'lec' ? 'lectura' : 'escritura'}: ${x.nom.toLowerCase()}`, txt: `<b>${h === 'lec' ? 'Lectura' : 'Producción de textos'}: ${esc(x.nom.toLowerCase())}</b>, con ${sisFmt(x.p)} del puntaje posible (poco avance).` })); });
+    if (fc && fc.calVisual >= 50) P.push({ peso: 35, campo: 'SAB', fuente: 'SisAT, Momento ' + F.m, corto: 'dependencia del apoyo visual en cálculo', txt: `<b>Dependencia del apoyo visual en cálculo mental:</b> ${sisFmt(fc.calVisual)} de los aciertos necesitó la tarjeta de apoyo.` });
+  }
+  if (aE) {
+    const camps = EIA_CAMPOS.map(([k, nom]) => ({ k, nom, ind: aE.cind[k] })).filter(x => x.ind != null).sort((x, y) => x.ind - y.ind);
+    if (camps[0] && camps[0].ind < 55) P.push({ peso: 100 - camps[0].ind - 15, campo: camps[0].k, fuente: 'EIA', corto: `${camps[0].nom} (índice ${camps[0].ind})`, txt: `<b>${camps[0].nom} es el campo formativo con resultado más bajo en los EIA</b> (índice ${camps[0].ind} de 100).` });
+    Object.keys(aE.F).sort().forEach(f => {
+      const gr = Array.from(aE.F[f].grados).sort();
+      eiaContenidos(aE, f).filter(o => o.pdif >= 35).slice(0, ['grado', 'grupo', 'zgrado'].includes(w.nivel) ? 3 : 2).forEach(o => {
+        const cont = Array.from(new Set(gr.map(g => (EIA_BLOQ[o.b].g[g] || EIA_BLOQ[o.b].g[EIA_FASES[f].grados[0]])[0].replace(/\.$/, ''))));
+        P.push({ peso: o.pdif, campo: o.campo, fuente: 'EIA', corto: cont[0].charAt(0).toLowerCase() + cont[0].slice(1),
+          txt: `<b>${gr.map(g => g + '.°').join(' y ')}: ${esc(cont.join(' / '))}</b>. ${sisFmt(o.pdif)} de las valoraciones quedó en 0 o 1; se observó dificultad en ${esc(o.cr.slice(0, 2).map(c => c.nom.toLowerCase()).join(' y '))}.` });
+      });
+    });
+    if (aE.prz >= 20) P.push({ peso: aE.prz + 5, campo: '', fuente: 'EIA', corto: `rezago de ${sisFmt(aE.prz)} del alumnado`, txt: `<b>${aE.rz} de ${aE.n} alumnos (${sisFmt(aE.prz)}) están en rezago en los EIA</b>: la mitad o más de sus criterios en 0 o 1${aE.rza ? `; ${aE.rza} con rezago alto` : ''}.` });
+  }
+  return P.sort((x, y) => y.peso - x.peso);
+}
+// Alumnos que necesitan atención diferenciada, cruzando los dos instrumentos
+function insAlumnos(alS, alE, sin1) {
+  const por = {};
+  alS.forEach(a => { const k = eiaClaveCruce(a.alumno); (por[k] = por[k] || { alumno: a.alumno, grado: a.grado, grupo: a.grupo }).s = a; });
+  alE.forEach(a => { const k = a.cruce; (por[k] = por[k] || { alumno: a.alumno, grado: a.grado, grupo: a.grupo }).e = a; });
+  return Object.values(por).map(o => {
+    const ra = o.s ? sisNumRA(o.s, sin1) : 0, ne = o.e ? o.e.est.nivel : 'ok';
+    const sisR = ra >= 2, eiaR = ne === 'alto' || ne === 'rezago';
+    const p = (sisR && eiaR) || ra === 3 || ne === 'alto' ? 2 : sisR || eiaR || (o.s && sisMuyBajo(o.s)) ? 1 : 0;
+    return Object.assign(o, { ra, ne, p, ambos: sisR && eiaR });
+  }).filter(o => o.p).sort((x, y) => y.p - x.p || x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo) || x.alumno.localeCompare(y.alumno, 'es'));
+}
+async function insInforme(w, anidado) {
+  const F = insFuentes(w), B = [];
+  if (!F.sis.length && !F.eia.length) throw new Error('No hay resultados del SisAT ni de los EIA del ciclo ' + w.ciclo + ' en este nivel.');
+  const conAl = ['escuela', 'grado', 'grupo'].includes(w.nivel) && w.cct && (!esDirector() || w.cct === miCct());
+  if (conAl) await Promise.all([F.sis.length ? sisPedirAlumnos(w.ciclo, w.cct) : null, F.eia.length ? eiaPedirAlumnos(w.ciclo, w.cct) : null]);
+  const enNivel = a => w.nivel === 'escuela' || (a.grado === w.grado && (w.nivel === 'grado' || a.grupo === w.grupo));
+  const alS = conAl && F.m ? (sisAlumnosDe(w.ciclo, w.cct) || []).filter(a => a.momento === F.m && enNivel(a)) : [];
+  const alE = conAl ? (eiaAlumnosDe(w.ciclo, w.cct) || []).filter(a => a.est && enNivel(a)) : [];
+  const sin1 = F.m ? sisSin1(w, F.m) : false;
+  const aS = F.sis.length ? sisSuma(F.sis, sin1) : null, aE = F.eia.length ? eiaSuma(F.eia) : null;
+  const grados = Array.from(new Set(F.sis.concat(F.eia).map(r => r.grado))).sort();
+  const gradosS = Array.from(new Set(F.sis.map(r => r.grado))).sort();
+  const fc = aS ? sisFocos(sisCompSuma(F.sis, sin1), alS, F.m, gradosS, F.sis) : null;
+  const unGrado = ['grado', 'grupo', 'zgrado'].includes(w.nivel);
+  let n = 0; const H = t => B.push({ t: 'h', x: (++n) + '. ' + t });
+  if (!anidado) B.push({ t: 'p', x: `Este documento reúne los resultados del <b>SisAT</b> y de los <b>Ejercicios Integradores del Aprendizaje (EIA)</b> de ${esc(insQuien(w))} como insumo para la <b>lectura de la realidad</b> del programa analítico. Las problemáticas, los contenidos y los alumnos que aquí aparecen salen de los datos; el colectivo los completa con lo que conoce del contexto de la comunidad, de las familias y del grupo.` });
+
+  // 1. Fuentes
+  H('Fuentes consultadas');
+  B.push({ t: 'tabla', cab: ['Instrumento', 'Aplicación', 'Grupos', 'Alumnos', 'Qué valora'], anchos: [24, 18, 10, 12, 36], filas: [
+    aS ? ['SisAT (Sistema de Alerta Temprana)', 'Momento ' + F.m, String(aS.grupos), String(aS.alumnos), 'Lectura, producción de textos y cálculo mental'] : ['SisAT (Sistema de Alerta Temprana)', 'Sin resultados cargados', '—', '—', 'Lectura, producción de textos y cálculo mental'],
+    aE ? ['EIA (Ejercicios Integradores del Aprendizaje)', 'Ciclo ' + w.ciclo, String(aE.grupos), String(aE.n), 'Los cuatro campos formativos, con la rúbrica oficial'] : ['EIA (Ejercicios Integradores del Aprendizaje)', 'Sin resultados cargados', '—', '—', 'Los cuatro campos formativos, con la rúbrica oficial']] });
+  if (sin1 && F.sis.some(r => r.grado === '1')) B.push({ t: 'nota', x: 'En este concentrado del SisAT (Momento 1), 1.° grado solo se cuenta en cálculo: al inicio del ciclo aún no lee ni escribe de forma convencional.' });
+
+  // 2. Lo que muestran los resultados
+  H('Lo que muestran los resultados');
+  if (aS) {
+    B.push({ t: 'sub', x: 'SisAT · Momento ' + F.m, c: SIS_COL.az });
+    B.push({ t: 'tabla', cab: ['Habilidad', 'Nivel esperado', 'En desarrollo', 'Requiere apoyo', 'Alumnos'], filas: SIS_H.map(([h, nom]) => { const o = aS[h]; return [nom, o.n ? `${o.ne} (${sisFmt(o.pne)})` : '—', o.n ? `${o.ed} (${sisFmt(o.ped)})` : '—', o.n ? `${o.ra} (${sisFmt(o.pra)})` : '—', String(o.n || 0)]; }) });
+    B.push({ t: 'img', g: sisGrafNiveles(SIS_H.map(([h, nom]) => Object.assign({ etq: nom }, aS[h])), 'SisAT: distribución por nivel de logro') });
+  }
+  if (aE) {
+    B.push({ t: 'sub', x: 'EIA · Campos formativos', c: SIS_COL.az });
+    B.push({ t: 'tabla', cab: ['Campo formativo', '0 · Sin evid.', '1 · Req. apoyo', '2 · En proceso', '3 · Desarrollado', 'Índice'], anchos: [32, 14, 14, 14, 14, 12],
+      filas: EIA_CAMPOS.map(([k, nom]) => { const d = aE.campo[k], t = d.reduce((s, x) => s + x, 0); return [nom, ...d.map(x => t ? sisFmt(sisPc(x, t)) : '—'), aE.cind[k] == null ? '—' : String(aE.cind[k])]; }) });
+    B.push({ t: 'img', g: eiaGrafNiveles(EIA_CAMPOS.map(([k, nom]) => ({ etq: nom, d: aE.campo[k] })), 'EIA: valoraciones por campo formativo') });
+  }
+
+  // 3. Problemáticas
+  const P = insProblematicas(F, aS, aE, fc, w).slice(0, 8);
+  H('Problemáticas detectadas');
+  B.push({ t: 'p', x: 'De la más urgente a la menos, según el porcentaje de alumnos con dificultad en cada aspecto.' });
+  B.push({ t: 'lista', l: P.length ? P.map((p, k) => `<b>${k + 1}.</b> ${p.txt} <i>(${p.campo ? eiaCampoNom(p.campo) + ' · ' : ''}${p.fuente})</i>`) : ['Los resultados no muestran problemáticas marcadas: ningún aspecto supera los umbrales de atención.'] });
+
+  // 4. Contenidos y PDA a priorizar
+  const filasC = [];
+  (unGrado ? [w.grado] : grados).forEach(g => {
+    const eG = F.eia.filter(r => r.grado === g), sG = F.sis.filter(r => r.grado === g);
+    const L = [];
+    if (eG.length) eiaRuta(unGrado ? aE : eiaSuma(eG), g, alE, unGrado ? 4 : 3).forEach(x => L.push({ campo: x.campo, cont: x.contenido.replace(/\.$/, ''), pda: 'PDA: ' + x.pda, dato: sisFmt(x.pdif) + ' en 0 o 1 (EIA)', peso: x.pdif }));
+    if (sG.length && F.m) {
+      const f = unGrado ? fc : sisFocos(sisCompSuma(sG, false), [], F.m, [g], sG);
+      ((f && f.ruta) || []).slice(0, unGrado ? 3 : 2).forEach(x => L.push({ campo: INS_CAMPO_SIS[x.h], cont: x.titulo, pda: 'Qué trabajar: ' + x.trabajar, dato: x.dato + ' (SisAT M' + F.m + ')', peso: x.peso }));
+    }
+    L.sort((x, y) => EIA_CAMPOS.findIndex(c => c[0] === x.campo) - EIA_CAMPOS.findIndex(c => c[0] === y.campo) || y.peso - x.peso)
+      .forEach(x => filasC.push((unGrado ? [] : [g + '.°']).concat([eiaCampoCorto(x.campo), x.cont, x.pda, x.dato])));
+  });
+  if (filasC.length) {
+    H('Contenidos y PDA a priorizar en la planeación');
+    B.push({ t: 'p', x: 'Contenidos del programa sintético (de los EIA) y aspectos de lectura, escritura y cálculo (del SisAT) que conviene retomar en los proyectos y secuencias, ordenados por campo formativo.' });
+    B.push({ t: 'tabla', chica: true, anchos: unGrado ? [14, 28, 40, 18] : [7, 13, 25, 39, 16], cab: (unGrado ? [] : ['Grado']).concat(['Campo', 'Contenido o aspecto', 'PDA o qué trabajar', 'Dato que lo sustenta']), filas: filasC });
+  }
+
+  // 5. Atención diferenciada
+  if (conAl && (alS.length || alE.length)) {
+    const L = insAlumnos(alS, alE, sin1), conGrupo = w.nivel !== 'grupo';
+    H('Alumnos que requieren atención diferenciada');
+    B.push({ t: 'p', x: L.length ? `<b>${L.length} alumnos</b> requieren atención diferenciada: <b>${L.filter(o => o.p === 2).length}</b> con prioridad alta${L.some(o => o.ambos) ? ` (${L.filter(o => o.ambos).length} con rezago en los dos instrumentos)` : ''} y <b>${L.filter(o => o.p === 1).length}</b> con prioridad media.` : 'Ningún alumno aparece en rezago en los resultados disponibles.' });
+    if (L.length) {
+      const sisTxt = o => !o.s ? 'Sin dato' : o.ra ? 'Req. apoyo en ' + SIS_H.filter(([h]) => o.s[h] && o.s[h].n === 'RA' && !(sin1 && h !== 'cal' && o.grado === '1')).map(([, , c]) => c.toLowerCase()).join(', ') : sisMuyBajo(o.s) ? 'Puntaje muy bajo' : 'Sin rojo';
+      const eiaTxt = o => !o.e ? 'Sin dato' : 'Índice ' + o.e.est.ind + ' · ' + ({ alto: 'rezago alto', rezago: 'rezago', riesgo: 'en riesgo', ok: 'sin rezago' })[o.ne];
+      B.push({ t: 'tabla', chica: true, anchos: conGrupo ? [22, 7, 15, 13, 33, 10] : [24, 16, 14, 36, 10], cab: ['Alumno'].concat(conGrupo ? ['Grupo'] : [], ['SisAT', 'EIA', 'Lo que más le cuesta', 'Prioridad']),
+        filas: L.map(o => [o.alumno].concat(conGrupo ? [o.grado + '° ' + o.grupo] : [], [sisTxt(o), eiaTxt(o), (o.s ? sisDebilidades(o.s).slice(0, 2) : []).concat(o.e ? eiaDebilidades(o.e).slice(0, 2) : []).join('\n') || '—', o.p === 2 ? 'Alta' : 'Media'])) });
+      B.push({ t: 'nota', x: 'Prioridad alta: rezago en los dos instrumentos, en rojo en las tres habilidades del SisAT o con rezago alto en los EIA. Media: en rojo en dos habilidades, en rezago en los EIA o con puntajes muy bajos. Contiene nombres de alumnos: compártalo solo con quien corresponda.' });
+    }
+  } else if (!esDirector() || w.nivel !== 'zona') {
+    // Sin alumnos (zona o grado en la zona): dónde se concentra la necesidad
+    const hijos = w.nivel === 'zona' && !esDirector() ? filtroEscuelas().map(c => ({ etq: c.escuela, s: F.sis.filter(r => r.cct === c.cct), e: F.eia.filter(r => r.cct === c.cct) }))
+      : w.nivel === 'zgrado' ? Array.from(new Set(F.sis.concat(F.eia).map(r => r.cct + '|' + r.grupo))).map(k => { const [c, gp] = k.split('|'); return { etq: nombreEscuela(c) + ' · ' + w.grado + '° ' + gp, s: F.sis.filter(r => r.cct === c && r.grupo === gp), e: F.eia.filter(r => r.cct === c && r.grupo === gp) }; }) : [];
+    const l = hijos.filter(x => x.s.length || x.e.length).map(x => { const s = x.s.length ? sisSuma(x.s, sin1) : null, e = x.e.length ? eiaSuma(x.e) : null; return { etq: x.etq, s, e, nec: (s ? s.maxRa : 0) + (e ? e.prz : 0) }; }).sort((x, y) => y.nec - x.nec);
+    if (l.length > 1) {
+      H(w.nivel === 'zona' ? 'Escuelas que requieren más acompañamiento' : 'Grupos que requieren más acompañamiento');
+      B.push({ t: 'tabla', chica: true, anchos: [34, 11, 11, 11, 11, 11, 11], cab: [w.nivel === 'zona' ? 'Escuela' : 'Escuela y grupo', 'SisAT lectura req. apoyo', 'SisAT textos req. apoyo', 'SisAT cálculo req. apoyo', 'EIA índice', 'EIA rezago', 'Prioridad'],
+        filas: l.map((x, i) => [x.etq, ...SIS_H.map(([h]) => x.s && x.s[h].n ? sisFmt(x.s[h].pra) : '—'), x.e && x.e.ind != null ? String(x.e.ind) : '—', x.e ? sisFmt(x.e.prz) : '—', i < Math.ceil(l.length / 3) ? 'Alta' : i < Math.ceil(2 * l.length / 3) ? 'Media' : 'Baja']) });
+      B.push({ t: 'nota', x: 'Ordenadas de mayor a menor necesidad (suma del porcentaje más alto de «requiere apoyo» del SisAT y del porcentaje de rezago de los EIA). La prioridad divide la lista en tercios.' });
+    }
+  }
+
+  // 6. Redacción sugerida
+  const T = [];
+  T.push(`En ${esc(insQuien(w))} se analizaron los resultados ${aS ? `del SisAT (Momento ${F.m}, ${aS.alumnos} alumnos)` : ''}${aS && aE ? ' y ' : ''}${aE ? `de los Ejercicios Integradores del Aprendizaje (${aE.n} alumnos)` : ''} del ciclo escolar ${esc(w.ciclo)}.`);
+  if (aS) T.push(`En el SisAT, alcanzan el nivel esperado ${SIS_H.map(([h, nom]) => `${sisFmt(aS[h].pne)} en ${nom.toLowerCase()}`).join(', ').replace(/, ([^,]*)$/, ' y $1')}; requieren apoyo ${SIS_H.map(([h]) => sisFmt(aS[h].pra)).join(', ').replace(/, ([^,]*)$/, ' y $1')}, respectivamente.${fc && fc.conclusion ? ' ' + insSinHtml(fc.conclusion) : ''}`);
+  if (aE) {
+    const camps = EIA_CAMPOS.map(([k, nom]) => ({ nom, ind: aE.cind[k] })).filter(x => x.ind != null).sort((x, y) => y.ind - x.ind);
+    T.push(`En los EIA, ${camps.length >= 2 ? `el campo formativo con mejor resultado es ${camps[0].nom} (índice ${camps[0].ind}) y el que más apoyo necesita es ${camps[camps.length - 1].nom} (índice ${camps[camps.length - 1].ind}); ` : ''}${sisFmt(aE.prz)} del alumnado tiene la mitad o más de sus criterios en 0 o 1.`);
+  }
+  if (P.length) T.push(`Por ello, se reconocen como problemáticas prioritarias: ${P.slice(0, 3).map((p, k) => `(${k + 1}) ${p.corto}`).join('; ')}. Estas problemáticas orientan la selección de contenidos y PDA y el diseño de los proyectos del programa analítico.`);
+  if (conAl) { const L = insAlumnos(alS, alE, sin1); if (L.length) T.push(`Además, ${L.length} alumnos requieren atención diferenciada${L.some(o => o.ambos) ? `, ${L.filter(o => o.ambos).length} de ellos con rezago en los dos instrumentos` : ''}, por lo que la planeación contempla ajustes, tutoría entre pares y seguimiento cercano.`); }
+  H('Redacción sugerida para la lectura de la realidad');
+  B.push({ t: 'nota', x: 'Texto de apoyo: cópielo al programa analítico y ajústelo con lo que el colectivo conoce del contexto.' });
+  T.forEach(x => B.push({ t: 'p', x }));
+
+  // 7. Preguntas para el colectivo
+  if (!anidado) {
+    H('Preguntas para completar la lectura de la realidad');
+    B.push({ t: 'lista', l: [
+      '¿Qué situaciones del contexto (familias, comunidad, asistencia, lengua materna, cambios de escuela) pueden explicar estos resultados?',
+      '¿Qué coincide y qué no con lo que el docente observa a diario en el aula y en la evaluación formativa?',
+      '¿Cuál de las problemáticas se abordará primero, en qué campo formativo y con qué metodología (proyectos comunitarios, de aula o escolares, ABP, STEAM, aprendizaje servicio)?',
+      '¿Qué alumnos ya reciben apoyo y cuáles no? ¿Qué ajustes razonables y qué participación de las familias se necesitan?',
+      F.m && F.m < 3 ? `¿Cómo se dará seguimiento? El siguiente referente es el Momento ${F.m + 1} del SisAT.` : '¿Cómo se dará seguimiento a lo largo del ciclo y cómo se registrará el avance en el CTE?'] });
+  }
+  return { titulo: 'Insumo para la lectura de la realidad', nivel: sisTitulo(w), sub: 'Ciclo escolar ' + w.ciclo + ' · ' + [aS ? 'SisAT Momento ' + F.m : '', aE ? 'EIA' : ''].filter(Boolean).join(' y '), fecha: fechaOficio(hoy()), B,
+    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Insumo generado con Tequio a partir de los resultados del SisAT y de los EIA' };
+}
+// Grupos de una escuela con resultados de cualquiera de los dos instrumentos
+function insGrupos(ciclo, cct) {
+  const l = [], vistos = {};
+  (S.sis || []).concat(S.eig || []).filter(r => r.ciclo === ciclo && r.cct === cct).map(r => ({ grado: String(r.grado), grupo: String(r.grupo || '') }))
+    .sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo)).forEach(r => { const k = r.grado + '|' + r.grupo; if (!vistos[k]) { vistos[k] = 1; l.push(r); } });
+  return l;
+}
+async function insVarios(w, modo) {
+  const I = await insInforme(w);
+  if (modo === 'solo') return I;
+  const L = [];
+  if (w.nivel === 'zona') filtroEscuelas().forEach(c => L.push(Object.assign({}, w, { nivel: 'escuela', cct: c.cct, grado: '', grupo: '' })));
+  else insGrupos(w.ciclo, w.cct).filter(r => w.nivel === 'escuela' || r.grado === w.grado).forEach(r => L.push(Object.assign({}, w, { nivel: 'grupo', grado: r.grado, grupo: r.grupo })));
+  for (const sv of L) { let J; try { J = await insInforme(sv, true); } catch (e) { continue; } I.B.push({ t: 'salto' }, { t: 'titulo', x: sisTitulo(sv) }); J.B.forEach(b => I.B.push(b)); }
+  return I;
+}
+function insDescargar(v) {
+  const dir = esDirector(), escs = dir ? [{ cct: miCct(), escuela: nombreEscuela(miCct()) }] : directores();
+  const cct0 = dir ? miCct() : (['escuela', 'grado', 'grupo'].includes(v.nivel) && v.cct ? v.cct : (escs[0] || {}).cct);
+  const ini = dir ? (['grado', 'grupo'].includes(v.nivel) ? v.nivel : 'escuela') : (v.nivel === 'zgrado' ? 'zgrado' : v.nivel || 'zona');
+  const op = (val, txt, extra) => `<label class="sis-dop"><input type="radio" name="in-que" value="${val}" ${ini === val ? 'checked' : ''}> <span>${txt}</span>${extra || ''}</label>`;
+  const cuerpo = `<p style="margin-top:0">Reúne los resultados del <b>SisAT</b> y de los <b>EIA</b> en un documento para la <b>lectura de la realidad</b> del programa analítico: problemáticas detectadas, contenidos y PDA a priorizar, alumnos que requieren atención diferenciada y una redacción sugerida.</p>
+    <div class="filtros" style="margin:0 0 8px"><label class="peq">Ciclo escolar <select id="in-ciclo">${insCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+      <label class="peq">SisAT <select id="in-m"><option value="auto">El momento más reciente con resultados</option>${[1, 2, 3].map(m => `<option value="${m}">Momento ${m}</option>`).join('')}</select></label></div>
+    <div><div style="font-weight:700;margin-bottom:4px">¿De qué nivel?</div>
+      ${dir ? '' : op('zona', 'Toda la zona', '<label class="peq sis-dsub"><input type="checkbox" id="in-z-todo"> con cada escuela en hojas aparte</label>')}
+      ${dir ? '' : op('zgrado', 'Un grado en toda la zona', ` <select id="in-zg" aria-label="Grado">${['1', '2', '3', '4', '5', '6'].map(g => `<option value="${g}" ${g === v.grado ? 'selected' : ''}>${g}.° grado</option>`).join('')}</select>`)}
+      ${dir ? `<p class="peq" style="margin:4px 0"><b>${esc(nombreEscuela(miCct()))}</b></p>` : `<div style="margin:10px 0 2px"><label class="peq">Escuela <select id="in-cct">${escs.map(c => `<option value="${c.cct}" ${c.cct === cct0 ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></label></div>`}
+      ${op('escuela', dir ? 'Toda mi escuela' : 'Toda la escuela', '<label class="peq sis-dsub"><input type="checkbox" id="in-esc-todo"> con cada grupo en hojas aparte</label>')}
+      ${op('grado', 'Un grado', ' <select id="in-grado" aria-label="Grado"></select><label class="peq sis-dsub"><input type="checkbox" id="in-gr-todo"> con cada uno de sus grupos en hojas aparte</label>')}
+      ${op('grupo', 'Un grupo', ' <select id="in-grupo" aria-label="Grupo"></select>')}
+    </div><p class="ayuda">En escuela, grado y grupo lleva los nombres de los alumnos que requieren atención diferenciada. Compártalo solo con quien corresponda.</p>`;
+  modal('Insumo para la lectura de la realidad', cuerpo, '<button class="boton sec" id="in-no">Cancelar</button><button class="boton sec" id="in-word">Word</button><button class="boton sec" id="in-pdf">PDF</button><button class="boton terra" id="in-imp">Imprimir</button>');
+  $('#in-no').onclick = cerrarModal;
+  const cctSel = () => dir ? miCct() : $('#in-cct').value;
+  const llenar = () => {
+    const gs = insGrupos($('#in-ciclo').value, cctSel()), grs = Array.from(new Set(gs.map(r => r.grado)));
+    $('#in-grado').innerHTML = grs.length ? grs.map(g => `<option value="${g}" ${g === v.grado ? 'selected' : ''}>${g}.° grado</option>`).join('') : '<option value="">Sin resultados</option>';
+    $('#in-grupo').innerHTML = gs.length ? gs.map(r => `<option value="${r.grado}|${esc(r.grupo)}" ${r.grado === v.grado && r.grupo === v.grupo ? 'selected' : ''}>${sisNomGrupo(r)}</option>`).join('') : '<option value="">Sin resultados</option>';
+  };
+  llenar();
+  $('#in-ciclo').onchange = llenar;
+  if ($('#in-cct')) $('#in-cct').onchange = () => { llenar(); if (['zona', 'zgrado'].includes(($('[name="in-que"]:checked') || {}).value)) $('[name="in-que"][value="escuela"]').checked = true; };
+  const marca = (id, val) => { if ($(id)) $(id).addEventListener('change', () => { $(`[name="in-que"][value="${val}"]`).checked = true; }); };
+  marca('#in-zg', 'zgrado'); marca('#in-grado', 'grado'); marca('#in-grupo', 'grupo'); marca('#in-z-todo', 'zona'); marca('#in-esc-todo', 'escuela'); marca('#in-gr-todo', 'grado');
+  const destino = () => {
+    const base = { ciclo: $('#in-ciclo').value, m: $('#in-m').value, con1: false };
+    const que = ($('[name="in-que"]:checked') || {}).value || (dir ? 'escuela' : 'zona');
+    if (que === 'zona') return { w: Object.assign(base, { nivel: 'zona', cct: '', grado: '', grupo: '' }), modo: $('#in-z-todo').checked ? 'todo' : 'solo' };
+    if (que === 'zgrado') return { w: Object.assign(base, { nivel: 'zgrado', cct: '', grado: $('#in-zg').value, grupo: '' }), modo: 'solo' };
+    if (que === 'grado') { if (!$('#in-grado').value) throw new Error('Esa escuela no tiene resultados por grado en ese ciclo.'); return { w: Object.assign(base, { nivel: 'grado', cct: cctSel(), grado: $('#in-grado').value, grupo: '' }), modo: $('#in-gr-todo').checked ? 'todo' : 'solo' }; }
+    if (que === 'grupo') { if (!$('#in-grupo').value) throw new Error('Esa escuela no tiene resultados por grupo en ese ciclo.'); const [g, gp] = $('#in-grupo').value.split('|'); return { w: Object.assign(base, { nivel: 'grupo', cct: cctSel(), grado: g, grupo: gp }), modo: 'solo' }; }
+    return { w: Object.assign(base, { nivel: 'escuela', cct: cctSel(), grado: '', grupo: '' }), modo: $('#in-esc-todo').checked ? 'todo' : 'solo' };
+  };
+  const nombre = w => ('Lectura de la realidad ' + w.ciclo + ' ' + sisTitulo(w)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
+  const hacer = async tipo => {
+    let d; try { d = destino(); } catch (e) { aviso(esc(e.message), 'mal', 7000); return; }
+    const { w, modo } = d;
+    const ventana = tipo === 'imp' ? window.open('', '_blank') : null;
+    if (ventana) ventana.document.write('<p style="font:16px system-ui;padding:24px">Preparando el insumo para imprimir…</p>');
+    cerrarModal();
+    const blob = await conCarga(async () => { const I = await insVarios(w, modo); return tipo === 'word' ? sisWordInforme(I) : sisPdfInforme(I); });
+    if (!blob) { if (ventana) ventana.close(); return; }
+    if (tipo === 'imp') {
+      const url = URL.createObjectURL(blob);
+      if (ventana) { ventana.location.href = url; aviso('Se abrió el insumo en otra pestaña: imprímalo con Ctrl + P o el botón de imprimir.', 'ok', 8000); }
+      else { descargarBlob(blob, nombre(w) + '.pdf'); aviso('El navegador bloqueó la pestaña nueva: se descargó el PDF para imprimirlo.', 'ok', 8000); }
+      return;
+    }
+    descargarBlob(blob, nombre(w) + (tipo === 'pdf' ? '.pdf' : '.docx')); aviso('Insumo descargado.', 'ok');
+  };
+  $('#in-imp').onclick = () => hacer('imp'); $('#in-pdf').onclick = () => hacer('pdf'); $('#in-word').onclick = () => hacer('word');
 }
 
 /* ---- Datos de ejemplo para la demostración ---- */
