@@ -904,7 +904,7 @@ ANEXOS.U={name:"Formato Único de Beca",pref:"Beca",who:"Madre, padre o tutor (c
     {id:"grado",label:"Grado",to:"Grado",half:true,chips:["1°","2°","3°","4°","5°","6°"]},{id:"aturno",label:"Turno",type:"select",options:["Matutino","Vespertino","Tiempo completo"],preFn:becaPre("turno"),to:"Turno",half:true},
     {id:"telp",label:"Teléfono particular",type:"tel",opt:true,to:"Teléfono particular",half:true},{id:"telc",label:"Teléfono celular",type:"tel",opt:true,to:"Teléfono celular",half:true}]},
   {title:"Tipo de beca",fields:[{id:"tipo",label:"Tipo de beca",type:"choice",opt:true,help:"Este recuadro está en la parte de uso exclusivo de la Secretaría. Márquelo solo si se lo indicaron; si no, déjelo sin elegir.",
-    options:[{label:"Beca para Alumnos con Aprovechamiento Escolar",to:"Tipo: aprovechamiento escolar"},{label:"Beca para Alumno con Necesidades Especiales",to:"Tipo: necesidades especiales"}]}]}],
+    options:[{label:"Beca para Alumnos con Aprovechamiento Escolar",to:"Tipo: aprovechamiento escolar"},{label:"Beca para Alumno con Necesidades Especiales Asociadas a Alguna Discapacidad",to:"Tipo: necesidades especiales"}]}]}],
  validate:v=>{const o=[];if(v.curp&&!/^[A-Z]{4}\d{6}[A-Z0-9]{3}([A-Z0-9]{5}\d?)?$/i.test(String(v.curp).replace(/\s/g,"")))o.push("La CURP o el RFC del alumno no parece completo. Revíselo (la CURP tiene 18 caracteres).");return o}};
 function becaLlenar(a){const v=S.vals;const w=String(a.nombre||"").trim().split(/\s+/).filter(Boolean);
   if(w.length>=3){v.apat=w[0];v.amat=w[1];v.anom=w.slice(2).join(" ")}else if(w.length===2){v.apat=w[0];v.anom=w[1]}else if(w.length)v.anom=w[0];
