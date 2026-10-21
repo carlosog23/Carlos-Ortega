@@ -922,6 +922,7 @@ const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos 
    Los datos reales del dispositivo no se leen ni se modifican. Se sale con «Salir de la demostración». */
 const DEMO=(()=>{let on=false;try{on=sessionStorage.getItem("tlm-demo")==="1"}catch(e){}
   window.DEMO_DEST=(location.hash.match(/[#&]demo=([\w-]+)/)||[])[1]||"";
+  window.IR_DEST=(location.hash.match(/[#&]ir=([\w-]+)/)||[])[1]||"";
   if(/[#&]demo(?![\w-])/.test(location.hash)){on=true;try{sessionStorage.setItem("tlm-demo","1")}catch(e){}history.replaceState(null,"",location.pathname+location.search)}
   return on})();
 const DEMO_PERFIL={modo:"050",zona:"050",subsis:"ISEP",subsistema:"Federalizado",nivel:"Primaria",instLogo:"img/isep.png",
@@ -2382,7 +2383,7 @@ function bloqueoView(){S.view="bloqueo";setBar("");const e=ACC_YO,st=e?accEstado
    <button class="btn link adminlink" id="sup">Soy Supervisión</button>`;
   document.getElementById("usar").onclick=async()=>{const v=document.getElementById("pegar").value.trim();const mm=v.match(/acceso=([A-Za-z0-9_-]{10,})/);
     if(!mm){document.getElementById("msg").innerHTML=`<div class="alert">Ese texto no parece un enlace de acceso. Copie el enlace completo que le enviaron.</div>`;return}
-    store.set("acc-token",mm[1]);if(await accesoGate())home();else bloqueoView()};
+    store.set("acc-token",mm[1]);if(await accesoGate()){if(!irDirecto())home()}else bloqueoView()};
   document.getElementById("sup").onclick=accAdminView;window.scrollTo(0,0)}
 function accPie(){if(!ACC||!ACC.activo||!ACC_YO)return"";const e=ACC_YO;
   return`<br>Acceso ${e.tipo==="escuela"?"de la escuela":"de"} ${esc(e.tipo==="escuela"?e.escuela:e.nombre)} · vigente hasta el ${esc(fechaLarga(e.vence))}`}
@@ -4316,7 +4317,12 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
   info()}
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
-function inicioOK(){if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
+/* Enlace directo: …/formatos-ppie/#ir=beca abre el formato (o la sección) sin pasar por la bienvenida */
+const IR_ALIAS={beca:"U",becas:"U",licencia:"L",permiso:"L",seguro:"S",datos:"P"};
+function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST="";const L=IR_ALIAS[k.toLowerCase()]||k.toUpperCase();
+  if(typeof ANEXOS!=="undefined"&&ANEXOS[L]){home();openAnexo(L);return true}
+  const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
+function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   app.innerHTML=`
    <div class="bienv-h">${TLM()}<div><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div>
