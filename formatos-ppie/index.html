@@ -874,8 +874,8 @@ function becaPre(k){return p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct);const
   if(e)return e[k]||"";return{clave:p.cct,nombre:p.escuela,tel:p.telefono,calle:p.domicilio,mun:p.municipio,turno:p.turno}[k]||""}}
 const BECA_ESC_OPTS=CENTROS.map((c,i)=>({c,i})).filter(o=>o.c.cct!=="02FIZ0094X").map(o=>({label:o.c.label+" · "+o.c.cct,value:String(o.i)}));
 ANEXOS.U={name:"Formato Único de Beca",pref:"Beca",who:"Madre, padre o tutor (con apoyo de la escuela)",grupo:"Becas",
- use:"Solicitud de beca de la Secretaría de Educación de Baja California. Se imprime en hoja carta horizontal y la firma quien solicita.",
- upper:true,noUpper:["Correo electrónico"],center:true,
+ use:"Solicitud de beca de la Secretaría de Educación de Baja California. Los datos salen en tinta azul (requisito): imprímalo a color, en hoja carta horizontal, y firme también con pluma azul.",
+ upper:true,noUpper:["Correo electrónico"],center:true,tinta:[0.04,0.2,0.72],/* requisito: llenado con tinta azul */
  steps:[
   {title:"Fecha y lugar del trámite",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"partesAnio",to:["Fecha: día","Fecha: mes","Fecha: año"]},
     {id:"mun",label:"Municipio donde se realiza el trámite",type:"select",options:MUNIS,pre:"municipio",to:"Municipio"}]},
@@ -1013,7 +1013,7 @@ function problems(L,geo){const p=plan(L),issues=[...(p.over||[]),...(ANEXOS[L].v
 /* ---------- generar el PDF oficial ---------- */
 async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const doc=await PDFLib.PDFDocument.load(bytes);
   const helv=await doc.embedFont(PDFLib.StandardFonts.Helvetica),bold=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-  const pages=doc.getPages(),ink=PDFLib.rgb(0,0,0),p=plan(L);
+  const pages=doc.getPages(),ink=ANEXOS[L].tinta?PDFLib.rgb(...ANEXOS[L].tinta):PDFLib.rgb(0,0,0),p=plan(L);
   const BOLD=new Set(ANEXOS[L].bold||[]);
   const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const ft=BOLD.has(n)?bold:helv;const w=ft.widthOfTextAtSize(text,size);
     let x=g.x+1.5;if(g.q===1||ANEXOS[L].center)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:ft,color:ink})};
