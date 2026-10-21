@@ -696,7 +696,8 @@ const ACCIONES = {
     return { texto: gemini_(prompt) };
   },
 
-  // Lee con la IA un oficio que envió un director (PDF o foto), lo archiva y propone el oficio de seguimiento a la autoridad que corresponde
+  // Lee con la IA un oficio que recibió la Supervisión (de quien sea: director, docente, padre de familia, autoridad, dependencia...),
+  // lo archiva y propone la respuesta al remitente (modo «responder») o el oficio de seguimiento a la autoridad que corresponde (modo «turnar»)
   analizarOficioRecibido: (yo, d) => {
     soloMesa_(yo);
     const tipo = String(d.tipo || 'application/pdf');
@@ -709,12 +710,15 @@ const ACCIONES = {
     f.setDescription('Oficio recibido, subido a Tequio por ' + yo.nombre);
     const escuelas = leer_('dir').filter(c => c.tipo === 'director')
       .map(c => '- ' + c.escuela + ' | C.C.T. ' + c.cct + ' | ' + c.municipio + ' | ' + (c.multigrado ? 'multigrado' : 'organización completa') + ' | ' + (c.cargo || 'Director(a)') + ': ' + c.nombre).join('\n');
-    const prompt = INSTRUCCIONES_RECIBIDO + '\n\nESCUELAS DE LA ZONA 050\n' + escuelas + '\n\nFecha de hoy: ' + fechaLarga_(hoy_()) +
+    const modo = d.modo === 'turnar' ? 'turnar' : 'responder';
+    const prompt = INSTRUCCIONES_RECIBIDO + '\n\n' + MODOS_RECIBIDO[modo] + '\n\nESCUELAS DE LA ZONA 050\n' + escuelas + '\n\nFecha de hoy: ' + fechaLarga_(hoy_()) +
       (String(d.notas || '').trim() ? '\n\nIndicaciones del Supervisor: ' + String(d.notas).trim() : '') +
-      '\n\n' + INSTRUCCIONES_OFICIO.replace('Escriba SOLO el cuerpo del oficio', 'En el campo «cuerpo» escriba SOLO el cuerpo del oficio de seguimiento').replace('Responda únicamente con el texto del cuerpo.', '');
+      '\n\n' + INSTRUCCIONES_OFICIO.replace('Escriba SOLO el cuerpo del oficio', 'En el campo «cuerpo» escriba SOLO el cuerpo del oficio').replace('Responda únicamente con el texto del cuerpo.', '') +
+      '\n\n' + FORMATO_RECIBIDO;
     let a;
     const texto = gemini_(prompt, { archivo: String(d.archivo), tipo: tipo, json: true });
     try { a = JSON.parse(texto.replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { throw new Error('La IA no pudo leer bien el oficio. Intente de nuevo o revise que el archivo sea legible.'); }
+    a.modo = modo;
     a.recibidoId = f.getId();
     a.recibidoNombre = nombre;
     return { analisis: a };
@@ -820,14 +824,30 @@ const ACCIONES = {
 const ULTIMO_OFICIO_INICIAL = 46;
 
 const INSTRUCCIONES_RECIBIDO = [
-  'Usted apoya al Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar de la Zona 050 (Primaria Federalizada, ISEP, Baja California). Se adjunta un oficio o escrito que le envió un director o directora de una escuela de la zona.',
-  'Léalo con cuidado y determine: qué escuela lo envía, quién lo firma, qué problema plantea, qué solicita, y a qué autoridad le compete atenderlo.',
-  'Autoridades inmediatas: si la escuela pertenece al municipio de San Quintín, el oficio de seguimiento va al C. HUMBERTO GARCÍA SOLORIO, Jefe del Departamento de Educación Primaria en San Quintín (ISEP). Si pertenece al municipio de Ensenada, va al PROFR. ARTURO AGUILAR CITAL, Jefe del Departamento de Educación Primaria en Ensenada (ISEP). Nunca mezcle municipios.',
-  'Solo si el asunto claramente compete a otra dependencia distinta del Departamento de Educación Primaria (por ejemplo, el ayuntamiento, la comisión de agua, CFE, Protección Civil, Seguridad Pública), indique autoridad «Otro» con los datos de esa dependencia; aun así mencione en «motivoAutoridad» si conviene marcar copia al Jefe de Departamento.',
-  'Después redacte el oficio de seguimiento que el Supervisor enviará a esa autoridad: haga referencia al escrito del director (número y fecha si los tiene), exponga el planteamiento de forma objetiva y solicite con respeto la atención o intervención que corresponda. No copie textual el escrito del director.',
+  'Usted apoya al Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar de la Zona 050 (Primaria Federalizada, ISEP, Baja California). Se adjunta un oficio o escrito que recibió la Supervisión. Puede enviarlo cualquier persona o institución, sin importar su cargo: un director o directora, un docente, un ATP, un padre o madre de familia, el comité o consejo de participación, una autoridad educativa (jefes de departamento, otras supervisiones, oficinas del ISEP o de la SEP), un ayuntamiento o delegación, otra dependencia (salud, Protección Civil, seguridad, CFE, comisión de agua), un sindicato, una asociación o un particular.',
+  'Léalo con cuidado y determine: quién lo firma (nombre, cargo e institución), si tiene relación con alguna escuela de la zona, qué plantea y qué solicita.',
+  'Autoridades inmediatas del Supervisor: en el municipio de San Quintín, el C. HUMBERTO GARCÍA SOLORIO, Jefe del Departamento de Educación Primaria en San Quintín (ISEP); en el municipio de Ensenada, el PROFR. ARTURO AGUILAR CITAL, Jefe del Departamento de Educación Primaria en Ensenada (ISEP). Nunca mezcle municipios.'
+].join('\n');
+
+// Lo que se pide redactar según lo que quiera hacer el Supervisor con el oficio recibido
+const MODOS_RECIBIDO = {
+  responder: [
+    'TAREA: redacte el oficio de RESPUESTA que el Supervisor le enviará a quien firmó el escrito, sea quien sea.',
+    'El destinatario es el remitente: use su nombre, cargo e institución tal como aparecen en el escrito (si es un particular o padre de familia sin cargo, deje el cargo vacío o use «Padre/Madre de familia de la Esc. Prim. «...»» si se identifica la escuela).',
+    'En el cuerpo haga referencia a su escrito (número y fecha si los tiene), dé respuesta puntual a cada planteamiento o petición, indique con claridad lo que la Supervisión hará, lo que no le compete y ante quién debe acudir, y los pasos o plazos si corresponden. Si falta información para responder algo, dígalo con respeto y pídala. Tono institucional, respetuoso y cercano; adapte el registro al cargo del destinatario. No copie textual el escrito.',
+    'En «autoridad» ponga «San Quintín» o «Ensenada» SOLO si el remitente es el Jefe de Departamento de ese municipio; en cualquier otro caso ponga «Otro».'
+  ].join('\n'),
+  turnar: [
+    'TAREA: redacte el oficio de SEGUIMIENTO o turno que el Supervisor enviará a la autoridad a la que le compete atender el asunto.',
+    'Si el asunto es de una escuela de San Quintín, la autoridad es el Jefe de Departamento de San Quintín; si es de Ensenada, el de Ensenada. Solo si claramente compete a otra dependencia (ayuntamiento, comisión de agua, CFE, Protección Civil, Seguridad Pública, etc.) indique autoridad «Otro» con los datos de esa dependencia en «otraDependencia», y mencione en «motivoAutoridad» si conviene marcar copia al Jefe de Departamento.',
+    'En el cuerpo haga referencia al escrito recibido (quién lo firma, número y fecha si los tiene), exponga el planteamiento de forma objetiva y solicite con respeto la atención o intervención que corresponda. No copie textual el escrito. En «ccp» incluya a quien envió el escrito, para su conocimiento.'
+  ].join('\n')
+};
+
+const FORMATO_RECIBIDO = [
   'Responda SOLO con un objeto JSON válido, sin texto adicional, con estas claves:',
-  '{"escuelaCct": "C.C.T. de la escuela de la lista, o vacío si no se identifica", "escuelaNombre": "", "remitente": "nombre y cargo de quien firma", "oficioDirector": "número y fecha del escrito del director, si aparecen", "resumen": "2 a 4 renglones con lo que plantea", "peticiones": ["lo que solicita, una por elemento"], "autoridad": "San Quintín | Ensenada | Otro", "otraDependencia": {"nombre": "", "cargo": "", "dependencia": ""}, "motivoAutoridad": "por qué le compete a esa autoridad", "asunto": "asunto breve del oficio de seguimiento", "referencia": "Oficio [número] de la Dirección de la Esc. Prim. «...», o vacío", "cuerpo": "cuerpo del oficio de seguimiento, párrafos separados por \\n\\n", "ccp": "copias sugeridas, una por renglón separadas por \\n; incluya a la Dirección de la escuela para su conocimiento y «Archivo.»"}',
-  'Si el documento no es legible o no es un oficio escolar, responda el JSON con «resumen» explicando el problema y los demás campos vacíos.'
+  '{"escuelaCct": "C.C.T. de la escuela de la lista con la que tiene relación, o vacío", "escuelaNombre": "", "remitente": "nombre y cargo de quien firma, en una línea", "remitenteDatos": {"nombre": "nombre con su título (Profr., Lic., C., etc.)", "cargo": "cargo, o vacío si no tiene", "institucion": "escuela, dependencia u organización, o vacío", "correo": "correo si aparece en el escrito, o vacío", "municipio": "San Quintín | Ensenada | otro | vacío"}, "tipoRemitente": "director | docente | padre de familia | autoridad educativa | otra dependencia | sindicato | particular | otro", "oficioRemitente": "número y fecha del escrito recibido, si aparecen", "resumen": "2 a 4 renglones con lo que plantea", "peticiones": ["lo que solicita, una por elemento"], "autoridad": "San Quintín | Ensenada | Otro", "otraDependencia": {"nombre": "", "cargo": "", "dependencia": ""}, "motivoAutoridad": "a quién le compete atender el asunto y por qué", "asunto": "asunto breve del oficio que se redacta", "referencia": "Escrito u oficio [número] de [remitente], de fecha ..., o vacío", "cuerpo": "cuerpo del oficio, párrafos separados por \\n\\n", "ccp": "copias sugeridas, una por renglón separadas por \\n, terminando con «Archivo.»"}',
+  'Si el documento no es legible o no es un oficio o escrito, responda el JSON con «resumen» explicando el problema y los demás campos vacíos.'
 ].join('\n');
 
 const INSTRUCCIONES_OFICIO = [
@@ -888,7 +908,7 @@ function guardarCorreo_(o, envio, asunto, cuerpo, yo) {
   const f = carpetaCorreos_(envio.f.slice(0, 4)).createFile(Utilities.newBlob(html, 'text/html', 'correo.html').getAs('application/pdf').setName(nombre));
   return f.getId();
 }
-// «Oficios Tequio/Recibidos/AAAA»: los oficios que mandan los directores y se suben a Tequio
+// «Oficios Tequio/Recibidos/AAAA»: los oficios que recibe la Supervisión (de quien sea) y se suben a Tequio
 function carpetaRecibidos_() {
   return carpetaPorNombre_(carpetaPorNombre_(carpetaOficios_(), 'Recibidos'), hoy_().slice(0, 4));
 }
