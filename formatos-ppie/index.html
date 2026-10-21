@@ -1171,12 +1171,12 @@ function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";co
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
   for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref?A.pref:"Anexo "+S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
-   ${S.step===0?pickHTML():""}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">🖨 Imprimir en blanco</button></div>`:""}
+   ${S.step===0?pickHTML():""}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima o descargue el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">🖨 Imprimir en blanco</button><button type="button" class="btn ghost" id="blancoD">⬇ Descargar en blanco</button></div>`:""}
    <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
    ${st.intro&&A.intro?A.intro():""}<form class="card" id="frm" novalidate>${html}</form>`;
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
   document.getElementById("frm").onsubmit=e=>{e.preventDefault()};
-  {const bb=document.getElementById("blanco");if(bb)bb.onclick=()=>{readStep();imprimirBlanco(S.letra,bb)}}pickWire();
+  {const bb=document.getElementById("blanco");if(bb)bb.onclick=()=>{readStep();imprimirBlanco(S.letra,bb)}}{const bd=document.getElementById("blancoD");if(bd)bd.onclick=()=>{readStep();imprimirBlanco(S.letra,bd,true)}}pickWire();
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>{if(i.type==="radio")app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked));else i.closest(".opt").classList.toggle("on",i.checked)}));
   app.querySelectorAll(".chip[data-for]").forEach(c=>c.onclick=()=>{const el=document.getElementById(c.dataset.for);const f=fields.find(x=>"f_"+x.id===c.dataset.for);if(f&&f.chipAppend){el.value=el.value.replace(/@.*$/,"")+c.dataset.v;el.focus()}else el.value=c.dataset.v});
   app.querySelectorAll(".chip[data-fill]").forEach(c=>c.onclick=()=>{const f=fields.find(x=>x.id===c.dataset.fill);const set=f.fillChips[+c.dataset.i].set;for(const[k,v]of Object.entries(set)){const el=document.getElementById("f_"+k);if(el)el.value=v}});
@@ -1209,14 +1209,14 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
      <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button>
     </div>
     <div id="msg"></div>
-    <button class="btn link" id="blancoR">🖨 Imprimir el formato oficial en blanco (para llenar a mano)</button>
+    <button class="btn link" id="blancoR">🖨 Imprimir el formato oficial en blanco (para llenar a mano)</button><button class="btn link" id="blancoRD">⬇ Descargar el formato oficial en blanco</button>
     <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
   setBar(`<button class="btn ghost" id="prev">Anterior</button><button class="btn ghost" id="inicio">Inicio</button>`);
   app.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;stepView()});
   document.getElementById("salir").onclick=goBack;document.getElementById("inicio").onclick=()=>{S.sec=null;home()};
   document.getElementById("prev").onclick=()=>{S.step=A.steps.length-1;stepView()};
   document.getElementById("nuevo").onclick=()=>{store.del("ppie-draft-"+S.letra);openAnexo(S.letra)};
-  document.getElementById("blancoR").onclick=e=>imprimirBlanco(S.letra,e.currentTarget);
+  document.getElementById("blancoR").onclick=e=>imprimirBlanco(S.letra,e.currentTarget);document.getElementById("blancoRD").onclick=e=>imprimirBlanco(S.letra,e.currentTarget,true);
   OUT=null;if(!issues.length)prepararPDF().catch(()=>{});
   app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));window.scrollTo(0,0)}
 
@@ -1388,8 +1388,8 @@ docsInit();
 function botonImprimir(id){return`<button class="btn primary act" id="${id}"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>`}
 function wireImprimir(id,fn){const b=document.getElementById(id);if(b)b.onclick=e=>{PMODE="print";fn(e.currentTarget)}}
 /* Formato oficial en blanco, tal cual el original, para llenarlo a mano */
-async function imprimirBlanco(L,btn){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";const prev=S.vals;
-  try{S.vals={};const bytes=await generar(L);const blob=new Blob([bytes],{type:"application/pdf"});PMODE="print";
+async function imprimirBlanco(L,btn,descargar){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";const prev=S.vals;
+  try{S.vals={};const bytes=await generar(L);const blob=new Blob([bytes],{type:"application/pdf"});PMODE=descargar?"save":"print";
     await entregarPDF(blob,`${ARCHIVO[L]||"Formato "+L} - en blanco.pdf`,ANEXOS[L]?.back?" e impresión a <b>doble cara</b>":"")}
   catch(e){pToast(`<b>No se pudo preparar el formato.</b> Intente de nuevo. (${esc(e&&e.message||e)})`)}
   finally{S.vals=prev;btn.disabled=false;btn.innerHTML=label}}
