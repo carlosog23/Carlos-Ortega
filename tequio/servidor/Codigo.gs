@@ -46,13 +46,14 @@ const HOJAS = {
   sia: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'num', 'alumno', 'lec', 'tex', 'cal', 'cargadoPor', 'actualizado'],
   sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado'],
   eig: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'n', 'cr', 'rz', 'fuente', 'cargadoPor', 'actualizado'],
-  eia: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'num', 'alumno', 'sexo', 'v', 'cargadoPor', 'actualizado']
+  eia: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'num', 'alumno', 'sexo', 'v', 'cargadoPor', 'actualizado'],
+  per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos' };
-const VERSION = 9;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios' };
+const VERSION = 10;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -145,9 +146,9 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SIN_BLOQUEO = ['leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -170,6 +171,8 @@ const ACCIONES = {
     sic: leer_('sic'),
     sisCfg: { ia: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') },
     eig: leer_('eig'),
+    per: leer_('per'),
+    iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
   }),
@@ -643,6 +646,55 @@ const ACCIONES = {
     return { creadas: nuevas.map(x => x.cct), existian: existian, sinBase: sinBase, evi: leer_('evi') };
   },
 
+
+  /* ---- Directorio de personas para los oficios ---- */
+
+  // Lee con la IA un directorio (PDF, foto o el texto de un Word o Excel) y devuelve las personas.
+  // No guarda nada: la Supervisión decide qué guardar y las escuelas lo guardan en su dispositivo.
+  leerDirectorio: (yo, d) => {
+    const texto = String(d.texto || '').slice(0, 200000);
+    let op = { json: true, temperatura: 0.1, max: 32768 };
+    if (!texto) {
+      const tipo = String(d.tipo || 'application/pdf');
+      if (!/^(application\/pdf|image\/(png|jpeg|webp|heic|heif))$/.test(tipo)) throw new Error('Suba el directorio en PDF, Word, Excel o como foto (JPG o PNG).');
+      if (!d.archivo) throw new Error('Falta el archivo.');
+      if (Utilities.base64Decode(String(d.archivo)).length > 15 * 1024 * 1024) throw new Error('El archivo pesa más de 15 MB. Redúzcalo o divídalo.');
+      op = Object.assign(op, { archivo: String(d.archivo), tipo: tipo });
+    }
+    const prompt = PROMPT_DIRECTORIO + (String(d.contexto || '').trim() ? '\n\nDato de quien lo sube (úselo para completar institución o grupo si el documento no lo dice): ' + String(d.contexto).slice(0, 300) : '') +
+      (texto ? '\n\nCONTENIDO DEL DIRECTORIO (texto extraído; las columnas de tablas van separadas por tabuladores):\n' + texto : '');
+    const r = gemini_(prompt, op);
+    let j;
+    try { j = JSON.parse(r.replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { throw new Error('La IA no pudo leer bien el directorio. Intente con un archivo más claro o con menos páginas.'); }
+    const t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+    const personas = (Array.isArray(j) ? j : j.personas || []).map(x => ({ nombre: t(x.nombre, 200), cargo: t(x.cargo, 300), institucion: t(x.institucion, 300),
+      correo: t(x.correo, 200), telefono: t(x.telefono, 60), grupo: t(x.grupo, 60) })).filter(x => x.nombre);
+    return { personas: personas };
+  },
+
+  // Guarda (o actualiza) personas en el directorio de oficios de la Supervisión; evita duplicados por nombre y cargo
+  guardarDirOficios: (yo, d) => {
+    soloMesa_(yo);
+    const lista = leer_('per'), t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+    const clave = x => (String(x.nombre) + '|' + String(x.cargo)).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9|]/g, '');
+    const cambios = [];
+    (d.personas || []).slice(0, 2000).forEach(x => {
+      const o = { nombre: t(x.nombre, 200), cargo: t(x.cargo, 300), institucion: t(x.institucion, 300), correo: t(x.correo, 200), telefono: t(x.telefono, 60), grupo: t(x.grupo, 60), fuente: t(x.fuente, 200) };
+      if (!o.nombre) return;
+      const previo = (x.id && lista.find(p => p.id === x.id)) || lista.find(p => clave(p) === clave(o));
+      if (previo) { ['institucion', 'correo', 'telefono', 'grupo', 'fuente'].forEach(k => { if (!o[k] && !x.id) o[k] = previo[k]; }); Object.assign(previo, o, { actualizado: ahora_() }); if (cambios.indexOf(previo) < 0) cambios.push(previo); }
+      else { const n = Object.assign({ id: 'per-' + Utilities.getUuid().slice(0, 8), creadoPor: yo.id, creado: ahora_(), actualizado: ahora_() }, o); lista.push(n); cambios.push(n); }
+    });
+    if (cambios.length > 20) reemplazarTodo_('per', lista); else cambios.forEach(o => guardar_('per', o));
+    return { per: leer_('per'), guardados: cambios.length };
+  },
+  borrarDirOficios: (yo, d) => {
+    soloMesa_(yo);
+    const ids = d.ids || [];
+    reemplazarTodo_('per', leer_('per').filter(p => ids.indexOf(p.id) < 0));
+    return { per: leer_('per') };
+  },
+
   /* ---- Oficios de la Supervisión ---- */
 
   // Guarda un oficio. Si es nuevo, le asigna el siguiente número del año (SE-050/047/2026).
@@ -821,6 +873,19 @@ const ACCIONES = {
 /* ===================== Oficios ===================== */
 
 // Último oficio hecho antes de usar Tequio (el primero de Tequio será el siguiente)
+const PROMPT_DIRECTORIO = [
+  'Usted recibe un directorio de personas: puede ser una lista, una tabla, un organigrama, la foto de una hoja o la de un pizarrón. Pueden ser autoridades, funcionarios, directivos, docentes, padres de familia o cualquier otra persona.',
+  'Extraiga CADA persona que aparezca, sin inventar ni omitir a nadie. Para cada una devuelva:',
+  '- nombre: el nombre completo tal como aparece, con su título abreviado si lo trae (C., Profr., Profra., Mtro., Mtra., Lic., Dr., Dra., Ing., Arq.). No agregue títulos que no aparezcan.',
+  '- cargo: el puesto o la función (por ejemplo «Jefe del Departamento de Educación Primaria», «Docente de 3.° A», «Presidenta del Consejo de Participación Escolar»). Si es docente y trae grado y grupo, inclúyalos.',
+  '- institucion: la dependencia, escuela u organismo, si aparece (con su C.C.T. si la trae). Si el documento entero es de una misma institución, póngala en todos.',
+  '- correo y telefono si aparecen; si no, cadena vacía.',
+  '- grupo: una etiqueta breve para clasificarla, por ejemplo Autoridades, Directivos, Docentes, Personal de apoyo, Padres de familia u Otros.',
+  'Corrija solo errores evidentes de lectura (acentos, letras confundidas). Escriba nombres y cargos con mayúsculas y minúsculas normales, no todo en mayúsculas.',
+  'Ignore encabezados, logotipos, números de página y totales.',
+  'Responda ÚNICAMENTE con JSON: {"personas":[{"nombre":"","cargo":"","institucion":"","correo":"","telefono":"","grupo":""}]}'
+].join('\n');
+
 const ULTIMO_OFICIO_INICIAL = 46;
 
 const INSTRUCCIONES_RECIBIDO = [
@@ -1022,6 +1087,8 @@ function datosDirector_(yo) {
     sic: comentariosPara_(yo),
     // EIA: igual que el SisAT, su escuela completa y de las demás solo los números por grado
     eig: leer_('eig').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, cct: '', grado: x.grado, grupo: '', n: x.n, cr: x.cr, rz: x.rz }),
+    // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
+    iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
   };
 }

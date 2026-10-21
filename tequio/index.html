@@ -607,7 +607,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -5320,7 +5320,8 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 9,
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 10, iaDirectorio: true,
+      per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
         referencia: '', asunto: 'Informe de visitas de acompañamiento del mes de septiembre', ccp: 'Archivo.', firma: false, sello: false, escala: '1', pdfId: '', envios: [], creadoPor: usr[0].id, creado: ahora(), actualizado: ahora(),
@@ -5336,7 +5337,7 @@ const Demo = (() => {
       if (!cfg.dir) return copia(D);
       const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
       return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
-        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined,
+        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
         sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
         eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined }));
@@ -5386,6 +5387,18 @@ const Demo = (() => {
       else D.sic.push({ id: uid('sic'), ciclo: d.ciclo, momento: String(d.momento), nivel: d.nivel, ref: d.ref, tipo: d.tipo, texto: d.texto, autor: D.yo.id, autorNombre: D.yo.nombre, creado: ahora(), actualizado: ahora() });
       return { sic: copia(D.sic) };
     },
+    leerDirectorio: d => ({ personas: [
+      { nombre: 'Lic. María Elena Soto Ramírez', cargo: 'Delegada de ISEP en San Quintín', institucion: 'ISEP · Delegación San Quintín', correo: '', telefono: '', grupo: 'Autoridades' },
+      { nombre: 'Ing. Roberto Castro Villa', cargo: 'Coordinador Municipal de Protección Civil', institucion: 'Ayuntamiento de San Quintín', correo: 'pc@ejemplo.mx', telefono: '616 000 0000', grupo: 'Autoridades' },
+      { nombre: 'Profra. Laura Méndez Ochoa', cargo: 'Docente de 3.° A', institucion: d.contexto || '', correo: '', telefono: '', grupo: 'Docentes' },
+      { nombre: 'Profr. Julio César Ávila Ruiz', cargo: 'Docente de 5.° B', institucion: d.contexto || '', correo: '', telefono: '', grupo: 'Docentes' },
+      { nombre: 'C. Rosa Isela Pérez Núñez', cargo: 'Presidenta del Consejo de Participación Escolar', institucion: d.contexto || '', correo: '', telefono: '', grupo: 'Padres de familia' }] }),
+    guardarDirOficios: d => {
+      d.personas.forEach(x => { const pr = (x.id && D.per.find(p => p.id === x.id)) || D.per.find(p => perClave(p) === perClave(x));
+        if (pr) Object.assign(pr, x, { id: pr.id }); else D.per.push(Object.assign({}, x, { id: uid('per') })); });
+      return { per: copia(D.per), guardados: d.personas.length };
+    },
+    borrarDirOficios: d => { D.per = D.per.filter(p => !d.ids.includes(p.id)); return { per: copia(D.per) }; },
     guardarOficio: d => {
       let o = D.ofi.find(x => x.id === d.id);
       if (!o) { const n = ++D.ofiCfg.ultimo; o = { id: 'ofi-2026-' + String(n).padStart(3, '0'), numero: n, anio: 2026, folio: 'SE-050/' + String(n).padStart(3, '0') + '/2026', pdfId: '', envios: [], creadoPor: D.yo.id, creado: ahora() };
@@ -5460,7 +5473,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias'];
+  const LECTURA = ['leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
@@ -5743,7 +5756,7 @@ const eoDemo = () => !!(cfg && cfg.demo);
 function eoBase() {
   const cct = miCct(), e = ESC_050[cct], c = escuelaDe(cct) || {};
   const escuela = e ? e[0] : (c.escuela || ''), municipio = e ? e[1] : (c.municipio || ''), localidad = e ? e[2] : '';
-  return { cct, ofi: [], cfg: { escuela, cct, municipio, localidad, domicilio: e ? e[3] : '', turno: e ? e[6] : 'Matutino', telefono: '', correo: '',
+  return { cct, ofi: [], per: [], cfg: { escuela, cct, municipio, localidad, domicilio: e ? e[3] : '', turno: e ? e[6] : 'Matutino', telefono: '', correo: '',
     lugar: [localidad, municipio].filter(Boolean).join(', ') + (municipio ? ', B.C.' : ''), firmante: e ? e[4] : String(c.nombre || '').toUpperCase(), cargo: e ? e[5] : 'DIRECTOR(A)',
     lema: '', prefijo: '', ultimos: {}, logo: null, firma: null, sello: null } };
 }
@@ -5752,7 +5765,7 @@ function eoDatos() {
   const b = eoBase();
   let g = null;
   if (!eoDemo()) try { g = JSON.parse(localStorage.getItem(eoClave()) || 'null'); } catch (e) {}
-  EO = g ? { cct: b.cct, ofi: g.ofi || [], cfg: Object.assign(b.cfg, g.cfg || {}) } : b;
+  EO = g ? { cct: b.cct, ofi: g.ofi || [], per: g.per || [], cfg: Object.assign(b.cfg, g.cfg || {}) } : b;
   return EO;
 }
 function eoGuardar() {
@@ -5966,7 +5979,7 @@ function vOficiosEsc() {
     .filter(o => !q || [o.folio, o.asunto, o.destNombre, o.destCargo].join(' ').toLowerCase().includes(q));
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios de la escuela</h1>
-    <div class="acciones"><button class="boton sec" id="b-eo-cfg">${ico('i-llave')}Membrete y firma</button><button class="boton sec" id="b-eo-resp">${ico('i-carpeta')}Respaldo</button><button class="boton terra" id="b-eo-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
+    <div class="acciones"><button class="boton sec" id="b-eo-dir">${ico('i-dir')}Directorio</button><button class="boton sec" id="b-eo-cfg">${ico('i-llave')}Membrete y firma</button><button class="boton sec" id="b-eo-resp">${ico('i-carpeta')}Respaldo</button><button class="boton terra" id="b-eo-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
   <div class="aviso-caja peq">Estos son los oficios de <b>${esc(c.escuela || 'su escuela')}</b>. Se guardan <b>solo en este dispositivo</b>: no se envían a la Supervisión ni se mezclan con sus oficios. El siguiente número es <b>${esc(eoNum(eoSiguiente(anio), anio))}</b>. Para pasarlos a otro teléfono o computadora use «Respaldo».</div>
   ${!c.logo ? `<div class="aviso-caja conf peq">Aún no hay logo de la escuela. Súbalo en «Membrete y firma» para que aparezca junto al de ISEP. <button class="boton sec chico" id="b-eo-logo" style="margin-left:4px">Subir logo</button></div>` : ''}
   <div class="filtros"><input type="search" id="eo-q" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.eoQ || '')}" style="flex:1;min-width:220px"></div>
@@ -5977,6 +5990,7 @@ function vOficiosEsc() {
     : `<div class="tarjeta vacio">${q ? 'No hay oficios que coincidan con la búsqueda.' : 'Aún no hay oficios de la escuela en este dispositivo. Pulse «Nuevo oficio».'}</div>`}`;
   $('#b-eo-nuevo').onclick = () => { vista.eoEdit = 'nuevo'; vista.eoBorrador = null; vOficiosEsc(); window.scrollTo(0, 0); };
   $('#b-eo-cfg').onclick = formMembreteEsc;
+  $('#b-eo-dir').onclick = () => gestorDirectorio(dirEscuela());
   if ($('#b-eo-logo')) $('#b-eo-logo').onclick = formMembreteEsc;
   $('#b-eo-resp').onclick = formRespaldoEsc;
   $('#eo-q').oninput = e => { vista.eoQ = e.target.value; const p = e.target.selectionStart; vOficiosEsc(); const i = $('#eo-q'); i.focus(); try { i.setSelectionRange(p, p); } catch (er) {} };
@@ -6002,8 +6016,8 @@ function vEditorOficioEsc() {
       <div class="campo"><span class="et">¿A quién va dirigido?</span>
         <div class="seg-op">${Object.keys(EO_DEST_ETQ).map(k => `<button type="button" data-dt="${k}" aria-pressed="${o.tipo === k}">${EO_DEST_ETQ[k]}</button>`).join('')}</div>
         ${o.tipo === 'jefe' ? `<div class="ayuda">Su escuela es de ${esc(c.municipio)}: va al Jefe del Departamento de ${esc(c.municipio)}. Se agrega copia a la Supervisión.</div>` : ''}</div>
-      ${usados.length ? `<div class="campo"><label for="o-us">Usados antes</label><select id="o-us"><option value="">Elegir a alguien a quien ya se le hizo un oficio…</option>${usados.map((x, i) => `<option value="${i}">${esc(x.destNombre)}${x.destCargo ? ' · ' + esc(x.destCargo) : ''}</option>`).join('')}</select></div>` : ''}
-      <div class="campo"><label for="o-dn">Destinatario</label><input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título (Ej. LIC. ...)"></div>
+      <div class="campo"><div style="display:flex;align-items:end;justify-content:space-between;gap:8px;flex-wrap:wrap"><label for="o-dn">Destinatario</label>
+        <button type="button" class="boton sec chico" id="o-lista">${ico('i-dir')}Elegir de la lista</button></div><input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título (Ej. LIC. ...)"></div>
       <div class="campo"><label for="o-dc">Cargo</label><input id="o-dc" value="${esc(o.destCargo)}"></div>
       <div class="campo"><label for="o-di">Dependencia o institución</label><input id="o-di" value="${esc(o.destInst)}"></div>
       <label class="casilla" style="margin:-4px 0 12px"><input type="checkbox" id="o-pl" ${o.plural ? 'checked' : ''}> Va dirigido a varias personas (P R E S E N T E S)</label>
@@ -6063,7 +6077,7 @@ function vEditorOficioEsc() {
     o.plural = nue.plural; o.tipo = b.dataset.dt;
     vEditorOficioEsc();
   });
-  if ($('#o-us')) $('#o-us').onchange = e => { const x = usados[+e.target.value]; if (!x) return; leerForm(); Object.assign(o, { destNombre: x.destNombre, destCargo: x.destCargo, destInst: x.destInst, plural: !!x.plural, tipo: x.tipo || 'otro' }); vEditorOficioEsc(); };
+  $('#o-lista').onclick = () => { leerForm(); elegirDestinatarioEsc(usados, d => { const ccpAnt = (D0[o.tipo] || {}).ccp; Object.assign(o, d); if (!String(o.ccp || '').trim() || o.ccp === ccpAnt) o.ccp = (D0[o.tipo] || D0.otro).ccp; vEditorOficioEsc(); }, () => vEditorOficioEsc()); };
   $('#b-volver').onclick = () => { vista.eoEdit = null; vista.eoBorrador = null; vOficiosEsc(); };
   $('#o-guardar').onclick = () => {
     leerForm();
@@ -6163,12 +6177,12 @@ function formMembreteEsc() {
 function formRespaldoEsc() {
   modal('Respaldo de los oficios', `
     <p style="margin-top:0">Los oficios de la escuela viven solo en este dispositivo. Para no perderlos o pasarlos a otro teléfono o computadora:</p>
-    <ol class="peq" style="padding-left:20px"><li>Descargue el respaldo aquí (incluye membrete, logo, firma y numeración).</li><li>Envíeselo por WhatsApp o correo.</li><li>En el otro dispositivo, entre con el enlace de la escuela y pulse «Restaurar».</li></ol>
+    <ol class="peq" style="padding-left:20px"><li>Descargue el respaldo aquí (incluye membrete, logo, firma, numeración y el directorio de la escuela).</li><li>Envíeselo por WhatsApp o correo.</li><li>En el otro dispositivo, entre con el enlace de la escuela y pulse «Restaurar».</li></ol>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton" id="r-bajar">${ico('i-carpeta')}Descargar respaldo</button>
       <label class="boton sec" style="cursor:pointer">Restaurar desde un respaldo<input type="file" accept=".json,application/json" id="r-subir" style="display:none"></label></div>
     <p class="ayuda">Al restaurar se suman los oficios que falten; no se borra ninguno de los que ya están aquí.</p>`, '<button class="boton sec" id="r-ok">Cerrar</button>');
   $('#r-ok').onclick = cerrarModal;
-  $('#r-bajar').onclick = () => descargarBlob(new Blob([JSON.stringify({ tipo: 'tequio-oficios-escuela', version: 1, fecha: ahora(), cct: EO.cct, cfg: EO.cfg, ofi: EO.ofi })], { type: 'application/json' }),
+  $('#r-bajar').onclick = () => descargarBlob(new Blob([JSON.stringify({ tipo: 'tequio-oficios-escuela', version: 1, fecha: ahora(), cct: EO.cct, cfg: EO.cfg, ofi: EO.ofi, per: EO.per || [] })], { type: 'application/json' }),
     'Respaldo oficios ' + (EO.cfg.escuela || EO.cct).replace(/[\\/:*?"<>|]+/g, ' ') + ' ' + hoy() + '.json');
   $('#r-subir').onchange = e => {
     const f = e.target.files[0]; if (!f) return;
@@ -6179,6 +6193,8 @@ function formRespaldoEsc() {
       if (d.cct && d.cct !== EO.cct && !confirm('Este respaldo es de otra escuela (' + d.cct + '). ¿Restaurarlo de todos modos?')) return;
       const ids = new Set(EO.ofi.map(x => x.id)), nuevos = (d.ofi || []).filter(x => x && x.id && !ids.has(x.id));
       EO.ofi = EO.ofi.concat(nuevos);
+      const pids = new Set((EO.per || []).map(x => x.id)), pclaves = new Set((EO.per || []).map(perClave));
+      EO.per = (EO.per || []).concat((d.per || []).filter(x => x && x.id && !pids.has(x.id) && !pclaves.has(perClave(x))));
       const ult = Object.assign({}, (d.cfg || {}).ultimos);
       Object.keys(EO.cfg.ultimos || {}).forEach(a => { ult[a] = Math.max(+ult[a] || 0, +EO.cfg.ultimos[a] || 0); });
       const prev = EO.cfg;
@@ -6189,6 +6205,250 @@ function formRespaldoEsc() {
     };
     r.readAsText(f);
   };
+}
+
+/* =========================================================
+   Directorio de personas para los oficios (autoridades, docentes, padres de familia o quien sea)
+   Se sube en PDF, Word, Excel o foto; la IA lo lee y usted revisa antes de guardar.
+   · Supervisión y Mesa Técnica: se guarda en el servidor y lo comparten.
+   · Escuelas: se guarda solo en su dispositivo (el servidor únicamente presta la lectura con IA).
+   ========================================================= */
+const PER_GRUPOS = ['Autoridades', 'Directivos', 'Docentes', 'Personal de apoyo', 'Padres de familia', 'Otros'];
+const perClave = x => (String(x.nombre || '') + '|' + String(x.cargo || '')).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9|]/g, '');
+const perLimpio = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+const perDest = p => ({ destNombre: String(p.nombre || '').toUpperCase(), destCargo: String(p.cargo || '').toUpperCase(), destInst: String(p.institucion || '').toUpperCase(), destCorreo: p.correo || '' });
+const XML_ENT = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'" };
+const xmlTexto = x => x.replace(/<w:tab\/>/g, '\t').replace(/<w:br[^>]*\/>/g, '\n').replace(/<\/w:p>/g, '\n').replace(/<[^>]+>/g, '').replace(/&(amp|lt|gt|quot|apos);/g, m => XML_ENT[m]);
+
+// Texto de un Word (.docx): cada renglón de tabla queda en una línea con las columnas separadas por tabulador
+async function textoDeWord(file) {
+  await cargarScript('lib/xlsx.full.min.js');
+  let z;
+  try { z = XLSX.CFB.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' }); } catch (e) { throw new Error('No se pudo abrir «' + file.name + '». Guárdelo como .docx o PDF e intente de nuevo.'); }
+  const e = XLSX.CFB.find(z, 'word/document.xml') || XLSX.CFB.find(z, '/word/document.xml');
+  if (!e) throw new Error('«' + file.name + '» no parece un documento de Word (.docx).');
+  const xml = new TextDecoder('utf-8').decode(e.content);
+  return xmlTexto(xml.replace(/<w:tr[\s>][\s\S]*?<\/w:tr>/g, tr => '<w:p>' + (tr.match(/<w:tc[\s>][\s\S]*?<\/w:tc>/g) || [])
+    .map(c => xmlTexto(c).replace(/\s+/g, ' ').trim()).join('\t').replace(/[<>&]/g, m => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[m])) + '</w:p>'))
+    .replace(/[  ]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+async function filasDeExcel(file) {
+  await cargarScript('lib/xlsx.full.min.js');
+  const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+  return wb.SheetNames.flatMap(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: false }))
+    .map(f => f.map(c => String(c).trim())).filter(f => f.some(Boolean));
+}
+// Personas a partir de una tabla, reconociendo los encabezados (Nombre, Cargo, Puesto, Correo, Teléfono, Apellidos, Grado, Grupo…)
+function personasDeFilas(filas, fuente) {
+  const pat = { ap1: /apellido\s*pat|primer\s*apellido/i, ap2: /apellido\s*mat|segundo\s*apellido/i, nombre: /^nombre|nombre\s*(completo|\(s\))|^docente$|^maestr[oa]$|^integrante/i,
+    cargo: /cargo|puesto|funci[oó]n|comisi[oó]n|categor/i, grado: /^grado/i, grupo: /^grupo/i, institucion: /instituci|dependencia|escuela|[aá]rea|adscrip|centro de trabajo/i,
+    correo: /correo|e-?mail/i, telefono: /tel[eé]f|celular|whats|^cel/i };
+  // la fila de encabezados es la que más columnas reconocidas tiene (y trae nombre o apellidos)
+  let h = -1, m = {}, mejor = 0;
+  for (let i = 0; i < Math.min(filas.length, 15); i++) {
+    const mm = {};
+    filas[i].forEach((c, j) => { if (!c || c.length > 45) return; for (const k of Object.keys(pat)) if (mm[k] == null && pat[k].test(c)) { mm[k] = j; break; } });
+    const n = Object.keys(mm).length;
+    if ((mm.nombre != null || mm.ap1 != null) && n > mejor) { h = i; m = mm; mejor = n; }
+  }
+  if (h < 0) m = { nombre: 0, cargo: 1, institucion: 2 };
+  const v = (f, k) => m[k] != null ? perLimpio(f[m[k]], 300) : '';
+  return filas.slice(h + 1).map(f => {
+    const nombre = [v(f, 'nombre'), v(f, 'ap1'), v(f, 'ap2')].filter(Boolean).join(' ');
+    let cargo = v(f, 'cargo');
+    if (!cargo && (v(f, 'grado') || v(f, 'grupo'))) cargo = 'Docente de ' + [v(f, 'grado') && v(f, 'grado').replace(/[°º.]*$/, '') + '.°', v(f, 'grupo')].filter(Boolean).join(' ');
+    return { nombre, cargo, institucion: v(f, 'institucion'), correo: v(f, 'correo'), telefono: v(f, 'telefono'), grupo: '', fuente };
+  }).filter(x => x.nombre.length > 3 && /[a-záéíóúñ]/i.test(x.nombre) && !/^(total|nombre)/i.test(x.nombre));
+}
+// Foto → JPEG de tamaño razonable para la IA
+function fotoParaIA(file) {
+  return new Promise(ok => {
+    if (/heic|heif/i.test(file.type)) return ok(null);
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const k = Math.min(1, 2400 / Math.max(im.naturalWidth, im.naturalHeight)); const cv = document.createElement('canvas');
+      cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(u); cv.toBlob(b => ok(b), 'image/jpeg', 0.88); };
+    im.onerror = () => { URL.revokeObjectURL(u); ok(null); };
+    im.src = u;
+  });
+}
+const IA_FALTA = 'Para leer PDF y fotos hace falta la lectura con IA de la Supervisión, que aún no está activa. Mientras tanto puede subir el directorio en Excel o Word, o agregar a las personas a mano.';
+async function leerDirectorioArchivos(files, G) {
+  const todas = [], avisos = [];
+  const conIA = async (datos, fuente) => {
+    if (!G.ia) throw new Error(IA_FALTA);
+    let r;
+    try { r = await api('leerDirectorio', Object.assign({ contexto: G.contexto || '' }, datos)); }
+    catch (e) { if (/desconocida/i.test(e.message)) throw new Error('El servidor de Tequio necesita actualizarse para leer directorios con IA. Avise a la Supervisión.'); throw e; }
+    return (r.personas || []).map(p => Object.assign(p, { fuente }));
+  };
+  for (const f of files) {
+    const n = f.name.toLowerCase();
+    try {
+      if (f.size > 15 * 1024 * 1024) throw new Error('«' + f.name + '» pesa más de 15 MB.');
+      if (/\.(xlsx|xls|csv|ods)$/.test(n)) {
+        const filas = await filasDeExcel(f), loc = personasDeFilas(filas, f.name);
+        const conEnc = filas.slice(0, 15).some(r => r.some(c => /nombre|apellido/i.test(c) && c.length < 45));
+        todas.push(...(conEnc || !G.ia ? loc : await conIA({ texto: filas.map(r => r.join('\t')).join('\n') }, f.name)));
+      } else if (/\.docx$/.test(n)) {
+        const t = await textoDeWord(f);
+        if (G.ia) todas.push(...await conIA({ texto: t }, f.name));
+        else { const loc = personasDeFilas(t.split('\n').filter(l => l.includes('\t')).map(l => l.split('\t')), f.name);
+          if (!loc.length) throw new Error('No se encontró una tabla con nombres en «' + f.name + '». ' + IA_FALTA); todas.push(...loc); }
+      } else if (/\.doc$/.test(n)) throw new Error('«' + f.name + '» es un Word antiguo (.doc). Ábralo y guárdelo como .docx o PDF.');
+      else if (/\.pdf$/.test(n) || f.type === 'application/pdf') todas.push(...await conIA({ archivo: await blobAB64(f), tipo: 'application/pdf' }, f.name));
+      else if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/.test(n)) {
+        const j = await fotoParaIA(f), b = j || f;
+        todas.push(...await conIA({ archivo: await blobAB64(b), tipo: j ? 'image/jpeg' : (f.type || 'image/heic') }, f.name));
+      } else throw new Error('«' + f.name + '»: use PDF, Word (.docx), Excel o una foto.');
+    } catch (e) { avisos.push(e.message); }
+  }
+  // sin repetir dentro de lo leído
+  const vistos = {};
+  return { personas: todas.filter(p => { const k = perClave(p); if (!p.nombre || vistos[k]) return false; vistos[k] = 1; return true; }), avisos };
+}
+
+/* ---- Ventanas: administrar, revisar lo leído, editar a una persona ---- */
+// G = { titulo, nota, ia, contexto, lista(), guardar(personas) → promesa, borrar(ids) → promesa, alVolver? }
+function gestorDirectorio(G, filtro) {
+  if (!G.lista()) {
+    modal('Directorio de oficios', `<p style="margin-top:0">Para guardar el directorio de la Supervisión, el servidor de Tequio necesita la versión nueva. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</p>`, '<button class="boton" id="g-ok">Entendido</button>');
+    return void ($('#g-ok').onclick = cerrarModal);
+  }
+  let g = filtro || '';
+  modal(esc(G.titulo), `
+    <p class="peq" style="margin-top:0">${G.nota} Suba los directorios que tenga (de autoridades, de su personal, de padres de familia…) en <b>PDF, Word, Excel o foto</b>: ${G.ia ? 'la IA los lee y' : ''} usted revisa los nombres y puestos antes de guardarlos. Después aparecen al elegir el destinatario de un oficio.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <label class="boton terra chico" style="cursor:pointer">${ico('i-carpeta')}Subir directorio<input type="file" id="g-arch" multiple accept="application/pdf,.pdf,.docx,.doc,.xlsx,.xls,.csv,.ods,image/*" style="display:none"></label>
+      <button type="button" class="boton sec chico" id="g-nueva">${ico('i-mas')}Agregar persona</button></div>
+    ${G.ia ? '' : `<div class="aviso-caja peq">${IA_FALTA}</div>`}
+    <input id="g-q" type="search" placeholder="Buscar por nombre, cargo o institución" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
+    <div class="filtros" id="g-f"></div>
+    <div class="lista-act" id="g-l" style="max-height:46vh;overflow:auto;border:1px solid var(--borde);border-radius:10px"></div>`,
+    `${G.alVolver ? '<button class="boton sec" id="g-volver">Volver</button>' : ''}<button class="boton" id="g-ok">Listo</button>`);
+  const pinta = () => {
+    const l = G.lista(), q = $('#g-q').value.toLowerCase();
+    const grupos = [...new Set(l.map(p => p.grupo || 'Otros'))].sort((a, b) => (PER_GRUPOS.indexOf(a) + 99) % 99 - (PER_GRUPOS.indexOf(b) + 99) % 99 || a.localeCompare(b, 'es'));
+    $('#g-f').innerHTML = grupos.length > 1 ? [['', 'Todos (' + l.length + ')']].concat(grupos.map(x => [x, x + ' (' + l.filter(p => (p.grupo || 'Otros') === x).length + ')']))
+      .map(x => `<button type="button" class="chip${g === x[0] ? ' indigo' : ''}" data-g="${esc(x[0])}" style="cursor:pointer;border:0">${esc(x[1])}</button>`).join('') : '';
+    const v = l.filter(p => (!g || (p.grupo || 'Otros') === g) && (!q || [p.nombre, p.cargo, p.institucion, p.grupo].join(' ').toLowerCase().includes(q)))
+      .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    $('#g-l').innerHTML = v.length ? v.map(p => `<div class="act" style="cursor:default"><div class="cuerpo"><div class="t">${esc(p.nombre)}</div>
+        <div class="m">${esc([p.cargo, p.institucion].filter(Boolean).join(' · '))}${p.grupo ? ` <span class="chip">${esc(p.grupo)}</span>` : ''}</div></div>
+        <div style="display:flex;gap:6px;align-items:center"><button class="boton sec chico" data-ed="${esc(p.id)}" aria-label="Editar">${ico('i-lapiz')}</button><button class="boton peligro chico" data-bo="${esc(p.id)}" aria-label="Borrar">${ico('i-x')}</button></div></div>`).join('')
+      : `<div class="vacio peq">${l.length ? 'No hay coincidencias.' : 'Aún no hay personas. Suba un directorio o agréguelas a mano.'}</div>`;
+    $$('#g-f [data-g]').forEach(b => b.onclick = () => { g = b.dataset.g; pinta(); });
+    $$('#g-l [data-ed]').forEach(b => b.onclick = () => formPersona(G, G.lista().find(p => p.id === b.dataset.ed), g));
+    $$('#g-l [data-bo]').forEach(b => b.onclick = async () => {
+      const p = G.lista().find(x => x.id === b.dataset.bo);
+      if (p && confirm('¿Quitar a ' + p.nombre + ' del directorio?') && await G.borrar([p.id])) pinta();
+    });
+  };
+  $('#g-q').oninput = pinta;
+  $('#g-ok').onclick = cerrarModal;
+  if ($('#g-volver')) $('#g-volver').onclick = () => { cerrarModal(); G.alVolver(); };
+  $('#g-nueva').onclick = () => formPersona(G, null, g);
+  $('#g-arch').onchange = async e => {
+    const fs = [...e.target.files]; if (!fs.length) return;
+    const r = await conCarga(() => leerDirectorioArchivos(fs, G));
+    if (!r) return;
+    if (!r.personas.length) return aviso(esc(r.avisos.join(' ') || 'No se encontraron personas en el archivo.'), 'mal', 10000);
+    revisarPersonas(G, r.personas, r.avisos);
+  };
+  pinta();
+}
+function revisarPersonas(G, personas, avisos) {
+  const ya = {}; (G.lista() || []).forEach(p => { ya[perClave(p)] = p; });
+  const campo = (i, k, ph, w) => `<input data-k="${k}" data-i="${i}" value="${esc(personas[i][k] || '')}" placeholder="${ph}" style="border:1px solid var(--borde);border-radius:8px;padding:6px 8px;min-height:36px;width:100%;${w || ''}">`;
+  modal('Revise antes de guardar', `
+    <p class="peq" style="margin-top:0">Se encontraron <b>${personas.length}</b> persona${personas.length === 1 ? '' : 's'}. Corrija lo que haga falta y quite la marca a quien no quiera guardar.${avisos.length ? '' : ''}</p>
+    ${avisos.length ? `<div class="aviso-caja peq">${avisos.map(esc).join('<br>')}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><label class="casilla"><input type="checkbox" id="v-todos" checked> Marcar todos</label>
+      <span class="ayuda">Grupo para todos:</span><select id="v-grupo" style="border:1px solid var(--borde);border-radius:8px;padding:5px 8px"><option value="">(el que propone la lectura)</option>${PER_GRUPOS.map(x => `<option>${x}</option>`).join('')}</select></div>
+    <div id="v-l" style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:8px">${personas.map((p, i) => `
+      <div class="tarjeta" style="padding:8px 10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:start">
+        <input type="checkbox" data-sel="${i}" checked style="width:20px;height:20px;margin-top:8px;accent-color:var(--indigo)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px">
+          ${campo(i, 'nombre', 'Nombre con título', 'font-weight:600')}${campo(i, 'cargo', 'Cargo o puesto')}${campo(i, 'institucion', 'Institución o escuela')}
+          ${campo(i, 'correo', 'Correo')}${campo(i, 'telefono', 'Teléfono')}${campo(i, 'grupo', 'Grupo')}
+          ${ya[perClave(p)] ? '<div class="ayuda" style="grid-column:1/-1">Ya está en el directorio: se actualizan sus datos.</div>' : ''}</div></div>`).join('')}</div>`,
+    '<button class="boton sec" id="v-no">Cancelar</button><button class="boton terra" id="v-si">Guardar en el directorio</button>');
+  $$('#v-l [data-k]').forEach(inp => inp.oninput = () => { personas[+inp.dataset.i][inp.dataset.k] = inp.value; });
+  $('#v-todos').onchange = e => $$('#v-l [data-sel]').forEach(c => { c.checked = e.target.checked; });
+  $('#v-grupo').onchange = e => { if (!e.target.value) return; $$('#v-l [data-k="grupo"]').forEach(inp => { inp.value = e.target.value; personas[+inp.dataset.i].grupo = e.target.value; }); };
+  $('#v-no').onclick = () => gestorDirectorio(G);
+  $('#v-si').onclick = async () => {
+    const elegidas = $$('#v-l [data-sel]').filter(c => c.checked).map(c => personas[+c.dataset.sel]).filter(p => perLimpio(p.nombre, 200));
+    if (!elegidas.length) return aviso('Marque al menos a una persona.', 'mal');
+    elegidas.forEach(p => { const pr = ya[perClave(p)]; if (pr) p.id = pr.id; });
+    if (await G.guardar(elegidas)) { gestorDirectorio(G); aviso(elegidas.length + ' persona' + (elegidas.length === 1 ? '' : 's') + ' en el directorio.', 'ok', 3500); }
+  };
+}
+function formPersona(G, p, filtro) {
+  const x = Object.assign({ nombre: '', cargo: '', institucion: '', correo: '', telefono: '', grupo: '' }, p || {});
+  modal(p ? 'Editar persona' : 'Agregar persona', `
+    <div class="campo"><label for="p-n">Nombre con título</label><input id="p-n" value="${esc(x.nombre)}" placeholder="Ej. Lic. María López Ruiz"></div>
+    <div class="campo"><label for="p-c">Cargo o puesto</label><input id="p-c" value="${esc(x.cargo)}" placeholder="Ej. Delegada de ISEP en San Quintín"></div>
+    <div class="campo"><label for="p-i">Institución, dependencia o escuela</label><input id="p-i" value="${esc(x.institucion)}"></div>
+    <div class="fila dos"><div class="campo"><label for="p-co">Correo</label><input id="p-co" type="email" value="${esc(x.correo)}"></div>
+      <div class="campo"><label for="p-t">Teléfono</label><input id="p-t" value="${esc(x.telefono)}"></div></div>
+    <div class="campo"><label for="p-g">Grupo</label><input id="p-g" value="${esc(x.grupo)}" list="p-gl" placeholder="Ej. Autoridades"><datalist id="p-gl">${PER_GRUPOS.map(g => `<option>${g}</option>`).join('')}</datalist></div>`,
+    '<button class="boton sec" id="p-no">Cancelar</button><button class="boton terra" id="p-si">Guardar</button>');
+  $('#p-no').onclick = () => gestorDirectorio(G, filtro);
+  $('#p-si').onclick = async () => {
+    const o = { id: p ? p.id : '', nombre: perLimpio($('#p-n').value, 200), cargo: perLimpio($('#p-c').value, 300), institucion: perLimpio($('#p-i').value, 300),
+      correo: perLimpio($('#p-co').value, 200), telefono: perLimpio($('#p-t').value, 60), grupo: perLimpio($('#p-g').value, 60), fuente: p ? p.fuente || '' : 'A mano' };
+    if (!o.nombre) return aviso('Escriba el nombre.', 'mal');
+    if (await G.guardar([o])) gestorDirectorio(G, filtro);
+  };
+}
+
+/* ---- Directorio de la Supervisión (servidor, compartido con la Mesa Técnica) ---- */
+function dirSupervision(alVolver) {
+  return { titulo: 'Directorio de oficios', nota: 'Lo comparten la Supervisión y la Mesa Técnica.', ia: !!((S.ofiCfg || {}).ia || S.iaDirectorio), contexto: '',
+    lista: () => S.per, alVolver,
+    guardar: async ps => { const r = await accion('guardarDirOficios', { personas: ps }); if (r) S.per = r.per; return !!r; },
+    borrar: async ids => { const r = await accion('borrarDirOficios', { ids }); if (r) S.per = r.per; return !!r; } };
+}
+/* ---- Directorio de la escuela (solo en el dispositivo) ---- */
+function dirEscuela(alVolver) {
+  return { titulo: 'Directorio de la escuela', nota: 'Se guarda solo en este dispositivo, junto con los oficios de la escuela (entra en el respaldo).', ia: !!S.iaDirectorio,
+    contexto: 'Escuela Primaria «' + EO.cfg.escuela + '», C.C.T. ' + EO.cct + ', ' + EO.cfg.municipio + ', B.C.', lista: () => EO.per || (EO.per = []), alVolver,
+    guardar: async ps => {
+      EO.per = EO.per || [];
+      ps.forEach(x => {
+        const o = { nombre: perLimpio(x.nombre, 200), cargo: perLimpio(x.cargo, 300), institucion: perLimpio(x.institucion, 300), correo: perLimpio(x.correo, 200), telefono: perLimpio(x.telefono, 60), grupo: perLimpio(x.grupo, 60), fuente: perLimpio(x.fuente, 200) };
+        const pr = (x.id && EO.per.find(p => p.id === x.id)) || EO.per.find(p => perClave(p) === perClave(o));
+        if (pr) Object.assign(pr, o, { actualizado: ahora() }); else EO.per.push(Object.assign({ id: 'per-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creado: ahora() }, o));
+      });
+      return eoGuardar();
+    },
+    borrar: async ids => { EO.per = (EO.per || []).filter(p => !ids.includes(p.id)); return eoGuardar(); } };
+}
+// Elegir destinatario en los oficios de la escuela: su directorio y las personas a quienes ya les hizo un oficio
+function elegirDestinatarioEsc(usados, listo, alVolver) {
+  const per = (EO.per || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+  const items = [...per.map(p => ({ g: 'per', t: p.nombre, s: [p.cargo, p.institucion].filter(Boolean).join(' · '), d: () => Object.assign(perDest(p), { tipo: 'otro', plural: false }) })),
+    ...usados.map(x => ({ g: 'usados', t: x.destNombre, s: x.destCargo, d: () => ({ destNombre: x.destNombre, destCargo: x.destCargo, destInst: x.destInst, plural: !!x.plural, tipo: x.tipo || 'otro' }) }))];
+  let f = per.length ? 'per' : 'usados';
+  modal('Elegir destinatario', `
+    <input id="d-q" type="search" placeholder="Buscar por nombre o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
+    <div class="filtros" id="d-f"><button type="button" class="chip" data-f="per" style="cursor:pointer;border:0">Directorio de la escuela (${per.length})</button><button type="button" class="chip" data-f="usados" style="cursor:pointer;border:0">Usados antes (${usados.length})</button></div>
+    <div class="lista-act" id="d-l" style="max-height:50vh;overflow:auto;border:1px solid var(--borde);border-radius:10px"></div>`,
+    `<button class="boton sec" id="d-dir">${ico('i-carpeta')}Subir o editar directorio</button><button class="boton sec" id="d-no">Cerrar</button>`);
+  const pinta = () => {
+    const q = $('#d-q').value.toLowerCase();
+    $$('#d-f [data-f]').forEach(b => { b.className = 'chip' + (b.dataset.f === f ? ' indigo' : ''); });
+    const l = items.map((x, i) => Object.assign({ i }, x)).filter(x => x.g === f && (!q || (x.t + ' ' + x.s).toLowerCase().includes(q)));
+    $('#d-l').innerHTML = l.length ? l.map(x => `<button class="act" data-i="${x.i}"><div class="cuerpo"><div class="t">${esc(x.t)}</div><div class="m">${esc(x.s)}</div></div></button>`).join('')
+      : `<div class="vacio peq">${f === 'per' && !per.length ? 'Aún no hay personas en el directorio de la escuela. Pulse «Subir o editar directorio» para cargar uno en PDF, Word, Excel o foto.' : f === 'usados' && !usados.length ? 'Aún no hay oficios guardados.' : 'No hay coincidencias.'}</div>`;
+    $$('#d-l [data-i]').forEach(b => b.onclick = () => { const d = items[+b.dataset.i].d(); cerrarModal(); listo(d); });
+  };
+  $('#d-q').oninput = pinta;
+  $$('#d-f [data-f]').forEach(b => b.onclick = () => { f = b.dataset.f; pinta(); });
+  $('#d-no').onclick = cerrarModal;
+  $('#d-dir').onclick = () => gestorDirectorio(dirEscuela(alVolver));
+  pinta();
 }
 
 /* ---- Vista: lista de oficios ---- */
@@ -6205,7 +6465,7 @@ function vOficios() {
   const cfgO = S.ofiCfg || {};
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios</h1>
-    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Contestar un oficio recibido</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
+    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-ofi-cfg">${ico('i-llave')}Configuración</button>` : ''}<button class="boton sec" id="b-ofi-dir">${ico('i-dir')}Directorio</button><button class="boton sec" id="b-ofi-recibido">${ico('i-carpeta')}Contestar un oficio recibido</button><button class="boton terra" id="b-ofi-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
   <div class="aviso-caja peq">El siguiente número es <b>${esc(cfgO.siguiente || '—')}</b>${esMesa() ? ' <button type="button" class="boton sec chico" id="b-ofi-num" style="margin-left:4px">Cambiar el número</button>' : ''}. Cada oficio guardado queda registrado aquí y su PDF se guarda en el Drive de la Supervisión (carpeta «Oficios Tequio»).${!cfgO.ia ? (esAdmin() ? ' <b>La redacción con IA aún no está activa:</b> agregue la clave de Gemini en Configuración.' : '') : ''}</div>
   <div class="filtros"><input id="f-ofi" type="search" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.ofiBuscar || '')}" style="flex:1;min-width:220px"></div>
   ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-ofi="${o.id}">
@@ -6216,6 +6476,7 @@ function vOficios() {
   </button>`).join('')}</div></div>` : `<div class="tarjeta vacio">${q ? 'No hay oficios que coincidan con la búsqueda.' : 'Aún no hay oficios hechos en Tequio. Pulse «Nuevo oficio».'}</div>`}`;
   $('#b-ofi-nuevo').onclick = () => { vista.ofiEdit = 'nuevo'; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); };
   $('#b-ofi-recibido').onclick = subirOficioRecibido;
+  $('#b-ofi-dir').onclick = () => gestorDirectorio(dirSupervision());
   if ($('#b-ofi-cfg')) $('#b-ofi-cfg').onclick = formCfgOficios;
   if ($('#b-ofi-num')) $('#b-ofi-num').onclick = formNumeroOficio;
   $('#f-ofi').oninput = e => { vista.ofiBuscar = e.target.value; const pos = e.target.selectionStart; vOficios(); const i = $('#f-ofi'); i.focus(); i.setSelectionRange(pos, pos); };
@@ -6422,28 +6683,30 @@ function elegirDestinatario(listo) {
   const items = [
     ...usados.map((u, i) => ({ g: 'usados', t: u.destNombre, s: u.destCargo + (u.veces > 1 ? ' · ' + u.veces + ' oficios' : ''), d: () => Object.assign({ municipio: u.municipio === 'San Quintín' || u.municipio === 'Ensenada' ? u.municipio : 'Otro' }, u) })),
     ...dirs.map(c => ({ g: esMultigrado(c) ? 'multi' : 'dir', mun: c.municipio, t: c.nombre, s: (c.cargo || 'Director(a)') + ' · ' + c.escuela + ' · ' + c.municipio, d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
-    ...otros.map(c => ({ g: 'otros', t: c.nombre, s: [c.cargo, c.escuela].filter(Boolean).join(' · '), d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) }))
+    ...otros.map(c => ({ g: 'otros', t: c.nombre, s: [c.cargo, c.escuela].filter(Boolean).join(' · '), d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
+    ...(S.per || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')).map(p => ({ g: 'per', t: p.nombre, s: [p.cargo, p.institucion].filter(Boolean).join(' · ') + (p.grupo ? ' · ' + p.grupo : ''), d: () => Object.assign({ municipio: 'Otro', escuelas: [] }, perDest(p)) }))
   ];
-  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ['dir-Ensenada', 'Directores Ensenada'], ['dir-San Quintín', 'Directores San Quintín'], ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
-  let f = usados.length ? 'usados' : 'todos';
+  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ['per', 'Directorio de oficios'], ['dir-Ensenada', 'Directores Ensenada'], ['dir-San Quintín', 'Directores San Quintín'], ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
+  let f = usados.length ? 'usados' : (S.per || []).length ? 'per' : 'todos';
   modal('Elegir destinatario', `
     <input id="d-q" type="search" placeholder="Buscar por nombre, escuela o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
     <div class="filtros" id="d-f">${filtros.map(x => `<button type="button" class="chip" data-f="${x[0]}" style="cursor:pointer;border:0">${x[1]}</button>`).join('')}</div>
     <div class="lista-act" id="d-l" style="max-height:52vh;overflow:auto;border:1px solid var(--borde);border-radius:10px"></div>
-    <div class="ayuda" style="margin-top:8px">Las personas a quienes se les hace un oficio se guardan solas en «Usados antes». Los directores y encargados vienen del Directorio.</div>`,
-    '<button class="boton sec" id="d-no">Cerrar</button>');
+    <div class="ayuda" style="margin-top:8px">Las personas a quienes se les hace un oficio se guardan solas en «Usados antes». Los directores y encargados vienen del Directorio. Las autoridades, docentes y demás personas que suba en PDF, Word, Excel o foto quedan en «Directorio de oficios».</div>`,
+    `<button class="boton sec" id="d-dir">${ico('i-carpeta')}Subir o editar directorio</button><button class="boton sec" id="d-no">Cerrar</button>`);
   const pinta = () => {
     const q = $('#d-q').value.toLowerCase();
     $$('#d-f [data-f]').forEach(b => { b.className = 'chip' + (b.dataset.f === f ? ' indigo' : ''); });
     const l = items.map((x, i) => Object.assign({ i }, x)).filter(x => (f === 'todos' || x.g === f || (f.startsWith('dir-') && (x.g === 'dir' || x.g === 'multi') && x.mun === f.slice(4))) &&
       (!q || (x.t + ' ' + x.s).toLowerCase().includes(q)));
     $('#d-l').innerHTML = l.length ? l.map(x => `<button class="act" data-i="${x.i}"><div class="cuerpo"><div class="t">${esc(x.t)}</div><div class="m">${esc(x.s)}</div></div></button>`).join('')
-      : '<div class="vacio peq">' + (f === 'usados' ? 'Aún no hay oficios guardados a personas.' : 'No hay coincidencias.') + '</div>';
+      : '<div class="vacio peq">' + (f === 'usados' ? 'Aún no hay oficios guardados a personas.' : f === 'per' && !(S.per || []).length ? 'Aún no hay personas en el directorio de oficios. Pulse «Subir o editar directorio».' : 'No hay coincidencias.') + '</div>';
     $$('#d-l [data-i]').forEach(b => b.onclick = () => { const d = items[+b.dataset.i].d(); cerrarModal(); listo(d); });
   };
   $('#d-q').oninput = pinta;
   $$('#d-f [data-f]').forEach(b => b.onclick = () => { f = b.dataset.f; pinta(); });
   $('#d-no').onclick = cerrarModal;
+  $('#d-dir').onclick = () => gestorDirectorio(dirSupervision(() => elegirDestinatario(listo)));
   pinta(); $('#d-q').focus();
 }
 
