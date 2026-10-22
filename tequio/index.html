@@ -599,6 +599,23 @@ async function accion(nombre, datos, despues) {
 
 function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if (i >= 0) lista[i] = obj; else lista.push(obj); }
 
+// Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
+// para que nunca se envíe un informe con una versión vieja.
+const PUBLICACION = '2026-10-21-2235';
+async function hayVersionNueva() {
+  try {
+    const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
+    const m = t.match(/const PUBLICACION = '([^']+)'/);
+    return !!(m && m[1] !== PUBLICACION);
+  } catch (e) { return false; }
+}
+async function revisarVersion() {
+  if (!cfg || cfg.demo || !(await hayVersionNueva())) return false;
+  aviso('Hay una versión nueva de Tequio. Actualizando…', 'ok', 4000);
+  setTimeout(() => location.reload(), 1200);
+  return true;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !document.querySelector('#velo')) revisarVersion(); });
 async function cargar() {
   cargando(true);
   try {
@@ -1596,6 +1613,7 @@ function formInforme(preCct) {
   };
   $('#fi-si').onclick = async () => {
     if (!sel.size) return aviso('Elija al menos una escuela.', 'mal');
+    if (await revisarVersion()) return;
     if (sel.size > 1 && !confirm('¿Enviar el informe a ' + sel.size + ' escuelas?')) return;
     const informes = [...sel].map(cct => { const r = z.porCct[cct], c = escuelaDe(cct), a = atpDe(cct);
       return { cct, atpId: a ? a.id : '', asunto: 'Informe de seguimiento · Esc. Prim. «' + c.escuela + '» · corte al ' + fechaOficio(hoy()), html: infHTML(r, z, hoy()),
