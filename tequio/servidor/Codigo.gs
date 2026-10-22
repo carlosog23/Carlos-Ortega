@@ -16,6 +16,8 @@
  *  · Genera oficios numerados de la Supervisión, con redacción asistida por IA (Gemini) y envío por correo.
  *  · Concentra los resultados del SisAT (3 momentos) por grupo, grado, escuela y zona: lee los Excel de la herramienta
  *    oficial (resultado de cada alumno y componente) y, como respaldo, las gráficas con IA.
+ *  · Lleva el tablón de pendientes: la Mesa Técnica deja ahí lo que la Supervisión debe saber o atender;
+ *    los urgentes llegan al momento por correo y cada mañana sale el resumen de lo que sigue abierto.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -52,13 +54,14 @@ const HOJAS = {
         'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor'],
   vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas'],
   inf: ['id', 'cct', 'fecha', 'asunto', 'cifras', 'pendientes', 'html', 'atpId', 'para', 'cc', 'enviadoPor', 'creado', 'resultado'],
-  acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto']
+  acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto'],
+  pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes' };
-const VERSION = 13;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión' };
+const VERSION = 14;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -181,6 +184,7 @@ const ACCIONES = {
     vis: leer_('vis'),
     inf: leer_('inf').map(sinHtml_),
     acl: leer_('acl'),
+    pen: leer_('pen').filter(p => visible_(yo, p)),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -823,6 +827,57 @@ const ACCIONES = {
     return { acl: a };
   },
 
+  /* ---- Tablón de pendientes: la Mesa Técnica informa a la Supervisión lo que pasó mientras estaba fuera ----
+     Estados: nuevo (la Supervisión aún no lo ve) → enterado (ya lo vio, está en atención) → atendido.
+     Prioridad: urgente (correo inmediato a la Supervisión), importante, normal. Confidencial: solo la Supervisión y quien lo escribió. */
+  crearPendiente: (yo, d) => {
+    soloMesa_(yo);
+    const titulo = String(d.titulo || '').trim().slice(0, 160);
+    if (!titulo) throw new Error('Escriba en pocas palabras de qué se trata.');
+    const cct = String(d.cct || '').trim();
+    if (cct && !leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+    const o = { id: 'pen-' + Utilities.getUuid().slice(0, 8), titulo: titulo, detalle: String(d.detalle || '').trim().slice(0, 4000),
+      prioridad: PRIORIDADES_PEN.indexOf(d.prioridad) >= 0 ? d.prioridad : 'normal', categoria: String(d.categoria || 'Otro').slice(0, 40), cct: cct,
+      limite: /^\d{4}-\d{2}-\d{2}$/.test(d.limite || '') ? d.limite : '', estado: yo.rol === 'admin' ? 'enterado' : 'nuevo', confidencial: !!d.confidencial,
+      respuestas: [], creadoPor: yo.id, creadoNombre: yo.nombre, creado: ahora_(), actualizado: ahora_(), atendido: '', atendidoPor: '', visto: yo.rol === 'admin' ? ahora_() : '' };
+    guardar_('pen', o);
+    if (yo.rol !== 'admin' && o.prioridad === 'urgente') avisoPendiente_(o, 'Pendiente URGENTE · ' + o.titulo, '<p><b>' + esc_(yo.nombre) + '</b> dejó un pendiente <b style="color:#B3261E">urgente</b> en el tablón de Tequio:</p>' + fichaPendiente_(o));
+    return { pen: o };
+  },
+  // Agrega una nota o cambia el estado. La Supervisión puede además cambiar la prioridad.
+  actualizarPendiente: (yo, d) => {
+    soloMesa_(yo);
+    const p = buscar_('pen', String(d.id || ''));
+    if (!p || !visible_(yo, p)) throw new Error('No se encontró el pendiente.');
+    const texto = String(d.texto || '').trim().slice(0, 4000);
+    const estado = ['nuevo', 'enterado', 'atendido'].indexOf(d.estado) >= 0 ? d.estado : '';
+    if (!texto && !estado && !d.prioridad && !d.visto) throw new Error('Escriba la nota.');
+    if (texto) p.respuestas = (p.respuestas || []).concat([{ por: yo.nombre, rol: yo.rol, texto: texto, f: ahora_() }]);
+    if (yo.rol === 'admin') {
+      if (!p.visto) p.visto = ahora_();
+      if (p.estado === 'nuevo') p.estado = 'enterado';
+      if (PRIORIDADES_PEN.indexOf(d.prioridad) >= 0) p.prioridad = d.prioridad;
+    }
+    if (estado) p.estado = yo.rol === 'admin' ? (estado === 'nuevo' ? 'enterado' : estado) : (estado === 'atendido' ? 'atendido' : (p.visto ? 'enterado' : 'nuevo'));
+    else if (yo.rol !== 'admin' && texto && p.estado === 'atendido') p.estado = p.visto ? 'enterado' : 'nuevo';  // una nota nueva lo reabre
+    if (p.estado === 'atendido') { if (!p.atendido) { p.atendido = ahora_(); p.atendidoPor = yo.nombre; } }
+    else { p.atendido = ''; p.atendidoPor = ''; }
+    p.actualizado = ahora_();
+    guardar_('pen', p);
+    if (texto || estado === 'atendido') {
+      if (yo.rol === 'admin' && p.creadoPor !== yo.id) {
+        const u = leer_('usr').find(x => x.id === p.creadoPor);
+        avisoAclaracion_(u ? u.correo : '', 'Respuesta de la Supervisión · ' + p.titulo,
+          '<p>La Supervisión ' + (estado === 'atendido' ? 'marcó como <b>atendido</b>' : 'respondió') + ' el pendiente que usted dejó en el tablón:</p>' + fichaPendiente_(p) +
+          (texto ? '<p style="white-space:pre-line;background:#fff;border-left:4px solid #1F3A6B;padding:10px 12px">' + esc_(texto) + '</p>' : '') + '<p>Puede contestar en Tequio › Pendientes.</p>');
+      } else if (yo.rol !== 'admin' && p.prioridad === 'urgente' && texto) {
+        avisoPendiente_(p, 'Novedad en pendiente urgente · ' + p.titulo, '<p><b>' + esc_(yo.nombre) + '</b> agregó una nota a un pendiente urgente:</p>' +
+          '<p style="white-space:pre-line;background:#fff;border-left:4px solid #C2603A;padding:10px 12px">' + esc_(texto) + '</p>' + fichaPendiente_(p));
+      }
+    }
+    return { pen: p };
+  },
+
   /* ---- Visitas de supervisión (guías de 3 visitas por ciclo, con fotos de evidencia) ----
      Cada escuela tiene una visita por número y ciclo (id: vis-CICLO-CCT-N). Las guías (temas) viven en la página;
      aquí se guarda, por tema: estado, observación de la Supervisión, nota y «listo» del director y las fotos. */
@@ -1361,6 +1416,40 @@ function descomprimir_(v) {
   return Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(v.slice(2)), 'application/x-gzip', 'i.gz')).getDataAsString('UTF-8');
 }
 function sinHtml_(x) { const o = Object.assign({}, x); delete o.html; return o; }
+const PRIORIDADES_PEN = ['urgente', 'importante', 'normal'];
+// Correo a la Supervisión (usuarios con rol de administración)
+function avisoPendiente_(p, asunto, cuerpo) {
+  const para = leer_('usr').filter(u => u.rol === 'admin' && u.activo).map(u => u.correo).join(',');
+  const l = String(para || '').split(',').map(m => m.trim()).filter(m => /@/.test(m));
+  if (!l.length) return;
+  try { MailApp.sendEmail({ to: l.join(','), subject: 'Tequio · ' + asunto, htmlBody: plantilla_(asunto, cuerpo + boton_(PAGINA, 'Abrir el tablón de pendientes'), true), name: REMITENTE }); } catch (e) {}
+}
+function fichaPendiente_(p) {
+  const esc = p.cct ? ((leer_('dir').find(c => c.tipo === 'director' && c.cct === p.cct) || {}).escuela || p.cct) : '';
+  const col = { urgente: '#B3261E', importante: '#C2603A', normal: '#24427A' }[p.prioridad] || '#24427A';
+  const fila = (k, v) => v ? '<tr><td style="padding:3px 12px 3px 0;color:#6A5C4C;vertical-align:top;white-space:nowrap">' + k + '</td><td style="padding:3px 0">' + v + '</td></tr>' : '';
+  return '<div style="border:1px solid #E4D8C3;border-left:5px solid ' + col + ';border-radius:8px;padding:12px 14px;margin:12px 0;background:#fff">' +
+    '<div style="font-size:17px;font-weight:bold;color:#24427A;margin-bottom:6px">' + esc_(p.titulo) + '</div>' +
+    (p.detalle ? '<div style="white-space:pre-line;margin-bottom:8px">' + esc_(p.detalle) + '</div>' : '') +
+    '<table style="font-size:14px;border-collapse:collapse">' + fila('Prioridad', '<b style="color:' + col + '">' + esc_(p.prioridad.charAt(0).toUpperCase() + p.prioridad.slice(1)) + '</b>') +
+    fila('Tema', esc_(p.categoria)) + fila('Escuela', esc_(esc)) + fila('Se necesita para', p.limite ? fechaLarga_(p.limite) : '') +
+    fila('Lo informó', esc_(p.creadoNombre) + ' · ' + fechaCorta_(String(p.creado).slice(0, 10)) + ' ' + String(p.creado).slice(11, 16) + ' h') + '</table></div>';
+}
+// Resumen de la mañana para la Supervisión: lo que sigue abierto en el tablón
+function resumenPendientes_() {
+  const abiertos = leer_('pen').filter(p => p.estado !== 'atendido');
+  if (!abiertos.length) return;
+  const hoy = hoy_(), ord = { urgente: 0, importante: 1, normal: 2 };
+  abiertos.sort((a, b) => (ord[a.prioridad] - ord[b.prioridad]) || String(a.limite || '9999').localeCompare(String(b.limite || '9999')) || String(a.creado).localeCompare(String(b.creado)));
+  const nuevos = abiertos.filter(p => p.estado === 'nuevo').length, urg = abiertos.filter(p => p.prioridad === 'urgente').length, venc = abiertos.filter(p => p.limite && p.limite < hoy).length;
+  const cifra = (n, t, c) => '<td style="padding:10px 14px;text-align:center;background:#F1E4CC;border-radius:8px"><div style="font-size:24px;font-weight:bold;color:' + c + '">' + n + '</div><div style="font-size:12px;color:#6A5C4C">' + t + '</div></td>';
+  const cuerpo = '<p>Buenos días. Estos son los pendientes del tablón que siguen abiertos:</p>' +
+    '<table style="border-collapse:separate;border-spacing:8px 0;margin:0 -8px 8px"><tr>' + cifra(abiertos.length, 'abiertos', '#24427A') + cifra(nuevos, 'sin ver', '#C2603A') + cifra(urg, 'urgentes', '#B3261E') + (venc ? cifra(venc, 'con fecha vencida', '#B3261E') : '') + '</tr></table>' +
+    abiertos.slice(0, 25).map(p => fichaPendiente_(p).replace('</table></div>', (p.limite && p.limite < hoy ? '<tr><td></td><td style="color:#B3261E;font-weight:bold">Fecha vencida</td></tr>' : '') + (p.estado === 'nuevo' ? '<tr><td></td><td style="color:#C2603A;font-weight:bold">Sin ver</td></tr>' : '') + '</table></div>')).join('') +
+    (abiertos.length > 25 ? '<p>… y ' + (abiertos.length - 25) + ' más en Tequio.</p>' : '');
+  const para = leer_('usr').filter(u => u.rol === 'admin' && u.activo).map(u => u.correo).join(',').split(',').map(x => x.trim()).filter(x => /@/.test(x));
+  enviarCorreo_(para, 'Pendientes del tablón · ' + fechaCorta_(hoy) + (urg ? ' · ' + urg + ' urgente' + (urg > 1 ? 's' : '') : ''), plantilla_('Pendientes del tablón', cuerpo + boton_(PAGINA, 'Abrir el tablón de pendientes'), true), 'pendientes', '');
+}
 function avisoAclaracion_(para, asunto, cuerpo) {
   const l = String(para || '').split(',').map(m => m.trim()).filter(m => /@/.test(m));
   if (!l.length) return;
@@ -1677,6 +1766,7 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
 
 function tareaDiaria() {
   try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
+  try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
   acts.forEach(a => {
@@ -1721,14 +1811,14 @@ function tareaDiaria() {
 
 /* ===================== Plantillas de correo ===================== */
 
-function plantilla_(titulo, cuerpo) {
+function plantilla_(titulo, cuerpo, sinFirma) {
   return '<div style="background:#F7F1E5;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#1E2A40">' +
     '<div style="max-width:600px;margin:0 auto;background:#FFFDF8;border-radius:12px;overflow:hidden;border:1px solid #E4D8C3">' +
     '<div style="background:#1F3A6B;color:#FBF6EC;padding:18px 22px;border-bottom:4px solid #C2603A">' +
     '<div style="font-family:Georgia,serif;font-size:26px;font-weight:bold">Tequio</div>' +
     '<div style="font-family:Georgia,serif;font-style:italic;font-size:14px;color:#E9D8BA">' + LEMA + '</div></div>' +
     '<div style="padding:22px;font-size:15px;line-height:1.55"><h2 style="font-size:20px;color:#24427A;margin:0 0 12px">' + esc_(titulo) + '</h2>' + cuerpo +
-    '<p style="margin-top:22px">Atentamente,<br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</p></div>' +
+    (sinFirma ? '' : '<p style="margin-top:22px">Atentamente,<br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</p>') + '</div>' +
     '<div style="background:#F1E4CC;padding:12px 22px;font-size:12px;color:#6A5C4C">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · Camalú, San Quintín, B.C.<br>«Responsabilidad y superación» · Tel. 616 165 5622 · supervision050sep@gmail.com</div>' +
     '</div></div>';
 }

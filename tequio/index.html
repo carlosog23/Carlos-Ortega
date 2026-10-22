@@ -427,6 +427,49 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .sis-ed thead th{position:static}
 @media print{.sis-mom,.sis-filtros,#sis-obs .campo,#b-sis-obs,#s-obs-tipo,.aviso-caja button,.migas,.pie{display:none!important}.sis-kpis{grid-template-columns:repeat(3,1fr)}.tarjeta{break-inside:avoid}}
 
+.pen-intro{margin:-4px 0 14px;max-width:72ch;color:var(--gris)}
+.pen-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media (max-width:760px){.pen-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pen-cifra{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:10px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.pen-cifra b{font-family:'Fraunces',serif;font-size:30px;line-height:1.05;color:var(--gris);font-variant-numeric:tabular-nums}
+.pen-cifra b.mal{color:var(--alerta)}.pen-cifra b.aviso{color:#A0690C}.pen-cifra b.ok{color:var(--ok)}.pen-cifra b.indigo{color:var(--indigo)}
+.pen-cifra span{font-size:13.5px;color:var(--gris)}
+.pen-cifra.sel{outline:2px solid var(--indigo);outline-offset:-1px}
+.pen-lista{display:flex;flex-direction:column;gap:12px}
+.pen{padding:14px 16px;border-left:5px solid var(--indigo)}
+.pen.pen-urgente{border-left-color:var(--alerta)}.pen.pen-importante{border-left-color:var(--terra)}
+.pen.pen-hecho{border-left-color:var(--ok);opacity:.82}
+.pen-cab{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.pen-tit{flex:1;min-width:220px}
+.pen-tit h3{font-size:19px;line-height:1.25;text-wrap:balance}
+.pen-chips,.pen-meta{display:flex;gap:6px;flex-wrap:wrap}
+.pen-meta{margin-top:8px}
+.pen-det{white-space:pre-line;margin:10px 0 0;max-width:75ch}
+.pen-hilo{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pen-msg{background:var(--arena-2);border-radius:10px;padding:8px 10px;margin-right:24px}
+.pen-msg.sup{background:#E3E9F4;margin-right:0;margin-left:24px}
+.pen textarea{width:100%;min-height:52px;margin-top:10px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px;background:#fff;resize:vertical}
+.pen-acc{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.pen-acc select{border:1px solid var(--borde);border-radius:8px;padding:5px 8px;min-height:32px;background:#fff;font-size:14px}
+.pen-acc .boton svg{width:16px;height:16px}
+.pen-prio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.pen-prio{grid-template-columns:minmax(0,1fr)}}
+.pen-op{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--borde);border-radius:10px;padding:9px 10px;cursor:pointer;background:#fff}
+.pen-op input{width:18px!important;height:18px;min-height:0!important;flex:none;margin:3px 0 0;padding:0}.pen-op small{display:block;font-size:12.5px;color:var(--gris);line-height:1.3}
+.pen-op:has(input:checked){border-color:var(--indigo);background:#EEF2F9}
+.pen-banda{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:var(--tinta);background:var(--aviso-f);border:1px solid #F0D7A7;border-radius:10px;padding:10px 14px;margin-bottom:14px;cursor:pointer}
+.pen-banda.urg{background:var(--alerta-f);border-color:#F2C1BC}
+.pen-banda svg{width:20px;height:20px;flex:none;color:var(--terra-d)}.pen-banda.urg svg{color:var(--alerta)}
+.pen-banda .pen-ver{margin-left:auto;font-weight:700;color:var(--indigo);white-space:nowrap}
+/* Barra con muchas secciones: se compacta en pantallas medianas para que todo quepa */
+.barra .envoltura{max-width:1480px}
+@media (min-width:761px) and (max-width:1500px){.marca small{display:none}.pestanas{margin-left:10px;gap:2px}.pestanas button{padding:8px 8px;font-size:15px;gap:5px}}
+@media (min-width:761px) and (max-width:1300px){.barra .yo span{display:none}.pestanas button{padding:7px 6px;font-size:14px}.pestanas svg{display:none}}
+@media (min-width:761px) and (max-width:1040px){.barra .yo{display:none}.marca div{display:none}.pestanas{margin-left:4px}.pestanas button{padding:6px 5px;font-size:13.5px}}
+.pest-n{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--terra);color:#fff;font-size:11.5px;font-weight:700;line-height:18px;text-align:center}
+@media (max-width:760px){.nav-movil{overflow-x:auto;scrollbar-width:none}.nav-movil::-webkit-scrollbar{display:none}.nav-movil button{flex:1 0 58px}}
+.nav-movil button{position:relative}.nav-movil .pest-n{position:absolute;top:3px;left:calc(50% + 4px)}
+
 </style>
 </head>
 <body>
@@ -465,6 +508,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/><path d="M8.5 13.2l2.2 2.2 4.6-4.6"/></symbol>
   <symbol id="i-graf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></symbol>
   <symbol id="i-eia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l2 2 4-4M9 16h6"/></symbol>
+  <symbol id="i-pend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-.9 5.6 3.9 3.9H6l3.9-3.9z"/><path d="M12 13v7.5"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -601,7 +645,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-21-2235';
+const PUBLICACION = '2026-10-22-1700';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -624,7 +668,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -715,7 +759,7 @@ function portada(mensaje) {
 /* ---------------- Marco general ---------------- */
 function pestanas() {
   if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['visitas', 'Visitas', 'i-seg'], ['oficios', 'Oficios', 'i-lapiz']];
-  const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -727,16 +771,23 @@ function pintar() {
   ${cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
   <header class="barra"><div class="envoltura">
     <a class="marca" href="#" id="b-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
-    <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}</button>`).join('')}</nav>
+    <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}${insigniaPest(t[0])}</button>`).join('')}</nav>
     <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : esDirector() ? esc(nombreEscuela(miCct())) : 'Mesa Técnica'}</span></div>
   </div></header>
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
+  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, visitas: vVisitasDir })[vista.tab]();
+  ({ agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, visitas: vVisitasDir })[vista.tab]();
+  if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
+}
+// Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
+function insigniaPest(tab) {
+  if (tab !== 'pendientes' || !Array.isArray(S.pen)) return '';
+  const n = esAdmin() ? penNuevos().length : S.pen.filter(p => p.estado !== 'atendido' && p.prioridad === 'urgente').length;
+  return n ? ` <span class="pest-n" aria-label="${n} ${esAdmin() ? 'sin ver' : 'urgentes'}">${n}</span>` : '';
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -1708,6 +1759,121 @@ function formAclaracion(cct, despues) {
     S.acl = (S.acl || []).concat([r.acl]); cerrarModal(); despues();
     aviso('Su solicitud se envió a su ATP.', 'ok', 3500);
   };
+}
+
+const PAGINA_TQ = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
+/* ---------------- Tablón de pendientes ----------------
+   La Mesa Técnica deja aquí lo que la Supervisión debe saber o atender (llamadas, oficios, incidentes, solicitudes)
+   mientras el Supervisor está fuera de la oficina. Estados: nuevo → enterado → atendido. */
+const PEN_PRIO = { urgente: ['Urgente', 'mal', 'Necesita atención hoy', '#B3261E'], importante: ['Importante', 'terra', 'Atender esta semana', '#C2603A'], normal: ['Para tenerlo presente', 'indigo', 'Sin prisa', '#24427A'] };
+const PEN_EST = { nuevo: ['Sin ver', 'aviso'], enterado: ['Enterado', 'indigo'], atendido: ['Atendido', 'ok'] };
+const PEN_TEMAS = ['Autoridades y oficinas', 'Escuela', 'Documentación', 'Personal', 'Padres de familia', 'Seguridad o incidente', 'Otro'];
+const penAbierto = p => p.estado !== 'atendido';
+const penVencido = p => penAbierto(p) && p.limite && p.limite < hoy();
+const penNuevos = () => (S.pen || []).filter(p => p.estado === 'nuevo');
+const penOrden = (a, b) => (penAbierto(b) - penAbierto(a)) || (Object.keys(PEN_PRIO).indexOf(a.prioridad) - Object.keys(PEN_PRIO).indexOf(b.prioridad)) ||
+  String(a.limite || '9999').localeCompare(String(b.limite || '9999')) || String(b.creado).localeCompare(String(a.creado));
+function telSupervision() { const u = S.usr.find(x => x.rol === 'admin' && x.activo); return u ? telefonos(u.whatsapp)[0] || '' : ''; }
+
+function tarjetaPen(p) {
+  const pr = PEN_PRIO[p.prioridad] || PEN_PRIO.normal, e = PEN_EST[p.estado] || PEN_EST.nuevo, c = p.cct ? escuelaDe(p.cct) : null;
+  const msgs = p.respuestas || [];
+  const tel = !esAdmin() && p.prioridad === 'urgente' && p.estado === 'nuevo' ? telSupervision() : '';
+  const wa = tel ? waUrl(tel, 'Supervisor, le dejé un pendiente URGENTE en Tequio: ' + p.titulo + (c ? ' (' + c.escuela + ')' : '') + '. ' + PAGINA_TQ) : '';
+  return `<article class="tarjeta pen pen-${esc(p.prioridad)}${penAbierto(p) ? '' : ' pen-hecho'}" id="pen-${esc(p.id)}">
+    <div class="pen-cab">
+      <div class="pen-tit"><h3>${esc(p.titulo)}</h3>
+        <div class="ayuda">${esc(nombreCorto(p.creadoNombre))} · ${fechaHora(p.creado)}${c ? ' · ' + esc(c.escuela) : ''}${penAbierto(p) ? ' · ' + (diasEntre(p.creado, hoy()) ? diasEntre(p.creado, hoy()) + ' día(s) abierto' : 'hoy') : p.atendido ? ' · atendido el ' + fechaHora(p.atendido) + (p.atendidoPor ? ' por ' + esc(nombreCorto(p.atendidoPor)) : '') : ''}</div></div>
+      <div class="pen-chips"><span class="chip ${pr[1]}">${pr[0]}</span><span class="chip ${e[1]}">${e[0]}</span></div>
+    </div>
+    <div class="pen-meta"><span class="chip">${esc(p.categoria)}</span>${p.limite ? `<span class="chip ${penVencido(p) ? 'mal' : ''}">Se necesita para el ${esc(fechaCorta(p.limite))}${penVencido(p) ? ' · vencido' : ''}</span>` : ''}${p.confidencial ? '<span class="chip terra">Confidencial</span>' : ''}</div>
+    ${p.detalle ? `<p class="pen-det">${esc(p.detalle)}</p>` : ''}
+    ${msgs.length ? `<div class="pen-hilo">${msgs.map(m => `<div class="pen-msg ${m.rol === 'admin' ? 'sup' : ''}"><div class="ayuda"><b>${esc(m.rol === 'admin' ? 'Supervisión' : nombreCorto(m.por))}</b> · ${fechaHora(m.f)}</div><div style="white-space:pre-line">${esc(m.texto)}</div></div>`).join('')}</div>` : ''}
+    <textarea id="pr-${esc(p.id)}" aria-label="Nota" data-pnota="${esc(p.id)}" placeholder="${esAdmin() ? 'Respuesta o indicación para la Mesa Técnica' : 'Agregar una novedad o lo que se hizo'}"></textarea>
+    <div class="pen-acc">
+      ${wa ? `<a class="boton sec chico" href="${wa}" target="_blank" rel="noopener">${ico('i-wa')}Avisar por WhatsApp</a>` : ''}
+      ${esAdmin() && penAbierto(p) ? `<select data-pprio="${esc(p.id)}" aria-label="Prioridad">${Object.keys(PEN_PRIO).map(k => `<option value="${k}" ${p.prioridad === k ? 'selected' : ''}>${PEN_PRIO[k][0]}</option>`).join('')}</select>` : ''}
+      <span style="flex:1"></span>
+      ${esAdmin() && p.estado === 'nuevo' ? `<button class="boton sec chico" data-pest="${esc(p.id)}|enterado">Enterado</button>` : ''}
+      <button class="boton sec chico" data-penv="${esc(p.id)}">${esAdmin() ? 'Responder' : 'Agregar nota'}</button>
+      ${penAbierto(p) ? `<button class="boton terra chico" data-penv="${esc(p.id)}" data-pfin="1">Marcar atendido</button>` : `<button class="boton sec chico" data-pest="${esc(p.id)}|enterado">Reabrir</button>`}
+    </div>
+  </article>`;
+}
+
+function vTablon() {
+  if (!Array.isArray(S.pen)) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Tablón de pendientes</h1></div>
+      <div class="tarjeta pad">${esAdmin() ? `<p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> para usar el tablón. Toma unos 5 minutos y no se pierde nada.</p><a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a>` : '<p style="margin:0">El tablón estará disponible en cuanto la Supervisión termine de actualizar Tequio.</p>'}</div>`;
+    return;
+  }
+  const f = vista.penF || (vista.penF = { est: 'abiertos', prio: '', atp: '', cct: '' });
+  const todos = S.pen.slice();
+  const ab = todos.filter(penAbierto), hace7 = sumarDias(hoy(), -7);
+  const cifras = [
+    esAdmin() ? [penNuevos().length, 'sin ver', 'aviso', 'nuevo'] : [ab.length, 'abiertos', 'indigo', 'abiertos'],
+    [ab.filter(p => p.prioridad === 'urgente').length, 'urgentes', 'mal', 'urgente'],
+    [ab.filter(penVencido).length, 'con fecha vencida', 'mal', 'vencidos'],
+    [todos.filter(p => p.estado === 'atendido' && String(p.atendido).slice(0, 10) >= hace7).length, 'atendidos en 7 días', 'ok', 'atendido']];
+  const autores = Array.from(new Set(todos.map(p => p.creadoPor))).map(id => usuario(id)).filter(Boolean);
+  const v = todos.filter(p => (f.est === 'todos' || (f.est === 'abiertos' ? penAbierto(p) : f.est === 'vencidos' ? penVencido(p) : p.estado === f.est)) &&
+    (!f.prio || p.prioridad === f.prio) && (!f.atp || p.creadoPor === f.atp) && (!f.cct || p.cct === f.cct)).sort(penOrden);
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Tablón de pendientes</h1><div class="acciones"><button class="boton terra" id="pn-nuevo">${ico('i-mas')}${esAdmin() ? 'Anotar pendiente' : 'Informar a la Supervisión'}</button></div></div>
+  <p class="peq pen-intro">${esAdmin() ? 'Lo que la Mesa Técnica le informa mientras usted está fuera de la oficina. Los urgentes le llegan por correo al momento y cada mañana, a las 6:00, recibe el resumen de lo que sigue abierto.' : 'Deje aquí lo que el Supervisor debe saber o atender: llamadas, oficios que llegaron, incidentes, solicitudes de escuelas u oficinas. Si lo marca como <b>urgente</b>, le llega por correo al momento.'}</p>
+  <div class="pen-cifras">${cifras.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || f.prio === c[3] ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
+  <div class="filtros">
+    <select id="pn-e" aria-label="Estado"><option value="abiertos">Abiertos</option>${esAdmin() ? '<option value="nuevo">Sin ver</option>' : ''}<option value="enterado">Enterados, en atención</option><option value="vencidos">Con fecha vencida</option><option value="atendido">Atendidos</option><option value="todos">Todos</option></select>
+    <select id="pn-p" aria-label="Prioridad"><option value="">Cualquier prioridad</option>${Object.keys(PEN_PRIO).map(k => `<option value="${k}">${PEN_PRIO[k][0]}</option>`).join('')}</select>
+    ${autores.length > 1 ? `<select id="pn-a" aria-label="Quién lo informó"><option value="">Toda la Mesa Técnica</option>${autores.map(u => `<option value="${u.id}">${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>` : ''}
+    <select id="pn-c" aria-label="Escuela"><option value="">Todas las escuelas</option>${directores().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select>
+  </div>
+  <div class="pen-lista">${v.length ? v.map(tarjetaPen).join('') : `<div class="tarjeta vacio">${todos.length ? 'No hay pendientes con este filtro.' : esAdmin() ? 'Todavía no hay pendientes. Cuando la Mesa Técnica informe algo, aparecerá aquí.' : 'Todavía no hay pendientes. Use <b>Informar a la Supervisión</b> para dejar el primero.'}</div>`}</div>`;
+  $('#pn-e').value = f.est; $('#pn-p').value = f.prio; $('#pn-c').value = f.cct; if ($('#pn-a')) $('#pn-a').value = f.atp;
+  $('#pn-e').onchange = e => { f.est = e.target.value; vTablon(); };
+  $('#pn-p').onchange = e => { f.prio = e.target.value; vTablon(); };
+  $('#pn-c').onchange = e => { f.cct = e.target.value; vTablon(); };
+  if ($('#pn-a')) $('#pn-a').onchange = e => { f.atp = e.target.value; vTablon(); };
+  $$('[data-pcif]').forEach(b => b.onclick = () => { const k = b.dataset.pcif; if (k === 'urgente') { f.est = 'abiertos'; f.prio = f.prio === 'urgente' ? '' : 'urgente'; } else { f.prio = ''; f.est = f.est === k ? 'abiertos' : k; } vTablon(); });
+  $('#pn-nuevo').onclick = () => formPendiente();
+  const mandar = async (id, datos, ok) => { const r = await accion('actualizarPendiente', Object.assign({ id }, datos)); if (r) { poner(S.pen, r.pen); pintar(); aviso(ok || 'Listo.', 'ok', 2200); } };
+  $$('[data-penv]').forEach(b => b.onclick = () => { const t = $(`[data-pnota="${b.dataset.penv}"]`).value.trim();
+    if (!t && !b.dataset.pfin) return aviso('Escriba la nota.', 'mal'); mandar(b.dataset.penv, { texto: t, estado: b.dataset.pfin ? 'atendido' : undefined }, b.dataset.pfin ? 'Marcado como atendido.' : 'Nota agregada.'); });
+  $$('[data-pest]').forEach(b => b.onclick = () => { const [id, e] = b.dataset.pest.split('|'); mandar(id, { estado: e, visto: true }); });
+  $$('[data-pprio]').forEach(s => s.onchange = () => mandar(s.dataset.pprio, { prioridad: s.value }, 'Prioridad cambiada.'));
+}
+
+function formPendiente() {
+  const prios = Object.keys(PEN_PRIO);
+  modal(esAdmin() ? 'Anotar pendiente' : 'Informar a la Supervisión', `
+    <div class="campo"><label for="pn-t">¿De qué se trata?</label><input id="pn-t" maxlength="160" placeholder="Ej. Llamó la Jefatura: piden la estadística 911 corregida"></div>
+    <div class="campo"><label for="pn-d">Detalles</label><textarea id="pn-d" style="min-height:110px" placeholder="Quién llamó o escribió, qué se necesita, a quién hay que contestar y lo que ya se hizo."></textarea></div>
+    <div class="campo"><span class="et">Prioridad</span><div class="pen-prio">${prios.map(k => `<label class="pen-op"><input type="radio" name="pn-pr" value="${k}" ${k === 'importante' ? 'checked' : ''}><span><b>${PEN_PRIO[k][0]}</b><small>${PEN_PRIO[k][2]}${k === 'urgente' && !esAdmin() ? ' · avisa por correo al momento' : ''}</small></span></label>`).join('')}</div></div>
+    <div class="fila dos">
+      <div class="campo"><label for="pn-c2">Tema</label><select id="pn-c2">${PEN_TEMAS.map(t => `<option>${t}</option>`).join('')}</select></div>
+      <div class="campo"><label for="pn-f">Se necesita para (opcional)</label><input id="pn-f" type="date" min="${hoy()}"></div>
+    </div>
+    <div class="campo"><label for="pn-e2">Escuela (opcional)</label><select id="pn-e2"><option value="">— No es de una escuela en particular —</option>${directores().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select></div>
+    <label class="casilla"><input type="checkbox" id="pn-x"><span>Confidencial: solo lo ve la Supervisión${esAdmin() ? '' : ' y usted'}</span></label>`,
+    `<button class="boton sec" id="pn-no">Cancelar</button><button class="boton terra" id="pn-si">${esAdmin() ? 'Guardar' : 'Enviar a la Supervisión'}</button>`);
+  $('#pn-no').onclick = cerrarModal;
+  $('#pn-si').onclick = async () => {
+    const titulo = $('#pn-t').value.trim(); if (!titulo) return aviso('Escriba en pocas palabras de qué se trata.', 'mal');
+    const prioridad = ($('input[name="pn-pr"]:checked') || {}).value || 'normal';
+    const r = await accion('crearPendiente', { titulo, detalle: $('#pn-d').value.trim(), prioridad, categoria: $('#pn-c2').value, limite: $('#pn-f').value, cct: $('#pn-e2').value, confidencial: $('#pn-x').checked });
+    if (!r) return;
+    S.pen = (S.pen || []).concat([r.pen]); cerrarModal();
+    vista.tab = 'pendientes'; vista.penF = { est: 'abiertos', prio: '', atp: '', cct: '' }; pintar();
+    aviso(esAdmin() ? 'Pendiente anotado.' : prioridad === 'urgente' ? 'Listo. Se avisó por correo al Supervisor.' : 'Listo. El Supervisor lo verá en el tablón y en su resumen de la mañana.', 'ok', 4500);
+  };
+}
+
+// Aviso en la Agenda para la Supervisión cuando hay pendientes sin ver
+function bandaPendientes() {
+  if (!esAdmin() || !Array.isArray(S.pen)) return '';
+  const n = penNuevos(), u = n.filter(p => p.prioridad === 'urgente').length;
+  if (!n.length) return '';
+  return `<button class="pen-banda ${u ? 'urg' : ''}" id="pn-banda">${ico('i-pend')}<span><b>${n.length === 1 ? 'Tiene 1 pendiente sin ver' : 'Tiene ' + n.length + ' pendientes sin ver'}</b>${u ? ` · ${u === 1 ? '1 urgente' : u + ' urgentes'}` : ''} en el tablón de la Mesa Técnica</span><span class="pen-ver">Ver ›</span></button>`;
 }
 
 /* ---------------- Seguimiento: formulario ---------------- */
@@ -5897,7 +6063,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 13, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {},
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 14, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr),
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -5906,6 +6072,17 @@ const Demo = (() => {
       ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] },
       sis, sic, sisCfg: { ia: true }, sia: demoAlumnos(sis) };
     Object.assign(D, eiaDemoDatos(ESC, ciclo));
+  }
+  function demoPendientes(h, usr) {
+    const atp = n => usr.find(u => u.id === 'u-' + n), at = (d, hh) => sumarDias(h, d) + 'T' + hh + ':00';
+    const base = (n, o) => Object.assign({ categoria: 'Otro', cct: '', limite: '', confidencial: false, respuestas: [], creadoPor: atp(n).id, creadoNombre: atp(n).nombre, atendido: '', atendidoPor: '', visto: '' }, o);
+    return [
+      base(1, { id: 'pen-1', titulo: 'Llamó la Jefatura de Primarias: piden la estadística 911 corregida', detalle: 'Habló la Lic. de estadística a las 10:15. Necesitan la corrección de la Esc. Emiliano Zapata (grupos de 3.º) antes del viernes. Ya le avisé al director; falta su firma en el oficio de envío.', prioridad: 'urgente', categoria: 'Autoridades y oficinas', cct: '02DPR0425Z', limite: sumarDias(h, 1), estado: 'nuevo', creado: at(0, '10:32'), actualizado: at(0, '10:32') }),
+      base(3, { id: 'pen-2', titulo: 'Padres de familia piden reunión por el cambio de horario', detalle: 'Un grupo de madres de 5.º se acercó a la escuela. Quieren hablar con la Supervisión sobre el horario vespertino. Les dije que usted les confirma fecha.', prioridad: 'importante', categoria: 'Padres de familia', cct: '02DPR0150B', estado: 'nuevo', creado: at(0, '09:05'), actualizado: at(0, '09:05') }),
+      base(2, { id: 'pen-3', titulo: 'Llegó oficio de Protección Civil sobre simulacros', detalle: 'Lo dejé en su escritorio, en la carpeta roja. Piden el calendario de simulacros de las 14 escuelas.', prioridad: 'normal', categoria: 'Documentación', limite: sumarDias(h, 6), estado: 'enterado', visto: at(-1, '17:40'), creado: at(-1, '12:20'), actualizado: at(-1, '17:40'),
+        respuestas: [{ por: usr[0].nombre, rol: 'admin', texto: 'Gracias. Lo vemos en la reunión de Mesa Técnica del lunes.', f: at(-1, '17:40') }] }),
+      base(4, { id: 'pen-4', titulo: 'Entregaron los libros de texto faltantes en Narciso Mendoza', prioridad: 'normal', categoria: 'Escuela', cct: '02DPR0012Z', estado: 'atendido', visto: at(-3, '08:00'), creado: at(-3, '13:10'), actualizado: at(-2, '09:00'), atendido: at(-2, '09:00'), atendidoPor: usr[0].nombre })
+    ];
   }
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
@@ -5917,7 +6094,7 @@ const Demo = (() => {
         usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
         sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
-        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct), inf: D.inf.filter(x => x.cct === cct), acl: D.acl.filter(x => x.cct === cct), infHtml: undefined }));
+        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct), inf: D.inf.filter(x => x.cct === cct), acl: D.acl.filter(x => x.cct === cct), infHtml: undefined, pen: undefined }));
     },
     subirArchivo: d => {
       const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
@@ -5991,6 +6168,14 @@ const Demo = (() => {
     },
     verInforme: d => ({ html: D.infHtml[d.id] || '<p>Informe de ejemplo.</p>' }),
     crearAclaracion: d => { const a = { id: uid('acl'), cct: '02DPR0684N', informeId: d.informeId, tema: d.tema, ref: d.ref, mensaje: d.mensaje, atpId: d.atpId, estado: 'abierta', respuestas: [], creadoPor: 'u-d-02DPR0684N', creadoNombre: 'Dirección de ejemplo', creado: ahora(), actualizado: ahora(), resuelto: '' }; D.acl.push(a); return { acl: copia(a) }; },
+    crearPendiente: d => { const p = Object.assign({ id: uid('pen'), estado: D.yo.rol === 'admin' ? 'enterado' : 'nuevo', respuestas: [], creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora(), actualizado: ahora(), atendido: '', atendidoPor: '', visto: D.yo.rol === 'admin' ? ahora() : '' },
+      { titulo: d.titulo, detalle: d.detalle, prioridad: d.prioridad, categoria: d.categoria, cct: d.cct, limite: d.limite, confidencial: !!d.confidencial }); D.pen.push(p); return { pen: copia(p) }; },
+    actualizarPendiente: d => { const p = D.pen.find(x => x.id === d.id), adm = D.yo.rol === 'admin';
+      if (d.texto) p.respuestas.push({ por: D.yo.nombre, rol: D.yo.rol, texto: d.texto, f: ahora() });
+      if (adm) { if (!p.visto) p.visto = ahora(); if (p.estado === 'nuevo') p.estado = 'enterado'; if (d.prioridad) p.prioridad = d.prioridad; }
+      if (d.estado) p.estado = d.estado === 'enterado' && !adm && !p.visto ? 'nuevo' : d.estado; else if (!adm && d.texto && p.estado === 'atendido') p.estado = p.visto ? 'enterado' : 'nuevo';
+      if (p.estado === 'atendido') { if (!p.atendido) { p.atendido = ahora(); p.atendidoPor = D.yo.nombre; } } else { p.atendido = ''; p.atendidoPor = ''; }
+      p.actualizado = ahora(); return { pen: copia(p) }; },
     responderAclaracion: d => { const a = D.acl.find(x => x.id === d.id); if (d.texto) a.respuestas.push({ por: cfg.dir ? 'Dirección de ejemplo' : D.yo.nombre, rol: cfg.dir ? 'director' : D.yo.rol, texto: d.texto, f: ahora() });
       if (cfg.dir) { if (a.estado === 'resuelta') a.estado = 'abierta'; } else if (d.estado) a.estado = d.estado; else if (d.texto && a.estado === 'abierta') a.estado = 'revision';
       a.resuelto = a.estado === 'resuelta' ? ahora() : ''; a.actualizado = ahora(); return { acl: copia(a) }; },
