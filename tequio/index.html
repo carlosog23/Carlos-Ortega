@@ -1495,7 +1495,7 @@ function cuadroHonor(lista, titulo) {
   return `<div class="tarjeta pad" style="margin-bottom:14px"><div class="seccion-t" style="padding:0 0 8px">${titulo || 'Cuadro de honor · cumplimiento de la zona'}</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">${lista.map(x => { const m = MEDALLAS[x.lugar]; return `<div style="flex:1;min-width:190px;border:2px solid ${m.c}66;background:${m.f};border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center">
       <span style="font-size:34px;line-height:1">${m.e}</span><span><b style="color:${m.c}">${m.lugar} · ${m.n}</b><br><b>${esc(x.escuela)}</b><br><span class="ayuda">${x.pct}% de cumplimiento general</span></span></div>`; }).join('')}</div>
-    <div class="ayuda" style="margin-top:6px">Se calcula con el nivel general del informe (acuerdos, evidencias, SisAT y EIA). ¡Felicidades a sus colectivos!</div></div>`;
+    <div class="ayuda" style="margin-top:6px">Solo lo ven la Supervisión y la Mesa Técnica. A cada escuela premiada le llega únicamente su propia medalla en su informe.</div></div>`;
 }
 function infZona() {
   const l = directores().map(c => infCifras(c.cct)), prom = k => { const v = l.map(x => k ? x.pct[k] : x.general).filter(x => x != null); return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0; };
@@ -1537,6 +1537,7 @@ function infHTML(r, z, fecha) {
 <div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
 <tr><td style="padding:18px 24px 4px;color:${INK};font-size:15px;line-height:1.55">
 <div style="font-size:21px;font-weight:800;color:${G}">Informe de seguimiento</div>
+${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu], pr = z.podio.prioritario[r.cct]; return m || pr ? `<div style="margin:6px 0 8px"><span style="display:inline-block;font-size:14px;font-weight:800;padding:5px 14px;border-radius:999px;background:${(m || PRIORITARIO).f};color:${(m || PRIORITARIO).c};border:1px solid ${(m || PRIORITARIO).c}">${m ? m.e + ' Medalla de ' + m.n.toLowerCase() + ' · ' + m.lugar + ' de la zona' : PRIORITARIO.e + ' ' + PRIORITARIO.n}</span></div>` : ''; })()}
 <div style="font-size:15px;color:${MU};margin-bottom:12px">Esc. Prim. «${esc(c.escuela)}» · C.C.T. ${esc(r.cct)}${c.municipio ? ' · ' + esc(c.municipio) : ''}<br>Corte al ${fechaOficio(fecha)}</div>
 ${saludo}<br>Le comparto el estado en que se encuentra su escuela en el cumplimiento de los acuerdos de las reuniones, las evidencias en el Drive y la carga del SisAT y los EIA. Al final encontrará la <b>lista de pendientes</b> para atenderlos.</td></tr>
 <tr><td style="padding:14px 18px 0"><div style="font-size:17px;font-weight:800;color:${G};padding:0 6px 4px">Nivel general de cumplimiento</div>
@@ -1550,10 +1551,6 @@ ${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu]; return m ? `<div s
 <div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
 ${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
 <div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · El nivel general es el promedio de los apartados.</div></div></td></tr>
-${z.podio.lista.length ? `<tr><td style="padding:6px 24px 0"><div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px">
-<div style="font-size:15px;font-weight:800;color:${G};margin-bottom:6px">Cuadro de honor de la zona</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${z.podio.lista.map(x => { const m = MEDALLAS[x.lugar]; return `<tr><td width="34" style="font-size:22px;padding:3px 0">${m.e}</td><td style="font-size:14px;color:${INK};padding:3px 0"><b style="color:${m.c}">${m.lugar}</b> · ${esc(x.escuela)}${x.cct === r.cct ? ' <b>(su escuela)</b>' : ''}</td><td align="right" style="font-size:14px;font-weight:700;color:${INK}">${x.pct}%</td></tr>`; }).join('')}</table>
-<div style="font-size:12px;color:${MU};margin-top:6px">${r.general && !z.podio.lugar[r.cct] && !z.podio.prioritario[r.cct] ? 'Atendiendo su lista de pendientes, su escuela también puede ganar una medalla en el próximo informe.' : 'Oro, plata y bronce a los tres niveles generales más altos de la zona.'}</div></div></td></tr>` : ''}
 <tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
 ${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'carpetas con archivos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' carpeta' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') + ' vacía' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
@@ -1601,7 +1598,7 @@ function formInforme(preCct) {
     if (sel.size > 1 && !confirm('¿Enviar el informe a ' + sel.size + ' escuelas?')) return;
     const informes = [...sel].map(cct => { const r = z.porCct[cct], c = escuelaDe(cct), a = atpDe(cct);
       return { cct, atpId: a ? a.id : '', asunto: 'Informe de seguimiento · Esc. Prim. «' + c.escuela + '» · corte al ' + fechaOficio(hoy()), html: infHTML(r, z, hoy()),
-        cifras: { general: r.general, zona: z.general, acu: r.pct.acu, evi: r.pct.evi, sis: r.pct.sis, eia: r.pct.eia, lugar: z.podio.lugar[cct] || 0, prioritario: !!z.podio.prioritario[cct], fortaleza: fortaleza(r), podio: z.podio.lista.map(x => ({ lugar: x.lugar, escuela: x.escuela, pct: x.pct })) }, pendientes: r.pend.map(x => ({ est: x.est, t: x.t, tema: x.tema })) }; });
+        cifras: { general: r.general, zona: z.general, acu: r.pct.acu, evi: r.pct.evi, sis: r.pct.sis, eia: r.pct.eia, lugar: z.podio.lugar[cct] || 0, prioritario: !!z.podio.prioritario[cct], fortaleza: fortaleza(r) }, pendientes: r.pend.map(x => ({ est: x.est, t: x.t, tema: x.tema })) }; });
     const r = await accion('enviarInforme', { informes, copiaAtp: $('#fi-cc').checked });
     if (!r) return;
     S.inf = r.inf;
@@ -1667,7 +1664,6 @@ function bloqueInformeDir(cct) {
         ${u ? `<div>Último informe: <b>${fechaCorta(u.fecha)}</b> · su escuela <b>${(u.cifras || {}).general ?? '—'}%</b> · zona <b>${(u.cifras || {}).zona ?? '—'}%</b> ${medalla((u.cifras || {}).lugar, true)}${(u.cifras || {}).prioritario ? insigniaPrio(true) : ''}</div>${(u.cifras || {}).prioritario ? `<div class="peq" style="margin-top:4px">Su ATP${atp ? ', ' + esc(nombreCorto(atp.nombre)) + ',' : ''} y la Supervisión le acompañaremos de cerca para atender juntos sus pendientes.${u.cifras.fortaleza ? ' Su fortaleza: <b>' + esc(u.cifras.fortaleza.n) + '</b> (' + u.cifras.fortaleza.p + '%).' : ''}</div>` : ''}` : '<div class="peq mudo">Aún no ha recibido informes.</div>'}
         <div class="ayuda">Si algún dato no coincide, solicite una aclaración: le llega a su ATP${atp ? ', ' + esc(nombreCorto(atp.nombre)) : ''}.</div></div>
       ${u ? `<button class="boton sec" id="mi-inf">Ver informe</button>` : ''}<button class="boton terra" id="mi-acl">Solicitar aclaración</button></div>
-    ${u && (u.cifras || {}).podio && u.cifras.podio.length ? `<div style="margin-top:12px">${cuadroHonor(u.cifras.podio, 'Cuadro de honor de la zona · informe del ' + fechaCorta(u.fecha))}</div>` : ''}
     ${acl.length ? `<div style="margin-top:12px">${acl.map(hiloAcl).join('')}</div>` : ''}</div>`;
 }
 function enlazarInformeDir(cct, despues) {
