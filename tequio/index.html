@@ -607,7 +607,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -697,7 +697,7 @@ function portada(mensaje) {
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['oficios', 'Oficios', 'i-lapiz']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['visitas', 'Visitas', 'i-seg'], ['oficios', 'Oficios', 'i-lapiz']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
@@ -716,10 +716,10 @@ function pintar() {
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia })[vista.tab]();
+  ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, visitas: vVisitasDir })[vista.tab]();
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -1010,6 +1010,7 @@ function cambiarEstado(a, estado, avisar) {
 
 /* ---------------- Vista: Seguimiento ---------------- */
 function vSeguimiento() {
+  if (vista.vis) return vEditorVisita();
   if (vista.escuela) return vEscuela(vista.escuela);
   const todos = acuerdosDe();
   const pend = todos.filter(x => x.estado === 'pendiente');
@@ -1041,6 +1042,7 @@ function vSeguimiento() {
         <span class="chip indigo">${ss.length} visita${ss.length === 1 ? '' : 's'}</span>
         ${p.length ? `<span class="chip aviso">${p.length} pendiente${p.length === 1 ? '' : 's'}</span>` : ''}
         ${v.length ? `<span class="chip mal">${v.length} vencido${v.length === 1 ? '' : 's'}</span>` : ''}
+        ${S.vis ? (() => { const va = visActual(c.cct); if (!va) return '<span class="chip ok">3 visitas realizadas</span>'; const a = visAvance(va.v, va.n); return `<span class="chip${va.v && va.v.estado ? ' aviso' : ''}">Visita ${va.n}: ${a.revisados}/${a.total}</span>`; })() : ''}
       </span>
       <span class="peq mudo">${ult ? 'Última visita: ' + fechaCorta(ult) : 'Sin visitas registradas'}${prox ? '<br>Próxima: ' + esc(prox.titulo) + ', ' + fechaCorta(prox.fecha) : ''}</span>
     </button>`;
@@ -1075,6 +1077,7 @@ function vEscuela(cct) {
     <div style="flex:1;min-width:200px"><div class="seccion-t" style="padding:0 0 6px">Checklist de acuerdos de reuniones</div>${barraAv(ax, c.escuela)}<div class="peq" style="margin-top:6px"><b>${ax.pct}%</b> · ${ax.hecho} de ${ax.total} cumplidos${ax.vencidos ? ` · <span style="color:var(--alerta)">${ax.vencidos} con fecha vencida</span>` : ''}</div></div>
     <button class="boton sec chico" id="b-chk">${ico('i-chk')}Ver y palomear</button></div>`; })() : ''}
   ${prox.length ? `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t">Próximas actividades en esta escuela</div><div class="lista-act">${prox.map(filaAct).join('')}</div></div>` : ''}
+  ${S.vis ? bloqueVisitas(cct) : ''}
   <h2 style="font-size:20px;margin:6px 0 10px">Visitas y acuerdos</h2>
   ${ss.length ? ss.map(s => tarjetaSeg(s)).join('') : '<div class="tarjeta vacio">Aún no hay seguimiento registrado en esta escuela.</div>'}`;
   $('#b-volver').onclick = () => { vista.escuela = null; vSeguimiento(); };
@@ -1082,6 +1085,7 @@ function vEscuela(cct) {
   $('#b-nseg').onclick = () => formSeguimiento(null, { cct });
   $$('[data-act]').forEach(b => b.onclick = () => detalleActividad(b.dataset.act));
   enlazarSeg();
+  if (S.vis) enlazarVisitas(cct);
 }
 
 function tarjetaSeg(s) {
@@ -1133,6 +1137,269 @@ function minutaWhatsApp(id) {
     bloqueWhatsApp(textoMinuta(s), personas, 'Minuta de seguimiento · ' + (c ? c.escuela : 'Zona 050') + ' · ' + fechaCorta(s.fecha)), '<button class="boton sec" id="w-cerrar">Cerrar</button>');
   $('#w-copiar').onclick = () => copiar($('#w-msg').textContent, 'Minuta copiada');
   $('#w-cerrar').onclick = cerrarModal;
+}
+
+/* =========================================================
+   Visitas de supervisión: 3 visitas por ciclo con guía de temas (y visitas extraordinarias con temas propios).
+   Por tema: estado, observación, fotos de evidencia (van al Drive de la escuela, «Visitas de supervisión») y,
+   del lado del director, una nota y la marca de «listo». Al cerrar la visita se registra el seguimiento con su minuta.
+   ========================================================= */
+const VIS_GUIAS = {
+  1: { titulo: 'Arranque del ciclo', cuando: 'octubre – noviembre', temas: [
+    { k: 'lr', t: 'Lectura de la realidad', r: ['Elaborada en colectivo (CTE), con la participación de todo el personal', 'Usa datos: SisAT 1.er momento, EIA, asistencia y contexto de la comunidad', 'Incluye el análisis crítico de cómo se llegó a los resultados', 'Prioriza las problemáticas y plantea cómo atenderlas'], f: 'Portada y apartado de problemáticas priorizadas' },
+    { k: 'pmc', t: 'Programa de Mejora Continua (PMC)', r: ['Objetivos y metas que se desprenden de la lectura de la realidad', 'Acciones con responsables, tiempos y recursos', 'Atiende aprovechamiento, convivencia, participación de las familias e infraestructura', 'Define cómo se dará seguimiento y cómo se evaluará'], f: 'Objetivos, metas y cronograma de acciones' },
+    { k: 'pa', t: 'Programa analítico', r: ['Plano 1: lectura de la realidad (contextualización)', 'Plano 2: contenidos de los programas sintéticos contextualizados por fase', 'Plano 3: codiseño de contenidos locales (si aplica)', 'Vinculado a las problemáticas priorizadas', 'Conocido por todo el colectivo docente'], f: 'Índice y un ejemplo de contenido contextualizado' },
+    { k: 'go', t: 'Guía Operativa', r: ['Leída y analizada en colectivo', 'Firma de enterado de TODO el personal (directivo, docente, de apoyo e intendencia)', 'Ejemplar disponible en la dirección para consulta'], f: 'Hoja de firmas completa' },
+    { k: 'ppie', t: 'PPIE (Programa de Protección Integral Escolar)', r: ['Anexos completos y actualizados al ciclo', 'Comités integrados', 'Croquis y rutas de evacuación visibles en el plantel', 'Protocolos de acceso y salida conocidos por el personal', 'Firma de TODO el personal'], f: 'Hoja de firmas, croquis y rutas de evacuación en el plantel' },
+    { k: 'cpe', t: 'Consejo de Participación Escolar', r: ['Instalado, con acta firmada', 'Comités integrados', 'Plan de trabajo elaborado o con fecha para elaborarlo', 'Documentación entregada en tiempo a quien corresponde'], f: 'Acta de instalación y relación de comités' },
+    { k: 'inm', t: 'Seguridad del inmueble', r: ['Botiquín de primeros auxilios surtido', 'Extintores vigentes y señalización de rutas y salidas', 'Zonas de riesgo identificadas y atendidas', 'Libro de visitas al día'], f: 'Botiquín, extintores, señalización y libro de visitas' },
+    { k: 'sis1', t: 'SisAT · 1.er momento', r: ['Aplicado a todos los grupos', 'Resultados cargados en Tequio (Excel oficial)', 'Alumnos en riesgo identificados por grupo', 'Estrategias acordadas para los alumnos en riesgo'], f: 'Concentrado de resultados y listado de alumnos en riesgo' }] },
+  2: { titulo: 'Seguimiento pedagógico', cuando: 'enero – febrero', temas: [
+    { k: 'obs', t: 'Observación de clase', r: ['Se observa al menos un grupo, acordado con la dirección', 'La clase atiende problemáticas del programa analítico', 'Participación de los alumnos y aprovechamiento del tiempo', 'Retroalimentación al docente al terminar'], f: 'Momento de la clase y producciones de los alumnos' },
+    { k: 'plan', t: 'Planeación didáctica', r: ['Planeaciones vigentes de todos los grupos', 'Vinculadas a los contenidos del programa analítico', 'Consideran a los alumnos en riesgo del SisAT', 'Prevén la evaluación formativa'], f: 'Una planeación por fase' },
+    { k: 'pmc2', t: 'Avance del PMC', r: ['Acciones realizadas conforme al cronograma', 'Evidencias del avance de las metas', 'Ajustes acordados en CTE'], f: 'Registro de avance de las acciones' },
+    { k: 'cte', t: 'Acuerdos del CTE', r: ['Acuerdos de cada sesión registrados', 'Seguimiento a los acuerdos', 'Productos del CTE resguardados en la escuela (no se entregan a la Supervisión)'], f: 'Hoja de acuerdos de la última sesión' },
+    { k: 'sis2', t: 'SisAT · 2.º momento', r: ['Aplicado y cargado en Tequio', 'Comparación con el 1.er momento', 'Alumnos que salieron de riesgo y los que continúan'], f: 'Comparativo por grupo' },
+    { k: 'asis', t: 'Asistencia y permanencia', r: ['Registro de asistencia al día', 'Alumnos con inasistencia recurrente y acciones con las familias', 'Altas y bajas actualizadas en RELweb'], f: 'Seguimiento de alumnos con inasistencia' },
+    { k: 'conv', t: 'Convivencia y protección', r: ['Incidencias registradas y atendidas con protocolo', 'Acciones del PPIE en marcha (simulacros realizados)', 'Participación de las familias'], f: 'Registro del último simulacro' }] },
+  3: { titulo: 'Cierre del ciclo', cuando: 'mayo – junio', temas: [
+    { k: 'sis3', t: 'SisAT · 3.er momento y tendencia', r: ['Aplicado y cargado en Tequio', 'Tendencia del ciclo por grupo', 'Alumnos que concluyen en riesgo y propuesta para el siguiente ciclo'], f: 'Comparativo de los tres momentos' },
+    { k: 'eia', t: 'Ejercicios Integradores del Aprendizaje (EIA)', r: ['Aplicados y capturados', 'Resultados analizados en CTE'], f: 'Concentrado de resultados' },
+    { k: 'pmc3', t: 'Evaluación del PMC', r: ['Metas alcanzadas y no alcanzadas', 'Insumos para la lectura de la realidad del siguiente ciclo'], f: 'Evaluación de metas' },
+    { k: 'acu', t: 'Cumplimiento de acuerdos', r: ['Acuerdos de las visitas y reuniones atendidos', 'Pendientes con compromiso para el siguiente ciclo'], f: 'Relación de acuerdos atendidos' },
+    { k: 'doc', t: 'Documentación de cierre', r: ['Calificaciones y documentos de fin de ciclo en RELweb', 'Estadística de fin de ciclo', 'Inventario y entrega del plantel'], f: 'Acuses o pantallas de RELweb' },
+    { k: 'seg3', t: 'PPIE y seguridad para el receso', r: ['Simulacros del ciclo realizados', 'Condiciones del inmueble para el periodo vacacional'], f: 'Registro de simulacros y estado del inmueble' },
+    { k: 'log', t: 'Logros y prácticas exitosas', r: ['Logros del colectivo y de los alumnos', 'Prácticas que conviene compartir en la zona'], f: 'Evidencia de los logros' }] }
+};
+const VIS_ESTADOS = { cumple: ['Cumple', 'ok'], proceso: ['En proceso', 'aviso'], acomp: ['Requiere acompañamiento', 'terra'], na: ['No aplica', ''] };
+const cicloVis = () => { const h = new Date(), y = h.getFullYear(); return h.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y; };
+const visDe = (cct, n) => (S.vis || []).find(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero === +n) || null;
+const visTemas = (v, n) => (+n <= 3 ? VIS_GUIAS[+n].temas : []).concat((v && v.temas) || []);
+const visItem = (v, k) => ((v && v.items) || []).find(x => x.k === k) || { k, estado: '', obs: '', fotos: [] };
+const visNombre = (n, v) => +n <= 3 ? 'Visita ' + n + ' · ' + VIS_GUIAS[+n].titulo : 'Visita extraordinaria ' + (+n - 3) + (v && v.titulo ? ' · ' + v.titulo : '');
+function visAvance(v, n) {
+  const t = visTemas(v, n), it = t.map(x => visItem(v, x.k));
+  return { total: t.length, revisados: it.filter(x => x.estado).length, cumple: it.filter(x => x.estado === 'cumple' || x.estado === 'na').length,
+    acomp: it.filter(x => x.estado === 'acomp').length, fotos: it.reduce((s, x) => s + (x.fotos || []).length, 0), listos: it.filter(x => x.listo).length };
+}
+function visEstadoChip(v) {
+  if (!v || !v.estado) return '<span class="chip">Sin iniciar</span>';
+  if (v.estado === 'cerrada') return `<span class="chip ok">Realizada${v.fecha ? ' ' + fechaCorta(v.fecha) : ''}</span>`;
+  if (v.estado === 'preparacion') return '<span class="chip indigo">La escuela se está preparando</span>';
+  return '<span class="chip aviso">En curso</span>';
+}
+const visNumeros = cct => [1, 2, 3].concat((S.vis || []).filter(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero > 3).map(v => +v.numero).sort((a, b) => a - b));
+// La visita que toca (la primera de las tres sin cerrar), para la tarjeta de cada escuela
+function visActual(cct) { for (const n of [1, 2, 3]) { const v = visDe(cct, n); if (!v || v.estado !== 'cerrada') return { n, v }; } return null; }
+
+// Bloque de visitas de una escuela (Seguimiento › escuela, y la pestaña «Visitas» del director)
+function bloqueVisitas(cct) {
+  const filas = visNumeros(cct).map(n => {
+    const v = visDe(cct, n), a = visAvance(v, n);
+    return `<button class="act" data-vis="${n}"><div class="fecha"><b>${n <= 3 ? n : 'E' + (n - 3)}</b><span>${n <= 3 ? 'visita' : 'extra'}</span></div>
+      <div class="cuerpo"><div class="t">${esc(visNombre(n, v))}</div>
+        <div class="m"><span>${n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : (v && v.fecha ? fechaCorta(v.fecha) : '')}</span><span>· ${a.revisados} de ${a.total} temas revisados</span>${a.fotos ? `<span>· ${a.fotos} foto${a.fotos === 1 ? '' : 's'}</span>` : ''}${a.listos ? `<span>· ${a.listos} listo${a.listos === 1 ? '' : 's'} por la escuela</span>` : ''}</div>
+        <div class="chips">${visEstadoChip(v)}${a.acomp ? `<span class="chip terra">${a.acomp} requiere${a.acomp === 1 ? '' : 'n'} acompañamiento</span>` : ''}</div></div></button>`;
+  }).join('');
+  return `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">Visitas de supervisión · ciclo ${cicloVis()}
+    ${esMesa() ? `<button class="boton sec chico" id="b-vis-extra" style="margin-left:auto">${ico('i-mas')}Visita extraordinaria</button>` : ''}</div>
+    <div class="lista-act">${filas}</div></div>`;
+}
+function enlazarVisitas(cct) {
+  $$('[data-vis]').forEach(b => b.onclick = () => { vista.vis = { cct, n: +b.dataset.vis }; vista.visD = null; pintarVis(); });
+  if ($('#b-vis-extra')) $('#b-vis-extra').onclick = () => nuevaExtraordinaria(cct);
+}
+function pintarVis() { vEditorVisita(); window.scrollTo(0, 0); }
+function nuevaExtraordinaria(cct) {
+  modal('Visita extraordinaria', `<p class="peq" style="margin-top:0">Una visita fuera de las tres del ciclo (por ejemplo, para atender un asunto puntual). Después de crearla agregue sus temas.</p>
+    <div class="campo"><label for="ve-t">Motivo o título</label><input id="ve-t" placeholder="Ej. Seguimiento a daños por lluvias"></div>
+    <div class="campo"><label for="ve-f">Fecha</label><input type="date" id="ve-f" value="${hoy()}"></div>`,
+    '<button class="boton sec" id="ve-no">Cancelar</button><button class="boton terra" id="ve-si">Crear</button>');
+  $('#ve-no').onclick = cerrarModal;
+  $('#ve-si').onclick = async () => {
+    const titulo = perLimpio($('#ve-t').value, 200);
+    if (!titulo) return aviso('Escriba el motivo de la visita.', 'mal');
+    const r = await accion('guardarVisita', { cct, numero: 'nueva', ciclo: cicloVis(), titulo, fecha: $('#ve-f').value, items: [], temas: [] });
+    if (!r) return;
+    poner(S.vis, r.vis); cerrarModal();
+    vista.vis = { cct, n: +r.vis.numero }; vista.visD = null; pintarVis();
+    aviso('Visita creada. Agregue sus temas con «Agregar tema».', 'ok', 4500);
+  };
+}
+
+// Foto → JPEG de tamaño razonable (las fotos del celular pesan mucho)
+function fotoLigera(file) {
+  return new Promise(ok => {
+    if (!/^image\//.test(file.type) || /heic|heif|gif/i.test(file.type)) return ok(file);
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const k = Math.min(1, 1800 / Math.max(im.naturalWidth, im.naturalHeight)); const cv = document.createElement('canvas');
+      cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(u); cv.toBlob(b => ok(b || file), 'image/jpeg', 0.85); };
+    im.onerror = () => { URL.revokeObjectURL(u); ok(file); };
+    im.src = u;
+  });
+}
+
+// Borrador local de la visita (lo que la Supervisión va marcando antes de guardar)
+function visBorrador(cct, n) {
+  const v = visDe(cct, n);
+  if (vista.visD && vista.visD.cct === cct && vista.visD.n === n) return vista.visD;
+  const items = {}; ((v && v.items) || []).forEach(x => { items[x.k] = { estado: x.estado || '', obs: x.obs || '' }; });
+  vista.visD = { cct, n, fecha: (v && v.fecha) || hoy(), resumen: (v && v.resumen) || '', items, temas: JSON.parse(JSON.stringify((v && v.temas) || [])), titulo: (v && v.titulo) || '', sucio: false };
+  return vista.visD;
+}
+
+function vEditorVisita() {
+  const { cct, n } = vista.vis, c = escuelaDe(cct), v = visDe(cct, n), mesa = esMesa(), D = mesa ? visBorrador(cct, n) : null;
+  const temas = mesa ? (n <= 3 ? VIS_GUIAS[n].temas : []).concat(D.temas) : visTemas(v, n);
+  const cerrada = v && v.estado === 'cerrada';
+  const volver = () => { vista.vis = null; vista.visD = null; esDirector() ? vVisitasDir() : vSeguimiento(); window.scrollTo(0, 0); };
+  const fotoHtml = (x, f) => `<div style="position:relative;width:104px">
+      <a href="https://drive.google.com/file/d/${esc(f.id)}/view" target="_blank" rel="noopener" title="${esc(f.n)}" style="display:block;width:104px;height:78px;border-radius:8px;overflow:hidden;background:var(--arena-2);border:1px solid var(--borde)">
+        ${/^demo/.test(f.id) && f.u ? `<img src="${f.u}" alt="" style="width:100%;height:100%;object-fit:cover">` : `<img src="https://drive.google.com/thumbnail?id=${esc(f.id)}&sz=w240" alt="${esc(f.n)}" style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Ver foto',style:'display:flex;height:100%;align-items:center;justify-content:center;font-size:13px'}))">`}</a>
+      <div class="ayuda" style="font-size:11.5px;line-height:1.2;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nombreCorto(f.por || ''))}</div>
+      ${(mesa || (!cerrada && f.por === S.yo.nombre)) ? `<button type="button" class="icono-btn" data-qf="${esc(x.k)}|${esc(f.id)}" aria-label="Quitar foto" style="position:absolute;top:2px;right:2px;background:#fff;border-radius:50%;width:26px;height:26px">${ico('i-x')}</button>` : ''}</div>`;
+  const tarjeta = (t, i) => {
+    const it = visItem(v, t.k), d = mesa ? (D.items[t.k] || { estado: '', obs: '' }) : it, propio = n > 3 || !(VIS_GUIAS[n].temas.find(g => g.k === t.k));
+    const est = VIS_ESTADOS[d.estado];
+    return `<div class="tarjeta pad" style="margin-bottom:12px" id="tema-${esc(t.k)}">
+      <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><h3 style="font-size:18px;margin:0;flex:1;min-width:200px">${i + 1}. ${esc(t.t)}${propio && n <= 3 ? ' <span class="chip">tema agregado</span>' : ''}</h3>
+        ${est ? `<span class="chip ${est[1]}">${est[0]}</span>` : ''}${it.listo ? '<span class="chip ok">Listo por la escuela</span>' : ''}
+        ${mesa && propio && !cerrada ? `<button type="button" class="boton sec chico" data-et="${esc(t.k)}">${ico('i-lapiz')}</button>` : ''}</div>
+      ${(t.r || []).length ? `<div class="ayuda" style="margin:8px 0 2px">Qué se revisa</div><ul style="margin:0 0 6px;padding-left:20px">${t.r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${t.f ? `<div class="peq"><b>Evidencia sugerida:</b> foto de ${esc(t.f.charAt(0).toLowerCase() + t.f.slice(1))}.</div>` : ''}
+      ${mesa ? `<div class="filtros" style="margin:10px 0 6px">${Object.entries(VIS_ESTADOS).map(([k, e]) => `<button type="button" class="chip${d.estado === k ? ' ' + (e[1] || 'indigo') : ''}" data-est="${esc(t.k)}|${k}" style="cursor:pointer;border:${d.estado === k ? '0' : '1px solid var(--borde)'};padding:6px 12px;font-size:14px" ${cerrada ? 'disabled' : ''}>${e[0]}</button>`).join('')}</div>
+        <textarea data-obs="${esc(t.k)}" placeholder="Observaciones de la Supervisión" style="width:100%;min-height:64px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px" ${cerrada ? 'disabled' : ''}>${esc(d.obs)}</textarea>`
+      : (it.obs ? `<div class="aviso-caja peq" style="margin-top:8px"><b>Observación de la Supervisión:</b> ${esc(it.obs)}</div>` : '')}
+      ${mesa ? (it.nd ? `<div class="aviso-caja conf peq" style="margin-top:8px"><b>Nota de la escuela:</b> ${esc(it.nd)}</div>` : '')
+      : `<div class="campo" style="margin:10px 0 4px"><label for="nd-${esc(t.k)}">Nota para la Supervisión (opcional)</label><textarea id="nd-${esc(t.k)}" data-nd="${esc(t.k)}" placeholder="Dónde está el documento, qué falta, cuándo estará…" style="min-height:56px" ${cerrada ? 'disabled' : ''}>${esc(it.nd || '')}</textarea></div>
+        <label class="casilla"><input type="checkbox" data-listo="${esc(t.k)}" ${it.listo ? 'checked' : ''} ${cerrada ? 'disabled' : ''}> Listo para la visita</label>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px">${(it.fotos || []).map(f => fotoHtml(it, f)).join('')}
+        ${!cerrada || mesa ? `<label class="boton sec chico" style="cursor:pointer;height:78px;flex-direction:column;justify-content:center;width:104px;text-align:center">${ico('i-carpeta')}Foto<input type="file" data-foto="${esc(t.k)}" data-i="${i + 1}" accept="image/*,application/pdf" multiple style="display:none"></label>` : ''}</div>
+    </div>`;
+  };
+  $('#vista').innerHTML = `
+  <div class="migas"><button id="v-volver">${esDirector() ? 'Visitas' : 'Seguimiento'}</button> › ${esDirector() ? '' : `<button id="v-esc">${esc(c ? c.escuela : cct)}</button> › `}<span>${esc(visNombre(n, v))}</span></div>
+  <div class="titulo-vista"><h1>${esc(visNombre(n, v))}</h1>
+    <div class="acciones">${mesa ? `<button class="boton sec" id="v-wa">${ico('i-wa')}Enviar la guía a la escuela</button>` : ''}${mesa && n > 3 && !cerrada ? `<button class="boton peligro" id="v-borrar">${ico('i-x')}Quitar visita</button>` : ''}</div></div>
+  <div class="tarjeta pad" style="margin-bottom:14px;display:flex;gap:10px 24px;flex-wrap:wrap;align-items:center">
+    <div><div class="ayuda">Escuela</div><b>${esc(c ? c.escuela : cct)}</b></div>
+    <div><div class="ayuda">C.C.T.</div><b>${esc(cct)}</b></div>
+    ${mesa ? `<div class="campo" style="margin:0"><label for="v-fecha" class="ayuda">Fecha de la visita</label><input type="date" id="v-fecha" value="${esc(D.fecha)}" ${cerrada ? 'disabled' : ''}></div>` : `<div><div class="ayuda">Fecha</div><b>${v && v.fecha ? fechaLarga(v.fecha) : (n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : 'Por definir')}</b></div>`}
+    <div style="margin-left:auto">${visEstadoChip(v)}</div></div>
+  <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó registrada en el seguimiento de la escuela con su minuta.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van al Drive de la escuela, carpeta «Visitas de supervisión»). La escuela ve esta guía desde antes para prepararse. Al terminar pulse «Cerrar visita».')
+    : (cerrada ? 'Esta visita ya se realizó. Aquí puede consultar las observaciones de la Supervisión.' : 'Esta es la guía de lo que se revisará en la visita. Prepare cada tema: puede subir fotos de evidencia, dejar una nota y marcarlo como listo. Recuerde que los productos del CTE se quedan en la escuela; las fotos solo muestran que están hechos.')}</div>
+  ${temas.map(tarjeta).join('') || '<div class="tarjeta vacio">Esta visita aún no tiene temas.</div>'}
+  ${mesa && !cerrada ? `<div style="margin:-2px 0 14px"><button class="boton sec" id="v-tema">${ico('i-mas')}Agregar tema</button></div>
+    <div class="tarjeta pad"><div class="campo"><label for="v-res">Comentario general de la visita</label><textarea id="v-res" placeholder="Fortalezas, aspectos a acompañar, acuerdos generales…">${esc(D.resumen)}</textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="boton sec" id="v-guardar">Guardar avance</button><button class="boton terra" id="v-cerrar">${ico('i-chk')}Cerrar visita</button></div></div>`
+    : mesa && cerrada ? `<div class="tarjeta pad">${v.resumen ? `<p style="white-space:pre-line;margin-top:0">${esc(v.resumen)}</p>` : ''}<button class="boton sec" id="v-reabrir">Reabrir la visita</button></div>`
+    : v && v.resumen && cerrada ? `<div class="tarjeta pad"><b>Comentario general</b><p style="white-space:pre-line">${esc(v.resumen)}</p></div>` : ''}`;
+  $('#v-volver').onclick = volver;
+  if ($('#v-esc')) $('#v-esc').onclick = () => { vista.vis = null; vista.visD = null; vista.escuela = cct; vSeguimiento(); window.scrollTo(0, 0); };
+  // marcar estados y observaciones (borrador)
+  $$('[data-est]').forEach(b => b.onclick = () => { const [k, e] = b.dataset.est.split('|'); const it = D.items[k] = D.items[k] || { estado: '', obs: '' };
+    it.estado = it.estado === e ? '' : e; D.sucio = true; const y = window.scrollY; vEditorVisita(); window.scrollTo(0, y); });
+  $$('[data-obs]').forEach(t => t.oninput = () => { const k = t.dataset.obs; (D.items[k] = D.items[k] || { estado: '', obs: '' }).obs = t.value; D.sucio = true; });
+  if ($('#v-fecha')) $('#v-fecha').onchange = e => { D.fecha = e.target.value; D.sucio = true; };
+  if ($('#v-res')) $('#v-res').oninput = e => { D.resumen = e.target.value; D.sucio = true; };
+  // director: nota y «listo»
+  const preparar = async (k, datos) => { const r = await accion('prepararVisita', Object.assign({ cct, numero: n, ciclo: cicloVis(), k }, datos)); if (r) { poner(S.vis, r.vis); } return r; };
+  $$('[data-nd]').forEach(t => t.onchange = async () => { if (await preparar(t.dataset.nd, { nota: t.value })) aviso('Nota guardada.', 'ok', 2000); });
+  $$('[data-listo]').forEach(ch => ch.onchange = async () => { const y = window.scrollY; if (await preparar(ch.dataset.listo, { listo: ch.checked })) { vEditorVisita(); window.scrollTo(0, y); } });
+  // fotos
+  $$('[data-foto]').forEach(inp => inp.onchange = async () => {
+    const fs = [...inp.files]; if (!fs.length) return;
+    const t = temas.find(x => x.k === inp.dataset.foto), y = window.scrollY;
+    let ok = 0;
+    await conCarga(async () => {
+      for (const f of fs) {
+        const b = await fotoLigera(f), ext = b.type === 'image/jpeg' ? 'jpg' : (f.name.split('.').pop() || 'jpg');
+        const nombre = String(inp.dataset.i).padStart(2, '0') + ' ' + t.t.replace(/[\\/:*?"<>|()]+/g, ' ').slice(0, 60).trim() + ' - ' + hoy() + ' ' + Date.now().toString(36).slice(-4) + '.' + ext;
+        const r = await api('visitaFoto', { cct, numero: n, ciclo: cicloVis(), k: t.k, nombre, tipo: b.type || f.type, datos: await blobAB64(b), carpetaId: (visDe(cct, n) || {}).carpetaId || '' });
+        poner(S.vis, r.vis); ok++;
+      }
+    });
+    vEditorVisita(); window.scrollTo(0, y);
+    if (ok) aviso(ok + ' foto' + (ok === 1 ? '' : 's') + ' en el Drive de la escuela.', 'ok', 3000);
+  });
+  $$('[data-qf]').forEach(b => b.onclick = async () => {
+    const [k, id] = b.dataset.qf.split('|');
+    if (!confirm('¿Quitar esta foto? Se manda a la papelera del Drive.')) return;
+    const r = await accion('quitarFotoVisita', { cct, numero: n, ciclo: cicloVis(), k, id });
+    if (r) { poner(S.vis, r.vis); const y = window.scrollY; vEditorVisita(); window.scrollTo(0, y); }
+  });
+  if (!mesa) return;
+  const datos = extra => Object.assign({ cct, numero: n, ciclo: cicloVis(), fecha: D.fecha, resumen: D.resumen, temas: D.temas, titulo: D.titulo,
+    items: Object.entries(D.items).map(([k, x]) => ({ k, estado: x.estado, obs: x.obs })) }, extra || {});
+  const guardar = async extra => { const r = await accion('guardarVisita', datos(extra)); if (!r) return null; poner(S.vis, r.vis); D.sucio = false; if (r.seg) poner(S.seg, r.seg); return r; };
+  if ($('#v-guardar')) $('#v-guardar').onclick = async () => { if (await guardar()) { vista.visD = null; vEditorVisita(); aviso('Avance guardado.', 'ok', 2500); } };
+  if ($('#v-reabrir')) $('#v-reabrir').onclick = async () => { if (await guardar({ reabrir: true })) { vista.visD = null; vEditorVisita(); } };
+  if ($('#v-borrar')) $('#v-borrar').onclick = async () => {
+    if (!confirm('¿Quitar esta visita extraordinaria? Las fotos se quedan en el Drive.')) return;
+    const r = await accion('borrarVisita', { id: v ? v.id : '' }); if (r) { S.vis = r.vis; vista.vis = null; vista.visD = null; vista.escuela = cct; vSeguimiento(); }
+  };
+  if ($('#v-tema')) $('#v-tema').onclick = () => formTemaVisita(D, null);
+  $$('[data-et]').forEach(b => b.onclick = () => formTemaVisita(D, D.temas.find(t => t.k === b.dataset.et)));
+  if ($('#v-wa')) $('#v-wa').onclick = () => {
+    const l = ['*Supervisión Escolar Zona 050 · Tequio*', '*' + visNombre(n, v) + '*', '🏫 ' + (c ? c.escuela : cct), D.fecha ? '📅 ' + fechaLarga(D.fecha) : '', '', 'Temas que se revisarán:'];
+    temas.forEach((t, i) => l.push((i + 1) + '. ' + t.t + (t.f ? ' (evidencia: ' + t.f.charAt(0).toLowerCase() + t.f.slice(1) + ')' : '')));
+    l.push('', 'Puede ver la guía completa, subir sus fotos de evidencia y marcar cada tema como listo en Tequio › Visitas.', '', 'Atentamente,', 'Mtro. Carlos Gabriel Ortega Gutiérrez', 'Supervisor Escolar · Zona 050');
+    const personas = c ? [{ nombre: c.nombre, sub: c.escuela, tels: telefonos(c.whatsapp), correos: correos(c) }] : [];
+    modal('Enviar la guía a la escuela', bloqueWhatsApp(l.filter((x, i) => x !== '' || i > 3).join('\n'), personas, visNombre(n, v) + ' · ' + (c ? c.escuela : '')), '<button class="boton sec" id="w-cerrar">Cerrar</button>');
+    $('#w-copiar').onclick = () => copiar($('#w-msg').textContent, 'Guía copiada');
+    $('#w-cerrar').onclick = cerrarModal;
+  };
+  if ($('#v-cerrar')) $('#v-cerrar').onclick = () => {
+    const sin = temas.filter(t => !(D.items[t.k] || {}).estado);
+    const lineas = temas.map((t, i) => { const x = D.items[t.k] || {}; return (i + 1) + '. ' + t.t + ': ' + (VIS_ESTADOS[x.estado] ? VIS_ESTADOS[x.estado][0] : 'Sin revisar') + (x.obs ? '. ' + x.obs : ''); });
+    const minuta = visNombre(n, v) + '\n\n' + lineas.join('\n') + (D.resumen ? '\n\n' + D.resumen : '');
+    const pend = temas.filter(t => ['acomp', 'proceso'].includes((D.items[t.k] || {}).estado));
+    const sug = pend.map(t => 'Atender: ' + t.t + ((D.items[t.k] || {}).obs ? ' — ' + D.items[t.k].obs : ''));
+    modal('Cerrar la visita', `${sin.length ? `<div class="aviso-caja peq">Quedan ${sin.length} tema${sin.length === 1 ? '' : 's'} sin marcar: ${esc(sin.map(t => t.t).join(', '))}.</div>` : ''}
+      <p class="peq" style="margin-top:0">Se registrará en el seguimiento de la escuela con esta minuta. Los temas «En proceso» y «Requiere acompañamiento» se proponen como acuerdos; corríjalos o agregue otros (uno por renglón).</p>
+      <div class="campo"><label for="vc-min">Minuta</label><textarea id="vc-min" style="min-height:160px">${esc(minuta)}</textarea></div>
+      <div class="fila dos"><div class="campo"><label for="vc-ac">Acuerdos (uno por renglón)</label><textarea id="vc-ac" style="min-height:100px">${esc(sug.join('\n'))}</textarea></div>
+        <div class="campo"><label for="vc-rev">Fecha para revisar los acuerdos</label><input type="date" id="vc-rev"><div class="ayuda">Tequio recuerda dos días antes y el mismo día.</div></div></div>
+      <label class="casilla"><input type="checkbox" id="vc-mail" checked> Enviar la minuta por correo a la dirección de la escuela</label>`,
+      '<button class="boton sec" id="vc-no">Cancelar</button><button class="boton terra" id="vc-si">Cerrar y registrar</button>');
+    $('#vc-no').onclick = cerrarModal;
+    $('#vc-si').onclick = async () => {
+      const acuerdos = $('#vc-ac').value.split('\n').map(x => x.trim()).filter(Boolean).map(texto => ({ texto, responsable: c ? c.nombre : '', revision: $('#vc-rev').value, estado: 'pendiente' }));
+      const r = await guardar({ cerrar: true, minuta: $('#vc-min').value, acuerdos, enviarMinuta: $('#vc-mail').checked });
+      if (!r) return;
+      cerrarModal(); vista.visD = null; vEditorVisita(); window.scrollTo(0, 0);
+      aviso('Visita cerrada y registrada en el seguimiento.', 'ok', 3500); mostrarResultados(r.avisos);
+    };
+  };
+}
+function formTemaVisita(D, t) {
+  const x = t || { k: 'x' + Date.now().toString(36).slice(-6), t: '', r: [], f: '' };
+  modal(t ? 'Editar tema' : 'Agregar tema', `
+    <div class="campo"><label for="tv-t">Tema</label><input id="tv-t" value="${esc(x.t)}" placeholder="Ej. Uso del aula de medios"></div>
+    <div class="campo"><label for="tv-r">Qué se revisa (uno por renglón)</label><textarea id="tv-r" style="min-height:110px">${esc((x.r || []).join('\n'))}</textarea></div>
+    <div class="campo"><label for="tv-f">Evidencia sugerida (foto de…)</label><input id="tv-f" value="${esc(x.f)}" placeholder="Ej. El aula en funcionamiento"></div>
+    <div class="ayuda">El tema se agrega solo a esta visita de esta escuela. Pulse «Guardar avance» para que la escuela lo vea.</div>`,
+    `<button class="boton sec" id="tv-no">Cancelar</button>${t ? '<button class="boton peligro" id="tv-q">Quitar tema</button>' : ''}<button class="boton terra" id="tv-si">Listo</button>`);
+  $('#tv-no').onclick = cerrarModal;
+  if ($('#tv-q')) $('#tv-q').onclick = () => { D.temas = D.temas.filter(y => y.k !== x.k); delete D.items[x.k]; D.sucio = true; cerrarModal(); vEditorVisita(); };
+  $('#tv-si').onclick = () => {
+    const o = { k: x.k, t: perLimpio($('#tv-t').value, 200), r: $('#tv-r').value.split('\n').map(y => y.trim()).filter(Boolean), f: perLimpio($('#tv-f').value, 300) };
+    if (!o.t) return aviso('Escriba el tema.', 'mal');
+    const i = D.temas.findIndex(y => y.k === x.k); if (i >= 0) D.temas[i] = o; else D.temas.push(o);
+    D.sucio = true; cerrarModal(); vEditorVisita();
+    aviso('Tema agregado. Pulse «Guardar avance» para guardarlo.', 'ok', 3500);
+  };
+}
+// Pestaña «Visitas» del director
+function vVisitasDir() {
+  if (vista.vis) return vEditorVisita();
+  const cct = miCct();
+  if (!S.vis) { $('#vista').innerHTML = '<div class="titulo-vista"><h1>Visitas de supervisión</h1></div><div class="tarjeta vacio">Esta sección estará disponible cuando la Supervisión actualice Tequio.</div>'; return; }
+  $('#vista').innerHTML = `<div class="titulo-vista"><h1>Visitas de supervisión</h1></div>
+    <div class="aviso-caja peq">Aquí están las guías de las visitas de la Supervisión a su escuela. Ábralas antes de cada visita para preparar los temas y subir sus fotos de evidencia.</div>
+    ${bloqueVisitas(cct)}`;
+  enlazarVisitas(cct);
 }
 
 /* ---------------- Seguimiento: formulario ---------------- */
@@ -5320,7 +5587,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 11, iaDirectorio: true, dep: [],
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 12, iaDirectorio: true, dep: [], vis: [],
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -5340,7 +5607,7 @@ const Demo = (() => {
         usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
         sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
-        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined }));
+        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct) }));
     },
     subirArchivo: d => {
       const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
@@ -5406,6 +5673,30 @@ const Demo = (() => {
       return { dep: copia(D.dep.filter(p => p.activo)), guardados: d.registros.length };
     },
     cargarDepBase: d => { const ids = new Set(D.dep.map(p => p.id)), n = d.registros.filter(x => !ids.has(x.id)); D.dep = D.dep.concat(copia(n)); return { dep: copia(D.dep.filter(p => p.activo)), agregados: n.length }; },
+    guardarVisita: d => {
+      const ciclo = d.ciclo; let n = d.numero === 'nueva' ? D.vis.filter(v => v.cct === d.cct && v.ciclo === ciclo).reduce((m, v) => Math.max(m, +v.numero), 3) + 1 : +d.numero;
+      const id = 'vis-' + ciclo + '-' + d.cct + '-' + n;
+      let v = D.vis.find(x => x.id === id);
+      if (!v) { v = { id, ciclo, cct: d.cct, numero: String(n), estado: '', items: [], temas: [], titulo: '', resumen: '', segId: '', carpetaId: 'demo-carpeta' }; D.vis.push(v); }
+      const prev = {}; v.items.forEach(x => prev[x.k] = x);
+      d.items.forEach(x => { prev[x.k] = Object.assign(prev[x.k] || { fotos: [] }, { k: x.k, estado: x.estado, obs: x.obs }); });
+      v.items = Object.values(prev); v.temas = d.temas || v.temas; if (d.titulo !== undefined) v.titulo = d.titulo; v.fecha = d.fecha || hoy(); v.resumen = d.resumen || '';
+      v.estado = d.cerrar ? 'cerrada' : d.reabrir ? 'en curso' : v.estado === 'cerrada' ? 'cerrada' : 'en curso';
+      let seg = null;
+      if (d.cerrar) { v.cerradaPor = D.yo.nombre; seg = { id: v.segId || uid('seg'), cct: v.cct, fecha: v.fecha, actividadId: '', resumen: d.minuta, acuerdos: (d.acuerdos || []).map(x => Object.assign({ id: uid('ac') }, x)), confidencial: false, minutaEnviada: !!d.enviarMinuta, creadoPor: D.yo.id, creado: ahora(), actualizado: ahora() };
+        v.segId = seg.id; const i = D.seg.findIndex(x => x.id === seg.id); if (i >= 0) D.seg[i] = seg; else D.seg.push(seg); }
+      return { vis: copia(v), seg: seg && copia(seg), avisos: d.enviarMinuta ? [nada('minuta')] : [] };
+    },
+    prepararVisita: d => { const id = 'vis-' + d.ciclo + '-' + d.cct + '-' + d.numero; let v = D.vis.find(x => x.id === id);
+      if (!v) { v = { id, ciclo: d.ciclo, cct: d.cct, numero: String(d.numero), estado: 'preparacion', items: [], temas: [], resumen: '' }; D.vis.push(v); }
+      let it = v.items.find(x => x.k === d.k); if (!it) { it = { k: d.k, estado: '', obs: '', fotos: [] }; v.items.push(it); }
+      if (d.nota !== undefined) it.nd = d.nota; if (d.listo !== undefined) it.listo = d.listo; if (!v.estado) v.estado = 'preparacion';
+      return { vis: copia(v) }; },
+    visitaFoto: d => { const r = A.prepararVisita({ ciclo: d.ciclo, cct: d.cct, numero: d.numero, k: d.k }); const v = D.vis.find(x => x.id === r.vis.id); v.carpetaId = 'demo-carpeta';
+      v.items.find(x => x.k === d.k).fotos.push({ id: uid('demo'), n: d.nombre, por: D.yo.nombre, f: ahora().slice(0, 16), u: 'data:' + (d.tipo || 'image/jpeg') + ';base64,' + d.datos });
+      return { vis: copia(v) }; },
+    quitarFotoVisita: d => { const v = D.vis.find(x => x.id === 'vis-' + d.ciclo + '-' + d.cct + '-' + d.numero); const it = v.items.find(x => x.k === d.k); it.fotos = it.fotos.filter(f => f.id !== d.id); return { vis: copia(v) }; },
+    borrarVisita: d => { D.vis = D.vis.filter(v => v.id !== d.id); return { vis: copia(D.vis) }; },
     borrarDep: d => { D.dep.forEach(p => { if (d.ids.includes(p.id)) p.activo = false; }); return { dep: copia(D.dep.filter(p => p.activo)) }; },
     guardarOficio: d => {
       let o = D.ofi.find(x => x.id === d.id);

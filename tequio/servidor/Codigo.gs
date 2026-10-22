@@ -49,19 +49,20 @@ const HOJAS = {
   eia: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'num', 'alumno', 'sexo', 'v', 'cargadoPor', 'actualizado'],
   per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado'],
   dep: ['id', 'orden', 'municipio', 'dependencia', 'area', 'tratamiento', 'nombre', 'cargo', 'telefono', 'correo', 'domicilio', 'apoyo',
-        'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor']
+        'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor'],
+  vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias' };
-const VERSION = 11;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión' };
+const VERSION = 12;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -147,10 +148,10 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SIN_BLOQUEO = ['visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -175,6 +176,7 @@ const ACCIONES = {
     eig: leer_('eig'),
     per: leer_('per'),
     dep: leer_('dep').filter(x => x.activo),
+    vis: leer_('vis'),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -740,6 +742,106 @@ const ACCIONES = {
     return { dep: lista.filter(x => x.activo) };
   },
 
+  /* ---- Visitas de supervisión (guías de 3 visitas por ciclo, con fotos de evidencia) ----
+     Cada escuela tiene una visita por número y ciclo (id: vis-CICLO-CCT-N). Las guías (temas) viven en la página;
+     aquí se guarda, por tema: estado, observación de la Supervisión, nota y «listo» del director y las fotos. */
+
+  // Supervisión y Mesa Técnica: guarda estados y observaciones; con «cerrar» registra el seguimiento (minuta y acuerdos).
+  guardarVisita: (yo, d) => {
+    soloMesa_(yo);
+    const v = visitaDe_(yo, d);
+    const previos = {}; (v.items || []).forEach(x => { previos[x.k] = x; });
+    v.items = (d.items || []).filter(x => x && x.k).slice(0, 40).map(x => Object.assign({}, previos[x.k] || { fotos: [] }, {
+      k: String(x.k).slice(0, 20), estado: ['cumple', 'proceso', 'acomp', 'na', ''].indexOf(x.estado) >= 0 ? x.estado : '', obs: String(x.obs || '').slice(0, 3000) }));
+    Object.keys(previos).forEach(k => { if (!v.items.find(x => x.k === k)) v.items.push(previos[k]); });
+    // temas agregados por la Supervisión (en cualquier visita; en las extraordinarias son todos sus temas)
+    if (Array.isArray(d.temas)) v.temas = d.temas.filter(t => t && t.k && String(t.t || '').trim()).slice(0, 30).map(t => ({ k: String(t.k).slice(0, 20), t: String(t.t).slice(0, 200),
+      r: (Array.isArray(t.r) ? t.r : String(t.r || '').split('\n')).map(x => String(x).trim()).filter(Boolean).slice(0, 15).map(x => x.slice(0, 300)), f: String(t.f || '').slice(0, 300) }));
+    if (d.titulo !== undefined) v.titulo = String(d.titulo || '').slice(0, 200);
+    v.fecha = /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : (v.fecha || hoy_());
+    v.resumen = String(d.resumen || '').slice(0, 6000);
+    v.estado = d.cerrar ? 'cerrada' : (d.reabrir ? 'en curso' : (v.estado === 'cerrada' ? 'cerrada' : 'en curso'));
+    v.actualizado = ahora_();
+    let avisos = [], seg = null;
+    if (d.cerrar) {
+      v.cerradaPor = yo.nombre;
+      const r = ACCIONES.guardarSeguimiento(yo, { id: v.segId || '', cct: v.cct, fecha: v.fecha, actividadId: d.actividadId || '', resumen: String(d.minuta || v.resumen || '').slice(0, 20000),
+        acuerdos: d.acuerdos || [], enviarMinuta: !!d.enviarMinuta });
+      seg = r.seg; avisos = r.avisos || []; v.segId = seg.id;
+    }
+    guardar_('vis', v);
+    return { vis: v, seg: seg, avisos: avisos };
+  },
+  // Quita una visita extraordinaria que aún no se cierra (las fotos se quedan en el Drive)
+  borrarVisita: (yo, d) => {
+    soloMesa_(yo);
+    const v = buscar_('vis', String(d.id || ''));
+    if (!v) throw new Error('No se encontró la visita.');
+    if (+v.numero <= 3) throw new Error('Las tres visitas del ciclo no se pueden quitar.');
+    if (v.estado === 'cerrada') throw new Error('La visita ya se cerró y quedó registrada en el seguimiento.');
+    reemplazarTodo_('vis', leer_('vis').filter(x => x.id !== v.id));
+    return { vis: leer_('vis') };
+  },
+  // Director: deja una nota por tema y lo marca como listo para la visita
+  prepararVisita: (yo, d) => {
+    const v = visitaDe_(yo, d);
+    if (v.estado === 'cerrada' && yo.rol === 'director') throw new Error('La visita ya se cerró. Si necesita agregar algo, avise a la Supervisión.');
+    const it = itemVisita_(v, d.k);
+    if (d.nota !== undefined) it.nd = String(d.nota || '').slice(0, 2000);
+    if (d.listo !== undefined) it.listo = !!d.listo;
+    if (v.estado === '' || v.estado === 'programada') v.estado = 'preparacion';
+    v.actualizado = ahora_();
+    guardar_('vis', v);
+    return { vis: v };
+  },
+  // Sube una foto de evidencia de un tema a Drive: Supervisión 050 › Escuela › Visitas de supervisión › Visita N (ciclo)
+  visitaFoto: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct);
+    const datos = String(d.datos || '');
+    if (!datos) throw new Error('La foto llegó vacía.');
+    if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
+    const n = Math.max(1, Math.min(30, +d.numero || 1)), ciclo = cicloVis_(d.ciclo);
+    let carpetaId = String(d.carpetaId || '');
+    if (!carpetaId) {
+      const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+      if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+      const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+      carpetaId = sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), (n <= 3 ? 'Visita ' + n : 'Visita extraordinaria ' + (n - 3)) + ' · ' + ciclo).getId();
+    }
+    const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
+    const f = DriveApp.getFolderById(carpetaId).createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      const v = visitaDe_(yo, { cct: cct, numero: n, ciclo: ciclo });
+      v.carpetaId = carpetaId;
+      const it = itemVisita_(v, d.k);
+      it.fotos = (it.fotos || []).concat([{ id: f.getId(), n: nombre, por: yo.nombre, f: ahora_().slice(0, 16) }]).slice(-30);
+      if (v.estado === '' || v.estado === 'programada') v.estado = 'preparacion';
+      v.actualizado = ahora_();
+      guardar_('vis', v);
+      bitacora_('archivo', cct, [], nombre + ' → Visitas de supervisión/Visita ' + n, 'foto de visita subida por ' + yo.nombre);
+      return { vis: v };
+    } finally { lock.releaseLock(); }
+  },
+  // Quita una foto (la manda a la papelera del Drive, de donde se puede recuperar)
+  quitarFotoVisita: (yo, d) => {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      const v = visitaDe_(yo, d), it = itemVisita_(v, d.k);
+      const foto = (it.fotos || []).find(x => x.id === d.id);
+      if (!foto) throw new Error('No se encontró la foto.');
+      if (yo.rol === 'director' && (v.estado === 'cerrada' || foto.por !== yo.nombre)) throw new Error('Solo puede quitar las fotos que subió usted antes de que se cierre la visita.');
+      try { DriveApp.getFileById(d.id).setTrashed(true); } catch (e) {}
+      it.fotos = it.fotos.filter(x => x.id !== d.id);
+      v.actualizado = ahora_();
+      guardar_('vis', v);
+      return { vis: v };
+    } finally { lock.releaseLock(); }
+  },
+
   borrarDirOficios: (yo, d) => {
     soloMesa_(yo);
     const ids = d.ids || [];
@@ -1141,6 +1243,8 @@ function datosDirector_(yo) {
     eig: leer_('eig').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, cct: '', grado: x.grado, grupo: '', n: x.n, cr: x.cr, rz: x.rz }),
     // el directorio de dependencias de la Supervisión (solo lectura) para elegir destinatarios en los oficios de la escuela
     dep: leer_('dep').filter(x => x.activo),
+    // las visitas de supervisión a su escuela: ve la guía antes, sube sus fotos y lee el resultado
+    vis: leer_('vis').filter(v => v.cct === cct),
     // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
@@ -1162,6 +1266,31 @@ function momentoValido_(m) {
 const numero_ = (v, nulo) => { if (v === null || v === undefined || v === '') return nulo ? null : 0; const n = Math.round(+v); return isFinite(n) && n >= 0 ? Math.min(n, 99999) : (nulo ? null : 0); };
 function niveles_(o, nulo) { o = o || {}; return { ne: numero_(o.ne, nulo), ed: numero_(o.ed, nulo), ra: numero_(o.ra, nulo) }; }
 function tipos_(o, nulo) { o = o || {}; return { sa: numero_(o.sa, nulo), ca: numero_(o.ca, nulo), inc: numero_(o.inc, nulo) }; }
+// Visitas de supervisión: ciclo escolar (agosto a julio) y registro de la visita de una escuela
+function cicloVis_(c) {
+  if (/^\d{4}-\d{4}$/.test(String(c || ''))) return String(c);
+  const h = new Date(), y = h.getFullYear();
+  return h.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y;
+}
+function visitaDe_(yo, d) {
+  const cct = cctPermitido_(yo, d.cct), ciclo = cicloVis_(d.ciclo);
+  let n = d.numero === 'nueva' ? 0 : Math.max(1, Math.min(30, +d.numero || 1));
+  if (!n) {  // visita extraordinaria nueva: la siguiente después de la 3
+    if (yo.rol === 'director') throw new Error('Las visitas extraordinarias las programa la Supervisión.');
+    n = leer_('vis').filter(v => v.cct === cct && v.ciclo === ciclo).reduce((m, v) => Math.max(m, +v.numero || 0), 3) + 1;
+  }
+  const id = 'vis-' + ciclo + '-' + cct + '-' + n;
+  return buscar_('vis', id) || { id: id, ciclo: ciclo, cct: cct, numero: String(n), fecha: '', estado: '', items: [], resumen: '', segId: '', carpetaId: '',
+    creadoPor: yo.id, creado: ahora_(), actualizado: ahora_(), cerradaPor: '', titulo: '', temas: [] };
+}
+function itemVisita_(v, k) {
+  k = String(k || '').slice(0, 20);
+  if (!k) throw new Error('Falta el tema de la visita.');
+  v.items = v.items || [];
+  let it = v.items.find(x => x.k === k);
+  if (!it) { it = { k: k, estado: '', obs: '', fotos: [] }; v.items.push(it); }
+  return it;
+}
 // La escuela con la que puede trabajar el usuario: un director solo la suya; la Supervisión y la Mesa Técnica, cualquiera del Directorio
 function cctPermitido_(yo, cct) {
   cct = String(cct || '');
