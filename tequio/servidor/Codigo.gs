@@ -47,20 +47,22 @@ const HOJAS = {
   sic: ['id', 'ciclo', 'momento', 'nivel', 'ref', 'tipo', 'texto', 'autor', 'autorNombre', 'creado', 'actualizado'],
   eig: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'n', 'cr', 'rz', 'fuente', 'cargadoPor', 'actualizado'],
   eia: ['id', 'ciclo', 'cct', 'grado', 'grupo', 'num', 'alumno', 'sexo', 'v', 'cargadoPor', 'actualizado'],
-  per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado']
+  per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado'],
+  dep: ['id', 'orden', 'municipio', 'dependencia', 'area', 'tratamiento', 'nombre', 'cargo', 'telefono', 'correo', 'domicilio', 'apoyo',
+        'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios' };
-const VERSION = 10;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias' };
+const VERSION = 11;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
 const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v'];
-const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello'];
+const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
    que se entrega por separado porque contiene datos personales. */
@@ -172,6 +174,7 @@ const ACCIONES = {
     sisCfg: { ia: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') },
     eig: leer_('eig'),
     per: leer_('per'),
+    dep: leer_('dep').filter(x => x.activo),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -688,6 +691,55 @@ const ACCIONES = {
     if (cambios.length > 20) reemplazarTodo_('per', lista); else cambios.forEach(o => guardar_('per', o));
     return { per: leer_('per'), guardados: cambios.length };
   },
+  /* ---- Directorio de dependencias (autoridades y dependencias que apoyan a las escuelas) ----
+     Lo edita la Supervisión y la Mesa Técnica; los directores lo consultan en sus oficios. */
+
+  // Guarda o actualiza registros (por id). «revisar: true» marca los registros como revisados hoy.
+  guardarDep: (yo, d) => {
+    soloMesa_(yo);
+    const t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+    const lista = leer_('dep'), cambios = [];
+    (d.registros || []).slice(0, 1000).forEach(x => {
+      const o = {};
+      ['orden', 'municipio', 'dependencia', 'area', 'tratamiento', 'nombre', 'cargo', 'telefono', 'correo', 'domicilio', 'apoyo', 'fuente', 'vigente'].forEach(k => { if (x[k] !== undefined) o[k] = t(x[k], k === 'apoyo' || k === 'domicilio' || k === 'fuente' ? 500 : 300); });
+      if (x.confirmar !== undefined) o.confirmar = !!x.confirmar;
+      if (x.revisado) o.revisado = /^\d{4}-\d{2}-\d{2}$/.test(x.revisado) ? x.revisado : hoy_();
+      if (d.revisar) { o.revisado = hoy_(); o.confirmar = false; }
+      const previo = x.id ? lista.find(p => p.id === x.id) : null;
+      if (previo) { Object.assign(previo, o, { activo: true, actualizado: ahora_(), actualizadoPor: yo.nombre }); cambios.push(previo); }
+      else {
+        if (!o.nombre && !o.cargo && !o.dependencia) return;
+        const n = Object.assign({ id: x.id && /^dep-[\w-]+$/.test(x.id) ? x.id : 'dep-' + Utilities.getUuid().slice(0, 8), orden: '', municipio: '', dependencia: '', area: '', tratamiento: '', nombre: '', cargo: '',
+          telefono: '', correo: '', domicilio: '', apoyo: '', fuente: 'A mano', vigente: '', revisado: hoy_(), confirmar: false }, o, { activo: true, actualizado: ahora_(), actualizadoPor: yo.nombre });
+        lista.push(n); cambios.push(n);
+      }
+    });
+    if (cambios.length > 20) reemplazarTodo_('dep', lista); else cambios.forEach(o => guardar_('dep', o));
+    return { dep: leer_('dep').filter(x => x.activo), guardados: cambios.length };
+  },
+  // Carga el directorio base de la Supervisión (archivo datos/dependencias.json de la página). Solo agrega lo que falta:
+  // no toca los registros que ya existan (para no perder correcciones hechas en Tequio).
+  cargarDepBase: (yo, d) => {
+    soloMesa_(yo);
+    const lista = leer_('dep'), ids = {};
+    lista.forEach(x => { ids[x.id] = 1; });
+    const nuevos = (d.registros || []).filter(x => x && /^dep-\d{3}$/.test(x.id) && !ids[x.id]).slice(0, 1000).map(x => {
+      const o = { activo: true, actualizado: ahora_(), actualizadoPor: yo.nombre };
+      HOJAS.dep.forEach(k => { if (o[k] === undefined) o[k] = k === 'confirmar' ? !!x[k] : String(x[k] == null ? '' : x[k]).slice(0, 500); });
+      return o;
+    });
+    if (nuevos.length) reemplazarTodo_('dep', lista.concat(nuevos));
+    return { dep: leer_('dep').filter(x => x.activo), agregados: nuevos.length };
+  },
+  borrarDep: (yo, d) => {
+    soloMesa_(yo);
+    const ids = d.ids || [];
+    const lista = leer_('dep');
+    lista.forEach(x => { if (ids.indexOf(x.id) >= 0) { x.activo = false; x.actualizado = ahora_(); x.actualizadoPor = yo.nombre; } });
+    reemplazarTodo_('dep', lista);
+    return { dep: lista.filter(x => x.activo) };
+  },
+
   borrarDirOficios: (yo, d) => {
     soloMesa_(yo);
     const ids = d.ids || [];
@@ -1087,6 +1139,8 @@ function datosDirector_(yo) {
     sic: comentariosPara_(yo),
     // EIA: igual que el SisAT, su escuela completa y de las demás solo los números por grado
     eig: leer_('eig').map((x, i) => x.cct === cct ? x : { id: 'z' + i, ciclo: x.ciclo, cct: '', grado: x.grado, grupo: '', n: x.n, cr: x.cr, rz: x.rz }),
+    // el directorio de dependencias de la Supervisión (solo lectura) para elegir destinatarios en los oficios de la escuela
+    dep: leer_('dep').filter(x => x.activo),
     // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
