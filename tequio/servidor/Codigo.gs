@@ -50,19 +50,21 @@ const HOJAS = {
   per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado'],
   dep: ['id', 'orden', 'municipio', 'dependencia', 'area', 'tratamiento', 'nombre', 'cargo', 'telefono', 'correo', 'domicilio', 'apoyo',
         'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor'],
-  vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas']
+  vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas'],
+  inf: ['id', 'cct', 'fecha', 'asunto', 'cifras', 'pendientes', 'html', 'atpId', 'para', 'cc', 'enviadoPor', 'creado', 'resultado'],
+  acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión' };
-const VERSION = 12;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes' };
+const VERSION = 13;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -148,10 +150,10 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -177,6 +179,8 @@ const ACCIONES = {
     per: leer_('per'),
     dep: leer_('dep').filter(x => x.activo),
     vis: leer_('vis'),
+    inf: leer_('inf').map(sinHtml_),
+    acl: leer_('acl'),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -742,6 +746,83 @@ const ACCIONES = {
     return { dep: lista.filter(x => x.activo) };
   },
 
+  /* ---- Informe de seguimiento por escuela (acuerdos, evidencias, SisAT y EIA) ----
+     La página arma el informe (con el promedio de la zona) y aquí solo se envía: los destinatarios
+     los pone el servidor (la dirección de la escuela y, si se pide, su ATP), no la página. */
+  enviarInforme: (yo, d) => {
+    soloMesa_(yo);
+    const dir = leer_('dir'), usr = leer_('usr'), res = [], nuevos = [];
+    (d.informes || []).slice(0, 30).forEach(x => {
+      const c = dir.find(e => e.tipo === 'director' && e.cct === x.cct);
+      if (!c) { res.push({ cct: x.cct, ok: false, mensaje: 'La escuela no está en el Directorio.' }); return; }
+      const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /@/.test(m));
+      const atp = x.atpId ? usr.find(u => u.id === x.atpId && u.rol === 'atp') : null;
+      const cc = d.copiaAtp && atp ? String(atp.correo || '').split(',').map(m => m.trim()).filter(m => /@/.test(m)) : [];
+      const html = String(x.html || '').slice(0, 300000), asunto = String(x.asunto || 'Informe de seguimiento').slice(0, 200);
+      let resultado = '';
+      if (!para.length) resultado = 'Sin correo de la dirección en el Directorio; quedó guardado en Tequio.';
+      else {
+        try { MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: 'supervision050sep@gmail.com' }); resultado = 'Enviado'; }
+        catch (e) { resultado = 'No se pudo enviar: ' + e.message; }
+      }
+      const o = { id: 'inf-' + Utilities.getUuid().slice(0, 8), cct: x.cct, fecha: hoy_(), asunto: asunto, cifras: x.cifras || {}, pendientes: (x.pendientes || []).slice(0, 60),
+        html: comprimir_(html), atpId: atp ? atp.id : '', para: para.join(','), cc: cc.join(','), enviadoPor: yo.nombre, creado: ahora_(), resultado: resultado };
+      nuevos.push(o);
+      bitacora_('informe', x.cct, para.concat(cc), asunto, resultado);
+      res.push({ cct: x.cct, ok: resultado === 'Enviado', mensaje: resultado });
+    });
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try { guardarVarios_('inf', nuevos); } finally { lock.releaseLock(); }
+    return { resultados: res, inf: leer_('inf').map(sinHtml_), cuota: MailApp.getRemainingDailyQuota() };
+  },
+  verInforme: (yo, d) => {
+    const x = buscar_('inf', String(d.id || ''));
+    if (!x) throw new Error('No se encontró el informe.');
+    if (yo.rol === 'director' && x.cct !== cctDe_(yo)) throw new Error('Solo puede ver los informes de su escuela.');
+    return { html: descomprimir_(x.html) };
+  },
+  // El director pide una aclaración o revisión; va a su ATP (le llega un correo) y la Supervisión la ve en Tequio
+  crearAclaracion: (yo, d) => {
+    if (yo.rol !== 'director') throw new Error('Las aclaraciones las solicita la dirección de la escuela.');
+    const cct = cctDe_(yo);
+    const mensaje = String(d.mensaje || '').trim().slice(0, 4000);
+    if (!mensaje) throw new Error('Escriba qué no coincide o qué necesita que se revise.');
+    const atp = leer_('usr').find(u => u.id === d.atpId && u.rol === 'atp');
+    const o = { id: 'acl-' + Utilities.getUuid().slice(0, 8), cct: cct, informeId: String(d.informeId || '').slice(0, 40), tema: String(d.tema || 'Otro').slice(0, 60),
+      ref: String(d.ref || '').slice(0, 400), mensaje: mensaje, atpId: atp ? atp.id : '', estado: 'abierta', respuestas: [], creadoPor: yo.id, creadoNombre: yo.nombre,
+      creado: ahora_(), actualizado: ahora_(), resuelto: '' };
+    guardar_('acl', o);
+    const esc = (leer_('dir').find(c => c.tipo === 'director' && c.cct === cct) || {}).escuela || cct;
+    avisoAclaracion_(atp ? atp.correo : '', 'Aclaración solicitada · ' + esc,
+      '<p>La dirección de la Esc. Prim. «' + esc_(esc) + '» solicita una aclaración o revisión de su informe de seguimiento.</p>' +
+      '<p><b>Tema:</b> ' + esc_(o.tema) + (o.ref ? '<br><b>Sobre:</b> ' + esc_(o.ref) : '') + '</p><p style="white-space:pre-line;background:#fff;border-left:4px solid #C2603A;padding:10px 12px">' + esc_(mensaje) + '</p>' +
+      '<p>Por favor revísela y contéstela en Tequio › Seguimiento › Aclaraciones.</p>');
+    return { acl: o };
+  },
+  // Responde una aclaración. La Mesa Técnica puede marcarla en revisión o resuelta; si el director vuelve a escribir, se reabre.
+  responderAclaracion: (yo, d) => {
+    const a = buscar_('acl', String(d.id || ''));
+    if (!a) throw new Error('No se encontró la aclaración.');
+    if (yo.rol === 'director' && a.cct !== cctDe_(yo)) throw new Error('Solo puede responder las aclaraciones de su escuela.');
+    if (yo.rol !== 'director') soloMesa_(yo);
+    const texto = String(d.texto || '').trim().slice(0, 4000);
+    if (!texto && !d.estado) throw new Error('Escriba la respuesta.');
+    if (texto) a.respuestas = (a.respuestas || []).concat([{ por: yo.nombre, rol: yo.rol, texto: texto, f: ahora_() }]);
+    if (yo.rol === 'director') { if (a.estado === 'resuelta') a.estado = 'abierta'; }
+    else if (['abierta', 'revision', 'resuelta'].indexOf(d.estado) >= 0) a.estado = d.estado;
+    else if (texto && a.estado === 'abierta') a.estado = 'revision';
+    a.resuelto = a.estado === 'resuelta' ? (a.resuelto || ahora_()) : '';
+    a.actualizado = ahora_();
+    guardar_('acl', a);
+    const c = leer_('dir').find(x => x.tipo === 'director' && x.cct === a.cct) || {};
+    if (texto) {
+      if (yo.rol === 'director') { const atp = leer_('usr').find(u => u.id === a.atpId); avisoAclaracion_(atp ? atp.correo : '', 'Respuesta de la escuela · ' + (c.escuela || a.cct), '<p>La dirección de la Esc. Prim. «' + esc_(c.escuela || a.cct) + '» respondió a la aclaración sobre <b>' + esc_(a.tema) + '</b>:</p><p style="white-space:pre-line;background:#fff;border-left:4px solid #C2603A;padding:10px 12px">' + esc_(texto) + '</p><p>Puede contestar en Tequio › Seguimiento › Aclaraciones.</p>'); }
+      else avisoAclaracion_([c.correo1, c.correo2].filter(Boolean).join(','), 'Respuesta a su aclaración · ' + a.tema, '<p>' + esc_(yo.nombre) + ' respondió a su solicitud de aclaración sobre <b>' + esc_(a.tema) + '</b>' + (a.estado === 'resuelta' ? ' y la marcó como <b>resuelta</b>' : '') + ':</p><p style="white-space:pre-line;background:#fff;border-left:4px solid #1F3A6B;padding:10px 12px">' + esc_(texto) + '</p><p>Si necesita agregar algo, puede contestar en Tequio › Mi escuela.</p>');
+    }
+    return { acl: a };
+  },
+
   /* ---- Visitas de supervisión (guías de 3 visitas por ciclo, con fotos de evidencia) ----
      Cada escuela tiene una visita por número y ciclo (id: vis-CICLO-CCT-N). Las guías (temas) viven en la página;
      aquí se guarda, por tema: estado, observación de la Supervisión, nota y «listo» del director y las fotos. */
@@ -1245,6 +1326,9 @@ function datosDirector_(yo) {
     dep: leer_('dep').filter(x => x.activo),
     // las visitas de supervisión a su escuela: ve la guía antes, sube sus fotos y lee el resultado
     vis: leer_('vis').filter(v => v.cct === cct),
+    // los informes de seguimiento que se le enviaron y sus aclaraciones con su ATP
+    inf: leer_('inf').filter(x => x.cct === cct).map(sinHtml_),
+    acl: leer_('acl').filter(x => x.cct === cct),
     // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
@@ -1266,6 +1350,22 @@ function momentoValido_(m) {
 const numero_ = (v, nulo) => { if (v === null || v === undefined || v === '') return nulo ? null : 0; const n = Math.round(+v); return isFinite(n) && n >= 0 ? Math.min(n, 99999) : (nulo ? null : 0); };
 function niveles_(o, nulo) { o = o || {}; return { ne: numero_(o.ne, nulo), ed: numero_(o.ed, nulo), ra: numero_(o.ra, nulo) }; }
 function tipos_(o, nulo) { o = o || {}; return { sa: numero_(o.sa, nulo), ca: numero_(o.ca, nulo), inc: numero_(o.inc, nulo) }; }
+// El HTML del informe se guarda comprimido para que quepa en una celda (máx. 50 000 caracteres)
+function comprimir_(html) {
+  const z = 'z:' + Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(html, 'text/html', 'i.html')).getBytes());
+  return z.length < 49000 ? z : '<p>El informe era demasiado grande para guardarse en Tequio; la dirección lo recibió por correo.</p>';
+}
+function descomprimir_(v) {
+  v = String(v || '');
+  if (v.indexOf('z:') !== 0) return v;
+  return Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(v.slice(2)), 'application/x-gzip', 'i.gz')).getDataAsString('UTF-8');
+}
+function sinHtml_(x) { const o = Object.assign({}, x); delete o.html; return o; }
+function avisoAclaracion_(para, asunto, cuerpo) {
+  const l = String(para || '').split(',').map(m => m.trim()).filter(m => /@/.test(m));
+  if (!l.length) return;
+  try { MailApp.sendEmail({ to: l.join(','), subject: 'Tequio · ' + asunto, htmlBody: plantilla_(asunto, cuerpo), name: REMITENTE, replyTo: 'supervision050sep@gmail.com' }); } catch (e) {}
+}
 // Visitas de supervisión: ciclo escolar (agosto a julio) y registro de la visita de una escuela
 function cicloVis_(c) {
   if (/^\d{4}-\d{4}$/.test(String(c || ''))) return String(c);

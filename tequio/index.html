@@ -607,7 +607,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
   } catch (e) {
@@ -716,7 +716,7 @@ function pintar() {
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
   ({ agenda: vAgenda, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, visitas: vVisitasDir })[vista.tab]();
@@ -1010,6 +1010,7 @@ function cambiarEstado(a, estado, avisar) {
 
 /* ---------------- Vista: Seguimiento ---------------- */
 function vSeguimiento() {
+  if (vista.acl && S.acl) return vAclaraciones();
   if (vista.vis) return vEditorVisita();
   if (vista.escuela) return vEscuela(vista.escuela);
   const todos = acuerdosDe();
@@ -1019,7 +1020,7 @@ function vSeguimiento() {
   const dirs = filtroEscuelas();
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Seguimiento por escuela</h1>
-    <div class="acciones"><button class="boton terra" id="b-nseg">${ico('i-mas')}Registrar seguimiento</button></div></div>
+    <div class="acciones">${S.inf ? `<button class="boton sec" id="b-acl">${ico('i-correo')}Aclaraciones${(S.acl || []).filter(a => a.estado !== 'resuelta').length ? ' <span class="chip mal" style="margin-left:4px">' + (S.acl || []).filter(a => a.estado !== 'resuelta').length + '</span>' : ''}</button><button class="boton sec" id="b-inf">${ico('i-correo')}Informe de seguimiento</button>` : ''}<button class="boton terra" id="b-nseg">${ico('i-mas')}Registrar seguimiento</button></div></div>
   <div class="resumen">
     <div class="tarjeta cifra"><b>${S.seg.length}</b><span>visitas registradas</span></div>
     <div class="tarjeta cifra"><b>${pend.length}</b><span>acuerdos pendientes</span></div>
@@ -1051,6 +1052,8 @@ function vSeguimiento() {
   $('#f-mun').onchange = e => { vista.municipio = e.target.value; vSeguimiento(); };
   $('#f-atp').onchange = e => { vista.atp = e.target.value; vSeguimiento(); };
   $('#b-nseg').onclick = () => formSeguimiento(null, {});
+  if ($('#b-inf')) $('#b-inf').onclick = () => formInforme();
+  if ($('#b-acl')) $('#b-acl').onclick = () => { vista.acl = true; vSeguimiento(); window.scrollTo(0, 0); };
 }
 
 function vEscuela(cct) {
@@ -1062,7 +1065,7 @@ function vEscuela(cct) {
   $('#vista').innerHTML = `
   <div class="migas"><button id="b-volver">Seguimiento</button> › <span>${esc(c.escuela)}</span></div>
   <div class="titulo-vista"><h1>${esc(c.escuela)}</h1>
-    <div class="acciones"><button class="boton terra" id="b-nseg">${ico('i-mas')}Registrar seguimiento</button></div></div>
+    <div class="acciones">${S.inf ? `<button class="boton sec" id="b-inf1">${ico('i-correo')}Enviar informe</button>` : ''}<button class="boton terra" id="b-nseg">${ico('i-mas')}Registrar seguimiento</button></div></div>
   <div class="tarjeta pad" style="margin-bottom:14px;display:flex;gap:10px 24px;flex-wrap:wrap;align-items:center">
     <div><div class="ayuda">C.C.T.</div><b>${c.cct}</b></div>
     <div><div class="ayuda">Municipio</div><b>${esc(c.municipio)}</b>${c.multigrado ? ' <span class="chip">multigrado</span>' : ''}</div>
@@ -1077,6 +1080,9 @@ function vEscuela(cct) {
     <div style="flex:1;min-width:200px"><div class="seccion-t" style="padding:0 0 6px">Checklist de acuerdos de reuniones</div>${barraAv(ax, c.escuela)}<div class="peq" style="margin-top:6px"><b>${ax.pct}%</b> · ${ax.hecho} de ${ax.total} cumplidos${ax.vencidos ? ` · <span style="color:var(--alerta)">${ax.vencidos} con fecha vencida</span>` : ''}</div></div>
     <button class="boton sec chico" id="b-chk">${ico('i-chk')}Ver y palomear</button></div>`; })() : ''}
   ${prox.length ? `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t">Próximas actividades en esta escuela</div><div class="lista-act">${prox.map(filaAct).join('')}</div></div>` : ''}
+  ${S.inf ? (() => { const l = S.inf.filter(x => x.cct === cct).sort((a, b) => String(b.creado).localeCompare(String(a.creado))), ac = (S.acl || []).filter(a => a.cct === cct && a.estado !== 'resuelta'); return l.length || ac.length ? `<div class="tarjeta pad" style="margin-bottom:14px"><div class="seccion-t" style="padding:0 0 6px">Informes enviados</div>
+    ${l.slice(0, 5).map(x => `<div style="display:flex;gap:8px;align-items:center;padding:4px 0"><span style="flex:1">${fechaCorta(x.fecha)} · escuela ${(x.cifras || {}).general ?? '—'}% · zona ${(x.cifras || {}).zona ?? '—'}% · ${esc(x.enviadoPor || '')}</span><button class="boton sec chico" data-vinf="${esc(x.id)}">Ver</button></div>`).join('')}
+    ${ac.length ? `<div class="aviso-caja peq" style="margin-top:8px">${ac.length} aclaración(es) sin resolver. <button class="enlace" id="b-acl1">Ver aclaraciones</button></div>` : ''}</div>` : ''; })() : ''}
   ${S.vis ? bloqueVisitas(cct) : ''}
   <h2 style="font-size:20px;margin:6px 0 10px">Visitas y acuerdos</h2>
   ${ss.length ? ss.map(s => tarjetaSeg(s)).join('') : '<div class="tarjeta vacio">Aún no hay seguimiento registrado en esta escuela.</div>'}`;
@@ -1086,6 +1092,9 @@ function vEscuela(cct) {
   $$('[data-act]').forEach(b => b.onclick = () => detalleActividad(b.dataset.act));
   enlazarSeg();
   if (S.vis) enlazarVisitas(cct);
+  if ($('#b-inf1')) $('#b-inf1').onclick = () => formInforme(cct);
+  if ($('#b-acl1')) $('#b-acl1').onclick = () => { vista.acl = true; vista.aclF = { est: 'pend', atp: '' }; vista.escuela = null; vSeguimiento(); };
+  $$('[data-vinf]').forEach(b => b.onclick = async () => { const r = await accion('verInforme', { id: b.dataset.vinf }); if (r) infVer('Informe enviado', r.html); });
 }
 
 function tarjetaSeg(s) {
@@ -1404,6 +1413,246 @@ function vVisitasDir() {
     <div class="aviso-caja peq">Aquí están las guías de las visitas de la Supervisión a su escuela. Ábralas antes de cada visita para preparar los temas y subir sus fotos de evidencia.</div>
     ${bloqueVisitas(cct)}`;
   enlazarVisitas(cct);
+}
+
+/* =========================================================
+   Informe de seguimiento por escuela (acuerdos, evidencias, SisAT y EIA) y aclaraciones.
+   · La Supervisión y la Mesa Técnica lo envían cuando quieran, a una, varias o todas las escuelas.
+   · La dirección lo consulta en Tequio y, si algo no le cuadra, pide una aclaración a su ATP.
+   · La Supervisión ve todas las aclaraciones y cómo las atiende cada ATP.
+   ========================================================= */
+const IMG_INF = 'https://carlosog23.github.io/Carlos-Ortega/tequio/img/';
+const ACL_ESTADOS = { abierta: ['Abierta', 'mal'], revision: ['En revisión', 'aviso'], resuelta: ['Resuelta', 'ok'] };
+const ACL_TEMAS = ['Acuerdos', 'Evidencias', 'SisAT', 'EIA', 'Visitas', 'Otro'];
+const pctDe = (h, t) => t ? Math.round(h * 100 / t) : null;
+const nomGrupo = k => { const [g, gr] = k.split('|'); return g + '.°' + (gr ? ' ' + gr : ''); };
+const diasEntre = (a, b) => Math.max(0, Math.round((new Date(String(b).slice(0, 10) + 'T12:00') - new Date(String(a).slice(0, 10) + 'T12:00')) / 864e5));
+
+// Cifras y pendientes de una escuela con lo que Tequio tiene en este momento
+function infCifras(cct) {
+  const ciclo = cicloActual(), r = { cct };
+  // 1. Acuerdos del checklist de reuniones
+  const acu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: x.titulo }, a))).filter(a => aplicaA(a, cct))
+    .map(a => ({ a, e: estadoDe(a.id, cct) })).filter(o => o.e !== 'no_aplica');
+  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
+  // 2. Evidencias en Drive
+  const ev = S.evi ? columnasEvi().map(c => ({ c, e: eviDe(cct, c.ruta) })).filter(o => o.e) : [];
+  r.evi = { lista: ev, hecho: ev.filter(o => nArch(o.e)).length, total: ev.length,
+    ultimo: ev.map(o => o.e.ultimo || '').sort().pop() || '' };
+  // 3 y 4. SisAT (momento más reciente con datos en la zona) y EIA; los grupos esperados son los que la escuela ha cargado en el ciclo
+  const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm);
+  const m = Math.max(1, ...sisC.map(x => +x.momento));
+  const eig = (S.eig || []).filter(x => x.ciclo === ciclo && x.cct === cct);
+  const k = x => x.grado + '|' + (x.grupo || '');
+  let esperados = [...new Set(sisC.filter(x => x.cct === cct).map(k).concat(eig.map(k)))];
+  if (!esperados.length) esperados = ['1|', '2|', '3|', '4|', '5|', '6|'];
+  esperados.sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  const sisM = {}; sisC.filter(x => x.cct === cct && +x.momento === m).forEach(x => { sisM[k(x)] = x; });
+  const eiaM = {}; eig.forEach(x => { eiaM[k(x)] = x; });
+  r.sis = { m, grupos: esperados.map(g => ({ g, x: sisM[g] || null })), hecho: esperados.filter(g => sisM[g]).length, total: esperados.length };
+  r.eia = { grupos: esperados.map(g => ({ g, x: eiaM[g] || null })), hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length };
+  // nivel general = promedio de los apartados que aplican
+  r.pct = { acu: pctDe(r.acu.hecho, r.acu.total), evi: pctDe(r.evi.hecho, r.evi.total), sis: pctDe(r.sis.hecho, r.sis.total), eia: pctDe(r.eia.hecho, r.eia.total) };
+  const vs = Object.values(r.pct).filter(v => v != null);
+  r.general = vs.length ? Math.round(vs.reduce((s, v) => s + v, 0) / vs.length) : 0;
+  // Lista de pendientes (lo vencido primero)
+  const p = [];
+  acu.filter(o => o.e !== 'hecho').forEach(o => p.push({ est: limiteVencido(o.a) ? 'Vencido' : 'Pendiente', t: o.a.texto, d: (o.a.limite ? (limiteVencido(o.a) ? 'Venció el ' : 'Antes del ') + fechaCorta(o.a.limite) + ' · ' : '') + o.a.reuT, tema: 'Acuerdos', f: o.a.limite || '9999' }));
+  acuerdosDe(cct).filter(x => x.estado === 'pendiente').forEach(x => p.push({ est: vencido(x) ? 'Vencido' : 'Pendiente', t: x.texto, d: (x.revision ? 'Revisión: ' + fechaCorta(x.revision) + ' · ' : '') + 'Acuerdo de visita de la Supervisión', tema: 'Visitas', f: x.revision || '9999' }));
+  ev.filter(o => !nArch(o.e)).forEach(o => p.push({ est: 'Falta', t: 'Subir evidencias a la carpeta «' + (o.c.corto || o.c.ruta) + '»', d: 'Drive de la Supervisión › ' + o.c.ruta, tema: 'Evidencias', f: '9998' }));
+  const sinS = r.sis.grupos.filter(o => !o.x).map(o => nomGrupo(o.g)), sinE = r.eia.grupos.filter(o => !o.x).map(o => nomGrupo(o.g));
+  if (sinS.length) p.push({ est: 'Falta', t: 'Cargar el SisAT del ' + m + '.er momento' + (sinS.length < r.sis.total ? ' de ' + sinS.join(', ') : ' (ningún grupo cargado)'), d: 'Tequio › SisAT (Excel de la herramienta oficial)', tema: 'SisAT', f: '9998' });
+  if (sinE.length) p.push({ est: 'Falta', t: 'Capturar los EIA' + (sinE.length < r.eia.total ? ' de ' + sinE.join(', ') : ' (ningún grupo capturado)'), d: 'Tequio › EIA', tema: 'EIA', f: '9998' });
+  const orden = { Vencido: 0, Pendiente: 1, Falta: 2 };
+  r.pend = p.sort((a, b) => orden[a.est] - orden[b.est] || a.f.localeCompare(b.f));
+  return r;
+}
+function infZona() {
+  const l = directores().map(c => infCifras(c.cct)), prom = k => { const v = l.map(x => k ? x.pct[k] : x.general).filter(x => x != null); return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0; };
+  return { general: prom(), acu: prom('acu'), evi: prom('evi'), sis: prom('sis'), eia: prom('eia'), n: l.length, porCct: Object.fromEntries(l.map(x => [x.cct, x])) };
+}
+
+// HTML del correo (tablas y estilos en línea para que se vea bien en Gmail, Outlook y el teléfono)
+function infHTML(r, z, fecha) {
+  const c = escuelaDe(r.cct) || { escuela: r.cct, municipio: '', nombre: '' }, atp = atpDe(r.cct);
+  const G = '#6B1D3A', A = '#1592D6', INK = '#1F2A44', MU = '#5B6475';
+  const OK = ['#E3F3EA', '#1D7A46'], AV = ['#FFF1D6', '#8A5A0B'], MAL = ['#FBE3E0', '#A33333'];
+  const chip = (t, k) => `<span style="display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:${k[0]};color:${k[1]};white-space:nowrap">${esc(t)}</span>`;
+  const barra = (p, col, h = 10) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr><td style="background:#EEF1F5;border-radius:6px;height:${h}px;padding:0"><div style="width:${p || 0}%;background:${col};height:${h}px;border-radius:6px"></div></td></tr></table>`;
+  const barraP = (p, col) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr><td style="background:#EEF1F5;height:12px;border-radius:6px;padding:0"><div style="width:${p || 0}%;height:12px;background:${col};border-radius:6px"></div></td><td width="44" align="right" style="font-size:13px;font-weight:700;color:${INK};padding-left:6px">${p == null ? '—' : p + '%'}</td></tr></table>`;
+  const colP = p => p == null ? '#C9CDD5' : p >= 80 ? '#2E9E5B' : p >= 50 ? '#E0A030' : '#C0453A';
+  const tarjeta = (t, h, tot, sub, est, k, p) => `<td width="50%" valign="top" style="padding:6px"><div style="border:1px solid #E3E6EC;border-radius:12px;padding:14px;background:#fff">
+    <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${MU};font-weight:700">${t}</div>
+    <div style="font-size:28px;font-weight:800;color:${INK};margin:4px 0 2px">${tot ? h + ' de ' + tot : '—'}</div><div style="font-size:13px;color:${MU};margin-bottom:8px">${sub}</div>${barra(p, colP(p))}
+    <div style="margin-top:8px">${chip(est, k)}</div></div></td>`;
+  const tabla = (cab, filas) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>${cab.map(x => `<th align="left" style="font-size:12px;color:${MU};text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid #E3E6EC">${x}</th>`).join('')}</tr>${filas.map(f => `<tr>${f.map(x => `<td style="font-size:14px;color:${INK};padding:7px 8px;border-bottom:1px solid #F0F2F5;vertical-align:top">${x}</td>`).join('')}</tr>`).join('') || `<tr><td style="font-size:14px;color:${MU};padding:8px">Sin registros.</td></tr>`}</table>`;
+  const sec = (t, b) => `<tr><td style="padding:18px 24px 4px"><div style="font-size:17px;font-weight:800;color:${G};border-bottom:2px solid ${A};padding-bottom:6px;margin-bottom:10px">${t}</div>${b}</td></tr>`;
+  const circ = (p, col, t) => `<td width="50%" align="center" valign="top" style="padding:6px"><div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:14px 8px">
+    <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${MU};font-weight:700">${t}</div><div style="font-size:40px;font-weight:800;color:${col};line-height:1.1;margin:6px 0">${p}%</div>
+    <table role="presentation" width="80%" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#EEF1F5;height:14px;border-radius:7px;padding:0"><div style="width:${p}%;height:14px;background:${col};border-radius:7px"></div></td></tr></table>
+    <div style="font-size:12px;color:${MU};margin-top:6px">nivel general de cumplimiento</div></div></td>`;
+  const dif = r.general - z.general;
+  const msg = dif < 0 ? Math.abs(dif) + ' punto' + (dif === -1 ? '' : 's') + ' por debajo del promedio de la zona' : dif > 0 ? dif + ' punto' + (dif === 1 ? '' : 's') + ' por arriba del promedio de la zona' : 'Igual al promedio de la zona';
+  const areas = [['Acuerdos', r.pct.acu, z.acu], ['Evidencias', r.pct.evi, z.evi], ['SisAT', r.pct.sis, z.sis], ['EIA', r.pct.eia, z.eia]];
+  const lp = r.pend.map((x, i) => `<tr><td valign="top" style="padding:8px 10px 8px 0;font-size:15px;font-weight:800;color:${G};width:22px">${i + 1}.</td><td style="padding:8px 0;border-bottom:1px solid #F0F2F5"><div style="font-size:15px;color:${INK};font-weight:600">${esc(x.t)}</div><div style="font-size:13px;color:${MU};margin-top:2px">${chip(x.est, x.est === 'Vencido' ? MAL : AV)} &nbsp;${esc(x.d)}</div></td></tr>`).join('');
+  const riesgo = x => x ? `L ${x.lec.ra} · E ${x.tex.ra} · C ${x.cal.ra}` : '—';
+  const saludo = c.nombre ? esc(c.nombre) + ':' : 'Dirección de la escuela:';
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe de seguimiento</title></head>
+<body style="margin:0;background:#EEF0F3;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto 24px;background:#FBF8F3;border-radius:14px;overflow:hidden;border:1px solid #E6DCCF">
+<tr><td style="padding:16px 24px 10px;background:#fff"><table role="presentation" width="100%"><tr>
+<td width="80"><img src="${IMG_INF}isep.png" alt="ISEP" height="55"></td>
+<td align="center" style="font-size:13px;color:${INK};line-height:1.4"><b style="color:${G};letter-spacing:.04em">SUPERVISIÓN ESCOLAR ZONA 050</b><br>Primaria Federalizada · ISEP<br><span style="color:${MU}">Camalú, San Quintín, B.C. · C.C.T. 02FIZ0094X</span></td>
+<td width="80" align="right"><img src="${IMG_INF}zona050.png" alt="Zona 050" height="55"></td></tr></table>
+<div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
+<tr><td style="padding:18px 24px 4px;color:${INK};font-size:15px;line-height:1.55">
+<div style="font-size:21px;font-weight:800;color:${G}">Informe de seguimiento</div>
+<div style="font-size:15px;color:${MU};margin-bottom:12px">Esc. Prim. «${esc(c.escuela)}» · C.C.T. ${esc(r.cct)}${c.municipio ? ' · ' + esc(c.municipio) : ''}<br>Corte al ${fechaOficio(fecha)}</div>
+${saludo}<br>Le comparto el estado en que se encuentra su escuela en el cumplimiento de los acuerdos de las reuniones, las evidencias en el Drive y la carga del SisAT y los EIA. Al final encontrará la <b>lista de pendientes</b> para atenderlos.</td></tr>
+<tr><td style="padding:14px 18px 0"><div style="font-size:17px;font-weight:800;color:${G};padding:0 6px 4px">Nivel general de cumplimiento</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${circ(r.general, G, 'Su escuela')}${circ(z.general, A, 'Promedio de la zona')}</tr></table>
+<div style="text-align:center;margin:4px 0 8px">${chip(msg, dif < 0 ? AV : OK)}</div>
+<div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
+<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · El nivel general es el promedio de los apartados.</div></div></td></tr>
+<tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
+${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'carpetas con archivos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' carpeta' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') + ' vacía' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
+${tarjeta('SisAT · ' + r.sis.m + '.er momento', r.sis.hecho, r.sis.total, 'grupos cargados', r.sis.hecho === r.sis.total ? 'Completo' : 'Faltan ' + (r.sis.total - r.sis.hecho), r.sis.hecho === r.sis.total ? OK : AV, r.pct.sis)}
+${tarjeta('EIA', r.eia.hecho, r.eia.total, 'grupos capturados', r.eia.hecho === r.eia.total ? 'Completo' : 'Faltan ' + (r.eia.total - r.eia.hecho), r.eia.hecho === r.eia.total ? OK : AV, r.pct.eia)}</tr></table></td></tr>
+<tr><td style="padding:16px 24px 0"><div style="background:#fff;border-left:5px solid ${G};border-radius:10px;padding:14px 16px"><div style="font-size:17px;font-weight:800;color:${G};margin-bottom:6px">Lista de pendientes</div>
+${lp ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${lp}</table>` : `<div style="font-size:15px;color:#1D7A46;font-weight:700">Sin pendientes. ¡Felicidades a todo el colectivo!</div>`}</div></td></tr>
+${sec('1. Acuerdos de reuniones y CTZ', tabla(['Acuerdo', 'Fecha límite', 'Estado'], r.acu.lista.map(o => [esc(o.a.texto), o.a.limite ? fechaCorta(o.a.limite) : esc(o.a.plazo || '—'), o.e === 'hecho' ? chip('Cumplido', OK) : limiteVencido(o.a) ? chip('Vencido', MAL) : chip('Pendiente', AV)])))}
+${sec('2. Evidencias en el Drive de la Supervisión', tabla(['Carpeta', 'Archivos', 'Último'], r.evi.lista.map(o => [esc(o.c.ruta), nArch(o.e) ? String(nArch(o.e)) : chip('Vacía', MAL), o.e.ultimo ? fechaCorta(o.e.ultimo.slice(0, 10)) : '—'])) + (r.evi.ultimo ? `<div style="font-size:13px;color:${MU};margin-top:6px">Último archivo subido: ${fechaCorta(r.evi.ultimo.slice(0, 10))}.</div>` : ''))}
+${sec('3. SisAT · ' + r.sis.m + '.er momento', tabla(['Grupo', 'Estado', 'Requieren apoyo*'], r.sis.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL), riesgo(o.x)])) + `<div style="font-size:13px;color:${MU};margin-top:6px">* Alumnos en «requiere apoyo» en lectura (L), producción de textos (E) y cálculo mental (C). El detalle por alumno está en Tequio › SisAT (solo lo ve la dirección).</div>`)}
+${sec('4. Ejercicios Integradores del Aprendizaje (EIA)', tabla(['Grupo', 'Captura de resultados'], r.eia.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL)])))}
+<tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, por favor comuníquese con su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} para su aclaración y/o revisión. También puede solicitarla en Tequio › Mi escuela › «Solicitar aclaración». Gracias por su compromiso.<br><br>
+Atentamente<br><i style="color:${MU}">«Responsabilidad y superación»</i><br><br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</td></tr>
+<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe generado por Tequio · <i>${esc(LEMA)}</i> · Supervisión Escolar Zona 050 · Tel. 616 165 5622 · supervision050sep@gmail.com</td></tr>
+</table></body></html>`;
+}
+const infVer = (titulo, html, pie) => { modal(esc(titulo), `<iframe title="Informe" srcdoc="${esc(html)}" style="width:100%;height:68vh;border:1px solid var(--borde);border-radius:10px;background:#fff"></iframe>`, pie || '<button class="boton" id="iv-ok">Cerrar</button>'); if ($('#iv-ok')) $('#iv-ok').onclick = cerrarModal; };
+
+// Ventana para enviar el informe (Supervisión y Mesa Técnica)
+function formInforme(preCct) {
+  const z = infZona(), dirs = directores();
+  const yo = S.yo, mias = yo.rol === 'atp' ? escuelasDeAtp(usuario(yo.id) || yo) : [];
+  const sel = new Set(preCct ? [preCct] : []);
+  modal('Enviar informe de seguimiento', `
+    <p class="peq" style="margin-top:0">Se envía a la dirección de cada escuela con el estado de sus acuerdos, evidencias, SisAT y EIA, comparado con el promedio de la zona (<b>${z.general}%</b>), y su lista de pendientes. La dirección puede pedir aclaraciones a su ATP desde Tequio.</p>
+    <div class="filtros" id="fi-r"><button type="button" class="chip" data-r="todas" style="cursor:pointer;border:0">Todas</button><button type="button" class="chip" data-r="San Quintín" style="cursor:pointer;border:0">San Quintín</button><button type="button" class="chip" data-r="Ensenada" style="cursor:pointer;border:0">Ensenada</button>${mias.length ? '<button type="button" class="chip" data-r="mias" style="cursor:pointer;border:0">Mis escuelas</button>' : ''}<button type="button" class="chip" data-r="bajo" style="cursor:pointer;border:0">Abajo del promedio</button><button type="button" class="chip" data-r="ninguna" style="cursor:pointer;border:0">Ninguna</button></div>
+    <div id="fi-l" style="max-height:44vh;overflow:auto;border:1px solid var(--borde);border-radius:10px">${dirs.map(c => { const r = z.porCct[c.cct], a = atpDe(c.cct), sinCorreo = !correos(c).length; return `<label class="casilla" style="padding:8px 10px;border-bottom:1px solid var(--borde);margin:0;align-items:center">
+      <input type="checkbox" data-cct="${c.cct}"><span style="flex:1"><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : ''} · ${r.pend.length} pendiente${r.pend.length === 1 ? '' : 's'}${sinCorreo ? ' · <b style="color:var(--alerta)">sin correo de la dirección</b>' : ''}</span></span>
+      <span class="chip ${r.general >= z.general ? 'ok' : 'aviso'}">${r.general}%</span></label>`; }).join('')}</div>
+    <label class="casilla" style="margin-top:10px"><input type="checkbox" id="fi-cc" checked> Enviar copia al ATP de cada escuela</label>`,
+    '<button class="boton sec" id="fi-no">Cancelar</button><button class="boton sec" id="fi-ver">Vista previa</button><button class="boton terra" id="fi-si">Enviar</button>');
+  const marcar = () => { $$('#fi-l [data-cct]').forEach(ch => { ch.checked = sel.has(ch.dataset.cct); }); $('#fi-si').textContent = sel.size ? 'Enviar a ' + sel.size + ' escuela' + (sel.size === 1 ? '' : 's') : 'Enviar'; };
+  $$('#fi-l [data-cct]').forEach(ch => ch.onchange = () => { ch.checked ? sel.add(ch.dataset.cct) : sel.delete(ch.dataset.cct); marcar(); });
+  $$('#fi-r [data-r]').forEach(b => b.onclick = () => { const r = b.dataset.r; sel.clear();
+    dirs.filter(c => r === 'todas' || c.municipio === r || (r === 'mias' && mias.includes(c.cct)) || (r === 'bajo' && z.porCct[c.cct].general < z.general)).forEach(c => { if (r !== 'ninguna') sel.add(c.cct); }); marcar(); });
+  marcar();
+  $('#fi-no').onclick = cerrarModal;
+  $('#fi-ver').onclick = () => {
+    const cct = [...sel][0] || (dirs[0] || {}).cct; if (!cct) return;
+    infVer('Vista previa · ' + (escuelaDe(cct) || {}).escuela, infHTML(z.porCct[cct], z, hoy()), '<button class="boton sec" id="iv-v">Volver</button>');
+    $('#iv-v').onclick = () => formInforme(preCct && sel.size === 1 && sel.has(preCct) ? preCct : null);
+  };
+  $('#fi-si').onclick = async () => {
+    if (!sel.size) return aviso('Elija al menos una escuela.', 'mal');
+    if (sel.size > 1 && !confirm('¿Enviar el informe a ' + sel.size + ' escuelas?')) return;
+    const informes = [...sel].map(cct => { const r = z.porCct[cct], c = escuelaDe(cct), a = atpDe(cct);
+      return { cct, atpId: a ? a.id : '', asunto: 'Informe de seguimiento · Esc. Prim. «' + c.escuela + '» · corte al ' + fechaOficio(hoy()), html: infHTML(r, z, hoy()),
+        cifras: { general: r.general, zona: z.general, acu: r.pct.acu, evi: r.pct.evi, sis: r.pct.sis, eia: r.pct.eia }, pendientes: r.pend.map(x => ({ est: x.est, t: x.t, tema: x.tema })) }; });
+    const r = await accion('enviarInforme', { informes, copiaAtp: $('#fi-cc').checked });
+    if (!r) return;
+    S.inf = r.inf;
+    const ok = r.resultados.filter(x => x.ok).length;
+    modal('Informes enviados', `<p style="margin-top:0">${ok} de ${r.resultados.length} se enviaron por correo. Todos quedaron guardados en Tequio y la dirección los ve en «Mi escuela».</p>
+      <div class="lista-act">${r.resultados.map(x => `<div class="act" style="cursor:default"><div class="cuerpo"><div class="t">${esc((escuelaDe(x.cct) || {}).escuela || x.cct)}</div><div class="m">${esc(x.mensaje)}</div></div><span class="chip ${x.ok ? 'ok' : 'aviso'}">${x.ok ? 'Enviado' : 'Revisar'}</span></div>`).join('')}</div>`, '<button class="boton" id="ie-ok">Listo</button>');
+    $('#ie-ok').onclick = () => { cerrarModal(); pintar(); };
+  };
+}
+
+// Hilo de una aclaración (lo usan la Mesa Técnica y la dirección)
+function hiloAcl(a) {
+  const e = ACL_ESTADOS[a.estado] || ACL_ESTADOS.abierta, atp = usuario(a.atpId), c = escuelaDe(a.cct);
+  const msgs = [{ por: a.creadoNombre || 'Dirección', rol: 'director', texto: a.mensaje, f: a.creado }].concat(a.respuestas || []);
+  return `<div class="tarjeta pad" style="margin-bottom:12px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:200px"><b>${esDirector() ? esc(a.tema) : esc(c ? c.escuela : a.cct) + ' · ' + esc(a.tema)}</b>
+      <div class="ayuda">${fechaHora(a.creado)}${atp ? ' · ATP: ' + esc(nombreCorto(atp.nombre)) : ''}${a.estado !== 'resuelta' ? ' · ' + diasEntre(a.creado, hoy()) + ' día(s) abierta' : a.resuelto ? ' · resuelta en ' + diasEntre(a.creado, a.resuelto) + ' día(s)' : ''}</div></div>
+      <span class="chip ${e[1]}">${e[0]}</span></div>
+    ${a.ref ? `<div class="peq" style="margin-top:6px"><b>Sobre:</b> ${esc(a.ref)}</div>` : ''}
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${msgs.map(m => `<div style="background:${m.rol === 'director' ? 'var(--arena-2)' : '#E3E9F4'};border-radius:10px;padding:8px 10px;${m.rol === 'director' ? 'margin-right:24px' : 'margin-left:24px'}">
+      <div class="ayuda"><b>${esc(m.rol === 'director' ? m.por : nombreCorto(m.por))}</b> · ${fechaHora(m.f)}</div><div style="white-space:pre-line">${esc(m.texto)}</div></div>`).join('')}</div>
+    <textarea data-resp="${esc(a.id)}" placeholder="${esDirector() ? 'Agregar un comentario' : 'Respuesta para la dirección'}" style="width:100%;min-height:56px;margin-top:8px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px"></textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px">
+      ${esDirector() ? `<button class="boton sec chico" data-env="${esc(a.id)}">Enviar comentario</button>` : `${a.estado === 'abierta' ? `<button class="boton sec chico" data-est="${esc(a.id)}|revision">En revisión</button>` : ''}<button class="boton sec chico" data-env="${esc(a.id)}">Responder</button>${a.estado !== 'resuelta' ? `<button class="boton terra chico" data-env="${esc(a.id)}" data-res="1">Responder y marcar resuelta</button>` : `<button class="boton sec chico" data-est="${esc(a.id)}|abierta">Reabrir</button>`}`}</div></div>`;
+}
+function enlazarAcl(despues) {
+  const mandar = async (id, texto, estado) => { const r = await accion('responderAclaracion', { id, texto, estado }); if (r) { poner(S.acl, r.acl); despues(); aviso('Listo.', 'ok', 2000); } };
+  $$('[data-env]').forEach(b => b.onclick = () => { const t = $(`[data-resp="${b.dataset.env}"]`).value.trim(); if (!t && !b.dataset.res) return aviso('Escriba la respuesta.', 'mal'); mandar(b.dataset.env, t, b.dataset.res ? 'resuelta' : undefined); });
+  $$('[data-est]').forEach(b => b.onclick = () => { const [id, e] = b.dataset.est.split('|'); mandar(id, '', e); });
+}
+// Vista de aclaraciones para la Supervisión y la Mesa Técnica, con el seguimiento por ATP
+function vAclaraciones() {
+  const f = vista.aclF || (vista.aclF = { est: 'pend', atp: S.yo.rol === 'atp' ? S.yo.id : '' });
+  const todas = (S.acl || []).slice().sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  const porAtp = atps().map(u => { const l = todas.filter(a => a.atpId === u.id), res = l.filter(a => a.estado === 'resuelta');
+    const resp = l.filter(a => (a.respuestas || []).some(x => x.rol !== 'director')).map(a => diasEntre(a.creado, a.respuestas.find(x => x.rol !== 'director').f));
+    return { u, ab: l.filter(a => a.estado === 'abierta').length, rev: l.filter(a => a.estado === 'revision').length, res: res.length,
+      prom: resp.length ? Math.round(resp.reduce((s, x) => s + x, 0) * 10 / resp.length) / 10 : null, vieja: l.filter(a => a.estado !== 'resuelta').map(a => diasEntre(a.creado, hoy())).reduce((m, x) => Math.max(m, x), 0) }; });
+  const v = todas.filter(a => (f.est === 'todas' || (f.est === 'pend' ? a.estado !== 'resuelta' : a.estado === f.est)) && (!f.atp || a.atpId === f.atp));
+  $('#vista').innerHTML = `
+  <div class="migas"><button id="ac-v">Seguimiento</button> › <span>Aclaraciones</span></div>
+  <div class="titulo-vista"><h1>Aclaraciones de los informes</h1><div class="acciones"><button class="boton terra" id="ac-inf">${ico('i-correo')}Enviar informe</button></div></div>
+  <div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t">Atención por ATP</div>
+    <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:15px"><tr>${['ATP', 'Abiertas', 'En revisión', 'Resueltas', 'Primera respuesta (prom.)', 'Más antigua sin resolver'].map(h => `<th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--borde);color:var(--gris);font-size:13px">${h}</th>`).join('')}</tr>
+    ${porAtp.map(x => `<tr><td style="padding:8px 12px;border-bottom:1px solid var(--borde)"><b>${esc(nombreCorto(x.u.nombre))}</b></td><td style="padding:8px 12px;border-bottom:1px solid var(--borde)">${x.ab ? `<span class="chip mal">${x.ab}</span>` : '0'}</td><td style="padding:8px 12px;border-bottom:1px solid var(--borde)">${x.rev}</td><td style="padding:8px 12px;border-bottom:1px solid var(--borde)">${x.res}</td><td style="padding:8px 12px;border-bottom:1px solid var(--borde)">${x.prom == null ? '—' : x.prom + ' día(s)'}</td><td style="padding:8px 12px;border-bottom:1px solid var(--borde)">${x.ab + x.rev ? x.vieja + ' día(s)' : '—'}</td></tr>`).join('')}</table></div></div>
+  <div class="filtros"><select id="ac-e"><option value="pend" ${f.est === 'pend' ? 'selected' : ''}>Sin resolver</option><option value="abierta" ${f.est === 'abierta' ? 'selected' : ''}>Abiertas</option><option value="revision" ${f.est === 'revision' ? 'selected' : ''}>En revisión</option><option value="resuelta" ${f.est === 'resuelta' ? 'selected' : ''}>Resueltas</option><option value="todas" ${f.est === 'todas' ? 'selected' : ''}>Todas</option></select>
+    <select id="ac-a"><option value="">Toda la Mesa Técnica</option>${atps().map(u => `<option value="${u.id}" ${f.atp === u.id ? 'selected' : ''}>ATP: ${esc(nombreCorto(u.nombre))}</option>`).join('')}</select></div>
+  ${v.length ? v.map(hiloAcl).join('') : '<div class="tarjeta vacio">No hay aclaraciones con este filtro.</div>'}`;
+  $('#ac-v').onclick = () => { vista.acl = false; vSeguimiento(); };
+  $('#ac-inf').onclick = () => formInforme();
+  $('#ac-e').onchange = e => { f.est = e.target.value; vAclaraciones(); };
+  $('#ac-a').onchange = e => { f.atp = e.target.value; vAclaraciones(); };
+  enlazarAcl(vAclaraciones);
+}
+// Lo que ve la dirección en «Mi escuela»: su último informe y sus aclaraciones
+function bloqueInformeDir(cct) {
+  if (!S.inf) return '';
+  const l = S.inf.filter(x => x.cct === cct).sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+  const acl = (S.acl || []).filter(a => a.cct === cct).sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  const u = l[0], atp = atpDe(cct);
+  return `<div class="tarjeta pad" style="margin-bottom:16px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><div class="seccion-t" style="padding:0 0 4px">Informe de seguimiento de la Supervisión</div>
+        ${u ? `<div>Último informe: <b>${fechaCorta(u.fecha)}</b> · su escuela <b>${(u.cifras || {}).general ?? '—'}%</b> · zona <b>${(u.cifras || {}).zona ?? '—'}%</b></div>` : '<div class="peq mudo">Aún no ha recibido informes.</div>'}
+        <div class="ayuda">Si algún dato no coincide, solicite una aclaración: le llega a su ATP${atp ? ', ' + esc(nombreCorto(atp.nombre)) : ''}.</div></div>
+      ${u ? `<button class="boton sec" id="mi-inf">Ver informe</button>` : ''}<button class="boton terra" id="mi-acl">Solicitar aclaración</button></div>
+    ${acl.length ? `<div style="margin-top:12px">${acl.map(hiloAcl).join('')}</div>` : ''}</div>`;
+}
+function enlazarInformeDir(cct, despues) {
+  if ($('#mi-inf')) $('#mi-inf').onclick = async () => { const u = S.inf.filter(x => x.cct === cct).sort((a, b) => String(b.creado).localeCompare(String(a.creado)))[0]; const r = await accion('verInforme', { id: u.id }); if (r) infVer('Informe de seguimiento · ' + fechaCorta(u.fecha), r.html); };
+  if ($('#mi-acl')) $('#mi-acl').onclick = () => formAclaracion(cct, despues);
+  enlazarAcl(despues);
+}
+function formAclaracion(cct, despues) {
+  const u = (S.inf || []).filter(x => x.cct === cct).sort((a, b) => String(b.creado).localeCompare(String(a.creado)))[0], atp = atpDe(cct);
+  const pend = u ? (u.pendientes || []) : [];
+  modal('Solicitar aclaración o revisión', `
+    <p class="peq" style="margin-top:0">Se envía a su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} para que lo revise o lo corrija. La Supervisión también la ve.</p>
+    <div class="campo"><label for="ac-t">Tema</label><select id="ac-t">${ACL_TEMAS.map(t => `<option>${t}</option>`).join('')}</select></div>
+    ${pend.length ? `<div class="campo"><label for="ac-r">¿Sobre qué pendiente del informe? (opcional)</label><select id="ac-r"><option value="">— Ninguno en particular —</option>${pend.map(p => `<option data-tema="${esc(p.tema)}">${esc(p.t)}</option>`).join('')}</select></div>` : ''}
+    <div class="campo"><label for="ac-m">¿Qué no coincide o qué necesita que se revise?</label><textarea id="ac-m" style="min-height:110px" placeholder="Ej. El acuerdo del simulacro ya se cumplió; la evidencia está en la carpeta 10-Seguridad escolar desde el 20 de octubre."></textarea></div>`,
+    '<button class="boton sec" id="ac-no">Cancelar</button><button class="boton terra" id="ac-si">Enviar a mi ATP</button>');
+  if ($('#ac-r')) $('#ac-r').onchange = e => { const o = e.target.selectedOptions[0]; if (o && o.dataset.tema) $('#ac-t').value = ACL_TEMAS.includes(o.dataset.tema) ? o.dataset.tema : 'Otro'; };
+  $('#ac-no').onclick = cerrarModal;
+  $('#ac-si').onclick = async () => {
+    const mensaje = $('#ac-m').value.trim(); if (!mensaje) return aviso('Escriba qué no coincide o qué necesita que se revise.', 'mal');
+    const r = await accion('crearAclaracion', { informeId: u ? u.id : '', tema: $('#ac-t').value, ref: $('#ac-r') ? $('#ac-r').value : '', mensaje, atpId: atp ? atp.id : '' });
+    if (!r) return;
+    S.acl = (S.acl || []).concat([r.acl]); cerrarModal(); despues();
+    aviso('Su solicitud se envió a su ATP.', 'ok', 3500);
+  };
 }
 
 /* ---------------- Seguimiento: formulario ---------------- */
@@ -1811,6 +2060,7 @@ function vMiEscuela() {
   <div class="titulo-vista"><h1>${esc(c.escuela)}</h1>
     <div class="acciones"><button class="boton sec" id="b-recargar">${ico('i-act')}Actualizar</button></div></div>
   <div class="peq mudo" style="margin:-6px 0 14px">${c.cct} · ${esc(c.municipio)}${atp ? ' · ATP: ' + esc(nombreCorto(atp.nombre)) : ''}</div>
+  ${bloqueInformeDir(cct)}
   <div class="tablero">
     <div class="tarjeta pad general">${anillo(mia.pct)}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Avance de su escuela</div>
@@ -1834,6 +2084,7 @@ function vMiEscuela() {
       <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'hecho' && m.fecha ? ' · cumplido el ' + fechaCorta(m.fecha) : ''}${m && m.nota ? ' · ' + esc(m.nota) : ''}</span></span>${chipEstado(x, e)}</div>`; }).join('')}</div></details>`; }).join('')}
   <p class="peq mudo">La Supervisión y su ATP palomean los compromisos al revisar sus evidencias. Si ya cumplió alguno, suba la evidencia en la pestaña <b>Evidencias</b>.</p>`;
   $('#b-recargar').onclick = cargar;
+  enlazarInformeDir(cct, vMiEscuela);
 }
 
 /* Asignar escuelas a cada ATP (solo Supervisión) */
@@ -5591,7 +5842,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 12, iaDirectorio: true, dep: [], vis: [],
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 13, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {},
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -5611,7 +5862,7 @@ const Demo = (() => {
         usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
         sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
-        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct) }));
+        eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct), inf: D.inf.filter(x => x.cct === cct), acl: D.acl.filter(x => x.cct === cct), infHtml: undefined }));
     },
     subirArchivo: d => {
       const e = D.evi.find(x => x.carpetaId === d.carpetaId), f = ahora().slice(0, 16);
@@ -5677,6 +5928,17 @@ const Demo = (() => {
       return { dep: copia(D.dep.filter(p => p.activo)), guardados: d.registros.length };
     },
     cargarDepBase: d => { const ids = new Set(D.dep.map(p => p.id)), n = d.registros.filter(x => !ids.has(x.id)); D.dep = D.dep.concat(copia(n)); return { dep: copia(D.dep.filter(p => p.activo)), agregados: n.length }; },
+    enviarInforme: d => {
+      const res = d.informes.map(x => { const id = uid('inf'); D.infHtml[id] = x.html;
+        D.inf.push({ id, cct: x.cct, fecha: hoy(), asunto: x.asunto, cifras: x.cifras, pendientes: x.pendientes, atpId: x.atpId, enviadoPor: D.yo.nombre, creado: ahora(), resultado: 'Enviado' });
+        return { cct: x.cct, ok: true, mensaje: 'Demostración: aquí se enviaría el correo a la dirección' + (d.copiaAtp ? ' con copia a su ATP.' : '.') }; });
+      return { resultados: res, inf: copia(D.inf) };
+    },
+    verInforme: d => ({ html: D.infHtml[d.id] || '<p>Informe de ejemplo.</p>' }),
+    crearAclaracion: d => { const a = { id: uid('acl'), cct: '02DPR0684N', informeId: d.informeId, tema: d.tema, ref: d.ref, mensaje: d.mensaje, atpId: d.atpId, estado: 'abierta', respuestas: [], creadoPor: 'u-d-02DPR0684N', creadoNombre: 'Dirección de ejemplo', creado: ahora(), actualizado: ahora(), resuelto: '' }; D.acl.push(a); return { acl: copia(a) }; },
+    responderAclaracion: d => { const a = D.acl.find(x => x.id === d.id); if (d.texto) a.respuestas.push({ por: cfg.dir ? 'Dirección de ejemplo' : D.yo.nombre, rol: cfg.dir ? 'director' : D.yo.rol, texto: d.texto, f: ahora() });
+      if (cfg.dir) { if (a.estado === 'resuelta') a.estado = 'abierta'; } else if (d.estado) a.estado = d.estado; else if (d.texto && a.estado === 'abierta') a.estado = 'revision';
+      a.resuelto = a.estado === 'resuelta' ? ahora() : ''; a.actualizado = ahora(); return { acl: copia(a) }; },
     guardarVisita: d => {
       const ciclo = d.ciclo; let n = d.numero === 'nueva' ? D.vis.filter(v => v.cct === d.cct && v.ciclo === ciclo).reduce((m, v) => Math.max(m, +v.numero), 3) + 1 : +d.numero;
       const id = 'vis-' + ciclo + '-' + d.cct + '-' + n;
