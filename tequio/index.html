@@ -1171,10 +1171,14 @@ const VIS_GUIAS = {
     { k: 'seg3', t: 'PPIE y seguridad para el receso', r: ['Simulacros del ciclo realizados', 'Condiciones del inmueble para el periodo vacacional'], f: 'Registro de simulacros y estado del inmueble' },
     { k: 'log', t: 'Logros y prácticas exitosas', r: ['Logros del colectivo y de los alumnos', 'Prácticas que conviene compartir en la zona'], f: 'Evidencia de los logros' }] }
 };
+// Temas que van en TODAS las visitas (las tres del ciclo y las extraordinarias)
+const VIS_COMUNES = [
+  { k: 'lf', t: 'Libro de firmas', r: ['Al día, con la entrada y salida de todo el personal', 'Firmas completas, sin espacios en blanco ni enmendaduras', 'Incidencias anotadas (licencias, comisiones, retardos e inasistencias) con su respaldo', 'Revisado y firmado por la dirección'], f: 'Las hojas de la semana o quincena más reciente' }];
 const VIS_ESTADOS = { cumple: ['Cumple', 'ok'], proceso: ['En proceso', 'aviso'], acomp: ['Requiere acompañamiento', 'terra'], na: ['No aplica', ''] };
 const cicloVis = () => { const h = new Date(), y = h.getFullYear(); return h.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y; };
 const visDe = (cct, n) => (S.vis || []).find(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero === +n) || null;
-const visTemas = (v, n) => (+n <= 3 ? VIS_GUIAS[+n].temas : []).concat((v && v.temas) || []);
+const visGuia = n => (+n <= 3 ? VIS_GUIAS[+n].temas : []).concat(VIS_COMUNES);
+const visTemas = (v, n) => visGuia(n).concat((v && v.temas) || []);
 const visItem = (v, k) => ((v && v.items) || []).find(x => x.k === k) || { k, estado: '', obs: '', fotos: [] };
 const visNombre = (n, v) => +n <= 3 ? 'Visita ' + n + ' · ' + VIS_GUIAS[+n].titulo : 'Visita extraordinaria ' + (+n - 3) + (v && v.titulo ? ' · ' + v.titulo : '');
 function visAvance(v, n) {
@@ -1251,7 +1255,7 @@ function visBorrador(cct, n) {
 
 function vEditorVisita() {
   const { cct, n } = vista.vis, c = escuelaDe(cct), v = visDe(cct, n), mesa = esMesa(), D = mesa ? visBorrador(cct, n) : null;
-  const temas = mesa ? (n <= 3 ? VIS_GUIAS[n].temas : []).concat(D.temas) : visTemas(v, n);
+  const temas = mesa ? visGuia(n).concat(D.temas) : visTemas(v, n);
   const cerrada = v && v.estado === 'cerrada';
   const volver = () => { vista.vis = null; vista.visD = null; esDirector() ? vVisitasDir() : vSeguimiento(); window.scrollTo(0, 0); };
   const fotoHtml = (x, f) => `<div style="position:relative;width:104px">
@@ -1260,10 +1264,10 @@ function vEditorVisita() {
       <div class="ayuda" style="font-size:11.5px;line-height:1.2;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nombreCorto(f.por || ''))}</div>
       ${(mesa || (!cerrada && f.por === S.yo.nombre)) ? `<button type="button" class="icono-btn" data-qf="${esc(x.k)}|${esc(f.id)}" aria-label="Quitar foto" style="position:absolute;top:2px;right:2px;background:#fff;border-radius:50%;width:26px;height:26px">${ico('i-x')}</button>` : ''}</div>`;
   const tarjeta = (t, i) => {
-    const it = visItem(v, t.k), d = mesa ? (D.items[t.k] || { estado: '', obs: '' }) : it, propio = n > 3 || !(VIS_GUIAS[n].temas.find(g => g.k === t.k));
+    const it = visItem(v, t.k), d = mesa ? (D.items[t.k] || { estado: '', obs: '' }) : it, propio = !visGuia(n).find(g => g.k === t.k);
     const est = VIS_ESTADOS[d.estado];
     return `<div class="tarjeta pad" style="margin-bottom:12px" id="tema-${esc(t.k)}">
-      <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><h3 style="font-size:18px;margin:0;flex:1;min-width:200px">${i + 1}. ${esc(t.t)}${propio && n <= 3 ? ' <span class="chip">tema agregado</span>' : ''}</h3>
+      <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><h3 style="font-size:18px;margin:0;flex:1;min-width:200px">${i + 1}. ${esc(t.t)}${propio ? ' <span class="chip">tema agregado</span>' : ''}</h3>
         ${est ? `<span class="chip ${est[1]}">${est[0]}</span>` : ''}${it.listo ? '<span class="chip ok">Listo por la escuela</span>' : ''}
         ${mesa && propio && !cerrada ? `<button type="button" class="boton sec chico" data-et="${esc(t.k)}">${ico('i-lapiz')}</button>` : ''}</div>
       ${(t.r || []).length ? `<div class="ayuda" style="margin:8px 0 2px">Qué se revisa</div><ul style="margin:0 0 6px;padding-left:20px">${t.r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
