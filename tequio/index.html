@@ -470,6 +470,8 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 @media (max-width:760px){.nav-movil{overflow-x:auto;scrollbar-width:none}.nav-movil::-webkit-scrollbar{display:none}.nav-movil button{flex:1 0 58px}}
 .nav-movil button{position:relative}.nav-movil .pest-n{position:absolute;top:3px;left:calc(50% + 4px)}
 
+/* EIA: nivel de la plataforma */
+.eia-niv{display:inline-block;color:#fff;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 6px;margin:1px 0;white-space:nowrap}
 /* CTE */
 .campo[hidden]{display:none}
 .cte-intro{margin:0 0 16px;color:var(--gris);max-width:760px}
@@ -686,7 +688,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-24-1900';
+const PUBLICACION = '2026-10-24-2100';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -4958,7 +4960,9 @@ function eiaV() {
 function eiaNorm(r) {
   const cr = (Array.isArray(r.cr) ? r.cr : []).map(c => [0, 1, 2, 3].map(i => +((c || [])[i]) || 0));
   const rz = r.rz && typeof r.rz === 'object' ? r.rz : {};
-  return Object.assign({}, r, { grado: String(r.grado), grupo: String(r.grupo || ''), n: +r.n || 0, cr, rz: { r: +rz.r || 0, a: +rz.a || 0, g: +rz.g || 0 } });
+  const nv0 = r.nv && typeof r.nv === 'object' ? r.nv : null, nv = {};
+  if (nv0) EIA_CAMPOS.forEach(([k]) => { nv[k] = [0, 1, 2, 3].map(i => +((nv0[k] || [])[i]) || 0); });
+  return Object.assign({}, r, { grado: String(r.grado), grupo: String(r.grupo || ''), n: +r.n || 0, cr, rz: { r: +rz.r || 0, a: +rz.a || 0, g: +rz.g || 0 }, nv: nv0 ? nv : null, nvN: nv0 ? +nv0.n || 0 : 0 });
 }
 function eiaFilas() { const v = eiaV(); return (S.eig || []).filter(r => r.ciclo === v.ciclo).map(eiaNorm); }
 function eiaCiclos() { const s = new Set((S.eig || []).map(r => r.ciclo)); s.add(cicloActual()); return Array.from(s).sort().reverse(); }
@@ -4986,9 +4990,10 @@ function eiaDeAlumnos(grado, als) {
   return { n: als.length, cr, rz };
 }
 function eiaSuma(filas) {
-  const a = { grupos: filas.length, n: 0, rz: 0, rza: 0, rzg: 0, F: {}, campo: {}, dist: [0, 0, 0, 0] };
-  EIA_CAMPOS.forEach(([k]) => { a.campo[k] = [0, 0, 0, 0]; });
+  const a = { grupos: filas.length, n: 0, rz: 0, rza: 0, rzg: 0, F: {}, campo: {}, dist: [0, 0, 0, 0], nv: {}, nvN: 0 };
+  EIA_CAMPOS.forEach(([k]) => { a.campo[k] = [0, 0, 0, 0]; a.nv[k] = [0, 0, 0, 0]; });
   filas.forEach(r => {
+    if (r.nv) { a.nvN += r.nvN; EIA_CAMPOS.forEach(([k]) => { for (let i = 0; i < 4; i++) a.nv[k][i] += r.nv[k][i]; }); }
     const f = eiaFase(r.grado), def = EIA_FASES[f];
     a.n += r.n; a.rz += r.rz.r; a.rza += r.rz.a; a.rzg += r.rz.g;
     const F = a.F[f] || (a.F[f] = { n: 0, grupos: 0, grados: new Set(), cr: def.cr.map(() => [0, 0, 0, 0]) });
@@ -5033,7 +5038,7 @@ const EIAA = {};
 function eiaAlumnosDe(ciclo, cct) { const x = EIAA[ciclo + '|' + cct]; return x && x.alumnos ? x.alumnos : null; }
 function eiaNormAlumno(a) {
   const v = (Array.isArray(a.v) ? a.v : []).map(x => x === null || x === '' || x === undefined ? null : +x);
-  return Object.assign({}, a, { grado: String(a.grado), grupo: String(a.grupo || ''), num: +a.num || 0, v, est: eiaEstado(v), clave: sisClave(a.alumno), cruce: eiaClaveCruce(a.alumno) });
+  return Object.assign({}, a, { grado: String(a.grado), grupo: String(a.grupo || ''), num: +a.num || 0, v, niv: a.niv && typeof a.niv === 'object' ? a.niv : null, est: eiaEstado(v), clave: sisClave(a.alumno), cruce: eiaClaveCruce(a.alumno) });
 }
 const eiaClaveCruce = n => sisClave(n).split(' ').filter(Boolean).sort().join(' ');
 async function eiaPedirAlumnos(ciclo, cct, forzar) {
@@ -5072,8 +5077,9 @@ async function eiaLibros(nombre, bytes, prof = 0) {
       const out = [];
       for (let i = 0; i < z.FileIndex.length; i++) {
         const f = z.FileIndex[i], p = z.FullPaths[i];
-        if (f.type !== 2 || !/\.(xlsx|xlsm|xls)$/i.test(p) || /(^|\/)(__MACOSX|~\$)/.test(p)) continue;
+        if (f.type !== 2 || !/\.(xlsx|xlsm|xls|pdf)$/i.test(p) || /(^|\/)(__MACOSX|~\$)/.test(p)) continue;
         const b = f.content instanceof Uint8Array ? f.content : new Uint8Array(f.content);
+        if (/\.pdf$/i.test(p)) { if (/reporte[\s_.-]*(por[\s_.-]*)?grupo/i.test(p.split('/').pop())) out.push({ nombre: nombre + ' › ' + p.split('/').pop(), pdf: b }); continue; }
         (await eiaLibros(nombre + ' › ' + p.split('/').pop(), b, prof + 1)).forEach(x => out.push(x));
       }
       return out;
@@ -5113,10 +5119,13 @@ function eiaMapa(grado, keys) {
   return keys.map(k => { const n = vistos[k] = (vistos[k] || 0) + 1; let c = 0; return def.findIndex(d => d[1] === k && ++c === n); });
 }
 async function eiaLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
+  if (eiaEsPdf(a.bytes)) return eiaLeerPdf(a);
   const res = { nombre: a.nombre, fecha: a.fecha || '', id: a.id || '', grados: {}, cct: '', avisos: [] };
   let libros;
   try { libros = await eiaLibros(a.nombre, a.bytes); } catch (e) { return Object.assign(res, { error: 'No se pudo abrir: ' + e.message }); }
-  if (!libros.length) return Object.assign(res, { error: 'No trae archivos de Excel.' });
+  for (const l of libros.filter(x => x.pdf)) { const r = await eiaLeerPdf({ nombre: l.nombre, bytes: l.pdf }); if (r.error) { if (!r.soloGrado) res.avisos.push(`«${l.nombre}»: ${r.error}`); } else eiaMezclar(res, r); }
+  libros = libros.filter(x => !x.pdf);
+  if (!libros.length && !Object.keys(res.grados).length) return Object.assign(res, { error: 'No trae archivos de Excel ni reportes por grupo en PDF.' });
   const X = window.XLSX;
   libros.forEach(({ nombre, wb }) => {
     wb.SheetNames.forEach(sn => {
@@ -5150,19 +5159,127 @@ async function eiaLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
   if (!Object.keys(res.grados).length) return Object.assign(res, { error: 'No tiene el formato oficial de captura de los EIA o no trae alumnos.' });
   return res;
 }
+/* ---- Reporte por grupo de la plataforma de los EIA (PDF): sirve igual que el Excel de captura ----
+   Trae la valoración de cada alumno en cada consigna (EIA1-C4-A1…) y el nivel de integración del aprendizaje
+   que la plataforma asignó en cada campo formativo (SE, RA, EPD, AD). */
+const EIA_NIV = ['SE', 'RA', 'EPD', 'AD'];
+const EIA_NIV_NOM = ['Sin evidencias de desarrollo', 'Requiere apoyo', 'En proceso de desarrollo', 'Aprendizaje desarrollado'];
+const eiaEsPdf = b => b && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
+async function eiaPdfReporte(bytes) {
+  await cargarScript('lib/pdf.min.js');
+  const L = window.pdfjsLib; L.GlobalWorkerOptions.workerSrc = new URL('lib/pdf.worker.min.js', location.href).href;
+  const doc = await L.getDocument({ data: bytes }).promise;
+  const res = { grado: '', grupo: '', cct: '', alumnos: [], codigos: [], esGrupo: false, esGrado: false };
+  for (let p = 1; p <= doc.numPages; p++) {
+    const tc = await (await doc.getPage(p)).getTextContent();
+    const its = tc.items.filter(it => it.str.trim()).map(it => ({ s: it.str.trim(), x: it.transform[4], y: it.transform[5], w: it.width, rot: Math.abs(it.transform[1]) > Math.abs(it.transform[0]) }));
+    const rows = [];
+    its.filter(i => !i.rot).forEach(i => { let r = rows.find(r => Math.abs(r.y - i.y) < 2.5); if (!r) { r = { y: i.y, items: [] }; rows.push(r); } r.items.push(i); });
+    rows.sort((a, b) => b.y - a.y); rows.forEach(r => r.items.sort((a, b) => a.x - b.x));
+    const txt = rows.map(r => r.items.map(i => i.s).join(' ')).join('\n');
+    if (/REPORTE POR GRUPO/i.test(txt)) res.esGrupo = true;
+    if (/RESULTADOS POR GRADO/i.test(txt)) res.esGrado = true;
+    let m;
+    if (!res.cct && (m = /CCT\s*:\s*(\d{2}[A-Z]{3}\d{4}[A-Z])/i.exec(txt))) res.cct = m[1].toUpperCase();
+    if (!res.grado && (m = /Grado\s*:\s*([1-6])/i.exec(txt))) res.grado = m[1];
+    if (!res.grupo && (m = /Grupo\s*:\s*([0-9A-Z]{1,4})\b/i.exec(txt))) res.grupo = m[1].toUpperCase();
+    const cods = its.filter(i => /^EIA[12]-C\d-[A-Z]\d$/.test(i.s)).map(i => ({ k: i.s, x: i.x + (i.rot ? 0 : i.w / 2) }));
+    if (!cods.length) continue;
+    const xs = cods.map(c => c.x).sort((a, b) => a - b), x0 = xs[0], xMax = xs[xs.length - 1];
+    const paso = xs.length > 1 ? Math.max(8, Math.min(...xs.slice(1).map((x, i) => x - xs[i]).filter(d => d > 1))) : 20;
+    let ultimo = null;
+    rows.forEach(r => {
+      const it = r.items;
+      const num = it[0] && /^\d{1,2}$/.test(it[0].s) && it[0].x < x0 - 60 ? +it[0].s : null;
+      const vals = it.filter(i => i.x > x0 - paso && i.x < xMax + paso && /^[0-3]$/.test(i.s));
+      const nombre = it.filter(i => i.x < x0 - paso / 2 && !/^\d+$/.test(i.s)).map(i => i.s).join(' ').replace(/\s+/g, ' ').trim();
+      const niv = it.filter(i => i.x > xMax + paso / 2 && EIA_NIV.includes(i.s)).map(i => i.s);
+      if (num != null && vals.length >= Math.min(3, cods.length) && /[A-ZÑ]{2}/.test(nombre)) {
+        const v = {};
+        vals.forEach(i => { let b = null, d = 1e9; cods.forEach(c => { const dd = Math.abs(c.x - (i.x + i.w / 2)); if (dd < d) { d = dd; b = c; } }); if (b && d < paso * 0.6) v[b.k] = +i.s; });
+        ultimo = { num, alumno: nombre, v, niv, y: r.y };
+        res.alumnos.push(ultimo);
+      } else if (ultimo && !vals.length && nombre && !it.some(i => /^\d/.test(i.s)) && ultimo.y - r.y < 16 && !/PORCENTAJE|RÚBRICA|RUBRICA|CCT/i.test(nombre)) {
+        ultimo.alumno += ' ' + nombre; ultimo.y = r.y;
+      } else ultimo = null;
+    });
+    cods.forEach(c => { if (!res.codigos.includes(c.k)) res.codigos.push(c.k); });
+  }
+  return res;
+}
+// Lo pasa al mismo formato que el Excel de captura
+async function eiaLeerPdf(a) {
+  const res = { nombre: a.nombre, fecha: a.fecha || '', id: a.id || '', grados: {}, cct: '', avisos: [], pdf: true };
+  let r;
+  try { r = await eiaPdfReporte(a.bytes); } catch (e) { return Object.assign(res, { error: 'No se pudo abrir el PDF: ' + e.message }); }
+  if (!r.esGrupo && r.esGrado) return Object.assign(res, { error: 'Es el «Resultados por grado»; Tequio necesita los «Reporte por grupo» de la plataforma.', soloGrado: true });
+  if (!r.grado || !r.alumnos.length) return Object.assign(res, { error: 'No es un «Reporte por grupo» de los EIA o no trae alumnos.' });
+  res.cct = r.cct;
+  const def = EIA_FASES[eiaFase(r.grado)].cr, grupo = r.grupo.replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  // columnas de nivel: en el orden de los campos del reporte (LEN, SPC, ENS, HYC)
+  const campos = ['LEN', 'SAB', 'ETI', 'HUM'];
+  const sinCol = r.codigos.filter(k => { const m = k.match(/^EIA(\d)-C(\d)-([A-Z]\d)$/); return !def.some(d => d[0] === +m[1] && d[1] === m[2] + m[3]); });
+  if (sinCol.length) res.avisos.push(`«${a.nombre}»: las consignas ${sinCol.join(', ')} no están en el formato de ${r.grado}.° grado; se omitieron.`);
+  const g = res.grados[r.grado] = {};
+  r.alumnos.forEach(x => {
+    const v = def.map(d => { const k = 'EIA' + d[0] + '-C' + d[1][0] + '-' + d[1].slice(1); return k in x.v ? x.v[k] : null; });
+    if (!v.some(n => n !== null)) return;
+    const niv = {}; if (x.niv.length === 4) x.niv.forEach((n, i) => { niv[campos[i]] = n; });
+    (g[grupo] = g[grupo] || []).push({ num: x.num, alumno: x.alumno, sexo: '', v, grupo, niv: Object.keys(niv).length ? niv : null, pdf: true });
+  });
+  if (!Object.values(g).some(l => l.length)) return Object.assign(res, { error: 'El reporte no trae valoraciones de alumnos.' });
+  return res;
+}
+// Junta lo leído de un PDF dentro de lo de otro archivo (por ejemplo, los reportes que vienen en un .zip)
+function eiaMezclar(dest, r) {
+  Object.entries(r.grados).forEach(([gr, gs]) => Object.entries(gs).forEach(([gp, l]) => { const G = dest.grados[gr] || (dest.grados[gr] = {}); G[gp] = (G[gp] || []).concat(l); }));
+  r.avisos.forEach(x => dest.avisos.push(x));
+  if (r.cct && !dest.cct) dest.cct = r.cct;
+}
+
+/* ---- Nivel de integración del aprendizaje (resultado oficial de la plataforma) ---- */
+function eiaNivelesOficiales(a, nivel) {
+  if (!a.nvN) return '';
+  return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Nivel de integración del aprendizaje · resultado de la plataforma SEP</div>
+    <div class="eia-campos">${EIA_CAMPOS.map(([k, nom]) => { const d = a.nv[k] || [0, 0, 0, 0], t = d[0] + d[1] + d[2] + d[3];
+      return `<div class="eia-campo"><div class="eia-campo-t"><b>${nom}</b>${t ? `<span class="peq mudo">${sisFmt(sisPc(d[0] + d[1], t))} en SE o RA</span>` : ''}</div>${eiaBarra(d, 12)}
+        <div class="peq mudo">${t ? EIA_NIV.map((n, i) => `${n} ${d[i]}`).join(' · ') : 'Sin datos'}</div></div>`; }).join('')}</div>
+    <div class="sis-ley">${EIA_NIV.map((n, i) => `<span><i style="background:${EIA_COL[i]}"></i>${n} · ${EIA_NIV_NOM[i]}</span>`).join('')}
+      <span class="mudo">Es el nivel que la plataforma asignó a cada alumno en cada campo (viene en el «Reporte por grupo» en PDF). Hay ${a.nvN} de ${a.n} alumnos con este dato${a.nvN < a.n ? '; los demás se cargaron del Excel, que no lo trae' : ''}.</span></div></div>`;
+}
+const EIA_NIV_CORTO = { LEN: 'Len', SAB: 'Sab', ETI: 'Éti', HUM: 'Hum' };
+const eiaNivTxt = n => n ? EIA_CAMPOS.map(([k]) => n[k] ? EIA_NIV_CORTO[k] + ' ' + n[k] : '').filter(Boolean).join(' · ') : '';
+
 // Junta lo leído de varios archivos de una escuela; si un alumno aparece dos veces, se queda el archivo más reciente
 function eiaJuntar(leidos, cct) {
-  const grupos = {}, avisos = [], fuentes = [];
+  // Si hay Excel y reporte PDF del mismo alumno, manda el Excel (trae sexo); del PDF se toma el nivel que asignó la plataforma.
+  const porGrado = {}, avisos = [], fuentes = [];
   leidos.filter(x => !x.error).sort((x, y) => String(x.fecha).localeCompare(String(y.fecha))).forEach(f => {
     fuentes.push(f.nombre);
     f.avisos.forEach(x => avisos.push(x));
     if (f.cct && cct && f.cct !== cct) avisos.unshift(`<b>«${esc(f.nombre)}» dice C.C.T. ${esc(f.cct)}</b> (${esc(nombreEscuela(f.cct))}), no ${esc(cct)}. Revise que sea el archivo de esta escuela.`);
     Object.entries(f.grados).forEach(([gr, gs]) => Object.entries(gs).forEach(([gp, als]) => {
-      const k = gr + '|' + gp, G = grupos[k] || (grupos[k] = { grado: gr, grupo: gp, por: {} });
-      als.forEach(a => { const c = sisClave(a.alumno); if (G.por[c]) avisos.push(`${a.alumno} (${gr}.° ${gp}) aparece en más de un archivo: se usa «${f.nombre}».`); G.por[c] = a; });
+      const M = porGrado[gr] || (porGrado[gr] = {});
+      als.forEach(a0 => {
+        const a = Object.assign({}, a0, { grupo: gp }), c = sisClave(a.alumno), p = M[c];
+        if (!p) { M[c] = a; return; }
+        const gana = p.pdf && !a.pdf ? a : !p.pdf && a.pdf ? p : a, pierde = gana === a ? p : a;
+        if (!gana.niv && pierde.niv) { gana.niv = pierde.niv; gana.conPdf = true; }
+        if (!gana.grupo && pierde.grupo) gana.grupo = pierde.grupo;
+        if (!p.pdf && !a.pdf) avisos.push(`${a.alumno} (${gr}.° ${gp}) aparece en más de un archivo: se usa «${f.nombre}».`);
+        M[c] = gana;
+      });
     }));
   });
-  const l = Object.values(grupos).map(g => ({ grado: g.grado, grupo: g.grupo, alumnos: Object.values(g.por).sort((x, y) => (x.num - y.num) || x.alumno.localeCompare(y.alumno, 'es')) }))
+  const grupos = {};
+  Object.entries(porGrado).forEach(([gr, M]) => {
+    const als = Object.values(M);
+    // «6A» del reporte y «A» del Excel son el mismo grupo: se usa el nombre del Excel
+    const delExcel = new Set(als.filter(a => !a.pdf).map(a => a.grupo));
+    als.forEach(a => { if (a.pdf && !delExcel.has(a.grupo) && a.grupo.startsWith(gr) && delExcel.has(a.grupo.slice(gr.length))) a.grupo = a.grupo.slice(gr.length); });
+    als.forEach(a => { const k = gr + '|' + a.grupo, G = grupos[k] || (grupos[k] = { grado: gr, grupo: a.grupo, alumnos: [], pdf: 0 }); G.alumnos.push(a); if (a.pdf) G.pdf++; if (a.conPdf) G.mix = (G.mix || 0) + 1; });
+  });
+  const l = Object.values(grupos).map(g => Object.assign(g, { alumnos: g.alumnos.sort((x, y) => (x.num - y.num) || x.alumno.localeCompare(y.alumno, 'es')) }))
     .sort((x, y) => x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo));
   // si un grado trae alumnos con grupo y sin grupo, los sin grupo se marcan
   const sinGrupo = l.filter(g => !g.grupo && l.some(o => o.grado === g.grado && o.grupo));
@@ -5252,6 +5369,14 @@ function eiaDiagListas(a, hijos, ctx) {
     const cont = eiaContenidos(a, f).filter(o => o.pdif >= 35).slice(0, 2);
     cont.forEach(o => G.push(`<b>${gr} · ${eiaCampoCorto(o.campo)}:</b> retomar ${Array.from(new Set(Array.from(a.F[f].grados).sort().map(g => '«' + esc(EIA_BLOQ[o.b].g[g][0].replace(/\.$/, '')) + '»'))).join(' y ')}. ${esc(EIA_BLOQ[o.b].sug[0])}`));
   });
+  if (a.nvN) {
+    const cs = EIA_CAMPOS.map(([k, nom]) => { const d = a.nv[k], t = d[0] + d[1] + d[2] + d[3]; return { nom, t, bajo: sisPc(d[0] + d[1], t), ad: sisPc(d[3], t) }; }).filter(x => x.t).sort((x, y) => y.bajo - x.bajo);
+    if (cs.length) {
+      if (cs[0].bajo >= 30) A.push(`Según la plataforma SEP, en <b>${cs[0].nom}</b> el ${sisFmt(cs[0].bajo)} de los alumnos está sin evidencias o requiere apoyo (SE o RA)${a.nvN < a.n ? ` (de ${a.nvN} alumnos con reporte PDF)` : ''}.`);
+      const mej = cs.slice().sort((x, y) => y.ad - x.ad)[0];
+      if (mej.ad >= 40) F.push(`Según la plataforma SEP, en <b>${mej.nom}</b> el ${sisFmt(mej.ad)} de los alumnos tiene el aprendizaje desarrollado (AD).`);
+    }
+  }
   const conDatos = (hijos || []).filter(x => x.a && x.a.ind != null);
   if (conDatos.length >= 2) {
     const ord = conDatos.slice().sort((x, y) => y.a.ind - x.a.ind);
@@ -5352,16 +5477,17 @@ function eiaCuerpo(v, pred) {
     const al = eiaAlumnosVista(v);
     extra = eiaRutaHtml(eiaRuta(a, v.grado, al && al.todos), v.grado);
   }
-  return cobertura + eiaTarjetas(a) + eiaCampos(a) + eiaDiagnostico(a, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel }) + extra + eiaSeccionConsignas(a) +
+  return cobertura + eiaTarjetas(a) + eiaCampos(a) + eiaNivelesOficiales(a, v.nivel) + eiaDiagnostico(a, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel }) + extra + eiaSeccionConsignas(a) +
     eiaSeccionAlumnos(v) + eiaSeccionRezagoZona(v, filas) + tablas;
 }
 
 /* ---- Alumnos en rezago ---- */
 const EIA_NIVELES_AL = [['alto', 'Rezago alto: ¾ o más de los criterios en 0 o 1', 'var(--alerta)'], ['rezago', 'En rezago: la mitad o más de los criterios en 0 o 1', '#B26B00'], ['riesgo', 'En riesgo: entre 30 y 49% de los criterios en 0 o 1', '#7A6400'], ['ok', 'Sin rezago', 'var(--ok)']];
 function eiaTablaAlumnos(l, conGrupo, conEscuela) {
-  return `<div class="matriz-caja"><table class="matriz sis-al"><thead><tr><th class="esc-col">Alumno</th>${conEscuela ? '<th>Escuela</th>' : ''}${conGrupo ? '<th>Grupo</th>' : ''}<th>Índice</th><th>En 0 o 1</th><th>Lo que más le cuesta</th></tr></thead>
+  const conNiv = l.some(a => a.niv);
+  return `<div class="matriz-caja"><table class="matriz sis-al"><thead><tr><th class="esc-col">Alumno</th>${conEscuela ? '<th>Escuela</th>' : ''}${conGrupo ? '<th>Grupo</th>' : ''}<th>Índice</th><th>En 0 o 1</th>${conNiv ? '<th>Nivel según la plataforma</th>' : ''}<th>Lo que más le cuesta</th></tr></thead>
     <tbody>${l.map(a => `<tr><td class="esc-col">${esc(a.alumno)}</td>${conEscuela ? `<td class="sis-deb">${esc(nombreEscuela(a.cct))}</td>` : ''}${conGrupo ? `<td>${a.grado}° ${esc(a.grupo)}</td>` : ''}
-      <td><span class="sis-ind" style="background:${eiaColorInd(a.est.ind)}">${a.est.ind}</span></td><td>${a.est.bajos} de ${a.est.total}</td><td class="sis-deb">${eiaDebilidades(a).map(esc).join('<br>') || '—'}</td></tr>`).join('')}</tbody></table></div>`;
+      <td><span class="sis-ind" style="background:${eiaColorInd(a.est.ind)}">${a.est.ind}</span></td><td>${a.est.bajos} de ${a.est.total}</td>${conNiv ? `<td class="sis-deb">${a.niv ? EIA_CAMPOS.filter(([k]) => a.niv[k]).map(([k]) => `<span class="eia-niv" style="background:${EIA_COL[EIA_NIV.indexOf(a.niv[k])]};color:${a.niv[k] === 'EPD' ? '#3B2A0A' : '#fff'}">${EIA_NIV_CORTO[k]} ${a.niv[k]}</span>`).join(' ') : '—'}</td>` : ''}<td class="sis-deb">${eiaDebilidades(a).map(esc).join('<br>') || '—'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function eiaSeccionAlumnos(v) {
   const r = eiaAlumnosVista(v);
@@ -5523,8 +5649,13 @@ function eiaEnlazar(v) {
 /* ---- Carga de resultados ---- */
 async function eiaLeerDeDrive(cct) {
   const r = await api('eiaArchivos', { cct });
-  if (!r.archivos.length) return { sinArchivos: true, mensaje: r.mensaje || 'No hay archivos de Excel en ' + (r.ruta || 'la carpeta de los EIA') + '.' };
+  if (!r.archivos.length) return { sinArchivos: true, mensaje: r.mensaje || 'No hay Excel de captura ni reportes PDF en ' + (r.ruta || 'la carpeta de los EIA') + '.' };
   const b = await api('eiaBajar', { cct, ids: r.archivos.map(a => a.id) });
+  // lo que no cupo en una respuesta (los .zip de la plataforma pesan mucho) se pide por partes
+  for (let vuelta = 0; (b.pendientes || []).length && vuelta < 30; vuelta++) {
+    const m = await api('eiaBajar', { cct, ids: b.pendientes });
+    b.archivos = b.archivos.concat(m.archivos || []); b.omitidos = (b.omitidos || []).concat(m.omitidos || []); b.pendientes = m.pendientes || [];
+  }
   const leidos = [];
   for (const a of b.archivos) leidos.push(await eiaLeerArchivo({ id: a.id, nombre: a.nombre, fecha: a.fecha, bytes: b64aBytes(a.datos) }).catch(e => ({ nombre: a.nombre, error: e.message, grados: {}, avisos: [] })));
   await eiaCompletarGrupos(leidos, cct).catch(() => {});
@@ -5540,10 +5671,10 @@ function eiaFormCarga(cct) {
   const v = eiaV(), escs = esDirector() ? directores().filter(c => c.cct === miCct()) : directores();
   modal('Cargar resultados de los EIA', `
     <div class="campo"><label for="ec-esc">Escuela</label><select id="ec-esc" ${esDirector() ? 'disabled' : ''}>${esDirector() ? '' : '<option value="">Elija la escuela…</option>'}${escs.map(c => `<option value="${c.cct}" ${c.cct === cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
-    <p class="ayuda" style="margin-top:0">Ciclo ${esc(v.ciclo)}. Se lee el <b>Excel del formato oficial de captura</b> de los EIA (pestañas PRIMERO a SEXTO, con la valoración de cada alumno en cada consigna). Tequio lo busca en la carpeta «09-Ejercicios Integradores del Aprendizaje» de la escuela; también acepta .xls protegidos, .xlsx y .zip.</p>
+    <p class="ayuda" style="margin-top:0">Ciclo ${esc(v.ciclo)}. Se lee el <b>Excel del formato oficial de captura</b> de los EIA (pestañas PRIMERO a SEXTO) o, si la escuela no lo tiene, los <b>«Reporte por grupo» en PDF</b> que entrega la plataforma (sueltos o dentro del .zip). Tequio los busca en la carpeta «09-Ejercicios Integradores del Aprendizaje» de la escuela. Si hay Excel y PDF del mismo grupo, se usa el Excel y del PDF se toma el nivel de integración que asignó la plataforma.</p>
     <div class="sis-opc">
       <button class="boton" id="ec-drive">${ico('i-carpeta')}Leer el Excel del Drive de la escuela</button>
-      <label class="boton sec" style="cursor:pointer">${ico('i-mas')}Subir Excel<input type="file" id="ec-arch" accept=".xls,.xlsx,.xlsm,.zip" multiple hidden></label>
+      <label class="boton sec" style="cursor:pointer">${ico('i-mas')}Subir Excel o PDF<input type="file" id="ec-arch" accept=".xls,.xlsx,.xlsm,.zip,.pdf" multiple hidden></label>
     </div><div id="ec-estado"></div>`, '<button class="boton sec" id="ec-no">Cerrar</button>');
   $('#ec-no').onclick = cerrarModal;
   const escuela = () => { const c = esDirector() ? miCct() : $('#ec-esc').value; if (!c) aviso('Elija la escuela.', 'mal'); return c; };
@@ -5566,12 +5697,12 @@ function eiaRevisar(cct, leidos, origen) {
   const J = eiaJuntar(leidos, cct);
   const total = J.grupos.reduce((s, g) => s + g.alumnos.length, 0);
   const malos = J.malos.length ? `<p class="peq" style="color:var(--alerta)"><b>No se pudieron leer:</b> ${J.malos.map(x => esc(x.nombre) + ' (' + esc(x.error) + ')').join('; ')}.</p>` : '';
-  const omit = origen.omitidos && origen.omitidos.length ? `<p class="peq mudo">No se bajaron (muy pesados o no son Excel): ${origen.omitidos.map(esc).join(', ')}.</p>` : '';
+  const omit = origen.omitidos && origen.omitidos.length ? `<p class="peq mudo">No se bajaron (muy pesados o no se pudieron abrir): ${origen.omitidos.map(esc).join(', ')}.</p>` : '';
   const previo = (S.eig || []).some(r => r.ciclo === eiaV().ciclo && r.cct === cct);
   modal('Revisar los resultados de los EIA', `<p style="margin-top:0"><b>${esc(nombreEscuela(cct))}</b> · ${origen.ruta ? 'En ' + esc(origen.ruta) + ' · ' : ''}${J.fuentes.length} archivo${J.fuentes.length === 1 ? '' : 's'} leído${J.fuentes.length === 1 ? '' : 's'}</p>
     ${malos}${omit}
-    ${J.grupos.length ? `<div class="matriz-caja"><table class="matriz sis-tab"><thead><tr><th class="esc-col">Grupo</th><th>Alumnos</th><th>En rezago</th><th>Índice</th></tr></thead><tbody>${J.grupos.map(g => { const c = eiaDeAlumnos(g.grado, g.alumnos), a = eiaSuma([eiaNorm(Object.assign({ grado: g.grado, grupo: g.grupo }, c))]);
-      return `<tr><td class="esc-col"><b>${g.grado}° ${esc(g.grupo || '(sin grupo)')}</b></td><td>${g.alumnos.length}</td><td>${c.rz.r}</td><td><span class="sis-ind" style="background:${eiaColorInd(a.ind)}">${a.ind == null ? '—' : a.ind}</span></td></tr>`; }).join('')}</tbody></table></div>
+    ${J.grupos.length ? `<div class="matriz-caja"><table class="matriz sis-tab"><thead><tr><th class="esc-col">Grupo</th><th>Alumnos</th><th>Leído de</th><th>En rezago</th><th>Índice</th></tr></thead><tbody>${J.grupos.map(g => { const c = eiaDeAlumnos(g.grado, g.alumnos), a = eiaSuma([eiaNorm(Object.assign({ grado: g.grado, grupo: g.grupo }, c))]);
+      return `<tr><td class="esc-col"><b>${g.grado}° ${esc(g.grupo || '(sin grupo)')}</b></td><td>${g.alumnos.length}</td><td class="peq">${g.pdf === g.alumnos.length ? 'Reporte PDF' : g.pdf || g.mix ? 'Excel y reporte PDF' : 'Excel'}</td><td>${c.rz.r}</td><td><span class="sis-ind" style="background:${eiaColorInd(a.ind)}">${a.ind == null ? '—' : a.ind}</span></td></tr>`; }).join('')}</tbody></table></div>
       <p class="peq">${total} alumnos en ${J.grupos.length} grupos.${previo ? ' <b>Se reemplazarán los resultados que ya tenía esta escuela en este ciclo.</b>' : ''}</p>` : '<div class="aviso-caja">No se encontró ningún alumno con valoraciones.</div>'}
     ${J.avisos.length ? `<details class="sis-mas-c" ${J.avisos.some(x => /C\.C\.T\./.test(x)) ? 'open' : ''}><summary>Avisos (${J.avisos.length})</summary><ul class="peq">${J.avisos.slice(0, 40).map(x => `<li>${/<b>/.test(x) ? x : esc(x)}</li>`).join('')}</ul></details>` : ''}`,
     `<button class="boton sec" id="er-no">Cancelar</button>${J.grupos.length ? '<button class="boton" id="er-si">Guardar</button>' : ''}`);
@@ -5604,12 +5735,12 @@ async function eiaImportarZona() {
         else { await eiaGuardarEscuela(c.cct, J, J.fuentes.join(', ')); r = { ok: true, grupos: J.grupos.length, alumnos: total }; }
       }
     } catch (e) { r = { error: e.message }; }
-    res.push({ c, r, linea: r.ok ? `✓ ${esc(c.escuela)}: ${r.grupos} grupos, ${r.alumnos} alumnos` : r.sinArchivos ? `— ${esc(c.escuela)}: sin Excel en su carpeta` : r.pendiente ? `⚠ ${esc(c.escuela)}: el archivo dice otra C.C.T.; revíselo` : `✕ ${esc(c.escuela)}: ${esc(r.error)}` });
+    res.push({ c, r, linea: r.ok ? `✓ ${esc(c.escuela)}: ${r.grupos} grupos, ${r.alumnos} alumnos` : r.sinArchivos ? `— ${esc(c.escuela)}: sin Excel ni reportes PDF en su carpeta` : r.pendiente ? `⚠ ${esc(c.escuela)}: el archivo dice otra C.C.T.; revíselo` : `✕ ${esc(c.escuela)}: ${esc(r.error)}` });
   }
   const ok = res.filter(x => x.r.ok), pend = res.filter(x => x.r.pendiente), sin = res.filter(x => x.r.sinArchivos), mal = res.filter(x => x.r.error);
   $('#ez-prog', caja).innerHTML = `<div class="aviso-caja" style="background:var(--ok-f);border-color:var(--ok)"><b>${ok.length} escuela${ok.length === 1 ? '' : 's'} guardada${ok.length === 1 ? '' : 's'}</b> (${ok.reduce((s, x) => s + x.r.alumnos, 0)} alumnos).</div>
     ${pend.length ? `<div class="aviso-caja"><b>Revisar (${pend.length}):</b> el archivo de su carpeta dice otra C.C.T. Pulse cada escuela para revisarlo y decidir si se guarda.<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${pend.map(x => `<button class="boton sec chico" data-ezrev="${x.c.cct}">${esc(x.c.escuela)}</button>`).join('')}</div></div>` : ''}
-    ${sin.length ? `<p class="peq"><b>Sin Excel en su carpeta:</b> ${sin.map(x => esc(x.c.escuela)).join(', ')}.</p>` : ''}
+    ${sin.length ? `<p class="peq"><b>Sin Excel ni reportes PDF en su carpeta:</b> ${sin.map(x => esc(x.c.escuela)).join(', ')}.</p>` : ''}
     ${mal.length ? `<p class="peq" style="color:var(--alerta)"><b>Con error:</b> ${mal.map(x => esc(x.c.escuela) + ' (' + esc(x.r.error) + ')').join('; ')}.</p>` : ''}
     <div style="margin-top:10px"><button class="boton" id="ez-listo">Ver el análisis</button></div>`;
   $$('[data-ezrev]', caja).forEach(b => b.onclick = () => { const x = pend.find(p => p.c.cct === b.dataset.ezrev); cerrarModal(); eiaRevisar(x.c.cct, x.r.d.leidos, { ruta: x.r.d.ruta }); });
@@ -5646,6 +5777,13 @@ async function eiaInforme(v) {
   B.push({ t: 'tabla', cab: ['Campo formativo', '0 · Sin evid.', '1 · Req. apoyo', '2 · En proceso', '3 · Desarrollado', 'Índice'], anchos: [32, 14, 14, 14, 14, 12],
     filas: EIA_CAMPOS.map(([k, nom]) => { const d = a.campo[k], t = d.reduce((s, x) => s + x, 0); return [nom, ...d.map(x => t ? sisFmt(sisPc(x, t)) : '—'), a.cind[k] == null ? '—' : String(a.cind[k])]; }) });
   B.push({ t: 'img', g: eiaGrafNiveles(EIA_CAMPOS.map(([k, nom]) => ({ etq: nom, d: a.campo[k] })), 'Valoraciones por campo formativo') });
+  if (a.nvN) {
+    H('Nivel de integración del aprendizaje según la plataforma SEP');
+    B.push({ t: 'p', x: `Nivel que la plataforma de los EIA asignó a cada alumno en cada campo formativo (Reporte por grupo). Hay <b>${a.nvN} de ${a.n} alumnos</b> con este dato${a.nvN < a.n ? '; los demás se cargaron del Excel de captura, que no lo trae' : ''}.` });
+    B.push({ t: 'tabla', cab: ['Campo formativo', 'SE', 'RA', 'EPD', 'AD', 'SE o RA'], anchos: [36, 12, 12, 12, 12, 16],
+      filas: EIA_CAMPOS.map(([k, nom]) => { const d = a.nv[k], t = d.reduce((s, x) => s + x, 0); return [nom, ...d.map(x => t ? x + ' (' + sisFmt(sisPc(x, t)) + ')' : '—'), t ? sisFmt(sisPc(d[0] + d[1], t)) : '—']; }) });
+    B.push({ t: 'nota', x: 'SE: sin evidencias de desarrollo del aprendizaje · RA: requiere apoyo para desarrollar el aprendizaje · EPD: en proceso de desarrollo · AD: aprendizaje desarrollado.' });
+  }
   const hj = v.nivel === 'zona' && !esDirector() ? { t: 'Por escuela', col: 'Escuela', l: filtroEscuelas().map(c => { const rs = filas.filter(r => r.cct === c.cct); return { etq: c.escuela, a: rs.length ? eiaSuma(rs) : null }; }).filter(x => x.a) }
     : ['zona', 'escuela'].includes(v.nivel) ? { t: 'Por grado', col: 'Grado', l: ['1', '2', '3', '4', '5', '6'].map(g => { const rs = filas.filter(r => r.grado === g); return { etq: g + '.° grado', a: rs.length ? eiaSuma(rs) : null }; }).filter(x => x.a) }
     : ['zgrado', 'grado'].includes(v.nivel) ? { t: 'Por grupo', col: 'Grupo', l: filas.map(r => ({ etq: (v.nivel === 'zgrado' ? nombreEscuela(r.cct) + ' · ' : '') + sisNomGrupo(r), a: eiaSuma([r]) })) } : { l: [] };
@@ -5686,8 +5824,10 @@ async function eiaInforme(v) {
   }
   if (todos.length) {
     const conGrupo = v.nivel !== 'grupo';
-    const tablaA = l => ({ t: 'tabla', chica: true, anchos: conGrupo ? [28, 8, 8, 10, 46] : [30, 8, 10, 52], cab: ['Alumno'].concat(conGrupo ? ['Grupo'] : [], ['Índice', 'En 0 o 1', 'Lo que más le cuesta']),
-      filas: l.map(q => [q.alumno].concat(conGrupo ? [q.grado + '° ' + q.grupo] : [], [String(q.est.ind), q.est.bajos + ' de ' + q.est.total, eiaDebilidades(q).join('\n') || '—'])) });
+    const conNiv = todos.some(q => q.niv);
+    const tablaA = l => ({ t: 'tabla', chica: true, anchos: conNiv ? (conGrupo ? [24, 7, 7, 9, 17, 36] : [26, 7, 9, 18, 40]) : (conGrupo ? [28, 8, 8, 10, 46] : [30, 8, 10, 52]),
+      cab: ['Alumno'].concat(conGrupo ? ['Grupo'] : [], ['Índice', 'En 0 o 1'], conNiv ? ['Nivel (plataforma)'] : [], ['Lo que más le cuesta']),
+      filas: l.map(q => [q.alumno].concat(conGrupo ? [q.grado + '° ' + q.grupo] : [], [String(q.est.ind), q.est.bajos + ' de ' + q.est.total], conNiv ? [eiaNivTxt(q.niv).split(' · ').join('\n') || '—'] : [], [eiaDebilidades(q).join('\n') || '—'])) });
     const alto = todos.filter(q => q.est.nivel === 'alto').sort((x, y) => x.est.ind - y.est.ind), rez = todos.filter(q => q.est.nivel === 'rezago').sort((x, y) => x.est.ind - y.est.ind), rie = todos.filter(q => q.est.nivel === 'riesgo').sort((x, y) => x.est.ind - y.est.ind);
     H('Alumnos en rezago');
     B.push({ t: 'p', x: `De ${todos.length} alumnos: <b>${alto.length}</b> con rezago alto, <b>${rez.length}</b> en rezago, <b>${rie.length}</b> en riesgo y <b>${todos.length - alto.length - rez.length - rie.length}</b> sin rezago.` });
@@ -6079,8 +6219,11 @@ function eiaDemoGuardar(D, d) {
   const fuera = x => !(x.ciclo === d.ciclo && x.cct === d.cct);
   const nuevos = [], als = [];
   (d.grupos || []).forEach(g => { const c = eiaDeAlumnos(g.grado, g.alumnos || []), k = g.grado + '-' + (g.grupo || 'U');
-    nuevos.push({ id: [d.ciclo, d.cct, k].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', n: c.n, cr: c.cr, rz: c.rz, fuente: d.fuente || '', cargadoPor: 'u-carlos', actualizado: new Date().toISOString().slice(0, 16) });
-    (g.alumnos || []).forEach((a, i) => als.push({ id: [d.ciclo, d.cct, k, i + 1].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', num: a.num || i + 1, alumno: a.alumno, sexo: a.sexo, v: a.v })); });
+    const nv = {}; let conNv = 0;
+    (g.alumnos || []).forEach(a => { if (!a.niv) return; conNv++; Object.keys(a.niv).forEach(cp => { const i = EIA_NIV.indexOf(a.niv[cp]); if (i >= 0) (nv[cp] = nv[cp] || [0, 0, 0, 0])[i]++; }); });
+    if (conNv) nv.n = conNv;
+    nuevos.push({ id: [d.ciclo, d.cct, k].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', n: c.n, cr: c.cr, rz: c.rz, nv: conNv ? nv : '', fuente: d.fuente || '', cargadoPor: 'u-carlos', actualizado: new Date().toISOString().slice(0, 16) });
+    (g.alumnos || []).forEach((a, i) => als.push({ id: [d.ciclo, d.cct, k, i + 1].join('|'), ciclo: d.ciclo, cct: d.cct, grado: String(g.grado), grupo: g.grupo || '', num: a.num || i + 1, alumno: a.alumno, sexo: a.sexo, v: a.v, niv: a.niv || '' })); });
   D.eig = D.eig.filter(fuera).concat(nuevos); D.eiaAl = D.eiaAl.filter(fuera).concat(als);
   return { eig: JSON.parse(JSON.stringify(D.eig)) };
 }
