@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f3d2e">
+<title>Control de Poker</title>
+<style>
+:root{
+  --bg:#0b2a20; --card:#123a2c; --card2:#174636; --txt:#eef5f0; --muted:#9fbfb0;
+  --gold:#e8c35a; --win:#4ade80; --loss:#f87171; --line:#245a46;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt);}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 60px}
+header{display:flex;align-items:center;gap:10px;margin:4px 0 16px}
+header h1{font-size:1.35rem;margin:0}
+header .suits{color:var(--gold);font-size:1.3rem;letter-spacing:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.total{text-align:center}
+.total .lbl{color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:1px}
+.total .num{font-size:2.3rem;font-weight:800;margin:4px 0}
+.pos{color:var(--win)} .neg{color:var(--loss)} .zero{color:var(--txt)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stat{background:var(--card2);border-radius:10px;padding:8px;text-align:center}
+.stat .v{font-weight:700;font-size:1rem}
+.stat .l{color:var(--muted);font-size:.72rem}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;font-size:.8rem;color:var(--muted);gap:4px}
+input{background:#0d3124;border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:1rem;width:100%}
+input:focus{outline:2px solid var(--gold);border-color:transparent}
+.full{grid-column:1/-1}
+.preview{grid-column:1/-1;text-align:center;font-weight:700;min-height:1.2em}
+button{border:0;border-radius:10px;padding:11px 14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn-main{background:var(--gold);color:#1d1600}
+.btn-sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.row-btns{display:flex;gap:8px;grid-column:1/-1}
+.row-btns button{flex:1}
+h2{font-size:1rem;margin:0 0 10px}
+.filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filters button{padding:7px 12px;font-size:.85rem;background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.filters button.on{background:var(--gold);color:#1d1600;border-color:var(--gold)}
+canvas{width:100%;height:180px;display:block}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--card2);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+.item .d{font-weight:700}
+.item .m{color:var(--muted);font-size:.8rem}
+.item .r{font-weight:800;text-align:right}
+.item .acc{color:var(--muted);font-size:.78rem;text-align:right}
+.item .acts{grid-column:1/-1;display:flex;gap:8px;margin-top:6px}
+.item .acts button{padding:5px 10px;font-size:.78rem;background:transparent;color:var(--muted);border:1px solid var(--line)}
+.empty{color:var(--muted);text-align:center;padding:16px}
+.foot{display:flex;gap:8px;flex-wrap:wrap}
+.foot button{flex:1;font-size:.85rem}
+.note{color:var(--muted);font-size:.75rem;margin-top:10px;text-align:center}
+@media (max-width:420px){ .stats{grid-template-columns:repeat(2,1fr)} .total .num{font-size:2rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="suits">♠♥♦♣</span><h1>Control de Poker</h1></header>
+
+  <div class="card total">
+    <div class="lbl" id="totalLbl">Resultado acumulado</div>
+    <div class="num" id="total">$0</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="sNoches">0</div><div class="l">Noches</div></div>
+      <div class="stat"><div class="v" id="sGanadas">0 / 0</div><div class="l">Ganadas / Perdidas</div></div>
+      <div class="stat"><div class="v" id="sProm">$0</div><div class="l">Promedio por noche</div></div>
+      <div class="stat"><div class="v" id="sInv">$0</div><div class="l">Total invertido</div></div>
+      <div class="stat"><div class="v pos" id="sMejor">$0</div><div class="l">Mejor noche</div></div>
+      <div class="stat"><div class="v neg" id="sPeor">$0</div><div class="l">Peor noche</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="formTitle">Registrar noche</h2>
+    <form id="form">
+      <label class="full">Fecha (se pone sola; tócala si quieres cambiarla)<input type="date" id="fecha" required></label>
+      <label>Metí (entrada + recompras)<input type="number" id="entrada" inputmode="decimal" min="0" step="any" placeholder="5000" required></label>
+      <label>Cobré al final<input type="number" id="cobro" inputmode="decimal" min="0" step="any" placeholder="3000" required></label>
+      <label class="full">Notas (opcional)<input type="text" id="notas" placeholder="Lugar, tipo de juego…"></label>
+      <div class="preview" id="preview"></div>
+      <div class="row-btns">
+        <button type="submit" class="btn-main" id="btnGuardar">Guardar</button>
+        <button type="button" class="btn-sec" id="btnCancelar" hidden>Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="filters" id="filters">
+      <button data-f="todo" class="on">Todo</button>
+      <button data-f="mes">Este mes</button>
+      <button data-f="anio">Este año</button>
+    </div>
+    <h2>Evolución</h2>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Historial</h2>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div class="card">
+    <div class="foot">
+      <button class="btn-sec" id="btnExport">Respaldar datos</button>
+      <button class="btn-sec" id="btnImport">Restaurar respaldo</button>
+      <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    </div>
+    <div class="note">Tus datos se guardan solo en este teléfono/navegador. Haz un respaldo de vez en cuando.</div>
+  </div>
+</div>
+
+<script>
+const KEY = 'poker_sesiones_v1';
+let sesiones = [];
+let editId = null;
+let filtro = 'todo';
+
+const $ = id => document.getElementById(id);
+const fmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits: 2});
+const fmtSigno = n => (n > 0 ? '+' : '') + fmt(n);
+const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero';
+const hoy = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const fechaBonita = f => new Date(f + 'T12:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+
+function cargar(){ try { sesiones = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ sesiones = []; } }
+function guardar(){ try { localStorage.setItem(KEY, JSON.stringify(sesiones)); } catch(e){ alert('No se pudo guardar en este navegador.'); } }
+
+function filtradas(){
+  const h = hoy();
+  return sesiones
+    .filter(s => filtro === 'todo' || (filtro === 'mes' ? s.fecha.slice(0,7) === h.slice(0,7) : s.fecha.slice(0,4) === h.slice(0,4)))
+    .sort((a,b) => a.fecha.localeCompare(b.fecha) || a.creado - b.creado);
+}
+
+function render(){
+  const lista = filtradas();
+  let acc = 0;
+  const conAcc = lista.map(s => { const r = s.cobro - s.entrada; acc += r; return {...s, r, acc}; });
+  const total = acc;
+
+  $('totalLbl').textContent = {todo:'Resultado acumulado', mes:'Resultado de este mes', anio:'Resultado de este año'}[filtro];
+  $('total').textContent = fmtSigno(total);
+  $('total').className = 'num ' + cls(total);
+
+  const n = conAcc.length;
+  const ganadas = conAcc.filter(s => s.r > 0).length;
+  const perdidas = conAcc.filter(s => s.r < 0).length;
+  const inv = conAcc.reduce((t,s) => t + s.entrada, 0);
+  const rs = conAcc.map(s => s.r);
+  $('sNoches').textContent = n;
+  $('sGanadas').textContent = ganadas + ' / ' + perdidas;
+  $('sProm').textContent = n ? fmtSigno(Math.round(total / n)) : '$0';
+  $('sProm').className = 'v ' + cls(total);
+  $('sInv').textContent = fmt(inv);
+  $('sMejor').textContent = n ? fmtSigno(Math.max(...rs)) : '$0';
+  $('sPeor').textContent = n ? fmtSigno(Math.min(...rs)) : '$0';
+
+  const list = $('list');
+  if (!n){ list.innerHTML = '<div class="empty">Aún no hay noches registradas en este periodo.</div>'; }
+  else {
+    list.innerHTML = conAcc.slice().reverse().map(s => `
+      <div class="item">
+        <div class="d">${fechaBonita(s.fecha)}</div>
+        <div class="r ${cls(s.r)}">${fmtSigno(s.r)}</div>
+        <div class="m">Metí ${fmt(s.entrada)} · Cobré ${fmt(s.cobro)}${s.notas ? ' · ' + esc(s.notas) : ''}</div>
+        <div class="acc">Acum. <span class="${cls(s.acc)}">${fmtSigno(s.acc)}</span></div>
+        <div class="acts">
+          <button onclick="editar('${s.id}')">Editar</button>
+          <button onclick="borrar('${s.id}')">Borrar</button>
+        </div>
+      </div>`).join('');
+  }
+  dibujar(conAcc.map(s => s.acc));
+}
+
+function esc(t){ const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+function dibujar(vals){
+  const c = $('chart'), dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const x = c.getContext('2d'); x.scale(dpr, dpr); x.clearRect(0,0,w,h);
+  if (vals.length === 0){ x.fillStyle = '#9fbfb0'; x.font = '13px system-ui'; x.textAlign = 'center'; x.fillText('Sin datos todavía', w/2, h/2); return; }
+  const pts = [0, ...vals];
+  const min = Math.min(0, ...pts), max = Math.max(0, ...pts);
+  const pad = 14, rango = (max - min) || 1;
+  const px = i => pad + i * (w - pad*2) / Math.max(pts.length - 1, 1);
+  const py = v => pad + (max - v) * (h - pad*2) / rango;
+  x.strokeStyle = '#245a46'; x.setLineDash([4,4]); x.beginPath(); x.moveTo(pad, py(0)); x.lineTo(w-pad, py(0)); x.stroke(); x.setLineDash([]);
+  const ult = pts[pts.length-1];
+  x.strokeStyle = ult >= 0 ? '#4ade80' : '#f87171'; x.lineWidth = 2.5; x.beginPath();
+  pts.forEach((v,i) => i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v))); x.stroke();
+  x.fillStyle = x.strokeStyle; pts.forEach((v,i) => { if(i){ x.beginPath(); x.arc(px(i), py(v), 3, 0, 7); x.fill(); } });
+}
+
+function actualizarPreview(){
+  const e = parseFloat($('entrada').value), c = parseFloat($('cobro').value);
+  const p = $('preview');
+  if (isNaN(e) || isNaN(c)){ p.textContent = ''; return; }
+  const r = c - e; p.textContent = 'Resultado de la noche: ' + fmtSigno(r); p.className = 'preview ' + cls(r);
+}
+
+function limpiar(){
+  editId = null; $('form').reset(); $('fecha').value = hoy(); $('preview').textContent = '';
+  $('formTitle').textContent = 'Registrar noche'; $('btnGuardar').textContent = 'Guardar'; $('btnCancelar').hidden = true;
+}
+
+window.editar = id => {
+  const s = sesiones.find(s => s.id === id); if (!s) return;
+  editId = id; $('fecha').value = s.fecha; $('entrada').value = s.entrada; $('cobro').value = s.cobro; $('notas').value = s.notas || '';
+  $('formTitle').textContent = 'Editar noche'; $('btnGuardar').textContent = 'Actualizar'; $('btnCancelar').hidden = false;
+  actualizarPreview(); window.scrollTo({top: $('form').offsetTop - 80, behavior:'smooth'});
+};
+window.borrar = id => {
+  if (!confirm('¿Borrar esta noche?')) return;
+  sesiones = sesiones.filter(s => s.id !== id); guardar(); if (editId === id) limpiar(); render();
+};
+
+$('form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const datos = { fecha: $('fecha').value, entrada: parseFloat($('entrada').value), cobro: parseFloat($('cobro').value), notas: $('notas').value.trim() };
+  if (editId){ Object.assign(sesiones.find(s => s.id === editId), datos); }
+  else { sesiones.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), creado: Date.now(), ...datos }); }
+  guardar(); limpiar(); render();
+});
+$('btnCancelar').onclick = limpiar;
+['entrada','cobro'].forEach(id => $(id).addEventListener('input', actualizarPreview));
+
+$('filters').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  filtro = b.dataset.f; document.querySelectorAll('#filters button').forEach(x => x.classList.toggle('on', x === b)); render();
+});
+
+$('btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(sesiones, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'poker-respaldo-' + hoy() + '.json'; a.click();
+};
+$('btnImport').onclick = () => $('fileImport').click();
+$('fileImport').onchange = ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result); if (!Array.isArray(d)) throw 0;
+      if (!confirm('Esto reemplazará tus datos actuales con el respaldo (' + d.length + ' noches). ¿Continuar?')) return;
+      sesiones = d; guardar(); render();
+    } catch(e){ alert('El archivo no es un respaldo válido.'); }
+  };
+  r.readAsText(f); ev.target.value = '';
+};
+
+window.addEventListener('resize', render);
+cargar(); limpiar(); render();
+</script>
+</body>
+</html>
