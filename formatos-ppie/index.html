@@ -368,6 +368,162 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;
 .btn.dc-del{color:var(--warn);border-color:var(--warn-soft)}
 .dc-sum{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
 .dc-op{display:flex;gap:10px;align-items:flex-start;cursor:pointer}.dc-op input{width:22px;height:22px;flex:none;accent-color:var(--accent)}
+
+/* ===== Diseño 2 (oct 2026): una sola identidad Tlamatini, inicio tipo app, listas agrupadas ===== */
+:root{--bg:#F6F1E7;--card:#FFFDF8;--ink:#1E2A40;--muted:#6A5C4C;--line:#E6DCC9;--line2:#EFE6D6;--field:#FFFFFF;
+  --accent:#1F3A6B;--accent-ink:#FFFFFF;--accent-soft:#E9EDF5;--terra:#A9512F;--terra-soft:#F6E4D9;
+  --band:#1F3A6B;--band-ink:#FBF6EC;--band-soft:#C9D3E6;--rule:#A9512F;
+  --display:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;--brand:"Fraunces",Georgia,serif;
+  --shadow:0 1px 2px rgba(74,52,24,.06);--lift:0 6px 18px rgba(31,58,107,.13)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16130E;--card:#211C15;--ink:#F1E9DA;--muted:#B9AA92;--line:#3B3227;--line2:#2E271E;--field:#1B1711;
+  --accent:#A9C0EA;--accent-ink:#10192B;--accent-soft:#25304A;--terra:#E3925A;--terra-soft:#3A2A1E;--band:#14223D;--band-soft:#A9B6CF;--rule:#E3925A;--shadow:none;--lift:none}}
+:root[data-theme="dark"]{--bg:#16130E;--card:#211C15;--ink:#F1E9DA;--muted:#B9AA92;--line:#3B3227;--line2:#2E271E;--field:#1B1711;
+  --accent:#A9C0EA;--accent-ink:#10192B;--accent-soft:#25304A;--terra:#E3925A;--terra-soft:#3A2A1E;--band:#14223D;--band-soft:#A9B6CF;--rule:#E3925A;--shadow:none;--lift:none}
+body{background:var(--bg)}
+h1,h2{font-family:var(--brand);font-weight:600;letter-spacing:-.01em}
+h3{font-family:var(--display);font-weight:700;letter-spacing:0}
+.card{border-radius:16px;border-color:var(--line);box-shadow:var(--shadow)}
+.btn{border-radius:12px;font-weight:700}
+.btn.ghost{background:var(--card)}
+.anexo{border-radius:16px}
+.letra{border-radius:12px;font-family:var(--brand);font-weight:600}
+.group-title{font-family:var(--display);font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:8px 4px -6px}
+.top{background:color-mix(in srgb,var(--bg) 92%,transparent);gap:10px}
+.top .back{display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--card);border-color:var(--line)}
+.top .back svg,.homebtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.top .eyebrow{color:var(--muted);font-family:var(--display);font-weight:700;font-size:12.5px}
+.top h2{font-family:var(--brand);font-size:21px;font-weight:600}
+.homebtn{border-radius:12px;font-family:var(--display);font-weight:700;border-color:var(--line)}
+.bar{background:color-mix(in srgb,var(--card) 96%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.ei{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em}
+.btn>.ei:first-child,label>.ei:first-child,a>.ei:first-child{margin-right:.4em}
+.ic .ei{width:1.2em;height:1.2em}
+/* listas */
+.lista{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.item{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line2);padding:14px 16px;color:var(--ink);font:inherit;cursor:pointer;min-height:64px}
+.item:first-child{border-top:0}
+.item:hover{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.item:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.item .tx{flex:1;min-width:0;align-self:center}
+.item b{display:block;font-size:16px;line-height:1.28}
+.item .ds{display:block;font-size:14px;color:var(--muted);margin-top:2px;line-height:1.38}
+.item .cnt{display:block;font-size:13px;font-weight:700;color:var(--terra);margin-top:4px}
+.item.off .cnt{color:var(--muted);font-weight:400;font-style:italic}
+.ico{flex:none;width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--brand);font-size:20px;font-weight:600}
+.ico svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ico.t{background:var(--terra-soft);color:var(--terra)}
+.chev{flex:none;align-self:center;width:18px;height:18px;fill:none;stroke:var(--muted);opacity:.75;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-left:auto}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:12px;font-weight:700;color:var(--muted);background:color-mix(in srgb,var(--line) 60%,transparent);border-radius:999px;padding:2px 9px}
+/* encabezado de sección y destacado */
+.sec-hero{display:flex;align-items:center;gap:14px;margin-top:6px}
+.sec-ic{flex:none;width:52px;height:52px;border-radius:16px;background:var(--band);color:var(--band-ink);display:flex;align-items:center;justify-content:center}
+.sec-ic svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sec-hero p{font-size:15px;color:var(--muted);line-height:1.45}
+.dest{display:flex;gap:16px;align-items:stretch;width:100%;text-align:left;background:var(--band);color:var(--band-ink);border:0;border-radius:18px;padding:18px;font:inherit;cursor:pointer;box-shadow:var(--lift)}
+.dest:focus-visible{outline:3px solid var(--terra);outline-offset:3px}
+.dest-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.dest-k{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#F2C9A8}
+.dest-n{font-family:var(--brand);font-size:22px;line-height:1.15;font-weight:600}
+.dest-d{font-size:14px;color:var(--band-soft);line-height:1.4}
+.dest-b{margin-top:6px;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:#FBF6EC;color:#1F3A6B;font-weight:700;font-size:14.5px;border-radius:999px;padding:8px 14px}
+.dest-b svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.dest-hoja{flex:none;width:88px;align-self:center;background:#FFFDF8;border-radius:6px;padding:9px 8px;display:flex;flex-direction:column;gap:7px;transform:rotate(2.5deg);box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.dest-hoja i{display:block;height:1px;background:#D8CDB9}
+.dest-hoja i.t1{height:4px;width:70%;align-self:center;background:#1F3A6B;border-radius:2px}
+.dest-hoja i.t2{height:3px;width:50%;align-self:center;background:#C9BFAE;border-radius:2px;margin-top:-3px}
+.dest-hoja i.pie{height:14px;border-radius:3px;background:#FBEBDD}
+@media (max-width:360px){.dest-hoja{display:none}}
+.nota{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.45;padding:0 4px}
+.nota>svg{flex:none;width:18px;height:18px;margin-top:1px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.nota .btn.link{padding:0;font-weight:700;font-size:inherit;min-height:0;display:inline;text-align:left}
+/* inicio */
+.ini-band{margin:-16px calc(50% - 50vw) 0;background:var(--band);color:var(--band-ink);padding:20px 20px 64px}
+.ini-band-in{max-width:680px;width:100%;margin:0 auto}
+.ini-top{display:flex;align-items:center;gap:12px}
+.ini-top .tlm-m{width:46px;height:46px;flex:none}
+.ini-n{display:block;font-family:var(--brand);font-weight:600;font-size:25px;line-height:1}
+.ini-l{display:block;font-family:var(--brand);font-style:italic;font-size:14px;color:var(--band-soft);margin-top:4px}
+.ini-links{margin-left:auto;display:none;gap:8px}
+.ini-links button{font:inherit;font-size:14.5px;font-weight:700;color:var(--band-ink);background:transparent;border:1px solid rgba(251,246,236,.3);border-radius:999px;padding:8px 16px;cursor:pointer;min-height:44px}
+.ini-links button:hover{background:rgba(251,246,236,.1)}
+.ini-av{margin-left:auto;flex:none;width:44px;height:44px;border-radius:50%;border:1px solid rgba(251,246,236,.35);background:rgba(251,246,236,.08);color:var(--band-ink);font:700 15px var(--display);cursor:pointer}
+.ini-links+.ini-av{margin-left:0}
+.ini-av:focus-visible,.ini-links button:focus-visible{outline:3px solid #F2C9A8;outline-offset:2px}
+.ini-hola{margin:24px 0 0;font-family:var(--brand);font-size:clamp(25px,7vw,34px);line-height:1.15;font-weight:500;text-wrap:balance}
+.ini-esc{margin:6px 0 0;font-size:14.5px;color:var(--band-soft)}
+.ini-busca{position:relative;max-width:680px;width:100%;margin:-30px auto 0;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0 8px 0 16px;height:58px;box-shadow:var(--lift);box-sizing:border-box}
+.ini-busca>svg{flex:none;width:22px;height:22px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round}
+.ini-busca input[type=search]{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;font:16px var(--body);color:var(--ink);padding:0;height:100%;outline:none}
+.ini-busca input[type=search]:focus{box-shadow:none;border:0}
+.ini-busca:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.ini-mic{flex:none;width:42px;height:42px;border:0;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ini-mic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.ini-mic.on{background:#C62828;color:#fff}
+.ini-mic:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ini-main,.ini-res{max-width:680px;width:100%;margin:0 auto}
+.ini-main{padding-top:22px;display:flex;flex-direction:column;gap:26px}
+.ini-res{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.ini-res .vacio{padding:18px 16px;color:var(--muted);font-size:15px;line-height:1.5}
+.gt{margin:0 4px 10px;font-family:var(--display);font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ev{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--ink);font:inherit;cursor:pointer;box-shadow:var(--shadow)}
+.ev-f{flex:none;width:54px;text-align:center;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--card)}
+.ev-f i{display:block;font-style:normal;background:var(--terra);color:var(--card);font-size:11px;font-weight:700;letter-spacing:.08em;padding:3px 0;text-transform:uppercase}
+.ev-f b{display:block;font-family:var(--brand);font-size:24px;font-weight:600;padding:2px 0 4px}
+.ev-tx{flex:1;min-width:0}
+.ev-k{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--terra)}
+.ev-t{display:block;font-weight:700;font-size:16px;line-height:1.3}
+.ev-s{display:block;font-size:13.5px;color:var(--muted)}
+.conts{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.conts::-webkit-scrollbar{display:none}
+.cont{flex:none;width:232px;scroll-snap-align:start;display:flex;flex-direction:column;gap:9px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;color:var(--ink);font:inherit;cursor:pointer;box-shadow:var(--shadow)}
+.cont b{font-size:15.5px;line-height:1.3;overflow-wrap:anywhere}
+.cont .ds{font-size:13px;color:var(--muted)}
+.pill{align-self:flex-start;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 10px}
+.pill.w{color:var(--warn);background:var(--warn-soft)}
+.barra{display:block;height:5px;border-radius:3px;background:var(--line2);overflow:hidden}.barra i{display:block;height:100%;background:var(--terra)}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:12px;text-align:left;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;cursor:pointer;min-height:112px;box-shadow:var(--shadow)}
+.tile b{font-size:15px;line-height:1.25}
+.tile:hover,.ev:hover,.cont:hover,.urg:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.tile:focus-visible,.ev:focus-visible,.cont:focus-visible,.urg:focus-visible,.ini-chips a:focus-visible,.ini-chips button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.urg{margin-top:10px;display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:1px solid color-mix(in srgb,var(--terra) 35%,var(--line));border-radius:16px;padding:12px 14px;color:var(--ink);font:inherit;cursor:pointer}
+.urg .tx{flex:1;min-width:0}
+.urg b{display:block;font-size:15.5px}.urg .ds{font-size:13.5px;color:var(--muted)}
+.fams{display:flex;flex-direction:column;gap:26px}
+.ini-pie{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 4px 4px;border-top:1px solid var(--line);margin-top:4px;text-align:center}
+.ini-sup{display:flex;align-items:center;gap:12px;text-align:left}
+.ini-sup .seal{flex:none;background:#fff;border-radius:10px;padding:5px 8px;display:flex;gap:6px}
+.ini-sup .seal img{height:36px;width:auto;display:block}
+.ini-sup p{font-size:13.5px;line-height:1.4}
+.ini-sup p span{color:var(--muted)}
+.ini-firma b{display:block;font-family:var(--brand);font-style:italic;font-weight:400;font-size:19px;line-height:1.25}
+.ini-firma i{display:block;width:40px;height:2px;background:var(--terra);margin:7px auto}
+.ini-firma span{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ini-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.ini-chips a,.ini-chips button{font:inherit;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;background:var(--card);cursor:pointer;min-height:40px;display:inline-flex;align-items:center;gap:6px}
+.ini-pie .signif{width:100%;text-align:left}
+.ini-piloto{font-size:12.5px;color:var(--muted);line-height:1.6}
+.ini-piloto b{color:var(--terra)}
+.ini-piloto a,.ini-piloto .btn.link{color:inherit}
+.ini-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;background:color-mix(in srgb,var(--card) 96%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:4px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.ini-nav button{flex:1;max-width:160px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;font:700 11.5px var(--display);color:var(--muted);background:none;border:0;cursor:pointer;min-height:52px}
+.ini-nav button.on{color:var(--accent)}
+.ini-nav button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;border-radius:10px}
+.ini-nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mi-acc{display:flex;flex-wrap:wrap;gap:8px}
+@media (min-width:900px){
+  .wrap:has(.inicio){max-width:1120px;padding-bottom:40px}
+  .ini-band-in,.ini-busca,.ini-main,.ini-res{max-width:1060px}
+  .ini-band{padding:24px 32px 72px}
+  .ini-links{display:flex}
+  .ini-nav{display:none}
+  .tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .fams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 22px;align-items:start}
+  .conts{margin:0;padding:2px 0 6px;flex-wrap:wrap;overflow:visible}
+  .ini-pie .signif{max-width:680px}
+}
+@media print{.ini-nav{display:none!important}}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -657,7 +813,7 @@ const ZONA_MUN={"SAN QUINTIN":"San Quintín","ENSENADA":"Ensenada","ISLA DE CEDR
 function seguroCard(){const s=SEGURO;
   if(!s)return`<div class="alert"><b>No se pudieron cargar los teléfonos del seguro.</b> Revise su conexión a internet y vuelva a abrir esta pantalla.</div>`;
   return`<section class="emer" aria-label="Teléfonos para reportar un accidente"><div class="emer-t">Si un alumno se accidenta, llame para reportarlo</div>
-   <div class="emer-n">${(s.reportar||[]).filter(Boolean).map(t=>`<a class="btn primary act" href="${telHref(t)}"><span class="ic" aria-hidden="true">📞</span>${esc(t)}</a>`).join("")}</div>
+   <div class="emer-n">${(s.reportar||[]).filter(Boolean).map(t=>`<a class="btn primary act" href="${telHref(t)}"><span class="ic" aria-hidden="true">${EI.tel}</span>${esc(t)}</a>`).join("")}</div>
    <p class="help">Reporte de accidente electrónico: <a href="${esc(s.reporteElectronico)}" target="_blank" rel="noopener">${esc(String(s.reporteElectronico||"").replace(/^https?:\/\//,""))}</a><br>
     Dudas: ${(s.dudas||[]).filter(Boolean).map(t=>`<a href="${telHref(t)}">${esc(t)}</a>`).join(" y ")} · Reembolsos: <a href="${telHref(s.reembolsosTel)}">${esc(s.reembolsosTel)}</a> / ${esc(s.reembolsosCorreo)}</p>
    <p class="help">La póliza cubre accidentes, <b>no gastos por enfermedad</b>. La red de clínicas se imprime al reverso del aviso.</p>
@@ -797,7 +953,7 @@ async function seguroAdminView(){S.view="admin";setBar("");const tok=store.get("
 const CORREO_URL="https://sites.google.com/bcedu.mx/correo-edubc";
 function correoCard(){return`<section class="card" aria-label="Correo institucional"><div><h3>Correo institucional (@bcedu.mx)</h3>
    <p class="muted" style="font-size:15px">¿Olvidó su contraseña o su cuenta está desactivada? Solicite el restablecimiento o la reactivación en el formulario oficial.</p></div>
-   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CORREO_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">✉️</span>Solicitar restablecimiento o reactivación</a></div>
+   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CORREO_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">${EI.mail}</span>Solicitar restablecimiento o reactivación</a></div>
    <p class="help">Se abre el sitio oficial «Reactivación y/o restablecimiento de contraseña del Correo Institucional».</p></section>`}
 /* ---------- CURP: descarga en el sitio oficial (gob.mx no acepta la CURP desde otra página y pide verificación de seguridad) ---------- */
 const CURP_URL="https://www.gob.mx/curp/";
@@ -811,7 +967,7 @@ function curpRevisar(v){const c=String(v||"").toUpperCase().replace(/\s/g,"");
   return{c,ok:true,msg:`Formato correcto · ${dat}`}}
 function curpCard(){return`<section class="card" aria-label="Descarga de CURP"><div><h3>Descarga de CURP</h3>
    <p class="muted" style="font-size:15px">Consulte y descargue la CURP certificada en el sitio oficial de gob.mx.</p></div>
-   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CURP_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">🪪</span>Descargar CURP en gob.mx</a></div>
+   <div class="acts"><a class="btn primary act" style="text-decoration:none" href="${CURP_URL}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">${EI.id}</span>Descargar CURP en gob.mx</a></div>
    <p class="help">Escriba la CURP (o busque con nombre, fecha y lugar de nacimiento), complete la verificación de seguridad y toque «Descargar PDF».</p></section>`}
 /* ---------- Normatividad: consulta de leyes, reglamentos, acuerdos, protocolos y libros de texto ---------- */
 let NORMAS=null;
@@ -827,7 +983,7 @@ const LIBROS_MULTI=[{t:"Cartografía de México y el mundo. Multigrado",u:LT+"P0
 const NV={cat:"todos",q:"",grado:1,abierto:null};
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 function docHTML(d){if(d.id==="calendario"&&CAL)d=calDoc(d);const open=NV.abierto===d.id;const cat=(NORMAS.categorias.find(c=>c.id===d.cat)||{}).nombre||"";
-  const links=(d.links||[]).map(l=>`<a class="btn primary act" href="${esc(l.u)}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">📄</span>${esc(l.t)}</a>`).join("");
+  const links=(d.links||[]).map(l=>`<a class="btn primary act" href="${esc(l.u)}" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">${EI.doc}</span>${esc(l.t)}</a>`).join("");
   const app=d.app?`<button class="btn ghost act" data-goapp="${esc(d.app)}">Abrir los formatos en esta app</button>`:"";
   const pend=d.pendiente?`<div class="soon"><b>Documento por agregar.</b> No está publicado en internet; la Supervisión lo subirá a la app.</div>`:"";
   return`<article class="nd ${open?"on":""}"><button class="nd-h" data-doc="${esc(d.id)}" aria-expanded="${open}"><span class="tx"><b>${esc(d.titulo)}</b><span class="ds">${esc(cat)}${d.pendiente?' · <span class="draft">Por agregar</span>':""}</span></span><span class="chev" aria-hidden="true">${open?"▾":"▸"}</span></button>
@@ -938,6 +1094,16 @@ function demoEntrar(){try{sessionStorage.setItem("tlm-demo","1")}catch(e){}locat
 function demoSalir(){try{sessionStorage.removeItem("tlm-demo")}catch(e){}location.replace(location.pathname+location.search)}
 
 /* ---------- almacenamiento local (solo en este dispositivo) ---------- */
+/* Íconos de línea para botones (sustituyen a los emojis) */
+const EI=(()=>{const w=p=>`<svg class="ei" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;return{
+ print:w('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>'),
+ mail:w('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
+ tel:w('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>'),
+ cam:w('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>'),
+ id:w('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 16c.6-1.6 1.9-2.5 3.5-2.5s2.9.9 3.5 2.5M15 10h4M15 13h3"/>'),
+ doc:w('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15h6M9 18h4"/>'),
+ down:w('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+ spark:w('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>')}})();
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 let perfil=store.get("ppie-perfil",{});
 const S={view:"home",letra:null,step:0,vals:{},sec:null};
@@ -1047,38 +1213,7 @@ const TLM_SIGNIF=`<details class="signif"><summary>${TLM()}<span>¿Qué signific
  <p><b>Usted es tlamatini.</b> Cada maestra y cada maestro que enseña, acompaña y guía a sus alumnos cumple hoy esa misma tarea. Por eso esta herramienta lleva su nombre: está hecha para usted y para todas y todos los <i>tlamatinime</i> de nuestras escuelas.</p>
  <p>Su símbolo retoma la <b>greca escalonada</b>, herencia de muchos pueblos de México: un camino de escalones, su esfuerzo de cada día en el aula, que asciende y se vuelve espiral de conocimiento. En su centro hay una luz de la que nacen puntos conectados: la era digital y la inteligencia artificial como acompañantes de su labor, nunca como sustitutos.</p>
  <p>Esta herramienta nace con un propósito: tener <b>un nuevo camino para la labor docente</b>.</p></details>`;
-function home(){S.view="home";setBar("");
-  const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
-  app.innerHTML=`<header class="band brand"><div class="band-in tlm">${TLM("oscuro")}
-   <div><p class="band-k">Supervisión Escolar Zona 050 · ISEP</p><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div></header>
-   <section class="sup" aria-label="Datos de la Supervisión">
-    <div class="sup-h"><div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div></div>
-    <div class="sup-g">
-     <span><i>C.C.T.</i>02FIZ0094X</span><span><i>Sede</i>Camalú, San Quintín, B.C. · C.P. 22910</span>
-     <span><i>Teléfono</i><a href="tel:6161655622">616 165 5622</a></span><span><i>Correo</i><a href="mailto:supervision050sep@gmail.com">supervision050sep@gmail.com</a></span>
-     <span><i>Turno</i>Matutino-vespertino</span><span><i>Delegación</i>San Quintín · ISEP</span>
-    </div>
-    <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>
-   </section>
-   <section class="piloto" aria-label="Acerca de esta herramienta"><span class="piloto-tag">Versión de prueba · Fase de pilotaje</span>
-    <p>Esta herramienta es un esfuerzo de la Supervisión Escolar para facilitar los procesos administrativos y de gestión de nuestras escuelas, de modo que el tiempo y la energía del colectivo se dediquen a lo que más importa: una mejor práctica docente y, sobre todo, profesional.</p>
-    <p class="piloto-n">Al estar en pilotaje, puede presentar ajustes o errores. Sus observaciones nos ayudan a mejorarla.</p></section>
-   ${DEMO?demoRecorrido():""}
-   <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p></div>
-    <button class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
-   ${equipoHTML()}
-   <div class="group-title">¿Qué necesita hacer?</div>
-   <div class="secs">${SECCIONES.map(x=>{const n=x.count?x.count():secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
-     return`<button class="sec ${n?"":"off"}" data-s="${x.id}"><span class="sic" aria-hidden="true">${ICON[x.icon]}</span><span class="tx"><b>${esc(x.title)}</b><span class="ds">${esc(x.desc)}</span>
-      <span class="cnt">${n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación"}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>
-   ${TLM_SIGNIF}
-   <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
-   <a class="btn ghost tour-btn" href="tlami.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">✨ Conozca a Tlami, su acompañante</a>
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>`;
-  document.getElementById("perfilBtn").onclick=perfilView;{const a=document.getElementById("accAdm");if(a)a.onclick=()=>accAdminView();const d=document.getElementById("demoHome");if(d)d.onclick=demoEntrar}
-  app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
-  app.querySelectorAll(".sec").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));wireEquipo();window.scrollTo(0,0)}
-
+/* home(): ver «Inicio (diseño 2)» más abajo */
 const ICON={
  work:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></svg>',
  shield:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
@@ -1112,18 +1247,212 @@ const SECCIONES=[
 const GLBL={Becas:"",Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
+/* ---------- Inicio (diseño 2): saludo, buscador, próximo en el calendario, continuar, lo más usado y secciones por familia ---------- */
+const CHEV='<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const FAMILIAS=[
+ ["Mi escuela y mis alumnos",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["familias","","Recados, citatorios, avisos y autorizaciones"]]],
+ ["Pedagógico",[["pedagogico","","Lectura de la realidad, PMCE, analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"]]],
+ ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]]],
+ ["Trámites del personal",[["laboral","","Licencias, datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"],["becas","","Formato Único de Beca de la Secretaría de Educación"]]],
+ ["Consulta",[["calendario","","El calendario de Baja California que rige el ciclo"],["normas","Normatividad y libros de texto","Leyes, acuerdos, protocolos y libros de texto"]]]];
+const FAMILIA_FUERA=["seguro","misdocs","directorio"]; // tienen su propio acceso en el inicio
+const FAVS=[
+ {k:"chat",t:"Recados, avisos y citatorios",sec:"familias",go:()=>rcView()},
+ {k:"pen",t:"Libro de firmas del personal",sec:"direccion",go:()=>lfView()},
+ {k:"calplan",t:"Planeación didáctica",sec:"pedagogico",go:()=>plView()},
+ {k:"work",t:"Permiso económico (licencia)",sec:"laboral",go:()=>openAnexo("L")}];
+const TMETA={
+ firmas:{grp:"Libros para imprimir",tags:["PDF","Calendario oficial"],dest:"Ya trae las fechas del calendario oficial: CTE, suspensiones y vacaciones."},
+ visitas:{grp:"Libros para imprimir",tags:["PDF","Logo de la escuela"]},
+ pases:{grp:"Libros para imprimir",tags:["PDF","Por grado y grupo"]},
+ cte:{grp:"Reuniones y actas",tags:["PDF","Word","Lista para firmar"]},
+ inventario:{grp:"Recursos materiales",tags:["Formato oficial ISEP","PDF"]},
+ alumnos:{grp:"Datos de alumnos",tags:["Word"]},
+ recado:{tags:["Word","PDF"]},dx:{tags:["Word","PDF"]},salario:{tags:["Desde sus talones en PDF"]},asistencia:{tags:["PDF de RELweb"]}};
+const TICON={salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
+const AICON={L:"work",P:"user",S:"cross",U:"cap"};
+Object.assign(ICON,{
+ pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
+ door:'<svg viewBox="0 0 24 24"><path d="M6 3h9v18H6z"/><path d="M15 5h3v16M12 12h.01"/></svg>',
+ ticket:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5M4 15h16M14 18h2"/></svg>',
+ minuta:'<svg viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2M8 11h8M8 14h8M8 17h5"/></svg>',
+ box:'<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
+ scan:'<svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>',
+ listcheck:'<svg viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.3 1.3L7.3 5M3.5 12l1.3 1.3L7.3 11M3.5 18l1.3 1.3L7.3 17"/></svg>',
+ eye:'<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ stairs:'<svg viewBox="0 0 24 24"><path d="M3 20h5v-5h5v-5h5V5h3"/></svg>',
+ layers:'<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+ calplan:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15h4"/></svg>',
+ cap:'<svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg>',
+ user:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>',
+ group:'<svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><path d="M7 20c0-2.8 2.2-5 5-5s5 2.2 5 5M2 18c0-2 1.3-3.4 3-3.6M22 18c0-2-1.3-3.4-3-3.6"/></svg>',
+ clipcheck:'<svg viewBox="0 0 24 24"><path d="M9 4h6v4H9z"/><path d="M7 6H5v15h14V6h-2M9 14l2 2 4-4"/></svg>',
+ search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+ mic:'<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+ home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+ arrow:'<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+ back:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+ info:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+ play:'<svg class="ei" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/></svg>',
+ spark:'<svg class="ei" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>'});
+(()=>{const ic={becas:"cap",consejo:"group",eia:"clipcheck",misalumnos:"people",directorio:"group"};
+  SECCIONES.forEach(x=>{if(ic[x.id])x.icon=ic[x.id]});
+  const d=SECCIONES.find(x=>x.id==="direccion");if(d){delete d.intro;d.destacado="firmas";
+    d.nota=`¿Busca la descarga de la CURP? Ahora está en <button type="button" class="btn link" data-ir="laboral">Trámites del personal › Laboral</button>.`}})();
+
+const nrmTx=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+function iniPersona(){const n=String(perfil.minombre||"").trim();if(!n)return{saludo:"",ini:"",nombre:""};
+  const m=n.match(/^(mtra|maestra|profra|profesora|mtro|maestro|profr|profesor|lic|licda|licdo|dra|dr|ing)\.?\s+/i);
+  const resto=m?n.slice(m[0].length):n;const pal=resto.split(/\s+/).filter(Boolean);
+  const t=m?m[1].toLowerCase():"";const trato=/^(mtra|maestra|profra|profesora)$/.test(t)?"maestra":/^(mtro|maestro|profr|profesor)$/.test(t)?"maestro":"";
+  const ini=((pal[0]||"")[0]||"")+((pal[1]||"")[0]||"");
+  return{nombre:pal[0]||"",trato,ini:ini.toUpperCase()}}
+function iniSaludo(){const h=new Date().getHours();const s=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";const p=iniPersona();
+  return p.nombre?`${s}, ${p.trato?p.trato+" ":""}${esc(p.nombre)}`:`${s}`}
+function iniEscuela(){if(!perfil.escuela)return"Capture los datos de su escuela y se llenarán solos en los formatos.";
+  const g=[perfil.grado,perfil.grupo].filter(Boolean).join(" ");return[perfil.escuela,perfil.cct,g].filter(Boolean).map(esc).join(" · ")}
+function iniEvento(){const c=CAL||store.get("cal-cache",null);if(!c||!Array.isArray(c.eventos))return null;const h=today();
+  const e=c.eventos.find(e=>e&&e[1]>=h);if(!e)return null;
+  const d=Math.round((new Date(e[0]+"T12:00")-new Date(h+"T12:00"))/864e5);
+  const k=d<0?"En curso":d===0?"Hoy":d===1?"Mañana":`Próximo · en ${d} días`;
+  const M=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];const f=new Date(e[0]+"T12:00");
+  const t=String(e[2]).replace(/^Consejo Técnico Escolar\s*/i,"CTE · ");
+  return`<button type="button" class="ev" id="iniEv"><span class="ev-f" aria-hidden="true"><i>${M[f.getMonth()]}</i><b>${f.getDate()}</b></span><span class="ev-tx"><span class="ev-k">${k}</span><span class="ev-t">${esc(t)}</span><span class="ev-s">Calendario oficial de Baja California${c.ciclo?" · "+esc(c.ciclo):""}</span></span>${CHEV}</button>`}
+function iniPintaEv(){const b=document.getElementById("iniEvBox");if(!b)return;const h=iniEvento();b.innerHTML=h||"";b.hidden=!h;
+  const e=document.getElementById("iniEv");if(e)e.onclick=()=>{S.sec="calendario";calView()}}
+function iniFila(id,tit,sub,drafts){const x=SECCIONES.find(z=>z.id===id);if(!x)return"";
+  const n=x.count?x.count():secForms(x).length;const dr=secForms(x).filter(L=>drafts.includes(L)).length;
+  const lbl=n?(x.cntLabel?x.cntLabel(n):`${n} formato${n>1?"s":""}`):"En preparación";
+  return`<button type="button" class="item${n?"":" off"}" data-s="${id}"><span class="ico">${ICON[x.icon]||""}</span><span class="tx"><b>${esc(tit||x.title)}</b><span class="ds">${esc(sub||x.desc)}</span><span class="cnt">${esc(lbl)}${dr?` · <span class="draft">${dr} en borrador</span>`:""}</span></span>${CHEV}</button>`}
+function iniSecDe(L){const g=ANEXOS[L]&&ANEXOS[L].grupo;const x=SECCIONES.find(z=>z.grupos.includes(g));return x?x.id:null}
+
+function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
+  const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));const P=iniPersona();
+  const usados=new Set(FAMILIA_FUERA);FAMILIAS.forEach(f=>f[1].forEach(r=>usados.add(r[0])));
+  const extra=SECCIONES.filter(x=>!usados.has(x.id)).map(x=>[x.id,"",""]);
+  const fams=FAMILIAS.concat(extra.length?[["Más herramientas",extra]]:[]);
+  const conts=[];
+  if(typeof ULTIMA!=="undefined"&&ULTIMA&&ULTIMA.label)conts.push(`<button type="button" class="cont" id="resumeBtn"><span class="pill">Donde se quedó</span><b>${esc(ULTIMA.label)}</b><span class="ds">Toque para continuar</span></button>`);
+  drafts.slice(0,4).forEach(L=>{const d=store.get("ppie-draft-"+L,null)||{};const tot=(ANEXOS[L].steps||[1]).length;const p=Math.min(95,Math.max(5,Math.round(((d.step||0)+1)/tot*100)));
+    conts.push(`<button type="button" class="cont" data-l="${L}"><span class="pill w">Borrador · ${p}%</span><b>${esc(ANEXOS[L].name)}</b><span class="barra" aria-hidden="true"><i style="width:${p}%"></i></span></button>`)});
+  app.innerHTML=`<div class="inicio">
+   <header class="ini-band brand"><div class="ini-band-in">
+    <div class="ini-top">${TLM("oscuro")}<div style="min-width:0"><span class="ini-n">Tlamatini</span><span class="ini-l">Un camino para la labor docente</span></div>
+     <div class="ini-links"><button type="button" id="lkDocs">Mis documentos</button><button type="button" id="lkEsc">Mi escuela</button></div>
+     <button type="button" class="ini-av" id="avBtn" aria-label="Mi escuela y mis datos">${P.ini?esc(P.ini):ICON.user.replace("<svg",'<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"')}</button></div>
+    <p class="ini-hola">${iniSaludo()}</p><p class="ini-esc">${iniEscuela()}</p></div></header>
+   <div class="ini-busca" role="search">${ICON.search}<label for="buscarQ" class="sr">Buscar un formato o herramienta</label>
+    <input type="search" id="buscarQ" placeholder="¿Qué necesita hacer hoy?" autocomplete="off" enterkeyhint="search">
+    ${(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button type="button" class="ini-mic" id="buscarMic" aria-label="Dictar lo que busca">${ICON.mic}</button>`:""}</div>
+   <div class="ini-res" id="iniRes" hidden aria-live="polite"></div>
+   <div class="ini-main" id="iniMain">
+    ${perfil.escuela?"":`<section class="card"><div><h3>Primero, los datos de su escuela</h3><p class="muted" style="font-size:15px">Captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">Capturar datos de mi escuela</button></section>`}
+    <div id="iniEvBox">${iniEvento()||""}</div>
+    <section aria-labelledby="t-cont" id="contSec" ${conts.length?"":"hidden"}><h2 class="gt" id="t-cont">Continuar donde se quedó</h2><div class="conts" id="contStrip">${conts.join("")}</div></section>
+    <section aria-labelledby="t-uso"><h2 class="gt" id="t-uso">Lo más usado</h2>
+     <div class="tiles">${FAVS.map((f,i)=>`<button type="button" class="tile" data-fav="${i}"><span class="ico">${ICON[f.k]}</span><b>${esc(f.t)}</b></button>`).join("")}</div>
+     <button type="button" class="urg" data-s="seguro"><span class="ico t">${ICON.cross}</span><span class="tx"><b>¿Hubo un accidente?</b><span class="ds">Seguro escolar: teléfonos para reportar, aviso y clínicas</span></span>${CHEV}</button></section>
+    ${DEMO?demoRecorrido():""}
+    <div class="fams">${fams.map((f,i)=>`<section aria-labelledby="fam${i}"><h2 class="gt" id="fam${i}">${esc(f[0])}</h2><div class="lista">${f[1].map(r=>iniFila(r[0],r[1],r[2],drafts)).join("")}</div></section>`).join("")}</div>
+    <footer class="ini-pie">
+     <div class="ini-sup"><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div><p><b>Supervisión Escolar Zona No. 050</b><br><span>Primaria Federalizada · C.C.T. 02FIZ0094X · Camalú, San Quintín, B.C.</span></p></div>
+     <div class="ini-firma"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><i aria-hidden="true"></i><span>Supervisor Escolar</span></div>
+     <div class="ini-chips"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a><a href="mailto:tlamatini023@gmail.com?subject=Tlamatini%3A%20observaci%C3%B3n">Reportar un error o pedir un formato</a></div>
+     ${TLM_SIGNIF}
+     <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
+    </footer>
+   </div>
+   <nav class="ini-nav" aria-label="Navegación principal">
+    <button type="button" class="on" aria-current="page" id="nvIni">${ICON.home}<span>Inicio</span></button>
+    <button type="button" id="nvBus">${ICON.search}<span>Buscar</span></button>
+    <button type="button" id="nvDocs">${ICON.folder}<span>Mis documentos</span></button>
+    <button type="button" id="nvEsc">${ICON.user}<span>Mi escuela</span></button></nav>
+  </div>`;
+  const g=id=>document.getElementById(id);
+  const pb=g("perfilBtn");if(pb)pb.onclick=perfilView;
+  {const a=g("accAdm");if(a)a.onclick=()=>accAdminView();const d=g("demoHome");if(d)d.onclick=demoEntrar}
+  app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
+  app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));
+  app.querySelectorAll("[data-fav]").forEach(b=>b.onclick=()=>{const f=FAVS[+b.dataset.fav];S.sec=f.sec;f.go()});
+  app.querySelectorAll(".cont[data-l]").forEach(b=>b.onclick=()=>{S.sec=iniSecDe(b.dataset.l);openAnexo(b.dataset.l)});
+  const rb=g("resumeBtn");if(rb)rb.onclick=volverUltima;
+  const docs=()=>{S.sec=null;docsView()},esc2=()=>miEscuelaView();
+  g("lkDocs").onclick=docs;g("nvDocs").onclick=docs;g("lkEsc").onclick=esc2;g("nvEsc").onclick=esc2;g("avBtn").onclick=esc2;
+  g("nvIni").onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
+  g("nvBus").onclick=()=>{window.scrollTo({top:0,behavior:"smooth"});setTimeout(()=>g("buscarQ").focus(),250)};
+  iniBuscador();
+  if(!CAL&&typeof cargarCal==="function")cargarCal().then(()=>{if(S.view==="home")iniPintaEv()}).catch(()=>{});else iniPintaEv();
+  if(!DEMO&&typeof docsAll==="function")docsAll().then(a=>{if(S.view!=="home"||!a||!a.length)return;const st=g("contStrip"),sc=g("contSec");if(!st)return;
+    st.insertAdjacentHTML("beforeend",a.slice(0,3).map(d=>`<button type="button" class="cont" data-doc="1"><span class="pill">${esc(docsFecha(d.fecha))}</span><b>${esc(String(d.nombre).replace(/\.[a-z0-9]+$/i,""))}</b><span class="ds">${esc(docsTipo(d.nombre,d.tipo).l||"Archivo")} · ver, imprimir o enviar</span></button>`).join(""));
+    sc.hidden=false;st.querySelectorAll("[data-doc]").forEach(b=>b.onclick=docs)}).catch(()=>{});
+  window.scrollTo(0,0)}
+
+/* Buscador del inicio: secciones, herramientas y formatos */
+function iniIndice(){const it=[];
+  SECCIONES.forEach(x=>{it.push({t:x.title,d:x.desc,ic:ICON[x.icon],q:nrmTx(x.title+" "+x.desc),go:()=>sectionView(x.id),peso:1});
+    (x.tools||[]).forEach(t=>it.push({t:t.name,d:t.use,ic:ICON[TICON[t.id]]||esc(t.letra||""),q:nrmTx(t.name+" "+t.use+" "+x.title),go:()=>{S.sec=x.id;if(t.open)t.open();else edadesView()},peso:2}))});
+  Object.keys(ANEXOS).forEach(L=>{const sid=iniSecDe(L);const ppie=sid==="ppie";
+    it.push({t:(ppie?`Anexo ${L} · `:"")+ANEXOS[L].name,d:ANEXOS[L].use,ic:AICON[L]?ICON[AICON[L]]:L,q:nrmTx(ANEXOS[L].name+" "+ANEXOS[L].use+(ppie?" anexo "+L+" ppie":"")+(L==="L"?" permiso economico licencia":"")),go:()=>{S.sec=sid;openAnexo(L)},peso:2})});
+  return it}
+function iniBuscador(){const q=document.getElementById("buscarQ"),res=document.getElementById("iniRes"),main=document.getElementById("iniMain");if(!q)return;let IDX=null;
+  const pinta=()=>{const v=nrmTx(q.value).trim();if(!v){res.hidden=true;res.innerHTML="";main.hidden=false;return}
+    IDX=IDX||iniIndice();const ws=v.split(/\s+/).filter(w=>w.length>1||/\d/.test(w));
+    const r=IDX.map(o=>{if(!ws.every(w=>o.q.includes(w)))return null;const tt=nrmTx(o.t);return{o,s:ws.reduce((a,w)=>a+(tt.includes(w)?3:1),0)+(tt.startsWith(ws[0])?2:0)+o.peso*.1}}).filter(Boolean).sort((a,b)=>b.s-a.s).slice(0,12);
+    main.hidden=true;res.hidden=false;
+    res.innerHTML=r.length?`<h2 class="gt">${r.length} resultado${r.length>1?"s":""}</h2><div class="lista">${r.map((x,i)=>`<button type="button" class="item" data-r="${i}"><span class="ico">${x.o.ic}</span><span class="tx"><b>${esc(x.o.t)}</b><span class="ds">${esc(x.o.d)}</span></span>${CHEV}</button>`).join("")}</div>`
+      :`<div class="lista"><p class="vacio">No encontramos «${esc(q.value.trim())}». Pruebe con otra palabra, o escríbanos a ${CONTACTO} si necesita un formato que todavía no está.</p></div>`;
+    res.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>r[+b.dataset.r].o.go())};
+  q.addEventListener("input",pinta);q.addEventListener("keydown",e=>{if(e.key==="Escape"){q.value="";pinta()}if(e.key==="Enter"){const b=res.querySelector("[data-r]");if(b)b.click()}});
+  const mb=document.getElementById("buscarMic");const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(mb&&SR)mb.onclick=()=>{try{const r=new SR();r.lang="es-MX";r.interimResults=true;mb.classList.add("on");
+    r.onresult=e=>{q.value=Array.from(e.results).map(x=>x[0].transcript).join(" ").replace(/[.¿?]/g,"");pinta()};
+    r.onend=r.onerror=()=>mb.classList.remove("on");r.start()}catch(e){mb.classList.remove("on")}}}
+
+/* Mi escuela: datos de la escuela, instalación, respaldo y datos de la Supervisión */
+function miEscuelaView(){S.view="miescuela";S.sec=null;S.letra=null;setBar("");
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini</div><h2>Mi escuela</h2></div></div>
+   <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p>
+    ${perfil.minombre?`<p class="help" style="margin-top:4px">${esc(perfil.minombre)}${perfil.micargo?" · "+esc(perfil.micargo):""}</p>`:""}</div>
+    <button type="button" class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
+   <section class="lista">${iniFila("misalumnos","Mis alumnos","",[])}${iniFila("directorio","","",[])}${iniFila("misdocs","","",[])}</section>
+   ${equipoHTML()}
+   <section class="sup" aria-label="Datos de la Supervisión">
+    <div class="sup-h"><div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div></div>
+    <div class="sup-g">
+     <span><i>C.C.T.</i>02FIZ0094X</span><span><i>Sede</i>Camalú, San Quintín, B.C. · C.P. 22910</span>
+     <span><i>Teléfono</i><a href="tel:6161655622">616 165 5622</a></span><span><i>Correo</i><a href="mailto:supervision050sep@gmail.com">supervision050sep@gmail.com</a></span>
+     <span><i>Turno</i>Matutino-vespertino</span><span><i>Delegación</i>San Quintín · ISEP</span>
+    </div>
+    <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>
+   </section>
+   <div class="ini-chips" style="justify-content:flex-start"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a></div>
+   <p class="foot">¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}</p>`;
+  const g=id=>document.getElementById(id);g("salir").onclick=home;g("perfilBtn").onclick=perfilView;
+  app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));wireEquipo();window.scrollTo(0,0)}
+
 function sectionView(id){const x=SECCIONES.find(z=>z.id===id);if(x.view)return x.view();S.view="section";S.sec=id;setBar("");
   const drafts=Object.keys(ANEXOS).filter(L=>store.get("ppie-draft-"+L,null));
-  const tools=(x.tools||[]).map(t=>`<div class="anexos"><button class="anexo tool" data-t="${t.id}"><span class="letra">${t.letra}</span><span class="tx"><b>${esc(t.name)}</b><span class="ds">${esc(t.use)}</span></span></button></div>`).join("");
-  const body=tools?tools:x.grupos.length?x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
-     return`${GLBL[g]?`<div class="group-title">${GLBL[g]}</div>`:""}<div class="anexos">${ls.map(L=>`<button class="anexo" data-l="${L}"><span class="letra">${L}</span><span class="tx"><b>${esc(ANEXOS[L].name)}${drafts.includes(L)?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(ANEXOS[L].use)}</span></span></button>`).join("")}</div>`}).join("")
-   :`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a ${CONTACTO}.</div>`;
+  const row=(attr,ic,name,use,tags,dr)=>`<button type="button" class="item" ${attr}><span class="ico">${ic}</span><span class="tx"><b>${esc(name)}${dr?'<span class="draft">En borrador</span>':""}</b><span class="ds">${esc(use)}</span>${tags&&tags.length?`<span class="tags">${tags.map(g=>`<span class="tag">${esc(g)}</span>`).join("")}</span>`:""}</span>${CHEV}</button>`;
+  const dest=x.destacado&&(x.tools||[]).find(t=>t.id===x.destacado);
+  const tl=(x.tools||[]).filter(t=>!dest||t.id!==dest.id);let body="";
+  if(tl.length){const grs=[];tl.forEach(t=>{const m=TMETA[t.id]||{};const g=m.grp||"";let G=grs.find(z=>z.g===g);if(!G){G={g,it:[]};grs.push(G)}
+      G.it.push(row(`data-t="${t.id}"`,ICON[TICON[t.id]]||esc(t.letra||""),t.name,t.use,m.tags))});
+    body=grs.map(G=>`${G.g?`<div class="group-title">${esc(G.g)}</div>`:""}<div class="lista">${G.it.join("")}</div>`).join("")}
+  else if(x.grupos.length){body=x.grupos.map(g=>{const ls=Object.keys(ANEXOS).filter(L=>ANEXOS[L].grupo===g);if(!ls.length)return"";
+     return`${GLBL[g]?`<div class="group-title">${GLBL[g]}</div>`:""}<div class="lista">${ls.map(L=>row(`data-l="${L}"`,AICON[L]?ICON[AICON[L]]:L,(x.id==="ppie"?`Anexo ${L} · `:"")+ANEXOS[L].name,ANEXOS[L].use,null,drafts.includes(L))).join("")}</div>`}).join("")}
+  else if(!dest)body=`<div class="soon"><b>En preparación.</b> Esta sección se irá llenando con los formatos de la zona. Si tiene uno que use con frecuencia, envíelo a ${CONTACTO}.</div>`;
+  const dm=dest?(TMETA[dest.id]||{}):{};
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini · Zona 050</div><h2>${esc(x.title)}</h2></div></div>
-   <p class="muted">${esc(x.desc)}</p>${x.intro?x.intro():""}${body}${x.admin?`<button class="btn link adminlink" id="adminSeg">Supervisión: actualizar teléfonos</button>`:""}`;
+   <div class="sec-hero"><span class="sec-ic" aria-hidden="true">${ICON[x.icon]||""}</span><p>${esc(x.desc)}</p></div>
+   ${x.intro?x.intro():""}
+   ${dest?`<button type="button" class="dest" data-t="${dest.id}"><span class="dest-tx"><span class="dest-k">El más usado</span><span class="dest-n">${esc(dest.name)}</span><span class="dest-d">${esc(dm.dest||dest.use)}</span><span class="dest-b">Abrir ${ICON.arrow}</span></span><span class="dest-hoja" aria-hidden="true"><i class="t1"></i><i class="t2"></i><i></i><i></i><i></i><i></i><i></i><i class="pie"></i></span></button>`:""}
+   ${body}${x.nota?`<p class="nota">${ICON.info}<span>${x.nota}</span></p>`:""}${x.admin?`<button class="btn link adminlink" id="adminSeg">Supervisión: actualizar teléfonos</button>`:""}`;
   if(x.admin)document.getElementById("adminSeg").onclick=seguroAdminView;
   if(x.id==="seguro"&&!SEGURO)cargarSeguro().then(r=>{if(r&&S.view==="section"&&S.sec===id)sectionView(id)});
   document.getElementById("salir").onclick=()=>{S.sec=null;home()};
-  app.querySelectorAll(".anexo:not(.tool)").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));app.querySelectorAll(".anexo.tool").forEach(b=>b.onclick=()=>{const t=(x.tools||[]).find(t=>t.id===b.dataset.t);if(t&&t.open)t.open();else edadesView()});window.scrollTo(0,0)}
+  app.querySelectorAll("[data-ir]").forEach(b=>b.onclick=()=>sectionView(b.dataset.ir));
+  app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>openAnexo(b.dataset.l));
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=(x.tools||[]).find(t=>t.id===b.dataset.t);if(t&&t.open)t.open();else edadesView()});window.scrollTo(0,0)}
 
 function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="muted" style="font-weight:400">(opcional)</span>':"";
   const help=f.help?`<p class="help">${esc(f.help)}</p>`:"";const lab=`<label for="${id}">${esc(f.label)}${opt}</label>`;
@@ -1131,7 +1460,7 @@ function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="mu
   if(f.type==="chars")return`<div class="field">${lab}${help}<input type="text" id="${id}" value="${esc(val||"")}" maxlength="${f.to.length}" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,Menlo,Consolas,monospace"><div class="meter" id="${id}_c"></div></div>`;
   if(f.type==="photo")return`<div class="field"><span class="lbl">${esc(f.label)}</span>${help}<input type="hidden" id="${id}" value="${esc(val||"")}">
     <div class="ph"><div class="phf" id="${id}_pv">${val?`<img src="${val}" alt="Fotografía">`:`<span>Sin foto</span>`}</div>
-     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">📷 Tomar foto<input type="file" accept="image/*" capture="user" id="${id}_cam" hidden></label>
+     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${EI.cam}Tomar foto<input type="file" accept="image/*" capture="user" id="${id}_cam" hidden></label>
       <button type="button" class="btn ghost" id="${id}_web">Usar cámara web</button>
       <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Elegir de la galería<input type="file" accept="image/*" id="${id}_gal" hidden></label>
       <button type="button" class="btn link" id="${id}_del" ${val?"":"hidden"}>Quitar foto</button></div></div>
@@ -1172,7 +1501,7 @@ function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";co
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
   for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref?A.pref:"Anexo "+S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
-   ${S.step===0?pickHTML():""}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima o descargue el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">🖨 Imprimir en blanco</button><button type="button" class="btn ghost" id="blancoD">⬇ Descargar en blanco</button></div>`:""}
+   ${S.step===0?pickHTML():""}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima o descargue el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">${EI.print}Imprimir en blanco</button><button type="button" class="btn ghost" id="blancoD">${EI.down}Descargar en blanco</button></div>`:""}
    <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
    ${st.intro&&A.intro?A.intro():""}<form class="card" id="frm" novalidate>${html}</form>`;
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
@@ -1205,12 +1534,12 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
      <div class="review">${st.fields.map(f=>{const t=showVal(f);return`<div class="rv"><span>${esc(f.label)}</span><span${t?"":' class="empty"'}>${t?esc(t):"Sin llenar"}</span></div>`}).join("")}</div></section>`).join("")}
    <section class="card"><h3>¿Qué desea hacer con el formato?</h3><p class="muted" style="font-size:15px">Se genera el PDF en el formato oficial${A.pref?"":" del Anexo "+S.letra}. Las firmas y sellos se hacen a mano.${A.back?" <b>Imprímalo a doble cara:</b> al frente el aviso y al reverso la red de clínicas.":""}</p>
     <div class="acts">
-     <button class="btn primary act" data-act="print" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
-     <button class="btn primary act" data-act="share" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
-     <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button>
+     <button class="btn primary act" data-act="print" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
+     <button class="btn primary act" data-act="share" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button>
     </div>
     <div id="msg"></div>
-    <button class="btn link" id="blancoR">🖨 Imprimir el formato oficial en blanco (para llenar a mano)</button><button class="btn link" id="blancoRD">⬇ Descargar el formato oficial en blanco</button>
+    <button class="btn link" id="blancoR">${EI.print}Imprimir el formato oficial en blanco (para llenar a mano)</button><button class="btn link" id="blancoRD">${EI.down}Descargar el formato oficial en blanco</button>
     <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
   setBar(`<button class="btn ghost" id="prev">Anterior</button><button class="btn ghost" id="inicio">Inicio</button>`);
   app.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;stepView()});
@@ -1317,7 +1646,7 @@ function docsReg(blob,nombre){
   try{const n=this.download,h=this.href||"";if(n&&h.startsWith("blob:")&&!DOCS_SKIP){fetch(h).then(r=>r.blob()).then(b=>docsReg(b,n)).catch(()=>{})}}catch(e){}
   return orig.apply(this,arguments)}})();
 function docsCntLabel(){return DOCS_N==null?"Sus archivos generados":DOCS_N?`${DOCS_N} documento${DOCS_N>1?"s":""} guardado${DOCS_N>1?"s":""}`:"Aquí aparecerá lo que genere"}
-function docsCntHome(){const c=document.querySelector('.sec[data-s="misdocs"] .cnt');if(c)c.textContent=docsCntLabel()}
+function docsCntHome(){const c=document.querySelector('[data-s="misdocs"] .cnt');if(c)c.textContent=docsCntLabel()}
 async function docsLimpiar(){const d=docsDias();if(!d)return 0;const lim=Date.now()-d*86400000;const all=await docsAll();let n=0;
   for(const x of all)if(x.fecha<lim){await docsDelete(x.id);n++}return n}
 function docsInit(){docsLimpiar().catch(()=>{}).then(()=>docsAll()).then(a=>{DOCS_N=a.length;docsCntHome()}).catch(()=>{DOCS_N=null})}
@@ -1352,7 +1681,7 @@ async function docsView(keep){const y0=window.scrollY;S.view="misdocs";S.sec="mi
      <span class="dc-ty dc-${T.k}" aria-hidden="true">${esc(T.l)}</span>
      <div class="dc-tx"><b>${esc(d.nombre.replace(/\.[a-z0-9]+$/i,""))}</b>
       <span class="dc-m">${esc(docsFecha(d.fecha))} · ${T.l} · ${docsTam(d.tam||0)}${d.seccion?" · "+esc(d.seccion):""}${(d.veces||1)>1?` · generado ${d.veces} veces`:""}</span>
-      <div class="dc-ac">${pdf?`<button class="btn ghost sm" data-a="ver" data-id="${d.id}">Ver</button><button class="btn ghost sm" data-a="imprimir" data-id="${d.id}">🖨 Imprimir</button>`:`<button class="btn ghost sm" data-a="guardar" data-id="${d.id}">Abrir</button>`}
+      <div class="dc-ac">${pdf?`<button class="btn ghost sm" data-a="ver" data-id="${d.id}">Ver</button><button class="btn ghost sm" data-a="imprimir" data-id="${d.id}">${EI.print}Imprimir</button>`:`<button class="btn ghost sm" data-a="guardar" data-id="${d.id}">Abrir</button>`}
        <button class="btn ghost sm" data-a="enviar" data-id="${d.id}">Enviar</button>${pdf?`<button class="btn ghost sm" data-a="guardar" data-id="${d.id}">Descargar</button>`:""}
        <button class="btn ghost sm dc-del" data-a="borrar" data-id="${d.id}">Borrar</button></div></div></li>`};
   app.innerHTML=top+`
@@ -1386,7 +1715,7 @@ async function docsView(keep){const y0=window.scrollY;S.view="misdocs";S.sec="mi
   window.scrollTo(0,keep?y0:0)}
 docsInit();
 /* Botón «Imprimir» junto a «Descargar PDF»: genera exactamente el mismo PDF y lo manda a la impresora */
-function botonImprimir(id){return`<button class="btn primary act" id="${id}"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>`}
+function botonImprimir(id){return`<button class="btn primary act" id="${id}"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>`}
 function wireImprimir(id,fn){const b=document.getElementById(id);if(b)b.onclick=e=>{PMODE="print";fn(e.currentTarget)}}
 /* Formato oficial en blanco, tal cual el original, para llenarlo a mano */
 async function imprimirBlanco(L,btn,descargar){const label=btn.innerHTML;btn.disabled=true;btn.textContent="Preparando…";const prev=S.vals;
@@ -1493,7 +1822,7 @@ function edadesView(){if(!ED.ok||!ED.ciclo)return edCicloView();ED.corte=corteDe
     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de grupo(s)<input type="file" id="pdfs" accept="application/pdf,.pdf" multiple hidden></label>
     <div id="msg"></div></section>
    ${gs.length?`<div class="group-title">Concentrado de la escuela · ${todos.length} alumnos</div><section class="card">${matrizHTML(todos)}
-     <div class="acts"><button class="btn primary act" id="xls">⬇ Descargar Excel de estadística</button></div>
+     <div class="acts"><button class="btn primary act" id="xls">${EI.down}Descargar Excel de estadística</button></div>
      <p class="help">Se llena el Excel oficial de estadística (de seis a doce grupos): CURP, nombre y repetidor en cada grupo; las edades y concentrados se calculan solos.</p></section>
     ${grados.length>1?grados.map(gr=>`<details class="card"><summary><b>Concentrado de ${gr}°</b> · ${gs.filter(g=>g.grado===gr).reduce((t,g)=>t+g.alumnos.length,0)} alumnos</summary>${matrizHTML(gs.filter(g=>g.grado===gr).flatMap(g=>g.alumnos))}</details>`).join(""):""}
     <div class="group-title">Grupos</div>
@@ -1590,7 +1919,7 @@ function logoWidgetHTML(){const L=logoGet();
   return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Si no sube uno, se usa el logo de la Zona 050.</p>
    <div class="ph"><div class="phf lvlogo" id="lg_pv">${L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lg_file" hidden></label>
-     <button type="button" class="btn ghost" id="lg_up" ${L?"":"hidden"}>✨ Mejorar calidad</button>
+     <button type="button" class="btn ghost" id="lg_up" ${L?"":"hidden"}>${EI.spark}Mejorar calidad</button>
      <button type="button" class="btn link" id="lg_undo" hidden>Deshacer la mejora</button>
      <button type="button" class="btn link" id="lg_del" ${L?"":"hidden"}>Quitar logo</button></div></div>
    <div class="help" id="lg_m"></div></section>`}
@@ -1606,7 +1935,7 @@ function wireLogo(onChange){const g=id=>document.getElementById(id);
     b.disabled=true;b.textContent="Mejorando… 0%";g("lg_m").textContent="Mejorando el logo con inteligencia artificial en este equipo. Puede tardar de unos segundos a un minuto; no cierre la página.";
     try{const out=await mejorarLogo(L,p=>{b.textContent=`Mejorando… ${Math.round(p*100)}%`});LOGO_ORIG=L;guardar(out,"<b>Logo mejorado.</b> Compárelo; si no le gusta, toque «Deshacer la mejora».")}
     catch(err){g("lg_m").innerHTML=`<b>No se pudo mejorar el logo.</b> Revise su conexión e intente de nuevo. (${esc(err.message||err)})`}
-    finally{b.disabled=false;b.textContent="✨ Mejorar calidad"}};
+    finally{b.disabled=false;b.innerHTML=EI.spark+"Mejorar calidad"}};
   g("lg_undo").onclick=()=>{const o=LOGO_ORIG;LOGO_ORIG=null;guardar(o,"Se restauró el logo original.")};
   g("lg_del").onclick=()=>{LOGO_ORIG=null;guardar(null,"")};
   info()}
@@ -1834,9 +2163,9 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     <button class="btn ghost" id="lf_prev">Ver vista previa</button><div id="lf_pvw" class="lvpv"></div></section>
    <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>${v.orient==="horizontal"?"horizontal":"vertical"}</b>${v.orient==="horizontal"&&(v.portada||v.normas)?" (la portada y la normatividad salen en vertical; la impresora las acomoda sola)":""}.</p>
     <div class="acts">
-     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
-     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
-     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button></div>
     <div id="msg"></div></section>
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
@@ -2015,9 +2344,9 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=
     <button class="btn ghost" id="lv_prev">Ver vista previa</button><div id="lv_pvw" class="lvpv"></div></section>
    <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>horizontal</b>, a una sola cara.</p>
     <div class="acts">
-     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
-     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
-     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button></div>
     <div id="msg"></div></section>
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
@@ -2206,9 +2535,9 @@ function psView(){S.view="pases";S.letra=null;if(!PS)PS=psInit();setBar("");OUT=
    <section class="card"><h3>¿Qué desea hacer con los libros?</h3><p class="muted" style="font-size:15px">Imprima en hojas tamaño <b>Carta</b>, orientación <b>vertical</b>, a una sola cara y al <b>100 %</b>.</p>
     <ol class="help" style="padding-left:20px;margin:0 0 12px"><li>Cada hoja lleva dos pases con folios seguidos (001 arriba, 002 abajo).</li><li>Corte cada hoja por la línea punteada y vaya acomodando los pases en orden.</li><li>Engrape o encuaderne por la izquierda.</li></ol>
     <div class="acts">
-     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">🖨</span>Imprimir</button>
-     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">✉</span>Enviar por correo o WhatsApp</button>
-     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">⬇</span>Guardar en este dispositivo</button></div>
+     <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
+     <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
+     <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button></div>
     <div id="msg"></div></section>
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
@@ -2532,7 +2861,7 @@ function salView(){S.view="salario";S.letra=null;setBar("");
       <p class="help">${g.recibos.length} comprobante(s)</p></div>`}).join("")}
     ${claves.length>1?`<div class="escbox tot"><div class="escname">TOTAL DE TODAS LAS ESCUELAS</div>
       <div class="calhead"><div><i>Percepciones</i><b>${salMoney(totPerc)}</b></div><div><i>ISR + seguridad social</i><b>${salMoney(totDesc)}</b></div><div><i>Ingreso anual neto</i><b>${salMoney(totNeto)}</b></div></div></div>`:""}
-    <div class="acts"><button class="btn primary act" id="s_xls">⬇ Descargar Excel del cálculo</button></div></section>
+    <div class="acts"><button class="btn primary act" id="s_xls">${EI.down}Descargar Excel del cálculo</button></div></section>
    <div class="group-title">Comprobantes · ${rec.length}</div>
    ${rec.map(fila).join("")}`
    :`<div class="soon">Aún no hay comprobantes. Suba sus CFDI de nómina en PDF o agregue uno a mano.</div>`}
@@ -2640,7 +2969,7 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
      <button type="button" class="btn ghost dxaddit" data-si="${si}">+ Agregar un punto</button>
      <button type="button" class="btn link dxdelsec" data-si="${si}" style="padding:6px 0">Quitar esta sección</button></section>`).join("")}
    <button class="btn ghost" id="dxAddSec">+ Agregar una sección</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="dxWord">⬇ Descargar para Word (editable)</button>${botonImprimir("dxPrint")}<button class="btn ghost act" id="dxPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="dxWord">${EI.down}Descargar para Word (editable)</button>${botonImprimir("dxPrint")}<button class="btn ghost act" id="dxPDF">${EI.down}Descargar PDF</button></div>
     <button class="btn link" id="dxNuevo">Empezar de nuevo (borra grupo y escuela)</button></section>
    <p class="foot">La lectura de la realidad se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -2740,7 +3069,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
      <button type="button" class="btn ghost pmaddc" data-ai="${ai}">+ Agregar acción</button>
      <button type="button" class="btn link pmdela" data-ai="${ai}" style="padding:6px 0">Quitar este aspecto</button></section>`).join("")}
    <button class="btn ghost" id="pmAddA">+ Agregar un aspecto de atención</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">⬇ Descargar para Word (editable)</button>${botonImprimir("pmPrint")}<button class="btn ghost act" id="pmPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="pmWord">${EI.down}Descargar para Word (editable)</button>${botonImprimir("pmPrint")}<button class="btn ghost act" id="pmPDF">${EI.down}Descargar PDF</button></div>
     <button class="btn link" id="pmNuevo">Empezar un PMC nuevo</button></section>
    <p class="foot">El PMC se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -2892,7 +3221,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
      <div class="field"><label>Descripción del codiseño</label><textarea class="pco" data-f="descripcion" rows="3">${esc(p.descripcion)}</textarea></div>
      <button type="button" class="btn link pcoddel" data-pi="${pi}" style="padding:4px 0">Quitar proyecto</button></section>`).join("")}
    <button class="btn ghost" id="paAddCod">+ Agregar proyecto / situación de aprendizaje</button>
-   <section class="card"><div class="acts"><button class="btn primary act" id="paWord">⬇ Descargar para Word (editable)</button>${botonImprimir("paPrint")}<button class="btn ghost act" id="paPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="paWord">${EI.down}Descargar para Word (editable)</button>${botonImprimir("paPrint")}<button class="btn ghost act" id="paPDF">${EI.down}Descargar PDF</button></div>
     <button class="btn link" id="paNuevo">Empezar de nuevo (borra escuela y grupo)</button></section>
    <p class="foot">El Programa Analítico se guarda solo en este dispositivo. Nada se envía a internet. Contenidos y PDA oficiales del Programa Sintético (Plan 2022), fases 3, 4 y 5. Puede editarlos si lo requiere.</p>`;
   app.querySelectorAll(".pacampo").forEach(d=>{if(paOpen.includes(d.dataset.camp))d.open=true});
@@ -3093,7 +3422,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
    <section class="card"><h3>Inclusión</h3>
     <div class="field"><label>Ajustes razonables</label><p class="help">Para alumnos que lo requieran (apoyos, tiempos, materiales, organización), sin modificar los aprendizajes esperados.</p><textarea class="pl_inc" data-k="ajustes" rows="3">${esc(PL.ajustes)}</textarea></div>
     <div class="field"><label>Adecuaciones curriculares</label><p class="help">Cuando se ajustan los contenidos u objetivos para un alumno en particular.</p><textarea class="pl_inc" data-k="adecuaciones" rows="3">${esc(PL.adecuaciones)}</textarea></div></section>
-   <section class="card"><div class="acts"><button class="btn primary act" id="plWord">⬇ Descargar para Word (editable)</button>${botonImprimir("plPrint")}<button class="btn ghost act" id="plPDF">⬇ Descargar PDF</button></div>
+   <section class="card"><div class="acts"><button class="btn primary act" id="plWord">${EI.down}Descargar para Word (editable)</button>${botonImprimir("plPrint")}<button class="btn ghost act" id="plPDF">${EI.down}Descargar PDF</button></div>
     <button class="btn link" id="plNuevo">Empezar una planeación nueva</button></section>
    <p class="foot">La planeación se guarda solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
@@ -3296,7 +3625,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
     ${firmaWidgetHTML()}
     <label class="opt ${RC.usarFirma?"on":""}" style="display:inline-flex;margin-top:4px"><input type="checkbox" id="rc_usarfirma" ${RC.usarFirma?"checked":""}>Incluir mi firma digital</label>
     ${esAut?`<p class="help">La autorización lleva un espacio para que el tutor marque «Autorizo / No autorizo» y firme.</p>`:esCit?`<p class="help">El citatorio incluye un acuse de enterado para confirmar asistencia.</p>`:`<label class="opt ${RC.acuse?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_acuse" ${RC.acuse?"checked":""}>Incluir acuse de enterado (para firmar y devolver)</label>`}</section>
-   <section class="card"><label class="opt ${RC.dosHoja?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_dos" ${RC.dosHoja?"checked":""}>Dos por hoja (media carta)</label><p class="help">Acomoda dos copias en cada hoja carta, con una línea de corte al centro. Ahorra papel en los recados generales. Aplica al PDF.</p><div class="acts">${botonImprimir("rcPrint")}<button class="btn ghost act" id="rc_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="rc_word">⬇ Descargar para Word</button></div></section>
+   <section class="card"><label class="opt ${RC.dosHoja?"on":""}" style="display:inline-flex"><input type="checkbox" id="rc_dos" ${RC.dosHoja?"checked":""}>Dos por hoja (media carta)</label><p class="help">Acomoda dos copias en cada hoja carta, con una línea de corte al centro. Ahorra papel en los recados generales. Aplica al PDF.</p><div class="acts">${botonImprimir("rcPrint")}<button class="btn ghost act" id="rc_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="rc_word">${EI.down}Descargar para Word</button></div></section>
    <p class="foot">La comunicación y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{const v=id=>{const e=g(id);return e?e.value:(RC[id.slice(3)]||"")};
@@ -3500,7 +3829,7 @@ function invView(){S.view="inventario";S.letra=null;setBar("");if(!INV)INV=invNu
    ${k!=="resguardo"&&k!=="transferencia"?`<section class="card"><div class="field"><label>Resguardante <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" data-f="resguardante" value="${esc(INV.resguardante)}" autocomplete="off"><p class="help">Nombre que aparece en la firma de «Resguardante». Si lo deja vacío, se firma a mano.</p></div></section>`:""}
    <section class="card"><h3>Bienes</h3><p class="help">Caben ${cap} bienes por hoja. Si captura más, se agregan hojas del mismo formato.</p>${itemsHTML}
     <div class="acts"><button type="button" class="btn ghost act" id="inv_add">+ Agregar bien</button></div></section>
-   <section class="card"><div class="acts">${botonImprimir("invPrint")}<button class="btn ghost act" id="inv_pdf">⬇ Descargar formato (PDF)</button><button type="button" class="btn link" id="inv_nuevo">Empezar uno nuevo</button></div></section>
+   <section class="card"><div class="acts">${botonImprimir("invPrint")}<button class="btn ghost act" id="inv_pdf">${EI.down}Descargar formato (PDF)</button><button type="button" class="btn link" id="inv_nuevo">Empezar uno nuevo</button></div></section>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=INV;for(let j=0;j<p.length-1;j++)o=o[p[j]];o[p[p.length-1]]=e.value});invSave()};
   app.querySelectorAll("[data-f]").forEach(e=>e.addEventListener("change",leer));
@@ -3689,7 +4018,7 @@ function cpView(){S.view="consejo";S.letra=null;setBar("");if(!CP)CP=cpNuevo();c
    <section class="card"><h3>Presidente(a) del Consejo</h3><div class="row2">${cpIn("pres.nom","Nombre(s)",CP.pres.nom)}${cpIn("pres.ap1","Primer apellido",CP.pres.ap1)}</div>${cpIn("pres.ap2","Segundo apellido",CP.pres.ap2)}</section>
    <section class="card"><h3>Formato</h3><div>${docBtns}</div></section>
    ${cuerpo}
-   ${doc!=="req"?`<section class="card"><div class="acts">${botonImprimir("cpPrint")}<button class="btn ghost act" id="cp_pdf">⬇ Descargar ${esc(CP_DOCS.find(d=>d[0]===doc)[1].toLowerCase())} (PDF)</button></div></section>`:""}
+   ${doc!=="req"?`<section class="card"><div class="acts">${botonImprimir("cpPrint")}<button class="btn ghost act" id="cp_pdf">${EI.down}Descargar ${esc(CP_DOCS.find(d=>d[0]===doc)[1].toLowerCase())} (PDF)</button></div></section>`:""}
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=CP;for(let j=0;j<p.length-1;j++)o=o[p[j]];o[p[p.length-1]]=e.type==="checkbox"?e.checked:e.value});cpSave()};
   const rer=fn=>()=>{leer();fn();cpSave();const y=window.scrollY;cpView();window.scrollTo(0,y)};
@@ -3883,7 +4212,7 @@ function asView(){S.view="asistencia";S.letra=null;setBar("");if(!AS)AS=asNuevo(
     <div class="acts" style="margin-top:6px"><button type="button" class="btn link" id="as_todos">Todo el ciclo</button><button type="button" class="btn link" id="as_ninguno">Ninguno</button></div>
     <label class="opt ${AS.sombrear?"on":""}" style="display:inline-flex"><input type="checkbox" data-f="sombrear" ${AS.sombrear?"checked":""}>Sombrear los días sin clases (CTE, suspensiones y vacaciones)</label>
     <div class="field"><label>Renglones en blanco al final <span class="muted" style="font-weight:400">(para altas)</span></label><select data-f="extra">${[0,1,2,3,5].map(x=>`<option ${+AS.extra===x?"selected":""}>${x}</option>`).join("")}</select></div></section>
-   <section class="card"><div class="acts">${botonImprimir("asPrint")}<button class="btn ghost act" id="as_go">⬇ Descargar lista (PDF)</button></div>${CAL?"":`<p class="help"><b>Ojo:</b> no se pudo cargar el calendario oficial; los días sin clases no se marcarán.</p>`}</section>
+   <section class="card"><div class="acts">${botonImprimir("asPrint")}<button class="btn ghost act" id="as_go">${EI.down}Descargar lista (PDF)</button></div>${CAL?"":`<p class="help"><b>Ojo:</b> no se pudo cargar el calendario oficial; los días sin clases no se marcarán.</p>`}</section>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{AS[e.dataset.f]=e.type==="checkbox"?e.checked:e.value});AS.meses=[...app.querySelectorAll("[data-mes]")].filter(x=>x.checked).map(x=>x.dataset.mes);asSave()};
@@ -4007,7 +4336,7 @@ function cteView(){S.view="cte";S.letra=null;setBar("");if(!CTE)cteInit();cteEle
     <div class="field"><label>Relator(a) o secretario(a) de la sesión</label><select data-f="ses.relator"><option value="">—</option>${CTE.personal.map(p=>`<option ${C.relator===p.n?"selected":""}>${esc(p.n)}</option>`).join("")}</select></div>
     <p class="help">La minuta lleva la firma del director(a) y del relator(a), y al final la lista de asistencia para que firme cada asistente.</p></section>
    ${logoWidgetHTML()}
-   <section class="card"><div class="acts"><button class="btn primary act" id="cte_pdf">⬇ Descargar PDF</button><button class="btn ghost act" id="cte_word">⬇ Descargar para Word</button></div></section>
+   <section class="card"><div class="acts"><button class="btn primary act" id="cte_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="cte_word">${EI.down}Descargar para Word</button></div></section>
    <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=p[0]==="ses"?C:CTE;const q=p[0]==="ses"?p.slice(1):p;for(let j=0;j<q.length-1;j++)o=o[q[j]];o[q[q.length-1]]=e.value});
@@ -4221,7 +4550,7 @@ function alRender(){const cols=alCols();const res=document.getElementById("alRes
   if(!cols.length){res.innerHTML=`<section class="card"><p class="help">Elija al menos un campo para extraer.</p></section>`;return}
   const head=`<th style="width:34px">#</th>`+cols.map(([k,l])=>`<th>${esc(l)} <button type="button" class="btn link alcopy" data-k="${k}" style="padding:0 4px">copiar</button></th>`).join("");
   const body=AL.rows.map((r,i)=>`<tr data-i="${i}"><td class="alnum">${i+1}</td>`+cols.map(([k])=>`<td contenteditable="true" class="aled" data-k="${k}">${esc(r[k]||"")}</td>`).join("")+`</tr>`).join("");
-  res.innerHTML=`<section class="card"><div class="acts"><button class="btn primary act" id="alWord">⬇ Descargar Word</button><button class="btn ghost act" id="alCsv">⬇ Descargar Excel/CSV</button></div>
+  res.innerHTML=`<section class="card"><div class="acts"><button class="btn primary act" id="alWord">${EI.down}Descargar Word</button><button class="btn ghost act" id="alCsv">${EI.down}Descargar Excel/CSV</button></div>
     <p class="help">Toque una celda para corregirla. El botón «copiar» de cada columna copia esa lista para pegarla en vertical.</p>
     <div style="overflow-x:auto"><table class="altab"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`;
   const g=id=>document.getElementById(id);
@@ -4295,7 +4624,7 @@ function zlogoWidgetHTML(){const L=zlogoGet();
   return`<div class="field"><span class="lbl">Logo de la zona o supervisión <span class="muted" style="font-weight:400">(opcional)</span></span><p class="help">Si su zona tiene logotipo, súbalo. Si no, se deja en blanco. Si se ve borroso, puede mejorarlo.</p>
    <div class="ph"><div class="phf lvlogo" id="zl_pv">${L?`<img src="${L}" alt="Logo de la zona">`:"<span>Sin logo</span>"}</div>
     <div class="phb"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${L?"Cambiar logo":"Subir logo de la zona"}<input type="file" accept="image/*" id="zl_file" hidden></label>
-     <button type="button" class="btn ghost" id="zl_up" ${L?"":"hidden"}>✨ Mejorar calidad</button>
+     <button type="button" class="btn ghost" id="zl_up" ${L?"":"hidden"}>${EI.spark}Mejorar calidad</button>
      <button type="button" class="btn link" id="zl_undo" hidden>Deshacer la mejora</button>
      <button type="button" class="btn link" id="zl_del" ${L?"":"hidden"}>Quitar</button></div></div>
    <div class="help" id="zl_m"></div></div>`}
@@ -4311,7 +4640,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
     b.disabled=true;b.textContent="Mejorando… 0%";g("zl_m").textContent="Mejorando el logo con inteligencia artificial en este equipo. Puede tardar de unos segundos a un minuto; no cierre la página.";
     try{const out=await mejorarLogo(L,p=>{b.textContent=`Mejorando… ${Math.round(p*100)}%`});ZLOGO_ORIG=L;guardar(out,"<b>Logo mejorado.</b> Compárelo; si no le gusta, toque «Deshacer la mejora».")}
     catch(err){g("zl_m").innerHTML=`<b>No se pudo mejorar el logo.</b> Revise su conexión e intente de nuevo. (${esc(err.message||err)})`}
-    finally{b.disabled=false;b.textContent="✨ Mejorar calidad"}};
+    finally{b.disabled=false;b.innerHTML=EI.spark+"Mejorar calidad"}};
   g("zl_undo").onclick=()=>{const o=ZLOGO_ORIG;ZLOGO_ORIG=null;guardar(o,"Se restauró el logo original.")};
   g("zl_del").onclick=()=>{ZLOGO_ORIG=null;guardar(null,"")};
   info()}
@@ -4334,7 +4663,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><p class="firma-nom">Mtro. Carlos Gabriel Ortega Gutiérrez</p><span class="firma-raya" aria-hidden="true"></span><p class="firma-cargo">Supervisor Escolar · Zona 050</p></div></section>
    ${TLM_SIGNIF}
    <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
-   <a class="btn ghost tour-btn" href="tlami.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">✨ Conozca a Tlami, su acompañante</a>
+   <a class="btn ghost tour-btn" href="tlami.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">${EI.spark}Conozca a Tlami, su acompañante</a>
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
     <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
@@ -4416,14 +4745,14 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
     perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";perfil.modo="otra";
     store.set("ppie-perfil",perfil);home()};
   window.scrollTo(0,0)}
-const REABRIR={step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
+const REABRIR={miescuela:()=>miEscuelaView(),step:u=>{S.letra=u.letra;S.step=u.step;stepView()},review:u=>{S.letra=u.letra;S.step=u.step;reviewView()},section:u=>sectionView(u.sec),
  edades:()=>edadesView(),libro:()=>lvView(),firmas:()=>lfView(),normas:()=>normasView(),perfil:()=>perfilView(),admin:()=>seguroAdminView(),calendario:()=>calView(),caladmin:()=>calAdminView(),accadmin:()=>accAdminView(),salario:()=>salView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),cte:()=>cteView(),alum:()=>alView(),eia:()=>eiaView()};
 function irInicio(){try{if(S.view==="step"&&S.letra)readStep()}catch(e){}if(S._stopCam){S._stopCam();S._stopCam=null}S.sec=null;home()}
 function volverUltima(){const u=ULTIMA;if(!u)return;S.sec=u.sec;if(u.letra&&!(S.letra===u.letra&&Object.keys(S.vals||{}).length)){const d=store.get("ppie-draft-"+u.letra,null);S.vals=d?d.vals:{}}REABRIR[u.view](u)}
-new MutationObserver(()=>{if(S.view==="home"){const h=app.querySelector("header.brand");if(ULTIMA&&h&&!document.getElementById("resumeBtn")){h.insertAdjacentHTML("afterend",`<button class="resume" id="resumeBtn"><span class="ri" aria-hidden="true">↩</span><span><b>Volver a donde estaba</b><span class="ds">${esc(ULTIMA.label)}</span></span></button>`);document.getElementById("resumeBtn").onclick=volverUltima}return}
-  if(!REABRIR[S.view])return;const t=app.querySelector(".top");const h2=t&&t.querySelector("h2");
+new MutationObserver(()=>{if(S.view==="home")return;const t=app.querySelector(".top");{const bk=t&&t.querySelector(".back");if(bk&&!bk.querySelector("svg"))bk.innerHTML=ICON.back}
+  if(!REABRIR[S.view])return;const h2=t&&t.querySelector("h2");
   ULTIMA={view:S.view,letra:S.letra,step:S.step,sec:S.sec,label:(S.view==="step"?`${h2?h2.textContent:""} · paso ${S.step+1}`:S.view==="review"?`${h2?h2.textContent:""} · revisión`:(h2?h2.textContent:"")).trim()};
-  if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML='<span aria-hidden="true">⌂</span>Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
+  if(t&&!t.querySelector(".homebtn")){const b=document.createElement("button");b.className="homebtn";b.type="button";b.innerHTML=ICON.home.replace("<svg",'<svg aria-hidden="true"')+'Inicio';b.setAttribute("aria-label","Ir al inicio");b.onclick=irInicio;t.appendChild(b)}}).observe(app,{childList:true});
 
 /* ---------- Tlamatini en este equipo: instalar, usar sin internet y respaldo ---------- */
 let INSTALAR=null;
@@ -4676,10 +5005,10 @@ function dirAluHTML(){const gs=dirGrupos();let F=S.dirGrupo;
    <div class="row2" style="gap:8px;grid-template-columns:1fr 1fr"><div class="field"><label for="dir_gr">Grado de la lista</label><input type="text" id="dir_gr" value="${esc(pg)}" placeholder="Ej. 3"></div><div class="field"><label for="dir_gp">Grupo</label><input type="text" id="dir_gp" value="${esc(pp)}" placeholder="Ej. A"></div></div>
    <p class="help" style="margin-top:-4px">Se usan si el archivo no trae el grado y el grupo.</p>
    <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">Subir archivos de mis alumnos (PDF, fotos, Excel o Word)<input type="file" accept="image/*,application/pdf,.pdf,.xlsx,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-a="todo" multiple hidden></label>
-   <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">📷 Tomar foto de una ficha o lista<input type="file" accept="image/*" capture="environment" data-a="foto" hidden></label>
+   <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px">${EI.cam}Tomar foto de una ficha o lista<input type="file" accept="image/*" capture="environment" data-a="foto" hidden></label>
    <p class="help">Puede subir varios a la vez: listas de RELweb, su Excel del grupo, fichas de inscripción o de datos en PDF o Word, fotos y PDF escaneados. Las fotos se leen en este dispositivo; tómelas de frente, con buena luz y que se vea toda la hoja. Tlamatini reconoce los datos, junta a cada alumno por su CURP o su nombre y completa lo que falte, sin repetirlos. Después revise y complete cada ficha.</p>
    ${dirAcciones("alumnos")}
-   ${DIR.alumnos.some(dirActivo)?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="impLista">🖨 Imprimir la lista con datos</button><button type="button" class="btn ghost" data-a="impFichas">🖨 Imprimir las fichas completas</button></div>
+   ${DIR.alumnos.some(dirActivo)?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="impLista">${EI.print}Imprimir la lista con datos</button><button type="button" class="btn ghost" data-a="impFichas">${EI.print}Imprimir las fichas completas</button></div>
     <p class="help" style="margin-top:-4px">Se imprime ${F&&F!=="bajas"?"el grupo elegido abajo":"toda su base"}, sin las bajas. La lista lleva un renglón por alumno con tutores, teléfonos, emergencia y salud; las fichas, una hoja por alumno con todos sus datos.</p>`:""}
    ${DIR.alumnos.length?`<div class="dir-acts"><button type="button" class="btn ghost" data-a="emerg">Directorio de emergencia (Word)</button><button type="button" class="btn primary dir-share" data-a="compartir">Guardar o enviar mi base (archivo)</button></div>`:""}</section>
    ${gs.length>1||nB?`<div class="chips dir-chips" role="group" aria-label="Grupos"><button type="button" class="chip ${!F?"sel":""}" data-g="">Todos (${DIR.alumnos.length-nB})</button>${gs.length>1?gs.map(g=>`<button type="button" class="chip ${F===g.k?"sel":""}" data-g="${esc(g.k)}">${esc(dirGLabel(g.grado,g.grupo))} (${g.n})</button>`).join(""):""}${nB?`<button type="button" class="chip ${F==="bajas"?"sel":""}" data-g="bajas">Bajas (${nB})</button>`:""}</div>`:""}
@@ -4744,7 +5073,7 @@ function dirEditar(t,i){const L=DIR_LISTA(t);const nuevo=i<0;const o=nuevo?{}:{.
   S.view="dir";const tit={escuelas:nuevo?"Nueva escuela":"Escuela",maestros:nuevo?"Nuevo maestro(a)":"Maestro(a)",alumnos:nuevo?"Nuevo alumno(a)":"Ficha del alumno"}[t];
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio · ${esc(DIR_TIT[t])}</div><h2>${esc(nuevo?tit:(o.nombre||tit))}</h2></div></div>
    ${t==="alumnos"&&!nuevo?`<p class="muted">${esc(dirGLabel(o.grado,o.grupo))}${dirFicha(o).length?` · Falta: ${esc(dirFicha(o).join(", "))}`:" · ✓ Ficha completa"}</p>`:""}
-   ${t==="alumnos"&&o.t1tel?`<div class="dir-acts"><a class="btn ghost" href="tel:${esc(String(o.t1tel).replace(/[^\d+]/g,""))}">📞 Llamar a ${esc((o.t1nom||"tutor 1").split(" ")[0])}</a>${o.e1tel?`<a class="btn ghost" href="tel:${esc(String(o.e1tel).replace(/[^\d+]/g,""))}">📞 Emergencia: ${esc((o.e1nom||"contacto 1").split(" ")[0])}</a>`:""}</div>`:""}
+   ${t==="alumnos"&&o.t1tel?`<div class="dir-acts"><a class="btn ghost" href="tel:${esc(String(o.t1tel).replace(/[^\d+]/g,""))}">${EI.tel}Llamar a ${esc((o.t1nom||"tutor 1").split(" ")[0])}</a>${o.e1tel?`<a class="btn ghost" href="tel:${esc(String(o.e1tel).replace(/[^\d+]/g,""))}">${EI.tel}Emergencia: ${esc((o.e1nom||"contacto 1").split(" ")[0])}</a>`:""}</div>`:""}
    <form id="dirFrm" novalidate>${dirFormHTML(DIR_DEF[t],o)}</form>
    ${!nuevo&&t==="escuelas"?`<section class="card"><h3>¿Es su escuela?</h3><p class="help">Use estos datos como los de su escuela en este dispositivo.</p><button type="button" class="btn ghost" id="d_usar">Usar como mi escuela</button></section>`:""}
    ${!nuevo&&t==="maestros"?`<section class="card"><h3>¿Es usted?</h3><p class="help">Personalice Tlamatini con este nombre, grado y grupo.</p><button type="button" class="btn ghost" id="d_yo">Soy yo</button></section>`:""}
@@ -5149,10 +5478,10 @@ REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=
     const r=new SR();r.lang="es-MX";r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
     const a={el,b,r,err:false,calla:0,onBlur:()=>setTimeout(()=>{if(activo===a&&document.activeElement!==el)detener()},250)};activo=a;
     b.classList.add("on");b.setAttribute("aria-label","Detener dictado");el.focus();el.addEventListener("blur",a.onBlur);
-    aviso("<b>🎙 Escuchando…</b> Hable con calma. Diga «punto», «coma» o «punto y aparte».",0,true);
+    aviso("<b>Escuchando…</b> Hable con calma. Diga «punto», «coma» o «punto y aparte».",0,true);
     r.onresult=ev=>{a.calla=0;let fin="",inter="";for(let i=ev.resultIndex;i<ev.results.length;i++){const x=ev.results[i];if(x.isFinal)fin+=x[0].transcript+" ";else inter+=x[0].transcript}
       if(fin)insertar(el,puntuar(fin));
-      if(activo===a)aviso(inter?`<b>🎙</b> <i>${inter.replace(/[<>&]/g,"")}</i>`:"<b>🎙 Escuchando…</b> Diga «punto», «coma» o «punto y aparte».",0,true)};
+      if(activo===a)aviso(inter?`<i>${inter.replace(/[<>&]/g,"")}</i>`:"<b>Escuchando…</b> Diga «punto», «coma» o «punto y aparte».",0,true)};
     r.onerror=ev=>{a.err=true;const m={"not-allowed":"<b>No hay permiso para el micrófono.</b> Permítalo en el candado junto a la dirección de la página.","service-not-allowed":"<b>Este navegador no permite el dictado aquí.</b> Use el micrófono del teclado de su teléfono.","network":"<b>El dictado necesita internet.</b> Revise su conexión.","audio-capture":"<b>No se encontró un micrófono.</b>","no-speech":"No se escuchó nada. Toque el micrófono e intente de nuevo."}[ev.error];
       if(ev.error==="aborted")return;if(ev.error==="no-speech"&&++a.calla<3){a.err=false;return}/* silencio breve: sigue escuchando */aviso(m||"No se pudo dictar. Intente de nuevo.",5000);if(activo===a){activo=null;b.classList.remove("on");el.removeEventListener("blur",a.onBlur)}};
     r.onend=()=>{if(activo===a){try{r.start()}catch(e){detener()}}}; // cada frase termina sola: se reanuda mientras siga activo
