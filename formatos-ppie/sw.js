@@ -4,7 +4,7 @@
      se use el nuevo de inmediato; sin conexión se usa la copia guardada.
    - Librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-10-24a";
+const VERSION = "tlm-2026-10-24b";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
