@@ -3308,6 +3308,10 @@ async function sisRenglones(nombre, bytes) {
 
 // Lee un archivo del SisAT: herramienta (lec, tex o cal) y resultado de cada alumno
 async function sisLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
+  // Si el archivo se abrió y se volvió a guardar en Excel, queda como «página web» de varias partes:
+  // el .xls solo trae el marco y los datos se van a una carpeta aparte (…files/sheet001.htm).
+  const ini = new TextDecoder('utf-8').decode(a.bytes.slice(0, 6000));
+  if (/Excel Workbook Frameset|x:WorksheetSource|<frameset/i.test(ini)) return Object.assign({}, a, { error: 'Este archivo se abrió y se volvió a guardar en Excel, y los datos quedaron en una carpeta aparte (…files). Suba el archivo original, tal como se descargó de la herramienta del SisAT.' });
   const filas = await sisRenglones(a.nombre, a.bytes);
   const hi = filas.findIndex(r => r.some(c => /^PTS$/i.test(c)) && r.some(c => c === 'I'));
   if (hi < 0) return Object.assign({}, a, { error: 'No tiene la tabla de resultados del SisAT.' });
@@ -3315,7 +3319,7 @@ async function sisLeerArchivo(a) {   // a: { nombre, bytes, fecha, id }
   const cols = SIS_ROM.map(r => cab.indexOf(r)).filter(i => i >= 0);
   const iP = cab.indexOf('PTS'), iV = cab.indexOf('PV'), iN = cab.indexOf('NIVEL');
   const nom = sisSinAc(a.nombre).toLowerCase();
-  const tipo = cols.length >= 10 || iV >= 0 || /calc/.test(nom) ? 'cal' : /text|escri|produc/.test(nom) ? 'tex' : /lect/.test(nom) ? 'lec' : '';
+  const tipo = cols.length >= 10 || iV >= 0 || /calc|cal\W*ment/.test(nom) ? 'cal' : /text|escri|\besc\b|produc|redac/.test(nom) ? 'tex' : /lect/.test(nom) ? 'lec' : '';
   const num = x => { const n = parseInt(String(x).replace(/[^\d]/g, ''), 10); return isFinite(n) ? n : null; };
   const alumnos = [];
   filas.slice(hi + 1).forEach(r => {
