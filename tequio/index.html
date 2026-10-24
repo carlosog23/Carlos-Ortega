@@ -1511,7 +1511,7 @@ function infCifras(cct) {
   r.evi = { lista: ev, hecho: ev.filter(o => nArch(o.e)).length, total: ev.length,
     ultimo: ev.map(o => o.e.ultimo || '').sort().pop() || '' };
   // 3 y 4. SisAT (momento más reciente con datos en la zona) y EIA; los grupos esperados son los que la escuela ha cargado en el ciclo
-  const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm);
+  const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm).filter(sisCuenta);
   const m = Math.max(1, ...sisC.map(x => +x.momento));
   const eig = (S.eig || []).filter(x => x.ciclo === ciclo && x.cct === cct);
   const k = x => x.grado + '|' + (x.grupo || '');
@@ -1520,7 +1520,8 @@ function infCifras(cct) {
   esperados.sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
   const sisM = {}; sisC.filter(x => x.cct === cct && +x.momento === m).forEach(x => { sisM[k(x)] = x; });
   const eiaM = {}; eig.forEach(x => { eiaM[k(x)] = x; });
-  r.sis = { m, grupos: esperados.map(g => ({ g, x: sisM[g] || null })), hecho: esperados.filter(g => sisM[g]).length, total: esperados.length };
+  const espS = m === 1 ? esperados.filter(g => !/^1\|/.test(g)) : esperados;   // 1.° no se evalúa en el 1.er momento
+  r.sis = { m, grupos: espS.map(g => ({ g, x: sisM[g] || null })), hecho: espS.filter(g => sisM[g]).length, total: espS.length };
   r.eia = { grupos: esperados.map(g => ({ g, x: eiaM[g] || null })), hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length };
   // nivel general = promedio de los apartados que aplican
   r.pct = { acu: pctDe(r.acu.hecho, r.acu.total), evi: pctDe(r.evi.hecho, r.evi.total), sis: pctDe(r.sis.hecho, r.sis.total), eia: pctDe(r.eia.hecho, r.eia.total) };
@@ -2754,7 +2755,10 @@ function sisNorm(r) {
   const t = r.tip || {};
   return Object.assign({}, r, { momento: +r.momento, grado: String(r.grado), grupo: String(r.grupo || ''), lec: n(r.lec), tex: n(r.tex), cal: n(r.cal), tip: { sa: +t.sa || 0, ca: +t.ca || 0, inc: +t.inc || 0 } });
 }
-function sisFilas(m) { const v = sisV(); return (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === +m).map(sisNorm); }
+// Regla de la zona (solo SisAT): en el 1.er momento 1.° grado no se evalúa (apenas ingresan y no hay prueba para ellos).
+// Queda fuera del análisis y de los pendientes; desde el 2.º momento sí cuenta.
+const sisCuenta = r => !(+r.momento === 1 && String(r.grado) === '1');
+function sisFilas(m) { const v = sisV(); return (S.sis || []).filter(r => r.ciclo === v.ciclo && +r.momento === +m).map(sisNorm).filter(sisCuenta); }
 function sisCiclos() { const s = new Set((S.sis || []).map(r => r.ciclo)); s.add(cicloActual()); return Array.from(s).sort().reverse(); }
 function sisMomentosConDatos(pred) { return [1, 2, 3].filter(m => sisFilas(m).some(pred)); }
 
@@ -2938,6 +2942,7 @@ function vSisat() {
     <div class="seg-op sis-mom" role="group" aria-label="Momento del SisAT">${momBtns}</div>
     ${migas}
     <h2 class="sis-h2">${esc(sisTitulo(v))}</h2>
+    ${v.m === 1 ? '<p class="peq mudo" style="margin:-4px 0 10px">En el 1.er momento no se considera 1.° grado: los alumnos apenas ingresan y no hay prueba para medirlos. Se incluye a partir del 2.º momento.</p>' : ''}
     ${v.nivel === 'zona' && !esDirector() ? `<div class="seg-op sis-tabs" role="group" aria-label="Vista de la zona"><button data-svista="resumen" aria-pressed="${v.vista !== 'comp'}">Resumen de la zona</button><button data-svista="comp" aria-pressed="${v.vista === 'comp'}">Comparativos</button></div>` : ''}`;
   const comparar = v.nivel === 'zona' && !esDirector() && v.vista === 'comp';
   const cuerpo = comparar ? sisCuerpoComparativo(v) : tend ? sisCuerpoTendencia(v, pred) : sisCuerpoMomento(v, pred);
@@ -3382,7 +3387,7 @@ function sisDeAlumnos(als) {
 
 /* ---- Alumnos de una escuela (se piden al servidor solo cuando se consulta esa escuela) ---- */
 const SIA = {};   // 'ciclo|cct' → { alumnos: [], cargando: Promise }
-function sisAlumnosDe(ciclo, cct) { const x = SIA[ciclo + '|' + cct]; return x && x.alumnos ? x.alumnos : null; }
+function sisAlumnosDe(ciclo, cct) { const x = SIA[ciclo + '|' + cct]; return x && x.alumnos ? x.alumnos.filter(sisCuenta) : null; }
 async function sisPedirAlumnos(ciclo, cct, forzar) {
   const k = ciclo + '|' + cct;
   if (!cct || !S) return [];
@@ -3626,7 +3631,7 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
     const msgs = [];
     grupos.forEach((g, i) => { if (!/^[1-6]$/.test(g.grado)) msgs.push(`Al grupo ${i + 1} (${g.alumnos.length} alumnos, empieza con ${g.alumnos[0] ? g.alumnos[0].alumno : '—'}) le falta el grado.`); });
     const vistos = {}; grupos.forEach(g => { const k = g.grado + '-' + g.grupo; if (g.grado && vistos[k]) msgs.push(`El grupo ${g.grado}° ${g.grupo} está dos veces.`); vistos[k] = 1; });
-    grupos.forEach(g => { if (g.faltan.length && g.grado) msgs.push(`${g.grado}° ${g.grupo}: falta el archivo de ${g.faltan.map(h => SIS_HERR[h].toLowerCase()).join(' y ')}.`); });
+    grupos.forEach(g => { if (g.faltan.length && g.grado && !(+m === 1 && g.grado === '1')) msgs.push(`${g.grado}° ${g.grupo}: falta el archivo de ${g.faltan.map(h => SIS_HERR[h].toLowerCase()).join(' y ')}.`); });
     $('#x-rev').innerHTML = msgs.length ? `<div class="aviso-caja"><b>Revise:</b><ul style="margin:6px 0 0 18px;padding:0">${msgs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '<div class="aviso-caja" style="background:var(--ok-f);border-color:var(--ok)"><b>✓ Listo para guardar.</b></div>';
     return msgs;
   };
@@ -3637,7 +3642,7 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
     ${errores.length ? `<div class="aviso-caja" style="border-color:var(--alerta)"><b>No se pudieron leer:</b> ${errores.map(x => esc(x.nombre) + ' (' + esc(x.error) + ')').join('; ')}.</div>` : ''}
     ${avisos.length ? `<div class="aviso-caja"><ul style="margin:0 0 0 18px;padding:0">${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${dudosos.length ? `<div class="aviso-caja">No se reconoció si ${dudosos.length === 1 ? 'este archivo es' : 'estos archivos son'} de lectura o de producción de textos; se tomaron como lectura: ${dudosos.map(x => esc(x.nombre)).join(', ')}. Si no es así, cámbieles el nombre (que diga «Lectura» o «Textos») y cárguelos otra vez.</div>` : ''}
-    ${+m === 1 ? '<p class="ayuda">En el Momento 1, 1.° grado suele salir completo en «requiere apoyo» en lectura y textos: aún no leen ni escriben de forma convencional. Es el punto de partida, no un rezago.</p>' : ''}
+    ${+m === 1 ? '<p class="ayuda">En el 1.er momento no se considera 1.° grado (apenas ingresan y no hay prueba para medirlos): si la escuela subió sus archivos se guardan, pero quedan fuera del análisis, y si no los subió no cuenta como faltante.</p>' : ''}
     <div id="x-rev"></div>
     <div id="x-grupos"></div>
     ${origen.subir ? '<label class="peq" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="x-subir" checked> Guardar también los archivos en la carpeta del SisAT de la escuela (Momento ' + m + ')</label>' : ''}`,
@@ -5755,7 +5760,7 @@ function insCiclos() { const s = new Set((S.sis || []).map(r => r.ciclo).concat(
 // Resultados de un nivel: SisAT del momento pedido (o el más reciente con datos) y EIA del ciclo
 function insFuentes(w) {
   const pred = sisPred(w);
-  const sisDe = m => (S.sis || []).filter(r => r.ciclo === w.ciclo && +r.momento === +m).map(sisNorm).filter(pred);
+  const sisDe = m => (S.sis || []).filter(r => r.ciclo === w.ciclo && +r.momento === +m).map(sisNorm).filter(sisCuenta).filter(pred);
   const m = !w.m || w.m === 'auto' ? [3, 2, 1].find(x => sisDe(x).length) : +w.m;
   const sis = m ? sisDe(m) : [];
   const eia = (S.eig || []).filter(r => r.ciclo === w.ciclo).map(eiaNorm).filter(pred);
