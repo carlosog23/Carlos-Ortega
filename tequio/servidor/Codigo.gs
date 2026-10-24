@@ -55,19 +55,21 @@ const HOJAS = {
   vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas'],
   inf: ['id', 'cct', 'fecha', 'asunto', 'cifras', 'pendientes', 'html', 'atpId', 'para', 'cc', 'enviadoPor', 'creado', 'resultado'],
   acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto'],
+  cte: ['id', 'ciclo', 'sesion', 'fecha', 'titulo', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'actualizado', 'actualizadoPor'],
+  cta: ['id', 'ciclo', 'sesion', 'cct', 'tipo', 'item', 'etiqueta', 'nombre', 'archivoId', 'url', 'mime', 'subidoPor', 'fecha', 'activo'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión' };
-const VERSION = 15;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
+const VERSION = 16;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas'];
+const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -153,10 +155,10 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos',
+const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos',
+const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -233,6 +235,95 @@ const ACCIONES = {
   sisatAlumnos: (yo, d) => {
     const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
     return { cct: cct, ciclo: ciclo, alumnos: leer_('sia').filter(x => x.ciclo === ciclo && x.cct === cct) };
+  },
+
+  /* ---- Consejo Técnico Escolar: 8 sesiones ordinarias ----
+     Material de la Supervisión (presentación, cuadernillo, insumos): una sola copia en «15-Supervisión/CTE <ciclo>/0N-…».
+     Lo de cada escuela (asistencia, evidencias, productos, su presentación): «<escuela>/02-Evidencias…/CTEs/0N-CTE … sesión/<apartado>». */
+  cteDatos: (yo, d) => {
+    const ciclo = String(d.ciclo || '');
+    const cte = leer_('cte').filter(x => x.ciclo === ciclo);
+    let cta = leer_('cta').filter(x => x.ciclo === ciclo && x.activo !== false);
+    if (yo.rol === 'director') { const c = cctDe_(yo); cta = cta.filter(x => x.cct === c); }
+    return { cte: cte, cta: cta };
+  },
+  cteConfig: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), id = ciclo + '-' + ses;
+    const o = buscar_('cte', id) || baseCte_(ciclo, ses);
+    ['fecha', 'titulo'].forEach(k => { if (d[k] != null) o[k] = String(d[k]).slice(0, 200); });
+    ['evid', 'prod'].forEach(k => {
+      if (Array.isArray(d[k])) o[k] = d[k].slice(0, 30).map(x => ({ id: String(x.id || ('i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6))).slice(0, 40), nombre: String(x.nombre || '').trim().slice(0, 120) })).filter(x => x.nombre);
+    });
+    o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
+    guardar_('cte', o);
+    return { cte: leer_('cte').filter(x => x.ciclo === ciclo) };
+  },
+  // Presentación, cuadernillo u otro insumo de la Supervisión (archivo o enlace). Se comparte «cualquiera con el enlace puede ver».
+  cteSubirInsumo: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), id = ciclo + '-' + ses;
+    const tipo = ['presentacion', 'cuadernillo', 'insumos'].indexOf(d.tipo) >= 0 ? d.tipo : 'insumos';
+    let item;
+    if (d.url) {
+      const url = String(d.url).trim();
+      if (!/^https?:\/\//i.test(url)) throw new Error('El enlace debe empezar con http:// o https://');
+      item = { id: 'l' + Date.now().toString(36), nombre: String(d.titulo || url).slice(0, 160), url: url, mime: 'enlace', fecha: ahora_(), por: yo.nombre };
+    } else {
+      const f = carpetaCteSup_(ciclo, ses).createFile(blobCte_(d));
+      f.setDescription(SUBIDO_POR + yo.nombre);
+      try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+      item = { id: f.getId(), nombre: String(d.titulo || '').trim().slice(0, 160) || f.getName(), url: f.getUrl(), mime: f.getMimeType(), fecha: ahora_(), por: yo.nombre };
+    }
+    return conLock_(() => {
+      const o = buscar_('cte', id) || baseCte_(ciclo, ses);
+      if (tipo !== 'insumos') { (o[tipo] || []).forEach(x => papeleraCte_(x.id)); o[tipo] = [item]; }
+      else o.insumos = (o.insumos || []).concat([item]);
+      o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
+      guardar_('cte', o);
+      return { cte: leer_('cte').filter(x => x.ciclo === ciclo) };
+    });
+  },
+  cteQuitarInsumo: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), id = ciclo + '-' + ses;
+    return conLock_(() => {
+      const o = buscar_('cte', id);
+      if (o) {
+        ['presentacion', 'cuadernillo', 'insumos'].forEach(k => { o[k] = (o[k] || []).filter(x => { if (x.id === d.id) { papeleraCte_(x.id); return false; } return true; }); });
+        o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
+        guardar_('cte', o);
+      }
+      return { cte: leer_('cte').filter(x => x.ciclo === ciclo) };
+    });
+  },
+  // Archivo de una escuela: lista de asistencia, evidencia, producto o su propia presentación
+  cteSubir: (yo, d) => {
+    const cct = yo.rol === 'director' ? cctDe_(yo) : String(d.cct || '');
+    if (!cct) throw new Error('No se identificó la escuela.');
+    if (yo.rol === 'director' && d.cct && d.cct !== cct) throw new Error('Solo puede subir archivos de su escuela.');
+    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion);
+    const sub = { asistencia: 'Lista de asistencia', evidencia: 'Evidencias', producto: 'Productos', presentacion: 'Presentación de la escuela' }[d.tipo];
+    if (!sub) throw new Error('Apartado desconocido.');
+    const etiqueta = String(d.etiqueta || '').trim().slice(0, 120);
+    const blob = blobCte_(d);
+    if (etiqueta && d.tipo !== 'asistencia' && d.tipo !== 'presentacion') blob.setName((etiqueta.replace(/[\\/:*?"<>|]+/g, ' ') + ' - ' + blob.getName()).slice(0, 200));
+    const f = carpetaCteEscuela_(cct, ciclo, ses, sub).createFile(blob);
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    const fila = { id: 'ct-' + f.getId(), ciclo: ciclo, sesion: String(ses), cct: cct, tipo: d.tipo, item: String(d.item || '').slice(0, 40), etiqueta: etiqueta,
+      nombre: f.getName(), archivoId: f.getId(), url: f.getUrl(), mime: f.getMimeType(), subidoPor: yo.nombre, fecha: ahora_(), activo: true };
+    conLock_(() => guardar_('cta', fila));
+    bitacora_('archivo', cct, [], 'CTE ' + ses + ' · ' + sub + ' · ' + fila.nombre, 'subido por ' + yo.nombre);
+    return { archivo: fila };
+  },
+  cteQuitar: (yo, d) => {
+    const fila = buscar_('cta', String(d.id || ''));
+    if (!fila) return { id: d.id };
+    if (yo.rol === 'director' && fila.cct !== cctDe_(yo)) throw new Error('Ese archivo no es de su escuela.');
+    papeleraCte_(fila.archivoId);
+    fila.activo = false;
+    conLock_(() => guardar_('cta', fila));
+    return { id: fila.id };
   },
 
   // Devuelve los PDF de la carpeta «Inscripción inicial» de la escuela (y de sus subcarpetas) para saber,
@@ -1568,6 +1659,41 @@ function carpetaSisat_(cct, m, crear) {
   if (crear) { const f = sis.createFolder('Momento ' + m); return { carpeta: f, ruta: sis.getName() + '/' + f.getName() }; }
   return { carpeta: sis, ruta: sis.getName(), filtrar: reMom };
 }
+
+/* ===================== CTE ===================== */
+const CTE_ORD = ['', 'Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Séptima', 'Octava'];
+function sesionCte_(s) { const n = parseInt(s, 10); if (!(n >= 1 && n <= 8)) throw new Error('Sesión no válida (1 a 8).'); return n; }
+function baseCte_(ciclo, ses) { return { id: ciclo + '-' + ses, ciclo: ciclo, sesion: String(ses), fecha: '', titulo: '', presentacion: [], cuadernillo: [], insumos: [], evid: [], prod: [] }; }
+function conLock_(fn) { const l = LockService.getScriptLock(); l.waitLock(30000); try { return fn(); } finally { l.releaseLock(); } }
+function sinAcCte_(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function subcarpetaCte_(padre, re, nombre) {
+  const it = padre.getFolders();
+  while (it.hasNext()) { const f = it.next(); if (re.test(sinAcCte_(f.getName()))) return f; }
+  return padre.createFolder(nombre);
+}
+function nombreSesionCte_(ses) { return ('0' + ses).slice(-2) + '-CTE ' + CTE_ORD[ses] + ' sesión'; }
+function carpetaCteEscuela_(cct, ciclo, ses, sub) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive de evidencias. Pulse «Revisar ahora» en Evidencias.');
+  const esc = DriveApp.getFolderById(raiz.carpetaId);
+  const ev = subcarpetaCte_(esc, /^0?2\s*-\s*evidencias/, '02-Evidencias ' + ciclo);
+  const ctes = subcarpetaCte_(ev, /^ctes?$/, 'CTEs');
+  const s = subcarpetaCte_(ctes, new RegExp('^0?' + ses + '\\s*-'), nombreSesionCte_(ses));
+  return sub ? subcarpetaCte_(s, new RegExp('^' + sinAcCte_(sub).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), sub) : s;
+}
+function carpetaCteSup_(ciclo, ses) {
+  const sup = subcarpetaCte_(DriveApp.getFolderById(CARPETA_EVIDENCIAS), /^15\s*-|supervisi/, '15-Supervisión');
+  const c = subcarpetaCte_(sup, new RegExp('^cte\\s+' + ciclo.replace(/-/g, '\\-')), 'CTE ' + ciclo);
+  return subcarpetaCte_(c, new RegExp('^0?' + ses + '\\s*-'), nombreSesionCte_(ses));
+}
+function blobCte_(d) {
+  const datos = String(d.datos || '');
+  if (!datos) throw new Error('El archivo llegó vacío.');
+  if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('El archivo pesa más de ' + MAX_MB + ' MB. Súbalo directo al Drive o comparta un enlace.');
+  const nombre = String(d.nombre || 'archivo').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 180) || 'archivo';
+  return Utilities.newBlob(Utilities.base64Decode(datos), d.mime || 'application/octet-stream', nombre);
+}
+function papeleraCte_(id) { if (!id || /^l/.test(id) && id.length < 15) return; try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} }
 
 /* ===================== EIA ===================== */
 
