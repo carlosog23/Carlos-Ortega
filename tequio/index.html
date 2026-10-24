@@ -3479,6 +3479,79 @@ function sisSugerir(claves, previos) {
   return { grado, grupo, coincidencia: Math.round(mc * 100) };
 }
 
+/* ---- Inscripción inicial: grado y grupo de cada alumno ----
+   Los archivos del SisAT (y algunos de los EIA) no dicen el grado ni el grupo. Tequio los busca en los PDF
+   de la carpeta «Inscripción inicial» de la escuela (reportes de inscripción y listas de RELweb): cada PDF dice
+   «Grado: 3 · Grupo: A» y trae a los alumnos como «APELLIDO / APELLIDO * NOMBRES». */
+const INSC = {};
+async function inscPdfLineas(bytes) {
+  await cargarScript('lib/pdf.min.js');
+  const L = window.pdfjsLib; L.GlobalWorkerOptions.workerSrc = new URL('lib/pdf.worker.min.js', location.href).href;
+  const doc = await L.getDocument({ data: bytes }).promise, lineas = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const tc = await (await doc.getPage(p)).getTextContent(), rows = [];
+    for (const it of tc.items) { if (!it.str.trim()) continue; const x = it.transform[4], y = it.transform[5]; let r = rows.find(r => Math.abs(r.y - y) < 3); if (!r) { r = { y, items: [] }; rows.push(r); } r.items.push({ x, s: it.str, w: it.width }); }
+    rows.sort((a, b) => b.y - a.y);
+    for (const r of rows) { r.items.sort((a, b) => a.x - b.x); let t = '', fin = null; for (const i of r.items) { if (fin !== null && i.x - fin > 1.5) t += ' '; t += i.s; fin = i.x + i.w; } lineas.push(t.replace(/\s+/g, ' ').trim()); }
+  }
+  return lineas;
+}
+function inscLeerLineas(nombre, lineas) {
+  const txt = lineas.join('\n');
+  let grado = '', grupo = '', cct = '', m;
+  if ((m = /Grado\s*:?\s*([1-6])/i.exec(txt))) grado = m[1];
+  if ((m = /Grupo\s*:?\s*([A-Z])\b/.exec(txt))) grupo = m[1];
+  if ((m = /Clave\s*(?:CT|C\.?C\.?T\.?)\s*:?\s*(\d{2}[A-Z]{3}\d{4}[A-Z])/i.exec(txt))) cct = m[1].toUpperCase();
+  // Si el PDF no lo dice, del nombre del archivo: «RepInscr-3ro», «3A Inscripción», «4to B»…
+  const n = sisSinAc(nombre).toUpperCase();
+  if (!grado && (m = /(?:^|[^0-9])([1-6])\s*(?:RO|DO|TO|O|°|º)?\s*[-_ ]?\s*([A-F])?(?![A-Z])/.exec(n))) { grado = m[1]; if (!grupo && m[2]) grupo = m[2]; }
+  const alumnos = [];
+  const re = /([A-ZÑÁÉÍÓÚÜ][A-ZÑÁÉÍÓÚÜ .'-]*?)\s*\/\s*([A-ZÑÁÉÍÓÚÜ .'-]*?)\s*\*\s*([A-ZÑÁÉÍÓÚÜ][A-ZÑÁÉÍÓÚÜ .'-]+?)(?=\s+[HM]\s|\s+\d|\s*$)/;
+  lineas.forEach(l => { const r = re.exec(l.toUpperCase()); if (r) alumnos.push(sisClave(r[1] + ' ' + r[2] + ' ' + r[3])); });
+  return { nombre, grado, grupo, cct, alumnos };
+}
+async function inscRoster(cct) {
+  if (INSC[cct]) return INSC[cct];
+  const res = { mapa: {}, listas: [], mensaje: '' };
+  let r;
+  try { r = await api('inscripcionArchivos', { cct }); }
+  catch (e) { res.mensaje = /desconocida/i.test(e.message) ? 'Para usar la inscripción inicial falta actualizar el servidor de Tequio.' : e.message; return res; }
+  if (!r.archivos || !r.archivos.length) { res.mensaje = r.mensaje || 'No hay PDF en la carpeta de Inscripción inicial.'; return (INSC[cct] = res); }
+  for (const a of r.archivos) {
+    try {
+      const l = inscLeerLineas(a.nombre, await inscPdfLineas(b64aBytes(a.datos)));
+      if (!l.grado || !l.alumnos.length) continue;
+      if (l.cct && l.cct !== cct) continue;   // reporte de otra escuela
+      res.listas.push(l);
+      l.alumnos.forEach(k => { res.mapa[k] = { grado: l.grado, grupo: l.grupo }; });
+    } catch (e) { /* PDF dañado o escaneado: se omite */ }
+  }
+  if (!res.listas.length) res.mensaje = 'Los PDF de Inscripción inicial no traen listas de alumnos que Tequio pueda leer.';
+  return (INSC[cct] = res);
+}
+// Grado y grupo de un conjunto de alumnos según la inscripción: el que reúne a más de ellos
+function inscSugerir(claves, ins) {
+  if (!ins || !Object.keys(ins.mapa).length || !claves.length) return null;
+  const cuenta = {};
+  claves.forEach(c => { const g = ins.mapa[c]; if (g) { const k = g.grado + '|' + g.grupo; cuenta[k] = (cuenta[k] || 0) + 1; } });
+  const mejor = Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0];
+  if (!mejor || mejor[1] / claves.length < 0.5) return null;
+  const [grado, grupo] = mejor[0].split('|');
+  return { grado, grupo, coincidencia: Math.round(mejor[1] / claves.length * 100), porInscripcion: true };
+}
+// EIA: a los alumnos que llegan sin grupo se les pone el de la inscripción
+async function eiaCompletarGrupos(leidos, cct) {
+  if (!leidos.some(f => !f.error && Object.values(f.grados || {}).some(gs => gs[''] && gs[''].length))) return;
+  const ins = await inscRoster(cct);
+  if (!Object.keys(ins.mapa).length) return;
+  leidos.forEach(f => Object.entries(f.grados || {}).forEach(([gr, gs]) => {
+    const sin = gs[''] || [], quedan = [];
+    sin.forEach(a => { const g = ins.mapa[sisClave(a.alumno)]; if (g && g.grado === gr && g.grupo) { a.grupo = g.grupo; (gs[g.grupo] = gs[g.grupo] || []).push(a); } else quedan.push(a); });
+    if (sin.length && sin.length !== quedan.length) { f.avisos.push(`${sin.length - quedan.length} alumno(s) de ${gr}.° sin grupo se ubicaron con la Inscripción inicial.`); }
+    if (quedan.length) gs[''] = quedan; else delete gs[''];
+  }));
+}
+
 async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
   const v = sisV();
   const previos = (await sisPedirAlumnos(v.ciclo, cct)).filter(a => a.momento !== m);
@@ -3486,8 +3559,10 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
   const dudosos = leidos.filter(x => !x.error && !x.tipo);
   let { grupos, avisos } = sisAgrupar(leidos);
   const errores = leidos.filter(x => x.error);
+  // Primero la Inscripción inicial de la escuela (el registro oficial de cada grupo); si no alcanza, los otros momentos del ciclo
+  const ins = await inscRoster(cct);
   grupos.forEach(g => {
-    const s = sisSugerir(g.claves, previos);
+    const s = inscSugerir(g.claves, ins) || sisSugerir(g.claves, previos);
     g.grado = s ? s.grado : ''; g.grupo = s ? s.grupo : ''; g.sug = s;
   });
   // Los que no se reconocen por nombre: se comparan con los grupos que ya estaban guardados en este momento (por ejemplo, desde las gráficas)
@@ -3504,7 +3579,7 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
           <div class="campo" style="margin:0"><label for="x-gr${i}">Grado</label><select id="x-gr${i}" data-xgr="${i}"><option value="">—</option>${[1, 2, 3, 4, 5, 6].map(n => `<option ${String(n) === g.grado ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
           <div class="campo" style="margin:0"><label for="x-gp${i}">Grupo</label><input id="x-gp${i}" data-xgp="${i}" value="${esc(g.grupo)}" maxlength="6" style="width:64px" placeholder="A"></div>
         </div>
-        <div class="sis-xg-b"><b>${nl} alumno${nl === 1 ? '' : 's'}</b> ${g.sug ? `<span class="peq" style="color:var(--ok)">· ${g.sug.porConteo ? `asignado a ${g.sug.grado}° ${esc(g.sug.grupo)}: sus resultados coinciden con los que ya tenía ese grupo` : `sugerido: ${g.sug.grado}° ${esc(g.sug.grupo)} (${g.sug.coincidencia}% de los alumnos coinciden con el Momento anterior)`}</span>` : ''}
+        <div class="sis-xg-b"><b>${nl} alumno${nl === 1 ? '' : 's'}</b> ${g.sug ? `<span class="peq" style="color:var(--ok)">· ${g.sug.porConteo ? `asignado a ${g.sug.grado}° ${esc(g.sug.grupo)}: sus resultados coinciden con los que ya tenía ese grupo` : `${g.sug.porInscripcion ? `${g.sug.grado}° ${esc(g.sug.grupo)} según la Inscripción inicial (${g.sug.coincidencia}% de los alumnos)` : `sugerido: ${g.sug.grado}° ${esc(g.sug.grupo)} (${g.sug.coincidencia}% de los alumnos coinciden con el Momento anterior)`}`}</span>` : ''}
           <div class="peq" style="margin:4px 0">${herr}</div>
           <div class="peq mudo">Requieren apoyo: lectura ${ra('lec')} · textos ${ra('tex')} · cálculo ${ra('cal')}</div>
           <details class="peq" style="margin-top:4px"><summary>Ver alumnos</summary><div class="sis-xg-l">${g.alumnos.map(a => esc(a.alumno)).join('<br>')}</div></details>
@@ -3557,7 +3632,7 @@ async function sisRevisarExcel(cct, m, leidos, origen, alTerminar) {
   };
   const ve = modal(`${esc(nombreEscuela(cct))} · Momento ${m} · Excel del SisAT`, `
     <p class="ayuda" style="margin-top:0">Se leyeron ${leidos.length - errores.length} de ${leidos.length} archivos y se formaron <b>${grupos.length} grupo${grupos.length === 1 ? '' : 's'}</b> juntando los archivos que tienen a los mismos alumnos.
-      Los archivos de la herramienta no dicen el grado ni el grupo: ${previos.length ? 'Tequio los sugiere comparando los nombres con el momento anterior;' : 'escríbalos para cada grupo (abra «Ver alumnos» si necesita identificarlo);'} revíselos antes de guardar.</p>
+      Los archivos de la herramienta no dicen el grado ni el grupo: ${Object.keys(ins.mapa).length ? 'Tequio los toma de la Inscripción inicial de la escuela comparando los nombres de los alumnos;' : previos.length ? 'Tequio los sugiere comparando los nombres con el momento anterior;' : 'escríbalos para cada grupo (abra «Ver alumnos» si necesita identificarlo);'} revíselos antes de guardar.${!Object.keys(ins.mapa).length && ins.mensaje ? ' <span class="mudo">(' + esc(ins.mensaje) + ')</span>' : ''}</p>
     ${hay.length ? `<div class="aviso-caja">Esta escuela ya tiene ${hay.length} grupos guardados en el Momento ${m}: <b>se reemplazarán</b> con lo que guarde aquí.</div>` : ''}
     ${errores.length ? `<div class="aviso-caja" style="border-color:var(--alerta)"><b>No se pudieron leer:</b> ${errores.map(x => esc(x.nombre) + ' (' + esc(x.error) + ')').join('; ')}.</div>` : ''}
     ${avisos.length ? `<div class="aviso-caja"><ul style="margin:0 0 0 18px;padding:0">${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
@@ -5406,6 +5481,7 @@ async function eiaLeerDeDrive(cct) {
   const b = await api('eiaBajar', { cct, ids: r.archivos.map(a => a.id) });
   const leidos = [];
   for (const a of b.archivos) leidos.push(await eiaLeerArchivo({ id: a.id, nombre: a.nombre, fecha: a.fecha, bytes: b64aBytes(a.datos) }).catch(e => ({ nombre: a.nombre, error: e.message, grados: {}, avisos: [] })));
+  await eiaCompletarGrupos(leidos, cct).catch(() => {});
   return { leidos, ruta: r.ruta, omitidos: b.omitidos || [] };
 }
 async function eiaGuardarEscuela(cct, J, fuente) {
@@ -5436,7 +5512,7 @@ function eiaFormCarga(cct) {
     const grandes = files.filter(f => f.size > 20 * 1024 * 1024);
     if (grandes.length) { aviso('Estos archivos pesan más de 20 MB: ' + esc(grandes.map(f => f.name).join(', ')), 'mal', 9000); return; }
     const leidos = await conCarga(async () => { const out = []; for (const f of files) { const bytes = new Uint8Array(await f.arrayBuffer()); out.push(Object.assign(await eiaLeerArchivo({ nombre: f.name, fecha: new Date(f.lastModified || Date.now()).toISOString().slice(0, 16), bytes }), { original: bytes, tipoMime: f.type })); } return out; });
-    if (leidos) eiaRevisar(c, leidos, { subir: true });
+    if (leidos) { await eiaCompletarGrupos(leidos, c).catch(() => {}); eiaRevisar(c, leidos, { subir: true }); }
   };
 }
 // Muestra lo leído para revisarlo antes de guardar

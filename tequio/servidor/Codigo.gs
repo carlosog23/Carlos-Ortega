@@ -61,7 +61,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión' };
-const VERSION = 14;
+const VERSION = 15;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -153,10 +153,10 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos',
+const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -233,6 +233,34 @@ const ACCIONES = {
   sisatAlumnos: (yo, d) => {
     const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
     return { cct: cct, ciclo: ciclo, alumnos: leer_('sia').filter(x => x.ciclo === ciclo && x.cct === cct) };
+  },
+
+  // Devuelve los PDF de la carpeta «Inscripción inicial» de la escuela (y de sus subcarpetas) para saber,
+  // por los nombres de los alumnos, a qué grado y grupo corresponde un archivo que no lo dice (SisAT, EIA…)
+  inscripcionArchivos: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct);
+    const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+    if (!raiz) return { archivos: [], mensaje: 'No se encontró la carpeta de la escuela en el Drive de evidencias.' };
+    const sinAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    let ins = null;
+    const it = DriveApp.getFolderById(raiz.carpetaId).getFolders();
+    while (it.hasNext()) { const f = it.next(); if (/inscrip/.test(sinAcento(f.getName()))) { ins = f; break; } }
+    if (!ins) return { archivos: [], mensaje: 'La escuela no tiene carpeta de Inscripción inicial.' };
+    const archivos = [];
+    let total = 0;
+    const recorrer = (c, ruta, nivel) => {
+      const fi = c.getFiles();
+      while (fi.hasNext() && archivos.length < 60) {
+        const a = fi.next();
+        if (!/pdf/i.test(a.getMimeType()) && !/\.pdf$/i.test(a.getName())) continue;
+        if (a.getSize() > 4 * 1024 * 1024 || total + a.getSize() > 30 * 1024 * 1024) continue;
+        total += a.getSize();
+        archivos.push({ id: a.getId(), nombre: a.getName(), ruta: ruta, fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), datos: Utilities.base64Encode(a.getBlob().getBytes()) });
+      }
+      if (nivel < 2) { const fo = c.getFolders(); while (fo.hasNext()) { const f = fo.next(); recorrer(f, ruta + '/' + f.getName(), nivel + 1); } }
+    };
+    recorrer(ins, ins.getName(), 0);
+    return { archivos: archivos, ruta: ins.getName() };
   },
 
   // Devuelve el contenido de los Excel del SisAT (de la carpeta de la escuela) para leerlos en la página
