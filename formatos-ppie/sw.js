@@ -4,7 +4,7 @@
      se use el nuevo de inmediato; sin conexión se usa la copia guardada.
    - Librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-10-24b";
+const VERSION = "tlm-2026-10-24c";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
@@ -15,14 +15,18 @@ const NUCLEO = [
   "formatos/calendario.json", "formatos/seguro.json", "formatos/acceso.json", "formatos/normatividad.json", "formatos/pda.json", "formatos/inventarios.json",
   "formatos/A.pdf", "formatos/B.pdf", "formatos/C.pdf", "formatos/D.pdf", "formatos/E.pdf", "formatos/F.pdf", "formatos/G.pdf", "formatos/H.pdf", "formatos/I.pdf",
   "formatos/L.pdf", "formatos/P.pdf", "formatos/S.pdf", "formatos/U.pdf", "formatos/inventarios.pdf", "formatos/logo_se_lista.jpg",
-  "lib/pdf-lib.min.js", "lib/pdf.min.js", "lib/pdf.worker.min.js"
+  "lib/pdf-lib.min.js", "lib/pdf.min.js", "lib/pdf.worker.min.js",
+  "reconocimientos.js?v=2026-10-24c"
 ];
 /* Paquete completo opcional: se descarga cuando la persona lo pide desde la app. */
 const COMPLETO = [
   "formatos/consejo.pdf", "formatos/minuta-consejo.pdf", "formatos/requisitos-consejo.pdf",
   "formatos/fonts/carlito.ttf", "formatos/fonts/carlito-bold.ttf", "formatos/estadistica_edades.b64.txt",
   "formatos/logo_latino.jpg", "formatos/logo_slimplan.jpg",
-  "lib/exceljs.min.js", "lib/fontkit.min.js"
+  "lib/exceljs.min.js", "lib/fontkit.min.js",
+  "formatos/fonts/dip-script.ttf", "formatos/fonts/dip-pacifico.ttf", "formatos/fonts/dip-cinzel-bold.ttf", "formatos/fonts/dip-cinzel.ttf",
+  "formatos/fonts/dip-playfair-bold.ttf", "formatos/fonts/dip-playfair-italic.ttf", "formatos/fonts/dip-lora.ttf", "formatos/fonts/dip-lora-italic.ttf",
+  "formatos/fonts/dip-fredoka.ttf", "formatos/fonts/dip-montserrat.ttf", "formatos/fonts/dip-montserrat-bold.ttf"
 ];
 
 async function guardarTodos(cacheName, urls) {

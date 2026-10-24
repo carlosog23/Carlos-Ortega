@@ -1232,6 +1232,7 @@ const SECCIONES=[
  {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
  {id:"misalumnos",icon:"people",title:"Mis alumnos",desc:"Su base de datos del grupo: captúrela o suba sus archivos (PDF, Excel o Word) y Tlamatini los junta. Con ella se llenan solos los formatos.",grupos:[],view:()=>{S.dirGrupo=undefined;dirView("alumnos")},count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.filter(a=>!String(a.baja||"").trim()).length:0;return n?`${n} alumno${n>1?"s":""} en su base`:"Crear mi base de alumnos"}},
  {id:"directorio",icon:"people",title:"Directorio de la comunidad escolar",desc:"Escuelas de la zona, maestros con grado y grupo, y alumnos con tutores, emergencias y quién los recoge.",grupos:[],view:()=>dirView(),count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.length:0,m=(typeof DIR!=="undefined")?DIR.maestros.length:0;return n||m?[m?m+" maestro"+(m>1?"s":""):"",n?n+" alumno"+(n>1?"s":""):""].filter(Boolean).join(" · "):"Personalice su escuela"}},
+ {id:"reconocimientos",icon:"award",title:"Reconocimientos y diplomas",desc:"Diplomas y reconocimientos para alumnos, con varios diseños o su propia imagen de fondo; uno por uno o toda la lista de una vez (Excel, Word, PDF o foto).",grupos:[],view:()=>rkAbrir(),count:()=>1,cntLabel:()=>{const r=store.get("reconocimientos",null);const n=r&&r.personas?r.personas.length:0;return n?`${n} nombre${n>1?"s":""} en su lista`:"6 diseños · lista desde foto o Excel"}},
  {id:"misdocs",icon:"folder",title:"Mis documentos",desc:"Todo lo que ha generado en Tlamatini: véalo, imprímalo o envíelo de nuevo, o bórrelo cuando ya no lo necesite.",grupos:[],view:()=>docsView(),count:()=>1,cntLabel:()=>docsCntLabel()},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
@@ -1250,7 +1251,7 @@ function goBack(){if(S.sec)sectionView(S.sec);else home()}
 /* ---------- Inicio (diseño 2): saludo, buscador, próximo en el calendario, continuar, lo más usado y secciones por familia ---------- */
 const CHEV='<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 const FAMILIAS=[
- ["Mi escuela y mis alumnos",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["familias","","Recados, citatorios, avisos y autorizaciones"]]],
+ ["Mi escuela y mis alumnos",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["familias","","Recados, citatorios, avisos y autorizaciones"],["reconocimientos","","Diplomas para sus alumnos: varios diseños o su propio fondo, toda la lista de una vez"]]],
  ["Pedagógico",[["pedagogico","","Lectura de la realidad, PMCE, analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"]]],
  ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]]],
  ["Trámites del personal",[["laboral","","Licencias, datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"],["becas","","Formato Único de Beca de la Secretaría de Educación"]]],
@@ -1273,6 +1274,7 @@ const TICON={salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"
 const AICON={L:"work",P:"user",S:"cross",U:"cap"};
 Object.assign(ICON,{
  pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
+ award:'<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M12 6.2l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/><path d="M8.5 14L7 21l5-2.5 5 2.5-1.5-7"/></svg>',
  door:'<svg viewBox="0 0 24 24"><path d="M6 3h9v18H6z"/><path d="M15 5h3v16M12 12h.01"/></svg>',
  ticket:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5M4 15h16M14 18h2"/></svg>',
  minuta:'<svg viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2M8 11h8M8 14h8M8 17h5"/></svg>',
@@ -1554,7 +1556,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
 let OUT=null;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
-async function prepararPDF(){if(S.view==="libro")return prepararLibro();if(S.view==="pases")return prepararPases();if(S.view==="firmas")return prepararFirmas();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
+async function prepararPDF(){if(S.view==="rk")return prepararRK();if(S.view==="libro")return prepararLibro();if(S.view==="pases")return prepararPases();if(S.view==="firmas")return prepararFirmas();if(OUT&&OUT.letra===S.letra)return OUT;const bytes=await generar(S.letra);
   const quien=(S.vals.alumno||S.vals.nna||S.vals.nombre||[S.vals.nom,S.vals.pat,S.vals.mat].filter(Boolean).join(" ")||"").split(",")[0].trim().slice(0,40);
   const f=new Date(),fecha=`${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
   const filename=`${ARCHIVO[S.letra]}${quien?" - "+quien:""} - ${fecha}.pdf`.replace(/[\\/:*?"<>|]/g,"");
@@ -1581,7 +1583,7 @@ async function accion(act,btn){const label=btn.innerHTML;btn.disabled=true;btn.t
       else{const g=await trySave(o,false);if(g===true||g==="anchor")say("ok","<b>PDF guardado.</b> Este equipo no permite enviarlo directo: abra su correo, cree un mensaje nuevo y adjunte el PDF desde <b>Descargas</b>.");else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}}
     else if(act==="print"){
       if(isIOS){const r=await tryShare(o,"");if(r===true){say("ok","<b>Listo.</b>");return}if(r==="cancel"){say("warn","<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
-      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="libro"||S.letra==="U"&&S.view==="review"?" en orientación <b>horizontal</b>":S.view==="firmas"||S.view==="pases"?" en orientación <b>vertical</b>, al 100 %":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
+      if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){say("ok",`<b>Se abrió la ventana de impresión.</b> Elija su impresora y tamaño <b>Carta</b>${S.view==="rk"?` en orientación <b>${RK&&RK.orient==="vertical"?"vertical":"horizontal"}</b>, al 100 %`:S.view==="libro"||S.letra==="U"&&S.view==="review"?" en orientación <b>horizontal</b>":S.view==="firmas"||S.view==="pases"?" en orientación <b>vertical</b>, al 100 %":""}${ANEXOS[S.letra]?.back?" e impresión a <b>doble cara</b>":""}.`);return}
       const g=await trySave(o);if(g==="link"){linkMsg(o);return}if(g==="shared"){say("ok","<b>Listo.</b>");return}
       if(g===true||g==="anchor")say("ok",isIOS?"<b>PDF listo.</b> En el menú que aparece elija <b>Imprimir</b>.":isAndroid?"<b>PDF guardado.</b> Ábralo desde la notificación o desde <b>Descargas</b>, toque <b>⋮</b> y elija <b>Imprimir</b>.":"<b>PDF guardado.</b> Ábralo desde Descargas y presione <b>Ctrl + P</b> para imprimir.");
       else if(g==="cancel")say("warn","<b>Cancelado.</b>");else linkMsg(o)}
@@ -1783,6 +1785,13 @@ function edCicloView(){S.view="edades";S.letra=null;setBar("");
   window.scrollTo(0,0)}
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
+/* Reconocimientos y diplomas: el módulo se carga solo al entrar */
+const RK_JS="reconocimientos.js?v=2026-10-24c";
+async function rkAbrir(){S.view="rkcarga";S.sec="reconocimientos";setBar("");
+  if(typeof rkView!=="function"){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Mi escuela y mis alumnos</div><h2>Reconocimientos y diplomas</h2></div></div><p class="muted">Cargando…</p>`;
+    document.getElementById("salir").onclick=()=>{S.sec=null;home()};
+    try{await loadScript(RK_JS)}catch(e){app.querySelector("p.muted").innerHTML=`<b>No se pudo abrir.</b> Revise su conexión e intente de nuevo.`;return}}
+  if(S.view==="rkcarga")rkView()}
 function loadScript(src){return _libs[src]||(_libs[src]=new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>{delete _libs[src];no(new Error("No se pudo cargar "+src))};document.head.appendChild(s)}))}
 async function pdfjs(){await loadScript("lib/pdf.min.js");const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc=new URL("lib/pdf.worker.min.js",location.href).href;return L}
 function edadAl(dob,corte){const[a,b,c]=dob.split("-").map(Number),[y,m,d]=corte.split("-").map(Number);let e=y-a;if(m<b||(m===b&&d<c))e--;return e}
@@ -4768,7 +4777,7 @@ function tlmRed(){let b=document.getElementById("sinRed");if(navigator.onLine){i
   if(!b){b=document.createElement("div");b.id="sinRed";b.className="sin-red";b.setAttribute("role","status");b.innerHTML="<b>Sin internet.</b> Puede seguir usando Tlamatini con lo que ya está guardado en este equipo.";document.body.prepend(b)}}
 window.addEventListener("online",tlmRed);window.addEventListener("offline",tlmRed);
 /* respaldo: solo los datos de Tlamatini (no contraseñas ni enlaces de acceso) */
-const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","libro-pases","logo-zona","libro-visitas-logo","tlm-tour-visto"];
+const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","libro-pases","logo-zona","libro-visitas-logo","tlm-tour-visto","reconocimientos","rk-mis-disenos","rk-fondo"];
 const respClave=k=>k.startsWith("ppie-")||RESP_EXACTAS.includes(k);
 function respaldoDescargar(){const datos={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(respClave(k))datos[k]=localStorage.getItem(k)}}catch(e){}
   const n=Object.keys(datos).length;if(!n){alert("Todavía no hay datos guardados para respaldar.");return}
@@ -5497,7 +5506,7 @@ REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=
    Para activarlo, escriba en USO_CODIGO el nombre de la cuenta de goatcounter.com (ej. "tlamatini").
    El equipo de la Supervisión (con llave de administración) no se cuenta, para no inflar las cifras. */
 const USO_CODIGO="tlamatini";
-const USO_VISTA={home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",pases:"Libro de pases de salida",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
+const USO_VISTA={rk:"Reconocimientos y diplomas",home:"Inicio",setup:"Bienvenida",setupsub:"Configuración",setupotra:"Configuración",perfil:"Datos de mi escuela",edades:"Edades de los alumnos",libro:"Libro de visitas",pases:"Libro de pases de salida",firmas:"Libro de firmas",normas:"Normatividad",calendario:"Calendario escolar",salario:"Salario anual",dx:"Lectura de la realidad",pmce:"Programa de Mejora Continua",pa:"Programa Analítico",plan:"Planeación didáctica",recado:"Recados y avisos",inventario:"Inventarios",consejo:"Consejo de Participación Escolar",asistencia:"Lista de asistencia",alum:"Datos de alumnos (PDF)",eia:"EIA",dir:"Directorio",admin:"Supervisión: seguro",caladmin:"Supervisión: calendario",accadmin:"Supervisión: acceso",bloqueo:"Acceso bloqueado"};
 function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[S.letra])return`PPIE ${S.letra} · ${ANEXOS[S.letra].name}`;
   if(S.view==="section"&&S.sec){const x=SECCIONES.find(z=>z.id===S.sec);return"Sección · "+(x?x.title:S.sec)}return USO_VISTA[S.view]||S.view||"?"}
 const USO={cola:[],listo:false,ultima:"",activo:(()=>{try{return !!USO_CODIGO&&!localStorage.getItem("gh-token")&&!/^(localhost|127\.)/.test(location.hostname)}catch(e){return false}})()};
