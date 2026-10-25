@@ -1547,12 +1547,14 @@ const PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };   // nivel general: a
 function infCifras(cct) {
   const ciclo = cicloActual(), r = { cct };
   // 1. Acuerdos del checklist de reuniones
-  const acu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: x.titulo }, a))).filter(a => aplicaA(a, cct))
-    .map(a => ({ a, e: estadoDe(a.id, cct) })).filter(o => o.e !== 'no_aplica');
-  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
+  const todosAcu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: x.titulo }, a)));
+  const acu = todosAcu.filter(a => aplicaA(a, cct)).map(a => ({ a, e: estadoDe(a.id, cct) })).filter(o => o.e !== 'no_aplica');
+  // na = acuerdos que no le aplican (marcados «no aplica» o dirigidos a otras escuelas): cuentan como cumplidos en el porcentaje
+  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: todosAcu.length - acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
   // 2. Evidencias en Drive
-  const ev = S.evi ? columnasEvi().map(c => ({ c, e: eviDe(cct, c.ruta) })).filter(o => o.e) : [];
-  r.evi = { lista: ev, hecho: ev.filter(o => nArch(o.e)).length, total: ev.length,
+  const colsE = S.evi ? columnasEvi() : [];
+  const ev = colsE.map(c => ({ c, e: eviDe(cct, c.ruta) })).filter(o => o.e);
+  r.evi = { lista: ev, hecho: ev.filter(o => nArch(o.e)).length, total: ev.length, na: colsE.length - ev.length,
     ultimo: ev.map(o => o.e.ultimo || '').sort().pop() || '' };
   // 3 y 4. SisAT (momento más reciente con datos en la zona) y EIA; los grupos esperados son los que la escuela ha cargado en el ciclo
   const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm).filter(sisCuenta);
@@ -1570,8 +1572,9 @@ function infCifras(cct) {
   /* nivel general (criterio de la Supervisión): acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %.
      Evidencias = cumplimiento por rubro: cada carpeta cuenta igual si tiene al menos un archivo, sin importar cuántos
      (una escuela grande con más grupos sube más archivos, pero cumple lo mismo). */
-  r.pct = { acu: pctDe(r.acu.hecho, r.acu.total), evi: pctDe(r.evi.hecho, r.evi.total), sis: pctDe(r.sis.hecho, r.sis.total), eia: pctDe(r.eia.hecho, r.eia.total) };
-  const pesos = ['acu', 'evi', 'sis', 'eia'].map(k => [r[k].total ? r[k].hecho / r[k].total : null, PESO_GENERAL[k]]).filter(([v]) => v != null);
+  const cumpl = k => { const n = r[k].na || 0, t = r[k].total + n; return t ? (r[k].hecho + n) / t : null; };   // lo que no aplica cuenta como cumplido
+  r.pct = Object.fromEntries(['acu', 'evi', 'sis', 'eia'].map(k => { const v = cumpl(k); return [k, v == null ? null : Math.round(v * 100)]; }));
+  const pesos = ['acu', 'evi', 'sis', 'eia'].map(k => [cumpl(k), PESO_GENERAL[k]]).filter(([v]) => v != null);
   const sumaP = pesos.reduce((s, [, w]) => s + w, 0);
   r.general = sumaP ? Math.round(pesos.reduce((s, [v, w]) => s + v * w, 0) * 100 / sumaP) : 0;
   // Lista de pendientes (lo vencido primero)
@@ -1667,7 +1670,7 @@ ${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu]; return m ? `<div s
   <div style="font-size:14px;color:${INK};margin-top:6px;line-height:1.5">Su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} y la Supervisión le acompañaremos de manera cercana para atender juntos su lista de pendientes.${fz ? ' Reconocemos su avance en <b>' + fz.n + '</b> (' + fz.p + '%): ahí está su fortaleza.' : ''} Con cada pendiente que atiendan, su escuela subirá en el próximo informe.</div></div>`; })() : ''; })()}
 <div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
 ${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
-<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 % (en evidencias cuenta que cada carpeta tenga archivos, no cuántos).</div></div></td></tr>
+<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 % (en evidencias cuenta que cada carpeta tenga archivos, no cuántos; lo que no le aplica a la escuela cuenta como cumplido).</div></div></td></tr>
 <tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
 ${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'carpetas con archivos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' carpeta' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') + ' vacía' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
@@ -2112,16 +2115,18 @@ const aplicaA = (x, cct) => !(x.escuelas || []).length || x.escuelas.includes(cc
 const marcaDe = (acuId, cct) => (S.cum || []).find(m => m.id === acuId + '|' + cct);
 const estadoDe = (acuId, cct) => { const m = marcaDe(acuId, cct); return m ? m.estado : 'pendiente'; };
 const limiteVencido = x => !!x.limite && x.limite < hoy();
+/* Lo que no le aplica a una escuela (marcado «no aplica» o dirigido a otras escuelas) cuenta como cumplido en el porcentaje,
+   para que todas se comparen sobre la misma base y no salgan en desventaja las multigrado. */
 function avance(lista, ccts) {
-  const r = { hecho: 0, total: 0, noAplica: 0, vencidos: 0 };
+  const r = { hecho: 0, total: 0, noAplica: 0, na: 0, vencidos: 0 };
   lista.forEach(x => ccts.forEach(c => {
-    if (!aplicaA(x, c)) return;
+    if (!aplicaA(x, c)) { r.na++; return; }
     const e = estadoDe(x.id, c);
-    if (e === 'no_aplica') { r.noAplica++; return; }
+    if (e === 'no_aplica') { r.noAplica++; r.na++; return; }
     r.total++;
     if (e === 'hecho') r.hecho++; else if (limiteVencido(x)) r.vencidos++;
   }));
-  r.pct = r.total ? Math.round(r.hecho * 100 / r.total) : 0;
+  r.pct = r.total + r.na ? Math.round((r.hecho + r.na) * 100 / (r.total + r.na)) : 0;
   r.pend = r.total - r.hecho;
   return r;
 }
@@ -2517,10 +2522,11 @@ function eviAcuerdo(acuId, cct) {
 }
 const chipEvi = (acuId, cct) => { const m = eviAcuerdo(acuId, cct); return m ? `<a class="chip ok" target="_blank" rel="noopener" href="${urlCarpeta(m.e.carpetaId)}" title="Abrir la carpeta ${esc(m.c.corto)} en Drive">📎 ${nArch(m.e)} en Drive · ${fechaCorta(m.e.ultimo.slice(0, 10))}</a>` : ''; };
 function avanceEvi(ccts) {
-  let con = 0, total = 0;
+  let con = 0, total = 0, na = 0;
   const cols = columnasEvi();
-  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) return; total++; if (nArch(e)) con++; }));
-  return { hecho: con, total, pct: total ? Math.round(con * 100 / total) : 0, pend: total - con, vencidos: 0 };
+  // la carpeta que no existe para una escuela es un rubro que no le aplica: cuenta como cumplido
+  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) { na++; return; } total++; if (nArch(e)) con++; }));
+  return { hecho: con, total, na, pct: total + na ? Math.round((con + na) * 100 / (total + na)) : 0, pend: total - con, vencidos: 0 };
 }
 
 function vEvidencias() {
