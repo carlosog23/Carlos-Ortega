@@ -18,6 +18,8 @@
  *    oficial (resultado de cada alumno y componente) y, como respaldo, las gráficas con IA.
  *  · Lleva el tablón de pendientes: la Mesa Técnica deja ahí lo que la Supervisión debe saber o atender;
  *    los urgentes llegan al momento por correo y cada mañana sale el resumen de lo que sigue abierto.
+ *  · Cada lunes a las 7:00 envía a cada escuela su informe semanal (con copia a su ATP) y a la Supervisión el resumen de la zona;
+ *    no se envía en vacaciones del calendario oficial.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -63,7 +65,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
-const VERSION = 17;
+const VERSION = 18;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -1959,6 +1961,7 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
 function tareaDiaria() {
   try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
   try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
+  try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
   acts.forEach(a => {
@@ -1999,6 +2002,267 @@ function tareaDiaria() {
     enviarCorreo_(String(u.correo).split(',').map(x => x.trim()).filter(Boolean), 'Su agenda de hoy en Tequio · ' + fechaCorta_(hoy),
       plantilla_('Su agenda de hoy', '<p>Buenos días. Estas son sus actividades de hoy:</p>' + lista + boton_(PAGINA, 'Abrir Tequio')), 'agenda', u.id);
   });
+}
+
+/* ===================== Informe semanal automático (lunes 7:00 a. m.) =====================
+   Cada lunes a las 7:00 se envía a cada escuela su informe: primero los acuerdos vencidos, luego las evidencias
+   que faltan, lo que vence en la semana, otros pendientes, los porcentajes y lo que avanzaron la semana anterior.
+   Va con copia a su ATP y la Supervisión recibe un resumen de toda la zona. No se envía en vacaciones
+   (calendario oficial de Baja California); en días de suspensión sí se envía.
+   Criterio del nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %; lo que no le aplica a la
+   escuela cuenta como cumplido, y en evidencias cuenta que cada carpeta tenga archivos, no cuántos. */
+const PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };
+const CALENDARIO_URL = 'https://carlosog23.github.io/Carlos-Ortega/formatos-ppie/formatos/calendario.json';
+const VACACIONES_RESPALDO = [['2026-12-21', '2027-01-05'], ['2027-03-22', '2027-04-02']];   // por si no se puede leer el calendario
+const EVI_IGNORAR = [/^contingencia/, /^oficio/];
+const CORTOS_EVI = { 'expedientes de trabajadores': 'Expedientes', 'ejercicios integradores del aprendizaje': 'EIA', 'inscripcion inicial': 'Inscripción', 'niveles conceptuales': 'Niveles conceptuales', 'sisat': 'SisAT' };
+const ASIGNACION_INICIAL = [
+  [/oros/i, ['02DPR0425Z', '02DPR0014Y']],
+  [/l[oó]pez alvarado/i, ['02DPR0593W', '02DPR0556S', '02DPR0012Z', '02DPR0382S']],
+  [/espinoza araujo/i, ['02DPR0077J', '02DPR0150B', '02DPR0378F', '02DPR0882N']],
+  [/arce avi[nñ]a/i, ['02DPR0210Z', '02DPR0862Z', '02DPR0379E', '02DPR0684N']]
+];
+
+/** Ejecute esta función una vez después de actualizar el servidor: deja programado el informe del próximo lunes. */
+function activarInformeSemanal() {
+  const f = programarInformeSemanal_();
+  Logger.log('Listo. El próximo informe semanal saldrá el ' + Utilities.formatDate(f, TZ, "EEEE d 'de' MMMM 'a las' HH:mm"));
+}
+/** Prueba: arma los informes de todas las escuelas y se los manda SOLO a la Supervisión, para revisarlos. */
+function probarInformeSemanal() { informeSemanal_(true); }
+/** La ejecuta el disparador de los lunes. */
+function informeSemanal() {
+  try { informeSemanal_(false); }
+  finally { programarInformeSemanal_(); }
+}
+function programarInformeSemanal_() {
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'informeSemanal') ScriptApp.deleteTrigger(t); });
+  const hoy = hoy_(), dow = +Utilities.formatDate(new Date(), TZ, 'u');   // 1 = lunes … 7 = domingo
+  const hora = +Utilities.formatDate(new Date(), TZ, 'H') * 60 + +Utilities.formatDate(new Date(), TZ, 'm');
+  let dias = (8 - dow) % 7; if (dias === 0 && hora >= 7 * 60) dias = 7;
+  const f = Utilities.parseDate(sumarDias_(hoy, dias) + ' 07:00', TZ, 'yyyy-MM-dd HH:mm');
+  ScriptApp.newTrigger('informeSemanal').timeBased().at(f).create();
+  PropertiesService.getScriptProperties().setProperty('SEMANAL_PROXIMO', Utilities.formatDate(f, TZ, "yyyy-MM-dd'T'HH:mm"));
+  return f;
+}
+// La tarea diaria lo revisa: si por algo se perdió el disparador, lo vuelve a programar.
+function asegurarInformeSemanal_() {
+  const p = PropertiesService.getScriptProperties().getProperty('SEMANAL_PROXIMO') || '';
+  const hay = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'informeSemanal');
+  if (!hay || !p || p < ahora_()) programarInformeSemanal_();
+}
+
+function enVacaciones_(f) {
+  let vac = VACACIONES_RESPALDO, ini = '', fin = '';
+  try {
+    const r = UrlFetchApp.fetch(CALENDARIO_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    if (r.getResponseCode() === 200) { const c = JSON.parse(r.getContentText()); if (Array.isArray(c.vacaciones)) vac = c.vacaciones; ini = c.inicioClases || c.inicio || ''; fin = c.fin || ''; }
+  } catch (e) {}
+  if (ini && f < ini) return 'antes del inicio de clases';
+  if (fin && f > fin) return 'vacaciones de verano';
+  const v = vac.find(x => x[0] <= f && f <= x[1]);
+  return v ? (v[2] || 'vacaciones') : '';
+}
+
+const clave_ = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const sinNum_ = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '');
+// Mismas columnas que la pantalla de Evidencias: cada carpeta del primer nivel, y las «Evidencias…» abiertas en sus subcarpetas
+function columnasEvi_(evi) {
+  const rows = evi.filter(e => e.ruta && !EVI_IGNORAR.some(x => x.test(clave_(String(e.ruta).split('/')[0]))));
+  const nivel1 = Array.from(new Set(rows.filter(e => e.ruta.indexOf('/') < 0).map(e => e.ruta))).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  const cols = [];
+  nivel1.forEach(r => {
+    if (/^evidencias/.test(clave_(r))) {
+      const hijos = Array.from(new Set(rows.filter(e => e.ruta.split('/').length === 2 && e.ruta.indexOf(r + '/') === 0).map(e => e.ruta))).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+      hijos.forEach(h => cols.push({ ruta: h, corto: CORTOS_EVI[clave_(h.split('/')[1])] || sinNum_(h.split('/')[1]) }));
+      if (!hijos.length) cols.push({ ruta: r, corto: sinNum_(r) });
+    } else cols.push({ ruta: r, corto: CORTOS_EVI[clave_(r)] || sinNum_(r) });
+  });
+  const vistas = {};
+  return cols.filter(c => { const k = normRuta_(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
+}
+function cicloActual_() { const d = new Date(), y = +Utilities.formatDate(d, TZ, 'yyyy'), m = +Utilities.formatDate(d, TZ, 'M'); return m >= 8 ? y + '-' + (y + 1) : (y - 1) + '-' + y; }
+
+// Datos de toda la zona, leídos una sola vez
+function datosSemanal_() {
+  const D = { dir: leer_('dir'), usr: leer_('usr'), reu: leer_('reu').filter(r => r.activo), acu: leer_('acu').filter(a => a.activo), cum: leer_('cum'),
+    evi: leer_('evi'), sis: leer_('sis'), eig: leer_('eig'), seg: leer_('seg').filter(s => !s.confidencial), inf: leer_('inf') };
+  D.escuelas = D.dir.filter(c => c.tipo === 'director' && c.activo !== false).sort((a, b) => String(a.escuela).localeCompare(String(b.escuela), 'es'));
+  D.cols = columnasEvi_(D.evi);
+  D.cumPor = {}; D.cum.forEach(m => { D.cumPor[m.id] = m; });
+  D.reuPor = {}; D.reu.forEach(r => { D.reuPor[r.id] = r; });
+  D.acu = D.acu.filter(a => D.reuPor[a.reunionId]).sort((a, b) => String(D.reuPor[a.reunionId].fecha).localeCompare(String(D.reuPor[b.reunionId].fecha)) || (+a.orden || 0) - (+b.orden || 0));
+  D.atps = D.usr.filter(u => u.rol === 'atp' && u.activo);
+  D.escuelasDeAtp = u => { const c = D.dir.find(x => x.tipo === 'atp' && x.id === u.contacto);
+    if (c && c.cct) return c.cct === '-' ? [] : String(c.cct).split(',').map(x => x.trim()).filter(Boolean);
+    const f = ASIGNACION_INICIAL.find(a => a[0].test(u.nombre)); return f ? f[1] : []; };
+  D.atpDe = cct => D.atps.find(u => D.escuelasDeAtp(u).indexOf(cct) >= 0) || null;
+  return D;
+}
+
+// Cifras de una escuela (mismo cálculo que la página de Tequio)
+function cifrasSemanal_(D, c, hoy) {
+  const cct = c.cct, r = { cct: cct }, semana = sumarDias_(hoy, 6), antes = sumarDias_(hoy, -7);
+  const aplica = a => !(a.escuelas || []).length || a.escuelas.indexOf(cct) >= 0;
+  const est = a => { const m = D.cumPor[a.id + '|' + cct]; return m ? m : { estado: 'pendiente' }; };
+  const acu = [];
+  D.acu.forEach(a => { if (!aplica(a)) return; const m = est(a); if (m.estado === 'no_aplica') return; acu.push({ a: a, e: m.estado, f: m.fecha || '', reu: D.reuPor[a.reunionId] }); });
+  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: D.acu.length - acu.length };
+  r.vencidos = acu.filter(o => o.e !== 'hecho' && o.a.limite && o.a.limite < hoy).sort((x, y) => String(x.a.limite).localeCompare(String(y.a.limite)));
+  r.semana = acu.filter(o => o.e !== 'hecho' && o.a.limite && o.a.limite >= hoy && o.a.limite <= semana).sort((x, y) => String(x.a.limite).localeCompare(String(y.a.limite)));
+  r.sinFecha = acu.filter(o => o.e !== 'hecho' && (!o.a.limite || o.a.limite > semana));
+  r.logrosAcu = acu.filter(o => o.e === 'hecho' && o.f && o.f >= antes && o.f < hoy);
+  // evidencias
+  const ev = D.cols.map(col => ({ c: col, e: D.evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(col.ruta)) })).filter(o => o.e);
+  r.evi = { lista: ev, hecho: ev.filter(o => +o.e.archivos > 0).length, total: ev.length, na: D.cols.length - ev.length };
+  r.faltaEvi = ev.filter(o => !(+o.e.archivos > 0));
+  // archivos nuevos en la semana anterior (cada archivo una vez, aunque aparezca en sus carpetas «madre»)
+  const vistos = {};
+  D.evi.filter(e => e.cct === cct && e.ruta).forEach(e => (e.recientes || []).forEach(a => { const k = a.id || (a.f + a.n); const f = String(a.f || '').slice(0, 10);
+    if (f >= antes && f < hoy && (!vistos[k] || e.ruta.length > vistos[k].length)) vistos[k] = e.ruta; }));
+  r.logrosEvi = Object.keys(vistos).map(k => sinNum_(vistos[k].split('/').slice(-1)[0]));
+  // SisAT y EIA
+  const ciclo = cicloActual_(), k = x => x.grado + '|' + (x.grupo || '');
+  const sisC = D.sis.filter(x => x.ciclo === ciclo).filter(x => !(+x.momento === 1 && String(x.grado) === '1'));
+  const m = Math.max.apply(null, [1].concat(sisC.map(x => +x.momento)));
+  const eig = D.eig.filter(x => x.ciclo === ciclo && x.cct === cct);
+  let esperados = Array.from(new Set(sisC.filter(x => x.cct === cct).map(k).concat(eig.map(k))));
+  if (!esperados.length) esperados = ['1|', '2|', '3|', '4|', '5|', '6|'];
+  esperados.sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  const sisM = {}; sisC.filter(x => x.cct === cct && +x.momento === m).forEach(x => { sisM[k(x)] = 1; });
+  const eiaM = {}; eig.forEach(x => { eiaM[k(x)] = 1; });
+  const espS = m === 1 ? esperados.filter(g => !/^1\|/.test(g)) : esperados;
+  const nomG = g => { const p = g.split('|'); return p[0] + '.°' + (p[1] ? ' ' + p[1] : ''); };
+  r.sis = { m: m, hecho: espS.filter(g => sisM[g]).length, total: espS.length, faltan: espS.filter(g => !sisM[g]).map(nomG) };
+  r.eia = { hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length, faltan: esperados.filter(g => !eiaM[g]).map(nomG) };
+  // acuerdos de las visitas de la Supervisión
+  r.visitas = [];
+  D.seg.filter(s => s.cct === cct).forEach(s => (s.acuerdos || []).forEach(x => { if (x.estado === 'pendiente') r.visitas.push(x); }));
+  // porcentajes: lo que no le aplica cuenta como cumplido
+  const cumpl = q => { const n = q.na || 0, t = q.total + n; return t ? (q.hecho + n) / t : null; };
+  r.pct = {}; const pesos = [];
+  ['acu', 'evi', 'sis', 'eia'].forEach(q => { const v = cumpl(r[q]); r.pct[q] = v == null ? null : Math.round(v * 100); if (v != null) pesos.push([v, PESO_GENERAL[q]]); });
+  const sp = pesos.reduce((s, p) => s + p[1], 0);
+  r.general = sp ? Math.round(pesos.reduce((s, p) => s + p[0] * p[1], 0) * 100 / sp) : 0;
+  // nivel del informe anterior, para mostrar cuánto subió o bajó
+  const prev = D.inf.filter(x => x.cct === cct && x.cifras && x.cifras.general != null).sort((a, b) => String(b.creado).localeCompare(String(a.creado)))[0];
+  r.anterior = prev ? +prev.cifras.general : null;
+  return r;
+}
+
+function informeSemanal_(prueba) {
+  const hoy = hoy_(), vac = enVacaciones_(hoy);
+  if (vac && !prueba) { bitacora_('informe semanal', '', [], 'Informe semanal', 'No se envió: ' + vac); return; }
+  const D = datosSemanal_();
+  const lista = D.escuelas.map(c => ({ c: c, r: cifrasSemanal_(D, c, hoy) }));
+  const prom = q => { const v = lista.map(x => q ? x.r.pct[q] : x.r.general).filter(v => v != null); return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0; };
+  const z = { general: prom(), acu: prom('acu'), evi: prom('evi'), sis: prom('sis'), eia: prom('eia'), n: lista.length };
+  const admins = D.usr.filter(u => u.rol === 'admin' && u.activo !== false);
+  const correosSup = Array.from(new Set(admins.reduce((a, u) => a.concat(String(u.correo || '').split(',')), []).map(m => m.trim()).filter(m => /@/.test(m))));
+  const res = [], nuevos = [];
+  lista.forEach(({ c, r }) => {
+    const atp = D.atpDe(c.cct);
+    const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /@/.test(m));
+    const cc = atp ? String(atp.correo || '').split(',').map(m => m.trim()).filter(m => /@/.test(m)) : [];
+    const html = htmlSemanal_(c, r, z, atp, hoy, prueba);
+    const asunto = (prueba ? 'PRUEBA · ' : '') + 'Informe semanal · Esc. Prim. «' + c.escuela + '» · ' + fechaCorta_(hoy);
+    let resultado;
+    if (prueba) resultado = 'Prueba (solo a la Supervisión)';
+    else if (!para.length) resultado = 'Sin correo de la dirección en el Directorio';
+    else if (MailApp.getRemainingDailyQuota() < para.length + cc.length + 2) resultado = 'No se envió: se agotó la cuota de correos del día';
+    else { try { MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: CORREO_SUPERVISION }); resultado = 'Enviado'; }
+      catch (e) { resultado = 'No se pudo enviar: ' + e.message; } }
+    if (!prueba) {
+      nuevos.push({ id: 'inf-' + Utilities.getUuid().slice(0, 8), cct: c.cct, fecha: hoy, asunto: asunto,
+        cifras: { general: r.general, zona: z.general, acu: r.pct.acu, evi: r.pct.evi, sis: r.pct.sis, eia: r.pct.eia, semanal: true },
+        pendientes: r.vencidos.map(o => ({ est: 'Vencido', t: o.a.texto, tema: 'Acuerdos' })).concat(r.faltaEvi.map(o => ({ est: 'Falta', t: 'Subir evidencias a «' + o.c.corto + '»', tema: 'Evidencias' }))).slice(0, 60),
+        html: comprimir_(html), atpId: atp ? atp.id : '', para: para.join(','), cc: cc.join(','), enviadoPor: 'Tequio (automático)', creado: ahora_(), resultado: resultado });
+      bitacora_('informe semanal', c.cct, para.concat(cc), asunto, resultado);
+    }
+    res.push({ c: c, r: r, atp: atp, resultado: resultado, html: html });
+  });
+  if (nuevos.length) conLock_(() => guardarVarios_('inf', nuevos));
+  // resumen para la Supervisión
+  if (correosSup.length) {
+    const cuerpo = resumenSemanal_(res, z, hoy, prueba);
+    const adj = prueba ? res.map(x => Utilities.newBlob(x.html, 'text/html', 'Informe semanal - ' + x.c.escuela.replace(/[\\/:*?"<>|]/g, '') + '.html')) : [];
+    try { MailApp.sendEmail({ to: correosSup.join(','), subject: (prueba ? 'PRUEBA · ' : '') + 'Resumen semanal de la zona · ' + fechaCorta_(hoy), htmlBody: cuerpo, name: REMITENTE, attachments: adj }); }
+    catch (e) { bitacora_('informe semanal', '', correosSup, 'Resumen semanal', 'error: ' + e.message); }
+  }
+  return res.length;
+}
+
+function htmlSemanal_(c, r, z, atp, hoy, prueba) {
+  const G = '#6B1D3A', A = '#1592D6', INK = '#1F2A44', MU = '#5B6475', ROJO = '#A33333', AMB = '#8A5A0B', AZ = '#1F5E8C', VER = '#1D7A46';
+  const e = esc_, dias = f => Math.round((Utilities.parseDate(hoy + ' 12:00', TZ, 'yyyy-MM-dd HH:mm') - Utilities.parseDate(f + ' 12:00', TZ, 'yyyy-MM-dd HH:mm')) / 864e5);
+  const semanaFin = sumarDias_(hoy, 4), pM = hoy.split('-'), fM = semanaFin.split('-');
+  const semanaTxt = 'Semana del ' + (+pM[2]) + (pM[1] !== fM[1] ? ' de ' + MESES[+pM[1] - 1] : '') + ' al ' + (+fM[2]) + ' de ' + MESES[+fM[1] - 1] + ' de ' + fM[0];
+  const caja = (n, t, bg, col) => `<td width="33%" style="padding:6px"><div style="background:${bg};border-radius:12px;padding:12px;text-align:center"><div style="font-size:30px;font-weight:800;color:${col}">${n}</div><div style="font-size:13px;color:${col};font-weight:700">${t}</div></div></td>`;
+  const bloque = (t, col, cuerpo) => `<tr><td style="padding:12px 24px 4px"><div style="background:#fff;border-left:5px solid ${col};border-radius:10px;padding:14px 16px"><div style="font-size:17px;font-weight:800;color:${col};margin-bottom:8px">${t}</div>${cuerpo}</div></td></tr>`;
+  const fila = (izq, der) => `<tr><td style="font-size:14px;color:${INK};padding:8px;border-bottom:1px solid #F0F2F5">${izq}</td><td align="right" style="font-size:13px;padding:8px;border-bottom:1px solid #F0F2F5;white-space:nowrap">${der}</td></tr>`;
+  const tabla = f => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${f}</table>`;
+  const reuTxt = o => o.reu ? e(o.reu.titulo) + ' · ' + fechaCorta_(o.reu.fecha) : '';
+  const barra = (p, col) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#EEF1F5;height:12px;border-radius:6px;padding:0"><div style="width:${p || 0}%;height:12px;background:${col};border-radius:6px"></div></td><td width="44" align="right" style="font-size:13px;font-weight:700;color:${INK}">${p == null ? '—' : p + '%'}</td></tr></table>`;
+  const n1 = r.vencidos.length, n2 = r.faltaEvi.length, n3 = r.semana.length;
+  const otros = [];
+  r.sinFecha.forEach(o => otros.push(e(o.a.texto) + (o.a.limite ? ` <span style="color:${MU}">· antes del ${fechaCorta_(o.a.limite)}</span>` : o.a.plazo ? ` <span style="color:${MU}">· ${e(o.a.plazo)}</span>` : '')));
+  if (r.sis.faltan.length) otros.push('Cargar el SisAT del ' + r.sis.m + '.er momento' + (r.sis.faltan.length < r.sis.total ? ' de ' + r.sis.faltan.join(', ') : '') + ` <span style="color:${MU}">· Tequio › SisAT</span>`);
+  if (r.eia.faltan.length) otros.push('Capturar los EIA' + (r.eia.faltan.length < r.eia.total ? ' de ' + r.eia.faltan.join(', ') : '') + ` <span style="color:${MU}">· Tequio › EIA</span>`);
+  r.visitas.forEach(x => otros.push('Acuerdo de la visita de la Supervisión: ' + e(x.texto) + (x.revision ? ` <span style="color:${MU}">· revisión ${fechaCorta_(x.revision)}</span>` : '')));
+  const dif = r.general - z.general, cambio = r.anterior == null ? '' : r.general - r.anterior;
+  const cambioTxt = cambio === '' ? 'Primer informe semanal' : cambio > 0 ? `▲ ${cambio} punto${cambio === 1 ? '' : 's'} desde el informe anterior` : cambio < 0 ? `▼ ${-cambio} punto${cambio === -1 ? '' : 's'} desde el informe anterior` : 'Igual que en el informe anterior';
+  const cambioCol = cambio === '' || cambio === 0 ? MU : cambio > 0 ? VER : ROJO;
+  const zonaTxt = dif < 0 ? `Su escuela está ${-dif} punto${dif === -1 ? '' : 's'} abajo` : dif > 0 ? `Su escuela está ${dif} punto${dif === 1 ? '' : 's'} arriba` : 'Su escuela está en el promedio';
+  const areas = [['Acuerdos', 70, r.pct.acu, z.acu], ['Evidencias', 20, r.pct.evi, z.evi], ['SisAT', 5, r.pct.sis, z.sis], ['EIA', 5, r.pct.eia, z.eia]];
+  const logros = [];
+  if (r.logrosAcu.length) logros.push(`✔ Cumplieron ${r.logrosAcu.length} acuerdo${r.logrosAcu.length === 1 ? '' : 's'}: ${r.logrosAcu.slice(0, 4).map(o => e(o.a.texto)).join('; ')}${r.logrosAcu.length > 4 ? '…' : ''}`);
+  if (r.logrosEvi.length) { const c2 = Array.from(new Set(r.logrosEvi)); logros.push(`✔ Subieron ${r.logrosEvi.length} archivo${r.logrosEvi.length === 1 ? '' : 's'} al Drive (${c2.slice(0, 4).map(e).join(', ')}${c2.length > 4 ? '…' : ''}).`); }
+  const nada = !n1 && !n2 && !n3 && !otros.length;
+  const nombre = String(c.nombre || '').trim();
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe semanal de seguimiento</title></head>
+<body style="margin:0;background:#EEF0F3;font-family:Arial,Helvetica,sans-serif">
+${prueba ? `<div style="max-width:680px;margin:14px auto 8px;padding:8px 14px;background:#FFF1D6;color:${AMB};border-radius:10px;font-size:13px;text-align:center"><b>PRUEBA</b>: este informe no se envió a la escuela.</div>` : ''}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto 24px;background:#FBF8F3;border-radius:14px;overflow:hidden;border:1px solid #E6DCCF">
+<tr><td style="padding:16px 24px 12px;background:#fff"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${MU};font-weight:700">Supervisión Escolar Zona 050 · ISEP · Tequio</div><div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
+<tr><td style="padding:18px 24px 4px;color:${INK};font-size:15px;line-height:1.55">
+ <div style="font-size:22px;font-weight:800;color:${G}">Informe semanal de seguimiento</div>
+ <div style="font-size:15px;color:${MU};margin:2px 0 12px">Esc. Prim. «${e(c.escuela)}» · C.C.T. ${e(c.cct)}${c.municipio ? ' · ' + e(c.municipio) : ''}<br>${semanaTxt} · corte al ${fechaLarga_(hoy)}, 7:00 h</div>
+ ${nombre ? e(nombre) + ':' : 'Dirección de la escuela:'}<br>${nada ? 'Le comparto, como cada lunes, el estado de su escuela.' : 'Le comparto, como cada lunes, el estado de su escuela. Empezamos por lo más urgente: <b>los acuerdos vencidos</b> y <b>las evidencias que faltan</b>.'}</td></tr>
+${nada ? `<tr><td style="padding:12px 24px 4px"><div style="background:#E3F3EA;border-radius:12px;padding:18px;text-align:center"><div style="font-size:40px;line-height:1">🎉</div><div style="font-size:18px;font-weight:800;color:${VER};margin-top:6px">Su escuela no tiene pendientes esta semana</div><div style="font-size:14px;color:${INK};margin-top:4px">Felicidades a todo el colectivo docente por su compromiso. ¡Sigan así!</div></div></td></tr>` :
+`<tr><td style="padding:12px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${caja(n1, 'acuerdo' + (n1 === 1 ? '' : 's') + ' vencido' + (n1 === 1 ? '' : 's'), '#FBE3E0', ROJO)}${caja(n2, 'carpeta' + (n2 === 1 ? '' : 's') + ' sin evidencia', '#FFF1D6', AMB)}${caja(n3, 'vence' + (n3 === 1 ? '' : 'n') + ' esta semana', '#E6F1FA', AZ)}</tr></table></td></tr>
+${n1 ? bloque('1. Acuerdos vencidos · atender primero', ROJO, tabla(r.vencidos.map(o => fila(`<b>${e(o.a.texto)}</b><div style="font-size:12px;color:${MU};margin-top:2px">${reuTxt(o)}</div>`, `<span style="color:${ROJO}"><b>${fechaCorta_(o.a.limite).replace(/ \d{4}$/, '')}</b><br><span style="font-size:12px">hace ${dias(o.a.limite)} día${dias(o.a.limite) === 1 ? '' : 's'}</span></span>`)).join(''))) : bloque('1. Acuerdos vencidos', VER, `<div style="font-size:14px;color:${VER};font-weight:700">Ninguno. ¡Muy bien!</div>`)}
+${n2 ? bloque('2. Evidencias que faltan en el Drive', AMB, tabla(r.faltaEvi.map(o => fila(`<b>${e(o.c.corto)}</b><div style="font-size:12px;color:${MU}">Drive › ${e(o.c.ruta.split('/').join(' › '))}</div>`, `<a href="https://drive.google.com/drive/folders/${e(o.e.carpetaId)}" style="color:${A};font-weight:700;text-decoration:none">Abrir carpeta →</a>`)).join('')) + `<div style="font-size:12px;color:${MU};margin-top:6px">Basta con un archivo en cada carpeta para que el rubro cuente como cumplido.</div>`) : bloque('2. Evidencias que faltan', VER, `<div style="font-size:14px;color:${VER};font-weight:700">Todas sus carpetas tienen evidencia.</div>`)}
+${n3 ? bloque('3. Vence esta semana', AZ, r.semana.map(o => `<div style="font-size:14px;color:${INK};padding:3px 0"><b>${e(o.a.texto)}</b> <span style="color:${MU}">· antes del ${DIAS[Utilities.parseDate(o.a.limite + ' 12:00', TZ, 'yyyy-MM-dd HH:mm').getDay()]} ${fechaCorta_(o.a.limite).replace(/ \d{4}$/, '')}</span></div>`).join('')) : ''}
+${otros.length ? bloque((n3 ? '4' : '3') + '. Otros pendientes', '#5B6475', `<div style="font-size:14px;color:${INK};line-height:1.7">${otros.map(x => '• ' + x).join('<br>')}</div>`) : ''}`}
+<tr><td style="padding:16px 18px 0"><div style="font-size:17px;font-weight:800;color:${G};padding:0 6px 4px">Nivel general de cumplimiento</div>
+ <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+  <td width="50%" align="center" style="padding:6px"><div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:14px 8px"><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${MU};font-weight:700">Su escuela</div><div style="font-size:40px;font-weight:800;color:${G};line-height:1.1;margin:6px 0">${r.general}%</div><div style="font-size:13px;color:${cambioCol};font-weight:700">${cambioTxt}</div></div></td>
+  <td width="50%" align="center" style="padding:6px"><div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:14px 8px"><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${MU};font-weight:700">Promedio de la zona</div><div style="font-size:40px;font-weight:800;color:${A};line-height:1.1;margin:6px 0">${z.general}%</div><div style="font-size:13px;color:${dif < 0 ? AMB : VER};font-weight:700">${zonaTxt}</div></div></td></tr></table>
+ <div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px;margin:6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+ ${areas.map(([n, w, p, pz]) => `<tr><td width="130" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n} <span style="color:${MU};font-weight:400">(${w} %)</span></td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barra(p, G)}<div style="height:4px"></div>${barra(pz, A)}</td></tr>`).join('')}</table>
+ <div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp; <span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas · Lo que no le aplica a la escuela cuenta como cumplido; en evidencias cuenta que cada carpeta tenga archivos, no cuántos.</div></div></td></tr>
+${logros.length ? `<tr><td style="padding:12px 24px 4px"><div style="background:#E3F3EA;border-radius:10px;padding:14px 16px"><div style="font-size:17px;font-weight:800;color:${VER};margin-bottom:6px">Lo que avanzaron la semana pasada</div><div style="font-size:14px;color:${INK};line-height:1.7">${logros.join('<br>')}<br>¡Gracias al colectivo docente por su compromiso!</div></div></td></tr>` : ''}
+<tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, comuníquese con su ATP${atp ? ', <b>' + e(atp.nombre) + '</b>,' : ''} para su aclaración, o solicítela en Tequio › Mi escuela › «Solicitar aclaración».<br><br>Atentamente<br><i style="color:${MU}">«Responsabilidad y superación»</i><br><br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</td></tr>
+<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe semanal automático de Tequio · <i>${e(LEMA)}</i> · Supervisión Escolar Zona 050 · Tel. 616 165 5622 · ${CORREO_SUPERVISION}</td></tr>
+</table></body></html>`;
+}
+
+function resumenSemanal_(res, z, hoy, prueba) {
+  const INK = '#1F2A44', MU = '#5B6475';
+  const l = res.slice().sort((a, b) => b.r.general - a.r.general);
+  const filas = l.map(x => { const d = x.r.anterior == null ? '' : x.r.general - x.r.anterior;
+    return `<tr><td style="padding:7px 8px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${INK}"><b>${esc_(x.c.escuela)}</b><div style="font-size:12px;color:${MU}">${x.atp ? esc_(x.atp.nombre) : 'Sin ATP'}${x.resultado !== 'Enviado' ? ' · <span style="color:#A33333">' + esc_(x.resultado) + '</span>' : ''}</div></td>
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:15px;font-weight:800;color:${x.r.general >= z.general ? '#1D7A46' : '#8A5A0B'}">${x.r.general}%</td>
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:13px;color:${d === '' ? MU : d > 0 ? '#1D7A46' : d < 0 ? '#A33333' : MU}">${d === '' ? '—' : d > 0 ? '▲' + d : d < 0 ? '▼' + (-d) : '='}</td>
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.vencidos.length ? '#A33333' : MU};font-weight:${x.r.vencidos.length ? 800 : 400}">${x.r.vencidos.length}</td>
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.faltaEvi.length ? '#8A5A0B' : MU}">${x.r.faltaEvi.length}</td></tr>`; }).join('');
+  const env = res.filter(x => x.resultado === 'Enviado').length;
+  return plantilla_((prueba ? 'PRUEBA · ' : '') + 'Resumen semanal de la zona',
+    `<p>${prueba ? 'Prueba del informe semanal: <b>no se envió a las escuelas</b>. Van adjuntos los informes de cada escuela para revisarlos.' : `Esta mañana se enviaron <b>${env} de ${res.length}</b> informes semanales a las direcciones, con copia a su ATP.`}</p>
+     <p style="font-size:15px">Promedio de la zona: <b style="font-size:20px">${z.general}%</b> · Acuerdos ${z.acu}% · Evidencias ${z.evi}% · SisAT ${z.sis}% · EIA ${z.eia}%</p>
+     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;border-radius:10px">
+      <tr><th align="left" style="font-size:12px;color:${MU};padding:6px 8px;border-bottom:1px solid #E3E6EC">ESCUELA</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">GENERAL</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">CAMBIO</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">VENCIDOS</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">SIN EVIDENCIA</th></tr>${filas}</table>
+     <p style="font-size:13px;color:${MU}">Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %. Los informes quedan guardados en Tequio › Informes.</p>` + boton_(PAGINA, 'Abrir Tequio'));
 }
 
 /* ===================== Plantillas de correo ===================== */
