@@ -1542,6 +1542,7 @@ const pctDe = (h, t) => t ? Math.round(h * 100 / t) : null;
 const nomGrupo = k => { const [g, gr] = k.split('|'); return g + '.°' + (gr ? ' ' + gr : ''); };
 const diasEntre = (a, b) => Math.max(0, Math.round((new Date(String(b).slice(0, 10) + 'T12:00') - new Date(String(a).slice(0, 10) + 'T12:00')) / 864e5));
 
+const PESO_GENERAL = { acu: 75, evi: 25 };   // nivel general: 75 % acuerdos + 25 % evidencias
 // Cifras y pendientes de una escuela con lo que Tequio tiene en este momento
 function infCifras(cct) {
   const ciclo = cicloActual(), r = { cct };
@@ -1566,10 +1567,13 @@ function infCifras(cct) {
   const espS = m === 1 ? esperados.filter(g => !/^1\|/.test(g)) : esperados;   // 1.° no se evalúa en el 1.er momento
   r.sis = { m, grupos: espS.map(g => ({ g, x: sisM[g] || null })), hecho: espS.filter(g => sisM[g]).length, total: espS.length };
   r.eia = { grupos: esperados.map(g => ({ g, x: eiaM[g] || null })), hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length };
-  // nivel general = promedio de los apartados que aplican
+  /* nivel general (criterio de la Supervisión): acuerdos 75 % + evidencias 25 %.
+     Evidencias = cumplimiento por rubro: cada carpeta cuenta igual si tiene al menos un archivo, sin importar cuántos
+     (una escuela grande con más grupos sube más archivos, pero cumple lo mismo). SisAT y EIA se muestran aparte. */
   r.pct = { acu: pctDe(r.acu.hecho, r.acu.total), evi: pctDe(r.evi.hecho, r.evi.total), sis: pctDe(r.sis.hecho, r.sis.total), eia: pctDe(r.eia.hecho, r.eia.total) };
-  const vs = Object.values(r.pct).filter(v => v != null);
-  r.general = vs.length ? Math.round(vs.reduce((s, v) => s + v, 0) / vs.length) : 0;
+  const pesos = [[r.acu.total ? r.acu.hecho / r.acu.total : null, PESO_GENERAL.acu], [r.evi.total ? r.evi.hecho / r.evi.total : null, PESO_GENERAL.evi]].filter(([v]) => v != null);
+  const sumaP = pesos.reduce((s, [, w]) => s + w, 0);
+  r.general = sumaP ? Math.round(pesos.reduce((s, [v, w]) => s + v * w, 0) * 100 / sumaP) : 0;
   // Lista de pendientes (lo vencido primero)
   const p = [];
   acu.filter(o => o.e !== 'hecho').forEach(o => p.push({ est: limiteVencido(o.a) ? 'Vencido' : 'Pendiente', t: o.a.texto, d: (o.a.limite ? (limiteVencido(o.a) ? 'Venció el ' : 'Antes del ') + fechaCorta(o.a.limite) + ' · ' : '') + o.a.reuT, tema: 'Acuerdos', f: o.a.limite || '9999' }));
@@ -1663,7 +1667,7 @@ ${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu]; return m ? `<div s
   <div style="font-size:14px;color:${INK};margin-top:6px;line-height:1.5">Su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} y la Supervisión le acompañaremos de manera cercana para atender juntos su lista de pendientes.${fz ? ' Reconocemos su avance en <b>' + fz.n + '</b> (' + fz.p + '%): ahí está su fortaleza.' : ''} Con cada pendiente que atiendan, su escuela subirá en el próximo informe.</div></div>`; })() : ''; })()}
 <div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
 ${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
-<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · El nivel general es el promedio de los apartados.</div></div></td></tr>
+<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 75 % + evidencias 25 % (en evidencias cuenta que cada carpeta tenga archivos, no cuántos).</div></div></td></tr>
 <tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
 ${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'carpetas con archivos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' carpeta' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') + ' vacía' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
