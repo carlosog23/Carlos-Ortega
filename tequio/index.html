@@ -2486,8 +2486,11 @@ const sinNum = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '');
 const clave = t => sinNum(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 /* Las columnas salen de las carpetas que existen en el Drive: cada carpeta del primer nivel es una columna,
    y las que se llaman «Evidencias…» se abren en sus subcarpetas. Si crea una carpeta nueva, aparece sola. */
+/* Carpetas de situaciones puntuales que no son rubros de evidencia: no cuentan en el porcentaje ni salen como columna */
+const EVI_IGNORAR = [/^contingencia/, /^oficio/];
+const eviIgnorada = r => EVI_IGNORAR.some(x => x.test(clave(String(r).split('/')[0])));
 function columnasEvi() {
-  const rows = (S.evi || []).filter(e => e.ruta);
+  const rows = (S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta));
   const nivel1 = [...new Set(rows.filter(e => !e.ruta.includes('/')).map(e => e.ruta))];
   const cols = [];
   nivel1.sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).forEach(r => {
