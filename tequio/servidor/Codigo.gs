@@ -18,7 +18,8 @@
  *    oficial (resultado de cada alumno y componente) y, como respaldo, las gráficas con IA.
  *  · Lleva el tablón de pendientes: la Mesa Técnica deja ahí lo que la Supervisión debe saber o atender;
  *    los urgentes llegan al momento por correo y cada mañana sale el resumen de lo que sigue abierto.
- *  · Cada lunes a las 7:00 envía a cada escuela su informe semanal (con copia a su ATP) y a la Supervisión el resumen de la zona;
+ *  · Cada lunes a las 7:00 envía a cada escuela su informe semanal (pendientes, porcentajes y actividades agendadas de la semana,
+ *    con copia a su ATP) y a la Supervisión el resumen de la zona;
  *    no se envía en vacaciones del calendario oficial.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
@@ -2086,7 +2087,8 @@ function cicloActual_() { const d = new Date(), y = +Utilities.formatDate(d, TZ,
 // Datos de toda la zona, leídos una sola vez
 function datosSemanal_() {
   const D = { dir: leer_('dir'), usr: leer_('usr'), reu: leer_('reu').filter(r => r.activo), acu: leer_('acu').filter(a => a.activo), cum: leer_('cum'),
-    evi: leer_('evi'), sis: leer_('sis'), eig: leer_('eig'), seg: leer_('seg').filter(s => !s.confidencial), inf: leer_('inf') };
+    evi: leer_('evi'), sis: leer_('sis'), eig: leer_('eig'), seg: leer_('seg').filter(s => !s.confidencial), inf: leer_('inf'),
+    act: leer_('act').filter(a => !a.confidencial && a.estado === 'programada') };
   D.escuelas = D.dir.filter(c => c.tipo === 'director' && c.activo !== false).sort((a, b) => String(a.escuela).localeCompare(String(b.escuela), 'es'));
   D.cols = columnasEvi_(D.evi);
   D.cumPor = {}; D.cum.forEach(m => { D.cumPor[m.id] = m; });
@@ -2135,6 +2137,11 @@ function cifrasSemanal_(D, c, hoy) {
   const nomG = g => { const p = g.split('|'); return p[0] + '.°' + (p[1] ? ' ' + p[1] : ''); };
   r.sis = { m: m, hecho: espS.filter(g => sisM[g]).length, total: espS.length, faltan: espS.filter(g => !sisM[g]).map(nomG) };
   r.eia = { hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length, faltan: esperados.filter(g => !eiaM[g]).map(nomG) };
+  // actividades agendadas para la escuela en la semana (lunes a domingo); si no hay, la próxima que tenga
+  const enEsc = a => (a.escuelas || []).indexOf(cct) >= 0;
+  const ordAct = (x, y) => (x.fecha + (x.horaInicio || '')).localeCompare(y.fecha + (y.horaInicio || ''));
+  r.agenda = D.act.filter(a => enEsc(a) && a.fecha >= hoy && a.fecha <= semana).sort(ordAct);
+  r.proxima = r.agenda.length ? null : (D.act.filter(a => enEsc(a) && a.fecha > semana).sort(ordAct)[0] || null);
   // acuerdos de las visitas de la Supervisión
   r.visitas = [];
   D.seg.filter(s => s.cct === cct).forEach(s => (s.acuerdos || []).forEach(x => { if (x.estado === 'pendiente') r.visitas.push(x); }));
@@ -2218,6 +2225,11 @@ function htmlSemanal_(c, r, z, atp, hoy, prueba) {
   if (r.logrosAcu.length) logros.push(`✔ Cumplieron ${r.logrosAcu.length} acuerdo${r.logrosAcu.length === 1 ? '' : 's'}: ${r.logrosAcu.slice(0, 4).map(o => e(o.a.texto)).join('; ')}${r.logrosAcu.length > 4 ? '…' : ''}`);
   if (r.logrosEvi.length) { const c2 = Array.from(new Set(r.logrosEvi)); logros.push(`✔ Subieron ${r.logrosEvi.length} archivo${r.logrosEvi.length === 1 ? '' : 's'} al Drive (${c2.slice(0, 4).map(e).join(', ')}${c2.length > 4 ? '…' : ''}).`); }
   const nada = !n1 && !n2 && !n3 && !otros.length;
+  const diaDe = f => DIAS[Utilities.parseDate(f + ' 12:00', TZ, 'yyyy-MM-dd HH:mm').getDay()];
+  const fichaAct = a => `<tr><td valign="top" width="92" style="padding:8px 10px 8px 0;border-bottom:1px solid #F0F2F5"><div style="background:#E6F1FA;border-radius:10px;padding:6px 4px;text-align:center"><div style="font-size:11px;color:${AZ};font-weight:700;text-transform:uppercase">${diaDe(a.fecha)}</div><div style="font-size:20px;font-weight:800;color:${AZ};line-height:1.1">${+a.fecha.slice(8, 10)}</div><div style="font-size:11px;color:${AZ}">${MESES[+a.fecha.slice(5, 7) - 1].slice(0, 3)}</div></div></td>
+    <td valign="top" style="padding:8px 0;border-bottom:1px solid #F0F2F5;font-size:14px;color:${INK}"><b>${e(a.titulo)}</b><div style="font-size:13px;color:${MU};margin-top:2px">${[a.horaInicio ? a.horaInicio + (a.horaFin ? ' a ' + a.horaFin : '') + ' h' : '', a.lugar ? e(a.lugar) : ''].filter(Boolean).join(' · ')}</div>${a.proposito ? `<div style="font-size:13px;color:${INK};margin-top:4px">${e(String(a.proposito).slice(0, 220))}${String(a.proposito).length > 220 ? '…' : ''}</div>` : ''}</td></tr>`;
+  const agendaHTML = r.agenda.length ? bloque('Actividades agendadas esta semana', AZ, `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${r.agenda.map(fichaAct).join('')}</table>`)
+    : r.proxima ? bloque('Actividades agendadas', AZ, `<div style="font-size:13px;color:${MU};margin-bottom:6px">Esta semana no hay actividades agendadas para su escuela. La próxima es:</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${fichaAct(r.proxima)}</table>`) : '';
   const nombre = String(c.nombre || '').trim();
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe semanal de seguimiento</title></head>
 <body style="margin:0;background:#EEF0F3;font-family:Arial,Helvetica,sans-serif">
@@ -2234,6 +2246,7 @@ ${n1 ? bloque('1. Acuerdos vencidos · atender primero', ROJO, tabla(r.vencidos.
 ${n2 ? bloque('2. Evidencias que faltan en el Drive', AMB, tabla(r.faltaEvi.map(o => fila(`<b>${e(o.c.corto)}</b><div style="font-size:12px;color:${MU}">Drive › ${e(o.c.ruta.split('/').join(' › '))}</div>`, `<a href="https://drive.google.com/drive/folders/${e(o.e.carpetaId)}" style="color:${A};font-weight:700;text-decoration:none">Abrir carpeta →</a>`)).join('')) + `<div style="font-size:12px;color:${MU};margin-top:6px">Basta con un archivo en cada carpeta para que el rubro cuente como cumplido.</div>`) : bloque('2. Evidencias que faltan', VER, `<div style="font-size:14px;color:${VER};font-weight:700">Todas sus carpetas tienen evidencia.</div>`)}
 ${n3 ? bloque('3. Vence esta semana', AZ, r.semana.map(o => `<div style="font-size:14px;color:${INK};padding:3px 0"><b>${e(o.a.texto)}</b> <span style="color:${MU}">· antes del ${DIAS[Utilities.parseDate(o.a.limite + ' 12:00', TZ, 'yyyy-MM-dd HH:mm').getDay()]} ${fechaCorta_(o.a.limite).replace(/ \d{4}$/, '')}</span></div>`).join('')) : ''}
 ${otros.length ? bloque((n3 ? '4' : '3') + '. Otros pendientes', '#5B6475', `<div style="font-size:14px;color:${INK};line-height:1.7">${otros.map(x => '• ' + x).join('<br>')}</div>`) : ''}`}
+${agendaHTML}
 <tr><td style="padding:16px 18px 0"><div style="font-size:17px;font-weight:800;color:${G};padding:0 6px 4px">Nivel general de cumplimiento</div>
  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
   <td width="50%" align="center" style="padding:6px"><div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:14px 8px"><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${MU};font-weight:700">Su escuela</div><div style="font-size:40px;font-weight:800;color:${G};line-height:1.1;margin:6px 0">${r.general}%</div><div style="font-size:13px;color:${cambioCol};font-weight:700">${cambioTxt}</div></div></td>
@@ -2255,13 +2268,14 @@ function resumenSemanal_(res, z, hoy, prueba) {
       <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:15px;font-weight:800;color:${x.r.general >= z.general ? '#1D7A46' : '#8A5A0B'}">${x.r.general}%</td>
       <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:13px;color:${d === '' ? MU : d > 0 ? '#1D7A46' : d < 0 ? '#A33333' : MU}">${d === '' ? '—' : d > 0 ? '▲' + d : d < 0 ? '▼' + (-d) : '='}</td>
       <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.vencidos.length ? '#A33333' : MU};font-weight:${x.r.vencidos.length ? 800 : 400}">${x.r.vencidos.length}</td>
-      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.faltaEvi.length ? '#8A5A0B' : MU}">${x.r.faltaEvi.length}</td></tr>`; }).join('');
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.faltaEvi.length ? '#8A5A0B' : MU}">${x.r.faltaEvi.length}</td>
+      <td align="center" style="padding:7px 4px;border-bottom:1px solid #F0F2F5;font-size:14px;color:${x.r.agenda.length ? '#1F5E8C' : MU}">${x.r.agenda.length}</td></tr>`; }).join('');
   const env = res.filter(x => x.resultado === 'Enviado').length;
   return plantilla_((prueba ? 'PRUEBA · ' : '') + 'Resumen semanal de la zona',
     `<p>${prueba ? 'Prueba del informe semanal: <b>no se envió a las escuelas</b>. Van adjuntos los informes de cada escuela para revisarlos.' : `Esta mañana se enviaron <b>${env} de ${res.length}</b> informes semanales a las direcciones, con copia a su ATP.`}</p>
      <p style="font-size:15px">Promedio de la zona: <b style="font-size:20px">${z.general}%</b> · Acuerdos ${z.acu}% · Evidencias ${z.evi}% · SisAT ${z.sis}% · EIA ${z.eia}%</p>
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;border-radius:10px">
-      <tr><th align="left" style="font-size:12px;color:${MU};padding:6px 8px;border-bottom:1px solid #E3E6EC">ESCUELA</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">GENERAL</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">CAMBIO</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">VENCIDOS</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">SIN EVIDENCIA</th></tr>${filas}</table>
+      <tr><th align="left" style="font-size:12px;color:${MU};padding:6px 8px;border-bottom:1px solid #E3E6EC">ESCUELA</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">GENERAL</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">CAMBIO</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">VENCIDOS</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">SIN EVIDENCIA</th><th style="font-size:12px;color:${MU};padding:6px 4px;border-bottom:1px solid #E3E6EC">ACTIVIDADES</th></tr>${filas}</table>
      <p style="font-size:13px;color:${MU}">Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %. Los informes quedan guardados en Tequio › Informes.</p>` + boton_(PAGINA, 'Abrir Tequio'));
 }
 
