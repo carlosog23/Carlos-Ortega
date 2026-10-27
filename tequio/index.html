@@ -664,8 +664,14 @@ function cargando(si) {
 }
 
 /* ---------------- Configuración y servidor ---------------- */
+// Invitaciones de consulta: solo lectura, con los datos de ejemplo (nunca los reales) y con fecha de vencimiento (hora de B.C.).
+const INVITACIONES = {
+  supervisores: { vence: '2026-10-31T00:00:00-07:00', texto: 'el viernes 30 de octubre a las 11:59 p. m.' }
+};
+const invitacionVencida = c => { const v = c && c.invitado && INVITACIONES[c.invitado]; return !v || Date.now() >= Date.parse(v.vence); };
 function leerCfg() {
   const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('invitado') !== null) { const c = { demo: true, lectura: true, invitado: h.get('invitado') }; return invitacionVencida(c) ? { vencido: true } : c; }
   if (h.get('s') && h.get('k')) {
     const c = { s: h.get('s'), k: h.get('k') };
     try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {}
@@ -833,7 +839,7 @@ function pintar() {
   const tabs = pestanas();
   if (!tabs.find(t => t[0] === vista.tab)) vista.tab = 'agenda';
   $('#app').innerHTML = `
-  ${cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
+  ${cfg.invitado ? `<div class="banda-demo">Invitación de consulta · datos de ejemplo · puede explorar todo, pero no modificar nada · disponible hasta ${esc(INVITACIONES[cfg.invitado].texto)}</div>` : cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
   <header class="barra"><div class="envoltura">
     <a class="marca" href="#" id="b-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
     <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}${insigniaPest(t[0])}</button>`).join('')}</nav>
@@ -9217,9 +9223,25 @@ function formCfgOficios() {
 
 
 /* ---------------- Arranque ---------------- */
+// Página que se muestra cuando una invitación de consulta ya venció.
+function invitacionTerminada() {
+  cfg = null; S = null;
+  document.title = 'Tequio · Zona 050';
+  $('#app').innerHTML = `
+  <div class="portada"><div class="caja">
+    <svg class="logo" role="img" aria-label="Logotipo de Tequio: seis personas unidas en círculo alrededor de una luz"><use href="#logo"/></svg>
+    <h1>Tequio</h1>
+    <div class="lema">${LEMA}</div>
+    <div class="aviso-caja" style="margin-top:18px;text-align:left">Este enlace de consulta ya venció. Gracias por su interés en Tequio.</div>
+    <p style="margin-top:18px">Si desea conocer más, comuníquese con la Supervisión Escolar Zona 050: <b>supervision050sep@gmail.com</b> · 616 165 5622.</p>
+    <p class="peq" style="margin-top:18px">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · «Responsabilidad y superación»</p>
+  </div></div>`;
+}
 cfg = leerCfg();
-if (cfg) cargar(); else portada('');
-window.addEventListener('hashchange', () => { const c = leerCfg(); if (c) { cfg = c; S = null; cargar(); } });
+if (cfg && cfg.vencido) invitacionTerminada(); else if (cfg) cargar(); else portada('');
+window.addEventListener('hashchange', () => { const c = leerCfg(); if (c && c.vencido) invitacionTerminada(); else if (c) { cfg = c; S = null; cargar(); } });
+// Si la invitación vence mientras la página está abierta, se cierra sola.
+setInterval(() => { if (cfg && cfg.invitado && invitacionVencida(cfg)) invitacionTerminada(); }, 60000);
 </script>
 <script>
 /* Dictado por voz · Tlamatini y Tequio
