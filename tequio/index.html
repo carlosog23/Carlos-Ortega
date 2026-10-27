@@ -1388,6 +1388,18 @@ function fotoLigera(file) {
     im.src = u;
   });
 }
+// Tipo MIME aunque el celular no lo informe (pasa con algunas fotos y PDF)
+const MIME_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif', pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', mp4: 'video/mp4', mov: 'video/quicktime' };
+function mimeDe(f) { return f.type || MIME_EXT[String(f.name || '').split('.').pop().toLowerCase()] || 'application/octet-stream'; }
+// Prepara cualquier archivo para subir: las fotos se aligeran a JPEG; PDF y documentos van tal cual
+async function prepArchivo(f) {
+  const tipo = mimeDe(f);
+  if (!/^image\//.test(tipo)) return { blob: f, nombre: f.name, tipo };
+  const b = await fotoLigera(f);
+  if (b === f || b.type !== 'image/jpeg') return { blob: f, nombre: f.name, tipo };
+  return { blob: b, nombre: String(f.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg', tipo: 'image/jpeg' };
+}
+const TIPOS_EVID = 'image/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,video/*';
 
 // Borrador local de la visita (lo que la Supervisión va marcando antes de guardar)
 function visBorrador(cct, n) {
@@ -1424,7 +1436,7 @@ function vEditorVisita() {
       : `<div class="campo" style="margin:10px 0 4px"><label for="nd-${esc(t.k)}">Nota para la Supervisión (opcional)</label><textarea id="nd-${esc(t.k)}" data-nd="${esc(t.k)}" placeholder="Dónde está el documento, qué falta, cuándo estará…" style="min-height:56px" ${cerrada ? 'disabled' : ''}>${esc(it.nd || '')}</textarea></div>
         <label class="casilla"><input type="checkbox" data-listo="${esc(t.k)}" ${it.listo ? 'checked' : ''} ${cerrada ? 'disabled' : ''}> Listo para la visita</label>`}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px">${(it.fotos || []).map(f => fotoHtml(it, f)).join('')}
-        ${!cerrada || mesa ? `<label class="boton sec chico" style="cursor:pointer;height:78px;flex-direction:column;justify-content:center;width:104px;text-align:center">${ico('i-carpeta')}Foto<input type="file" data-foto="${esc(t.k)}" data-i="${i + 1}" accept="image/*,application/pdf" multiple style="display:none"></label>` : ''}</div>
+        ${!cerrada || mesa ? `<label class="boton sec chico" style="cursor:pointer;height:78px;flex-direction:column;justify-content:center;width:104px;text-align:center">${ico('i-carpeta')}Foto o PDF<input type="file" data-foto="${esc(t.k)}" data-i="${i + 1}" accept="image/*,application/pdf" multiple style="display:none"></label>` : ''}</div>
     </div>`;
   };
   $('#vista').innerHTML = `
@@ -1465,12 +1477,12 @@ function vEditorVisita() {
       for (const f of fs) {
         const b = await fotoLigera(f), ext = b.type === 'image/jpeg' ? 'jpg' : (f.name.split('.').pop() || 'jpg');
         const nombre = String(inp.dataset.i).padStart(2, '0') + ' ' + t.t.replace(/[\\/:*?"<>|()]+/g, ' ').slice(0, 60).trim() + ' - ' + hoy() + ' ' + Date.now().toString(36).slice(-4) + '.' + ext;
-        const r = await api('visitaFoto', { cct, numero: n, ciclo: cicloVis(), k: t.k, nombre, tipo: b.type || f.type, datos: await blobAB64(b), carpetaId: (visDe(cct, n) || {}).carpetaId || '' });
+        const r = await api('visitaFoto', { cct, numero: n, ciclo: cicloVis(), k: t.k, nombre, tipo: b.type || mimeDe(f), datos: await blobAB64(b), carpetaId: (visDe(cct, n) || {}).carpetaId || '' });
         poner(S.vis, r.vis); ok++;
       }
     });
     vEditorVisita(); window.scrollTo(0, y);
-    if (ok) aviso(ok + ' foto' + (ok === 1 ? '' : 's') + ' en el Drive de la escuela.', 'ok', 3000);
+    if (ok) aviso(ok + ' archivo' + (ok === 1 ? '' : 's') + ' en el Drive de la escuela.', 'ok', 3000);
   });
   $$('[data-qf]').forEach(b => b.onclick = async () => {
     const [k, id] = b.dataset.qf.split('|');
@@ -2766,8 +2778,8 @@ function formSubir(cct, carpetaId) {
   modal('Subir archivos', `
     ${fijo ? `<p class="peq" style="margin-top:0"><b>${esc(nombreEscuela(escSel))}</b></p>` : `<div class="campo"><label for="s-esc">Escuela</label><select id="s-esc">${directores().map(d => `<option value="${d.cct}" ${d.cct === escSel ? 'selected' : ''}>${esc(d.escuela)}</option>`).join('')}</select></div>`}
     <div class="campo"><label for="s-carp">Carpeta</label><select id="s-carp"></select></div>
-    <div class="campo"><label for="s-arch">Archivos</label><input type="file" id="s-arch" multiple></div>
-    <div class="ayuda">Hasta ${MAX_MB} MB por archivo. Los videos pesados conviene subirlos directo al Drive.</div>
+    <div class="campo"><label for="s-arch">Archivos</label><input type="file" id="s-arch" multiple accept="${TIPOS_EVID}"></div>
+    <div class="ayuda">Fotos (de la galería o tomadas con la cámara), PDF, Word, Excel o PowerPoint. Las fotos se aligeran solas. Hasta ${MAX_MB} MB por archivo; los videos pesados conviene subirlos directo al Drive.</div>
     <div id="s-prog" class="peq" style="margin-top:10px"></div>`,
     '<button class="boton sec" id="s-cancelar">Cancelar</button><button class="boton terra" id="s-subir">Subir</button>');
   const escuela = () => fijo ? miCct() : $('#s-esc').value;
@@ -2782,7 +2794,7 @@ function formSubir(cct, carpetaId) {
     const c = escuela(), carp = $('#s-carp').value, archivos = [...$('#s-arch').files];
     if (!carp) return aviso('Elija una carpeta.', 'mal');
     if (!archivos.length) return aviso('Elija uno o más archivos.', 'mal');
-    const grandes = archivos.filter(f => f.size > MAX_MB * 1024 * 1024);
+    const grandes = archivos.filter(f => f.size > MAX_MB * 1024 * 1024 && !/^image\//.test(mimeDe(f)));
     if (grandes.length) return aviso('Pesan más de ' + MAX_MB + ' MB: ' + esc(grandes.map(f => f.name).join(', ')) + '. Súbalos directo al Drive.', 'mal', 9000);
     const leer = f => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => mal(new Error('No se pudo leer ' + f.name)); r.readAsDataURL(f); });
     $('#s-subir').disabled = true; $('#s-cancelar').disabled = true;
@@ -2792,7 +2804,9 @@ function formSubir(cct, carpetaId) {
       for (let i = 0; i < archivos.length; i++) {
         const f = archivos[i];
         $('#s-prog').textContent = 'Subiendo ' + (i + 1) + ' de ' + archivos.length + ': ' + f.name + '…';
-        const r = await api('subirArchivo', { cct: c, carpetaId: carp, nombre: f.name, tipo: f.type, datos: await leer(f), actualizar: i === archivos.length - 1 });
+        const p = await prepArchivo(f);
+        if (p.blob.size > MAX_MB * 1024 * 1024) throw new Error('«' + f.name + '» pesa más de ' + MAX_MB + ' MB. Súbalo directo al Drive.');
+        const r = await api('subirArchivo', { cct: c, carpetaId: carp, nombre: p.nombre, tipo: p.tipo, datos: await leer(p.blob), actualizar: i === archivos.length - 1 });
         hechos++;
         if (r.evi) S.evi = (S.evi || []).filter(e => e.cct !== c).concat(r.evi);
       }
@@ -7208,7 +7222,7 @@ const Demo = (() => {
 const CTE_ORD = ['', 'Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Séptima', 'Octava'];
 const CTE_FECHAS = { '2026-2027': ['', '2026-09-25', '2026-10-30', '2026-11-27', '2027-01-29', '2027-02-26', '2027-04-30', '2027-05-28', '2027-06-25'] };
 const CTE_BASE = { id: 'jornada', nombre: 'Fotos de la jornada de trabajo' };
-const CTE_TIPOS_ARCH = 'image/*,application/pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
+const CTE_TIPOS_ARCH = 'image/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
 const cteCiclo = () => vista.cteCiclo || cicloActual();
 const cteSes = n => (S.cteD && S.cteD.cte || []).find(x => +x.sesion === +n) || { sesion: String(n), presentacion: [], cuadernillo: [], insumos: [], evid: [], prod: [] };
 const cteFecha = n => cteSes(n).fecha || (CTE_FECHAS[cteCiclo()] || [])[n] || '';
@@ -7374,15 +7388,18 @@ function cteEnlazar(n, cct) {
 }
 
 async function cteSubirArchivos(n, cct, tipo, item, etiqueta, files) {
-  const grandes = files.filter(f => f.size > MAX_MB * 1024 * 1024);
+  const esImg = f => /^image\//.test(mimeDe(f));
+  const grandes = files.filter(f => f.size > MAX_MB * 1024 * 1024 && !esImg(f));
   if (grandes.length) aviso(`${grandes.map(f => '«' + esc(f.name) + '»').join(', ')} pesa${grandes.length > 1 ? 'n' : ''} más de ${MAX_MB} MB. Redúzcalo o súbalo directo al Drive.`, 'mal', 9000);
-  const ok = files.filter(f => f.size <= MAX_MB * 1024 * 1024);
+  const ok = files.filter(f => f.size <= MAX_MB * 1024 * 1024 || esImg(f));
   if (!ok.length) return;
   let n_ok = 0;
   await conCarga(async () => {
     for (const f of ok) {
       try {
-        const r = await api('cteSubir', { ciclo: cteCiclo(), sesion: n, cct, tipo, item: item || '', etiqueta: etiqueta || '', nombre: f.name, mime: f.type || 'application/octet-stream', datos: await blobAB64(f) });
+        const p = await prepArchivo(f);
+        if (p.blob.size > MAX_MB * 1024 * 1024) throw new Error('pesa más de ' + MAX_MB + ' MB');
+        const r = await api('cteSubir', { ciclo: cteCiclo(), sesion: n, cct, tipo, item: item || '', etiqueta: etiqueta || '', nombre: p.nombre, mime: p.tipo, datos: await blobAB64(p.blob) });
         S.cteD.cta.push(r.archivo); n_ok++;
       } catch (e) { aviso('No se pudo subir «' + esc(f.name) + '»: ' + esc(e.message), 'mal', 9000); }
     }
@@ -7396,7 +7413,7 @@ function cteModalOtra(n, cct, tipo) {
   modal(ev ? 'Agregar otra evidencia' : 'Agregar un producto', `
     <label class="campo"><span class="et">${ev ? '¿De qué es la evidencia?' : 'Nombre del producto'}</span><input id="co-etq" maxlength="120" placeholder="${ev ? 'Ej. Dinámica grupal' : 'Ej. Plan de mejora: ruta de trabajo'}" list="co-sug"></label>
     <datalist id="co-sug">${(ev ? ['Dinámica grupal', 'Trabajo en equipos', 'Plenaria', 'Lectura compartida', 'Exposición', 'Acuerdos del colectivo'] : ['Acuerdos de la sesión', 'Ruta de mejora', 'Organizador gráfico', 'Planeación', 'Minuta']).map(x => `<option value="${x}">`).join('')}</datalist>
-    <label class="campo"><span class="et">${ev ? 'Fotos' : 'Archivo o foto'}</span><input type="file" id="co-file" multiple accept="${CTE_TIPOS_ARCH}"></label>`,
+    <label class="campo"><span class="et">${ev ? 'Fotos o PDF' : 'Archivo, foto o PDF'}</span><input type="file" id="co-file" multiple accept="${CTE_TIPOS_ARCH}"></label>`,
     `<button class="boton sec" id="co-no">Cancelar</button><button class="boton" id="co-si">${ico('i-mas')}Subir</button>`);
   $('#co-no').onclick = cerrarModal;
   $('#co-si').onclick = () => {
@@ -7428,7 +7445,7 @@ function cteModalInsumo(n, tipo) {
       const f = ($('#ci-file').files || [])[0];
       if (!f) { aviso('Elija el archivo.', 'mal'); return; }
       if (f.size > MAX_MB * 1024 * 1024) { aviso(`El archivo pesa más de ${MAX_MB} MB. Súbalo a su Drive y ponga el enlace.`, 'mal', 8000); return; }
-      Object.assign(d, { nombre: f.name, mime: f.type || 'application/octet-stream', datos: await blobAB64(f) });
+      Object.assign(d, { nombre: f.name, mime: mimeDe(f), datos: await blobAB64(f) });
     }
     const r = await accion('cteSubirInsumo', d);
     if (r) { S.cteD.cte = r.cte; cerrarModal(); vCte(); aviso('Listo: ya lo ven todas las escuelas.', 'ok', 3500); }
