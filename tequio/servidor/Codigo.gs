@@ -12,6 +12,8 @@
  *  · Lleva el checklist de acuerdos de reuniones y CTZ, escuela por escuela.
  *  · Revisa las carpetas de evidencias del Drive «Supervisión 050» (solo nombres y fechas).
  *  · La Supervisión y los ATP califican cada rubro de evidencias con semáforo (verde, amarillo con observación, rojo).
+ *  · Lleva la base de datos del personal de la zona (expedientes, plazas, doble plaza, altas, bajas e interinos).
+ *    La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.
  *  · Permite crear carpetas y subir archivos a ese Drive desde la página.
  *  · Da acceso de consulta a los directores: su escuela, la agenda y el avance general de la zona.
  *  · Genera oficios numerados de la Supervisión, con redacción asistida por IA (Gemini) y envío por correo.
@@ -48,6 +50,10 @@ const HOJAS = {
   evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
   // Revisión de cada rubro de evidencias por la Supervisión o el ATP: cumple (verde), incompleto (amarillo, con observación) o sin (rojo)
   eve: ['id', 'cct', 'ruta', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
+  // Personal de la zona: datos del expediente y sus plazas (una o más; dos plazas activas = doble plaza)
+  trb: ['id', 'curp', 'rfc', 'paterno', 'materno', 'nombre', 'sexo', 'fechaNac', 'lugarNac', 'calle', 'numero', 'colonia', 'cp', 'municipio', 'entidad',
+        'telCasa', 'celular', 'correoInst', 'correoPers', 'fechaIngreso', 'estudios', 'estudiosStatus', 'estadoCivil', 'hijos', 'hijosGuarderia', 'afiliacion',
+        'plazas', 'estado', 'tipoAlta', 'fechaAlta', 'fechaBaja', 'motivoBaja', 'observaciones', 'revisar', 'historial', 'creadoPor', 'actualizado', 'actualizadoPor'],
   ofi: ['id', 'numero', 'anio', 'folio', 'fecha', 'municipio', 'destNombre', 'destCargo', 'destInst', 'escuelas', 'referencia', 'asunto', 'cuerpo',
         'ccp', 'firma', 'sello', 'escala', 'pdfId', 'envios', 'creadoPor', 'creado', 'actualizado', 'destCorreo', 'recibidoId', 'recibidoNombre'],
   sis: ['id', 'ciclo', 'momento', 'cct', 'grado', 'grupo', 'lec', 'tex', 'cal', 'tip', 'fuente', 'cargadoPor', 'actualizado', 'comp'],
@@ -66,16 +72,16 @@ const HOJAS = {
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
-  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', ofi: 'Oficios',
+  reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
-const VERSION = 20;
+const VERSION = 21;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
+const JSON_COLS = ['plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -161,7 +167,7 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
+const SOLO_DIRECTOR = ['personal', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['enviarInforme', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo',
@@ -651,6 +657,84 @@ const ACCIONES = {
   },
 
   // Palomea (o despalomea) acuerdos por escuela. Lo puede hacer la Supervisión o cualquier ATP.
+  /* ---- Personal de la zona ----
+     La Supervisión y la Mesa Técnica ven y modifican a todo el personal; la dirección solo consulta al de su escuela
+     (quien tiene o tuvo una plaza en su C.C.T.). Los datos nunca se mandan con «datos»: se piden al abrir la pestaña. */
+  personal: (yo) => {
+    const l = leer_('trb');
+    if (yo.rol !== 'director') return { trb: l };
+    const cct = cctDe_(yo);
+    return { trb: l.filter(t => (t.plazas || []).some(p => p.cct === cct)) };
+  },
+  // Alta o corrección de un trabajador (el mismo CURP no se repite)
+  personalGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const t = limpiarTrabajador_(d.trabajador || {});
+    const l = leer_('trb');
+    const previo = t.id ? l.find(x => x.id === t.id) : null;
+    if (t.curp && l.some(x => x.curp === t.curp && x.id !== t.id)) throw new Error('Ya hay un trabajador con la CURP ' + t.curp + '.');
+    const ahora = ahora_();
+    if (!previo) {
+      t.id = 'trb-' + Utilities.getUuid().slice(0, 8);
+      t.estado = 'activo'; t.creadoPor = yo.id;
+      t.fechaAlta = t.fechaAlta || hoy_();
+      t.historial = [{ f: ahora, tipo: 'alta', por: yo.nombre, txt: (t.tipoAlta === 'interino' ? 'Alta temporal (interino)' : 'Alta') + (t.plazas[0] ? ' · ' + t.plazas[0].cct : '') }];
+    } else {
+      ['estado', 'fechaBaja', 'motivoBaja', 'creadoPor'].forEach(k => { t[k] = previo[k]; });
+      t.historial = (previo.historial || []).concat([{ f: ahora, tipo: 'cambio', por: yo.nombre, txt: 'Datos actualizados' }]).slice(-80);
+    }
+    t.actualizado = ahora; t.actualizadoPor = yo.nombre;
+    guardar_('trb', t);
+    return { trabajador: t };
+  },
+  // Baja (o reactivación) de un trabajador; no se borra: queda con su historial
+  personalBaja: (yo, d) => {
+    soloMesa_(yo);
+    const t = buscar_('trb', String(d.id || ''));
+    if (!t) throw new Error('No se encontró al trabajador.');
+    const ahora = ahora_();
+    if (d.reactivar) {
+      t.estado = 'activo'; t.fechaBaja = ''; t.motivoBaja = '';
+      t.historial = (t.historial || []).concat([{ f: ahora, tipo: 'reactivacion', por: yo.nombre, txt: 'Reactivado' }]);
+    } else {
+      const motivo = String(d.motivo || '').trim().slice(0, 300);
+      if (!motivo) throw new Error('Escriba el motivo de la baja.');
+      t.estado = 'baja'; t.fechaBaja = /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(); t.motivoBaja = motivo;
+      t.plazas = (t.plazas || []).map(p => Object.assign({}, p, { activa: false, hasta: p.hasta || t.fechaBaja }));
+      t.historial = (t.historial || []).concat([{ f: ahora, tipo: 'baja', por: yo.nombre, txt: 'Baja: ' + motivo }]);
+    }
+    t.historial = t.historial.slice(-80); t.actualizado = ahora; t.actualizadoPor = yo.nombre;
+    guardar_('trb', t);
+    return { trabajador: t };
+  },
+  // Carga de varios trabajadores leídos de los expedientes (por CURP: si ya existe, se actualiza)
+  personalImportar: (yo, d) => {
+    soloAdmin_(yo);
+    const lista = Array.isArray(d.trabajadores) ? d.trabajadores.slice(0, 400) : [];
+    if (!lista.length) throw new Error('El archivo no trae trabajadores.');
+    const l = leer_('trb'), ahora = ahora_(), out = [];
+    let nuevos = 0, actualizados = 0;
+    lista.forEach(x => {
+      const t = limpiarTrabajador_(x);
+      if (!t.curp && !(t.paterno && t.nombre)) return;
+      const previo = l.find(y => t.curp && y.curp === t.curp) || out.find(y => t.curp && y.curp === t.curp);
+      if (previo) {
+        t.id = previo.id; t.estado = previo.estado; t.fechaBaja = previo.fechaBaja; t.motivoBaja = previo.motivoBaja; t.creadoPor = previo.creadoPor;
+        t.historial = (previo.historial || []).concat([{ f: ahora, tipo: 'cambio', por: yo.nombre, txt: 'Actualizado con el expediente' }]).slice(-80);
+        actualizados++;
+      } else {
+        t.id = 'trb-' + Utilities.getUuid().slice(0, 8); t.estado = 'activo'; t.creadoPor = yo.id; t.fechaAlta = t.fechaAlta || hoy_();
+        t.historial = [{ f: ahora, tipo: 'alta', por: yo.nombre, txt: 'Alta desde el expediente' }];
+        nuevos++;
+      }
+      t.actualizado = ahora; t.actualizadoPor = yo.nombre;
+      out.push(t);
+    });
+    guardarVarios_('trb', out);
+    bitacora_('personal', '', [], 'Importación de expedientes', nuevos + ' nuevos, ' + actualizados + ' actualizados · ' + yo.nombre);
+    return { trb: leer_('trb'), nuevos: nuevos, actualizados: actualizados };
+  },
+
   // Semáforo de un rubro de evidencias: '' (sin revisar: cuenta si la carpeta tiene archivos), cumple, incompleto (requiere observación) o sin
   eviEstado: (yo, d) => {
     soloMesa_(yo);
@@ -1549,6 +1633,30 @@ function autorizarOficios() {
 /* ===================== Directores ===================== */
 
 // C.C.T. de la escuela de un usuario director (su contacto en el Directorio es «d-C.C.T.»)
+// Normaliza los datos de un trabajador que llegan de la página
+function limpiarTrabajador_(d) {
+  const txt = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 120);
+  const may = (v, n) => txt(v, n).toUpperCase();
+  const fecha = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+  const t = { id: txt(d.id, 40) };
+  t.curp = may(d.curp, 18).replace(/\s/g, ''); t.rfc = may(d.rfc, 13).replace(/\s/g, '');
+  if (t.curp && !/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/.test(t.curp)) throw new Error('La CURP «' + t.curp + '» no tiene el formato correcto (18 caracteres).');
+  ['paterno', 'materno', 'nombre'].forEach(k => { t[k] = may(d[k], 60); });
+  if (!t.paterno || !t.nombre) throw new Error('Falta el apellido paterno o el nombre.');
+  t.sexo = ['H', 'M'].indexOf(d.sexo) >= 0 ? d.sexo : '';
+  t.fechaNac = fecha(d.fechaNac); t.fechaIngreso = fecha(d.fechaIngreso); t.fechaAlta = fecha(d.fechaAlta);
+  ['lugarNac', 'calle', 'numero', 'colonia', 'cp', 'municipio', 'entidad', 'telCasa', 'celular', 'estudios', 'estudiosStatus', 'estadoCivil', 'afiliacion'].forEach(k => { t[k] = txt(d[k], 120); });
+  ['correoInst', 'correoPers'].forEach(k => { t[k] = txt(d[k], 120).toLowerCase(); });
+  t.hijos = txt(d.hijos, 3); t.hijosGuarderia = txt(d.hijosGuarderia, 3);
+  t.tipoAlta = ['definitiva', 'interino', 'provisional'].indexOf(d.tipoAlta) >= 0 ? d.tipoAlta : 'definitiva';
+  t.observaciones = txt(d.observaciones, 1500); t.revisar = txt(d.revisar, 1500);
+  t.plazas = (Array.isArray(d.plazas) ? d.plazas : []).slice(0, 6).map((p, i) => ({
+    id: txt(p.id, 40) || ('pl' + (i + 1)), cct: may(p.cct, 12), turno: txt(p.turno, 20), funcion: txt(p.funcion, 80), clave: txt(p.clave, 60), horas: txt(p.horas, 6),
+    nombramiento: txt(p.nombramiento, 40), desde: fecha(p.desde), hasta: fecha(p.hasta), sustituye: txt(p.sustituye, 120), activa: p.activa !== false
+  })).filter(p => p.cct || p.funcion);
+  return t;
+}
+
 function cctDe_(u) {
   const c = leer_('dir').find(x => x.id === u.contacto && x.tipo === 'director');
   return c ? c.cct : '';

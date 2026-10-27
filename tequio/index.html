@@ -314,6 +314,14 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .matriz td.e-sin a{background:var(--alerta-f);color:var(--alerta);box-shadow:inset 0 0 0 2px #E59A93}
 .matriz td a span.sem{font-size:11px;font-weight:700;color:inherit}
 .matriz td a i.nuevo{font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--indigo);border-radius:999px;padding:0 6px;margin-top:2px}
+.chip.morado{background:#EFE6FA;color:#5B2E91}
+.pen-cifra b.morado{color:#5B2E91}
+.per-tabla td,.per-tabla th{text-align:left}
+.per-tabla tr.per-doble th,.per-tabla tr.per-doble td{background:#F4ECFC}
+.per-tabla tr.per-doble th.esc-col{box-shadow:inset 5px 0 0 #7A4BC2,1px 0 0 var(--borde)}
+.per-tabla tr.per-baja{opacity:.6}
+.per-nom{text-decoration:none;color:var(--tinta);font-size:15px;text-align:left;white-space:normal;font-weight:600;margin-right:6px}
+.per-datos{width:100%;border-collapse:collapse;font-size:14.5px}.per-datos td{padding:5px 6px;border-bottom:1px solid var(--borde);vertical-align:top}
 .sem-ley{display:flex;gap:6px 14px;flex-wrap:wrap;padding:0 14px 12px;font-size:12.5px;color:var(--gris)}
 .sem-ley span{display:inline-flex;align-items:center;gap:5px}
 .sem-ley b{display:inline-block;width:12px;height:12px;border-radius:3px}
@@ -814,8 +822,9 @@ function portada(mensaje) {
 
 /* ---------------- Marco general ---------------- */
 function pestanas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['oficios', 'Oficios', 'i-lapiz']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -836,7 +845,7 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir })[vista.tab]();
+  ({ agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal })[vista.tab]();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
 // Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
@@ -2844,6 +2853,253 @@ function detalleEvidencias(cct) {
   $('#de-cerrar').onclick = cerrarModal;
   $('#de-subir').onclick = () => formSubir(cct);
   $$('[data-drev]').forEach(b => b.onclick = () => revisarEvi(cct, b.dataset.drev, () => detalleEvidencias(cct)));
+}
+
+/* ---------------- Personal de la zona ----------------
+   Base de datos de los trabajadores: datos del expediente y sus plazas. Quien tiene dos plazas activas
+   (dos escuelas o dos turnos) es «doble plaza» y se resalta en morado. La Supervisión y la Mesa Técnica ven y
+   modifican a todo el personal; cada dirección consulta solo al de su escuela. Los datos se piden al abrir la pestaña. */
+const SUP_CENTRO = { cct: '02FIZ0094X', escuela: 'Supervisión Escolar Zona 050', municipio: 'San Quintín', multigrado: false };
+const PER_FUNCIONES = ['Supervisor(a)', 'ATP', 'Director(a)', 'Director(a) con grupo', 'Subdirector(a)', 'Docente frente a grupo', 'Docente de educación física', 'Docente de inglés', 'Docente de USAER', 'Promotor(a) de lectura', 'Secretario(a)', 'Intendente', 'Velador', 'Administrativo', 'Otra'];
+const PER_NOMB = { definitiva: 'Base (definitiva)', interino: 'Interino (temporal)', provisional: 'Provisional' };
+const PER_ESTUDIOS = ['Normal básica', 'Licenciatura', 'Especialidad', 'Maestría', 'Doctorado', 'Otro'];
+const perCentros = () => [Object.assign({ turno: 'Matutino', sup: true }, SUP_CENTRO)].concat(directores().map(c => ({ cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: !!c.multigrado, turno: sisTurno(c.cct) })));
+const perCentro = cct => perCentros().find(c => c.cct === cct) || { cct, escuela: cct, municipio: '', multigrado: false, turno: '' };
+const perNombre = t => [t.paterno, t.materno, t.nombre].filter(Boolean).join(' ');
+const perActivas = t => (t.plazas || []).filter(p => p.activa !== false);
+// Doble plaza: dos o más plazas activas en distinta escuela o distinto turno
+const perDoble = t => { const a = perActivas(t); return t.estado !== 'baja' && a.length > 1 && new Set(a.map(p => p.cct + '|' + (p.turno || ''))).size > 1; };
+const perInterino = t => t.estado !== 'baja' && (t.tipoAlta === 'interino' || perActivas(t).some(p => /interin/i.test(p.nombramiento || '')));
+const perFin = t => perActivas(t).map(p => p.hasta).filter(Boolean).sort()[0] || '';
+const perVencido = t => perInterino(t) && perFin(t) && perFin(t) < hoy();
+const perEdad = f => { if (!f) return ''; const d = deIso(f), h = new Date(); let e = h.getFullYear() - d.getFullYear(); if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) e--; return e; };
+const perAnios = f => { const e = perEdad(f); return e === '' ? '' : e + ' año' + (e === 1 ? '' : 's'); };
+const perPuede = () => !esDirector();
+
+async function perCargar(forzar) {
+  if (S.trb && !forzar) return;
+  try { const r = await api('personal'); S.trb = Array.isArray(r.trb) ? r.trb : []; }
+  catch (e) { S.trb = null; S.trbError = e.message; }
+}
+
+function vPersonal() {
+  if (!S.trb) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Personal</h1></div><div class="tarjeta pad"><span class="mudo">${S.trbError ? esc(S.trbError) : 'Cargando al personal…'}</span></div>`;
+    if (S.trbError && /desconocida/i.test(S.trbError)) {
+      $('#vista').innerHTML = `<div class="titulo-vista"><h1>Personal</h1></div><div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2><p style="margin:0">La base de datos del personal necesita la versión nueva del servidor de Tequio. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</p></div>`;
+      return;
+    }
+    if (!S.trbError) perCargar().then(() => { if (vista.tab === 'personal') vPersonal(); });
+    return;
+  }
+  const f = vista.perF || (vista.perF = { modo: esDirector() ? 'escuela' : 'escuela', cct: '', mun: '', org: '', turno: '', est: 'activos', doble: false, q: '' });
+  const centros = perCentros().filter(c => !esDirector() || c.cct === miCct());
+  const q = f.q.trim().toLowerCase();
+  const enCentro = (t, c) => (t.plazas || []).some(p => p.cct === c.cct && (t.estado === 'baja' || p.activa !== false));
+  const pasaCentro = c => (!f.cct || c.cct === f.cct) && (!f.mun || c.municipio === f.mun) && (!f.org || (f.org === 'multi' ? c.multigrado : f.org === 'completa' ? !c.multigrado && !c.sup : !!c.sup)) && (!f.turno || c.turno === f.turno);
+  const pasaEst = t => f.est === 'todos' || (f.est === 'activos' ? t.estado !== 'baja' : f.est === 'bajas' ? t.estado === 'baja' : f.est === 'interinos' ? perInterino(t) : true);
+  const pasa = t => pasaEst(t) && (!f.doble || perDoble(t)) && (!q || (perNombre(t) + ' ' + t.curp + ' ' + t.rfc + ' ' + (t.plazas || []).map(p => p.funcion + ' ' + p.clave).join(' ')).toLowerCase().includes(q));
+  const vis = centros.filter(pasaCentro);
+  const lista = S.trb.filter(t => vis.some(c => enCentro(t, c)) || (!(t.plazas || []).length && !f.cct && !esDirector())).filter(pasa).sort((a, b) => perNombre(a).localeCompare(perNombre(b), 'es'));
+  const act = S.trb.filter(t => t.estado !== 'baja' && (!esDirector() || enCentro(t, { cct: miCct() })));
+  const cif = [[act.length, 'activos', 'indigo', 'activos'], [act.filter(perDoble).length, 'doble plaza', 'morado', 'doble'], [act.filter(perInterino).length, 'interinos' + (act.filter(perVencido).length ? ' · ' + act.filter(perVencido).length + ' vencido' + (act.filter(perVencido).length === 1 ? '' : 's') : ''), 'aviso', 'interinos'], [S.trb.filter(t => t.estado === 'baja' && (!esDirector() || enCentro(t, { cct: miCct() }))).length, 'bajas', '', 'bajas']];
+  const fila = (t, c) => {
+    const pl = perActivas(t), doble = perDoble(t), aqui = c ? (t.plazas || []).filter(p => p.cct === c.cct) : pl;
+    const otras = c ? pl.filter(p => p.cct !== c.cct || aqui.indexOf(p) < 0) : [];
+    return `<tr class="${doble ? 'per-doble' : ''}${t.estado === 'baja' ? ' per-baja' : ''}">
+      <th class="esc-col"><button class="enlace per-nom" data-trb="${esc(t.id)}">${esc(perNombre(t))}</button>${doble ? '<span class="chip morado">Doble plaza</span>' : ''}${t.revisar ? ' <span class="chip aviso" title="' + esc(t.revisar) + '">Revisar</span>' : ''}</th>
+      <td>${c ? esc((aqui[0] || pl[0] || {}).funcion || '—') : pl.map(p => esc(p.funcion || '—')).join('<br>') || '—'}</td>
+      ${c ? '' : `<td style="text-align:left">${pl.map(p => esc(perCentro(p.cct).escuela)).join('<br>') || '—'}</td>`}
+      <td>${c ? esc((aqui[0] || pl[0] || {}).turno || '—') : pl.map(p => esc(p.turno || '—')).join('<br>') || '—'}</td>
+      <td>${t.estado === 'baja' ? `<span class="chip">Baja ${fechaCorta(t.fechaBaja)}</span>` : perInterino(t) ? `<span class="chip ${perVencido(t) ? 'mal' : 'aviso'}">Interino${perFin(t) ? ' al ' + fechaCorta(perFin(t)) : ''}</span>` : '<span class="chip ok">Base</span>'}</td>
+      ${c ? `<td class="peq" style="text-align:left">${otras.length ? 'También: ' + otras.map(p => esc(perCentro(p.cct).escuela) + (p.turno ? ' (' + esc(p.turno.toLowerCase()) + ')' : '')).join(', ') : ''}</td>` : ''}
+      <td>${t.celular ? `<a href="tel:${esc(String(t.celular).replace(/\D/g, ''))}">${esc(t.celular)}</a>` : '—'}</td></tr>`;
+  };
+  const tabla = (filas, c) => `<div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th class="esc-col">Nombre</th><th>Función</th>${c ? '' : '<th>Centro(s) de trabajo</th>'}<th>Turno</th><th>Tipo</th>${c ? '<th>Otra plaza</th>' : ''}<th>Celular</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+  let cuerpo;
+  if (!S.trb.length) cuerpo = `<div class="tarjeta vacio">${perPuede() ? 'Todavía no hay personal registrado. Use <b>Cargar expedientes</b> con el archivo que le preparó Claude, o <b>Alta de trabajador</b> para registrar uno por uno.' : 'La Supervisión todavía no ha registrado al personal de su escuela.'}</div>`;
+  else if (f.modo === 'zona' && !esDirector()) cuerpo = lista.length ? `<div class="tarjeta">${tabla(lista.map(t => fila(t)).join(''))}</div>` : '<div class="tarjeta vacio">No hay trabajadores con estos filtros.</div>';
+  else {
+    const bloques = vis.map(c => ({ c, l: lista.filter(t => enCentro(t, c)) })).filter(b => b.l.length || (f.cct === b.c.cct));
+    cuerpo = bloques.length ? bloques.map(({ c, l }) => `<div class="tarjeta" style="margin-bottom:16px">
+      <div class="seccion-t" style="display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">${esc(c.escuela)} <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(c.cct)} · ${esc(c.municipio)} · ${esc(c.turno)}${c.sup ? '' : ' · ' + (c.multigrado ? 'Multigrado' : 'Organización completa')} · ${l.length} trabajador${l.length === 1 ? '' : 'es'}${l.filter(perDoble).length ? ' · ' + l.filter(perDoble).length + ' con doble plaza' : ''}</span></div>
+      ${l.length ? tabla(l.map(t => fila(t, c)).join(''), c) : '<div class="vacio peq">Sin trabajadores con estos filtros.</div>'}</div>`).join('') : '<div class="tarjeta vacio">No hay trabajadores con estos filtros.</div>';
+  }
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>${esDirector() ? 'Personal de su escuela' : 'Personal de la zona'}</h1>
+    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
+  <div class="aviso-caja peq">Datos personales confidenciales. ${esDirector() ? 'Usted ve solo al personal de su escuela.' : 'La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.'} Úselos solo para trámites de la zona y no los comparta.</div>
+  <div class="pen-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
+  <div class="filtros">
+    ${esDirector() ? '' : `<select id="pf-modo" aria-label="Ver"><option value="escuela">Por escuela</option><option value="zona">Lista de toda la zona</option></select>
+    <select id="pf-cct" aria-label="Centro de trabajo"><option value="">Todos los centros</option>${perCentros().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select>
+    <select id="pf-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option>Ensenada</option><option>San Quintín</option></select>
+    <select id="pf-org" aria-label="Organización"><option value="">Toda organización</option><option value="multi">Multigrado</option><option value="completa">Organización completa</option><option value="sup">Supervisión</option></select>
+    <select id="pf-turno" aria-label="Turno"><option value="">Ambos turnos</option><option>Matutino</option><option>Vespertino</option></select>`}
+    <select id="pf-est" aria-label="Situación"><option value="activos">Activos</option><option value="interinos">Interinos</option><option value="bajas">Bajas</option><option value="todos">Todos</option></select>
+    <label class="casilla" style="margin:0"><input type="checkbox" id="pf-doble" ${f.doble ? 'checked' : ''}> Solo doble plaza</label>
+    <input id="pf-q" type="search" placeholder="Buscar por nombre, CURP, RFC o función" value="${esc(f.q)}" style="flex:1;min-width:220px">
+  </div>
+  ${cuerpo}
+  <p class="peq mudo"><span class="chip morado">Doble plaza</span> tiene dos plazas activas (dos escuelas o dos turnos): aparece en cada centro donde trabaja.</p>`;
+  if ($('#pf-modo')) { $('#pf-modo').value = f.modo; $('#pf-cct').value = f.cct; $('#pf-mun').value = f.mun; $('#pf-org').value = f.org; $('#pf-turno').value = f.turno; }
+  $('#pf-est').value = f.est;
+  const re = () => vPersonal();
+  [['#pf-modo', 'modo'], ['#pf-cct', 'cct'], ['#pf-mun', 'mun'], ['#pf-org', 'org'], ['#pf-turno', 'turno'], ['#pf-est', 'est']].forEach(([id, k]) => { if ($(id)) $(id).onchange = e => { f[k] = e.target.value; re(); }; });
+  $('#pf-doble').onchange = e => { f.doble = e.target.checked; re(); };
+  let tq; $('#pf-q').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { f.q = e.target.value; re(); const i = $('#pf-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 300); };
+  $$('[data-pcif]').forEach(b => b.onclick = () => { const k = b.dataset.pcif; if (k === 'doble') { f.doble = !f.doble; f.est = 'activos'; } else { f.est = f.est === k && k !== 'activos' ? 'activos' : k; f.doble = false; } re(); });
+  $$('[data-trb]').forEach(b => b.onclick = () => perFicha(b.dataset.trb));
+  $('#pe-xls').onclick = () => perExcel(lista);
+  if ($('#pe-alta')) $('#pe-alta').onclick = () => perForm();
+  if ($('#pe-imp')) $('#pe-imp').onclick = perImportar;
+}
+
+/* Ficha del trabajador */
+function perFicha(id) {
+  const t = S.trb.find(x => x.id === id); if (!t) return;
+  const dato = (k, v) => v ? `<tr><td class="mudo" style="width:42%">${k}</td><td><b>${esc(v)}</b></td></tr>` : '';
+  const pl = (t.plazas || []);
+  modal(esc(perNombre(t)), `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${t.estado === 'baja' ? `<span class="chip">Baja · ${fechaCorta(t.fechaBaja)}</span>` : '<span class="chip ok">Activo</span>'}${perDoble(t) ? '<span class="chip morado">Doble plaza</span>' : ''}${perInterino(t) ? `<span class="chip ${perVencido(t) ? 'mal' : 'aviso'}">Interino${perFin(t) ? ' hasta el ' + fechaCorta(perFin(t)) : ''}${perVencido(t) ? ' · vencido' : ''}</span>` : ''}</div>
+    ${t.revisar ? `<div class="aviso-caja peq"><b>Por revisar:</b> ${esc(t.revisar)}</div>` : ''}
+    ${t.estado === 'baja' ? `<div class="aviso-caja peq"><b>Motivo de la baja:</b> ${esc(t.motivoBaja || '—')}</div>` : ''}
+    <div class="seccion-t" style="padding:4px 0">Plazas</div>
+    ${pl.length ? `<div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th class="esc-col">Centro</th><th>Función</th><th>Turno</th><th>Clave</th><th>Nombramiento</th><th>Vigencia</th></tr></thead><tbody>${pl.map(p => `<tr class="${p.activa === false ? 'per-baja' : ''}"><th class="esc-col">${esc(perCentro(p.cct).escuela)}<div class="ayuda">${esc(p.cct)}</div></th><td>${esc(p.funcion || '—')}</td><td>${esc(p.turno || '—')}</td><td>${esc(p.clave || '—')}${p.horas ? '<div class="ayuda">' + esc(p.horas) + ' h</div>' : ''}</td><td>${esc(p.nombramiento || '—')}${p.sustituye ? '<div class="ayuda">Cubre a ' + esc(p.sustituye) + '</div>' : ''}</td><td class="peq">${p.desde ? 'Desde ' + fechaCorta(p.desde) : ''}${p.hasta ? '<br>Hasta ' + fechaCorta(p.hasta) : ''}${p.activa === false ? '<br>Inactiva' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="peq mudo">Sin plazas registradas.</p>'}
+    <div class="seccion-t" style="padding:12px 0 4px">Datos personales</div>
+    <table class="per-datos">${dato('CURP', t.curp)}${dato('RFC', t.rfc)}${dato('Fecha de nacimiento', t.fechaNac ? fechaCorta(t.fechaNac) + ' (' + perAnios(t.fechaNac) + ')' : '')}${dato('Lugar de nacimiento', t.lugarNac)}${dato('Sexo', { H: 'Hombre', M: 'Mujer' }[t.sexo])}${dato('Estado civil', t.estadoCivil)}${dato('Hijos', t.hijos !== '' ? t.hijos + (t.hijosGuarderia && t.hijosGuarderia !== '0' ? ' (' + t.hijosGuarderia + ' en guardería)' : '') : '')}${dato('Afiliación ISSSTECALI / ISSSTE', t.afiliacion)}</table>
+    <div class="seccion-t" style="padding:12px 0 4px">Contacto y domicilio</div>
+    <table class="per-datos">${dato('Celular', t.celular)}${dato('Teléfono de casa', t.telCasa)}${dato('Correo institucional', t.correoInst)}${dato('Correo personal', t.correoPers)}${dato('Domicilio', [[t.calle, t.numero].filter(Boolean).join(' '), t.colonia, t.cp ? 'C.P. ' + t.cp : '', t.municipio, t.entidad].filter(Boolean).join(', '))}</table>
+    <div class="seccion-t" style="padding:12px 0 4px">Trayectoria</div>
+    <table class="per-datos">${dato('Ingreso al servicio', t.fechaIngreso ? fechaCorta(t.fechaIngreso) + ' (' + perAnios(t.fechaIngreso) + ' de servicio)' : '')}${dato('Último grado de estudios', [t.estudios, t.estudiosStatus].filter(Boolean).join(' · '))}${dato('Observaciones', t.observaciones)}</table>
+    ${(t.historial || []).length ? `<details class="sis-mas" style="margin-top:10px"><summary>Historial de movimientos (${t.historial.length})</summary><div class="peq" style="padding:6px 4px;line-height:1.7">${t.historial.slice().reverse().map(h => `${fechaHora(h.f)} · ${esc(h.txt)}${h.por ? ' · ' + esc(nombreCorto(h.por)) : ''}`).join('<br>')}</div></details>` : ''}`,
+    `<button class="boton sec" id="pt-cerrar">Cerrar</button>${perPuede() ? (t.estado === 'baja' ? '<button class="boton sec" id="pt-react">Reactivar</button>' : '<button class="boton peligro" id="pt-baja">Dar de baja</button>') + `<button class="boton terra" id="pt-editar">${ico('i-lapiz')}Editar</button>` : ''}`);
+  $('#pt-cerrar').onclick = cerrarModal;
+  if ($('#pt-editar')) $('#pt-editar').onclick = () => perForm(t);
+  if ($('#pt-baja')) $('#pt-baja').onclick = () => perBaja(t);
+  if ($('#pt-react')) $('#pt-react').onclick = () => { if (!confirm('¿Reactivar a ' + perNombre(t) + '? Revise después sus plazas.')) return; accion('personalBaja', { id: t.id, reactivar: true }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); aviso('Trabajador reactivado.', 'ok', 2500); }); };
+}
+
+/* Baja */
+function perBaja(t) {
+  modal('Dar de baja', `<p style="margin-top:0"><b>${esc(perNombre(t))}</b></p>
+    <div class="fila dos"><div class="campo"><label for="pb-f">Fecha de la baja</label><input type="date" id="pb-f" value="${hoy()}"></div>
+    <div class="campo"><label for="pb-m">Motivo</label><select id="pb-m"><option>Cambio de centro de trabajo</option><option>Jubilación</option><option>Renuncia</option><option>Término de interinato</option><option>Licencia</option><option>Defunción</option><option>Otro</option></select></div></div>
+    <div class="campo"><label for="pb-o">Detalle (opcional)</label><input id="pb-o" placeholder="Ej. Cambio a la zona 024 por permuta"></div>
+    <div class="ayuda">No se borra: queda en la lista de bajas con su expediente e historial, y se puede reactivar.</div>`,
+    '<button class="boton sec" id="pb-no">Cancelar</button><button class="boton peligro" id="pb-si">Dar de baja</button>');
+  $('#pb-no').onclick = () => perFicha(t.id);
+  $('#pb-si').onclick = () => {
+    const motivo = $('#pb-m').value + ($('#pb-o').value.trim() ? ': ' + $('#pb-o').value.trim() : '');
+    accion('personalBaja', { id: t.id, fecha: $('#pb-f').value, motivo }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); aviso('Baja registrada.', 'ok', 2500); });
+  };
+}
+
+/* Alta o edición */
+function perForm(t0) {
+  const t = JSON.parse(JSON.stringify(t0 || { plazas: [{ cct: '', turno: 'Matutino', funcion: 'Docente frente a grupo', nombramiento: 'Base (definitiva)', activa: true }], tipoAlta: 'definitiva', entidad: 'Baja California' }));
+  const cen = perCentros();
+  const v = (k, ph, tipo) => `<input id="pf-${k}" ${tipo ? 'type="' + tipo + '"' : ''} value="${esc(t[k] || '')}" ${ph ? 'placeholder="' + esc(ph) + '"' : ''}>`;
+  const plazaHtml = (p, i) => `<div class="tarjeta pad per-plaza" data-pl="${i}" style="margin-bottom:10px;box-shadow:none">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b>Plaza ${i + 1}</b>${i ? `<button type="button" class="boton sec chico" data-plq="${i}">Quitar</button>` : ''}</div>
+    <div class="fila dos"><div class="campo"><label>Centro de trabajo</label><select data-k="cct"><option value="">— Elija —</option>${cen.map(c => `<option value="${c.cct}" ${p.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)} · ${c.cct}</option>`).join('')}</select></div>
+    <div class="campo"><label>Función</label><select data-k="funcion">${PER_FUNCIONES.concat(PER_FUNCIONES.includes(p.funcion) || !p.funcion ? [] : [p.funcion]).map(x => `<option ${p.funcion === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div></div>
+    <div class="fila dos"><div class="campo"><label>Turno</label><select data-k="turno">${['Matutino', 'Vespertino', 'Discontinuo'].map(x => `<option ${p.turno === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+    <div class="campo"><label>Clave de la plaza</label><input data-k="clave" value="${esc(p.clave || '')}" placeholder="Ej. E281/116924"></div></div>
+    <div class="fila dos"><div class="campo"><label>Nombramiento</label><select data-k="nombramiento">${['Base (definitiva)', 'Interino (temporal)', 'Provisional', 'Comisión'].concat(['Base (definitiva)', 'Interino (temporal)', 'Provisional', 'Comisión'].includes(p.nombramiento) || !p.nombramiento ? [] : [p.nombramiento]).map(x => `<option ${p.nombramiento === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+    <div class="campo"><label>Horas (si aplica)</label><input data-k="horas" value="${esc(p.horas || '')}" inputmode="numeric"></div></div>
+    <div class="fila dos"><div class="campo"><label>Desde</label><input type="date" data-k="desde" value="${esc(p.desde || '')}"></div>
+    <div class="campo"><label>Hasta <span class="mudo">(interinos)</span></label><input type="date" data-k="hasta" value="${esc(p.hasta || '')}"></div></div>
+    <div class="campo"><label>Cubre a <span class="mudo">(interinos: a quién sustituye)</span></label><input data-k="sustituye" value="${esc(p.sustituye || '')}"></div>
+    <label class="casilla" style="margin:0"><input type="checkbox" data-k="activa" ${p.activa !== false ? 'checked' : ''}> Plaza activa</label></div>`;
+  modal(t0 ? 'Editar trabajador' : 'Alta de trabajador', `
+    <div class="fila dos"><div class="campo"><label for="pf-tipoAlta">Tipo de alta</label><select id="pf-tipoAlta">${Object.entries(PER_NOMB).map(([k, n]) => `<option value="${k}" ${t.tipoAlta === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+    <div class="campo"><label for="pf-fechaAlta">Fecha de alta en la zona</label>${v('fechaAlta', '', 'date')}</div></div>
+    <div class="seccion-t" style="padding:6px 0">Datos personales</div>
+    <div class="fila dos"><div class="campo"><label for="pf-paterno">Apellido paterno</label>${v('paterno')}</div><div class="campo"><label for="pf-materno">Apellido materno</label>${v('materno')}</div></div>
+    <div class="campo"><label for="pf-nombre">Nombre(s)</label>${v('nombre')}</div>
+    <div class="fila dos"><div class="campo"><label for="pf-curp">CURP</label>${v('curp', '18 caracteres')}</div><div class="campo"><label for="pf-rfc">RFC con homoclave</label>${v('rfc', '13 caracteres')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-fechaNac">Fecha de nacimiento</label>${v('fechaNac', '', 'date')}</div><div class="campo"><label for="pf-sexo">Sexo</label><select id="pf-sexo"><option value="">—</option><option value="M" ${t.sexo === 'M' ? 'selected' : ''}>Mujer</option><option value="H" ${t.sexo === 'H' ? 'selected' : ''}>Hombre</option></select></div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-lugarNac">Lugar de nacimiento</label>${v('lugarNac')}</div><div class="campo"><label for="pf-estadoCivil">Estado civil</label>${v('estadoCivil')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-hijos">Número de hijos</label>${v('hijos', '', 'number')}</div><div class="campo"><label for="pf-hijosGuarderia">Hijos en guardería</label>${v('hijosGuarderia', '', 'number')}</div></div>
+    <div class="campo"><label for="pf-afiliacion">Afiliación ISSSTECALI / ISSSTE</label>${v('afiliacion')}</div>
+    <div class="seccion-t" style="padding:6px 0">Contacto y domicilio</div>
+    <div class="fila dos"><div class="campo"><label for="pf-celular">Celular</label>${v('celular', '', 'tel')}</div><div class="campo"><label for="pf-telCasa">Teléfono de casa</label>${v('telCasa', '', 'tel')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-correoInst">Correo institucional</label>${v('correoInst', '@bcedu.mx', 'email')}</div><div class="campo"><label for="pf-correoPers">Correo personal</label>${v('correoPers', '', 'email')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-calle">Calle</label>${v('calle')}</div><div class="campo"><label for="pf-numero">Número</label>${v('numero')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-colonia">Colonia</label>${v('colonia')}</div><div class="campo"><label for="pf-cp">C.P.</label>${v('cp')}</div></div>
+    <div class="fila dos"><div class="campo"><label for="pf-municipio">Municipio</label>${v('municipio')}</div><div class="campo"><label for="pf-entidad">Entidad</label>${v('entidad')}</div></div>
+    <div class="seccion-t" style="padding:6px 0">Trayectoria</div>
+    <div class="fila dos"><div class="campo"><label for="pf-fechaIngreso">Ingreso al servicio</label>${v('fechaIngreso', '', 'date')}</div><div class="campo"><label for="pf-estudios">Último grado de estudios</label>${v('estudios', 'Ej. Maestría en Educación')}</div></div>
+    <div class="campo"><label for="pf-estudiosStatus">Situación de los estudios</label><select id="pf-estudiosStatus">${['', 'Titulado', 'Pasante', 'Cursando', 'Otro'].map(x => `<option ${String(t.estudiosStatus || '').toLowerCase() === x.toLowerCase() ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+    <div class="seccion-t" style="padding:6px 0;display:flex;align-items:center;gap:8px">Plazas <button type="button" class="boton sec chico" id="pf-add" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-mas')}Agregar plaza</button></div>
+    <p class="ayuda" style="margin-top:0">Si trabaja en dos escuelas o en dos turnos, registre una plaza por cada una: Tequio lo marca como <b>doble plaza</b>.</p>
+    <div id="pf-plazas">${(t.plazas || []).map(plazaHtml).join('')}</div>
+    <div class="campo"><label for="pf-observaciones">Observaciones</label><textarea id="pf-observaciones">${esc(t.observaciones || '')}</textarea></div>
+    <div class="campo"><label for="pf-revisar">Pendiente por revisar <span class="mudo">(se muestra como aviso)</span></label><textarea id="pf-revisar">${esc(t.revisar || '')}</textarea></div>`,
+    `<button class="boton sec" id="pf-no">Cancelar</button><button class="boton terra" id="pf-si">${t0 ? 'Guardar cambios' : 'Dar de alta'}</button>`);
+  const leerPlazas = () => $$('#pf-plazas [data-pl]').map(d => { const o = {}; d.querySelectorAll('[data-k]').forEach(i => { o[i.dataset.k] = i.type === 'checkbox' ? i.checked : i.value.trim(); }); return o; });
+  const repintar = l => { $('#pf-plazas').innerHTML = l.map(plazaHtml).join(''); ligar(); };
+  const ligar = () => $$('[data-plq]').forEach(b => b.onclick = () => { const l = leerPlazas(); l.splice(+b.dataset.plq, 1); repintar(l); });
+  ligar();
+  $('#pf-add').onclick = () => { const l = leerPlazas(); l.push({ cct: '', turno: 'Vespertino', funcion: (l[0] || {}).funcion || 'Docente frente a grupo', nombramiento: 'Base (definitiva)', activa: true }); repintar(l); };
+  $('#pf-tipoAlta').onchange = e => { if (e.target.value === 'interino') $$('#pf-plazas [data-k="nombramiento"]').forEach(s => { s.value = 'Interino (temporal)'; }); };
+  $('#pf-no').onclick = () => t0 ? perFicha(t0.id) : cerrarModal();
+  $('#pf-si').onclick = () => {
+    const d = { id: t.id || '' };
+    ['tipoAlta', 'fechaAlta', 'paterno', 'materno', 'nombre', 'curp', 'rfc', 'fechaNac', 'sexo', 'lugarNac', 'estadoCivil', 'hijos', 'hijosGuarderia', 'afiliacion', 'celular', 'telCasa', 'correoInst', 'correoPers', 'calle', 'numero', 'colonia', 'cp', 'municipio', 'entidad', 'fechaIngreso', 'estudios', 'estudiosStatus', 'observaciones', 'revisar'].forEach(k => { d[k] = $('#pf-' + k).value.trim(); });
+    d.plazas = leerPlazas().map((p, i) => Object.assign({ id: ((t.plazas || [])[i] || {}).id || 'pl' + (i + 1) }, p));
+    if (!d.paterno || !d.nombre) return aviso('Escriba el apellido paterno y el nombre.', 'mal');
+    if (d.curp && !/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i.test(d.curp)) return aviso('La CURP debe tener 18 caracteres con el formato oficial.', 'mal');
+    if (!d.plazas.some(p => p.cct)) return aviso('Elija el centro de trabajo de al menos una plaza.', 'mal');
+    if (d.tipoAlta === 'interino' && !d.plazas.some(p => p.hasta)) return aviso('En un interino, escriba hasta cuándo es la plaza.', 'mal');
+    accion('personalGuardar', { trabajador: d }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); aviso(t0 ? 'Datos actualizados.' : 'Trabajador dado de alta.', 'ok', 2500); });
+  };
+}
+
+/* Cargar expedientes (archivo que prepara Claude a partir de los PDF) */
+function perImportar() {
+  modal('Cargar expedientes', `<p style="margin-top:0">Elija el archivo <b>.json</b> con los datos leídos de los expedientes. Si un trabajador ya existe (misma CURP), se actualizan sus datos y se conserva su historial.</p>
+    <div class="campo"><input type="file" id="pi-f" accept=".json,application/json"></div><div id="pi-res" class="peq"></div>`,
+    '<button class="boton sec" id="pi-no">Cancelar</button><button class="boton terra" id="pi-si">Cargar</button>');
+  $('#pi-no').onclick = cerrarModal;
+  $('#pi-si').onclick = async () => {
+    const f = $('#pi-f').files[0]; if (!f) return aviso('Elija el archivo.', 'mal');
+    let datos; try { datos = JSON.parse(await f.text()); } catch (e) { return aviso('El archivo no es un JSON válido.', 'mal'); }
+    const lista = Array.isArray(datos) ? datos : datos.trabajadores;
+    if (!Array.isArray(lista) || !lista.length) return aviso('El archivo no trae trabajadores.', 'mal');
+    let n = 0, a = 0;
+    for (let i = 0; i < lista.length; i += 40) {
+      $('#pi-res').textContent = 'Cargando ' + Math.min(i + 40, lista.length) + ' de ' + lista.length + '…';
+      const r = await accion('personalImportar', { trabajadores: lista.slice(i, i + 40) });
+      if (!r) return;
+      S.trb = r.trb; n += r.nuevos; a += r.actualizados;
+    }
+    cerrarModal(); vPersonal();
+    aviso(n + ' alta' + (n === 1 ? '' : 's') + ' nueva' + (n === 1 ? '' : 's') + (a ? ' y ' + a + ' actualizado' + (a === 1 ? '' : 's') : '') + '.', 'ok', 4000);
+  };
+}
+
+/* Excel con lo que se ve en pantalla */
+async function perExcel(lista) {
+  if (!lista.length) return aviso('No hay trabajadores con estos filtros.', 'mal');
+  await cargarScript('lib/xlsx.full.min.js');
+  const X = window.XLSX, filas = [];
+  lista.forEach(t => { const pl = (t.plazas || []).length ? t.plazas : [{}];
+    pl.forEach(p => { const c = p.cct ? perCentro(p.cct) : {};
+      filas.push({ 'Apellido paterno': t.paterno, 'Apellido materno': t.materno, 'Nombre(s)': t.nombre, 'Doble plaza': perDoble(t) ? 'SÍ' : '', 'Situación': t.estado === 'baja' ? 'Baja' : 'Activo',
+        'Centro de trabajo': c.escuela || '', 'C.C.T.': p.cct || '', 'Municipio': c.municipio || '', 'Organización': c.sup ? 'Supervisión' : c.cct ? (c.multigrado ? 'Multigrado' : 'Completa') : '', 'Turno': p.turno || '',
+        'Función': p.funcion || '', 'Clave de plaza': p.clave || '', 'Horas': p.horas || '', 'Nombramiento': p.nombramiento || '', 'Desde': p.desde || '', 'Hasta': p.hasta || '', 'Cubre a': p.sustituye || '', 'Plaza activa': p.activa === false ? 'No' : 'Sí',
+        'CURP': t.curp, 'RFC': t.rfc, 'Fecha de nacimiento': t.fechaNac, 'Sexo': { H: 'Hombre', M: 'Mujer' }[t.sexo] || '', 'Lugar de nacimiento': t.lugarNac, 'Estado civil': t.estadoCivil, 'Hijos': t.hijos, 'Hijos en guardería': t.hijosGuarderia,
+        'Afiliación': t.afiliacion, 'Celular': t.celular, 'Teléfono de casa': t.telCasa, 'Correo institucional': t.correoInst, 'Correo personal': t.correoPers,
+        'Domicilio': [t.calle, t.numero].filter(Boolean).join(' '), 'Colonia': t.colonia, 'C.P.': t.cp, 'Municipio de residencia': t.municipio, 'Entidad': t.entidad,
+        'Ingreso al servicio': t.fechaIngreso, 'Estudios': t.estudios, 'Situación de estudios': t.estudiosStatus, 'Fecha de baja': t.fechaBaja, 'Motivo de baja': t.motivoBaja, 'Observaciones': t.observaciones, 'Por revisar': t.revisar }); }); });
+  const wb = X.utils.book_new(), ws = X.utils.json_to_sheet(filas);
+  ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: Math.min(40, Math.max(10, k.length + 2)) }));
+  X.utils.book_append_sheet(wb, ws, 'Personal');
+  const b = X.write(wb, { type: 'array', bookType: 'xlsx' });
+  descargarBlob(new Blob([b], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Personal Zona 050 · ' + hoy() + '.xlsx');
+  aviso('Excel descargado (una fila por plaza; la columna «Doble plaza» marca a quien tiene dos).', 'ok', 4500);
 }
 
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
@@ -6669,7 +6925,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eve: demoEve(evi, ESC, usr), eviRevisado: ahora(), version: 19, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr),
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eve: demoEve(evi, ESC, usr), trb: demoPersonal(h), eviRevisado: ahora(), version: 19, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr),
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -6678,6 +6934,23 @@ const Demo = (() => {
       ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] },
       sis, sic, sisCfg: { ia: true }, sia: demoAlumnos(sis) };
     Object.assign(D, eiaDemoDatos(ESC, ciclo));
+  }
+  // Personal de ejemplo (nombres y datos inventados)
+  function demoPersonal(h) {
+    const P = (id, pa, ma, no, sexo, plazas, extra) => Object.assign({ id, paterno: pa, materno: ma, nombre: no, sexo, curp: '', rfc: '', fechaNac: '1985-05-10', lugarNac: 'Ensenada, B.C.', calle: 'Calle de ejemplo', numero: '100', colonia: 'Col. Centro', cp: '22920', municipio: 'San Quintín', entidad: 'Baja California',
+      telCasa: '', celular: '616 000 0000', correoInst: 'ejemplo@bcedu.mx', correoPers: '', fechaIngreso: '2010-09-01', estudios: 'Licenciatura', estudiosStatus: 'Titulado', estadoCivil: 'Casado(a)', hijos: '2', hijosGuarderia: '0', afiliacion: '',
+      plazas, estado: 'activo', tipoAlta: 'definitiva', fechaAlta: '2024-08-26', fechaBaja: '', motivoBaja: '', observaciones: '', revisar: '', historial: [{ f: h + 'T08:00:00', tipo: 'alta', por: 'Ejemplo', txt: 'Alta de ejemplo' }] }, extra || {});
+    const pl = (cct, funcion, turno, extra) => Object.assign({ id: 'pl' + Math.random().toString(36).slice(2, 6), cct, funcion, turno, clave: 'E0281/00000', horas: '', nombramiento: 'Base (definitiva)', desde: '2024-08-26', hasta: '', sustituye: '', activa: true }, extra || {});
+    return [
+      P('trb-d1', 'EJEMPLO', 'UNO', 'ANA', 'M', [pl('02FIZ0094X', 'Supervisor(a)', 'Matutino')]),
+      P('trb-d2', 'EJEMPLO', 'DOS', 'LUIS', 'H', [pl('02FIZ0094X', 'ATP', 'Matutino')]),
+      P('trb-d3', 'EJEMPLO', 'TRES', 'MARTA', 'M', [pl('02DPR0210Z', 'Docente frente a grupo', 'Matutino'), pl('02DPR0150B', 'Docente frente a grupo', 'Vespertino')], { observaciones: 'Doble plaza de ejemplo.' }),
+      P('trb-d4', 'EJEMPLO', 'CUATRO', 'JORGE', 'H', [pl('02DPR0210Z', 'Director(a)', 'Matutino')]),
+      P('trb-d5', 'EJEMPLO', 'CINCO', 'ROSA', 'M', [pl('02DPR0684N', 'Docente frente a grupo', 'Matutino', { nombramiento: 'Interino (temporal)', hasta: sumarDias(h, 40), sustituye: 'Docente con licencia' })], { tipoAlta: 'interino' }),
+      P('trb-d6', 'EJEMPLO', 'SEIS', 'PEDRO', 'H', [pl('02DPR0684N', 'Director(a)', 'Matutino'), pl('02DPR0684N', 'Docente frente a grupo', 'Vespertino')]),
+      P('trb-d7', 'EJEMPLO', 'SIETE', 'LAURA', 'M', [pl('02DPR0150B', 'Docente de educación física', 'Vespertino', { activa: false, hasta: sumarDias(h, -20) })], { estado: 'baja', fechaBaja: sumarDias(h, -20), motivoBaja: 'Cambio de centro de trabajo' }),
+      P('trb-d8', 'EJEMPLO', 'OCHO', 'RAÚL', 'H', [pl('02DPR0382S', 'Director(a) con grupo', 'Matutino')], { revisar: 'Falta la orden de presentación en el expediente.' })
+    ];
   }
   // Semáforo de ejemplo: algunas carpetas ya revisadas por la Supervisión o los ATP
   function demoEve(evi, ESC, usr) {
@@ -6901,6 +7174,12 @@ const Demo = (() => {
       const a = { id: uid('ct'), ciclo: d.ciclo, sesion: String(d.sesion), cct, tipo: d.tipo, item: d.item || '', etiqueta: d.etiqueta || '', nombre, archivoId: '', url: '#', mime: d.mime, subidoPor: D.yo.nombre, fecha: ahora(), activo: true };
       D.cta.push(a); return { archivo: copia(a) }; },
     cteQuitar: d => { D.cta = (D.cta || []).filter(x => x.id !== d.id); return { id: d.id }; },
+    personal: () => ({ trb: copia(cfg.dir ? D.trb.filter(t => (t.plazas || []).some(p => p.cct === '02DPR0684N')) : D.trb) }),
+    personalGuardar: d => { const t = Object.assign({ historial: [] }, d.trabajador); if (!t.id) { t.id = uid('trb'); t.estado = 'activo'; t.historial = [{ f: ahora(), tipo: 'alta', por: D.yo.nombre, txt: 'Alta' }]; } else { const p = D.trb.find(x => x.id === t.id); t.estado = p.estado; t.fechaBaja = p.fechaBaja; t.motivoBaja = p.motivoBaja; t.historial = (p.historial || []).concat([{ f: ahora(), tipo: 'cambio', por: D.yo.nombre, txt: 'Datos actualizados' }]); }
+      ['paterno', 'materno', 'nombre', 'curp', 'rfc'].forEach(k => { t[k] = String(t[k] || '').toUpperCase(); }); t.plazas = (t.plazas || []).map(p => Object.assign({}, p, { activa: p.activa !== false })); poner(D.trb, t); return { trabajador: copia(t) }; },
+    personalBaja: d => { const t = D.trb.find(x => x.id === d.id); if (d.reactivar) { t.estado = 'activo'; t.fechaBaja = ''; t.motivoBaja = ''; } else { t.estado = 'baja'; t.fechaBaja = d.fecha; t.motivoBaja = d.motivo; t.plazas.forEach(p => { p.activa = false; }); }
+      t.historial = (t.historial || []).concat([{ f: ahora(), tipo: d.reactivar ? 'reactivacion' : 'baja', por: D.yo.nombre, txt: d.reactivar ? 'Reactivado' : 'Baja: ' + d.motivo }]); return { trabajador: copia(t) }; },
+    personalImportar: d => { let n = 0, a = 0; d.trabajadores.forEach(x => { const p = D.trb.find(y => x.curp && y.curp === x.curp); if (p) { Object.assign(p, x, { id: p.id }); a++; } else { D.trb.push(Object.assign({ id: uid('trb'), estado: 'activo', historial: [] }, x)); n++; } }); return { trb: copia(D.trb), nuevos: n, actualizados: a }; },
     eviEstado: d => { if (d.estado === 'incompleto' && !d.nota) throw new Error('Escriba qué le falta.');
       const o = { id: d.cct + '|' + normRuta(d.ruta), cct: d.cct, ruta: d.ruta, estado: d.estado, nota: d.estado ? d.nota : '', marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
       D.eve = D.eve.filter(x => x.id !== o.id).concat([o]); return { eve: copia(o) }; },
@@ -6914,7 +7193,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos'];
+  const LECTURA = ['personal', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
