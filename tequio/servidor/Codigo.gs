@@ -272,7 +272,8 @@ const ACCIONES = {
     const clave = String(d.clave || '').slice(0, 60);
     if (!/^(asistencia|presentacion|ev:.+|pr:.+)$/.test(clave)) throw new Error('Apartado desconocido.');
     const estado = String(d.estado || '');
-    if (['', 'cumple', 'incompleto', 'sin'].indexOf(estado) < 0) throw new Error('Estado no válido.');
+    if (['', 'cumple', 'otro', 'incompleto', 'sin'].indexOf(estado) < 0) throw new Error('Estado no válido.');
+    if (estado === 'otro') soloAdmin_(yo);  // «cumplió por otro medio» solo lo marca el Supervisor
     const nota = String(d.nota || '').trim().slice(0, 1000);
     if (estado === 'incompleto' && !nota) throw new Error('Escriba qué le falta o qué no coincide, para que lo vea la escuela.');
     const o = { id: [ciclo, ses, cct, clave].join('|'), ciclo: ciclo, sesion: String(ses), cct: cct, clave: clave, estado: estado, nota: estado ? nota : '',
@@ -285,65 +286,34 @@ const ACCIONES = {
   cteFelicitar: (yo, d) => {
     soloAdmin_(yo);
     const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), cct = String(d.cct || '').trim();
-    const c = leer_('dir').find(e => e.tipo === 'director' && e.cct === cct);
-    if (!c) throw new Error('La escuela no está en el Directorio.');
-    const revs = leer_('ctr').filter(x => x.ciclo === ciclo && String(x.sesion) === String(ses) && x.cct === cct && x.clave !== 'felicitacion');
-    if (!revs.some(x => x.estado === 'cumple')) throw new Error('Primero revise lo que subió la escuela.');
+    const revs = leer_('ctr').filter(x => x.ciclo === ciclo && String(x.sesion) === String(ses) && x.cct === cct && CTE_CLAVES_REV.test(x.clave));
+    if (!revs.some(x => x.estado === 'cumple' || x.estado === 'otro')) throw new Error('Primero revise lo que subió la escuela.');
     if (revs.some(x => x.estado === 'incompleto' || x.estado === 'sin')) throw new Error('Todavía hay apartados en amarillo o rojo.');
-    const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m));
-    if (!para.length) throw new Error('La escuela no tiene correo de la dirección en el Directorio.');
-    const atp = d.atpId ? leer_('usr').find(u => u.id === d.atpId && u.rol === 'atp') : null;
-    const cc = d.copiaAtp && atp ? String(atp.correo || '').split(',').map(m => m.trim()).filter(m => /@/.test(m)) : [];
-    if (MailApp.getRemainingDailyQuota() < para.length + cc.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana.');
-    const asunto = String(d.asunto || 'Felicitación por el trabajo en el CTE').trim().slice(0, 200);
-    const texto = String(d.texto || '').trim().slice(0, 6000);
-    if (!texto) throw new Error('Escriba el mensaje.');
-    const inline = {};
-    const img = (k, url) => { try { inline[k] = UrlFetchApp.fetch(url).getBlob().setName(k + '.png'); return 'cid:' + k; } catch (e) { return url; } };
-    const isep = img('isep', PAGINA + 'img/isep.png'), zona = img('zona050', PAGINA + 'img/zona050.png');
-    let firma = '';
-    const fid = PropertiesService.getScriptProperties().getProperty('FIRMA_ID');
-    if (fid && d.firma !== false) { try { inline.firma = DriveApp.getFileById(fid).getBlob().setName('firma.png'); firma = '<img src="cid:firma" alt="" style="height:70px;display:block;margin:6px 0 -6px">'; } catch (e) {} }
-    const parrafos = texto.split(/\n\s*\n/).map(p => '<p style="margin:0 0 14px">' + esc_(p).replace(/\n/g, '<br>') + '</p>').join('');
-    const html = '<div style="background:#F4F1EA;padding:22px 10px;font-family:Arial,Helvetica,sans-serif;color:#1E2A40">' +
-      '<div style="max-width:620px;margin:0 auto;background:#FFFFFF;border:1px solid #E4D8C3;border-radius:10px;overflow:hidden">' +
-      '<table role="presentation" width="100%" style="border-collapse:collapse;border-bottom:3px solid #C2603A"><tr>' +
-      '<td style="padding:14px 18px;width:50%"><img src="' + isep + '" alt="ISEP" style="height:58px"></td>' +
-      '<td style="padding:14px 18px;text-align:right"><img src="' + zona + '" alt="Zona 050" style="height:66px"></td></tr></table>' +
-      '<div style="padding:8px 26px 0;text-align:center;font-size:12px;letter-spacing:.06em;color:#6A5C4C">SUPERVISIÓN ESCOLAR ZONA No. 050 · PRIMARIA FEDERALIZADA</div>' +
-      '<div style="padding:18px 26px 6px;font-size:15px;line-height:1.6">' + parrafos +
-      '<p style="margin:22px 0 0">Atentamente,</p>' + firma +
-      '<p style="margin:0"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</p></div>' +
-      '<div style="background:#F1E4CC;padding:12px 22px;margin-top:18px;font-size:12px;color:#6A5C4C">Supervisión Escolar Zona No. 050 · ISEP · Camalú, San Quintín, B.C. · «Responsabilidad y superación»</div>' +
-      '</div></div>';
-    let de = CORREO_SUPERVISION, nota = '';
-    if (d.de === CORREO_INSTITUCIONAL) {
-      let alias = [];
-      try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
-      if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
-        GmailApp.sendEmail(para.join(','), asunto, texto, { from: CORREO_INSTITUCIONAL, cc: cc.join(','), name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, inlineImages: inline });
-        de = CORREO_INSTITUCIONAL;
-      } else nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
-    }
-    if (de === CORREO_SUPERVISION) MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, inlineImages: inline,
-      name: 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050', replyTo: d.de === CORREO_INSTITUCIONAL ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION });
+    const r = correoCte_(yo, cct, d);
     const o = { id: [ciclo, ses, cct, 'felicitacion'].join('|'), ciclo: ciclo, sesion: String(ses), cct: cct, clave: 'felicitacion', estado: 'enviada',
-      nota: asunto + ' · a ' + para.concat(cc).join(', ') + ' · desde ' + de, marcadoPor: yo.id, marcadoNombre: yo.nombre, actualizado: ahora_() };
+      nota: r.asunto + ' · a ' + r.a + ' · desde ' + r.de, marcadoPor: yo.id, marcadoNombre: yo.nombre, actualizado: ahora_() };
     guardar_('ctr', o);
-    bitacora_('cte', cct, para.concat(cc), asunto, 'felicitación enviada por ' + yo.nombre + ' desde ' + de);
-    return { ctr: o, nota: nota, cuota: MailApp.getRemainingDailyQuota() };
+    bitacora_('cte', cct, r.lista, r.asunto, 'felicitación enviada por ' + yo.nombre + ' desde ' + r.de);
+    return { ctr: o, nota: r.nota, cuota: MailApp.getRemainingDailyQuota() };
   },
-  cteConfig: (yo, d) => {
+  // Aviso a la dirección de lo que le falta del CTE (Supervisión y ATP). Puede ir a una o varias escuelas a la vez.
+  cteAvisar: (yo, d) => {
     soloMesa_(yo);
-    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), id = ciclo + '-' + ses;
-    const o = buscar_('cte', id) || baseCte_(ciclo, ses);
-    ['fecha', 'titulo'].forEach(k => { if (d[k] != null) o[k] = String(d[k]).slice(0, 200); });
-    ['evid', 'prod'].forEach(k => {
-      if (Array.isArray(d[k])) o[k] = d[k].slice(0, 30).map(x => ({ id: String(x.id || ('i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6))).slice(0, 40), nombre: String(x.nombre || '').trim().slice(0, 120) })).filter(x => x.nombre);
+    const ciclo = String(d.ciclo || ''), ses = sesionCte_(d.sesion), res = [], ctr = [];
+    (d.envios || []).slice(0, 20).forEach(x => {
+      const cct = String(x.cct || '').trim();
+      try {
+        const r = correoCte_(yo, cct, Object.assign({}, x, { de: d.de, firma: d.firma }));
+        const previo = buscar_('ctr', [ciclo, ses, cct, 'aviso'].join('|'));
+        const veces = (previo && +String(previo.estado).replace(/\D/g, '') || 0) + 1;
+        const o = { id: [ciclo, ses, cct, 'aviso'].join('|'), ciclo: ciclo, sesion: String(ses), cct: cct, clave: 'aviso', estado: String(veces),
+          nota: (x.pendientes || []).slice(0, 20).join(' · ').slice(0, 900), marcadoPor: yo.id, marcadoNombre: yo.nombre, actualizado: ahora_() };
+        guardar_('ctr', o); ctr.push(o);
+        bitacora_('cte', cct, r.lista, r.asunto, 'aviso de pendientes enviado por ' + yo.nombre + ' desde ' + r.de);
+        res.push({ cct: cct, ok: true, mensaje: 'Enviado' + (r.nota ? '. ' + r.nota : '') });
+      } catch (e) { res.push({ cct: cct, ok: false, mensaje: e.message }); }
     });
-    o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
-    guardar_('cte', o);
-    return { cte: leer_('cte').filter(x => x.ciclo === ciclo) };
+    return { resultados: res, ctr: ctr, cuota: MailApp.getRemainingDailyQuota() };
   },
   // Presentación, cuadernillo u otro insumo de la Supervisión (archivo o enlace). Se comparte «cualquiera con el enlace puede ver».
   cteSubirInsumo: (yo, d) => {
@@ -2519,6 +2489,56 @@ function resumenSemanal_(res, z, hoy, prueba) {
 }
 
 /* ===================== Plantillas de correo ===================== */
+
+// Apartados del CTE que se revisan (no la felicitación ni los avisos)
+const CTE_CLAVES_REV = /^(asistencia|presentacion|ev:.+|pr:.+)$/;
+
+// Correo formal del CTE a la dirección (felicitación o aviso de pendientes): logos de ISEP y Zona 050 y firma de quien envía. No es oficio.
+function correoCte_(yo, cct, d) {
+  const c = leer_('dir').find(e => e.tipo === 'director' && e.cct === cct);
+  if (!c) throw new Error('La escuela no está en el Directorio.');
+  const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m));
+  if (!para.length) throw new Error('La escuela no tiene correo de la dirección en el Directorio.');
+  const atp = d.atpId ? leer_('usr').find(u => u.id === d.atpId && u.rol === 'atp') : null;
+  const cc = d.copiaAtp && atp ? String(atp.correo || '').split(',').map(m => m.trim()).filter(m => /@/.test(m)) : [];
+  if (MailApp.getRemainingDailyQuota() < para.length + cc.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana.');
+  const asunto = String(d.asunto || 'Consejo Técnico Escolar').trim().slice(0, 200);
+  const texto = String(d.texto || '').trim().slice(0, 6000);
+  if (!texto) throw new Error('Escriba el mensaje.');
+  const inline = {};
+  const img = (k, url) => { try { inline[k] = UrlFetchApp.fetch(url).getBlob().setName(k + '.png'); return 'cid:' + k; } catch (e) { return url; } };
+  const isep = img('isep', PAGINA + 'img/isep.png'), zona = img('zona050', PAGINA + 'img/zona050.png');
+  const sup = yo.rol === 'admin';
+  let firma = '';
+  const fid = PropertiesService.getScriptProperties().getProperty('FIRMA_ID');
+  if (sup && fid && d.firma !== false) { try { inline.firma = DriveApp.getFileById(fid).getBlob().setName('firma.png'); firma = '<img src="cid:firma" alt="" style="height:70px;display:block;margin:6px 0 -6px">'; } catch (e) {} }
+  const quien = sup ? '<b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050' : '<b>' + esc_(yo.nombre) + '</b><br>Asesoría Técnico Pedagógica · Supervisión Escolar Zona 050';
+  const parrafos = texto.split(/\n\s*\n/).map(p => '<p style="margin:0 0 14px">' + esc_(p).replace(/\n/g, '<br>') + '</p>').join('');
+  const html = '<div style="background:#F4F1EA;padding:22px 10px;font-family:Arial,Helvetica,sans-serif;color:#1E2A40">' +
+    '<div style="max-width:620px;margin:0 auto;background:#FFFFFF;border:1px solid #E4D8C3;border-radius:10px;overflow:hidden">' +
+    '<table role="presentation" width="100%" style="border-collapse:collapse;border-bottom:3px solid #C2603A"><tr>' +
+    '<td style="padding:14px 18px;width:50%"><img src="' + isep + '" alt="ISEP" style="height:58px"></td>' +
+    '<td style="padding:14px 18px;text-align:right"><img src="' + zona + '" alt="Zona 050" style="height:66px"></td></tr></table>' +
+    '<div style="padding:8px 26px 0;text-align:center;font-size:12px;letter-spacing:.06em;color:#6A5C4C">SUPERVISIÓN ESCOLAR ZONA No. 050 · PRIMARIA FEDERALIZADA</div>' +
+    '<div style="padding:18px 26px 6px;font-size:15px;line-height:1.6">' + parrafos +
+    '<p style="margin:22px 0 0">Atentamente,</p>' + firma + '<p style="margin:0">' + quien + '</p></div>' +
+    (d.boton ? '<div style="padding:4px 26px 0">' + boton_(PAGINA, 'Abrir Tequio') + '</div>' : '') +
+    '<div style="background:#F1E4CC;padding:12px 22px;margin-top:18px;font-size:12px;color:#6A5C4C">Supervisión Escolar Zona No. 050 · ISEP · Camalú, San Quintín, B.C. · «Responsabilidad y superación»</div>' +
+    '</div></div>';
+  // Los ATP envían desde la cuenta de la Supervisión; el Supervisor puede elegir su correo institucional
+  let de = CORREO_SUPERVISION, nota = '';
+  if (sup && d.de === CORREO_INSTITUCIONAL) {
+    let alias = [];
+    try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
+    if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
+      GmailApp.sendEmail(para.join(','), asunto, texto, { from: CORREO_INSTITUCIONAL, cc: cc.join(','), name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, inlineImages: inline });
+      de = CORREO_INSTITUCIONAL;
+    } else nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
+  }
+  if (de === CORREO_SUPERVISION) MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, inlineImages: inline,
+    name: sup ? 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050' : 'Supervisión Escolar Zona 050', replyTo: sup && d.de === CORREO_INSTITUCIONAL ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION });
+  return { asunto: asunto, de: de, nota: nota, a: para.concat(cc).join(', '), lista: para.concat(cc) };
+}
 
 function plantilla_(titulo, cuerpo, sinFirma) {
   return '<div style="background:#F7F1E5;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#1E2A40">' +

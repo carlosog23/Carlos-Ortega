@@ -709,7 +709,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-27-0700';
+const PUBLICACION = '2026-10-27-0800';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -7190,6 +7190,10 @@ const Demo = (() => {
     cteQuitar: d => { D.cta = (D.cta || []).filter(x => x.id !== d.id); return { id: d.id }; },
     cteRevisar: d => { D.ctr = D.ctr || []; const o = { id: [d.ciclo, d.sesion, d.cct, d.clave].join('|'), ciclo: d.ciclo, sesion: String(d.sesion), cct: d.cct, clave: d.clave, estado: d.estado, nota: d.nota || '', marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
       D.ctr = D.ctr.filter(x => x.id !== o.id).concat([o]); return { ctr: copia(o) }; },
+    cteAvisar: d => { D.ctr = D.ctr || []; const ctr = d.envios.map(x => { const id = [d.ciclo, d.sesion, x.cct, 'aviso'].join('|'), p = D.ctr.find(y => y.id === id);
+      const o = { id, ciclo: d.ciclo, sesion: String(d.sesion), cct: x.cct, clave: 'aviso', estado: String((p ? +p.estado : 0) + 1), nota: (x.pendientes || []).join(' · '), marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
+      D.ctr = D.ctr.filter(y => y.id !== id).concat([o]); return copia(o); });
+      return { ctr, resultados: d.envios.map(x => ({ cct: x.cct, ok: true, mensaje: 'Demostración' })) }; },
     cteFelicitar: d => { D.ctr = D.ctr || []; const o = { id: [d.ciclo, d.sesion, d.cct, 'felicitacion'].join('|'), ciclo: d.ciclo, sesion: String(d.sesion), cct: d.cct, clave: 'felicitacion', estado: 'enviada', nota: d.asunto, marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
       D.ctr = D.ctr.filter(x => x.id !== o.id).concat([o]); return { ctr: copia(o), nota: '(Demostración: no se envió ningún correo.)' }; },
     personal: () => ({ trb: copia(cfg.dir ? D.trb.filter(t => (t.plazas || []).some(p => p.cct === '02DPR0684N')) : D.trb) }),
@@ -7234,7 +7238,10 @@ const cteArch = (n, cct, tipo) => (S.cteD && S.cteD.cta || []).filter(x => +x.se
 const cteEvid = n => [CTE_BASE].concat(cteSes(n).evid || []);
 const ctePuedeQuitar = a => esMesa() || (esDirector() && a.cct === miCct());
 // Semáforo del CTE: cada apartado de cada escuela lo revisan la Supervisión o el ATP
-const cteRev = (n, cct, clave) => { const r = (S.cteD && S.cteD.ctr || []).find(x => +x.sesion === +n && x.cct === cct && x.clave === clave); return r && EVI_EST[r.estado] ? r : null; };
+const CTE_EST = { cumple: EVI_EST.cumple, otro: { t: 'Cumplió por otro medio', e: '✅', cl: 'ok' }, incompleto: EVI_EST.incompleto, sin: EVI_EST.sin };
+const cteVerde = e => e === 'cumple' || e === 'otro';
+const cteRev = (n, cct, clave) => { const r = (S.cteD && S.cteD.ctr || []).find(x => +x.sesion === +n && x.cct === cct && x.clave === clave); return r && CTE_EST[r.estado] ? r : null; };
+const cteAviso = (n, cct) => (S.cteD && S.cteD.ctr || []).find(x => +x.sesion === +n && x.cct === cct && x.clave === 'aviso');
 const cteFelic = (n, cct) => (S.cteD && S.cteD.ctr || []).find(x => +x.sesion === +n && x.cct === cct && x.clave === 'felicitacion' && x.estado === 'enviada');
 function cteRubros(n, cct) {
   const a = cteArch(n, cct), ev = cteEvid(n), pr = cteSes(n).prod || [];
@@ -7254,22 +7261,28 @@ function cteRubros(n, cct) {
 // Todo en verde = lo obligatorio cumple y lo opcional que subieron también se revisó en verde
 function cteRevResumen(n, cct) {
   const l = cteRubros(n, cct), cuentan = l.filter(r => r.req || r.arch.length);
-  const verdes = cuentan.filter(r => r.est === 'cumple').length, amar = l.filter(r => r.est === 'incompleto').length, rojos = l.filter(r => r.est === 'sin').length;
-  const sinRev = cuentan.filter(r => !r.est).length;
-  return { l, verdes, amar, rojos, sinRev, total: cuentan.length, completo: cuentan.length > 0 && verdes === cuentan.length, felic: cteFelic(n, cct) };
+  const verdes = cuentan.filter(r => cteVerde(r.est)).length, amar = l.filter(r => r.est === 'incompleto').length, rojos = l.filter(r => r.est === 'sin').length;
+  const sinRev = cuentan.filter(r => !r.est && r.arch.length).length, faltan = cuentan.filter(r => !r.est && !r.arch.length).length;
+  // Lo que le falta a la escuela: en amarillo, en rojo, o lo obligatorio que no ha subido (y nadie marcó)
+  const pend = l.filter(r => r.est === 'incompleto' || r.est === 'sin' || (r.req && !r.arch.length && !r.est));
+  return { l, verdes, amar, rojos, sinRev, faltan, pend, total: cuentan.length, completo: cuentan.length > 0 && verdes === cuentan.length, felic: cteFelic(n, cct), aviso: cteAviso(n, cct) };
 }
 function cteRevCelda(n, cct) {
   const v = cteRevResumen(n, cct);
   if (v.felic) return '<span class="cte-m ok" title="Felicitación enviada">🏅 Felicitada</span>';
   if (v.completo) return '<span class="cte-m ok">🟢 Todo bien</span>';
-  if (!cteArch(n, cct).length) return '<span class="mudo">—</span>';
+  if (!cteArch(n, cct).length && !(cteFecha(n) && cteFecha(n) <= hoy())) return '<span class="mudo">—</span>';  // la sesión aún no ocurre
   const p = [];
   if (v.amar) p.push(`<span class="cte-m" style="background:var(--aviso-f)">🟡 ${v.amar}</span>`);
   if (v.rojos) p.push(`<span class="cte-m mal">🔴 ${v.rojos}</span>`);
-  if (v.sinRev) p.push(`<span class="cte-m">⚪ ${v.sinRev}</span>`);
+  if (v.sinRev) p.push(`<span class="cte-m" title="Sin revisar">⚪ ${v.sinRev}</span>`);
+  if (v.faltan) p.push(`<span class="cte-m" style="background:var(--aviso-f)" title="Sin subir">⬆ ${v.faltan}</span>`);
+  if (v.aviso) p.push(`<span class="cte-m" title="Aviso de pendientes enviado ${esc(fechaHora(v.aviso.actualizado))}">📩</span>`);
   return p.join(' ') || '<span class="mudo">—</span>';
 }
-const cteRevChip = r => r.est ? chipSem(r.rev) : (r.arch.length || r.req ? '<span class="chip">⚪ Sin revisar</span>' : '');
+const cteRevChip = r => r.est ? `<span class="chip ${CTE_EST[r.est].cl}">${CTE_EST[r.est].e} ${CTE_EST[r.est].t}</span>` : r.req && !r.arch.length ? '<span class="chip aviso">Falta subir</span>' : r.arch.length ? '<span class="chip">⚪ Sin revisar</span>' : '';
+const ctePendTexto = r => r.est === 'incompleto' ? 'está incompleto o no coincide con lo solicitado.' + (r.rev && r.rev.nota ? ' Observación: ' + r.rev.nota : '')
+  : r.est === 'sin' ? 'no se encontró la evidencia.' + (r.rev && r.rev.nota ? ' ' + r.rev.nota : '') : 'aún no se ha subido.';
 
 async function cteCargar() {
   try { const r = await api('cteDatos', { ciclo: cteCiclo() }); S.cteD = { ciclo: cteCiclo(), cte: r.cte || [], cta: r.cta || [], ctr: r.ctr || [], sinRev: !Array.isArray(r.ctr) }; }
@@ -7379,7 +7392,7 @@ function vCteSesion(n) {
       <div class="cte-pide"><div><b>Evidencias</b><ul>${cteEvid(n).map(i => `<li>${esc(i.nombre)}</li>`).join('')}</ul></div>
       <div><b>Productos</b>${(s.prod || []).length ? `<ul>${s.prod.map(i => `<li>${esc(i.nombre)}</li>`).join('')}</ul>` : '<p class="peq mudo" style="margin:4px 0 0">Ninguno en especial: cada escuela sube los suyos con su nombre.</p>'}</div></div>
       <p class="peq mudo" style="margin:0 14px 14px">Las escuelas también pueden agregar otras evidencias (por ejemplo, «Dinámica grupal») y otros productos con el nombre que ellas pongan.</p></section>
-      <section class="tarjeta cte-sec"><div class="seccion-t">Seguimiento por escuela · ${conAsis} de ${escs.length} con lista de asistencia</div>
+      <section class="tarjeta cte-sec"><div class="cte-cab-sec"><div class="seccion-t">Seguimiento por escuela · ${conAsis} de ${escs.length} con lista de asistencia</div>${S.cteD.sinRev ? '' : '<button class="boton sec" id="cte-avisar-todas">📩 Avisar pendientes</button>'}</div>
       <div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Asistencia</th><th>Evidencias</th><th>Productos</th><th>Su presentación</th>${S.cteD.sinRev ? '' : '<th>Revisión</th>'}</tr></thead><tbody>${filas}</tbody></table></div>
       <p class="peq mudo" style="margin:8px 14px 14px">Toque una escuela para ver sus archivos o subirlos por ella.</p></section>`;
   } else {
@@ -7388,8 +7401,9 @@ function vCteSesion(n) {
     // chip del semáforo, botón «Revisar» (Supervisión y ATP) y la observación que ve la escuela
     const sem = k => { const r = rub(k); if (!r || !revOk) return { chip: '', btn: '', obs: '' };
       return { chip: `<div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">${cteRevChip(r)}${mesa && r.nuevo ? '<span class="chip indigo">Subió después de la revisión</span>' : ''}</div>`,
-        btn: mesa ? `<button class="boton sec cte-sub" data-crev="${esc(k)}">${ico('i-lapiz')}Revisar</button>` : '',
-        obs: r.rev && r.rev.nota ? `<div class="sem-obs"><b>Observación${r.rev.marcadoNombre ? ' de ' + esc(nombreCorto(r.rev.marcadoNombre)) : ''}:</b> ${esc(r.rev.nota)}</div>` : '' }; };
+        btn: (esAdmin() && !cteVerde(r.est) ? `<button class="boton sec cte-sub" data-cotro="${esc(k)}" title="Marcar que sí cumplió (lo hizo llegar por otro medio)">✔ Cumplió</button>` : '')
+          + (mesa ? `<button class="boton sec cte-sub" data-crev="${esc(k)}">${ico('i-lapiz')}Revisar</button>` : ''),
+        obs: r.rev && r.rev.nota ? `<div class="sem-obs"${r.est === 'otro' ? ' style="background:var(--ok-f);border-color:#BFE3CC"' : ''}><b>${r.est === 'otro' ? 'Entregado por otro medio' : 'Observación'}${r.rev.marcadoNombre ? ' · ' + esc(nombreCorto(r.rev.marcadoNombre)) : ''}:</b> ${esc(r.rev.nota)}</div>` : '' }; };
     const grupo = (tipo, it, titulo, extraBtn) => { const z = sem((tipo === 'evidencia' ? 'ev:' : 'pr:') + it);
       return `<div class="cte-bloque"><div class="cte-bt"><div><b>${esc(titulo)}</b>${z.chip}</div><div class="cte-bacc">${z.btn}${cteBotonSubir(`data-csub="${tipo}" data-citem="${esc(it)}" data-cetq="${esc(titulo)}"`, extraBtn)}</div></div>
       ${z.obs}${cteArchivosHtml(a.filter(x => x.tipo === tipo && x.item === it), '')}</div>`; };
@@ -7399,19 +7413,21 @@ function vCteSesion(n) {
     const zA = sem('asistencia'), zOe = sem('ev:otras'), zOp = sem('pr:otros'), zP = sem('presentacion');
     let resumen = '';
     if (revOk) {
-      const conteo = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="chip ok">🟢 ${rv.verdes} de ${rv.total}</span>${rv.amar ? `<span class="chip aviso">🟡 ${rv.amar} por corregir</span>` : ''}${rv.rojos ? `<span class="chip mal">🔴 ${rv.rojos} sin evidencia</span>` : ''}${rv.sinRev ? `<span class="chip">⚪ ${rv.sinRev} sin revisar</span>` : ''}</div>`;
+      const conteo = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="chip ok">🟢 ${rv.verdes} de ${rv.total}</span>${rv.amar ? `<span class="chip aviso">🟡 ${rv.amar} por corregir</span>` : ''}${rv.rojos ? `<span class="chip mal">🔴 ${rv.rojos} sin evidencia</span>` : ''}${rv.faltan ? `<span class="chip aviso">${rv.faltan} sin subir</span>` : ''}${rv.sinRev ? `<span class="chip">⚪ ${rv.sinRev} sin revisar</span>` : ''}</div>`;
       const fel = rv.felic ? `<div class="aviso-caja" style="margin:10px 0 0;background:var(--ok-f);border-color:#BFE3CC">🏅 <b>${mesa ? 'Felicitación enviada' : 'La Supervisión felicitó a su escuela por esta sesión'}</b> · ${esc(fechaHora(rv.felic.actualizado))}${mesa ? '' : '. ¡Gracias al colectivo por su trabajo!'}</div>` : '';
       if (mesa) resumen = `<section class="tarjeta cte-sec"><div class="seccion-t">Revisión de esta sesión</div><div style="padding:0 14px 14px">
         <div class="peq mudo">Revise que cada archivo corresponda a lo que se pide: 🟢 cumple, 🟡 incompleto o no coincide (con observación para la escuela) o 🔴 sin evidencia.</div>${conteo}
         ${rv.completo ? `<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="color:var(--ok)">✔ Todo está correcto.</b>
           ${esAdmin() ? `<button class="boton terra" id="cte-felic">🏅 ${rv.felic ? 'Volver a enviar la felicitación' : 'Enviar felicitación a la dirección'}</button>` : (rv.felic ? '' : '<span class="peq mudo">El Supervisor ya puede enviar la felicitación.</span>')}</div>`
-          : `<p class="peq mudo" style="margin:10px 0 0">La felicitación se habilita cuando todos los apartados estén en verde.</p>`}${fel}</div></section>`;
+          : `<p class="peq mudo" style="margin:10px 0 0">La felicitación se habilita cuando todos los apartados estén en verde.${esAdmin() ? ' Si la escuela entregó algo por otro medio, use «✔ Cumplió» en ese apartado.' : ''}</p>`}
+        ${rv.pend.length ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--borde)"><b>Le falta:</b><ul style="margin:4px 0 8px;padding-left:20px">${rv.pend.map(r => `<li><b>${esc(r.nombre)}:</b> ${esc(ctePendTexto(r))}</li>`).join('')}</ul>
+          <button class="boton sec" id="cte-avisar">📩 Enviar aviso de lo que falta</button>${rv.aviso ? ` <span class="peq mudo">Aviso enviado ${+rv.aviso.estado > 1 ? rv.aviso.estado + ' veces, el último ' : ''}${esc(fechaHora(rv.aviso.actualizado))}</span>` : ''}</div>` : ''}${fel}</div></section>`;
       else resumen = `<section class="tarjeta cte-sec"><div class="seccion-t">Revisión de la Supervisión</div><div style="padding:0 14px 14px">
         <div class="peq mudo">Su ATP y la Supervisión revisan que lo que suba corresponda a lo que se pide: 🟢 cumple, 🟡 le falta algo o no coincide (lea la observación) o 🔴 sin evidencia. Al corregir, vuelven a revisarlo.</div>${conteo}${fel}</div></section>`;
     } else if (mesa) resumen = `<div class="aviso-caja" style="margin-bottom:14px">El semáforo y la felicitación del CTE necesitan el servidor versión 22. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</div>`;
     cuerpo = `${resumen}<section class="tarjeta cte-sec"><div class="seccion-t">Lista de asistencia o firmas</div>
         <div class="cte-bloque"><div class="cte-bt"><div><div class="peq mudo">Foto o PDF de la hoja firmada por el colectivo.</div>${zA.chip}</div><div class="cte-bacc">${zA.btn}${cteBotonSubir('data-csub="asistencia" data-citem=""')}</div></div>
-        ${zA.obs}${cteArchivosHtml(a.filter(x => x.tipo === 'asistencia'), 'Aún no se sube la lista.')}</div></section>
+        ${zA.obs}${cteArchivosHtml(a.filter(x => x.tipo === 'asistencia'), (rub('asistencia') || {}).est === 'otro' ? '' : 'Aún no se sube la lista.')}</div></section>
       <section class="tarjeta cte-sec"><div class="seccion-t">Evidencias</div>
         ${ev.map(i => grupo('evidencia', i.id, i.nombre, 'Subir fotos')).join('')}
         <div class="cte-bloque"><div class="cte-bt"><div><b>Otras evidencias</b><div class="peq mudo">Ponga de qué es, por ejemplo «Dinámica grupal», y suba la foto.</div>${zOe.chip}</div><div class="cte-bacc">${zOe.btn}${cteBotonSubir('data-cotra="evidencia"', 'Agregar')}</div></div>
@@ -7448,6 +7464,9 @@ function cteEnlazar(n, cct) {
   $$('[data-cotra]').forEach(b => b.onclick = () => cteModalOtra(n, cct, b.dataset.cotra));
   $$('[data-crev]').forEach(b => b.onclick = () => cteModalRevisar(n, cct, b.dataset.crev));
   if ($('#cte-felic')) $('#cte-felic').onclick = () => cteModalFelicitar(n, cct);
+  if ($('#cte-avisar')) $('#cte-avisar').onclick = () => cteModalAvisar(n, [cct]);
+  if ($('#cte-avisar-todas')) $('#cte-avisar-todas').onclick = () => cteModalAvisar(n, null);
+  $$('[data-cotro]').forEach(b => b.onclick = () => cteModalRevisar(n, cct, b.dataset.cotro, 'otro'));
   $$('[data-cins-sub]').forEach(b => b.onclick = () => cteModalInsumo(n, b.dataset.cinsSub));
   $$('[data-cquitar]').forEach(b => b.onclick = async () => {
     if (!confirm('¿Quitar este archivo? Se manda a la papelera del Drive.')) return;
@@ -7479,7 +7498,7 @@ async function cteSubirArchivos(n, cct, tipo, item, etiqueta, files) {
 }
 
 /* Semáforo de un apartado del CTE (Supervisión y ATP) */
-function cteModalRevisar(n, cct, clave) {
+function cteModalRevisar(n, cct, clave, preset) {
   const r = cteRubros(n, cct).find(x => x.k === clave); if (!r) return;
   const atp = atpDe(cct), pide = r.tipo === 'evidencia' ? 'la evidencia' : r.tipo === 'producto' ? 'el producto' : 'el archivo';
   modal(esc(nombreEscuela(cct)) + ' · ' + esc(r.nombre), `
@@ -7489,6 +7508,7 @@ function cteModalRevisar(n, cct, clave) {
       <select id="cr-est" class="sem-sel">
         <option value="">⚪ Sin revisar</option>
         <option value="cumple" ${r.est === 'cumple' ? 'selected' : ''}>🟢 Cumple · corresponde a lo que se pide</option>
+        ${esAdmin() ? `<option value="otro" ${(preset || r.est) === 'otro' ? 'selected' : ''}>✅ Cumplió · lo hizo llegar por otro medio</option>` : ''}
         <option value="incompleto" ${r.est === 'incompleto' ? 'selected' : ''}>🟡 Incompleto o no coincide · hay que corregir</option>
         <option value="sin" ${r.est === 'sin' ? 'selected' : ''}>🔴 Sin evidencia · no subió nada</option>
       </select></div>
@@ -7498,30 +7518,35 @@ function cteModalRevisar(n, cct, clave) {
     ${r.rev ? `<p class="peq mudo" style="margin:0">Última revisión: ${esc(r.rev.marcadoNombre || '')} · ${fechaHora(r.rev.actualizado)}${r.nuevo ? ' · <b style="color:var(--indigo)">la escuela subió archivos después</b>' : ''}</p>` : ''}`,
     `<button class="boton sec" id="cr-no">Cancelar</button><button class="boton terra" id="cr-si">Guardar</button>`);
   const ajustar = () => { const v = $('#cr-est').value;
-    $('#cr-l-nota').textContent = v === 'incompleto' ? '¿Qué le falta o qué no coincide? (obligatorio)' : 'Observación (opcional)';
-    $('#cr-ayuda').textContent = v === 'incompleto' ? 'La dirección' + (atp ? ' y su ATP (' + nombreCorto(atp.nombre) + ')' : '') + ' verán esta observación en el CTE de Tequio.' : v === 'sin' ? 'La escuela lo verá como pendiente.' : v === 'cumple' ? 'Cuenta para habilitar la felicitación de la sesión.' : '';
+    $('#cr-l-nota').textContent = v === 'incompleto' ? '¿Qué le falta o qué no coincide? (obligatorio)' : v === 'otro' ? '¿Cómo lo hizo llegar? (opcional)' : 'Observación (opcional)';
+    $('#cr-nota').placeholder = v === 'otro' ? 'Ej. Lo entregó impreso en la Supervisión / lo mandó por WhatsApp.' : 'Ej. La foto que subieron es de otra actividad; falta ' + pide + ' de esta sesión.';
+    $('#cr-ayuda').textContent = v === 'otro' ? 'Cuenta como cumplido aunque no haya archivo en Tequio, y la escuela lo verá en verde.' : v === 'incompleto' ? 'La dirección' + (atp ? ' y su ATP (' + nombreCorto(atp.nombre) + ')' : '') + ' verán esta observación en el CTE de Tequio.' : v === 'sin' ? 'La escuela lo verá como pendiente.' : v === 'cumple' ? 'Cuenta para habilitar la felicitación de la sesión.' : '';
     $('#cr-c-nota').style.display = v ? '' : 'none'; };
+  if (preset === 'otro') { $('#cr-est').value = 'otro'; $('#cr-nota').value = ''; }
   ajustar(); $('#cr-est').onchange = ajustar;
   $('#cr-no').onclick = cerrarModal;
   $('#cr-si').onclick = () => {
     const estado = $('#cr-est').value;
     let nota = $('#cr-nota').value.trim();
-    if (estado === 'cumple' && r.est === 'incompleto' && r.rev && nota === r.rev.nota) nota = '';  // ya se corrigió: no se arrastra la observación
+    if ((estado === 'cumple' || estado === 'otro') && /incompleto|sin/.test(r.est) && r.rev && nota === r.rev.nota) nota = '';  // ya se corrigió: no se arrastra la observación
     if (estado === 'incompleto' && !nota) { aviso('Escriba qué le falta o qué no coincide.', 'mal'); $('#cr-nota').focus(); return; }
     accion('cteRevisar', { ciclo: cteCiclo(), sesion: n, cct, clave, estado, nota: estado ? nota : '' }, x => {
       S.cteD.ctr = (S.cteD.ctr || []).filter(y => y.id !== x.ctr.id).concat([x.ctr]);
       cerrarModal(); const y = window.scrollY; vCte(); window.scrollTo(0, y);
-      aviso(estado ? 'Marcado: ' + EVI_EST[estado].t + '.' : 'Se quitó el semáforo.', 'ok', 2500);
+      aviso(estado ? 'Marcado: ' + CTE_EST[estado].t + '.' : 'Se quitó el semáforo.', 'ok', 2500);
       if (cteRevResumen(n, cct).completo && !cteFelic(n, cct)) aviso('✔ Todo está correcto en esta escuela. ' + (esAdmin() ? 'Ya puede enviar la felicitación.' : 'El Supervisor ya puede enviar la felicitación.'), 'ok', 5000);
     });
   };
 }
 
 // Texto sugerido de la felicitación (se puede editar antes de enviar)
-function cteTextoFelic(n, cct) {
-  const c = escuelaDe(cct) || {}, f = cteFecha(n), l = cteRubros(n, cct).filter(r => r.est === 'cumple');
-  const nom = String(c.nombre || '').trim();
+function cteSaludo(cct) {
+  const nom = String((escuelaDe(cct) || {}).nombre || '').trim();
   const est = /^(Mtra|Profra|Dra|Lcda|Licda)\.?\s/i.test(nom) ? 'Estimada' : /^(Mtro|Profr|Prof|Dr|Lic)\.?\s/i.test(nom) ? 'Estimado' : 'Estimado(a)';
+  return est + ' ' + (nom || 'director(a)') + ':';
+}
+function cteTextoFelic(n, cct) {
+  const c = escuelaDe(cct) || {}, f = cteFecha(n), l = cteRubros(n, cct).filter(r => cteVerde(r.est)), otroMedio = l.some(r => r.est === 'otro');
   // en «otras evidencias» y «otros productos» se usan los nombres que puso la escuela
   const nombres = t => [...new Set(l.filter(r => r.tipo === t).flatMap(r => /:(otras|otros)$/.test(r.k) ? r.arch.map(x => x.etiqueta || r.nombre) : [r.nombre]))].map(x => '«' + x + '»');
   const unir = x => x.length > 1 ? x.slice(0, -1).join(', ') + ' y ' + x[x.length - 1] : x.join('');
@@ -7531,15 +7556,72 @@ function cteTextoFelic(n, cct) {
   if (ev.length) partes.push('las evidencias de la jornada (' + unir(ev) + ')');
   if (pr.length) partes.push('los productos de la sesión (' + unir(pr) + ')');
   return { asunto: `Felicitación · ${CTE_ORD[n]} Sesión Ordinaria de CTE · ${c.escuela || cct}`,
-    texto: `${est} ${nom || 'director(a)'}:
+    texto: `${cteSaludo(cct)}
 
 Reciba un cordial saludo. Por este medio le extiendo una sincera felicitación, y por su conducto a todo el colectivo docente de la Escuela Primaria «${c.escuela || cct}», por el trabajo realizado durante la ${CTE_ORD[n]} Sesión Ordinaria del Consejo Técnico Escolar${f ? ', celebrada el ' + fechaLarga(f) : ''}.
 
-La escuela cumplió en tiempo y forma con todo lo solicitado para esta sesión: ${unir(partes) || 'las evidencias y los productos requeridos'}. Todo fue subido a Tequio y, al revisarlo, la Supervisión y la Mesa Técnica constatamos que corresponde con lo requerido y con los propósitos de la sesión.
+La escuela cumplió en tiempo y forma con todo lo solicitado para esta sesión: ${unir(partes) || 'las evidencias y los productos requeridos'}. ${otroMedio ? 'Lo subido a Tequio y lo que hizo llegar por otro medio fue revisado, y la Supervisión y la Mesa Técnica constatamos' : 'Todo fue subido a Tequio y, al revisarlo, la Supervisión y la Mesa Técnica constatamos'} que corresponde con lo requerido y con los propósitos de la sesión.
 
 Este cumplimiento refleja el compromiso del colectivo con su trabajo y con la mejora de los aprendizajes de nuestras niñas y niños. Le pido hacer extensivo este reconocimiento a cada docente y al personal que participó.
 
 Lo que acordamos juntos, lo caminamos juntos.` };
+}
+
+// Texto sugerido del aviso de pendientes
+function cteTextoAviso(n, cct, limite) {
+  const c = escuelaDe(cct) || {}, f = cteFecha(n), v = cteRevResumen(n, cct);
+  const bien = v.l.filter(r => cteVerde(r.est)).map(r => r.nombre);
+  return { asunto: `CTE · ${CTE_ORD[n]} Sesión Ordinaria · Pendientes de ${c.escuela || cct}`,
+    pendientes: v.pend.map(r => r.nombre),
+    texto: `${cteSaludo(cct)}
+
+Reciba un cordial saludo. Al revisar en Tequio lo correspondiente a la ${CTE_ORD[n]} Sesión Ordinaria del Consejo Técnico Escolar${f ? ', celebrada el ' + fechaLarga(f) : ''}, encontramos que su escuela tiene pendiente lo siguiente:
+
+${v.pend.map(r => '• ' + r.nombre + ': ' + ctePendTexto(r)).join('\n')}
+
+Le pido de favor subirlo a Tequio, en el apartado del CTE de esta sesión, ${limite ? 'a más tardar el ' + fechaLarga(limite) : 'a la brevedad posible'}. Si ya lo hizo llegar por otro medio, avísenos para registrarlo como entregado.
+${bien.length ? `
+Ya quedó registrado como correcto: ${bien.join(', ')}. ¡Gracias!
+` : ''}
+Agradezco su atención y el compromiso de todo el colectivo.` };
+}
+
+/* Aviso de lo que falta del CTE (Supervisión y ATP): a una escuela (texto editable) o a varias a la vez */
+function cteModalAvisar(n, ccts) {
+  const una = ccts && ccts.length === 1, sup = esAdmin();
+  const candidatas = (ccts || directores().map(c => c.cct)).filter(c => cteRevResumen(n, c).pend.length);
+  if (!candidatas.length) { aviso('Ninguna escuela tiene pendientes en esta sesión.', 'ok', 3500); return; }
+  const t1 = una ? cteTextoAviso(n, ccts[0]) : null;
+  modal(una ? 'Aviso de lo que falta' : 'Avisar pendientes · ' + CTE_ORD[n] + ' sesión', `
+    <p class="peq mudo" style="margin-top:0">Llega a la dirección como correo con los logos de ISEP y de la Zona 050${sup ? ' y su firma' : ' y su nombre'}. ${una ? 'Puede ajustar el texto.' : 'Cada escuela recibe solo la lista de lo suyo.'}</p>
+    ${una ? '' : `<div class="campo"><label>Escuelas con pendientes</label><div style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto">${candidatas.map(c => { const v = cteRevResumen(n, c);
+      return `<label class="casilla"><input type="checkbox" data-av="${c}" checked> <span><b>${esc(nombreEscuela(c))}</b> <span class="peq mudo">· ${v.pend.length} pendiente${v.pend.length === 1 ? '' : 's'}${v.aviso ? ' · ya avisada ' + esc(fechaCorta(v.aviso.actualizado.slice(0, 10))) : ''}</span></span></label>`; }).join('')}</div></div>`}
+    <div class="campo"><label for="ca-lim">Fecha límite para subirlo (opcional)</label><input type="date" id="ca-lim"></div>
+    <label class="casilla"><input type="checkbox" id="ca-atp" checked> Con copia a su ATP</label>
+    ${sup ? `<div class="campo"><label for="ca-de">Enviar desde</label><select id="ca-de"><option value="supervision050sep@gmail.com">supervision050sep@gmail.com</option><option value="cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</option></select></div>
+    <label class="casilla"><input type="checkbox" id="ca-firma" checked> Agregar mi firma digital</label>` : '<p class="peq mudo">Sale de supervision050sep@gmail.com.</p>'}
+    ${una ? `<div class="campo"><label for="ca-asunto">Asunto</label><input id="ca-asunto" maxlength="200" value="${esc(t1.asunto)}"></div>
+      <div class="campo"><label for="ca-texto">Mensaje</label><textarea id="ca-texto" style="min-height:300px;line-height:1.5">${esc(t1.texto)}</textarea></div>` : ''}`,
+    `<button class="boton sec" id="ca-no">Cancelar</button><button class="boton terra" id="ca-si">📩 Enviar aviso${una ? '' : 's'}</button>`);
+  let editado = false;
+  if (una) {
+    $('#ca-texto').oninput = () => { editado = true; };
+    $('#ca-lim').onchange = () => { if (!editado) $('#ca-texto').value = cteTextoAviso(n, ccts[0], $('#ca-lim').value).texto; };
+  }
+  $('#ca-no').onclick = cerrarModal;
+  $('#ca-si').onclick = async () => {
+    const lim = $('#ca-lim').value, sel = una ? candidatas : $$('[data-av]').filter(x => x.checked).map(x => x.dataset.av);
+    if (!sel.length) { aviso('Elija al menos una escuela.', 'mal'); return; }
+    const envios = sel.map(c => { const t = cteTextoAviso(n, c, lim), atp = atpDe(c);
+      return { cct: c, asunto: una ? $('#ca-asunto').value.trim() : t.asunto, texto: una ? $('#ca-texto').value.trim() : t.texto, pendientes: t.pendientes,
+        atpId: atp ? atp.id : '', copiaAtp: $('#ca-atp').checked, boton: true }; });
+    const r = await accion('cteAvisar', { ciclo: cteCiclo(), sesion: n, envios, de: sup ? $('#ca-de').value : '', firma: sup ? $('#ca-firma').checked : false });
+    if (!r) return;
+    (r.ctr || []).forEach(o => { S.cteD.ctr = (S.cteD.ctr || []).filter(y => y.id !== o.id).concat([o]); });
+    cerrarModal(); vCte();
+    const ok = r.resultados.filter(x => x.ok).length, mal = r.resultados.filter(x => !x.ok);
+    aviso((ok ? '📩 Aviso enviado a ' + ok + ' escuela' + (ok === 1 ? '' : 's') + '.' : '') + (mal.length ? ' No se pudo: ' + mal.map(x => esc(nombreEscuela(x.cct)) + ' (' + esc(x.mensaje) + ')').join('; ') : ''), mal.length ? 'mal' : 'ok', mal.length ? 10000 : 4000);
+  };
 }
 
 /* Felicitación a la dirección (solo el Supervisor): correo con su firma, no es oficio */
