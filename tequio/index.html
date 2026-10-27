@@ -393,7 +393,9 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 @media (max-width:1000px){.sis-comp-g{grid-template-columns:minmax(0,1fr)}}
 .sis-comp-g h3{font-size:15px;margin:0 0 8px}
 .sis-cb{display:grid;grid-template-columns:minmax(0,11em) 1fr 3.6em;gap:8px;align-items:center;font-size:13px;margin-bottom:5px}
-.sis-cb-n{color:var(--tinta);line-height:1.2}.sis-cb-b{display:flex;height:11px;border-radius:999px;background:var(--arena-2);overflow:hidden}.sis-cb-b i{display:block;height:100%}
+.sis-cb-n{color:var(--tinta);line-height:1.2}
+.sis-cb-cal{grid-template-columns:minmax(0,17em) 1fr 3.6em}.sis-cb-n small{display:block;font-size:11.5px;color:var(--gris);margin-top:1px}
+.sis-cal-g{margin:0 0 6px}.sis-cal-g summary{font-size:13.5px}.sis-cb-b{display:flex;height:11px;border-radius:999px;background:var(--arena-2);overflow:hidden}.sis-cb-b i{display:block;height:100%}
 .sis-cb-p{text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}
 .sis-nv{display:inline-block;min-width:28px;text-align:center;border-radius:6px;padding:1px 5px;font-size:12px;font-weight:700;color:#fff}
 .sis-nv.ne{background:#2E7D4F}.sis-nv.ed{background:#E8A33D;color:#3B2A0A}.sis-nv.ra{background:#B3261E}
@@ -3195,7 +3197,7 @@ function sisCuerpoMomento(v, pred) {
   const comp = sisCompSuma(filas, sin1);
   return cobertura + sisTarjetas(a, prev, mPrev) + sisLeyenda() +
     sisDiagnostico(a, prev, v.nivel === 'grupo' ? [] : hijos, { nivel: v.nivel, mPrev, prioritarios: prio, nota, comp }) +
-    sisComponentes(comp) + sisSeccionFocos(sisFocos(comp, sisAlumnosNivelM(v, m), m, Array.from(new Set(filas.map(r => r.grado))), filas), m) + sisSeccionAlumnos(v, m, sin1) + sisSeccionRezagoZona(v, m, filas, sin1) + prioHtml + tablas;
+    sisComponentes(comp, '', { filas, m }) + sisSeccionFocos(sisFocos(comp, sisAlumnosNivelM(v, m), m, Array.from(new Set(filas.map(r => r.grado))), filas), m) + sisSeccionAlumnos(v, m, sin1) + sisSeccionRezagoZona(v, m, filas, sin1) + prioHtml + tablas;
 }
 function sisMiniGrafica(serie) {   // serie: [{m, pne, pra}]
   const W = 300, H = 120, x = i => 30 + i * 120, y = p => 100 - p * 0.9;
@@ -4054,7 +4056,7 @@ function sisCompExtremos(c, h) {
   return { bajo: l[0], alto: l[l.length - 1], lista: l };
 }
 
-function sisComponentes(c, titulo) {
+function sisComponentes(c, titulo, ctx) {   // ctx: { filas, m } para rotular cálculo con su contenido
   if (!c) return '';
   const barra = (nom, p, extra) => `<div class="sis-cb"><span class="sis-cb-n">${esc(nom)}</span><span class="sis-cb-b"><i style="width:${p || 0}%;background:${sisCompColor(p)}"></i></span><b class="sis-cb-p" style="color:${sisCompColor(p)}">${sisFmt(p)}</b>${extra || ''}</div>`;
   const bloque = h => {
@@ -4066,12 +4068,26 @@ function sisComponentes(c, titulo) {
   };
   let cal = '';
   if (c.cal && c.cal.n) {
-    const n = c.cal.n;
-    cal = `<div><h3>Cálculo mental por reactivo <span class="peq mudo" style="font-weight:400">· ${n} alumnos</span></h3>
-      ${c.cal.s.map((x, i) => { const sa = x - c.cal.v[i], ca = c.cal.v[i], inc = n - x, P = q => Math.round(q * 1000 / n) / 10;
-        return `<div class="sis-cb"><span class="sis-cb-n">Reactivo ${SIS_ROM[i]}</span><span class="sis-cb-b sis-barra" role="img" aria-label="Sin apoyo ${P(sa)}%, con apoyo ${P(ca)}%, incorrectas ${P(inc)}%"><i class="ne" style="width:${P(sa)}%"></i><i class="ed" style="width:${P(ca)}%"></i><i class="ra" style="width:${P(inc)}%"></i></span><b class="sis-cb-p">${sisFmt(P(x))}</b></div>`; }).join('')}
-      <div class="sis-tip" style="margin-top:6px"><span><i class="ne"></i>Acierto sin apoyo visual</span><span><i class="ed"></i>Acierto con apoyo visual</span><span><i class="ra"></i>Incorrecta</span></div>
-      <p class="peq mudo" style="margin:4px 0 0">El manual advierte que los reactivos no bastan para saber qué operación se le dificulta al grupo; sirven para ver si resuelven con estrategia propia o necesitan el apoyo visual.</p></div>`;
+    // Cada grado tiene sus propias 10 preguntas: con un solo grado se rotula cada reactivo con su contenido;
+    // con varios grados, se muestra cada grado aparte con sus contenidos.
+    const grados = ctx && ctx.filas ? Array.from(new Set(ctx.filas.map(r => String(r.grado)))).sort() : [];
+    const filasCal = (k, g) => k.cal.s.map((x, i) => { const n = k.cal.n, sa = x - k.cal.v[i], ca = k.cal.v[i], inc = n - x, P = q => Math.round(q * 1000 / n) / 10;
+      const tema = g ? (SIS_TEMAS[sisTemaDe(g, ctx.m, i)] || [''])[0] : '', preg = g ? sisPregunta(g, ctx.m, i) : '';
+      return `<div class="sis-cb sis-cb-cal"><span class="sis-cb-n" title="${esc(preg)}">${g ? `<b>${i + 1}.</b> ${esc(tema || 'Reactivo ' + SIS_ROM[i])}${preg ? `<small>${esc(preg)}</small>` : ''}` : 'Reactivo ' + SIS_ROM[i]}</span><span class="sis-cb-b sis-barra" role="img" aria-label="Sin apoyo ${P(sa)}%, con apoyo ${P(ca)}%, incorrectas ${P(inc)}%"><i class="ne" style="width:${P(sa)}%"></i><i class="ed" style="width:${P(ca)}%"></i><i class="ra" style="width:${P(inc)}%"></i></span><b class="sis-cb-p">${sisFmt(P(x))}</b></div>`; }).join('');
+    const mat = g => +ctx.m === 1 && +g > 1 ? ` <span class="peq mudo" style="font-weight:400">(material de ${+g - 1}.°, como se aplica en el Momento 1)</span>` : '';
+    let cuerpo;
+    if (grados.length === 1) cuerpo = `<p class="peq mudo" style="margin:0 0 6px">${grados[0]}.° grado${mat(grados[0])} · pase el dedo o el ratón sobre cada contenido para ver la pregunta.</p>` + filasCal(c, grados[0]);
+    else if (grados.length > 1) cuerpo = grados.map(g => {
+      const k = sisCompSuma(ctx.filas.filter(r => String(r.grado) === g), false);
+      if (!k || !k.cal || !k.cal.n) return '';
+      const peor = k.cal.s.map((x, i) => ({ i, inc: (k.cal.n - x) / k.cal.n })).sort((a, b) => b.inc - a.inc)[0];
+      const tp = peor ? (SIS_TEMAS[sisTemaDe(g, ctx.m, peor.i)] || [''])[0] : '';
+      return `<details class="sis-mas sis-cal-g"><summary><b>${g}.° grado</b> · ${k.cal.n} alumnos${tp ? ` · más difícil: ${esc(tp.toLowerCase())} (${sisFmt(Math.round(peor.inc * 1000) / 10)} incorrectas)` : ''}</summary><div style="padding:6px 2px 4px">${mat(g) ? '<p class="peq mudo" style="margin:0 0 6px">' + mat(g).trim() + '</p>' : ''}${filasCal(k, g)}</div></details>`;
+    }).join('');
+    else cuerpo = filasCal(c, '');
+    cal = `<div><h3>Cálculo mental por contenido <span class="peq mudo" style="font-weight:400">· ${c.cal.n} alumnos</span></h3>
+      ${grados.length > 1 ? '<p class="peq mudo" style="margin:0 0 6px">Cada grado responde preguntas distintas: abra cada grado para ver a qué contenido corresponde cada reactivo.</p>' : ''}${cuerpo}
+      <div class="sis-tip" style="margin-top:6px"><span><i class="ne"></i>Acierto sin apoyo visual</span><span><i class="ed"></i>Acierto con apoyo visual</span><span><i class="ra"></i>Incorrecta</span></div></div>`;
   }
   return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">${titulo || 'Componentes de cada habilidad'}</div>
     <div class="sis-comp-g">${bloque('lec')}${bloque('tex')}${cal}</div>
@@ -4184,15 +4200,23 @@ function sisSeccionRezagoZona(v, m, filas, sin1) {
     return `<div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 6px">Alumnos en rezago en la zona</div><div class="aviso-caja" style="margin:0">${viejo ? `El servidor de Tequio todavía no tiene la versión nueva. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}` : 'Ninguna escuela tiene cargados los Excel de este momento: los resultados vienen de gráficas o captura a mano, que no traen nombres de alumnos.'}</div></div>`;
   }
   const conExcel = new Set(z.al.map(a => a.cct)).size;
-  const R = sisRezagoPorEscuela(z.al, sin1);
   const cuenta = [0, 0, 0, 0]; z.al.forEach(a => cuenta[sisNumRA(a, sin1)]++);
+  const P = sisRezagoConteo(z.al, sin1);
   return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos en rezago ${v.nivel === 'zgrado' ? 'de ' + v.grado + '.° grado ' : ''}en la zona</div>
-    <p class="peq mudo" style="margin:0 14px 6px">${conExcel} de ${z.ccts.length} escuelas con resultados por alumno (cargados con los Excel) · ${z.al.length} alumnos.</p>
+    <p class="peq mudo" style="margin:0 14px 6px">${conExcel} de ${z.ccts.length} escuelas con resultados por alumno (cargados con los Excel) · ${z.al.length} alumnos. En la zona solo se muestran cantidades; los nombres se consultan en cada escuela.</p>
     <div class="sis-cuenta">${[[3, 'en rojo en las tres habilidades (rezago)'], [2, 'en rojo en dos (en riesgo)'], [1, 'en rojo en una'], [0, 'en ninguna']].map(([k, t]) => `<div><b style="color:${k >= 2 ? 'var(--alerta)' : k === 1 ? 'var(--ambar)' : 'var(--ok)'}">${cuenta[k]}</b><span>${t}</span></div>`).join('')}</div>
     ${sin1 && z.al.some(a => a.grado === '1') ? '<p class="peq mudo" style="margin:0 14px 8px">En este concentrado, a 1.° grado solo se le cuenta cálculo (Momento 1).</p>' : ''}
-    ${R.rez.length ? `<details class="sis-mas" open><summary>Rezago: en rojo en lectura, textos y cálculo (${R.rez.length})</summary>${sisTablaAlumnos(R.rez, true)}</details>` : '<p class="peq" style="margin:0 14px 10px;color:var(--ok)">Ningún alumno está en rojo en las tres habilidades.</p>'}
-    ${R.riesgo.length ? `<details class="sis-mas"><summary>En riesgo: en rojo en dos habilidades (${R.riesgo.length})</summary>${sisTablaAlumnos(R.riesgo, true)}</details>` : ''}
-    ${R.bajos.length ? `<details class="sis-mas"><summary>Muy bajos en alguna habilidad (${R.bajos.length})</summary>${sisTablaAlumnos(R.bajos, true)}</details>` : ''}</div>`;
+    <div class="matriz-caja"><table class="matriz"><thead><tr><th class="esc-col">Escuela</th><th>Alumnos</th><th>Rezago<br><span class="mudo" style="font-weight:400">rojo en 3</span></th><th>En riesgo<br><span class="mudo" style="font-weight:400">rojo en 2</span></th><th>Muy bajos<br><span class="mudo" style="font-weight:400">en alguna</span></th><th>Grados con más rezago</th></tr></thead>
+    <tbody>${P.map(x => `<tr><th class="esc-col"><button class="enlace" data-sesc="${esc(x.cct)}" style="text-decoration:none;color:var(--tinta);text-align:left;white-space:normal">${esc(nombreEscuela(x.cct))}</button></th><td>${x.n}</td><td style="font-weight:700;color:${x.rez ? 'var(--alerta)' : 'var(--gris)'}">${x.rez}</td><td style="color:${x.riesgo ? '#B26B00' : 'var(--gris)'}">${x.riesgo}</td><td>${x.bajos}</td><td class="peq" style="text-align:left">${x.grados || '—'}</td></tr>`).join('')}</tbody></table></div>
+    <p class="peq mudo" style="margin:6px 14px 12px">Para ver los nombres, entre a la escuela: ahí los ven su ATP, la dirección y los docentes.</p></div>`;
+}
+// Cantidades de alumnos en rezago por escuela (sin nombres), para la zona
+function sisRezagoConteo(al, sin1) {
+  const R = sisRezago(al, sin1), por = {};
+  al.forEach(a => { (por[a.cct] = por[a.cct] || { cct: a.cct, n: 0, rez: 0, riesgo: 0, bajos: 0, g: {} }).n++; });
+  [['rez', R.rez], ['riesgo', R.riesgo], ['bajos', R.bajos]].forEach(([k, l]) => l.forEach(a => { const o = por[a.cct]; o[k]++; if (k !== 'bajos') o.g[a.grado] = (o.g[a.grado] || 0) + 1; }));
+  return Object.values(por).map(o => Object.assign(o, { grados: Object.entries(o.g).sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).slice(0, 3).map(([g, n]) => g + '.° (' + n + ')').join(', ') }))
+    .sort((x, y) => y.rez - x.rez || y.riesgo - x.riesgo || nombreEscuela(x.cct).localeCompare(nombreEscuela(y.cct), 'es'));
 }
 function sisRezagoPorEscuela(al, sin1) {
   const R = sisRezago(al, sin1), o = l => l.slice().sort((x, y) => nombreEscuela(x.cct).localeCompare(nombreEscuela(y.cct), 'es') || x.grado.localeCompare(y.grado) || x.grupo.localeCompare(y.grupo));
@@ -4413,10 +4437,10 @@ function sisGrafComp(comp, h) {
   return sisPng(L);
 }
 // Cálculo mental: cada reactivo con aciertos sin apoyo, con apoyo e incorrectas
-function sisGrafCalc(comp, etq) {
+function sisGrafCalc(comp, etq, sub) {
   const n = comp.cal.n, W = 640, izq = etq ? 250 : 90, der = 50, alto = 22, top = 34, H = top + 10 * alto + 34;
   const L = sisLienzo(W, H), x = L.x, ancho = W - izq - der;
-  sisTexto(x, 'Cálculo mental · respuestas por reactivo (' + n + ' alumnos)', 0, 14, { bold: true, size: 13, color: SIS_COL.az });
+  sisTexto(x, 'Cálculo mental' + (sub ? ' · ' + sub : '') + ' · respuestas por ' + (etq ? 'contenido' : 'reactivo') + ' (' + n + ' alumnos)', 0, 14, { bold: true, size: 13, color: SIS_COL.az });
   comp.cal.s.forEach((s, i) => {
     const y = top + i * alto, sa = (s - comp.cal.v[i]) / n, ca = comp.cal.v[i] / n, inc = (n - s) / n;
     sisTexto(x, etq ? sisRecorta(x, etq(i), izq - 10, 10.5) : 'Reactivo ' + SIS_ROM[i], 0, y + 8, { size: etq ? 10.5 : 11 });
@@ -4484,8 +4508,15 @@ async function sisInforme(v) {
       H('Componentes de cada habilidad');
       B.push({ t: 'p', x: 'Porcentaje del puntaje posible en cada componente (manual del SisAT): de 81 a 100% manejo adecuado; de 56 a 80% avance significativo; 55% o menos, poco avance.' });
       ['lec', 'tex'].forEach(h => { if (comp[h] && comp[h].n) B.push({ t: 'img', g: sisGrafComp(comp, h) }); });
-      const gr1 = Array.from(new Set(filas.map(r => r.grado)));
-      if (comp.cal && comp.cal.n) B.push({ t: 'img', g: sisGrafCalc(comp, gr1.length === 1 ? (i => (i + 1) + '. ' + ((SIS_TEMAS[sisTemaDe(gr1[0], m, i)] || ['—'])[0])) : null) });
+      const gr1 = Array.from(new Set(filas.map(r => String(r.grado)))).sort();
+      const etqCal = g => i => (i + 1) + '. ' + ((SIS_TEMAS[sisTemaDe(g, m, i)] || ['Reactivo ' + SIS_ROM[i]])[0]);
+      if (comp.cal && comp.cal.n) {
+        if (gr1.length === 1) B.push({ t: 'img', g: sisGrafCalc(comp, etqCal(gr1[0])) });
+        else {   // cada grado responde preguntas distintas: una gráfica por grado con el contenido de cada reactivo
+          B.push({ t: 'p', x: 'Cálculo mental por contenido: cada grado responde preguntas distintas, por eso va una gráfica por grado.' + (+m === 1 ? ' En el Momento 1 se aplica el material del grado anterior (1.° usa el suyo).' : '') });
+          gr1.forEach(g => { const k = sisCompSuma(filas.filter(r => String(r.grado) === g), false); if (k && k.cal && k.cal.n) B.push({ t: 'img', g: sisGrafCalc(k, etqCal(g), g + '.° grado') }); });
+        }
+      }
     }
     if (hj.l.length > 1) {
       H(hj.titulo);
@@ -4518,14 +4549,13 @@ async function sisInforme(v) {
       await sisCargarZona(v, ccts);
       const z = sisAlumnosZona(v, m, filas);
       if (z.al && z.al.length) {
-        const Rz = sisRezagoPorEscuela(z.al, sin1), nv = (q, h) => q[h] && q[h].p != null ? q[h].n + ' · ' + q[h].p + (h === 'cal' ? '/10' : '/18') : '—';
-        const tz = l => ({ t: 'tabla', chica: true, anchos: [22, 18, 6, 9, 9, 9, 27], cab: ['Alumno', 'Escuela', 'Grupo', 'Lectura', 'Textos', 'Cálculo', 'Lo que más le cuesta'], filas: l.map(q => [q.alumno, nombreEscuela(q.cct), q.grado + '° ' + q.grupo, nv(q, 'lec'), nv(q, 'tex'), nv(q, 'cal'), sisDebilidades(q).join('; ') || '—']) });
+        // En la zona solo van cantidades por escuela; los nombres se consultan en el informe de cada escuela
         const cz = [0, 0, 0, 0]; z.al.forEach(q => cz[sisNumRA(q, sin1)]++);
+        const Pz = sisRezagoConteo(z.al, sin1);
         H('Alumnos en rezago en la zona');
-        B.push({ t: 'p', x: `${new Set(z.al.map(a => a.cct)).size} escuelas con resultados por alumno · ${z.al.length} alumnos: <b>${cz[3]}</b> en rojo en las tres habilidades (rezago), <b>${cz[2]}</b> en dos, <b>${cz[1]}</b> en una.` });
-        if (Rz.rez.length) { B.push({ t: 'sub', x: `Rezago: en rojo en lectura, textos y cálculo (${Rz.rez.length})`, c: SIS_COL.ra }); B.push(tz(Rz.rez)); }
-        if (Rz.riesgo.length) { B.push({ t: 'sub', x: `En riesgo: en rojo en dos habilidades (${Rz.riesgo.length})`, c: '#B26B00' }); B.push(tz(Rz.riesgo)); }
-        if (Rz.bajos.length) { B.push({ t: 'sub', x: `Muy bajos en alguna habilidad (${Rz.bajos.length})`, c: '#7A4B00' }); B.push(tz(Rz.bajos)); }
+        B.push({ t: 'p', x: `${new Set(z.al.map(a => a.cct)).size} escuelas con resultados por alumno · ${z.al.length} alumnos: <b>${cz[3]}</b> en rojo en las tres habilidades (rezago), <b>${cz[2]}</b> en dos (en riesgo), <b>${cz[1]}</b> en una y <b>${cz[0]}</b> en ninguna.` });
+        B.push({ t: 'tabla', chica: true, anchos: [32, 11, 12, 12, 12, 21], cab: ['Escuela', 'Alumnos', 'Rezago (rojo en 3)', 'En riesgo (rojo en 2)', 'Muy bajos en alguna', 'Grados con más rezago'], filas: Pz.map(x => [nombreEscuela(x.cct), String(x.n), String(x.rez), String(x.riesgo), String(x.bajos), x.grados || '—']) });
+        B.push({ t: 'nota', x: 'En el informe de zona solo se muestran cantidades. Los nombres de los alumnos están en el informe de cada escuela, que consultan su ATP, la dirección y los docentes.' });
       }
     }
     if (al.length) {
@@ -5687,7 +5717,10 @@ function eiaSeccionRezagoZona(v, filas) {
   if (!al.length) return '';
   return `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Alumnos en rezago ${v.nivel === 'zgrado' ? 'de ' + v.grado + '.° grado ' : ''}en la zona</div>
     <div class="sis-cuenta"><div><b style="color:var(--alerta)">${alto.length}</b><span>rezago alto</span></div><div><b style="color:#B26B00">${rez.length}</b><span>en rezago</span></div><div><b>${al.length}</b><span>alumnos evaluados</span></div></div>
-    ${alto.length ? `<details class="sis-mas"><summary>Alumnos con rezago alto (${alto.length})</summary>${eiaTablaAlumnos(alto, true, true)}</details>` : ''}</div>`;
+    ${(() => { const por = {}; al.forEach(q => { const o = por[q.cct] = por[q.cct] || { cct: q.cct, n: 0, alto: 0, rez: 0 }; o.n++; if (q.est.nivel === 'alto') o.alto++; if (q.est.nivel === 'rezago') o.rez++; });
+      const l = Object.values(por).sort((x, y) => y.alto - x.alto || y.rez - x.rez || nombreEscuela(x.cct).localeCompare(nombreEscuela(y.cct), 'es'));
+      return `<div class="matriz-caja"><table class="matriz"><thead><tr><th class="esc-col">Escuela</th><th>Alumnos</th><th>Rezago alto</th><th>En rezago</th></tr></thead><tbody>${l.map(x => `<tr><th class="esc-col">${esc(nombreEscuela(x.cct))}</th><td>${x.n}</td><td style="font-weight:700;color:${x.alto ? 'var(--alerta)' : 'var(--gris)'}">${x.alto}</td><td style="color:${x.rez ? '#B26B00' : 'var(--gris)'}">${x.rez}</td></tr>`).join('')}</tbody></table></div>`; })()}
+    <p class="peq mudo" style="margin:6px 14px 12px">En la zona solo se muestran cantidades. Para ver los nombres, entre a la escuela: ahí los ven su ATP, la dirección y los docentes.</p></div>`;
 }
 
 /* ---- Comparativos (Supervisión y Mesa Técnica) ---- */
