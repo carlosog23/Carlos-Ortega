@@ -63,13 +63,13 @@ const HOJAS = {
   acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto'],
   cte: ['id', 'ciclo', 'sesion', 'fecha', 'titulo', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'actualizado', 'actualizadoPor'],
   cta: ['id', 'ciclo', 'sesion', 'cct', 'tipo', 'item', 'etiqueta', 'nombre', 'archivoId', 'url', 'mime', 'subidoPor', 'fecha', 'activo'],
-  pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto']
+  pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', pen: 'Pendientes para la Supervisión', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
-const VERSION = 19;
+const VERSION = 20;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
@@ -1014,6 +1014,36 @@ const ACCIONES = {
     if (yo.rol !== 'admin' && o.prioridad === 'urgente') avisoPendiente_(o, 'Pendiente URGENTE · ' + o.titulo, '<p><b>' + esc_(yo.nombre) + '</b> dejó un pendiente <b style="color:#B3261E">urgente</b> en el tablón de Tequio:</p>' + fichaPendiente_(o));
     return { pen: o };
   },
+  // Corrige un pendiente o una de sus notas. Cada quien corrige lo que escribió; la Supervisión también puede corregir los datos del pendiente.
+  // Con «nota» (número de la nota en el hilo) se corrige esa nota; sin ella, los datos del pendiente. No vuelve a mandar correos.
+  editarPendiente: (yo, d) => {
+    soloMesa_(yo);
+    const p = buscar_('pen', String(d.id || ''));
+    if (!p || !visible_(yo, p)) throw new Error('No se encontró el pendiente.');
+    if (d.nota != null && d.nota !== '') {
+      const i = parseInt(d.nota, 10), m = (p.respuestas || [])[i];
+      if (!m) throw new Error('No se encontró la nota.');
+      if (!(m.uid ? m.uid === yo.id : m.por === yo.nombre)) throw new Error('Solo puede corregir las notas que usted escribió.');
+      const texto = String(d.texto || '').trim().slice(0, 4000);
+      if (!texto) throw new Error('La nota no puede quedar vacía.');
+      m.texto = texto; m.editado = ahora_();
+    } else {
+      if (p.creadoPor !== yo.id && yo.rol !== 'admin') throw new Error('Solo quien escribió el pendiente puede corregirlo.');
+      const titulo = String(d.titulo || '').trim().slice(0, 160);
+      if (!titulo) throw new Error('Escriba en pocas palabras de qué se trata.');
+      const cct = String(d.cct || '').trim();
+      if (cct && !leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+      p.titulo = titulo; p.detalle = String(d.detalle || '').trim().slice(0, 4000);
+      if (PRIORIDADES_PEN.indexOf(d.prioridad) >= 0) p.prioridad = d.prioridad;
+      p.categoria = String(d.categoria || p.categoria || 'Otro').slice(0, 40); p.cct = cct;
+      p.limite = /^\d{4}-\d{2}-\d{2}$/.test(d.limite || '') ? d.limite : '';
+      p.confidencial = !!d.confidencial; p.editado = ahora_();
+    }
+    p.actualizado = ahora_();
+    guardar_('pen', p);
+    return { pen: p };
+  },
+
   // Agrega una nota o cambia el estado. La Supervisión puede además cambiar la prioridad.
   actualizarPendiente: (yo, d) => {
     soloMesa_(yo);
@@ -1022,7 +1052,7 @@ const ACCIONES = {
     const texto = String(d.texto || '').trim().slice(0, 4000);
     const estado = ['nuevo', 'enterado', 'atendido'].indexOf(d.estado) >= 0 ? d.estado : '';
     if (!texto && !estado && !d.prioridad && !d.visto) throw new Error('Escriba la nota.');
-    if (texto) p.respuestas = (p.respuestas || []).concat([{ por: yo.nombre, rol: yo.rol, texto: texto, f: ahora_() }]);
+    if (texto) p.respuestas = (p.respuestas || []).concat([{ por: yo.nombre, uid: yo.id, rol: yo.rol, texto: texto, f: ahora_() }]);
     if (yo.rol === 'admin') {
       if (!p.visto) p.visto = ahora_();
       if (p.estado === 'nuevo') p.estado = 'enterado';

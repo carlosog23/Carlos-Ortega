@@ -1838,6 +1838,10 @@ const penVencido = p => penAbierto(p) && p.limite && p.limite < hoy();
 const penNuevos = () => (S.pen || []).filter(p => p.estado === 'nuevo');
 const penOrden = (a, b) => (penAbierto(b) - penAbierto(a)) || (Object.keys(PEN_PRIO).indexOf(a.prioridad) - Object.keys(PEN_PRIO).indexOf(b.prioridad)) ||
   String(a.limite || '9999').localeCompare(String(b.limite || '9999')) || String(b.creado).localeCompare(String(a.creado));
+// Cada quien corrige lo que escribió (la Supervisión también los datos de cualquier pendiente). Requiere el servidor versión 20.
+const penEditable = () => S.version >= 20 || (cfg && cfg.demo);
+const penPuedeEditar = p => penEditable() && (p.creadoPor === S.yo.id || esAdmin());
+const penMia = m => penEditable() && (m.uid ? m.uid === S.yo.id : m.por === S.yo.nombre);
 function telSupervision() { const u = S.usr.find(x => x.rol === 'admin' && x.activo); return u ? telefonos(u.whatsapp)[0] || '' : ''; }
 
 function tarjetaPen(p) {
@@ -1853,11 +1857,13 @@ function tarjetaPen(p) {
     </div>
     <div class="pen-meta"><span class="chip">${esc(p.categoria)}</span>${p.limite ? `<span class="chip ${penVencido(p) ? 'mal' : ''}">Se necesita para el ${esc(fechaCorta(p.limite))}${penVencido(p) ? ' · vencido' : ''}</span>` : ''}${p.confidencial ? '<span class="chip terra">Confidencial</span>' : ''}</div>
     ${p.detalle ? `<p class="pen-det">${esc(p.detalle)}</p>` : ''}
-    ${msgs.length ? `<div class="pen-hilo">${msgs.map(m => `<div class="pen-msg ${m.rol === 'admin' ? 'sup' : ''}"><div class="ayuda"><b>${esc(m.rol === 'admin' ? 'Supervisión' : nombreCorto(m.por))}</b> · ${fechaHora(m.f)}</div><div style="white-space:pre-line">${esc(m.texto)}</div></div>`).join('')}</div>` : ''}
+    ${p.editado ? `<div class="ayuda" style="margin-top:-4px">Editado el ${fechaHora(p.editado)}</div>` : ''}
+    ${msgs.length ? `<div class="pen-hilo">${msgs.map((m, i) => `<div class="pen-msg ${m.rol === 'admin' ? 'sup' : ''}"><div class="ayuda" style="display:flex;gap:6px;align-items:center"><span style="flex:1"><b>${esc(m.rol === 'admin' ? 'Supervisión' : nombreCorto(m.por))}</b> · ${fechaHora(m.f)}${m.editado ? ' · editado' : ''}</span>${penMia(m) ? `<button class="enlace" data-pednota="${esc(p.id)}|${i}" style="font-size:13px">✎ Editar</button>` : ''}</div><div style="white-space:pre-line">${esc(m.texto)}</div></div>`).join('')}</div>` : ''}
     <textarea id="pr-${esc(p.id)}" aria-label="Nota" data-pnota="${esc(p.id)}" placeholder="${esAdmin() ? 'Respuesta o indicación para la Mesa Técnica' : 'Agregar una novedad o lo que se hizo'}"></textarea>
     <div class="pen-acc">
       ${wa ? `<a class="boton sec chico" href="${wa}" target="_blank" rel="noopener">${ico('i-wa')}Avisar por WhatsApp</a>` : ''}
       ${esAdmin() && penAbierto(p) ? `<select data-pprio="${esc(p.id)}" aria-label="Prioridad">${Object.keys(PEN_PRIO).map(k => `<option value="${k}" ${p.prioridad === k ? 'selected' : ''}>${PEN_PRIO[k][0]}</option>`).join('')}</select>` : ''}
+      ${penPuedeEditar(p) ? `<button class="boton sec chico" data-ped="${esc(p.id)}">${ico('i-lapiz')}Editar</button>` : ''}
       <span style="flex:1"></span>
       ${esAdmin() && p.estado === 'nuevo' ? `<button class="boton sec chico" data-pest="${esc(p.id)}|enterado">Enterado</button>` : ''}
       <button class="boton sec chico" data-penv="${esc(p.id)}">${esAdmin() ? 'Responder' : 'Agregar nota'}</button>
@@ -1906,11 +1912,27 @@ function vTablon() {
     if (!t && !b.dataset.pfin) return aviso('Escriba la nota.', 'mal'); mandar(b.dataset.penv, { texto: t, estado: b.dataset.pfin ? 'atendido' : undefined }, b.dataset.pfin ? 'Marcado como atendido.' : 'Nota agregada.'); });
   $$('[data-pest]').forEach(b => b.onclick = () => { const [id, e] = b.dataset.pest.split('|'); mandar(id, { estado: e, visto: true }); });
   $$('[data-pprio]').forEach(s => s.onchange = () => mandar(s.dataset.pprio, { prioridad: s.value }, 'Prioridad cambiada.'));
+  $$('[data-ped]').forEach(b => b.onclick = () => formPendiente(S.pen.find(x => x.id === b.dataset.ped)));
+  $$('[data-pednota]').forEach(b => b.onclick = () => { const [id, i] = b.dataset.pednota.split('|'); editarNotaPen(S.pen.find(x => x.id === id), +i); });
 }
 
-function formPendiente() {
+// Corregir una nota del hilo de un pendiente
+function editarNotaPen(p, i) {
+  const m = (p.respuestas || [])[i]; if (!m) return;
+  modal('Editar nota', `<div class="campo"><label for="pe-t">Nota</label><textarea id="pe-t" style="min-height:130px">${esc(m.texto)}</textarea></div>
+    <div class="ayuda">Se corrige en el tablón y se marca como «editado». No se vuelve a enviar correo.</div>`,
+    `<button class="boton sec" id="pe-no">Cancelar</button><button class="boton terra" id="pe-si">Guardar cambios</button>`);
+  $('#pe-no').onclick = cerrarModal;
+  $('#pe-si').onclick = async () => {
+    const texto = $('#pe-t').value.trim(); if (!texto) return aviso('La nota no puede quedar vacía.', 'mal');
+    const r = await accion('editarPendiente', { id: p.id, nota: i, texto });
+    if (r) { poner(S.pen, r.pen); cerrarModal(); pintar(); aviso('Nota corregida.', 'ok', 2200); }
+  };
+}
+
+function formPendiente(ed) {
   const prios = Object.keys(PEN_PRIO);
-  modal(esAdmin() ? 'Anotar pendiente' : 'Informar a la Supervisión', `
+  modal(ed ? 'Editar pendiente' : esAdmin() ? 'Anotar pendiente' : 'Informar a la Supervisión', `
     <div class="campo"><label for="pn-t">¿De qué se trata?</label><input id="pn-t" maxlength="160" placeholder="Ej. Llamó la Jefatura: piden la estadística 911 corregida"></div>
     <div class="campo"><label for="pn-d">Detalles</label><textarea id="pn-d" style="min-height:110px" placeholder="Quién llamó o escribió, qué se necesita, a quién hay que contestar y lo que ya se hizo."></textarea></div>
     <div class="campo"><span class="et">Prioridad</span><div class="pen-prio">${prios.map(k => `<label class="pen-op"><input type="radio" name="pn-pr" value="${k}" ${k === 'importante' ? 'checked' : ''}><span><b>${PEN_PRIO[k][0]}</b><small>${PEN_PRIO[k][2]}${k === 'urgente' && !esAdmin() ? ' · avisa por correo al momento' : ''}</small></span></label>`).join('')}</div></div>
@@ -1920,11 +1942,23 @@ function formPendiente() {
     </div>
     <div class="campo"><label for="pn-e2">Escuela (opcional)</label><select id="pn-e2"><option value="">— No es de una escuela en particular —</option>${directores().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select></div>
     <label class="casilla"><input type="checkbox" id="pn-x"><span>Confidencial: solo lo ve la Supervisión${esAdmin() ? '' : ' y usted'}</span></label>`,
-    `<button class="boton sec" id="pn-no">Cancelar</button><button class="boton terra" id="pn-si">${esAdmin() ? 'Guardar' : 'Enviar a la Supervisión'}</button>`);
+    `<button class="boton sec" id="pn-no">Cancelar</button><button class="boton terra" id="pn-si">${ed ? 'Guardar cambios' : esAdmin() ? 'Guardar' : 'Enviar a la Supervisión'}</button>`);
+  if (ed) {  // llenar con lo que ya tenía
+    $('#pn-t').value = ed.titulo || ''; $('#pn-d').value = ed.detalle || '';
+    const r0 = $(`input[name="pn-pr"][value="${ed.prioridad}"]`); if (r0) r0.checked = true;
+    if (![...$('#pn-c2').options].some(o => o.value === ed.categoria)) $('#pn-c2').insertAdjacentHTML('beforeend', `<option>${esc(ed.categoria)}</option>`);
+    $('#pn-c2').value = ed.categoria; $('#pn-f').removeAttribute('min'); $('#pn-f').value = ed.limite || ''; $('#pn-e2').value = ed.cct || ''; $('#pn-x').checked = !!ed.confidencial;
+    $('#pn-d').insertAdjacentHTML('afterend', '<div class="ayuda">Al guardar se corrige en el tablón y se marca como «editado». No se vuelve a enviar correo.</div>');
+  }
   $('#pn-no').onclick = cerrarModal;
   $('#pn-si').onclick = async () => {
     const titulo = $('#pn-t').value.trim(); if (!titulo) return aviso('Escriba en pocas palabras de qué se trata.', 'mal');
     const prioridad = ($('input[name="pn-pr"]:checked') || {}).value || 'normal';
+    if (ed) {
+      const r = await accion('editarPendiente', { id: ed.id, titulo, detalle: $('#pn-d').value.trim(), prioridad, categoria: $('#pn-c2').value, limite: $('#pn-f').value, cct: $('#pn-e2').value, confidencial: $('#pn-x').checked });
+      if (r) { poner(S.pen, r.pen); cerrarModal(); pintar(); aviso('Pendiente corregido.', 'ok', 2500); }
+      return;
+    }
     const r = await accion('crearPendiente', { titulo, detalle: $('#pn-d').value.trim(), prioridad, categoria: $('#pn-c2').value, limite: $('#pn-f').value, cct: $('#pn-e2').value, confidencial: $('#pn-x').checked });
     if (!r) return;
     S.pen = (S.pen || []).concat([r.pen]); cerrarModal();
@@ -6555,8 +6589,12 @@ const Demo = (() => {
     crearAclaracion: d => { const a = { id: uid('acl'), cct: '02DPR0684N', informeId: d.informeId, tema: d.tema, ref: d.ref, mensaje: d.mensaje, atpId: d.atpId, estado: 'abierta', respuestas: [], creadoPor: 'u-d-02DPR0684N', creadoNombre: 'Dirección de ejemplo', creado: ahora(), actualizado: ahora(), resuelto: '' }; D.acl.push(a); return { acl: copia(a) }; },
     crearPendiente: d => { const p = Object.assign({ id: uid('pen'), estado: D.yo.rol === 'admin' ? 'enterado' : 'nuevo', respuestas: [], creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora(), actualizado: ahora(), atendido: '', atendidoPor: '', visto: D.yo.rol === 'admin' ? ahora() : '' },
       { titulo: d.titulo, detalle: d.detalle, prioridad: d.prioridad, categoria: d.categoria, cct: d.cct, limite: d.limite, confidencial: !!d.confidencial }); D.pen.push(p); return { pen: copia(p) }; },
+    editarPendiente: d => { const p = D.pen.find(x => x.id === d.id);
+      if (d.nota != null && d.nota !== '') { const m = p.respuestas[+d.nota]; m.texto = d.texto; m.editado = ahora(); }
+      else { ['titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite'].forEach(k => { p[k] = d[k] || ''; }); p.confidencial = !!d.confidencial; p.editado = ahora(); }
+      p.actualizado = ahora(); return { pen: copia(p) }; },
     actualizarPendiente: d => { const p = D.pen.find(x => x.id === d.id), adm = D.yo.rol === 'admin';
-      if (d.texto) p.respuestas.push({ por: D.yo.nombre, rol: D.yo.rol, texto: d.texto, f: ahora() });
+      if (d.texto) p.respuestas.push({ por: D.yo.nombre, uid: D.yo.id, rol: D.yo.rol, texto: d.texto, f: ahora() });
       if (adm) { if (!p.visto) p.visto = ahora(); if (p.estado === 'nuevo') p.estado = 'enterado'; if (d.prioridad) p.prioridad = d.prioridad; }
       if (d.estado) p.estado = d.estado === 'enterado' && !adm && !p.visto ? 'nuevo' : d.estado; else if (!adm && d.texto && p.estado === 'atendido') p.estado = p.visto ? 'enterado' : 'nuevo';
       if (p.estado === 'atendido') { if (!p.atendido) { p.atendido = ahora(); p.atendidoPor = D.yo.nombre; } } else { p.atendido = ''; p.atendidoPor = ''; }
