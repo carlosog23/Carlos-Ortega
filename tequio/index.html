@@ -308,6 +308,17 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .matriz .falta{font-size:12px;color:var(--gris)}
 .matriz td.sin{color:var(--borde)}
 .matriz td.pct{font-weight:700;font-variant-numeric:tabular-nums;padding-right:14px}
+/* Semáforo de revisión de evidencias */
+.matriz td.e-cumple a{background:#D6EFDF;color:var(--ok);box-shadow:inset 0 0 0 2px #7CC59A}
+.matriz td.e-incompleto a{background:#FCE8BE;color:#8A5A0B;box-shadow:inset 0 0 0 2px #E8B04A}
+.matriz td.e-sin a{background:var(--alerta-f);color:var(--alerta);box-shadow:inset 0 0 0 2px #E59A93}
+.matriz td a span.sem{font-size:11px;font-weight:700;color:inherit}
+.matriz td a i.nuevo{font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--indigo);border-radius:999px;padding:0 6px;margin-top:2px}
+.sem-ley{display:flex;gap:6px 14px;flex-wrap:wrap;padding:0 14px 12px;font-size:12.5px;color:var(--gris)}
+.sem-ley span{display:inline-flex;align-items:center;gap:5px}
+.sem-ley b{display:inline-block;width:12px;height:12px;border-radius:3px}
+.sem-sel{font-size:16px;font-weight:600}
+.sem-obs{background:var(--aviso-f);border:1px solid #F0D7A7;border-radius:8px;padding:6px 10px;font-size:13.5px;margin-top:4px;line-height:1.4}
 .nov{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--borde)}
 .nov-f{flex:none;width:44px;text-align:center;border-radius:9px;background:var(--arena);padding:4px 0;line-height:1.1}
 .nov-f b{display:block;font-family:'Fraunces',serif;font-size:18px;color:var(--indigo)}
@@ -709,7 +720,7 @@ async function cargar() {
     const r = await api('datos');
     S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
-      evi: Array.isArray(r.evi) ? r.evi : null, eviRevisado: r.eviRevisado || '',
+      evi: Array.isArray(r.evi) ? r.evi : null, eve: Array.isArray(r.eve) ? r.eve : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
       sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
@@ -1554,7 +1565,8 @@ function infCifras(cct) {
   // 2. Evidencias en Drive
   const colsE = S.evi ? columnasEvi() : [];
   const ev = colsE.map(c => ({ c, e: eviDe(cct, c.ruta) })).filter(o => o.e);
-  r.evi = { lista: ev, hecho: ev.filter(o => nArch(o.e)).length, total: ev.length, na: colsE.length - ev.length,
+  ev.forEach(o => { o.rev = eveDe(cct, o.c.ruta); o.ok = eviCumple(cct, o.c.ruta, o.e); });
+  r.evi = { lista: ev, hecho: ev.filter(o => o.ok).length, total: ev.length, na: colsE.length - ev.length,
     ultimo: ev.map(o => o.e.ultimo || '').sort().pop() || '' };
   // 3 y 4. SisAT (momento más reciente con datos en la zona) y EIA; los grupos esperados son los que la escuela ha cargado en el ciclo
   const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm).filter(sisCuenta);
@@ -1570,7 +1582,7 @@ function infCifras(cct) {
   r.sis = { m, grupos: espS.map(g => ({ g, x: sisM[g] || null })), hecho: espS.filter(g => sisM[g]).length, total: espS.length };
   r.eia = { grupos: esperados.map(g => ({ g, x: eiaM[g] || null })), hecho: esperados.filter(g => eiaM[g]).length, total: esperados.length };
   /* nivel general (criterio de la Supervisión): acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %.
-     Evidencias = cumplimiento por rubro: cada carpeta cuenta igual si tiene al menos un archivo, sin importar cuántos
+     Evidencias = cumplimiento por rubro: si ya se revisó, cuenta solo en verde; si no, cuenta si tiene al menos un archivo, sin importar cuántos
      (una escuela grande con más grupos sube más archivos, pero cumple lo mismo). */
   const cumpl = k => { const n = r[k].na || 0, t = r[k].total + n; return t ? (r[k].hecho + n) / t : null; };   // lo que no aplica cuenta como cumplido
   r.pct = Object.fromEntries(['acu', 'evi', 'sis', 'eia'].map(k => { const v = cumpl(k); return [k, v == null ? null : Math.round(v * 100)]; }));
@@ -1581,11 +1593,13 @@ function infCifras(cct) {
   const p = [];
   acu.filter(o => o.e !== 'hecho').forEach(o => p.push({ est: limiteVencido(o.a) ? 'Vencido' : 'Pendiente', t: o.a.texto, d: (o.a.limite ? (limiteVencido(o.a) ? 'Venció el ' : 'Antes del ') + fechaCorta(o.a.limite) + ' · ' : '') + o.a.reuT, tema: 'Acuerdos', f: o.a.limite || '9999' }));
   acuerdosDe(cct).filter(x => x.estado === 'pendiente').forEach(x => p.push({ est: vencido(x) ? 'Vencido' : 'Pendiente', t: x.texto, d: (x.revision ? 'Revisión: ' + fechaCorta(x.revision) + ' · ' : '') + 'Acuerdo de visita de la Supervisión', tema: 'Visitas', f: x.revision || '9999' }));
-  ev.filter(o => !nArch(o.e)).forEach(o => p.push({ est: 'Falta', t: 'Subir evidencias a la carpeta «' + (o.c.corto || o.c.ruta) + '»', d: 'Drive de la Supervisión › ' + o.c.ruta, tema: 'Evidencias', f: '9998' }));
+  ev.filter(o => !o.ok).forEach(o => p.push(o.rev && o.rev.estado === 'incompleto'
+    ? { est: 'Incompleto', t: 'Completar la evidencia de «' + (o.c.corto || o.c.ruta) + '»: ' + o.rev.nota, d: 'Observación de ' + (o.rev.marcadoNombre || 'la Supervisión') + ' · Drive › ' + o.c.ruta, tema: 'Evidencias', f: '9997' }
+    : { est: 'Falta', t: 'Subir evidencias a la carpeta «' + (o.c.corto || o.c.ruta) + '»' + (o.rev ? ' (revisada: sin evidencia)' : ''), d: 'Drive de la Supervisión › ' + o.c.ruta, tema: 'Evidencias', f: '9998' }));
   const sinS = r.sis.grupos.filter(o => !o.x).map(o => nomGrupo(o.g)), sinE = r.eia.grupos.filter(o => !o.x).map(o => nomGrupo(o.g));
   if (sinS.length) p.push({ est: 'Falta', t: 'Cargar el SisAT del ' + m + '.er momento' + (sinS.length < r.sis.total ? ' de ' + sinS.join(', ') : ' (ningún grupo cargado)'), d: 'Tequio › SisAT (Excel de la herramienta oficial)', tema: 'SisAT', f: '9998' });
   if (sinE.length) p.push({ est: 'Falta', t: 'Capturar los EIA' + (sinE.length < r.eia.total ? ' de ' + sinE.join(', ') : ' (ningún grupo capturado)'), d: 'Tequio › EIA', tema: 'EIA', f: '9998' });
-  const orden = { Vencido: 0, Pendiente: 1, Falta: 2 };
+  const orden = { Vencido: 0, Pendiente: 1, Incompleto: 2, Falta: 2 };
   r.pend = p.sort((a, b) => orden[a.est] - orden[b.est] || a.f.localeCompare(b.f));
   return r;
 }
@@ -1670,16 +1684,16 @@ ${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu]; return m ? `<div s
   <div style="font-size:14px;color:${INK};margin-top:6px;line-height:1.5">Su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} y la Supervisión le acompañaremos de manera cercana para atender juntos su lista de pendientes.${fz ? ' Reconocemos su avance en <b>' + fz.n + '</b> (' + fz.p + '%): ahí está su fortaleza.' : ''} Con cada pendiente que atiendan, su escuela subirá en el próximo informe.</div></div>`; })() : ''; })()}
 <div style="background:#fff;border:1px solid #E3E6EC;border-radius:12px;padding:12px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
 ${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
-<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 % (en evidencias cuenta que cada carpeta tenga archivos, no cuántos; lo que no le aplica a la escuela cuenta como cumplido).</div></div></td></tr>
+<div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 % (en evidencias cuenta cada rubro cumplido: en verde si ya se revisó, o con archivos si aún no; lo que no le aplica a la escuela cuenta como cumplido).</div></div></td></tr>
 <tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 ${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
-${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'carpetas con archivos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' carpeta' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') + ' vacía' + (r.evi.total - r.evi.hecho === 1 ? '' : 's') : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
+${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'rubros cumplidos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' por atender' : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
 ${tarjeta('SisAT · ' + r.sis.m + '.er momento', r.sis.hecho, r.sis.total, 'grupos cargados', r.sis.hecho === r.sis.total ? 'Completo' : 'Faltan ' + (r.sis.total - r.sis.hecho), r.sis.hecho === r.sis.total ? OK : AV, r.pct.sis)}
 ${tarjeta('EIA', r.eia.hecho, r.eia.total, 'grupos capturados', r.eia.hecho === r.eia.total ? 'Completo' : 'Faltan ' + (r.eia.total - r.eia.hecho), r.eia.hecho === r.eia.total ? OK : AV, r.pct.eia)}</tr></table></td></tr>
 <tr><td style="padding:16px 24px 0"><div style="background:#fff;border-left:5px solid ${G};border-radius:10px;padding:14px 16px"><div style="font-size:17px;font-weight:800;color:${G};margin-bottom:6px">Lista de pendientes</div>
 ${lp ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${lp}</table>` : `<div style="font-size:15px;color:#1D7A46;font-weight:700">Sin pendientes. ¡Felicidades a todo el colectivo!</div>`}</div></td></tr>
 ${sec('1. Acuerdos de reuniones y CTZ', tabla(['Acuerdo', 'Fecha límite', 'Estado'], r.acu.lista.map(o => [esc(o.a.texto), o.a.limite ? fechaCorta(o.a.limite) : esc(o.a.plazo || '—'), o.e === 'hecho' ? chip('Cumplido', OK) : limiteVencido(o.a) ? chip('Vencido', MAL) : chip('Pendiente', AV)])))}
-${sec('2. Evidencias en el Drive de la Supervisión', tabla(['Carpeta', 'Archivos', 'Último'], r.evi.lista.map(o => [esc(o.c.ruta), nArch(o.e) ? String(nArch(o.e)) : chip('Vacía', MAL), o.e.ultimo ? fechaCorta(o.e.ultimo.slice(0, 10)) : '—'])) + (r.evi.ultimo ? `<div style="font-size:13px;color:${MU};margin-top:6px">Último archivo subido: ${fechaCorta(r.evi.ultimo.slice(0, 10))}.</div>` : ''))}
+${sec('2. Evidencias en el Drive de la Supervisión', tabla(['Carpeta', 'Archivos', 'Revisión'], r.evi.lista.map(o => [esc(o.c.ruta) + (o.rev && o.rev.nota ? `<div style="font-size:12.5px;color:${INK};background:#FFF8E6;border-radius:6px;padding:4px 8px;margin-top:4px"><b>Observación:</b> ${esc(o.rev.nota)}</div>` : ''), nArch(o.e) ? String(nArch(o.e)) + (o.e.ultimo ? `<div style="font-size:12px;color:${MU}">${fechaCorta(o.e.ultimo.slice(0, 10))}</div>` : '') : chip('Vacía', MAL), o.rev ? chip(EVI_EST[o.rev.estado].e + ' ' + EVI_EST[o.rev.estado].t, o.rev.estado === 'cumple' ? OK : o.rev.estado === 'incompleto' ? AV : MAL) : `<span style="font-size:12px;color:${MU}">Sin revisar</span>`])) + (r.evi.ultimo ? `<div style="font-size:13px;color:${MU};margin-top:6px">Último archivo subido: ${fechaCorta(r.evi.ultimo.slice(0, 10))}.</div>` : ''))}
 ${sec('3. SisAT · ' + r.sis.m + '.er momento', tabla(['Grupo', 'Estado', 'Requieren apoyo*'], r.sis.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL), riesgo(o.x)])) + `<div style="font-size:13px;color:${MU};margin-top:6px">* Alumnos en «requiere apoyo» en lectura (L), producción de textos (E) y cálculo mental (C). El detalle por alumno está en Tequio › SisAT (solo lo ve la dirección).</div>`)}
 ${sec('4. Ejercicios Integradores del Aprendizaje (EIA)', tabla(['Grupo', 'Captura de resultados'], r.eia.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL)])))}
 <tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, por favor comuníquese con su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} para su aclaración y/o revisión. También puede solicitarla en Tequio › Mi escuela › «Solicitar aclaración». Gracias por su compromiso.<br><br>
@@ -2524,11 +2538,26 @@ function eviAcuerdo(acuId, cct) {
   return mejor;
 }
 const chipEvi = (acuId, cct) => { const m = eviAcuerdo(acuId, cct); return m ? `<a class="chip ok" target="_blank" rel="noopener" href="${urlCarpeta(m.e.carpetaId)}" title="Abrir la carpeta ${esc(m.c.corto)} en Drive">📎 ${nArch(m.e)} en Drive · ${fechaCorta(m.e.ultimo.slice(0, 10))}</a>` : ''; };
+/* Semáforo de revisión (Supervisión y ATP): verde = cumple, amarillo = incompleto (con observación para la escuela), rojo = sin evidencia.
+   Si el rubro ya se revisó, manda el semáforo (solo el verde cuenta como cumplido); si no, cuenta que la carpeta tenga archivos. */
+const EVI_EST = {
+  cumple: { t: 'Cumple', e: '🟢', cl: 'ok', col: '#2E9E5B' },
+  incompleto: { t: 'Incompleto', e: '🟡', cl: 'aviso', col: '#E0A030' },
+  sin: { t: 'Sin evidencia', e: '🔴', cl: 'mal', col: '#C0453A' }
+};
+const eveDe = (cct, ruta) => { const r = (S.eve || []).find(x => x.cct === cct && normRuta(x.ruta) === normRuta(ruta)); return r && r.estado && EVI_EST[r.estado] ? r : null; };
+const eviCumple = (cct, ruta, e) => { const r = eveDe(cct, ruta); return r ? r.estado === 'cumple' : nArch(e) > 0; };
+// subieron archivos después de la última revisión: conviene volver a revisar
+const eviNuevo = (cct, ruta, e) => { const r = eveDe(cct, ruta); return !!(r && e && e.ultimo && e.ultimo.slice(0, 16) > String(r.actualizado || '').slice(0, 16)); };
+const chipSem = r => r ? `<span class="chip ${EVI_EST[r.estado].cl}">${EVI_EST[r.estado].e} ${EVI_EST[r.estado].t}</span>` : '';
+const leyendaSem = () => `<div class="sem-ley"><span><b style="background:#7CC59A"></b>Cumple</span><span><b style="background:#E8B04A"></b>Incompleto (con observación)</span><span><b style="background:#E59A93"></b>Sin evidencia</span><span><b style="background:var(--ok-f);border:1px solid var(--borde)"></b>Con archivos, sin revisar</span><span><b style="background:var(--arena-2);border:1px solid var(--borde)"></b>Vacía</span><span><i style="font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--indigo);border-radius:999px;padding:0 6px">nuevo</i>subieron archivos después de la revisión</span></div>`;
+const eviPuedeRevisar = () => !esDirector() && !!S.eve;
+
 function avanceEvi(ccts) {
   let con = 0, total = 0, na = 0;
   const cols = columnasEvi();
   // la carpeta que no existe para una escuela es un rubro que no le aplica: cuenta como cumplido
-  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) { na++; return; } total++; if (nArch(e)) con++; }));
+  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) { na++; return; } total++; if (eviCumple(cct, c.ruta, e)) con++; }));
   return { hecho: con, total, na, pct: total + na ? Math.round((con + na) * 100 / (total + na)) : 0, pend: total - con, vencidos: 0 };
 }
 
@@ -2561,20 +2590,26 @@ function vEvidencias() {
     <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select></div>
   ${!S.evi.length ? '<div class="tarjeta vacio">Aún no hay datos del Drive. Pulse «Revisar ahora».</div>' : `
   <div class="tablero">
-    <div class="tarjeta pad general">${anillo(tot.pct, 128, 'con archivos')}
-      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Carpetas con evidencia</div>
-        <div><b class="num">${tot.hecho}</b> de <b class="num">${tot.total}</b> carpetas ya tienen archivos</div>
+    <div class="tarjeta pad general">${anillo(tot.pct, 128, 'cumplido')}
+      <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Rubros de evidencia cumplidos</div>
+        <div><b class="num">${tot.hecho}</b> de <b class="num">${tot.total}</b> carpetas cumplen</div>
+        <div class="peq mudo">En verde, o con archivos si aún no se revisan</div>
         <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${COLS.length} carpetas revisadas</div></div></div>
     <div class="tarjeta"><div class="seccion-t">Avance por ATP</div>
-      <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${a.hecho} de ${a.total} carpetas</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
+      <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${a.hecho} de ${a.total} cumplen</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
   </div>
   <div class="tarjeta" style="margin-bottom:16px">
-    <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· toque una casilla para abrir la carpeta</span></div>
+    <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· ${eviPuedeRevisar() ? 'toque una casilla para revisarla y ponerle su semáforo' : 'toque una casilla para abrir la carpeta'}</span></div>
+    ${leyendaSem()}
     <div class="matriz-caja"><table class="matriz">
       <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => `<th title="${esc(c.ruta)}"><span>${esc(c.corto)}</span></th>`).join('')}<th>Avance</th></tr></thead>
       <tbody>${dirs.map(d => { const a = avanceEvi([d.cct]); return `<tr><th class="esc-col"><button class="enlace" data-eesc="${d.cct}" style="text-decoration:none;color:var(--tinta);font-size:14px;text-align:left;white-space:normal">${esc(d.escuela)}</button>${atpDe(d.cct) && !vista.atp ? `<div class="ayuda">${esc(nombreCorto(atpDe(d.cct).nombre))}</div>` : ''}</th>
-        ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e);
-          return !e ? '<td class="sin" title="No existe esta carpeta">—</td>' : `<td class="${n ? 'con' : 'vacia'}"><a target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="${esc(d.escuela)} · ${esc(c.corto)}: ${n ? n + ' archivo' + (n === 1 ? '' : 's') + ', último ' + fechaHora(e.ultimo) : 'vacía'}">${n ? `<b>✓ ${n}</b><span>${fechaCorta(e.ultimo.slice(0, 10)).replace(/ \d{4}$/, '')}</span>` : '<span class="falta">vacía</span>'}</a></td>`; }).join('')}
+        ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e), r = e ? eveDe(d.cct, c.ruta) : null, nuevo = r && eviNuevo(d.cct, c.ruta, e);
+          if (!e) return '<td class="sin" title="No existe esta carpeta">—</td>';
+          const tit = `${d.escuela} · ${c.corto}: ${n ? n + ' archivo' + (n === 1 ? '' : 's') + ', último ' + fechaHora(e.ultimo) : 'vacía'}${r ? ' · ' + EVI_EST[r.estado].t + (r.nota ? ': ' + r.nota : '') : ' · sin revisar'}`;
+          const dentro = r ? `<b>${EVI_EST[r.estado].e} ${n}</b><span class="sem">${EVI_EST[r.estado].t}</span>${nuevo ? '<i class="nuevo">nuevo</i>' : ''}`
+            : n ? `<b>✓ ${n}</b><span>${fechaCorta(e.ultimo.slice(0, 10)).replace(/ \d{4}$/, '')}</span>` : '<span class="falta">vacía</span>';
+          return `<td class="${r ? 'e-' + r.estado : n ? 'con' : 'vacia'}">${eviPuedeRevisar() ? `<a href="#" data-rev="${esc(d.cct)}" data-ruta="${esc(c.ruta)}" title="${esc(tit)}">${dentro}</a>` : `<a target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="${esc(tit)}">${dentro}</a>`}</td>`; }).join('')}
         <td class="pct">${a.pct}%</td></tr>`; }).join('')}</tbody></table></div>
   </div>
   <div class="tarjeta"><div class="seccion-t">Lo que se subió en las últimas dos semanas</div>
@@ -2594,6 +2629,54 @@ function vEvidencias() {
   $('#f-atp').onchange = e => { vista.atp = e.target.value; vEvidencias(); };
   $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vEvidencias(); });
   $$('[data-eesc]').forEach(b => b.onclick = () => detalleEvidencias(b.dataset.eesc));
+  $$('[data-rev]').forEach(b => b.onclick = ev => { ev.preventDefault(); revisarEvi(b.dataset.rev, b.dataset.ruta); });
+}
+
+/* Revisar un rubro de evidencias de una escuela y ponerle su semáforo (Supervisión y Mesa Técnica) */
+function revisarEvi(cct, ruta, alVolver) {
+  const e = eviDe(cct, ruta), c = columnasEvi().find(x => normRuta(x.ruta) === normRuta(ruta));
+  const corto = c ? c.corto : sinNum(String(ruta).split('/').pop());
+  const r = eveDe(cct, ruta), n = nArch(e), atp = atpDe(cct);
+  const vistos = {}, arch = (e && e.recientes || []).filter(a => { const k = a.id || (a.f + a.n); if (vistos[k]) return false; vistos[k] = 1; return true; });
+  modal(esc(nombreEscuela(cct)) + ' · ' + esc(corto), `
+    <p class="peq mudo" style="margin-top:0">Drive › ${esc(String(ruta).replace(/\//g, ' › '))}</p>
+    <div class="tarjeta pad" style="margin-bottom:12px;box-shadow:none">
+      <div><b class="num">${n}</b> archivo${n === 1 ? '' : 's'}${e && e.ultimo ? ' · último ' + fechaHora(e.ultimo) + (e.ultimoPor ? ' · ' + esc(quienSubio(e.ultimoPor)) : '') : ''}</div>
+      ${arch.length ? `<div class="peq" style="margin-top:6px;line-height:1.6">${arch.map(a => `• ${a.n ? (a.id ? `<a target="_blank" rel="noopener" href="${urlArchivo(a.id)}">${esc(a.n)}</a>` : esc(a.n)) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'} <span class="mudo">· ${fechaHora(a.f)}</span>`).join('<br>')}</div>` : ''}
+      ${e ? `<p class="peq" style="margin:8px 0 0"><a target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}">Abrir la carpeta en Drive para revisar todo →</a></p>` : ''}
+    </div>
+    <div class="campo"><label for="rv-est">Estado de la evidencia</label>
+      <select id="rv-est" class="sem-sel">
+        <option value="">⚪ Sin revisar (cuenta si la carpeta tiene archivos)</option>
+        <option value="cumple" ${r && r.estado === 'cumple' ? 'selected' : ''}>🟢 Cumple · ya subió lo que debía</option>
+        <option value="incompleto" ${r && r.estado === 'incompleto' ? 'selected' : ''}>🟡 Incompleto · le falta algo</option>
+        <option value="sin" ${r && r.estado === 'sin' ? 'selected' : ''}>🔴 Sin evidencia · no tiene nada</option>
+      </select></div>
+    <div class="campo" id="rv-c-nota"><label for="rv-nota" id="rv-l-nota">Observación</label>
+      <textarea id="rv-nota" style="min-height:90px" maxlength="1000" placeholder="Ej. Falta la lista de asistencia firmada y las fotos de la sesión.">${esc(r ? r.nota : '')}</textarea>
+      <div class="ayuda" id="rv-ayuda"></div></div>
+    ${r ? `<p class="peq mudo" style="margin:0">Última revisión: ${esc(r.marcadoNombre || (usuario(r.marcadoPor) || {}).nombre || '')} · ${fechaHora(r.actualizado)}${eviNuevo(cct, ruta, e) ? ' · <b style="color:var(--indigo)">la escuela subió archivos después de esta revisión</b>' : ''}</p>` : ''}`,
+    `<button class="boton sec" id="rv-cancelar">Cancelar</button><button class="boton terra" id="rv-ok">Guardar</button>`);
+  const ajustar = () => {
+    const v = $('#rv-est').value;
+    $('#rv-l-nota').textContent = v === 'incompleto' ? '¿Qué le falta? (obligatorio)' : 'Observación (opcional)';
+    $('#rv-ayuda').textContent = v === 'incompleto' ? 'La dirección de la escuela' + (atp ? ' y su ATP (' + nombreCorto(atp.nombre) + ')' : '') + ' verán esta observación en Tequio y en el informe semanal.'
+      : v === 'sin' ? 'La escuela la verá como pendiente: «Sin evidencia».' : v === 'cumple' ? 'El rubro cuenta como cumplido en el porcentaje de la escuela.' : 'Se quita el semáforo y vuelve a contar solo si la carpeta tiene archivos.';
+    $('#rv-c-nota').style.display = v ? '' : 'none';
+  };
+  ajustar();
+  $('#rv-est').onchange = ajustar;
+  $('#rv-cancelar').onclick = () => alVolver ? alVolver() : cerrarModal();
+  $('#rv-ok').onclick = () => {
+    const estado = $('#rv-est').value, nota = $('#rv-nota').value.trim();
+    if (estado === 'incompleto' && !nota) { aviso('Escriba qué le falta a la evidencia.', 'mal'); $('#rv-nota').focus(); return; }
+    accion('eviEstado', { cct, ruta, estado, nota: estado ? nota : '' }, x => {
+      S.eve = (S.eve || []).filter(y => !(y.cct === cct && normRuta(y.ruta) === normRuta(ruta))).concat([x.eve]);
+      if (alVolver) alVolver(); else cerrarModal();
+      pintar();
+      aviso(estado ? 'Evidencia marcada: ' + EVI_EST[estado].t + '.' : 'Se quitó el semáforo.', 'ok', 2500);
+    });
+  };
 }
 
 /* ---------------- Evidencias del director ---------------- */
@@ -2610,18 +2693,23 @@ function vEviDirector() {
   <div class="aviso-caja peq">Elija la carpeta que corresponde y suba sus archivos (PDF, Word, fotos; hasta ${MAX_MB} MB cada uno). Quedan guardados en el Drive de la Supervisión y Tequio los cuenta como evidencia entregada.</div>
   ${!filas.length ? '<div class="tarjeta vacio">Aún no hay carpetas registradas para su escuela. Avise a la Supervisión.</div>' : `
   <div class="tablero">
-    <div class="tarjeta pad general">${anillo(a.pct, 128, 'con archivos')}
+    <div class="tarjeta pad general">${anillo(a.pct, 128, 'cumplido')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">${esc(c ? c.escuela : cct)}</div>
-        <div><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> carpetas ya tienen archivos</div></div></div>
+        <div><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> rubros de evidencia cumplidos</div>
+        ${(() => { const inc = (S.eve || []).filter(x => x.cct === cct && x.estado === 'incompleto').length, sin = (S.eve || []).filter(x => x.cct === cct && x.estado === 'sin').length;
+          return inc || sin ? `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${inc ? `<span class="chip aviso">🟡 ${inc} incompleta${inc === 1 ? '' : 's'}</span>` : ''}${sin ? `<span class="chip mal">🔴 ${sin} sin evidencia</span>` : ''}</div>` : ''; })()}</div></div>
     <div class="tarjeta"><div class="seccion-t">Lo último que se subió</div>
       ${nov.length ? `<div class="lista-act">${nov.map(x => `<div class="nov"><div class="nov-f"><b>${deIso(x.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(x.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
         <div style="min-width:0;flex:1"><div class="t">${x.n ? esc(x.n) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'}</div><div class="peq mudo">${esc((x.ruta || 'Carpeta principal').split('/').slice(-2).join(' › '))}${x.p ? ' · ' + esc(quienSubio(x.p)) : ''}</div></div></div>`).join('')}</div>` : '<div class="vacio peq">Todavía no hay archivos.</div>'}</div>
   </div>
   <div class="tarjeta"><div class="seccion-t">Carpetas de su escuela</div>
-    <div class="checklist sin-borde">${filas.map(e => { const nivel = e.ruta ? e.ruta.split('/').length - 1 : 0, n = nArch(e); return `<div class="chk-fila" style="align-items:center;padding-left:${12 + nivel * 18}px">
+    <p class="peq mudo" style="margin:-4px 14px 8px">Su ATP y la Supervisión revisan cada carpeta: 🟢 cumple, 🟡 incompleta (lea la observación de lo que falta) o 🔴 sin evidencia. Al subir lo que falta, vuelven a revisarla.</p>
+    <div class="checklist sin-borde">${filas.map(e => { const nivel = e.ruta ? e.ruta.split('/').length - 1 : 0, n = nArch(e), r = e.ruta ? eveDe(cct, e.ruta) : null; return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap;padding-left:${12 + nivel * 18}px">
       <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${e.ruta ? esc(e.ruta.split('/').pop()) : '<b>Carpeta principal</b>'}</span>
+      ${chipSem(r)}
       ${e.ruta ? (n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>') : ''}
-      <button class="boton sec chico" data-subir="${e.carpetaId}">Subir aquí</button></div>`; }).join('')}</div></div>`}`;
+      <button class="boton sec chico" data-subir="${e.carpetaId}">Subir aquí</button>
+      ${r && r.nota ? `<div class="sem-obs" style="flex-basis:100%"><b>Observación${r.marcadoNombre ? ' de ' + esc(nombreCorto(r.marcadoNombre)) : ''}:</b> ${esc(r.nota)}</div>` : ''}</div>`; }).join('')}</div></div>`}`;
   $('#b-subir').onclick = () => formSubir(cct);
   $$('[data-subir]').forEach(b => b.onclick = () => formSubir(cct, b.dataset.subir));
 }
@@ -2710,13 +2798,16 @@ function detalleEvidencias(cct) {
   const sueltos = raiz ? +raiz.directos || 0 : 0;
   modal(esc(c ? c.escuela : cct), `
     ${sueltos ? `<div class="aviso-caja">Hay <b>${sueltos}</b> archivo${sueltos === 1 ? '' : 's'} suelto${sueltos === 1 ? '' : 's'} fuera de las carpetas. Conviene moverlos a la carpeta que corresponde.</div>` : ''}
-    <div class="checklist" style="max-height:60vh">${filas.filter(e => e.ruta).map(e => { const nivel = e.ruta.split('/').length - 1, n = nArch(e); return `<a class="chk-fila" style="text-decoration:none;color:inherit;padding-left:${12 + nivel * 18}px" target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}">
-      <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${esc(e.ruta.split('/').pop())}</span>
-      ${n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}</a>`; }).join('') || '<div class="vacio peq">Sin datos de esta escuela.</div>'}</div>
+    <div class="checklist" style="max-height:60vh">${filas.filter(e => e.ruta).map(e => { const nivel = e.ruta.split('/').length - 1, n = nArch(e), r = eveDe(cct, e.ruta); return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap;padding-left:${12 + nivel * 18}px">
+      <a style="flex:1;min-width:0;text-decoration:none;color:inherit" target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="Abrir en Drive">${nivel ? '└ ' : ''}${esc(e.ruta.split('/').pop())}</a>
+      ${chipSem(r)}${n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}
+      ${eviPuedeRevisar() ? `<button class="boton sec chico" data-drev="${esc(e.ruta)}">Revisar</button>` : ''}
+      ${r && r.nota ? `<div class="sem-obs" style="flex-basis:100%">${esc(r.nota)}</div>` : ''}</div>`; }).join('') || '<div class="vacio peq">Sin datos de esta escuela.</div>'}</div>
     ${raiz ? `<p class="peq" style="margin-bottom:0"><a target="_blank" rel="noopener" href="${urlCarpeta(raiz.carpetaId)}">Abrir la carpeta de la escuela en Drive</a></p>` : ''}`,
     `<button class="boton sec" id="de-cerrar">Cerrar</button><button class="boton terra" id="de-subir">${ico('i-mas')}Subir archivos</button>`);
   $('#de-cerrar').onclick = cerrarModal;
   $('#de-subir').onclick = () => formSubir(cct);
+  $$('[data-drev]').forEach(b => b.onclick = () => revisarEvi(cct, b.dataset.drev, () => detalleEvidencias(cct)));
 }
 
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
@@ -6345,7 +6436,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eviRevisado: ahora(), version: 14, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr),
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eve: demoEve(evi, ESC, usr), eviRevisado: ahora(), version: 19, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr),
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -6354,6 +6445,18 @@ const Demo = (() => {
       ofiCfg: { ultimo: 47, anio: '2026', siguiente: 'SE-050/048/2026', ia: true, modelo: 'gemini (demostración)', firma: false, sello: false, remitentes: ['supervision050sep@gmail.com', 'cortegagutierrez@bcedu.mx'] },
       sis, sic, sisCfg: { ia: true }, sia: demoAlumnos(sis) };
     Object.assign(D, eiaDemoDatos(ESC, ciclo));
+  }
+  // Semáforo de ejemplo: algunas carpetas ya revisadas por la Supervisión o los ATP
+  function demoEve(evi, ESC, usr) {
+    const quien = [usr.find(u => u.rol === 'admin'), usr.find(u => u.rol === 'atp')].filter(Boolean);
+    const notas = ['Falta la lista de asistencia firmada por todo el personal.', 'Subieron solo las fotos; falta el producto de la sesión en PDF.', 'Falta el acta firmada por el presidente del Comité.'];
+    const out = [];
+    ESC.forEach((e, j) => evi.filter(x => x.cct === e[1] && x.ruta && x.ruta.split('/').length <= 2 && !/^Contingencia/.test(x.ruta)).forEach((x, i) => {
+      const v = (i * 5 + j * 3) % 9; if (v > 3) return;
+      const n = +x.archivos, estado = !n ? 'sin' : v === 0 ? 'incompleto' : 'cumple', u = quien[(i + j) % quien.length] || {};
+      out.push({ id: e[1] + '|' + normRuta(x.ruta), cct: e[1], ruta: x.ruta, estado, nota: estado === 'incompleto' ? notas[(i + j) % notas.length] : '', marcadoPor: u.id || '', marcadoNombre: u.nombre || '', actualizado: sumarDias(hoy(), -((i + j) % 5)) + 'T09:00:00' });
+    }));
+    return out;
   }
   function demoPendientes(h, usr) {
     const atp = n => usr.find(u => u.id === 'u-' + n), at = (d, hh) => sumarDias(h, d) + 'T' + hh + ':00';
@@ -6373,7 +6476,7 @@ const Demo = (() => {
       if (!cfg.dir) return copia(D);
       const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
       return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
-        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
+        usr: D.usr.filter(u => u.rol !== 'director'), evi: D.evi.filter(e => e.cct === cct), eve: D.eve.filter(e => e.cct === cct), ofi: undefined, ofiCfg: undefined, per: undefined,
         sis: D.sis.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '' })),
         sic: D.sic.filter(c => ['escuela', 'grado', 'grupo'].includes(c.nivel) && c.ref.split('|')[0] === cct),
         eig: D.eig.map((x, i) => x.cct === cct ? x : Object.assign({}, x, { id: 'z' + i, cct: '', grupo: '', fuente: '' })), eiaAl: undefined, vis: D.vis.filter(v => v.cct === cct), inf: D.inf.filter(x => x.cct === cct), acl: D.acl.filter(x => x.cct === cct), infHtml: undefined, pen: undefined }));
@@ -6561,6 +6664,9 @@ const Demo = (() => {
       const a = { id: uid('ct'), ciclo: d.ciclo, sesion: String(d.sesion), cct, tipo: d.tipo, item: d.item || '', etiqueta: d.etiqueta || '', nombre, archivoId: '', url: '#', mime: d.mime, subidoPor: D.yo.nombre, fecha: ahora(), activo: true };
       D.cta.push(a); return { archivo: copia(a) }; },
     cteQuitar: d => { D.cta = (D.cta || []).filter(x => x.id !== d.id); return { id: d.id }; },
+    eviEstado: d => { if (d.estado === 'incompleto' && !d.nota) throw new Error('Escriba qué le falta.');
+      const o = { id: d.cct + '|' + normRuta(d.ruta), cct: d.cct, ruta: d.ruta, estado: d.estado, nota: d.estado ? d.nota : '', marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
+      D.eve = D.eve.filter(x => x.id !== o.id).concat([o]); return { eve: copia(o) }; },
     revisarEvidencias: () => ({ evi: copia(D.evi), eviRevisado: (D.eviRevisado = ahora()), escuelas: 14, carpetas: D.evi.length }),
     eliminarReunion: d => { D.reu = D.reu.filter(x => x.id !== d.id); D.acu = D.acu.filter(x => x.reunionId !== d.id); return { id: d.id }; },
     marcar: d => {
