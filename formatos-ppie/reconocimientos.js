@@ -572,6 +572,7 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
     catch(e){msg("No se pudo crear la plantilla. ("+esc(e.message||e)+")")}};
   if(g("rk_aluB"))g("rk_aluB").onclick=()=>{const box=g("rk_aluBox");box.hidden=!box.hidden;if(box.hidden)return;
     box.innerHTML=`<div class="field"><label for="rk_ag">Grupo</label><select id="rk_ag">${grupos.map(x=>`<option value="${esc(x.k)}">${esc(dirGLabel(x.grado,x.grupo))} · ${x.n} alumnos</option>`).join("")}</select></div><div id="rk_al"></div>`;
+    if(typeof yoGrado==="function"){const mk=yoGrado()+"|"+yoGrupo();if([...g("rk_ag").options].some(o=>o.value===mk))g("rk_ag").value=mk}
     const pinta=()=>{const[gr,gp]=g("rk_ag").value.split("|");const L=DIR.alumnos.filter(dirActivo).filter(a=>(a.grado||"?")===gr&&(a.grupo||"")===gp).sort((a,b)=>String(a.nombre).localeCompare(b.nombre,"es"));
       g("rk_al").innerHTML=`<label class="opt"><input type="checkbox" id="rk_alT">Marcar todos</label><div class="rkalu">${L.map((a,i)=>`<label><input type="checkbox" data-al="${i}">${esc(a.nombre)}</label>`).join("")}</div>
         <button type="button" class="btn primary" id="rk_alOk">Agregar los marcados</button>`;

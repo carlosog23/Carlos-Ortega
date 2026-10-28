@@ -12,7 +12,7 @@ try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURICompon
 function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta pertenece a la Supervisión Escolar Zona 050 (ISEP) y es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}.blanco{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#FBF6EC;border:1px dashed #C2603A;border-radius:14px;padding:10px 14px;margin:0 0 14px;font-size:15px}.blanco .btn{flex:none}
-.pick{background:#EEF2FA;border:1px solid #C9D4EA;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:15px}.pick select{width:100%;margin-top:6px}.pick .btn.link{padding:0;display:inline}
+.pick{background:#EEF2FA;border:1px solid #C9D4EA;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:15px}.pick select{width:100%;margin-top:6px}.pick .btn.link{padding:0;display:inline}.pick{background:var(--accent-soft,#EEF2FA);border-color:var(--line,#C9D4EA)}.pick .ok{margin:6px 0 0;font-size:14px;color:var(--ok,#1E7A46)}.pick-in{margin:0 0 6px}.pick-in select{margin-top:4px}.yo-mas{margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:10px}.yo-mas>summary{cursor:pointer;font-weight:700;padding:6px 0;list-style-position:outside}.yo-mas[open]>summary{margin-bottom:6px}
 </style></head><body>
 <title>Tlamatini · Un camino para la labor docente</title>
 <meta name="theme-color" content="#1F3A6B">
@@ -558,9 +558,7 @@ const PERFIL=[
  {id:"turno",label:"Turno",type:"choice",options:["Matutino","Vespertino","Tiempo completo"]},
  {id:"nivel",label:"Nivel",def:"Primaria"},
  {id:"subsistema",label:"Subsistema",def:"Federalizado"},
- {id:"director",label:"Nombre de la o el titular de la Dirección"},
- {id:"minombre",label:"Mi nombre (quien llena los formatos)"},
- {id:"micargo",label:"Mi cargo",ph:"Ej. Docente de 4° B, Director(a)"}
+ {id:"director",label:"Nombre de la o el titular de la Dirección"}
 ];
 const SIT_E=["Abuso sexual","Violación","Hostigamiento sexual","Maltrato en el ámbito familiar","Maltrato en el ámbito comunitario","Maltrato en el ámbito escolar","Uso de drogas lícitas o ilícitas|Uso de drogas","Portación de drogas lícitas o ilícitas|Portación de drogas","Venta de drogas lícitas o ilícitas|Venta de drogas","Amenaza o atentado","Amenaza de bomba","Portación de arma"];
 const IND_F=["Corto tiempo de atención para las actividades solicitadas durante la clase","Interrumpe el trabajo de sus compañeros","Dificultad para concluir las actividades en los tiempos establecidos","Dificultades para el seguimiento de reglas","Baja tolerancia a la frustración","Dificultades para trabajar de manera colaborativa con sus compañeros","Dificultades en la socialización","Conducta desafiante"];
@@ -1121,7 +1119,85 @@ function fmtDate(v,fmt){const p=parseDate(v);if(!p)return fmt.startsWith("partes
   if(fmt==="corta")return`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`;return v}
 function fmtTime(v,fmt){if(!v)return fmt==="hm"?["",""]:"";const[h,m]=v.split(":");return fmt==="hm"?[h,m]:`${h}:${m} hrs.`}
 function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function preValue(f){if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date"&&!f.noToday)return today();return""}
+function preValue(f){const y=yoPre(f);if(y)return y;if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date"&&!f.noToday)return today();return""}
+
+/* ---------- Mis datos: la persona que usa Tlamatini en este dispositivo ----------
+   Se capturan una sola vez (al darse de alta o en «Mi escuela») y se ponen solos en todos los formatos:
+   nombre, cargo, grado y grupo; y, si los da, RFC, CURP, claves, domicilio y contacto para los trámites laborales. */
+const YO_TIT=["Profr.","Profra.","Mtro.","Mtra.","Lic.","Dr.","Dra."];
+const YO_FUNC=["Docente frente a grupo","Director(a)","Encargado(a) de despacho","Subdirector(a)","Docente de Educación Física","Docente de Inglés","Docente de Artes","Maestro(a) de USAER","Asesor(a) técnico pedagógico","Supervisor(a) escolar","Personal de apoyo y asistencia","Otra"];
+function yoPartes(){if(perfil.mnom||perfil.mpat||perfil.mmat)return{tit:perfil.mtit||"",nom:perfil.mnom||"",pat:perfil.mpat||"",mat:perfil.mmat||""};
+  let s=String(perfil.minombre||"").trim().replace(/\s+/g," "),tit="";
+  const m=s.match(/^(profra|profesora|profr|profesor|prof|mtra|maestra|mtro|maestro|licda|licdo|lic|dra|dr)\.?\s+/i);
+  if(m){const t=m[1].toLowerCase();tit=/^(profra|profesora)$/.test(t)?"Profra.":/^(profr|profesor|prof)$/.test(t)?"Profr.":/^(mtra|maestra)$/.test(t)?"Mtra.":/^(mtro|maestro)$/.test(t)?"Mtro.":/^lic/.test(t)?"Lic.":t==="dra"?"Dra.":"Dr.";s=s.slice(m[0].length)}
+  const w=s.split(" ").filter(Boolean);
+  if(w.length>=3)return{tit,nom:w.slice(0,-2).join(" "),pat:w[w.length-2],mat:w[w.length-1]};
+  return{tit,nom:w[0]||"",pat:w[1]||"",mat:""}}
+const yoNombre=()=>{const p=yoPartes();return[p.nom,p.pat,p.mat].filter(Boolean).join(" ")||String(perfil.minombre||"").trim()};
+const yoFirma=()=>{const n=yoNombre();return n?[yoPartes().tit,n].filter(Boolean).join(" "):""};
+const yoGrado=()=>{const d=String(perfil.grado||"").match(/[1-6]/);return d?d[0]:""};
+const yoGrupo=()=>String(perfil.grupo||"").replace(/grupo|°|º|"|«|»/gi,"").trim().toUpperCase();
+const yoGG=()=>{const g=yoGrado(),p=yoGrupo();return g?`${g}°${p?" "+p:""}`:""};
+function yoFuncion(){if(perfil.mifuncion)return perfil.mifuncion;const c=String(perfil.micargo||"");if(!c)return"";
+  if(/encargad/i.test(c))return"Encargado(a) de despacho";if(/subdirect/i.test(c))return"Subdirector(a)";if(/direct/i.test(c))return"Director(a)";if(/supervis/i.test(c))return"Supervisor(a) escolar";
+  if(/f[ií]sica/i.test(c))return"Docente de Educación Física";if(/ingl/i.test(c))return"Docente de Inglés";if(/usaer/i.test(c))return"Maestro(a) de USAER";if(/atp|asesor/i.test(c))return"Asesor(a) técnico pedagógico";
+  if(/docente|maestr|profes/i.test(c))return"Docente frente a grupo";return"Otra"}
+const yoDirectivo=()=>/director|encargad|supervis/i.test(yoFuncion())&&!/subdirect/i.test(yoFuncion());
+const yoCurp=()=>String(perfil.curp||"").toUpperCase().replace(/\s/g,"");
+const yoRfc=()=>String(perfil.rfc||"").toUpperCase().replace(/[^A-ZÑ&0-9]/g,"");
+/* qué dato personal va en cada campo de los formatos laborales (L: licencia económica; P: actualización de datos personales) */
+const YO_PRE={
+ L:{nom:()=>yoPartes().nom,pat:()=>yoPartes().pat,mat:()=>yoPartes().mat,calle:()=>perfil.mcalle,num:()=>perfil.mnum,col:()=>perfil.mcol,tel:()=>perfil.celular,rfc:yoRfc,
+    puesto:()=>{const f=yoFuncion();return f==="Otra"?perfil.micargo:f==="Maestro(a) de USAER"?"Docente frente a grupo":f},claves:()=>perfil.claves,ingreso:()=>perfil.ingreso,
+    quien:()=>!perfil.micargo&&!perfil.mifuncion?"":yoDirectivo()?"El director o encargado de despacho (autoriza el Supervisor)":"Personal de la escuela (autoriza el director o E.D.)"},
+ P:{pat:()=>yoPartes().pat,mat:()=>yoPartes().mat,nom:()=>yoPartes().nom,curp:yoCurp,rfc:()=>yoRfc().slice(0,10),homo:()=>yoRfc().slice(10,13),
+    fnac:()=>{const c=curpInfo(yoCurp());return c?c.dob:""},sexo:()=>{const c=curpInfo(yoCurp());return c&&c.sexo!=="X"?(c.sexo==="M"?"Mujer (F)":"Hombre (M)"):""},
+    calle:()=>perfil.mcalle,num:()=>perfil.mnum,cp:()=>perfil.mcp,col:()=>perfil.mcol,mun:()=>perfil.mmun,cel:()=>perfil.celular,cinst:()=>perfil.correo,fing:()=>perfil.ingreso}};
+/* en cualquier formato: el nombre de la o el docente y el grado y grupo de su grupo */
+function yoPre(f){const m=YO_PRE[S.letra];if(m&&m[f.id]){const v=m[f.id]();return v?String(v):""}
+  if(f.pre||f.preFn)return"";const lab=String(f.label||"").toLowerCase();
+  if(/nombre de la o el docente|nombre del (la )?docente|nombre de la maestra|nombre del maestro|docente responsable/.test(lab))return yoNombre();
+  if(ANEXOS[S.letra]&&ANEXOS[S.letra].grupo!=="Personal"&&yoGrado()&&!yoDirectivo()){
+    if(f.id==="grado"&&!/estudios/.test(lab))return/grupo/.test(lab)?yoGG():f.chips&&f.chips.includes(yoGrado()+"°")?yoGrado()+"°":/grado/.test(lab)?yoGrado()+"°":"";
+    if(f.id==="grupo")return yoGrupo()}
+  return""}
+/* formulario de «Mis datos» (lo usan el alta de la Zona 050 y el de otras zonas) */
+function yoHTML(){const p=yoPartes(),v=k=>esc(perfil[k]||""),fn=yoFuncion();
+  const lab=(t,o)=>`${t}${o?' <span class="muted" style="font-weight:400">(opcional)</span>':""}`;
+  const lab2=["rfc","curp","celular","correo","claves","ingreso","mcalle","mnum","mcol","mcp","mmun"].some(k=>perfil[k]);
+  return`<section class="card" id="yoCard"><h3>Mis datos</h3>
+   <p class="help">Son los de la persona que usa Tlamatini en este dispositivo. Se ponen solos en todos los formatos: ya no tendrá que volver a escribirlos.</p>
+   <div class="row2"><div class="field"><label for="y_tit">${lab("Título",1)}</label><select id="y_tit"><option value="">—</option>${YO_TIT.map(t=>`<option ${p.tit===t?"selected":""}>${t}</option>`).join("")}</select></div>
+    <div class="field"><label for="y_nom">Nombre(s)</label><input type="text" id="y_nom" value="${esc(p.nom)}" autocomplete="given-name"></div></div>
+   <div class="row2"><div class="field"><label for="y_pat">Apellido paterno</label><input type="text" id="y_pat" value="${esc(p.pat)}" autocomplete="family-name"></div>
+    <div class="field"><label for="y_mat">Apellido materno</label><input type="text" id="y_mat" value="${esc(p.mat)}" autocomplete="off"></div></div>
+   <div class="field"><label for="y_func">Mi función</label><select id="y_func"><option value="">Elija…</option>${YO_FUNC.map(t=>`<option ${fn===t?"selected":""}>${t}</option>`).join("")}</select></div>
+   <div class="field" id="y_otraW" style="display:${fn==="Otra"?"":"none"}"><label for="y_otra">¿Cuál?</label><input type="text" id="y_otra" value="${fn==="Otra"?v("micargo"):""}" autocomplete="off"></div>
+   <div class="row2" id="y_ggW"><div class="field"><label for="y_grado">${lab("Grado que atiende",1)}</label><select id="y_grado"><option value="">—</option>${["1","2","3","4","5","6"].map(g=>`<option value="${g}" ${yoGrado()===g?"selected":""}>${g}°</option>`).join("")}<option value="M" ${/multi/i.test(perfil.grado||"")?"selected":""}>Multigrado</option></select></div>
+    <div class="field"><label for="y_grupo">${lab("Grupo",1)}</label><input type="text" id="y_grupo" value="${esc(yoGrupo())}" placeholder="A" maxlength="12" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase"></div></div>
+   <details class="yo-mas" ${lab2?"open":""}><summary>Datos para trámites del personal <span class="muted">(opcional)</span></summary>
+    <p class="help">Para que la licencia económica y la actualización de datos personales salgan ya llenas.</p>
+    <div class="row2"><div class="field"><label for="y_rfc">RFC con homoclave</label><input type="text" id="y_rfc" value="${v("rfc")}" maxlength="13" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase"></div>
+     <div class="field"><label for="y_curp">CURP</label><input type="text" id="y_curp" value="${v("curp")}" maxlength="18" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase"></div></div>
+    <div class="row2"><div class="field"><label for="y_cel">Celular</label><input type="tel" id="y_cel" value="${v("celular")}" inputmode="tel" autocomplete="tel"></div>
+     <div class="field"><label for="y_correo">Correo institucional</label><input type="email" id="y_correo" value="${v("correo")}" placeholder="nombre.apellido@bcedu.mx" inputmode="email" autocapitalize="none" spellcheck="false" autocomplete="email"></div></div>
+    <div class="row2"><div class="field"><label for="y_claves">Clave(s) presupuestal(es)</label><input type="text" id="y_claves" value="${v("claves")}" autocomplete="off"></div>
+     <div class="field"><label for="y_ingreso">Fecha de ingreso a la SEP</label><input type="date" id="y_ingreso" value="${v("ingreso")}"></div></div>
+    <div class="row2"><div class="field"><label for="y_calle">Domicilio particular: calle</label><input type="text" id="y_calle" value="${v("mcalle")}" autocomplete="off"></div>
+     <div class="field"><label for="y_num">Número</label><input type="text" id="y_num" value="${v("mnum")}" autocomplete="off"></div></div>
+    <div class="row2"><div class="field"><label for="y_col">Colonia</label><input type="text" id="y_col" value="${v("mcol")}" autocomplete="off"></div>
+     <div class="field"><label for="y_cp">C.P.</label><input type="text" id="y_cp" value="${v("mcp")}" inputmode="numeric" maxlength="5" autocomplete="off"></div></div>
+    <div class="field"><label for="y_mun">Municipio donde vive</label><select id="y_mun"><option value="">Elija…</option>${MUNIS.map(o=>`<option ${perfil.mmun===o?"selected":""}>${o}</option>`).join("")}</select></div>
+   </details></section>`}
+function yoWire(){const g=id=>document.getElementById(id),f=g("y_func");if(!f)return;
+  const upd=()=>{g("y_otraW").style.display=f.value==="Otra"?"":"none";const dg=/docente|usaer|subdirect|^$/i.test(f.value)||f.value==="Otra";g("y_ggW").style.opacity=dg?"1":".55"};f.onchange=upd;upd()}
+function yoLeer(){const g=id=>{const e=document.getElementById(id);return e?e.value.trim():""};if(!document.getElementById("y_nom"))return;
+  perfil.mtit=g("y_tit");perfil.mnom=g("y_nom");perfil.mpat=g("y_pat");perfil.mmat=g("y_mat");
+  perfil.minombre=[perfil.mnom,perfil.mpat,perfil.mmat].filter(Boolean).join(" ");
+  const fn=g("y_func");perfil.mifuncion=fn;const gr=g("y_grado")==="M"?"Multigrado":g("y_grado"),gp=g("y_grupo").toUpperCase();perfil.grado=gr;perfil.grupo=gp;
+  perfil.micargo=fn==="Docente frente a grupo"?`Docente${gr?` de ${gr==="Multigrado"?"multigrado":gr+"°"}${gp?" "+gp:""}`:""}`:fn==="Otra"?g("y_otra"):fn;
+  perfil.rfc=g("y_rfc").toUpperCase();perfil.curp=g("y_curp").toUpperCase();perfil.celular=g("y_cel");perfil.correo=g("y_correo");perfil.claves=g("y_claves");perfil.ingreso=g("y_ingreso");
+  perfil.mcalle=g("y_calle");perfil.mnum=g("y_num");perfil.mcol=g("y_col");perfil.mcp=g("y_cp");perfil.mmun=g("y_mun")}
 
 /* ---------- medición de texto con la fuente del PDF ---------- */
 let HELV=null,HELVB=null;const okChar=new Map();
@@ -1348,7 +1424,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     ${(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button type="button" class="ini-mic" id="buscarMic" aria-label="Dictar lo que busca">${ICON.mic}</button>`:""}</div>
    <div class="ini-res" id="iniRes" hidden aria-live="polite"></div>
    <div class="ini-main" id="iniMain">
-    ${perfil.escuela?"":`<section class="card"><div><h3>Primero, los datos de su escuela</h3><p class="muted" style="font-size:15px">Captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">Capturar datos de mi escuela</button></section>`}
+    ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
     <div id="iniEvBox">${iniEvento()||""}</div>
     <section aria-labelledby="t-cont" id="contSec" ${conts.length?"":"hidden"}><h2 class="gt" id="t-cont">Continuar donde se quedó</h2><div class="conts" id="contStrip">${conts.join("")}</div></section>
     <section aria-labelledby="t-uso"><h2 class="gt" id="t-uso">Lo más usado</h2>
@@ -1413,9 +1489,9 @@ function iniBuscador(){const q=document.getElementById("buscarQ"),res=document.g
 /* Mi escuela: datos de la escuela, instalación, respaldo y datos de la Supervisión */
 function miEscuelaView(){S.view="miescuela";S.sec=null;S.letra=null;setBar("");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini</div><h2>Mi escuela</h2></div></div>
-   <section class="card"><div><h3>Datos de mi escuela</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p>
+   <section class="card"><div><h3>Mi escuela y mis datos</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p>
     ${perfil.minombre?`<p class="help" style="margin-top:4px">${esc(perfil.minombre)}${perfil.micargo?" · "+esc(perfil.micargo):""}</p>`:""}</div>
-    <button type="button" class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar datos de mi escuela":"Capturar datos de mi escuela"}</button></section>
+    <button type="button" class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar mi escuela y mis datos":"Capturar mi escuela y mis datos"}</button></section>
    <section class="lista">${iniFila("misalumnos","Mis alumnos","",[])}${iniFila("directorio","","",[])}${iniFila("misdocs","","",[])}</section>
    ${equipoHTML()}
    <section class="sup" aria-label="Datos de la Supervisión">
@@ -1501,9 +1577,9 @@ async function meters(){const{geo}=await loadForm(S.letra);await fonts();const s
 function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";const A=ANEXOS[S.letra],st=A.steps[S.step],n=A.steps.length;
   const fields=st.fields;let html="",halfBuf=[];
   const flush=()=>{if(halfBuf.length){html+=`<div class="row2">${halfBuf.join("")}</div>`;halfBuf=[]}};
-  for(const f of fields){const val=S.vals[f.id]!==undefined?S.vals[f.id]:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
+  for(const f of fields){const v0=S.vals[f.id];const val=v0!==undefined&&v0!==""?v0:preValue(f);const h=inputHTML(f,val);if(f.half)halfBuf.push(h);else{flush();html+=h}}flush();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref?A.pref:"Anexo "+S.letra} · Paso ${S.step+1} de ${n+1}</div><h2>${esc(st.title)}</h2></div></div>
-   ${S.step===0?pickHTML():""}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima o descargue el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">${EI.print}Imprimir en blanco</button><button type="button" class="btn ghost" id="blancoD">${EI.down}Descargar en blanco</button></div>`:""}
+   ${pickHTML()}${S.step===0?`<div class="blanco"><span>¿Lo va a llenar a mano? Imprima o descargue el formato oficial en blanco, tal cual el original.</span><button type="button" class="btn ghost" id="blanco">${EI.print}Imprimir en blanco</button><button type="button" class="btn ghost" id="blancoD">${EI.down}Descargar en blanco</button></div>`:""}
    <div class="progress" aria-hidden="true"><i style="width:${(S.step+1)/(n+1)*100}%"></i></div>
    ${st.intro&&A.intro?A.intro():""}<form class="card" id="frm" novalidate>${html}</form>`;
   setBar(`<button class="btn ghost" id="prev">${S.step?"Anterior":"Inicio"}</button><button class="btn primary" id="next">${S.step===n-1?"Revisar":"Siguiente"}</button>`);
@@ -1727,41 +1803,55 @@ async function imprimirBlanco(L,btn,descargar){const label=btn.innerHTML;btn.dis
   finally{S.vals=prev;btn.disabled=false;btn.innerHTML=label}}
 
 /* ---------- Llenar formatos con un alumno de «Mis alumnos» ---------- */
-const PICK_IDS=["alumno","nna"];
-function pickAplica(A){const ids=A.steps.flatMap(st=>st.fields.map(f=>f.id));return S.letra==="S"||S.letra==="U"||ids.some(i=>PICK_IDS.includes(i))}
+const PICK_IDS=["alumno","nna","anom"];
+const PICK_NOMBRE={S:1,H:1};   // formatos donde el campo «nombre» es el del alumno
+function pickAplica(A){const ids=A.steps.flatMap(st=>st.fields.map(f=>f.id));return S.letra==="U"||!!PICK_NOMBRE[S.letra]||ids.some(i=>PICK_IDS.includes(i))}
+/* el selector aparece en el paso donde se pide al alumno */
+function pickPaso(A){const k=A.steps.findIndex(st=>st.fields.some(f=>PICK_IDS.includes(f.id)||(PICK_NOMBRE[S.letra]&&f.id==="nombre")));return k<0?0:k}
 function edadHoy(fnac){const m=String(fnac||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return"";const d=new Date(),n=new Date(+m[3],+m[2]-1,+m[1]);let e=d.getFullYear()-n.getFullYear();if(d<new Date(d.getFullYear(),n.getMonth(),n.getDate()))e--;return e>0&&e<20?String(e):""}
-function pickLlenar(a){if(S.letra==="U")return becaLlenar(a);const A=ANEXOS[S.letra];const gg=a.grado?`${a.grado}°${a.grupo?" "+a.grupo:""}`:"";const iso=(()=>{const m=String(a.fnac||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:""})();
-  const tel=a.t1tel||a.t2tel||"",tutor=a.t1nom||a.t2nom||"";
+function pickLlenar(a){S.vals._alu=a.id;if(S.letra==="U"){becaLlenar(a);return}const A=ANEXOS[S.letra];const gg=a.grado?`${a.grado}°${a.grupo?" "+a.grupo:""}`:"";const iso=(()=>{const m=String(a.fnac||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:""})();
+  const tel=a.t1tel||a.t2tel||"",tutor=a.t1nom||a.t2nom||"",par=a.t1nom?a.t1par:a.t2par;
   for(const st of A.steps)for(const f of st.fields){const lab=f.label.toLowerCase();let v;
-    switch(f.id){case"alumno":v=/grado/.test(lab)?[a.nombre,gg].filter(Boolean).join(", "):a.nombre;break;case"nna":v=a.nombre;break;case"nombre":if(S.letra==="S")v=a.nombre;break;
+    switch(f.id){case"alumno":v=/grado/.test(lab)?[a.nombre,gg].filter(Boolean).join(", "):a.nombre;break;case"nna":v=a.nombre;break;case"nombre":if(PICK_NOMBRE[S.letra])v=a.nombre;break;
       case"grado":v=/grupo/.test(lab)?gg:a.grado?a.grado+"°":"";break;case"grupo":v=a.grupo;break;case"curp":v=a.curp;break;
       case"fnac":v=f.type==="date"?iso:a.fnac;break;case"edad":v=edadHoy(a.fnac);break;case"sexo":case"gen":v=a.sexo;break;
-      case"madre":v=tutor;break;case"telc":case"tels":v=[a.t1tel,a.t2tel].filter(Boolean).join(", ");break;case"tel1":v=a.t1tel||tel;break;case"tel2":v=a.t2tel;break;case"domnna":v=a.domicilio;break}
+      case"madre":v=tutor;break;case"telc":v=[a.t1tel,a.t2tel].filter(Boolean).join(", ");break;case"tel1":v=a.t1tel||tel;break;case"tel2":v=a.t1tel?a.t2tel:"";break;case"domnna":v=a.domicilio;break;
+      case"lnom":if(S.letra==="S")v=tutor;break;case"lpar":if(S.letra==="S")v=par;break;case"ldir":if(S.letra==="S")v=a.domicilio;break;case"ltel":if(S.letra==="S")v=tel;break;case"lcor":if(S.letra==="S")v=a.correo;break}
     if(v!==undefined&&v!=="")S.vals[f.id]=f.type==="choice"?(f.options.map(o=>typeof o==="string"?o:o.label).find(o=>dirN(o).startsWith(dirN(v).slice(0,3)))||S.vals[f.id]):v}
   store.set("ppie-draft-"+S.letra,{vals:S.vals,step:S.step})}
-function pickHTML(){const A=ANEXOS[S.letra];if(!pickAplica(A)||typeof DIR==="undefined")return"";
-  if(!DIR.alumnos.length)return`<div class="pick"><span>¿Tiene su lista de alumnos en Tlamatini? Con ella este formato se llena en un toque.</span><button type="button" class="btn link" id="pickIr">Crear mi base de alumnos</button></div>`;
-  const L=DIR.alumnos.filter(dirActivo).sort(dirOrden);const gs=[...new Set(L.map(a=>dirGLabel(a.grado,a.grupo)))];
-  return`<div class="pick"><label for="pickSel"><b>Llenar con un alumno de mi lista</b></label><select id="pickSel"><option value="">Elija al alumno…</option>${gs.map(g=>`<optgroup label="${esc(g)}">${L.filter(a=>dirGLabel(a.grado,a.grupo)===g).map(a=>`<option value="${esc(a.id)}">${esc(a.nombre)}</option>`).join("")}</optgroup>`).join("")}</select><p class="help" style="margin:4px 0 0">Se llenan su nombre, grado, grupo, CURP, edad y datos de la familia que tenga en su ficha. Puede corregirlos después.</p></div>`}
-function pickWire(){const s=document.getElementById("pickSel");if(s)s.onchange=()=>{const a=DIR.alumnos.find(x=>x.id===s.value);if(!a)return;readStep();pickLlenar(a);stepView();pToast(`<b>Listo.</b> Se llenaron los datos de ${esc(a.nombre)}.`,5000)};
-  const b=document.getElementById("pickIr");if(b)b.onclick=()=>{readStep();S.sec="misalumnos";S.dirGrupo=undefined;dirView("alumnos")}}
+/* lista desplegable de alumnos (la usan todos los formatos): primero el grupo de quien llena */
+function aluLista(){return typeof DIR==="undefined"?[]:DIR.alumnos.filter(dirActivo).sort(dirOrden)}
+function aluOpciones(sel){const L=aluLista();const mg=yoGrado(),mp=yoGrupo();const mio=g=>mg&&g===dirGLabel(mg,mp);
+  const gs=[...new Set(L.map(a=>dirGLabel(a.grado,a.grupo)))].sort((x,y)=>(mio(y)?1:0)-(mio(x)?1:0));
+  return`<option value="">Elija al alumno…</option>${gs.map(g=>`<optgroup label="${esc(g)}${mio(g)?" · mi grupo":""}">${L.filter(a=>dirGLabel(a.grado,a.grupo)===g).map(a=>`<option value="${esc(a.id)}" ${sel===a.id?"selected":""}>${esc(a.nombre)}</option>`).join("")}</optgroup>`).join("")}`}
+function aluPorId(id){return typeof DIR==="undefined"?null:DIR.alumnos.find(x=>x.id===id)||null}
+/* tarjeta con la lista: idSel = id del <select>; si no hay alumnos, invita a crear la base */
+function aluPickHTML(idSel,sel,txt){if(typeof DIR==="undefined")return"";
+  if(!DIR.alumnos.length)return`<div class="pick"><span>¿Tiene su lista de alumnos en Tlamatini? Con ella este formato se llena en un toque.</span> <button type="button" class="btn link" data-alu-ir="1">Crear mi base de alumnos</button></div>`;
+  const a=aluPorId(sel);
+  return`<div class="pick"><div class="pick-in"><label for="${idSel}"><b>Elegir alumno de mi lista</b></label><select id="${idSel}">${aluOpciones(sel)}</select></div><p class="help" style="margin:0">${a?`<span class="ok">✓ Se llenaron los datos de ${esc(a.nombre)}. Puede corregirlos abajo.</span>`:esc(txt||"Se llenan su nombre, grado, grupo, CURP, edad y los datos de su familia que tenga en la ficha. Puede corregirlos después.")}</p></div>`}
+function pickHTML(){const A=ANEXOS[S.letra];if(!pickAplica(A)||S.step!==pickPaso(A))return"";return aluPickHTML("pickSel",S.vals._alu)}
+function pickWire(){const s=document.getElementById("pickSel");if(s)s.onchange=()=>{const a=aluPorId(s.value);if(!a)return;readStep();pickLlenar(a);stepView();pToast(`<b>Listo.</b> Se llenaron los datos de ${esc(a.nombre)}.`,5000)};
+  const b=app.querySelector("[data-alu-ir]");if(b)b.onclick=()=>{readStep();S.sec="misalumnos";S.dirGrupo=undefined;dirView("alumnos")}}
 
 function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d?d.vals:{};S.step=d?Math.min(d.step,ANEXOS[L].steps.length-1):0;stepView();loadForm(L).catch(()=>{})}
 
 function perfilView(){if(perfil.modo==="otra")return setupOtraView(true);S.view="perfil";
-  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Datos de mi escuela</h2></div></div>
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Mi escuela y mis datos</h2></div></div>
+   <p class="muted">Capture sus datos una sola vez; Tlamatini los pone solos en todos los formatos.</p>
    <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos.</p>
     <select id="selEsc"><option value="" disabled ${perfil.cct?"":"selected"}>Elija su escuela…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
-   <form class="card" id="frm" novalidate>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>
+   <form class="card" id="frm" novalidate><h3>Mi escuela</h3>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>
+   ${yoHTML()}
    ${logoWidgetHTML()}`;
   setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>app.querySelectorAll(`input[name="${i.name}"]`).forEach(r=>r.closest(".opt").classList.toggle("on",r.checked))));
-  wireLogo();
+  wireLogo();yoWire();
   document.getElementById("salir").onclick=home;document.getElementById("cancel").onclick=home;
   document.getElementById("selEsc").onchange=e=>{const v=e.target.value;const set=(k,x)=>{const el=document.getElementById("f_"+k);if(el)el.value=x};
     if(v===""){["escuela","cct","localidad","domicilio","director","telefono"].forEach(k=>set(k,""));set("municipio","");return}
     const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("zona","050");set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
-  document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
+  document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}yoLeer();store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
 
 /* ---------- Estadística de edades (inicio de ciclo) ---------- */
 const ED={grupos:[],corte:null,ciclo:null,ok:false};
@@ -1786,7 +1876,7 @@ function edCicloView(){S.view="edades";S.letra=null;setBar("");
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
 /* Reconocimientos y diplomas: el módulo se carga solo al entrar */
-const RK_JS="reconocimientos.js?v=2026-10-24c";
+const RK_JS="reconocimientos.js?v=2026-10-27a";
 async function rkAbrir(){S.view="rkcarga";S.sec="reconocimientos";setBar("");
   if(typeof rkView!=="function"){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Mi escuela y mis alumnos</div><h2>Reconocimientos y diplomas</h2></div></div><p class="muted">Cargando…</p>`;
     document.getElementById("salir").onclick=()=>{S.sec=null;home()};
@@ -1829,6 +1919,7 @@ function edadesView(){if(!ED.ok||!ED.ciclo)return edCicloView();ED.corte=corteDe
    <section class="card"><div class="calhead edcorte"><div><i>Ciclo escolar</i><b>${esc(ED.ciclo)}</b></div><div><i>Fecha que se usa para calcular la edad</i><b>${esc(fmtDate(ED.corte,"larga"))}</b></div></div>
     <p class="help">Regla fija: la edad se calcula al 1 de septiembre del año en que inicia el ciclo y no se modifica durante el ciclo. <button type="button" class="btn link" id="edCambiar" style="display:inline;padding:0">Cambiar ciclo</button></p>
     <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir PDF de grupo(s)<input type="file" id="pdfs" accept="application/pdf,.pdf" multiple hidden></label>
+    ${aluLista().some(a=>curpInfo(String(a.curp||"").toUpperCase()))?`<button type="button" class="btn ghost" id="edBase" style="width:100%;margin-top:8px">Usar mi base de alumnos</button>`:""}
     <div id="msg"></div></section>
    ${gs.length?`<div class="group-title">Concentrado de la escuela · ${todos.length} alumnos</div><section class="card">${matrizHTML(todos)}
      <div class="acts"><button class="btn primary act" id="xls">${EI.down}Descargar Excel de estadística</button></div>
@@ -1848,6 +1939,14 @@ function edadesView(){if(!ED.ok||!ED.ciclo)return edCicloView();ED.corte=corteDe
   ED.grupos=gs;
   document.getElementById("salir").onclick=goBack;
   document.getElementById("edCambiar").onclick=()=>{ED.ok=false;edCicloView()};
+  {const b=document.getElementById("edBase");if(b)b.onclick=()=>{const L=aluLista(),sin=[],por=new Map();
+    L.forEach(a=>{const c=String(a.curp||"").toUpperCase();if(!curpInfo(c)){sin.push(a.nombre);return}const k=(a.grado||"?")+"|"+(a.grupo||"");if(!por.has(k))por.set(k,[]);por.get(k).push({nombre:String(a.nombre||"").toUpperCase(),curp:c})});
+    const msgs=[];for(const[k,al]of por){const[gr,gp]=k.split("|");if(gr==="?"){sin.push(...al.map(x=>x.nombre));continue}
+      const g={grado:gr,grupo:gp,escuela:perfil.escuela||"",cct:perfil.cct||"",turno:perfil.turno||"",alumnos:al.sort((x,y)=>x.nombre.localeCompare(y.nombre,"es")).map((a,i)=>desdeCurp({no:i+1,nombre:a.nombre,raw:a.nombre,curp:a.curp,rep:false}))};
+      const i=ED.grupos.findIndex(x=>x.grado===g.grado&&x.grupo===g.grupo);
+      if(i>=0){const prev=ED.grupos[i];g.alumnos.forEach(a=>{const p=prev.alumnos.find(x=>x.curp===a.curp);if(p)a.rep=p.rep});ED.grupos[i]=g;msgs.push(`${g.grado}° «${g.grupo}» actualizado (${g.alumnos.length} alumnos).`)}
+      else{ED.grupos.push(g);msgs.push(`${g.grado}° «${g.grupo}» agregado (${g.alumnos.length} alumnos).`)}}
+    edSave();edadesView();const m=document.getElementById("msg");if(m)m.innerHTML=`<div class="alert">${msgs.join("<br>")}${sin.length?`<br><b>${sin.length} sin CURP o sin grado</b> no se incluyeron: complételos en Mis alumnos.`:""}</div>`}}
   document.getElementById("pdfs").onchange=async e=>{const files=[...e.target.files];if(!files.length)return;const msgs=[];
     for(const f of files){try{const g=await leerPDF(f);if(!g.alumnos.length){msgs.push(`«${esc(f.name)}»: no se encontraron alumnos. ¿Es el Reporte de inscripción?`);continue}
         const i=ED.grupos.findIndex(x=>x.grado===g.grado&&x.grupo===g.grupo&&x.cct===g.cct);
@@ -2394,7 +2493,7 @@ function psFromZona(o,i){const e=ESCUELAS_050[i],ed=PS_ED.includes(e[1]),m=PS_MU
 function psInit(){const s=store.get(PS_KEY,null);if(s)return s;
   const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
   const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",ubic:"",turno:perfil.turno||"Matutino",
-    dtit:"Profr.",dnom:perfil.director||"",dcar:"Director",ciclo:true,cicloTxt:cicloActual(),portada:true,aviso:true,libros:[{doc:perfil.minombre||"",grado:"",grupo:"",n:50,ini:1}]};
+    dtit:"Profr.",dnom:perfil.director||"",dcar:"Director",ciclo:true,cicloTxt:cicloActual(),portada:true,aviso:true,libros:[{doc:yoFirma()||perfil.minombre||"",grado:yoGrado(),grupo:yoGrupo(),n:50,ini:1}]};
   if(i>=0)psFromZona(o,i);
   else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.ubic=[perfil.localidad,perfil.municipio].filter(Boolean).join(", ")+(perfil.municipio?", B.C.":"")}
   return o}
@@ -2946,7 +3045,11 @@ const DX_PLANTILLA={
    ["Conclusiones y prioridades de mejora",["¿Qué prioridades de mejora se derivan?","¿Cómo se integran al Programa de Mejora Continua (PMC)?"]]
   ]}
 };
-const perfilDX=k=>({escuela:perfil.escuela,cct:perfil.cct,zona:perfil.zona||"050",director:perfil.director,ciclo:cicloActual(),fecha:fmtDate(today(),"larga")}[k]||"");
+const perfilDX=k=>({escuela:perfil.escuela,cct:perfil.cct,zona:perfil.zona||"050",director:perfil.director,ciclo:cicloActual(),fecha:fmtDate(today(),"larga"),
+  grupo:yoGG(),docente:yoFirma(),matricula:aluMatricula(true),plantilla:typeof DIR!=="undefined"&&DIR.maestros.length?String(DIR.maestros.length):""}[k]||"");
+/* matrícula H / M / total a partir de la base de alumnos (mi grupo, o toda la escuela) */
+function aluMatricula(miGrupo){const L=aluLista().filter(a=>!miGrupo||!yoGrado()||(a.grado===yoGrado()&&(!yoGrupo()||a.grupo===yoGrupo())));if(!L.length)return"";
+  const h=L.filter(a=>a.sexo==="Hombre").length,m=L.filter(a=>a.sexo==="Mujer").length;return h+m===L.length?`H ${h} / M ${m} / Total ${L.length}`:String(L.length)}
 function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]=perfilDX(k));
   return{nivel,titulo:t.titulo,datos,secs:t.secs.map(([tit,qs])=>({t:tit,items:qs.map(q=>({q,a:""}))}))}}
 function dxCur(){if(!DX)return null;if(!DX[DX.nivel])DX[DX.nivel]=dxNuevo(DX.nivel);return DX[DX.nivel]}
@@ -3163,7 +3266,7 @@ function paCampoVacio(){return{ejes:[],sel:{},orden:[],notas:{},pda:{},propios:[
 function paNuevo(nivel){const datos={};["escuela","cct","zona","director","ciclo","fecha","colectivo","grado"].forEach(k=>datos[k]="");
   datos.escuela=perfil.escuela||"";datos.cct=perfil.cct||"";datos.zona=perfil.zona||"050";datos.director=perfil.director||"";datos.ciclo=cicloActual();datos.fecha=fmtDate(today(),"larga");
   const campos={};PA_CAMPOS.forEach(c=>campos[c]=paCampoVacio());
-  return{nivel,datos,lectura:dxResumen(),fase:nivel==="grupo"?"3":"3",grado:nivel==="grupo"?"1":"",campos,codiseno:[]}}
+  return{nivel,datos,lectura:dxResumen(),fase:nivel==="grupo"?"3":"3",grado:nivel==="grupo"?(yoGrado()||"1"):"",campos,codiseno:[]}}
 function paCur(){if(!PA)return null;if(!PA[PA.nivel])PA[PA.nivel]=paNuevo(PA.nivel);return PA[PA.nivel]}
 const PA_STOP=new Set("para con los las del una unos unas que como más mas este esta estos estas sobre entre cada sus por según segun hacia desde muy son han hay the and ser están estan cuando donde quien cual cuales todo toda todos todas otro otra pero porque también tambien ante sin tras".split(" "));
 function paTok(t){return new Set(String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").split(/[^a-z0-9ñ]+/).filter(w=>w.length>3&&!PA_STOP.has(w)))}
@@ -3338,7 +3441,7 @@ const PL_FASES={
 };
 const PL_INSTR=["Rúbrica","Lista de cotejo","Escala estimativa","Registro anecdótico","Guía de observación","Diario del docente","Diario del alumno","Portafolio de evidencias","Autoevaluación","Coevaluación","Tablero de autoevaluación (diana)","Boleto de salida / preguntas","Organizadores gráficos"];
 const PL_EVAL_SUG="Evaluación formativa y para el aprendizaje: se valora el proceso, no solo el producto. Observe y registre durante todo el proyecto, dé retroalimentación oportuna y específica, comparta los criterios con los alumnos desde el inicio e integre autoevaluación y coevaluación. Use las evidencias para ajustar la enseñanza.";
-function plNuevo(){return{datos:{escuela:perfil.escuela||"",cct:perfil.cct||"",docente:perfil.minombre||perfil.director||"",grado:"",grupo:"",ciclo:cicloActual(),periodo:"",sesiones:"",fecha:fmtDate(today(),"larga")},
+function plNuevo(){return{datos:{escuela:perfil.escuela||"",cct:perfil.cct||"",docente:yoFirma()||perfil.director||"",grado:yoGrado()?yoGrado()+"°":"",grupo:yoGrupo(),ciclo:cicloActual(),periodo:"",sesiones:"",fecha:fmtDate(today(),"larga")},
   proyecto:{nombre:"",problema:"",proposito:"",producto:""},campos:[],ejes:[],metodologia:PL_METODOS[0],contenidos:[],
   formato:"momentos",momentos:{inicio:"",desarrollo:"",cierre:""},fases:[],sesiones:[{t:"Sesión 1",a:""}],
   evaluacion:{instrumentos:[],criterios:"",momentos:"",notas:""},ajustes:"",adecuaciones:"",recursos:""}}
@@ -3580,7 +3683,7 @@ const rcFile=ext=>{const t=RC.tipo.replace(/ \/.*/,"");const q=rcGen()?(RC.alcan
 function rcNuevo(){return{tipo:"Recado",alcance:"individual",alumno:"",grado:"",grupo:"",dirigido:"Padre, madre o tutor",fecha:fmtDate(today(),"larga"),asunto:"",mensaje:"",
   cmotivo:"",cdia:"",chora:"",clugar:"",cquien:"",
   aactividad:"",afecha:"",alugar:"",ahorario:"",aresponsable:"",
-  acuse:true,usarFirma:true,firma:perfil.minombre||perfil.director||"",cargo:"Docente del grupo"}}
+  acuse:true,usarFirma:true,firma:yoFirma()||perfil.director||"",cargo:yoDirectivo()?yoFuncion():"Docente del grupo",grado:yoGrado(),grupo:yoGrupo(),cquien:yoFirma(),aresponsable:yoFirma()}}
 function rcEscuela(){return{nombre:perfil.escuela||"Escuela Primaria",cct:perfil.cct||"",lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),zona:perfil.zona||"050"}}
 const rcGG=()=>[RC.grado&&RC.grado+"°",RC.grupo&&"«"+RC.grupo+"»"].filter(Boolean).join(" ");
 const rcBottom=()=>RC.tipo==="Autorización / permiso"?"autorizacion":RC.tipo==="Citatorio"?"enterado":(RC.acuse?"acuse":"none");
@@ -3609,6 +3712,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
      <select id="rc_alcance">${RC_ALC.map(([v,t])=>`<option value="${v}" ${RC.alcance===v?"selected":""}>${t}</option>`).join("")}</select>
      <p class="help">${rcGen()?"Comunicación general: sale igual para todas las familias; imprima las copias que necesite. El acuse trae un espacio para que cada familia escriba el nombre de su hijo(a).":"Para un recado general a todas las familias, elija «Todo el grupo» o «Toda la escuela»."}</p></div></section>
    <section class="card"><h3>Datos generales</h3>
+    ${RC.alcance==="individual"?aluPickHTML("rc_alu",RC.aluId,"Se llenan su nombre, grado, grupo y a quién va dirigido (su madre, padre o tutor)."):""}
     ${RC.alcance==="individual"?`<div class="row2"><div class="field"><label>Nombre del alumno(a)</label><input type="text" id="rc_alumno" value="${esc(RC.alumno)}" autocomplete="off"></div>
      <div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div></div>`:`<div class="field"><label>Dirigido a</label><input type="text" id="rc_dirigido" value="${esc(RC.dirigido)}" autocomplete="off"></div>`}
     ${RC.alcance!=="escuela"?`<div class="row2"><div class="field"><label>Grado</label><input type="text" id="rc_grado" value="${esc(RC.grado)}" autocomplete="off"></div>
@@ -3638,7 +3742,7 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
    <p class="foot">La comunicación y su firma se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{const v=id=>{const e=g(id);return e?e.value:(RC[id.slice(3)]||"")};
-    RC.tipo=g("rc_tipo").value;RC.alumno=v("rc_alumno");RC.dirigido=v("rc_dirigido");RC.grado=v("rc_grado");RC.grupo=v("rc_grupo");RC.fecha=v("rc_fecha");RC.asunto=v("rc_asunto");RC.mensaje=v("rc_mensaje");
+    RC.tipo=g("rc_tipo").value;RC.alumno=v("rc_alumno");if(RC.aluId){const x=aluPorId(RC.aluId);if(!x||x.nombre!==RC.alumno)RC.aluId=""}RC.dirigido=v("rc_dirigido");RC.grado=v("rc_grado");RC.grupo=v("rc_grupo");RC.fecha=v("rc_fecha");RC.asunto=v("rc_asunto");RC.mensaje=v("rc_mensaje");
     RC.cmotivo=v("rc_cmotivo");RC.cdia=v("rc_cdia");RC.chora=v("rc_chora");RC.clugar=v("rc_clugar");RC.cquien=v("rc_cquien");
     RC.aactividad=v("rc_aactividad");RC.afecha=v("rc_afecha");RC.alugar=v("rc_alugar");RC.ahorario=v("rc_ahorario");RC.aresponsable=v("rc_aresponsable");
     RC.firma=v("rc_firma");RC.cargo=v("rc_cargo");if(g("rc_acuse"))RC.acuse=g("rc_acuse").checked;RC.usarFirma=g("rc_usarfirma").checked;rcSave()};
@@ -3653,6 +3757,9 @@ function rcView(){S.view="recado";S.letra=null;setBar("");
   g("rc_dos").addEventListener("change",()=>{RC.dosHoja=g("rc_dos").checked;rcSave();g("rc_dos").closest(".opt").classList.toggle("on",RC.dosHoja)});
   g("rc_usarfirma").addEventListener("change",()=>{leer();g("rc_usarfirma").closest(".opt").classList.toggle("on",g("rc_usarfirma").checked)});
   wireFirma();
+  if(g("rc_alu"))g("rc_alu").onchange=()=>{const a=aluPorId(g("rc_alu").value);if(!a)return;leer();RC.aluId=a.id;RC.alumno=a.nombre;if(a.grado)RC.grado=a.grado;if(a.grupo)RC.grupo=a.grupo;
+    const t=a.t1nom?[a.t1nom,a.t1par]:a.t2nom?[a.t2nom,a.t2par]:null;if(t)RC.dirigido=t[0]+(t[1]?` (${t[1].toLowerCase()})`:"");rcSave();rcView()};
+  {const b=app.querySelector("[data-alu-ir]");if(b)b.onclick=()=>{leer();S.sec="misalumnos";S.dirGrupo=undefined;dirView("alumnos")}}
   g("salir").onclick=()=>{leer();goBack()};
   g("rc_pdf").onclick=e=>{leer();rcPDF(e.currentTarget)};wireImprimir("rcPrint",b=>{leer();rcPDF(b)});
   g("rc_word").onclick=()=>{leer();rcWord()};
@@ -3808,7 +3915,7 @@ const invItem=()=>({inv:"",desc:"",cant:"",monto:"",sit:""});
 function invCentro(i){const c=CENTROS[i];return{sel:String(i),nombre:c.nombre,clave:c.cct,zona:"050",dom:[c.dir,c.cp&&"C.P. "+c.cp,c.mun,"B.C."].filter(Boolean).join(", "),resp:c.resp,cargo:c.cargo,rfc:""}}
 function invCentroVacio(){return{sel:"otra",nombre:"",clave:"",zona:"",dom:"",resp:"",cargo:"",rfc:""}}
 function invNuevo(){const i=CENTROS.findIndex(c=>c.cct===perfil.cct);
-  return{tipo:"resguardo",fecha:today(),c:i>=0?invCentro(i):invCentroVacio(),r:invCentroVacio(),resguardante:"",rfc:"",forma:"",items:[invItem(),invItem(),invItem()]}}
+  return{tipo:"resguardo",fecha:today(),c:i>=0?invCentro(i):invCentroVacio(),r:invCentroVacio(),resguardante:yoNombre(),rfc:yoRfc(),forma:"",items:[invItem(),invItem(),invItem()]}}
 (function(){const d=store.get(INV_KEY,null);if(d&&d.tipo&&d.c)INV=d})();
 const invSave=()=>store.set(INV_KEY,INV);
 function invCentroHTML(p,tit,conRFC){const c=INV[p];const f=(k,lab,ph)=>`<div class="field"><label>${lab}</label><input type="text" data-f="${p}.${k}" value="${esc(c[k]||"")}" ${ph?`placeholder="${ph}"`:""} autocomplete="off"></div>`;
@@ -4298,7 +4405,8 @@ function cteNueva(id,fecha,nombre){const ant=cteAnterior(fecha);
 function cteAnterior(fecha){return Object.values(CTE.ses).filter(s=>s.fecha<fecha&&s.acuerdos.some(x=>x.a.trim())).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0]||null}
 function cteInit(){const d=store.get(CTE_KEY,null);if(d&&d.ses){CTE=d;return}
   CTE={personal:[],ses:{},cur:"",relator:"",escuela:perfil.escuela||"",cct:perfil.cct||"",zona:perfil.zona||"050",director:perfil.director||""};
-  if(perfil.director)CTE.personal.push({n:perfil.director,c:"Director(a)"});if(perfil.minombre&&perfil.minombre!==perfil.director)CTE.personal.push({n:perfil.minombre,c:perfil.micargo||"Docente"})}
+  if(perfil.director)CTE.personal.push({n:perfil.director,c:"Director(a)"});if(perfil.minombre&&perfil.minombre!==perfil.director)CTE.personal.push({n:perfil.minombre,c:perfil.micargo||"Docente"});
+  if(typeof DIR!=="undefined")[...DIR.maestros].sort(dirOrden).forEach(m=>{if(!m.nombre||CTE.personal.some(p=>dirN(p.n)===dirN(m.nombre)))return;CTE.personal.push({n:m.nombre,c:m.grado?`Docente de ${m.grado}°${m.grupo?" "+m.grupo:""}`:(m.funcion||"Docente")})})}
 const cteSave=()=>store.set(CTE_KEY,CTE);
 const cteCur=()=>CTE.ses[CTE.cur]||null;
 function cteElegir(){const cal=cteSesionesCal(),hoy=today();if(CTE.cur&&CTE.ses[CTE.cur])return;
@@ -4684,7 +4792,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
    <p class="foot"><span class="muted">v2026-10-14.5</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
-  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);home()};
+  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);if(perfil.escuela&&perfil.minombre)home();else perfilView()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   document.getElementById("suDemo").onclick=demoEntrar;
   window.scrollTo(0,0)}
@@ -4727,21 +4835,17 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
     <div class="row2"><div class="field"><label>Teléfono <span class="muted" style="font-weight:400">(opcional)</span></label><input type="tel" id="s_telefono" value="${val('telefono')}" autocomplete="off"></div>
      <div class="field"><label>Nombre del director(a)</label><input type="text" id="s_director" value="${val('director')}" autocomplete="off"></div></div>
     ${logoWidgetHTML()}</section>
-   <section class="card"><h3>Mis datos (docente)</h3>
-    <div class="field"><label>Mi nombre (quien llena los formatos)</label><input type="text" id="s_minombre" value="${val('minombre')}" autocomplete="off"></div>
-    <div class="row2"><div class="field"><label>Mi cargo</label><input type="text" id="s_micargo" value="${val('micargo')}" placeholder="Docente, Director(a)…" autocomplete="off"></div>
-     <div class="field"><label>Grado</label><input type="text" id="s_grado" value="${val('grado')}" autocomplete="off"></div></div>
-    <div class="field" style="max-width:50%"><label>Grupo</label><input type="text" id="s_grupo" value="${val('grupo')}" autocomplete="off"></div></section>
+   ${yoHTML()}
    <p class="foot">Todo se guarda solo en este dispositivo.</p>`;
   setBar(`<button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">Guardar</button>`);
-  wireLogo();wireZlogo();
+  wireLogo();wireZlogo();yoWire();
   const back=()=>{if(editar)home();else setupSubsisView()};
   document.getElementById("salir").onclick=back;document.getElementById("cancel").onclick=back;
   {const cb=document.getElementById("s_cambsub");if(cb)cb.onclick=setupSubsisView}
   {const g=id=>document.getElementById(id);
    if(g("s_dirpl"))g("s_dirpl").onclick=()=>dirPlantilla("escuelas",false).catch(e=>alert(e.message));
-   if(g("s_dirxls"))g("s_dirxls").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const keep={};["s_zona","s_cctzona","s_supervisor","s_minombre","s_micargo","s_grado","s_grupo"].forEach(k=>{const el=g(k);if(el)keep[k]=el.value});
-     try{const S0=S.view;await dirLeerTabla(f,"escuelas");Object.assign(perfil,{zona:keep.s_zona,cctzona:keep.s_cctzona,supervisor:keep.s_supervisor,minombre:keep.s_minombre,micargo:keep.s_micargo,grado:keep.s_grado,grupo:keep.s_grupo});DIR.zona={zona:keep.s_zona||"",cctzona:keep.s_cctzona||"",supervisor:keep.s_supervisor||"",subsis:perfil.subsis||"ISEP"};dirSave();setupOtraView(editar);const m=g("s_dirmsg");if(m)m.textContent=`Directorio cargado: ${DIR.escuelas.length} escuelas. Elija la suya.`}
+   if(g("s_dirxls"))g("s_dirxls").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const keep={};["s_zona","s_cctzona","s_supervisor"].forEach(k=>{const el=g(k);if(el)keep[k]=el.value});yoLeer();
+     try{const S0=S.view;await dirLeerTabla(f,"escuelas");Object.assign(perfil,{zona:keep.s_zona,cctzona:keep.s_cctzona,supervisor:keep.s_supervisor});DIR.zona={zona:keep.s_zona||"",cctzona:keep.s_cctzona||"",supervisor:keep.s_supervisor||"",subsis:perfil.subsis||"ISEP"};dirSave();setupOtraView(editar);const m=g("s_dirmsg");if(m)m.textContent=`Directorio cargado: ${DIR.escuelas.length} escuelas. Elija la suya.`}
      catch(x){const m=g("s_dirmsg");if(m)m.innerHTML="<b>No se pudo leer.</b> "+esc(x.message||x)}};
    if(g("s_selesc"))g("s_selesc").onchange=e=>{const o=DIR.escuelas[+e.target.value];if(!o)return;const set=(k,v)=>{const el=g(k);if(el&&v!==undefined)el.value=v||""};
      const n=String(o.nombre||"").trim();set("s_escuela",/^(escuela|esc\.|primaria|centro)/i.test(n)?n:"Escuela Primaria "+n);set("s_cct",o.cct);set("s_localidad",o.localidad);set("s_domicilio",o.domicilio);set("s_telefono",o.telefono);set("s_director",o.director);
@@ -4750,7 +4854,7 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
     if(!v("s_escuela")){alert("Escriba al menos el nombre de la escuela.");return}
     perfil.zona=v("s_zona");perfil.cctzona=v("s_cctzona");perfil.supervisor=v("s_supervisor");
     perfil.escuela=v("s_escuela");perfil.cct=v("s_cct");perfil.turno=document.getElementById("s_turno").value;perfil.localidad=v("s_localidad");perfil.municipio=document.getElementById("s_municipio").value;perfil.domicilio=v("s_domicilio");perfil.telefono=v("s_telefono");perfil.director=v("s_director");
-    perfil.minombre=v("s_minombre");perfil.micargo=v("s_micargo");perfil.grado=v("s_grado");perfil.grupo=v("s_grupo");
+    yoLeer();
     perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema=perfil.subsistema||"Federalizado";perfil.modo="otra";
     store.set("ppie-perfil",perfil);home()};
   window.scrollTo(0,0)}
@@ -5050,7 +5154,7 @@ function dirWire(T){const msg=t=>{const m=document.getElementById("dir_msg");if(
   const yo=document.getElementById("dir_yo");if(yo)yo.onchange=()=>{const m=DIR.maestros.find(x=>x.id===yo.value);if(m)dirSoyYo(m);else{DIR.yo=null;dirSave()}dirView("maestros")}}
 
 /* --- personalizar el dispositivo --- */
-function dirSoyYo(m){DIR.yo=m.id;dirSave();perfil.minombre=m.nombre;
+function dirSoyYo(m){DIR.yo=m.id;dirSave();if(dirN(m.nombre)!==dirN(perfil.minombre)){["mtit","mnom","mpat","mmat"].forEach(k=>delete perfil[k])}perfil.minombre=m.nombre;delete perfil.mifuncion;
   perfil.micargo=m.funcion==="Docente frente a grupo"||(!m.funcion&&m.grado)?`Docente${m.grado?` de ${m.grado}° ${m.grupo||""}`.trimEnd():""}`:(m.funcion||perfil.micargo||"");
   if(m.grado)perfil.grado=m.grado;if(m.grupo)perfil.grupo=m.grupo;
   ["rfc","curp","celular","correo"].forEach(k=>{if(m[k])perfil[k]=m[k]});
