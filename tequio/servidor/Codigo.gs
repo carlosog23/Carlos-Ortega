@@ -76,7 +76,7 @@ const HOJAS = {
   ctr: ['id', 'ciclo', 'sesion', 'cct', 'clave', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
   // Permisos (días) y facilidades (horas: salir temprano, asunto personal…) que autoriza el Supervisor. La cuenta es por año calendario.
   prm: ['id', 'anio', 'persona', 'nombre', 'tipoPersona', 'cct', 'clase', 'subtipo', 'inicio', 'fin', 'dias', 'horas', 'descuenta', 'motivo',
-        'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor', 'obs'],
+        'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor', 'obs', 'expediente'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
@@ -90,7 +90,7 @@ const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
 const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
-const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta'];
+const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
    que se entrega por separado porque contiene datos personales. */
@@ -1152,9 +1152,13 @@ const ACCIONES = {
     if (clase === 'permiso' && !dias) throw new Error('Indique cuántos días cuenta el permiso.');
     if (clase === 'facilidad' && descuenta && !dias) throw new Error('Indique cuánto descuenta de los días del año (medio día o un día).');
     const previo = d.id ? buscar_('prm', String(d.id)) : null;
+    // Los permisos que van al archivo o expediente físico: solo 3 al año por persona, sin importar los días
+    const expediente = clase === 'permiso' && !!d.expediente;
+    if (expediente && (!previo || previo.activo !== false) && expedientes_(persona, inicio.slice(0, 4), previo && previo.id) >= PERMISOS_EXPEDIENTE)
+      throw new Error('Ya tiene ' + PERMISOS_EXPEDIENTE + ' permisos al expediente en ' + inicio.slice(0, 4) + '. Quite la casilla «Va al archivo o expediente» para registrarlo.');
     const o = { id: previo ? previo.id : 'prm-' + Utilities.getUuid().slice(0, 8), anio: inicio.slice(0, 4), persona: persona, nombre: nombre,
       tipoPersona: String(d.tipoPersona || '').slice(0, 80), cct: String(d.cct || '').slice(0, 40), clase: clase, subtipo: String(d.subtipo || '').slice(0, 60),
-      inicio: inicio, fin: fin, dias: String(dias), horas: String(horas), descuenta: descuenta, motivo: String(d.motivo || '').trim().slice(0, 1500),
+      inicio: inicio, fin: fin, expediente: expediente, dias: String(dias), horas: String(horas), descuenta: descuenta, motivo: String(d.motivo || '').trim().slice(0, 1500),
       activo: previo ? previo.activo : true, creadoPor: previo ? previo.creadoPor : yo.id, creado: previo ? previo.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.nombre,
       obs: previo ? (previo.obs || []) : [] };
     const ob = String(d.observacion || '').trim().slice(0, 1500);
@@ -1184,6 +1188,8 @@ const ACCIONES = {
     soloAdmin_(yo);
     const o = buscar_('prm', String(d.id || ''));
     if (!o) throw new Error('No se encontró el registro.');
+    if (!d.anular && o.activo === false && o.clase === 'permiso' && o.expediente && expedientes_(o.persona, o.anio, o.id) >= PERMISOS_EXPEDIENTE)
+      throw new Error('No se puede volver a contar: ya hay ' + PERMISOS_EXPEDIENTE + ' permisos al expediente en ' + o.anio + '.');
     o.activo = !d.anular; o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
     guardar_('prm', o);
     return { prm: o };
@@ -1605,6 +1611,11 @@ const INSTRUCCIONES_OFICIO = [
   'Separe cada párrafo con una línea en blanco. No use negritas, asteriscos, títulos ni formato Markdown. Responda únicamente con el texto del cuerpo.'
 ].join('\n');
 
+const PERMISOS_EXPEDIENTE = 3;
+// Cuántos permisos al expediente (vigentes) tiene una persona en un año, sin contar el registro «sin»
+function expedientes_(persona, anio, sin) {
+  return leer_('prm').filter(x => x.persona === persona && x.anio === anio && x.id !== sin && x.activo !== false && x.clase === 'permiso' && x.expediente).length;
+}
 function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden hacer esto.'); }
 function folio_(n, anio) { return 'SE-050/' + ('00' + n).slice(-3) + '/' + anio; }
 
