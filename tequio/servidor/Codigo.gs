@@ -24,6 +24,8 @@
  *  · Cada lunes a las 7:00 envía a cada escuela su informe semanal (pendientes, porcentajes y actividades agendadas de la semana,
  *    con copia a su ATP) y a la Supervisión el resumen de la zona;
  *    no se envía en vacaciones del calendario oficial.
+ *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
+ *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -72,20 +74,23 @@ const HOJAS = {
   // Semáforo de lo que subió cada escuela en una sesión de CTE (clave: asistencia, ev:<id>, pr:<id>, ev:otras, pr:otros, presentacion)
   // y registro de la felicitación de la Supervisión (clave: felicitacion)
   ctr: ['id', 'ciclo', 'sesion', 'cct', 'clave', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
+  // Permisos (días) y facilidades (horas: salir temprano, asunto personal…) que autoriza el Supervisor. La cuenta es por año calendario.
+  prm: ['id', 'anio', 'persona', 'nombre', 'tipoPersona', 'cct', 'clase', 'subtipo', 'inicio', 'fin', 'dias', 'horas', 'descuenta', 'motivo',
+        'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
-const VERSION = 22;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
+const VERSION = 23;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
 const JSON_COLS = ['plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
-const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar'];
+const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
    que se entrega por separado porque contiene datos personales. */
@@ -203,6 +208,7 @@ const ACCIONES = {
     inf: leer_('inf').map(sinHtml_),
     acl: leer_('acl'),
     pen: leer_('pen').filter(p => visible_(yo, p)),
+    prm: yo.rol === 'admin' ? leer_('prm') : undefined,
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -1127,6 +1133,42 @@ const ACCIONES = {
   /* ---- Tablón de pendientes: la Mesa Técnica informa a la Supervisión lo que pasó mientras estaba fuera ----
      Estados: nuevo (la Supervisión aún no lo ve) → enterado (ya lo vio, está en atención) → atendido.
      Prioridad: urgente (correo inmediato a la Supervisión), importante, normal. Confidencial: solo la Supervisión y quien lo escribió. */
+  /* ---- Permisos y facilidades del personal de la Supervisión y de las direcciones (solo el Supervisor) ----
+     Permiso: días (la norma: hasta 3 permisos de hasta 3 días, 9 días al año; el Supervisor los administra como 9 días en el año).
+     Facilidad: horas (salir temprano, llegar tarde, atender un asunto personal); descuenta de los 9 días solo si así se indica.
+     La cuenta es por año calendario. Nada se borra: un registro equivocado se anula y queda en el historial. */
+  guardarPermiso: (yo, d) => {
+    soloAdmin_(yo);
+    const fecha = x => /^\d{4}-\d{2}-\d{2}$/.test(x || '') ? x : '';
+    const persona = String(d.persona || '').trim().slice(0, 120), nombre = String(d.nombre || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+    if (!persona || !nombre) throw new Error('Elija a la persona.');
+    const clase = d.clase === 'facilidad' ? 'facilidad' : 'permiso';
+    const inicio = fecha(d.inicio); if (!inicio) throw new Error('Escriba la fecha.');
+    let fin = clase === 'permiso' ? fecha(d.fin) || inicio : inicio;
+    if (fin < inicio) throw new Error('La fecha final no puede ser antes de la inicial.');
+    const num = (x, max) => Math.max(0, Math.min(max, Math.round((parseFloat(x) || 0) * 2) / 2));
+    const descuenta = clase === 'permiso' ? true : !!d.descuenta;
+    const dias = descuenta ? num(d.dias, 60) : 0, horas = clase === 'facilidad' ? num(d.horas, 12) : 0;
+    if (clase === 'permiso' && !dias) throw new Error('Indique cuántos días cuenta el permiso.');
+    if (clase === 'facilidad' && descuenta && !dias) throw new Error('Indique cuánto descuenta de los días del año (medio día o un día).');
+    const previo = d.id ? buscar_('prm', String(d.id)) : null;
+    const o = { id: previo ? previo.id : 'prm-' + Utilities.getUuid().slice(0, 8), anio: inicio.slice(0, 4), persona: persona, nombre: nombre,
+      tipoPersona: String(d.tipoPersona || '').slice(0, 80), cct: String(d.cct || '').slice(0, 40), clase: clase, subtipo: String(d.subtipo || '').slice(0, 60),
+      inicio: inicio, fin: fin, dias: String(dias), horas: String(horas), descuenta: descuenta, motivo: String(d.motivo || '').trim().slice(0, 1500),
+      activo: previo ? previo.activo : true, creadoPor: previo ? previo.creadoPor : yo.id, creado: previo ? previo.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.nombre };
+    guardar_('prm', o);
+    return { prm: o };
+  },
+  // Anula (o vuelve a contar) un registro; nunca se borra
+  anularPermiso: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('prm', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    o.activo = !d.anular; o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
+    guardar_('prm', o);
+    return { prm: o };
+  },
+
   crearPendiente: (yo, d) => {
     soloMesa_(yo);
     const titulo = String(d.titulo || '').trim().slice(0, 160);
