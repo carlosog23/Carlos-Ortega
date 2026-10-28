@@ -488,6 +488,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .prm-per{display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:12px 14px;text-align:left;font:inherit;color:inherit;cursor:pointer;border:1px solid var(--borde)}
 .prm-per:hover{border-color:var(--indigo)}
 .prm-nom{font-weight:700;color:var(--indigo);line-height:1.25}
+.prm-esc{font-size:12.5px;font-weight:700;color:var(--terra-d);text-transform:uppercase;letter-spacing:.03em}
 .prm-cifra{font-size:14px;color:var(--gris);margin-top:4px}
 .prm-cifra b,.prm-grande{font-family:'Fraunces',serif;font-size:26px;line-height:1;color:var(--tinta);font-variant-numeric:tabular-nums}
 .prm-grande{font-size:40px}
@@ -734,7 +735,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-28-0700';
+const PUBLICACION = '2026-10-28-0715';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2031,7 +2032,7 @@ function bandaPendientes() {
    anteriores quedan como historial y nada se borra (un registro equivocado se anula). Requiere el servidor versión 23. */
 const PRM_LIMITE = 9, PRM_NORMA_DIAS = 3, PRM_NORMA_NUM = 3;
 const PRM_SUB = ['Salir temprano', 'Llegar más tarde', 'Ausentarse unas horas', 'Atender un asunto personal', 'Otra'];
-const normNom = n => String(n || '').replace(/^\s*(Mtr[oa]\.?|Profr?a?\.?|Lic\.?|Dr[a]?\.?|C\.)\s+/i, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-zñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+const normNom = n => String(n || '').replace(/^\s*(Mtr[oa]\.?|Profr?a?\.?|Lic\.?|Dr[a]?\.?|C\.)\s+/i, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
 const prmAnioActual = () => hoy().slice(0, 4);
 const prmNum = x => { const n = parseFloat(x); return isFinite(n) ? n : 0; };
 const prmFmt = n => (Math.round(n * 2) / 2).toString().replace('.5', '½').replace(/^0½$/, '½');
@@ -2046,21 +2047,29 @@ function diasHabiles(a, b) {
 }
 // ATP y direcciones; una misma persona con dos cargos (p. ej. ATP y encargado de despacho) lleva un solo saldo
 function prmPersonas() {
-  const m = new Map();
-  const add = (nombre, rol, cct, grupo) => {
-    if (!nombre || /^direcci[oó]n de ejemplo$/i.test(nombre)) return;
-    const k = 'p:' + normNom(nombre); if (k === 'p:') return;
-    const o = m.get(k) || { key: k, nombre, roles: [], ccts: [], grupo };
+  const m = new Map(), vivo = c => c.activo !== false && c.activo !== 'false';
+  const add = (nombre, rol, cct, grupo, clave) => {
+    nombre = String(nombre || '').trim();
+    const k = clave || 'p:' + normNom(nombre); if (k === 'p:') return;
+    const o = m.get(k) || { key: k, nombre, roles: [], ccts: [], enAtp: false, enDir: false };
     if (!o.roles.includes(rol)) o.roles.push(rol);
     if (cct && !o.ccts.includes(cct)) o.ccts.push(cct);
-    if (grupo === 'atp') o.grupo = 'atp';
+    if (grupo === 'atp') o.enAtp = true; else o.enDir = true;
     m.set(k, o);
   };
-  S.dir.filter(c => c.tipo === 'atp' && c.activo !== false && c.activo !== 'false').forEach(c => add(c.nombre, 'ATP', '', 'atp'));
-  directores().filter(c => c.activo !== false && c.activo !== 'false').forEach(c => add(c.nombre, /encargad/i.test(c.cargo || '') ? 'Encargado(a) de despacho' : 'Director(a)', c.cct, 'dir'));
-  (S.prm || []).forEach(p => { if (!m.has(p.persona)) m.set(p.persona, { key: p.persona, nombre: p.nombre, roles: [p.tipoPersona || 'Otra persona'], ccts: p.cct ? [p.cct] : [], grupo: 'otro', fuera: true }); });
+  // ATP: los contactos del Directorio y los usuarios con enlace de ATP (por si alguno falta en el Directorio)
+  S.dir.filter(c => c.tipo === 'atp' && vivo(c)).forEach(c => add(c.nombre, 'ATP', '', 'atp'));
+  atps().forEach(u => add(u.nombre, 'ATP', '', 'atp'));
+  // Direcciones: todas las escuelas; si la escuela no tiene nombre de director, aparece como «Dirección de …»
+  directores().forEach(c => {
+    const rol = /encargad/i.test(c.cargo || '') ? 'Encargado(a) de despacho' : 'Director(a)';
+    if (String(c.nombre || '').trim()) add(c.nombre, rol, c.cct, 'dir'); else add('Dirección de la Esc. ' + c.escuela, rol, c.cct, 'dir', 'c:' + c.cct);
+  });
+  (S.prm || []).forEach(p => { if (!m.has(p.persona)) m.set(p.persona, { key: p.persona, nombre: p.nombre, roles: [p.tipoPersona || 'Otra persona'], ccts: p.cct ? String(p.cct).split(',').filter(Boolean) : [], fuera: true }); });
   return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
+// Direcciones en el orden de las escuelas; ATP por nombre
+const prmOrdenDir = (a, b) => nombreEscuela(a.ccts[0] || '').localeCompare(nombreEscuela(b.ccts[0] || ''), 'es') || a.nombre.localeCompare(b.nombre, 'es');
 const prmRolTxt = p => p.roles.join(' y ') + (p.ccts.length ? ' · ' + p.ccts.map(nombreEscuela).join(', ') : '');
 function prmSaldo(key, anio, sinId) {
   const l = prmActivos().filter(p => p.persona === key && p.anio === anio && p.id !== sinId);
@@ -2086,19 +2095,21 @@ function vPermisos() {
   if (vista.prmPer) return vPermisoPersona(vista.prmPer);
   const anio = vista.prmAnio || (vista.prmAnio = prmAnioActual()), actual = anio === prmAnioActual();
   const pers = prmPersonas().map(p => Object.assign(p, { s: prmSaldo(p.key, anio) })).filter(p => !p.fuera || p.s.l.length);
+  const lAtp = pers.filter(p => p.enAtp), lDir = pers.filter(p => p.enDir).sort(prmOrdenDir), lOtr = pers.filter(p => p.fuera);
   const reg = prmActivos().filter(p => p.anio === anio);
   const cifras = [
     [reg.filter(p => p.clase === 'permiso').length, 'permisos autorizados', 'indigo'],
     [reg.filter(p => p.clase === 'facilidad').length, 'facilidades', 'indigo'],
     [pers.filter(p => p.s.dias >= PRM_LIMITE - 3 && p.s.dias < PRM_LIMITE).length, 'cerca del límite', 'aviso'],
     [pers.filter(p => p.s.dias >= PRM_LIMITE).length, 'agotaron sus 9 días', 'mal']];
-  const tarjeta = p => `<button class="tarjeta prm-per" data-prmp="${esc(p.key)}">
-      <span class="prm-nom">${esc(p.nombre)}</span><span class="ayuda">${esc(prmRolTxt(p))}</span>
+  const tarjeta = (p, g) => `<button class="tarjeta prm-per" data-prmp="${esc(p.key)}">
+      ${g === 'dir' && p.ccts.length ? `<span class="prm-esc">${esc(p.ccts.map(nombreEscuela).join(' · '))}</span>` : ''}
+      <span class="prm-nom">${esc(p.nombre)}</span><span class="ayuda">${esc(g === 'dir' ? p.roles.filter(r => r !== 'ATP').join(' y ') + (p.enAtp ? ' · también ATP' : '') : g === 'atp' ? 'ATP de la Supervisión' + (p.enDir ? ' · también ' + p.roles.filter(r => r !== 'ATP').join(' y ').toLowerCase() + ' de ' + p.ccts.map(nombreEscuela).join(', ') : '') : prmRolTxt(p))}</span>
       <span class="prm-cifra"><b class="${p.s.dias ? prmNivel(p.s.dias) : ''}">${prmFmt(p.s.dias)}</b> de ${PRM_LIMITE} días${p.s.resta > 0 ? ` · le ${p.s.resta === 1 ? 'queda' : 'quedan'} ${prmDiasTxt(p.s.resta)}` : p.s.resta < 0 ? ` · ${prmDiasTxt(-p.s.resta)} de más` : ' · completos'}</span>
       ${prmBarra(p.s.dias)}
       <span class="ayuda">${p.s.per.length} ${p.s.per.length === 1 ? 'permiso' : 'permisos'}${p.s.fac.length ? ` · ${p.s.fac.length} ${p.s.fac.length === 1 ? 'facilidad' : 'facilidades'} (${prmHorasTxt(p.s.horas)})` : ''}</span>
     </button>`;
-  const grupo = (t, l) => l.length ? `<h2 class="prm-h2">${t}</h2><div class="prm-grid">${l.map(tarjeta).join('')}</div>` : '';
+  const grupo = (t, l, g) => l.length ? `<h2 class="prm-h2">${t} <span class="mudo peq">(${l.length})</span></h2><div class="prm-grid">${l.map(p => tarjeta(p, g)).join('')}</div>` : '';
   const recientes = reg.slice().sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)) || String(b.creado).localeCompare(String(a.creado))).slice(0, 8);
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Permisos y facilidades</h1><div class="acciones"><button class="boton terra" id="prm-nuevo">${ico('i-mas')}Registrar permiso o facilidad</button></div></div>
@@ -2106,9 +2117,9 @@ function vPermisos() {
   <div class="filtros"><select id="prm-anio" aria-label="Año">${prmAnios().map(a => `<option value="${a}" ${a === anio ? 'selected' : ''}>Año ${a}${a === prmAnioActual() ? ' (en curso)' : ' · historial'}</option>`).join('')}</select></div>
   ${actual ? '' : `<div class="aviso-caja" style="margin-bottom:14px">Está viendo el historial de ${esc(anio)}. Los saldos de ese año ya no cuentan para el año en curso.</div>`}
   <div class="pen-cifras">${cifras.map(c => `<div class="tarjeta pen-cifra" style="cursor:default"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></div>`).join('')}</div>
-  ${grupo('Mesa Técnica (ATP)', pers.filter(p => p.grupo === 'atp'))}
-  ${grupo('Direcciones', pers.filter(p => p.grupo === 'dir'))}
-  ${grupo('Otras personas', pers.filter(p => p.grupo === 'otro'))}
+  ${grupo('Mesa Técnica (ATP)', lAtp, 'atp')}
+  ${grupo('Direcciones', lDir, 'dir')}
+  ${grupo('Otras personas', lOtr, 'otro')}
   <h2 class="prm-h2">Últimos registros de ${esc(anio)}</h2>
   <div class="pen-lista">${recientes.length ? recientes.map(p => prmFila(p, true)).join('') : `<div class="tarjeta vacio">Sin permisos ni facilidades registrados en ${esc(anio)}.</div>`}</div>`;
   $('#prm-anio').onchange = e => { vista.prmAnio = e.target.value; vPermisos(); };
@@ -2123,12 +2134,26 @@ function prmFila(p, conNombre) {
     <div class="pen-cab"><div class="pen-tit"><h3>${conNombre ? esc(p.nombre) + ' · ' : ''}${fac ? esc(p.subtipo || 'Facilidad') : 'Permiso'}</h3>
       <div class="ayuda">${esc(prmFechas(p))}</div></div>
       <div class="pen-chips">${fac ? `<span class="chip indigo">${prmHorasTxt(prmNum(p.horas))}</span>` : ''}${!fac || desc ? `<span class="chip terra">Descuenta ${prmDiasTxt(prmNum(p.dias))}</span>` : '<span class="chip">No descuenta días</span>'}${anulado ? '<span class="chip mal">Anulado</span>' : ''}</div></div>
-    ${p.motivo ? `<p class="pen-det">${esc(p.motivo)}</p>` : ''}
+    ${p.motivo ? `<p class="pen-det"><b>Motivo:</b> ${esc(p.motivo)}</p>` : ''}
+    ${(p.obs || []).length ? `<div class="pen-hilo"><div class="ayuda"><b>Observaciones</b></div>${p.obs.map((o, i) => `<div class="pen-msg sup"><div class="ayuda" style="display:flex;gap:6px;align-items:center"><span style="flex:1">${fechaHora(o.f)}${o.editado ? ' · corregida' : ''}</span>${anulado ? '' : `<button class="enlace" data-prmoe="${esc(p.id)}|${i}" style="font-size:13px">✎ Corregir</button>`}</div><div style="white-space:pre-line">${esc(o.texto)}</div></div>`).join('')}</div>` : ''}
+    ${anulado ? '' : `<textarea data-prmot="${esc(p.id)}" aria-label="Observación" placeholder="Agregar una observación a este ${fac ? 'registro de facilidad' : 'permiso'}"></textarea>`}
     <div class="pen-acc"><span class="ayuda" style="flex:1">Registrado el ${fechaHora(p.creado)}${p.actualizado && p.actualizado !== p.creado ? ' · corregido el ' + fechaHora(p.actualizado) : ''}</span>
-      ${anulado ? `<button class="boton sec chico" data-prman="${esc(p.id)}|0">Volver a contarlo</button>` : `<button class="boton sec chico" data-prmed="${esc(p.id)}">${ico('i-lapiz')}Corregir</button><button class="boton sec chico" data-prman="${esc(p.id)}|1">Anular</button>`}</div>
+      ${anulado ? `<button class="boton sec chico" data-prman="${esc(p.id)}|0">Volver a contarlo</button>` : `<button class="boton sec chico" data-prmob="${esc(p.id)}">Agregar observación</button><button class="boton sec chico" data-prmed="${esc(p.id)}">${ico('i-lapiz')}Corregir</button><button class="boton sec chico" data-prman="${esc(p.id)}|1">Anular</button>`}</div>
   </article>`;
 }
 function prmAcciones() {
+  $$('[data-prmob]').forEach(b => b.onclick = async () => {
+    const t = ($(`[data-prmot="${b.dataset.prmob}"]`) || {}).value; if (!String(t || '').trim()) return aviso('Escriba la observación.', 'mal');
+    const r = await accion('notaPermiso', { id: b.dataset.prmob, texto: t.trim() });
+    if (r) { poner(S.prm, r.prm); vPermisos(); aviso('Observación agregada.', 'ok', 2200); }
+  });
+  $$('[data-prmoe]').forEach(b => b.onclick = () => {
+    const [id, i] = b.dataset.prmoe.split('|'), p = S.prm.find(x => x.id === id), o = (p.obs || [])[+i]; if (!o) return;
+    modal('Corregir observación', `<div class="campo"><label for="po-t">Observación</label><textarea id="po-t" style="min-height:120px">${esc(o.texto)}</textarea></div><div class="ayuda">Deje el texto vacío para quitarla.</div>`,
+      `<button class="boton sec" id="po-no">Cancelar</button><button class="boton terra" id="po-si">Guardar</button>`);
+    $('#po-no').onclick = cerrarModal;
+    $('#po-si').onclick = async () => { const r = await accion('notaPermiso', { id, nota: +i, texto: $('#po-t').value.trim() }); if (r) { poner(S.prm, r.prm); cerrarModal(); vPermisos(); aviso('Observación corregida.', 'ok', 2200); } };
+  });
   $$('[data-prmed]').forEach(b => b.onclick = () => formPermiso(S.prm.find(x => x.id === b.dataset.prmed)));
   $$('[data-prman]').forEach(b => b.onclick = async () => {
     const [id, an] = b.dataset.prman.split('|');
@@ -2165,8 +2190,8 @@ function vPermisoPersona(key) {
 }
 
 function formPermiso(ed, keyBase) {
-  const pers = prmPersonas(), atp = pers.filter(p => p.grupo === 'atp'), dir = pers.filter(p => p.grupo === 'dir'), otr = pers.filter(p => p.grupo === 'otro');
-  const op = l => l.map(p => `<option value="${esc(p.key)}">${esc(p.nombre)}${p.roles.length > 1 || p.ccts.length ? ' · ' + esc(p.ccts.length ? p.ccts.map(nombreEscuela).join(', ') : p.roles.join(' y ')) : ''}</option>`).join('');
+  const pers = prmPersonas(), atp = pers.filter(p => p.enAtp), dir = pers.filter(p => p.enDir && !p.enAtp).sort(prmOrdenDir), otr = pers.filter(p => p.fuera);
+  const op = l => l.map(p => `<option value="${esc(p.key)}">${p.ccts.length ? esc(p.ccts.map(nombreEscuela).join(', ')) + ' — ' : ''}${esc(p.nombre)}${p.enAtp && p.enDir ? ' (ATP)' : ''}</option>`).join('');
   modal(ed ? 'Corregir registro' : 'Registrar permiso o facilidad', `
     <div class="campo"><label for="pm-p">Persona</label><select id="pm-p"><option value="">Elija a la persona</option>
       ${atp.length ? `<optgroup label="Mesa Técnica (ATP)">${op(atp)}</optgroup>` : ''}${dir.length ? `<optgroup label="Direcciones">${op(dir)}</optgroup>` : ''}${otr.length ? `<optgroup label="Otras personas">${op(otr)}</optgroup>` : ''}
@@ -2185,7 +2210,8 @@ function formPermiso(ed, keyBase) {
       <label class="casilla"><input type="checkbox" id="pm-x"><span>Descontarla de los ${PRM_LIMITE} días</span></label>
       <div class="campo oculto" id="pm-xd" style="margin-top:8px"><label for="pm-xn">Cuánto descuenta</label><select id="pm-xn" style="max-width:180px"><option value="0.5">Medio día</option><option value="1">Un día</option></select></div>
     </div>
-    <div class="campo"><label for="pm-m">Motivo u observaciones (opcional)</label><textarea id="pm-m" style="min-height:80px" placeholder="Ej. Trámite personal; regresa a las 12:00; cubre la dirección la maestra de 6.°"></textarea></div>
+    <div class="campo"><label for="pm-m">Motivo (opcional)</label><input id="pm-m" maxlength="300" placeholder="Ej. Trámite personal, asunto familiar, cita médica"></div>
+    ${ed ? `<div class="ayuda" style="margin:-4px 0 10px">Las observaciones de este registro (${(ed.obs || []).length}) se agregan o corrigen en su tarjeta, con su fecha.</div>` : `<div class="campo"><label for="pm-o">Observaciones (opcional)</label><textarea id="pm-o" style="min-height:80px" placeholder="Ej. Regresa a las 12:00; cubre la dirección la maestra de 6.°; avisó con dos días de anticipación"></textarea><div class="ayuda">Después puede agregar más observaciones en la tarjeta del registro.</div></div>`}
     <div id="pm-saldo" class="aviso-caja" style="margin-top:4px"></div>`,
     `<button class="boton sec" id="pm-no">Cancelar</button><button class="boton terra" id="pm-si">${ed ? 'Guardar cambios' : 'Registrar'}</button>`);
   const clase = () => ($('input[name="pm-c"]:checked') || {}).value || 'permiso';
@@ -2240,7 +2266,7 @@ function formPermiso(ed, keyBase) {
     if (d.fin < d.inicio) return aviso('La fecha final no puede ser antes de la inicial.', 'mal');
     if (d.clase === 'permiso' && !(d.dias > 0)) return aviso('Indique cuántos días cuenta el permiso.', 'mal');
     if (d.clase === 'facilidad' && !(d.horas > 0)) return aviso('Indique cuántas horas.', 'mal');
-    const r = await accion('guardarPermiso', Object.assign({ id: ed ? ed.id : '', persona: p.key, nombre: p.nombre, tipoPersona: p.roles.join(' y '), cct: p.ccts.join(','), motivo: $('#pm-m').value.trim() }, d));
+    const r = await accion('guardarPermiso', Object.assign({ id: ed ? ed.id : '', persona: p.key, nombre: p.nombre, tipoPersona: p.roles.join(' y '), cct: p.ccts.join(','), motivo: $('#pm-m').value.trim(), observacion: $('#pm-o') ? $('#pm-o').value.trim() : '' }, d));
     if (!r) return;
     poner(S.prm, r.prm); cerrarModal();
     vista.prmAnio = r.prm.anio; vPermisos();
@@ -7231,7 +7257,7 @@ const Demo = (() => {
   function demoPermisos(h, atps, dir) {
     const y = h.slice(0, 4), ya = String(+y - 1), at = f => f + 'T09:00:00';
     const r = (id, quien, o) => Object.assign({ id, anio: o.inicio.slice(0, 4), persona: 'p:' + normNom(quien.nombre), nombre: quien.nombre, tipoPersona: quien.tipo === 'atp' ? 'ATP' : quien.cargo, cct: quien.tipo === 'atp' ? '' : quien.cct,
-      clase: 'permiso', subtipo: '', fin: o.inicio, dias: '1', horas: '0', descuenta: true, motivo: '', activo: true, creadoPor: 'u-carlos', creado: at(o.inicio), actualizado: at(o.inicio), actualizadoPor: '' }, o);
+      clase: 'permiso', subtipo: '', fin: o.inicio, dias: '1', horas: '0', descuenta: true, motivo: '', obs: [], activo: true, creadoPor: 'u-carlos', creado: at(o.inicio), actualizado: at(o.inicio), actualizadoPor: '' }, o);
     const f = (m, d) => y + '-' + m + '-' + d, fa = (m, d) => ya + '-' + m + '-' + d;
     // Nombres de ejemplo para las direcciones (en la demostración el directorio no trae nombres reales)
     const D1 = Object.assign({}, dir[1], { nombre: 'Profra. Ana Ruiz Castro' }), D2 = Object.assign({}, dir[10], { nombre: 'Profr. Mario León Soto' });
@@ -7239,10 +7265,10 @@ const Demo = (() => {
       r('prm-d1', atps[0], { inicio: f('03', '09'), fin: f('03', '11'), dias: '3', motivo: 'Asunto familiar fuera de la ciudad.' }),
       r('prm-d2', atps[0], { inicio: f('06', '15'), fin: f('06', '16'), dias: '2', motivo: 'Trámite personal.' }),
       r('prm-d3', atps[0], { inicio: f('09', '22'), dias: '1' }),
-      r('prm-d4', atps[0], { clase: 'facilidad', subtipo: 'Salir temprano', inicio: sumarDias(h, -6), horas: '2', dias: '0', descuenta: false, motivo: 'Cita en la tarde; avisó con tiempo.' }),
+      r('prm-d4', atps[0], { clase: 'facilidad', subtipo: 'Salir temprano', inicio: sumarDias(h, -6), horas: '2', dias: '0', descuenta: false, motivo: 'Cita médica', obs: [{ texto: 'Avisó con tiempo; dejó cubiertas sus visitas de la tarde.', f: sumarDias(h, -6) + 'T08:10:00' }] }),
       r('prm-d5', atps[1], { inicio: f('02', '02'), fin: f('02', '04'), dias: '3' }),
       r('prm-d6', atps[1], { inicio: f('05', '18'), fin: f('05', '20'), dias: '3' }),
-      r('prm-d7', atps[1], { inicio: f('08', '10'), fin: f('08', '12'), dias: '3', motivo: 'Cambio de domicilio.' }),
+      r('prm-d7', atps[1], { inicio: f('08', '10'), fin: f('08', '12'), dias: '3', motivo: 'Cambio de domicilio', obs: [{ texto: 'Con este completa sus 9 días del año.', f: f('08', '07') + 'T12:00:00' }] }),
       r('prm-d8', atps[2], { clase: 'facilidad', subtipo: 'Atender un asunto personal', inicio: sumarDias(h, -2), horas: '3', dias: '0.5', descuenta: true }),
       r('prm-d9', D1, { inicio: f('04', '14'), fin: f('04', '15'), dias: '2', motivo: 'Cubre la subdirección.' }),
       r('prm-d10', D2, { clase: 'facilidad', subtipo: 'Llegar más tarde', inicio: sumarDias(h, -9), horas: '1.5', dias: '0', descuenta: false }),
@@ -7349,7 +7375,12 @@ const Demo = (() => {
     guardarPermiso: d => { const previo = d.id ? D.prm.find(x => x.id === d.id) : null;
       const o = Object.assign({}, previo || { id: uid('prm'), activo: true, creadoPor: D.yo.id, creado: ahora() }, { anio: d.inicio.slice(0, 4), persona: d.persona, nombre: d.nombre, tipoPersona: d.tipoPersona, cct: d.cct, clase: d.clase, subtipo: d.subtipo,
         inicio: d.inicio, fin: d.fin, dias: String(d.descuenta ? d.dias : 0), horas: String(d.horas), descuenta: !!d.descuenta, motivo: d.motivo, actualizado: ahora(), actualizadoPor: D.yo.nombre });
+      if (!previo) o.obs = d.observacion ? [{ texto: d.observacion, f: ahora(), por: D.yo.nombre }] : [];
       if (previo) Object.assign(previo, o); else D.prm.push(o); return { prm: copia(o) }; },
+    notaPermiso: d => { const o = D.prm.find(x => x.id === d.id); o.obs = o.obs || [];
+      if (d.nota != null && d.nota !== '') { if (d.texto) Object.assign(o.obs[+d.nota], { texto: d.texto, editado: ahora() }); else o.obs.splice(+d.nota, 1); }
+      else o.obs.push({ texto: d.texto, f: ahora(), por: D.yo.nombre });
+      o.actualizado = ahora(); return { prm: copia(o) }; },
     anularPermiso: d => { const o = D.prm.find(x => x.id === d.id); o.activo = !d.anular; o.actualizado = ahora(); return { prm: copia(o) }; },
     crearPendiente: d => { const p = Object.assign({ id: uid('pen'), estado: D.yo.rol === 'admin' ? 'enterado' : 'nuevo', respuestas: [], creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora(), actualizado: ahora(), atendido: '', atendidoPor: '', visto: D.yo.rol === 'admin' ? ahora() : '' },
       { titulo: d.titulo, detalle: d.detalle, prioridad: d.prioridad, categoria: d.categoria, cct: d.cct, limite: d.limite, confidencial: !!d.confidencial }); D.pen.push(p); return { pen: copia(p) }; },

@@ -76,7 +76,7 @@ const HOJAS = {
   ctr: ['id', 'ciclo', 'sesion', 'cct', 'clave', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
   // Permisos (días) y facilidades (horas: salir temprano, asunto personal…) que autoriza el Supervisor. La cuenta es por año calendario.
   prm: ['id', 'anio', 'persona', 'nombre', 'tipoPersona', 'cct', 'clase', 'subtipo', 'inicio', 'fin', 'dias', 'horas', 'descuenta', 'motivo',
-        'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor'],
+        'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor', 'obs'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
@@ -89,7 +89,7 @@ const VERSION = 23;
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
+const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -1155,7 +1155,27 @@ const ACCIONES = {
     const o = { id: previo ? previo.id : 'prm-' + Utilities.getUuid().slice(0, 8), anio: inicio.slice(0, 4), persona: persona, nombre: nombre,
       tipoPersona: String(d.tipoPersona || '').slice(0, 80), cct: String(d.cct || '').slice(0, 40), clase: clase, subtipo: String(d.subtipo || '').slice(0, 60),
       inicio: inicio, fin: fin, dias: String(dias), horas: String(horas), descuenta: descuenta, motivo: String(d.motivo || '').trim().slice(0, 1500),
-      activo: previo ? previo.activo : true, creadoPor: previo ? previo.creadoPor : yo.id, creado: previo ? previo.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.nombre };
+      activo: previo ? previo.activo : true, creadoPor: previo ? previo.creadoPor : yo.id, creado: previo ? previo.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.nombre,
+      obs: previo ? (previo.obs || []) : [] };
+    const ob = String(d.observacion || '').trim().slice(0, 1500);
+    if (!previo && ob) o.obs.push({ texto: ob, f: ahora_(), por: yo.nombre });
+    guardar_('prm', o);
+    return { prm: o };
+  },
+  // Observaciones de un permiso o facilidad, con fecha: agregar una nueva, o corregir (texto vacío = quitar) la número «nota»
+  notaPermiso: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('prm', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    const t = String(d.texto || '').trim().slice(0, 1500), obs = Array.isArray(o.obs) ? o.obs : [];
+    if (d.nota !== undefined && d.nota !== null && d.nota !== '') {
+      const i = +d.nota; if (!obs[i]) throw new Error('No se encontró la observación.');
+      if (t) { obs[i].texto = t; obs[i].editado = ahora_(); } else obs.splice(i, 1);
+    } else {
+      if (!t) throw new Error('Escriba la observación.');
+      obs.push({ texto: t, f: ahora_(), por: yo.nombre });
+    }
+    o.obs = obs; o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
     guardar_('prm', o);
     return { prm: o };
   },
