@@ -12,7 +12,7 @@ try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURICompon
 function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta pertenece a la Supervisión Escolar Zona 050 (ISEP) y es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}.blanco{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#FBF6EC;border:1px dashed #C2603A;border-radius:14px;padding:10px 14px;margin:0 0 14px;font-size:15px}.blanco .btn{flex:none}
-.pick{background:#EEF2FA;border:1px solid #C9D4EA;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:15px}.pick select{width:100%;margin-top:6px}.pick .btn.link{padding:0;display:inline}.pick{background:var(--accent-soft,#EEF2FA);border-color:var(--line,#C9D4EA)}.pick .ok{margin:6px 0 0;font-size:14px;color:var(--ok,#1E7A46)}.pick-in{margin:0 0 6px}.pick-in select{margin-top:4px}.yo-mas{margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:10px}.yo-mas>summary{cursor:pointer;font-weight:700;padding:6px 0;list-style-position:outside}.yo-mas[open]>summary{margin-bottom:6px}
+.pick{background:#EEF2FA;border:1px solid #C9D4EA;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:15px}.pick select{width:100%;margin-top:6px}.pick .btn.link{padding:0;display:inline}.resp-fondo{position:fixed;inset:0;z-index:9000;background:rgba(10,12,16,.45);display:flex;align-items:flex-end;justify-content:center}.resp-hoja{background:var(--card,#fff);color:var(--ink,#1b1d22);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.2)}@media(min-width:700px){.resp-fondo{align-items:center}.resp-hoja{border-radius:20px}}.resp-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}.resp-cab h2{margin:0;font-size:20px}.resp-x{border:0;background:none;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;color:var(--muted,#555)}.resp-b{display:flex!important;flex-direction:column;align-items:center;justify-content:center;width:100%;margin-top:10px;cursor:pointer;gap:2px}.resp-b small{font-weight:400;font-size:13px;opacity:.85}.resp-aviso{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink,#1b1d22);background:var(--warn-soft,#FBEFE5);border:1px solid var(--warn,#A4541A);border-radius:16px;padding:12px 14px;margin:0 0 14px;cursor:pointer}.resp-aviso .ico svg{width:26px;height:26px;fill:none;stroke:var(--warn,#A4541A);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.resp-aviso .tx{flex:1;display:flex;flex-direction:column;gap:2px}.resp-aviso .ds{font-size:14px;color:var(--muted,#555)}.resp-aviso>svg{width:18px;height:18px}.pick{background:var(--accent-soft,#EEF2FA);border-color:var(--line,#C9D4EA)}.pick .ok{margin:6px 0 0;font-size:14px;color:var(--ok,#1E7A46)}.pick-in{margin:0 0 6px}.pick-in select{margin-top:4px}.yo-mas{margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:10px}.yo-mas>summary{cursor:pointer;font-weight:700;padding:6px 0;list-style-position:outside}.yo-mas[open]>summary{margin-bottom:6px}
 </style></head><body>
 <title>Tlamatini · Un camino para la labor docente</title>
 <meta name="theme-color" content="#1F3A6B">
@@ -1416,7 +1416,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
   app.innerHTML=`<div class="inicio">
    <header class="ini-band brand"><div class="ini-band-in">
     <div class="ini-top">${TLM("oscuro")}<div style="min-width:0"><span class="ini-n">Tlamatini</span><span class="ini-l">Un camino para la labor docente</span></div>
-     <div class="ini-links"><button type="button" id="lkDocs">Mis documentos</button><button type="button" id="lkEsc">Mi escuela</button></div>
+     <div class="ini-links"><button type="button" id="lkDocs">Mis documentos</button><button type="button" id="lkEsc">Mi escuela</button><button type="button" id="lkResp">Respaldo</button></div>
      <button type="button" class="ini-av" id="avBtn" aria-label="Mi escuela y mis datos">${P.ini?esc(P.ini):ICON.user.replace("<svg",'<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"')}</button></div>
     <p class="ini-hola">${iniSaludo()}</p><p class="ini-esc">${iniEscuela()}</p></div></header>
    <div class="ini-busca" role="search">${ICON.search}<label for="buscarQ" class="sr">Buscar un formato o herramienta</label>
@@ -1425,6 +1425,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
    <div class="ini-res" id="iniRes" hidden aria-live="polite"></div>
    <div class="ini-main" id="iniMain">
     ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
+    ${DEMO?"":respAvisoHTML()}
     <div id="iniEvBox">${iniEvento()||""}</div>
     <section aria-labelledby="t-cont" id="contSec" ${conts.length?"":"hidden"}><h2 class="gt" id="t-cont">Continuar donde se quedó</h2><div class="conts" id="contStrip">${conts.join("")}</div></section>
     <section aria-labelledby="t-uso"><h2 class="gt" id="t-uso">Lo más usado</h2>
@@ -1444,10 +1445,12 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     <button type="button" class="on" aria-current="page" id="nvIni">${ICON.home}<span>Inicio</span></button>
     <button type="button" id="nvBus">${ICON.search}<span>Buscar</span></button>
     <button type="button" id="nvDocs">${ICON.folder}<span>Mis documentos</span></button>
-    <button type="button" id="nvEsc">${ICON.user}<span>Mi escuela</span></button></nav>
+    <button type="button" id="nvEsc">${ICON.user}<span>Mi escuela</span></button>
+    <button type="button" id="nvResp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 9.5"/><path d="M12 12v9M9 18l3 3 3-3"/></svg><span>Respaldo</span></button></nav>
   </div>`;
   const g=id=>document.getElementById(id);
   const pb=g("perfilBtn");if(pb)pb.onclick=perfilView;
+  ["lkResp","nvResp","respAvisoBtn"].forEach(k=>{const b=g(k);if(b)b.onclick=respHoja});
   {const a=g("accAdm");if(a)a.onclick=()=>accAdminView();const d=g("demoHome");if(d)d.onclick=demoEntrar}
   app.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>DEMO_IR[b.dataset.demo]());
   app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>sectionView(b.dataset.s));
@@ -4883,18 +4886,40 @@ window.addEventListener("online",tlmRed);window.addEventListener("offline",tlmRe
 /* respaldo: solo los datos de Tlamatini (no contraseñas ni enlaces de acceso) */
 const RESP_EXACTAS=["firma-docente","libro-firmas","logo-escuela","libro-visitas","libro-pases","logo-zona","libro-visitas-logo","tlm-tour-visto","reconocimientos","rk-mis-disenos","rk-fondo"];
 const respClave=k=>k.startsWith("ppie-")||RESP_EXACTAS.includes(k);
-function respaldoDescargar(){const datos={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(respClave(k))datos[k]=localStorage.getItem(k)}}catch(e){}
-  const n=Object.keys(datos).length;if(!n){alert("Todavía no hay datos guardados para respaldar.");return}
+async function respaldoDescargar(){const datos={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(respClave(k))datos[k]=localStorage.getItem(k)}}catch(e){}
+  const n=Object.keys(datos).length;if(!n){alert("Todavía no hay datos guardados para respaldar.");return""}
   const hoy=today(),esc0=(perfil.escuela||"").replace(/[\\/:*?"<>|«»]/g,"").trim();
   const blob=new Blob([JSON.stringify({app:"Tlamatini",tipo:"respaldo",version:1,fecha:new Date().toISOString(),escuela:perfil.escuela||"",datos})],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`Respaldo Tlamatini${esc0?" - "+esc0:""} - ${hoy}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
-  try{localStorage.setItem("tlm-ultimo-respaldo",hoy)}catch(e){}const m=document.getElementById("eq_msg");if(m)m.textContent=`Respaldo descargado (${n} apartados). Guárdelo en su Drive, correo o WhatsApp para no perderlo.`}
+  const nombre=`Respaldo Tlamatini${esc0?" - "+esc0:""} - ${hoy}.json`;let compartido=false;
+  if(tlmMovil()&&navigator.canShare){try{const f=new File([blob],nombre,{type:"application/json"});if(navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"Respaldo Tlamatini"});compartido=true}}catch(e){if(e&&e.name==="AbortError")return""}}
+  if(!compartido){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  try{localStorage.setItem("tlm-ultimo-respaldo",hoy)}catch(e){}const txt=compartido?`<b>Listo.</b> Respaldo enviado (${n} apartados).`:`<b>Listo.</b> Respaldo descargado (${n} apartados): «${esc(nombre)}». Guárdelo en su Drive, correo o WhatsApp para no perderlo.`;
+  const m=document.getElementById("eq_msg");if(m)m.innerHTML=txt;return txt}
 function respaldoRestaurar(file){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON.parse(rd.result)}catch(e){alert("El archivo no es un respaldo de Tlamatini.");return}
     if(!o||o.app!=="Tlamatini"||!o.datos||typeof o.datos!=="object"){alert("El archivo no es un respaldo de Tlamatini.");return}
     const ks=Object.keys(o.datos).filter(respClave);const f=o.fecha?new Date(o.fecha).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"";
     if(!confirm(`Se restaurarán ${ks.length} apartados del respaldo${o.escuela?" de "+o.escuela:""}${f?" del "+f:""}.\n\nLo que tenga ahora en este equipo en esos apartados se reemplazará. ¿Continuar?`))return;
     try{ks.forEach(k=>localStorage.setItem(k,o.datos[k]))}catch(e){alert("No se pudo restaurar todo: el espacio del navegador está lleno.");return}
     alert("Respaldo restaurado. Tlamatini se volverá a abrir con sus datos.");location.reload()};rd.readAsText(file)}
+/* ---------- Respaldo a la mano: hoja que se abre desde el inicio (barra de abajo o «Respaldo») ---------- */
+function respDias(){let u="";try{u=localStorage.getItem("tlm-ultimo-respaldo")||""}catch(e){}if(!u)return null;return Math.round((new Date(today()+"T12:00")-new Date(u+"T12:00"))/864e5)}
+function respHayDatos(){try{const d=JSON.parse(localStorage.getItem("ppie-dir")||"{}");if((d.alumnos||[]).length||(d.maestros||[]).length)return true;
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^ppie-(draft-|dx|pmce|plan|pa|recado|edades|salario|insumos)/.test(k))return true}}catch(e){}return false}
+function respAvisoHTML(){if(!respHayDatos())return"";const d=respDias();if(d!==null&&d<7)return"";
+  return`<button type="button" class="resp-aviso" id="respAvisoBtn"><span class="ico">${'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 9.5"/><path d="M12 12v9M9 18l3 3 3-3"/></svg>'}</span><span class="tx"><b>${d===null?"Respalde sus datos":"Hace "+d+" días que no respalda"}</b><span class="ds">Sus alumnos y documentos viven solo en este equipo. Guarde una copia en un toque.</span></span>${CHEV}</button>`}
+function respHoja(){if(document.getElementById("respHoja"))return;const d=respDias();
+  const o=document.createElement("div");o.id="respHoja";o.className="resp-fondo";o.innerHTML=`<div class="resp-hoja" role="dialog" aria-modal="true" aria-labelledby="respT">
+   <div class="resp-cab"><h2 id="respT">Respaldo de mis datos</h2><button type="button" class="resp-x" id="respX" aria-label="Cerrar">✕</button></div>
+   <p class="help">${d===null?"Todavía no ha hecho un respaldo en este equipo.":d===0?"Último respaldo: hoy.":`Último respaldo: hace ${d} día${d===1?"":"s"}.`} Sus datos (escuela, mis datos, alumnos, firma, logos y documentos) viven solo en este equipo.</p>
+   ${DEMO?`<p class="help"><i>No disponible en la demostración.</i></p>`:`<button type="button" class="btn primary resp-b" id="respG">Guardar respaldo<small>${tlmMovil()?"Envíelo a su WhatsApp, correo o Drive":"Se descarga un archivo; guárdelo en su Drive o correo"}</small></button>
+   <label class="btn ghost resp-b">Cargar respaldo o archivo recibido<small>Respaldo de otro equipo o directorio que le enviaron</small><input type="file" accept=".json,application/json" id="respC" hidden></label>`}
+   <p class="help" id="respMsg" role="status"></p></div>`;
+  document.body.appendChild(o);const cerrar=()=>{o.remove();document.removeEventListener("keydown",k)};const k=e=>{if(e.key==="Escape")cerrar()};document.addEventListener("keydown",k);
+  o.onclick=e=>{if(e.target===o)cerrar()};document.getElementById("respX").onclick=cerrar;
+  const gb=document.getElementById("respG");if(gb)gb.onclick=async()=>{const r=await respaldoDescargar();if(r){document.getElementById("respMsg").innerHTML=r;const a=document.getElementById("respAvisoBtn");if(a)a.remove()}};
+  const c=document.getElementById("respC");if(c)c.onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;cerrar();dirImportarArchivo(f)};
+  (gb||document.getElementById("respX")).focus()}
+const tlmMovil=()=>/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 function equipoHTML(){return`<section class="card" id="equipo">${equipoInner()}</section>`}
 function equipoInner(){let completo=false,ult="";try{completo=localStorage.getItem("tlm-completo")==="1";ult=localStorage.getItem("tlm-ultimo-respaldo")||""}catch(e){}
   const inst=tlmInstalada()?`<p class="eq-ok">✓ Tlamatini está instalada en este equipo.</p>`
