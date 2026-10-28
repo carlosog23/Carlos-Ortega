@@ -7519,6 +7519,7 @@ const Demo = (() => {
     cteFelicitar: d => { D.ctr = D.ctr || []; const o = { id: [d.ciclo, d.sesion, d.cct, 'felicitacion'].join('|'), ciclo: d.ciclo, sesion: String(d.sesion), cct: d.cct, clave: 'felicitacion', estado: 'enviada', nota: d.asunto, marcadoPor: D.yo.id, marcadoNombre: D.yo.nombre, actualizado: ahora() };
       D.ctr = D.ctr.filter(x => x.id !== o.id).concat([o]); return { ctr: copia(o), nota: '(Demostración: no se envió ningún correo.)' }; },
     personal: () => ({ trb: copia(cfg.dir ? D.trb.filter(t => (t.plazas || []).some(p => p.cct === '02DPR0684N')) : D.trb) }),
+    firmaLista: () => ({ firma: '' }),
     personalGuardar: d => { const t = Object.assign({ historial: [] }, d.trabajador); if (!t.id) { t.id = uid('trb'); t.estado = 'activo'; t.historial = [{ f: ahora(), tipo: 'alta', por: D.yo.nombre, txt: 'Alta' }]; } else { const p = D.trb.find(x => x.id === t.id); t.estado = p.estado; t.fechaBaja = p.fechaBaja; t.motivoBaja = p.motivoBaja; t.historial = (p.historial || []).concat([{ f: ahora(), tipo: 'cambio', por: D.yo.nombre, txt: 'Datos actualizados' }]); }
       ['paterno', 'materno', 'nombre', 'curp', 'rfc'].forEach(k => { t[k] = String(t[k] || '').toUpperCase(); }); t.plazas = (t.plazas || []).map(p => Object.assign({}, p, { activa: p.activa !== false })); poner(D.trb, t); return { trabajador: copia(t) }; },
     personalBaja: d => { const t = D.trb.find(x => x.id === d.id); if (d.reactivar) { t.estado = 'activo'; t.fechaBaja = ''; t.motivoBaja = ''; } else { t.estado = 'baja'; t.fechaBaja = d.fecha; t.motivoBaja = d.motivo; t.plazas.forEach(p => { p.activa = false; }); }
@@ -7537,7 +7538,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos'];
+  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
@@ -7671,11 +7672,13 @@ function vCte() {
       <span class="cte-tx"><b>${CTE_ORD[n]} sesión ordinaria</b><span class="peq mudo">${f ? esc(fechaLarga(f)) : 'Fecha por definir'}${s.titulo ? ' · ' + esc(s.titulo) : ''}</span><span class="chips">${chips.join('')}</span></span>
       ${ico('i-der', 'cte-chev')}</button>`);
   }
-  $('#vista').innerHTML = `<div class="titulo-vista"><div><h1>Consejo Técnico Escolar</h1><div class="peq mudo">Ciclo ${esc(cteCiclo())} · 8 sesiones ordinarias</div></div></div>
+  $('#vista').innerHTML = `<div class="titulo-vista"><div><h1>Consejo Técnico Escolar</h1><div class="peq mudo">Ciclo ${esc(cteCiclo())} · 8 sesiones ordinarias</div></div>
+      <div class="acciones"><button class="boton terra" id="cte-lista">${ico('i-cte')}Lista de asistencia</button></div></div>
     <p class="cte-intro">${esDirector() ? 'Entre a la sesión para ver la presentación y el cuadernillo de la Supervisión, y para subir la lista de asistencia, las fotos de la jornada y los productos del colectivo. Todo se guarda en la carpeta <b>CTEs</b> del Drive de su escuela.'
       : 'Entre a una sesión para subir la presentación, el cuadernillo y los insumos (una sola copia para toda la zona), decir qué evidencias y productos se piden y revisar qué escuelas ya subieron lo suyo.'}</p>
     <div class="cte-lista">${tarjetas.join('')}</div>`;
   $$('[data-cses]').forEach(b => b.onclick = () => { vista.cteSes = +b.dataset.cses; vCte(); window.scrollTo(0, 0); });
+  $('#cte-lista').onclick = () => cteListaAsistencia();
 }
 
 // Lista de archivos (se abren en el Drive)
@@ -7748,7 +7751,7 @@ function vCteSesion(n) {
         <div class="peq mudo">Su ATP y la Supervisión revisan que lo que suba corresponda a lo que se pide: 🟢 cumple, 🟡 le falta algo o no coincide (lea la observación) o 🔴 sin evidencia. Al corregir, vuelven a revisarlo.</div>${conteo}${fel}</div></section>`;
     } else if (mesa) resumen = `<div class="aviso-caja" style="margin-bottom:14px">El semáforo y la felicitación del CTE necesitan el servidor versión 22. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</div>`;
     cuerpo = `${resumen}<section class="tarjeta cte-sec"><div class="seccion-t">Lista de asistencia o firmas</div>
-        <div class="cte-bloque"><div class="cte-bt"><div><div class="peq mudo">Foto o PDF de la hoja firmada por el colectivo.</div>${zA.chip}</div><div class="cte-bacc">${zA.btn}${cteBotonSubir('data-csub="asistencia" data-citem=""')}</div></div>
+        <div class="cte-bloque"><div class="cte-bt"><div><div class="peq mudo">Foto o PDF de la hoja firmada por el colectivo.</div>${zA.chip}</div><div class="cte-bacc">${zA.btn}<button class="boton sec cte-sub" id="cte-gen-lista">${ico('i-cte')}Generar lista</button>${cteBotonSubir('data-csub="asistencia" data-citem=""')}</div></div>
         ${zA.obs}${cteArchivosHtml(a.filter(x => x.tipo === 'asistencia'), (rub('asistencia') || {}).est === 'otro' ? '' : 'Aún no se sube la lista.')}</div></section>
       <section class="tarjeta cte-sec"><div class="seccion-t">Evidencias</div>
         ${ev.map(i => grupo('evidencia', i.id, i.nombre, 'Subir fotos')).join('')}
@@ -7780,6 +7783,7 @@ function cteEnlazar(n, cct) {
   $$('[data-ccct]').forEach(b => b.onclick = () => { vista.cteCct = b.dataset.ccct; vCte(); window.scrollTo(0, 0); });
   if ($('#cte-datos')) $('#cte-datos').onclick = () => cteModalDatos(n);
   if ($('#cte-pide')) $('#cte-pide').onclick = () => cteModalPide(n);
+  if ($('#cte-gen-lista')) $('#cte-gen-lista').onclick = () => cteListaAsistencia(n, cct);
   const inp = $('#cte-file');
   const elegir = fn => { inp.value = ''; inp.onchange = () => { const l = Array.from(inp.files || []); if (l.length) fn(l); }; inp.click(); };
   $$('[data-csub]').forEach(b => b.onclick = () => elegir(l => cteSubirArchivos(n, cct, b.dataset.csub, b.dataset.citem, b.dataset.csub === 'asistencia' ? 'Lista de asistencia' : b.dataset.csub === 'presentacion' ? '' : b.dataset.cetq, l)));
@@ -7796,6 +7800,242 @@ function cteEnlazar(n, cct) {
     if (b.dataset.cins) { const r = await accion('cteQuitarInsumo', { ciclo: cteCiclo(), sesion: n, id }); if (r) { S.cteD.cte = r.cte; vCte(); } return; }
     const r = await accion('cteQuitar', { id }); if (r) { S.cteD.cta = S.cteD.cta.filter(x => x.id !== id); vCte(); aviso('Archivo quitado.', 'ok', 2500); }
   });
+}
+
+/* =========================================================
+   Generador de la lista de asistencia del CTE
+   Hoja carta horizontal con los logos de ISEP y de la Zona 050, el logo de la Supervisión como marca de agua,
+   los datos de la escuela y la sesión, el colectivo docente (de la base de datos del personal o escrito a mano)
+   y al pie la firma del Supervisor (digital) y la del director, que solo firma abajo.
+   ========================================================= */
+const CTE_INTENSIVA = { '2026-2027': ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28'] };
+const LA_APOYO = /intendent|velador|secretari|administrativ|conserje|apoyo/i;
+const LA_ABREV = [[/^director/i, 'DIR.'], [/^subdirector/i, 'SUBDIR.'], [/frente a grupo|^docente$/i, 'DOC.'], [/f[ií]sica/i, 'ED. FÍS.'], [/ingl[eé]s/i, 'INGLÉS'], [/usaer/i, 'USAER'],
+  [/promotor/i, 'PROM. LECT.'], [/secretari/i, 'SECRE.'], [/intendent/i, 'INT.'], [/velador/i, 'VEL.'], [/administrativ/i, 'ADMVO.'], [/^atp/i, 'ATP']];
+const LA_FUNC_OPC = ['DOC.', 'SUBDIR.', 'ED. FÍS.', 'INGLÉS', 'USAER', 'PROM. LECT.', 'ATP', 'SECRE.', 'INT.', 'VEL.', 'ADMVO.'];
+const LA_POR_HOJA = 24;   // renglones que caben en una hoja con letra legible
+let LA_FIRMA = null, LA_FIRMA_AVISO = '';
+const laAbrev = f => { f = String(f || '').trim(); const m = LA_ABREV.find(([r]) => r.test(f)); return m ? m[1] : f.toUpperCase().slice(0, 12); };
+const laNorm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/^(PROFRA?|MTRA?|LIC|DRA?)\.?\s+/i, '').toUpperCase().split(/\s+/).filter(Boolean).sort().join(' ');
+const laMay = s => String(s || '').trim().toUpperCase();
+
+// Sesiones del ciclo: fase intensiva (5 días), 8 ordinarias y extraordinaria
+function laSesiones() {
+  const c = cteCiclo(), l = [];
+  (CTE_INTENSIVA[c] || ['', '', '', '', '']).forEach((f, i) => l.push({ v: 'i' + (i + 1), t: `Fase intensiva · día ${i + 1}`, f, cel: `INTENSIVA · DÍA ${i + 1}` }));
+  for (let n = 1; n <= 8; n++) l.push({ v: 'o' + n, n, t: `${CTE_ORD[n]} sesión ordinaria`, f: cteFecha(n), cel: `${n}.ª ORDINARIA` });
+  l.push({ v: 'x', t: 'Sesión extraordinaria', f: '', cel: 'EXTRAORDINARIA' });
+  return l;
+}
+function laSesionInicial(n) {
+  const l = laSesiones(), h = hoy();
+  if (n) return 'o' + n;
+  const hoyS = l.find(s => s.f === h); if (hoyS) return hoyS.v;
+  const prox = l.find(s => s.f && s.f > h); return prox ? prox.v : 'o8';
+}
+
+// Colectivo de la escuela según la base de datos del personal: sin el director (firma abajo) y, si se pide, sin el personal de apoyo
+function laPersonal(cct, apoyo) {
+  const e = ESC_050[cct], dir = e ? laNorm(e[4]) : '';
+  const rango = f => /^subdirector/i.test(f) ? 0 : /frente a grupo/i.test(f) ? 1 : LA_APOYO.test(f) ? 3 : 2;
+  return (S.trb || []).filter(t => t.estado !== 'baja').map(t => ({ t, p: perActivas(t).find(p => p.cct === cct) })).filter(x => x.p)
+    .filter(x => !/^director/i.test(x.p.funcion || '') && !(dir && laNorm(perNombre(x.t)) === dir))
+    .filter(x => apoyo || !LA_APOYO.test(x.p.funcion || ''))
+    .sort((a, b) => rango(a.p.funcion || '') - rango(b.p.funcion || '') || perNombre(a.t).localeCompare(perNombre(b.t), 'es'))
+    .map(({ t, p }) => ({ rfc: laMay(t.rfc), paterno: laMay(t.paterno), materno: laMay(t.materno), nombre: laMay(t.nombre), sexo: t.sexo === 'H' || t.sexo === 'M' ? t.sexo : '', funcion: laAbrev(p.funcion), curp: laMay(t.curp) }));
+}
+// Lo que la escuela escribió a mano se guarda en este dispositivo, por escuela
+const laClave = cct => 'tequio.listaCte.' + cct;
+const laLeerLocal = cct => { try { const v = JSON.parse(localStorage.getItem(laClave(cct)) || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };
+const laGuardarLocal = (cct, l) => { try { localStorage.setItem(laClave(cct), JSON.stringify(l)); } catch (e) {} };
+
+async function laFirma() {
+  if (LA_FIRMA !== null) return LA_FIRMA;
+  try {
+    if (esAdmin()) LA_FIRMA = (await recursos()).firma || '';
+    else LA_FIRMA = (await api('firmaLista')).firma || '';
+    if (!LA_FIRMA) LA_FIRMA_AVISO = 'La firma digital del Supervisor todavía no está cargada en Tequio; la lista sale con su nombre para firmar a mano.';
+  } catch (e) {
+    LA_FIRMA = '';
+    LA_FIRMA_AVISO = /desconocid/i.test(e.message) ? 'La firma digital aparecerá cuando la Supervisión actualice el servidor de Tequio (versión 24). Mientras, la lista sale con su nombre para firmar a mano.' : 'No se pudo traer la firma digital: ' + e.message;
+  }
+  return LA_FIRMA;
+}
+
+const LA_CSS = `
+.la-hoja{position:relative;width:1056px;height:814px;box-sizing:border-box;padding:34px 46px 26px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;overflow:hidden;display:flex;flex-direction:column}
+.la-hoja *{box-sizing:border-box}
+.la-agua{position:absolute;left:50%;top:54%;width:430px;height:430px;transform:translate(-50%,-50%);opacity:.07;pointer-events:none;z-index:0}
+.la-hoja>*:not(.la-agua):not(.la-folio){position:relative;z-index:1}
+.la-enc{display:grid;grid-template-columns:150px 1fr 150px;align-items:center}
+.la-isep{width:118px;height:67px;object-fit:contain}
+.la-zona{width:78px;height:78px;object-fit:contain;justify-self:end}
+.la-tit{text-align:center;line-height:1.3}
+.la-tit .a{font-size:11px;font-weight:700;color:#691C32;letter-spacing:.02em}
+.la-tit .b{font-size:9.5px;color:#444;margin-bottom:3px}
+.la-tit .c{font-size:17px;font-weight:700;letter-spacing:.01em}
+.la-tit .d{font-size:10.5px;font-weight:700;color:#1E9BE9;margin-top:1px}
+.la-filete{border-top:2.2px solid #691C32;margin:7px 0 9px}
+.la-t{width:100%;border-collapse:collapse;table-layout:fixed}
+.la-t th,.la-t td{border:.8px solid #7F7F7F;text-align:center;vertical-align:middle;padding:1px 3px;overflow:hidden;white-space:nowrap;text-overflow:clip}
+.la-t th{background:#691C32;color:#fff;font-size:8.6px;font-weight:700;letter-spacing:.02em;height:17px}
+.la-t th.s{background:#F2E9EC;color:#691C32;font-size:8px}
+.la-t td{font-size:9.6px;background:rgba(255,255,255,.55)}
+.la-t td.n{background:#F2E9EC;font-weight:700;font-size:9px}
+.la-t td.iz{text-align:left}
+.la-dat td{height:22px;font-size:10px;font-weight:700}
+.la-reg{margin-top:9px}
+.la-pie{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:110px;padding:0 70px}
+.la-fir{text-align:center;position:relative;padding-top:58px}
+.la-fir img{position:absolute;left:50%;transform:translateX(-50%);bottom:24px;height:74px;width:auto;max-width:150px;object-fit:contain}
+.la-fir .r{border-top:1px solid #111;padding-top:3px;font-size:10px;font-weight:700}
+.la-fir .c{font-size:8.3px;color:#444;margin-top:2px}
+.la-folio{position:absolute;right:46px;bottom:9px;font-size:7.5px;color:#777;z-index:1}`;
+
+// La hoja (o las hojas, si el colectivo no cabe en una) en HTML
+function laHtml(d) {
+  const e = ESC_050[d.cct] || [], esc2 = s => esc(s || '');
+  const filas = d.personas.length ? d.personas.slice() : [];
+  const total = d.personas.length ? Math.max(filas.length + (+d.extra || 0), 14) : (+d.renglones || 14);
+  while (filas.length < total) filas.push(null);
+  const hojas = [];
+  for (let i = 0; i < filas.length; i += LA_POR_HOJA) hojas.push(filas.slice(i, i + LA_POR_HOJA));
+  if (!hojas.length) hojas.push([]);
+  const W = [26, 98, 104, 104, 128, 24, 24, 58, 150, 124, 124];
+  const fechaTxt = d.fecha ? d.fecha.split('-').reverse().join('/') : '___ / ___ / ______';
+  return hojas.map((h, ih) => {
+    const alto = Math.min(31, Math.floor(470 / Math.max(h.length, 1)));
+    const cuerpo = h.map((p, k) => `<tr style="height:${alto}px"><td class="n">${ih * LA_POR_HOJA + k + 1}</td>${p
+      ? `<td>${esc2(p.rfc)}</td><td class="iz">${esc2(p.paterno)}</td><td class="iz">${esc2(p.materno)}</td><td class="iz">${esc2(p.nombre)}</td><td>${p.sexo === 'H' ? '✕' : ''}</td><td>${p.sexo === 'M' ? '✕' : ''}</td><td>${esc2(p.funcion)}</td><td>${esc2(p.curp)}</td><td></td><td></td>`
+      : '<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>'}</tr>`).join('');
+    return `<div class="la-hoja">
+      <img class="la-agua" src="img/zona050.png" alt="">
+      <div class="la-enc"><img class="la-isep" src="img/isep.png" alt="ISEP">
+        <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">SUPERVISIÓN ESCOLAR ZONA 050 · EDUCACIÓN PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div>
+          <div class="c">LISTA DE ASISTENCIA · CONSEJO TÉCNICO ESCOLAR</div><div class="d">CICLO ESCOLAR ${esc2(d.ciclo)}</div></div>
+        <img class="la-zona" src="img/zona050.png" alt="Zona 050"></div>
+      <div class="la-filete"></div>
+      <table class="la-t la-dat"><colgroup>${[56, 96, 250, 104, 150, 86, 102, 120].map(w => `<col style="width:${w}px">`).join('')}</colgroup>
+        <tr><th>ZONA</th><th>CLAVE DE CT</th><th>NOMBRE DE LA ESCUELA</th><th>MUNICIPIO</th><th>LOCALIDAD</th><th>TURNO</th><th>FECHA</th><th>SESIÓN</th></tr>
+        <tr><td>050</td><td>${esc2(d.cct)}</td><td>${esc2(laMay(e[0] || nombreEscuela(d.cct)))}</td><td>${esc2(laMay(e[1]))}</td><td>${esc2(laMay(e[2]))}</td><td>${esc2(laMay(e[6] || sisTurno(d.cct)))}</td><td>${esc2(fechaTxt)}</td><td>${esc2(d.sesionTxt)}</td></tr></table>
+      <table class="la-t la-reg"><colgroup>${W.map(w => `<col style="width:${w}px">`).join('')}</colgroup>
+        <thead><tr><th rowspan="2">No.</th><th rowspan="2">RFC</th><th colspan="3">NOMBRE COMPLETO DEL DOCENTE</th><th colspan="2">GÉNERO</th><th rowspan="2">FUNCIÓN</th><th rowspan="2">CURP</th><th colspan="2">FIRMAS</th></tr>
+        <tr><th class="s">APELLIDO PATERNO</th><th class="s">APELLIDO MATERNO</th><th class="s">NOMBRE(S)</th><th class="s">H</th><th class="s">M</th><th class="s">ENTRADA</th><th class="s">SALIDA</th></tr></thead>
+        <tbody>${cuerpo}</tbody></table>
+      <div class="la-pie">
+        <div class="la-fir">${d.firma && d.firmaImg ? `<img src="data:image/png;base64,${d.firmaImg}" alt="Firma">` : ''}<div class="r">${OFI.firmante}</div><div class="c">SUPERVISOR ESCOLAR ZONA 050</div></div>
+        <div class="la-fir"><div class="r">${esc2(e[4] || 'NOMBRE Y FIRMA')}</div><div class="c">${esc2(e[5] || 'DIRECTOR(A)')} · FACILITADOR(A) DE LA SESIÓN · SELLO DE LA ESCUELA</div></div>
+      </div>
+      ${hojas.length > 1 ? `<div class="la-folio">Hoja ${ih + 1} de ${hojas.length}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function laPdf(d) {
+  await cargarScript('lib/html2pdf.bundle.min.js');
+  const caja = document.createElement('div');
+  caja.style.cssText = 'position:fixed;left:-12000px;top:0;width:1056px;background:#fff';
+  caja.innerHTML = `<style>${LA_CSS}.la-doc .la-hoja+.la-hoja{page-break-before:always}</style><div class="la-doc">${laHtml(d)}</div>`;
+  document.body.appendChild(caja);
+  try {
+    await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+    return await window.html2pdf().set({ margin: 0, image: { type: 'jpeg', quality: 0.97 }, html2canvas: { scale: 2.2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }, pagebreak: { mode: ['css', 'legacy'] } }).from(caja.querySelector('.la-doc')).outputPdf('blob');
+  } finally { caja.remove(); }
+}
+
+// Ventana del generador. n = sesión ordinaria desde la que se abre (opcional)
+async function cteListaAsistencia(n, cct0) {
+  const escs = directores();
+  let cct = esDirector() ? miCct() : (cct0 || (escs[0] || {}).cct || '');
+  const sesiones = laSesiones();
+  const st = { ses: laSesionInicial(n), fecha: '', apoyo: false, firma: true, extra: 2, renglones: 14, sinNombres: false, personas: [], origen: '' };
+  st.fecha = (sesiones.find(s => s.v === st.ses) || {}).f || hoy();
+  await conCarga(async () => { await perCargar(); await laFirma(); });
+  const cargarPersonas = () => {
+    const db = laPersonal(cct, st.apoyo), loc = laLeerLocal(cct);
+    if (db.length) { st.personas = db; st.origen = 'db'; }
+    else if (loc && loc.length) { st.personas = loc; st.origen = 'local'; }
+    else { st.personas = []; st.origen = 'vacio'; }
+    st.sinNombres = !st.personas.length;
+  };
+  cargarPersonas();
+  const datos = () => { const s = sesiones.find(x => x.v === st.ses) || {};
+    return { cct, ciclo: cteCiclo(), fecha: st.fecha, sesionTxt: s.cel || '', personas: st.sinNombres ? [] : st.personas, extra: st.sinNombres ? 0 : st.extra, renglones: st.renglones, firma: st.firma, firmaImg: LA_FIRMA }; };
+  const fila = (p, i) => `<tr data-lai="${i}">
+    <td><input data-lk="paterno" value="${esc(p.paterno)}" aria-label="Apellido paterno"></td><td><input data-lk="materno" value="${esc(p.materno)}" aria-label="Apellido materno"></td>
+    <td><input data-lk="nombre" value="${esc(p.nombre)}" aria-label="Nombre(s)"></td><td><input data-lk="rfc" value="${esc(p.rfc)}" maxlength="13" aria-label="RFC"></td>
+    <td><input data-lk="curp" value="${esc(p.curp)}" maxlength="18" aria-label="CURP"></td>
+    <td><select data-lk="sexo" aria-label="Género"><option value="">—</option><option ${p.sexo === 'H' ? 'selected' : ''}>H</option><option ${p.sexo === 'M' ? 'selected' : ''}>M</option></select></td>
+    <td><input data-lk="funcion" value="${esc(p.funcion)}" list="la-funcs" aria-label="Función"></td>
+    <td><button class="icono-btn" data-laq="${i}" aria-label="Quitar" title="Quitar">${ico('i-x')}</button></td></tr>`;
+  const origenTxt = () => st.origen === 'db' ? `Tomados de la base de datos del personal (${st.personas.length}). Puede corregir, quitar o agregar; los cambios solo son para esta lista.`
+    : st.origen === 'local' ? 'Es la lista que se capturó en este dispositivo. Puede corregirla.' : 'Esta escuela todavía no tiene su personal en la base de datos. Puede imprimir la lista sin nombres o escribirlos aquí (se guardan en este dispositivo).';
+  const pintar = () => {
+    const v = modal('Lista de asistencia del CTE', `<style>${LA_CSS}
+      .la-form .fila{display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:10px}@media (max-width:700px){.la-form .fila{grid-template-columns:1fr}}
+      .la-ed{width:100%;min-width:900px;border-collapse:collapse;font-size:13px;table-layout:fixed}.la-ed th:nth-child(6){width:64px}.la-ed th:nth-child(7){width:110px}.la-ed th:nth-child(8){width:44px}.la-ed th:nth-child(4){width:130px}.la-ed th:nth-child(5){width:170px}.la-ed td{padding:2px}.la-ed th{font-size:11.5px;text-align:left;color:var(--gris);padding:2px 4px}
+      .la-ed input,.la-ed select{width:100%;padding:5px 6px;font-size:13px;text-transform:uppercase}
+      .la-prev{overflow:auto;border:1px solid var(--borde);border-radius:10px;background:#e9e6e0;padding:10px;margin-top:12px}
+      .la-esc{transform-origin:top left}.la-esc .la-hoja{box-shadow:0 2px 10px rgba(0,0,0,.15);margin-bottom:10px}</style>
+      <div class="la-form">
+      <div class="fila">
+        <div class="campo"><label for="la-ses">Sesión</label><select id="la-ses">${sesiones.map(s => `<option value="${s.v}" ${s.v === st.ses ? 'selected' : ''}>${esc(s.t)}${s.f ? ' · ' + esc(fechaCorta(s.f)) : ''}</option>`).join('')}</select></div>
+        <div class="campo"><label for="la-fec">Fecha</label><input type="date" id="la-fec" value="${esc(st.fecha)}"></div>
+        <div class="campo"><label for="la-esc">Escuela</label>${esDirector() ? `<input id="la-esc" value="${esc(nombreEscuela(cct))}" disabled>` : `<select id="la-esc">${escs.map(c => `<option value="${c.cct}" ${c.cct === cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>`}</div>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 8px">
+        <label class="casilla" style="margin:0"><input type="checkbox" id="la-sin" ${st.sinNombres ? 'checked' : ''}> Imprimir sin nombres (para llenarla a mano)</label>
+        <label class="casilla" style="margin:0"><input type="checkbox" id="la-apo" ${st.apoyo ? 'checked' : ''} ${st.sinNombres ? 'disabled' : ''}> Incluir personal de apoyo (intendentes, veladores)</label>
+        <label class="casilla" style="margin:0"><input type="checkbox" id="la-fir" ${st.firma ? 'checked' : ''} ${LA_FIRMA ? '' : 'disabled'}> Firma digital del Supervisor</label>
+      </div>
+      ${LA_FIRMA_AVISO ? `<div class="aviso-caja peq" style="margin:0 0 8px">${esc(LA_FIRMA_AVISO)}</div>` : ''}
+      ${st.sinNombres ? `<div class="campo" style="max-width:260px"><label for="la-ren">Renglones</label><select id="la-ren">${[10, 12, 14, 16, 18, 20].map(x => `<option ${x === st.renglones ? 'selected' : ''}>${x}</option>`).join('')}</select></div>`
+      : `<details open class="sis-mas"><summary>Personal en la lista · ${st.personas.length}</summary>
+        <p class="peq mudo" style="margin:6px 0">${esc(origenTxt())} El director no aparece en la tabla: firma abajo, donde va su nombre.</p>
+        <div style="overflow-x:auto"><table class="la-ed"><thead><tr><th>Ap. paterno</th><th>Ap. materno</th><th>Nombre(s)</th><th>RFC</th><th>CURP</th><th>H/M</th><th>Función</th><th></th></tr></thead>
+        <tbody>${st.personas.map(fila).join('')}</tbody></table></div>
+        <datalist id="la-funcs">${LA_FUNC_OPC.map(x => `<option value="${x}">`).join('')}</datalist>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="boton sec" id="la-add">${ico('i-mas')}Agregar persona</button>
+          ${st.origen !== 'vacio' && laPersonal(cct, st.apoyo).length ? '<button class="boton sec" id="la-rest">Volver a la base de datos</button>' : ''}
+          <label class="peq" style="display:flex;gap:6px;align-items:center">Renglones en blanco al final (la hoja lleva al menos 14) <select id="la-ext">${[0, 1, 2, 3, 4, 5].map(x => `<option ${x === +st.extra ? 'selected' : ''}>${x}</option>`).join('')}</select></label></div></details>`}
+      <div class="la-prev" id="la-prev"></div></div>`,
+      `<button class="boton sec" id="la-cerrar">Cerrar</button><button class="boton terra" id="la-pdf">${ico('i-carpeta')}Descargar PDF</button>`);
+    v.querySelector('.modal').classList.add('ancha');
+    previa();
+    $('#la-cerrar').onclick = cerrarModal;
+    $('#la-ses').onchange = e => { st.ses = e.target.value; const s = sesiones.find(x => x.v === st.ses); if (s && s.f) st.fecha = s.f; $('#la-fec').value = st.fecha; previa(); };
+    $('#la-fec').onchange = e => { st.fecha = e.target.value; previa(); };
+    if (!esDirector()) $('#la-esc').onchange = e => { cct = e.target.value; st.apoyo = false; cargarPersonas(); pintar(); };
+    $('#la-sin').onchange = e => { st.sinNombres = e.target.checked; if (!st.sinNombres && !st.personas.length) st.personas.push({ rfc: '', paterno: '', materno: '', nombre: '', sexo: '', funcion: 'DOC.', curp: '' }); pintar(); };
+    if ($('#la-apo')) $('#la-apo').onchange = e => { st.apoyo = e.target.checked; if (st.origen === 'db') st.personas = laPersonal(cct, st.apoyo); pintar(); };
+    $('#la-fir').onchange = e => { st.firma = e.target.checked; previa(); };
+    if ($('#la-ren')) $('#la-ren').onchange = e => { st.renglones = +e.target.value; previa(); };
+    if ($('#la-ext')) $('#la-ext').onchange = e => { st.extra = +e.target.value; previa(); };
+    if ($('#la-add')) $('#la-add').onclick = () => { st.personas.push({ rfc: '', paterno: '', materno: '', nombre: '', sexo: '', funcion: 'DOC.', curp: '' }); if (st.origen === 'vacio') st.origen = 'local'; pintar(); };
+    if ($('#la-rest')) $('#la-rest').onclick = () => { st.personas = laPersonal(cct, st.apoyo); st.origen = 'db'; pintar(); };
+    let tp;
+    $$('[data-lai] [data-lk]').forEach(inp => inp.oninput = inp.onchange = () => {
+      const i = +inp.closest('[data-lai]').dataset.lai, k = inp.dataset.lk;
+      st.personas[i][k] = k === 'sexo' ? inp.value : laMay(inp.value);
+      if (st.origen !== 'db') laGuardarLocal(cct, st.personas);
+      clearTimeout(tp); tp = setTimeout(previa, 350);
+    });
+    $$('[data-laq]').forEach(b => b.onclick = () => { st.personas.splice(+b.dataset.laq, 1); if (st.origen !== 'db') laGuardarLocal(cct, st.personas); pintar(); });
+    $('#la-pdf').onclick = async () => {
+      const blob = await conCarga(() => laPdf(datos())); if (!blob) return;
+      const s = sesiones.find(x => x.v === st.ses) || {};
+      descargarBlob(blob, `Lista de asistencia CTE · ${s.t || ''} · ${nombreEscuela(cct)}.pdf`.replace(/[\\/:*?"<>|]+/g, ' '));
+      aviso('Lista descargada. Imprímala en hoja carta, horizontal y sin ajustar a la página.', 'ok', 5000);
+    };
+  };
+  function previa() {
+    const caja = $('#la-prev'); if (!caja) return;
+    const ancho = Math.max(caja.clientWidth - 20, 300), k = Math.min(1, ancho / 1056);
+    caja.innerHTML = `<div class="la-esc" style="transform:scale(${k.toFixed(4)});width:1056px">${laHtml(datos())}</div>`;
+    const esc_ = caja.firstElementChild; caja.style.height = Math.ceil(esc_.scrollHeight * k + 22) + 'px';
+  }
+  pintar();
 }
 
 async function cteSubirArchivos(n, cct, tipo, item, etiqueta, files) {
