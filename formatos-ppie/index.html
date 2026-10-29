@@ -2808,6 +2808,7 @@ async function accesoGate(){
   try{const r=await fetch("formatos/acceso.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;ACC=await r.json();store.set("acc-cache",ACC)}catch(e){ACC=store.get("acc-cache",null)}
   if(!ACC||!ACC.activo)return true;
   if(store.get("gh-token",""))return true; // la Supervisión siempre entra
+  if(DEMO&&ACC.demoVence&&Date.now()<Date.parse(ACC.demoVence))return true; // demostración abierta (solo datos ficticios) hasta la fecha fijada en acceso.json
   const tok=store.get("acc-token","");if(!tok)return false;
   const h=await sha256(tok);const e=(ACC.enlaces||[]).find(x=>x.h===h);ACC_YO=e||null;
   return accEstado(e,ACC.generacion)==="vigente"}
