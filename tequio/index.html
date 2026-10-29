@@ -7847,7 +7847,8 @@ function laPersonal(cct, apoyo) {
 }
 // Escuelas multigrado: sesionan juntas. Dirige los trabajos la encargada de la Margarita Maza de Juárez
 const LA_MULTI = 'multi', LA_MULTI_SEDE = '02DPR0378F';
-const laMultis = () => directores().filter(c => c.multigrado).sort((a, b) => (a.cct === LA_MULTI_SEDE ? -1 : b.cct === LA_MULTI_SEDE ? 1 : a.escuela.localeCompare(b.escuela, 'es')));
+// Las multigrado de turno vespertino (Luis Donaldo Colosio Murrieta) no entran a la sesión conjunta: sesionan solas
+const laMultis = () => directores().filter(c => c.multigrado && !SIS_VESPERTINAS.includes(c.cct)).sort((a, b) => (a.cct === LA_MULTI_SEDE ? -1 : b.cct === LA_MULTI_SEDE ? 1 : a.escuela.localeCompare(b.escuela, 'es')));
 const laAbrevMulti = f => /^director/i.test(f || '') ? 'ENC. DESP.' : laAbrev(f);
 // Todo el personal de las escuelas multigrado; los encargados de despacho firman en la tabla, salvo quien dirige los trabajos (firma abajo)
 function laPersonalMulti(apoyo) {
