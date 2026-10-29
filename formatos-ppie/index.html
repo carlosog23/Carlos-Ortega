@@ -4952,18 +4952,29 @@ function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-pas
    <p>Bienvenida, bienvenido. Esta es una escuela de ejemplo con sus datos ya capturados, para que vea cómo Tlamatini <b>llena solo los formatos</b> y le ahorra tiempo. Toque cualquier opción para probarla:</p>
    <div class="demo-pasos">
     ${p("perfil","1 · Datos de mi escuela","Se capturan una sola vez y aparecen en todos los formatos.")}
-    ${p("dx","2 · Lectura de la realidad","Ya tiene un ejemplo de 4.° A respondido. Descárguelo en Word o PDF.")}
-    ${p("pmce","3 · Programa de Mejora Continua","Retoma la lectura de la realidad para armar objetivos, metas y acciones.")}
-    ${p("pa","4 · Programa Analítico","Contenidos y PDA oficiales por campo formativo, para ordenar y codiseñar.")}
-    ${p("plan","5 · Planeación didáctica","Desde el analítico: metodología, secuencia y evaluación formativa.")}
-    ${p("ppie","6 · Protección escolar (PPIE)","Los anexos oficiales A al I, llenados paso a paso, sin alterar el formato.")}
-    ${p("recado","7 · Comunicación con familias","Recados, citatorios y autorizaciones con logo y firma digital.")}
-    ${p("firmas","8 · Libro de firmas","Hojas diarias con las fechas del calendario oficial, listas para imprimir.")}
-    ${p("laboral","9 · Laboral","Licencias, actualización de datos, correo institucional y CURP.")}
-    ${p("calendario","10 · Calendario escolar","CTE, suspensiones y vacaciones del ciclo vigente.")}
-    ${p("normas","11 · Normatividad","Leyes, acuerdos, protocolos y libros de texto a la mano.")}
+    ${p("misalumnos","2 · Mis alumnos","Base ficticia de 4.° A con tutores, emergencias, salud, apoyos, una alta y una baja. Con ella se llenan solos los formatos.")}
+    ${p("maestros","3 · Personal de la escuela","Directorio del personal con grado y grupo; alimenta la minuta de CTE y la plantilla.")}
+    ${p("dx","4 · Lectura de la realidad","Ya tiene un ejemplo de 4.° A respondido. Descárguelo en Word o PDF.")}
+    ${p("pmce","5 · Programa de Mejora Continua","Retoma la lectura de la realidad para armar objetivos, metas y acciones.")}
+    ${p("pa","6 · Programa Analítico","Contenidos y PDA oficiales por campo formativo, para ordenar y codiseñar.")}
+    ${p("plan","7 · Planeación didáctica","Desde el analítico: metodología, secuencia y evaluación formativa.")}
+    ${p("cte","8 · Consejo Técnico Escolar","Minuta formal con el personal de la escuela ya cargado.")}
+    ${p("ppie","9 · Protección escolar (PPIE)","Los anexos oficiales A al I; elija un alumno de la lista y sus datos se llenan solos.")}
+    ${p("familias","10 · Comunicación con familias","Recados, citatorios y autorizaciones, a un alumno o a todo el grupo.")}
+    ${p("asistencia","11 · Lista de asistencia mensual","El grupo de 4.° A ya cargado, con los días hábiles del calendario oficial.")}
+    ${p("estadistica","12 · Estadística de edades","Edades al 1 de septiembre calculadas desde la base de alumnos.")}
+    ${p("reconocimientos","13 · Reconocimientos y diplomas","Elija el grupo y genere los reconocimientos de todos en un paso.")}
+    ${p("pases","14 · Pases de salida","Libro foliado de pases de salida anticipada para el aula.")}
+    ${p("firmas","15 · Libro de firmas","Hojas diarias con las fechas del calendario oficial, listas para imprimir.")}
+    ${p("visitas","16 · Libro de visitas","Libro foliado de registro de visitas a la escuela.")}
+    ${p("consejo","17 · Consejo de Participación Escolar","Convocatoria, lista, minuta de instalación y comités, ya capturados.")}
+    ${p("inventario","18 · Inventario de recursos materiales","Formato con bienes de ejemplo y el responsable del centro de trabajo.")}
+    ${p("becas","19 · Becas","Formato Único de Beca con los datos de la escuela.")}
+    ${p("laboral","20 · Laboral","Licencias, actualización de datos, correo institucional y CURP.")}
+    ${p("calendario","21 · Calendario escolar","CTE, suspensiones y vacaciones del ciclo vigente.")}
+    ${p("normas","22 · Normatividad","Leyes, acuerdos, protocolos y libros de texto a la mano.")}
    </div>
-   <p class="help">Salario anual, estadística de edades y extracción de datos de alumnos funcionan con sus propios PDF (talones o reportes de inscripción); puede probarlos con los suyos, nada sale de su equipo.</p>
+   <p class="help">Todos los nombres, CURP, RFC y teléfonos de esta demostración son inventados. El salario anual y la extracción de datos desde PDF funcionan con sus propios archivos (talones o reportes de RELweb); puede probarlos con los suyos, nada sale de su equipo.</p>
    <div class="acts"><button type="button" class="btn ghost act" id="demoFin" onclick="demoSalir()">Terminar la demostración</button></div></section>`}
 if(DEMO&&!store.get("ppie-dx",null)){try{
   DX={nivel:"grupo",grupo:dxNuevo("grupo")};const C=DX.grupo;
@@ -5537,6 +5548,71 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
   if(typeof asSave==="function")asSave();asView()});
 function dirBotonAsistencia(){return DIR.alumnos.length?`<button type="button" class="btn ghost" id="as_dir" style="margin-top:8px;width:100%">Usar mis alumnos del directorio</button>`:""}
 REABRIR.dir=()=>dirView();if(typeof DEMO_IR!=="undefined")DEMO_IR.directorio=()=>dirView();
+/* ---------- Demostración: base de datos ficticia (maestros y alumnos de la escuela de ejemplo) ----------
+   Solo existe en la memoria temporal de la demostración; no toca datos reales. Todos los nombres, CURP, RFC y teléfonos son inventados. */
+if(DEMO&&!DIR.alumnos.length&&!DIR.maestros.length){try{
+  const sin=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/Ñ/g,"X");
+  const voc=s=>{s=sin(s);for(let i=1;i<s.length;i++)if("AEIOU".includes(s[i]))return s[i];return"X"};
+  const con=s=>{s=sin(s);for(let i=1;i<s.length;i++)if(/[B-DF-HJ-NP-TV-Z]/.test(s[i]))return s[i];return"X"};
+  const curp=(a1,a2,n,sx,f)=>{const n1=sin(n).split(" ")[0];const b=sin(a1)[0]+voc(a1)+sin(a2)[0]+n1[0]+f.slice(2,4)+f.slice(5,7)+f.slice(8,10)+sx+"BC"+con(a1)+con(a2)+con(n1)+(+f.slice(0,4)>=2000?"A":"0");return b+curpDV(b)};
+  const dmy=f=>f.slice(8,10)+"/"+f.slice(5,7)+"/"+f.slice(0,4);
+  const tel=i=>"616 555 "+String(1000+i*37).slice(-4);
+  const calles=["Calle Revolución","Calle Benito Juárez","Av. Del Pacífico","Calle Lázaro Cárdenas","Calle Emiliano Zapata","Calle Francisco Villa","Calle Miguel Hidalgo","Calle Venustiano Carranza"];
+  const mamas=["María Elena","Guadalupe","Rosa Isela","Ana Laura","Yesenia","Claudia","Verónica","Leticia","Karina","Patricia","Araceli","Norma"];
+  const papas=["José Luis","Juan Carlos","Miguel Ángel","Francisco","Ramiro","Jesús","Alejandro","Martín","Roberto","Héctor","Gerardo","Arturo"];
+  /* [apellido1, apellido2, nombre(s), sexo, nacimiento, grado, grupo, extras] */
+  const A=[
+   ["Aguilar","Medina","Sofía","M","2016-11-14","4","A",{alergias:"Penicilina"}],
+   ["Bautista","Cruz","Diego Alejandro","H","2017-02-03","4","A",{}],
+   ["Camacho","Ruiz","Valeria","M","2016-09-22","4","A",{}],
+   ["Castro","López","Ángel Gabriel","H","2017-05-30","4","A",{bap:"Dificultad en la comprensión lectora; se trabaja con lecturas breves y apoyo visual.",usaer:true}],
+   ["Domínguez","Flores","Ximena","M","2017-01-18","4","A",{}],
+   ["Espinoza","García","Mateo","H","2016-10-09","4","A",{sangre:"O+"}],
+   ["Félix","Hernández","Camila","M","2017-07-25","4","A",{}],
+   ["Gómez","Ibarra","Santiago","H","2016-12-01","4","A",{padec:"Asma",medic:"Salbutamol en inhalador (lo trae en la mochila)"}],
+   ["González","Juárez","Regina","M","2017-03-11","4","A",{}],
+   ["Hernández","Lara","Emiliano","H","2016-05-27","4","A",{obs:"Se incorporó en el ciclo anterior procedente de Oaxaca."}],
+   ["Ibarra","Martínez","Renata","M","2017-08-06","4","A",{}],
+   ["Jiménez","Nava","Leonardo","H","2016-09-15","4","A",{}],
+   ["López","Ortiz","Natalia","M","2017-04-02","4","A",{alergias:"Cacahuate"}],
+   ["Martínez","Pérez","Sebastián","H","2016-11-28","4","A",{}],
+   ["Mendoza","Quintero","Daniela","M","2017-06-19","4","A",{}],
+   ["Morales","Ramírez","Iker","H","2017-02-24","4","A",{bap:"Requiere apoyo en atención y seguimiento de indicaciones.",usaer:true}],
+   ["Navarro","Sánchez","Paola","M","2016-10-30","4","A",{}],
+   ["Ortega","Torres","Gael","H","2017-01-07","4","A",{}],
+   ["Pérez","Valdez","Mariana","M","2016-12-16","4","A",{}],
+   ["Ramírez","Zamora","Alexander","H","2017-07-12","4","A",{}],
+   ["Reyes","Acosta","Isabella","M","2017-03-29","4","A",{sangre:"A+"}],
+   ["Rodríguez","Beltrán","Joaquín","H","2016-09-04","4","A",{}],
+   ["Salazar","Cervantes","Fernanda","M","2017-05-08","4","A",{}],
+   ["Vargas","Delgado","Thiago","H","2016-11-03","4","A",{}],
+   ["Álvarez","Soto","Luciana","M","2018-10-12","2","A",{}],["Barrera","Luna","Matías","H","2019-02-21","2","A",{}],["Cortés","Rivas","Abril","M","2018-12-05","2","A",{}],
+   ["Durán","Peña","Kevin","H","2019-06-14","2","A",{}],["Estrada","Mora","Victoria","M","2018-09-30","2","A",{}],["Fuentes","Vega","Bruno","H","2019-04-17","2","A",{}],
+   ["Galindo","Ochoa","Ana Paula","M","2014-10-20","6","B",{}],["Herrera","Pacheco","Ricardo","H","2015-03-02","6","B",{vaSolo:true}],["Lozano","Quiroz","Andrea","M","2015-01-26","6","B",{}],
+   ["Meza","Romero","Óscar","H","2014-12-08","6","B",{vaSolo:true}],["Núñez","Silva","Frida","M","2015-07-15","6","B",{}],["Palacios","Tapia","Emmanuel","H","2015-05-04","6","B",{}]];
+  DIR.alumnos=A.map(([a1,a2,n,sx,f,gr,gp,x],i)=>{const m=mamas[i%mamas.length]+" "+a2+" "+["Rojas","León","Vidal","Campos","Ríos","Solís"][i%6],p=papas[(i*5)%papas.length]+" "+a1+" "+["Castillo","Moreno","Guzmán","Rosales","Mejía","Ayala"][(i+2)%6];
+    const o={id:"demo-a"+i,nombre:`${a1} ${a2} ${n}`,curp:curp(a1,a2,n,sx,f),grado:gr,grupo:gp,fnac:dmy(f),sexo:sx==="H"?"Hombre":"Mujer",domicilio:`${calles[i%calles.length]} ${100+i*7}, Camalú, San Quintín, B.C.`,
+      t1nom:m,t1par:"Madre",t1tel:tel(i),t2nom:p,t2par:"Padre",t2tel:tel(i+60),correo:"",
+      e1nom:["Juana","Teresa","Lucía","Carmen"][i%4]+" "+a2+" "+["Rojas","León","Vidal","Campos"][i%4],e1par:"Abuela",e1tel:tel(i+120),e2nom:"",e2par:"",e2tel:"",
+      vaSolo:false,recogen:`${m} · Madre\n${p} · Padre`,sangre:"",alergias:"",padec:"",medic:"",bap:"",usaer:false,apoyo:"",obs:"",alta:"",baja:"",bajaMotivo:""};
+    return Object.assign(o,x)});
+  /* una alta y una baja durante el ciclo, para que se vea cómo funcionan */
+  DIR.alumnos.push({id:"demo-alta",nombre:"Zúñiga Bravo Itzel",curp:curp("Zúñiga","Bravo","Itzel","M","2017-04-21"),grado:"4",grupo:"A",fnac:"21/04/2017",sexo:"Mujer",domicilio:"Calle Miguel Hidalgo 245, Camalú, San Quintín, B.C.",t1nom:"Claudia Bravo Ríos",t1par:"Madre",t1tel:"616 555 4410",t2nom:"",t2par:"",t2tel:"",correo:"",e1nom:"Teresa Bravo León",e1par:"Abuela",e1tel:"616 555 4411",e2nom:"",e2par:"",e2tel:"",vaSolo:false,recogen:"Claudia Bravo Ríos · Madre",sangre:"",alergias:"",padec:"",medic:"",bap:"",usaer:false,apoyo:"",obs:"Alta por cambio de domicilio desde Ensenada.",alta:"13/10/2026",baja:"",bajaMotivo:""});
+  DIR.alumnos.push({id:"demo-baja",nombre:"Vega Corona Brandon",curp:curp("Vega","Corona","Brandon","H","2016-10-02"),grado:"4",grupo:"A",fnac:"02/10/2016",sexo:"Hombre",domicilio:"",t1nom:"Norma Corona Mejía",t1par:"Madre",t1tel:"616 555 4420",t2nom:"",t2par:"",t2tel:"",correo:"",e1nom:"",e1par:"",e1tel:"",e2nom:"",e2par:"",e2tel:"",vaSolo:false,recogen:"",sangre:"",alergias:"",padec:"",medic:"",bap:"",usaer:false,apoyo:"",obs:"",alta:"",baja:"25/09/2026",bajaMotivo:"Cambio de domicilio"});
+  /* personal de la escuela de ejemplo */
+  const M=[["Mtro. Ramón Ejemplo Torres","Director(a)","",""],["Profra. Alma Ejemplo Rosas","Docente frente a grupo","1","A"],["Profra. Mónica Ejemplo Díaz","Docente frente a grupo","2","A"],
+    ["Profr. Hugo Ejemplo Salas","Docente frente a grupo","3","A"],[perfil.minombre,"Docente frente a grupo","4","A"],["Profr. Iván Ejemplo Rocha","Docente frente a grupo","5","A"],
+    ["Profra. Silvia Ejemplo Lugo","Docente frente a grupo","6","B"],["Profr. Raúl Ejemplo Vela","Docente de Educación Física","",""],["Profra. Diana Ejemplo Ponce","Maestro(a) de USAER","",""],
+    ["C. Pedro Ejemplo Ávila","Personal de apoyo y asistencia","",""]];
+  DIR.maestros=M.map(([n,fn,gr,gp],i)=>({id:"demo-m"+i,nombre:n,funcion:fn,grado:gr,grupo:gp,rfc:(()=>{const p=sin(n.replace(/^(Mtr[oa]|Prof(r|ra)?|C)\.\s*/,"")).split(" ");return p[1].slice(0,2)+p[2][0]+p[0][0]+String(75+i*2).slice(-2)+String(1+i%12).padStart(2,"0")+String(3+i*2).padStart(2,"0")+"XX"+(i%10)})(),curp:"",celular:tel(i+200),correo:""}));
+  DIR.yo="demo-m4";DIR.escCct=perfil.cct;
+  DIR.escuelas=[{id:"demo-esc",nombre:perfil.escuela,cct:perfil.cct,turno:"Matutino",organizacion:"Completa",municipio:perfil.municipio,localidad:perfil.localidad,domicilio:perfil.domicilio,telefono:"616 555 0000",director:perfil.director,cargoDir:"Director(a)",correo:""}].concat(dirEscuelasBase());
+  dirSave();
+  /* lista de asistencia mensual con el grupo de 4.° A ya cargado */
+  if(typeof AS!=="undefined"&&!AS&&typeof asNuevo==="function"){AS=asNuevo();const L=DIR.alumnos.filter(a=>dirActivo(a)&&a.grado==="4"&&a.grupo==="A").sort(dirOrden);AS.alumnos=L.map(a=>a.nombre).join("\n");AS.grado="4";AS.grupo="A";AS.origen=`${L.length} alumnos tomados del directorio.`;asSave()}
+}catch(e){console.warn("demo dir",e)}}
+if(DEMO&&typeof DEMO_IR!=="undefined"){Object.assign(DEMO_IR,{misalumnos:()=>{S.dirGrupo=undefined;dirView("alumnos")},maestros:()=>dirView("maestros"),
+  reconocimientos:()=>sectionView("reconocimientos"),becas:()=>sectionView("becas"),familias:()=>sectionView("familias"),misdocs:()=>sectionView("misdocs")})}
 </script>
 <script>
 /* Dictado por voz · Tlamatini y Tequio
