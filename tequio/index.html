@@ -553,6 +553,36 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .cte-m{display:inline-block;white-space:nowrap;min-width:34px;padding:1px 8px;border-radius:999px;font-weight:700;font-size:13px;background:var(--arena-2)}
 .cte-m.ok{background:var(--ok-f);color:var(--ok)}
 .cte-m.mal{background:var(--alerta-f);color:var(--alerta)}
+/* Visitas de la Mesa Técnica al CTE */
+.ctv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-items:start}
+.ctv-grid .ctv-ancho{grid-column:1/-1}
+@media (max-width:900px){.ctv-grid{grid-template-columns:1fr}}
+@media (max-width:600px){.ctv-grid .fila.dos{grid-template-columns:1fr}}
+.ctv-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ctv-auto div{background:var(--arena-2);border-radius:9px;padding:7px 10px;display:flex;flex-direction:column;min-width:0}
+.ctv-auto span{font-size:12.5px;color:var(--gris)}.ctv-auto b{overflow-wrap:anywhere}
+.ctv-pct{min-height:42px;display:flex;align-items:center;font-size:20px;font-weight:800;color:var(--indigo)}
+.ctv-asp{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde);flex-wrap:wrap}
+.ctv-asp:last-of-type{border-bottom:0}
+.ctv-sem{display:flex;gap:5px;flex-wrap:wrap}
+.ctv-op{font:inherit;font-size:13px;font-weight:600;padding:6px 11px;min-height:36px;border-radius:999px;border:1px solid var(--borde);background:#fff;color:var(--gris);cursor:pointer}
+.ctv-op.sel{border-color:transparent;background:var(--arena-2);color:var(--tinta,#222)}
+.ctv-op.ok.sel{background:var(--ok-f);color:var(--ok)}.ctv-op.aviso.sel{background:var(--aviso-f);color:#8A5A0B}.ctv-op.mal.sel{background:var(--alerta-f);color:var(--alerta)}
+.ctv-op:disabled{cursor:default}
+.ctv-fotos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:600px){.ctv-fotos{grid-template-columns:1fr}}
+.ctv-foto{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ctv-foto input{border:1px solid var(--borde);border-radius:9px;padding:8px 10px;min-height:40px;width:100%}
+.ctv-img{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--arena-2)}
+.ctv-img img{width:100%;height:100%;object-fit:cover;display:block}
+.ctv-cargando{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--gris);font-size:13px}
+.ctv-quitar{position:absolute;top:6px;right:6px;background:#fff}
+.ctv-nueva{aspect-ratio:4/3;border:1.5px dashed var(--borde);border-radius:10px;background:#fff;align-items:center;justify-content:center;cursor:pointer;font:inherit;color:var(--indigo)}
+.ctv-nueva:hover{border-color:var(--indigo)}
+.ctv-vacia{aspect-ratio:4/3;border:1px dashed var(--borde);border-radius:10px;opacity:.5}
+.ctv-fila{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;width:100%;text-align:left;font:inherit;color:inherit;background:var(--arena-2);border:1px solid transparent;border-radius:10px;padding:8px 10px;margin-top:6px;cursor:pointer}
+.ctv-fila:hover{border-color:var(--indigo)}
+.ctv-barra{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:6px 0 30px}
 @media (max-width:760px){.nav-movil{overflow-x:auto}.nav-movil button{min-width:56px}}
 </style>
 </head>
@@ -738,7 +768,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-28-0730';
+const PUBLICACION = '2026-10-30-0930';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -872,7 +902,7 @@ function pintar() {
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
   ({ agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos })[vista.tab]();
@@ -7499,7 +7529,18 @@ const Demo = (() => {
       nuevas.forEach(a => D.act.push(a));
       return { reunion: copia(reu), acuerdos: copia(acs), act: copia(nuevas) };
     },
-    cteDatos: d => { D.cte = D.cte || []; D.cta = D.cta || []; const c = D.yo.rol === 'director' ? D.yo.cct : null; return { cte: copia(D.cte.filter(x => x.ciclo === d.ciclo)), cta: copia(D.cta.filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))), ctr: copia((D.ctr || []).filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))) }; },
+    cteDatos: d => { D.cte = D.cte || []; D.cta = D.cta || []; const c = D.yo.rol === 'director' ? D.yo.cct : null; const r = { cte: copia(D.cte.filter(x => x.ciclo === d.ciclo)), cta: copia(D.cta.filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))), ctr: copia((D.ctr || []).filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))) };
+      if (!c) r.ctv = copia((D.ctv || []).filter(x => x.ciclo === d.ciclo && x.activo !== false)); return r; },
+    cteVisitaGuardar: d => { D.ctv = D.ctv || []; let o = d.id ? D.ctv.find(x => x.id === d.id) : null;
+      if (!o) { o = { id: uid('ctv'), ciclo: d.ciclo, fotos: [], visitoPor: D.yo.id, visitoNombre: D.yo.nombre, visitoCargo: D.yo.rol === 'admin' ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora(), activo: true }; D.ctv.push(o); }
+      const pies = {}; (d.fotos || []).forEach(f => { pies[f.id] = f.pie; });
+      ['sesion', 'cct', 'fecha', 'horaIni', 'horaFin', 'total', 'asistentes', 'ausencias', 'aspectos', 'actividades', 'fortalezas', 'oportunidad', 'acuerdos', 'seguimiento', 'estado'].forEach(k => { o[k] = d[k]; });
+      o.fotos = o.fotos.map(f => Object.assign({}, f, f.id in pies ? { pie: pies[f.id] } : {})); o.actualizado = ahora(); return { ctv: copia(o) }; },
+    cteVisitaFoto: d => { const o = (D.ctv || []).find(x => x.id === d.id); if (o.fotos.length >= 3) throw new Error('La visita ya tiene 3 fotos.');
+      const id = uid('fot'); D.ctvImg = D.ctvImg || {}; D.ctvImg[id] = { mime: d.mime, datos: d.datos }; o.fotos.push({ id, nombre: d.nombre, url: '', pie: '', por: D.yo.nombre, fecha: ahora() }); return { ctv: copia(o) }; },
+    cteVisitaQuitarFoto: d => { const o = (D.ctv || []).find(x => x.id === d.id); o.fotos = o.fotos.filter(f => f.id !== d.fotoId); return { ctv: copia(o) }; },
+    cteVisitaFotosDatos: d => { const o = (D.ctv || []).find(x => x.id === d.id) || { fotos: [] }; return { fotos: o.fotos.map(f => Object.assign({ id: f.id }, (D.ctvImg || {})[f.id] || { error: true })) }; },
+    cteVisitaBorrar: d => { D.ctv = (D.ctv || []).filter(x => x.id !== d.id); return { id: d.id }; },
     cteConfig: d => { D.cte = D.cte || []; const id = d.ciclo + '-' + d.sesion; const o = D.cte.find(x => x.id === id) || { id, ciclo: d.ciclo, sesion: String(d.sesion), presentacion: [], cuadernillo: [], insumos: [], evid: [], prod: [] };
       ['fecha', 'titulo', 'evid', 'prod'].forEach(k => { if (d[k] != null) o[k] = d[k]; }); poner(D.cte, o); return { cte: copia(D.cte.filter(x => x.ciclo === d.ciclo)) }; },
     cteSubirInsumo: d => { D.cte = D.cte || []; const id = d.ciclo + '-' + d.sesion; const o = D.cte.find(x => x.id === id) || { id, ciclo: d.ciclo, sesion: String(d.sesion), presentacion: [], cuadernillo: [], insumos: [], evid: [], prod: [] };
@@ -7538,7 +7579,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos'];
+  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
@@ -7608,7 +7649,7 @@ const ctePendTexto = r => r.est === 'incompleto' ? 'está incompleto o no coinci
   : r.est === 'sin' ? 'no se encontró la evidencia.' + (r.rev && r.rev.nota ? ' ' + r.rev.nota : '') : 'aún no se ha subido.';
 
 async function cteCargar() {
-  try { const r = await api('cteDatos', { ciclo: cteCiclo() }); S.cteD = { ciclo: cteCiclo(), cte: r.cte || [], cta: r.cta || [], ctr: r.ctr || [], sinRev: !Array.isArray(r.ctr) }; }
+  try { const r = await api('cteDatos', { ciclo: cteCiclo() }); S.cteD = { ciclo: cteCiclo(), cte: r.cte || [], cta: r.cta || [], ctr: r.ctr || [], sinRev: !Array.isArray(r.ctr), ctv: Array.isArray(r.ctv) ? r.ctv : undefined }; }
   catch (e) { S.cteD = /desconocid/i.test(e.message) ? { falta: true } : { error: e.message }; }
   if (vista.tab === 'cte') vCte();
 }
@@ -7638,6 +7679,8 @@ function vCte() {
     $('#cte-rein').onclick = () => { S.cteD = null; vCte(); };
     return;
   }
+  if (vista.ctv && esMesa()) return vCteVisita();
+  if (vista.ctvLista && esMesa()) return vCteVisitas();
   if (vista.cteSes) return vCteSesion(vista.cteSes);
   const h = hoy(), escs = directores();
   let proxima = 0;
@@ -7673,12 +7716,13 @@ function vCte() {
       ${ico('i-der', 'cte-chev')}</button>`);
   }
   $('#vista').innerHTML = `<div class="titulo-vista"><div><h1>Consejo Técnico Escolar</h1><div class="peq mudo">Ciclo ${esc(cteCiclo())} · 8 sesiones ordinarias</div></div>
-      <div class="acciones"><button class="boton terra" id="cte-lista">${ico('i-cte')}Lista de asistencia</button></div></div>
+      <div class="acciones">${esMesa() ? `<button class="boton sec" id="cte-visitas">${ico('i-seg')}Visitas al CTE${Array.isArray(S.cteD.ctv) && S.cteD.ctv.length ? ' · ' + S.cteD.ctv.length : ''}</button>` : ''}<button class="boton terra" id="cte-lista">${ico('i-cte')}Lista de asistencia</button></div></div>
     <p class="cte-intro">${esDirector() ? 'Entre a la sesión para ver la presentación y el cuadernillo de la Supervisión, y para subir la lista de asistencia, las fotos de la jornada y los productos del colectivo. Todo se guarda en la carpeta <b>CTEs</b> del Drive de su escuela.'
       : 'Entre a una sesión para subir la presentación, el cuadernillo y los insumos (una sola copia para toda la zona), decir qué evidencias y productos se piden y revisar qué escuelas ya subieron lo suyo.'}</p>
     <div class="cte-lista">${tarjetas.join('')}</div>`;
   $$('[data-cses]').forEach(b => b.onclick = () => { vista.cteSes = +b.dataset.cses; vCte(); window.scrollTo(0, 0); });
   $('#cte-lista').onclick = () => cteListaAsistencia();
+  if ($('#cte-visitas')) $('#cte-visitas').onclick = () => { vista.ctvLista = true; vCte(); window.scrollTo(0, 0); };
 }
 
 // Lista de archivos (se abren en el Drive)
@@ -7709,16 +7753,17 @@ function vCteSesion(n) {
   if (!cct) {
     // Supervisión sin escuela elegida: seguimiento de toda la zona
     const m = (ok, tot, extra) => tot ? `<span class="cte-m ${ok >= tot ? 'ok' : ok ? '' : 'mal'}">${ok}/${tot}</span>${extra ? ` <span class="peq mudo">+${extra}</span>` : ''}` : (extra ? `<span class="cte-m ok">${extra}</span>` : '<span class="mudo">—</span>');
+    const conVis = Array.isArray(S.cteD.ctv);
     const filas = escs.map(c => { const e = cteEstado(n, c.cct);
       return `<tr><td class="esc-col"><button class="sis-ir" data-ccct="${c.cct}">${esc(c.escuela)}</button></td>
-        <td>${e.asis ? '<span class="cte-m ok">Sí</span>' : '<span class="cte-m mal">No</span>'}</td><td>${m(e.evOk, e.evTot, e.evOtras)}</td><td>${m(e.prOk, e.prTot, e.prOtros)}</td><td>${e.pres ? '<span class="cte-m ok">Sí</span>' : '<span class="mudo">—</span>'}</td>${S.cteD.sinRev ? '' : `<td>${cteRevCelda(n, c.cct)}</td>`}</tr>`; }).join('');
+        <td>${e.asis ? '<span class="cte-m ok">Sí</span>' : '<span class="cte-m mal">No</span>'}</td><td>${m(e.evOk, e.evTot, e.evOtras)}</td><td>${m(e.prOk, e.prTot, e.prOtros)}</td><td>${e.pres ? '<span class="cte-m ok">Sí</span>' : '<span class="mudo">—</span>'}</td>${S.cteD.sinRev ? '' : `<td>${cteRevCelda(n, c.cct)}</td>`}${conVis ? `<td>${ctvCelda(n, c.cct)}</td>` : ''}</tr>`; }).join('');
     const conAsis = escs.filter(c => cteEstado(n, c.cct).asis).length;
     cuerpo = `<section class="tarjeta cte-sec"><div class="cte-cab-sec"><div class="seccion-t">Qué se pide a las escuelas</div><button class="boton sec" id="cte-pide">${ico('i-lapiz')}Editar</button></div>
       <div class="cte-pide"><div><b>Evidencias</b><ul>${cteEvid(n).map(i => `<li>${esc(i.nombre)}</li>`).join('')}</ul></div>
       <div><b>Productos</b>${(s.prod || []).length ? `<ul>${s.prod.map(i => `<li>${esc(i.nombre)}</li>`).join('')}</ul>` : '<p class="peq mudo" style="margin:4px 0 0">Ninguno en especial: cada escuela sube los suyos con su nombre.</p>'}</div></div>
       <p class="peq mudo" style="margin:0 14px 14px">Las escuelas también pueden agregar otras evidencias (por ejemplo, «Dinámica grupal») y otros productos con el nombre que ellas pongan.</p></section>
       <section class="tarjeta cte-sec"><div class="cte-cab-sec"><div class="seccion-t">Seguimiento por escuela · ${conAsis} de ${escs.length} con lista de asistencia</div>${S.cteD.sinRev ? '' : '<button class="boton sec" id="cte-avisar-todas">📩 Avisar pendientes</button>'}</div>
-      <div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Asistencia</th><th>Evidencias</th><th>Productos</th><th>Su presentación</th>${S.cteD.sinRev ? '' : '<th>Revisión</th>'}</tr></thead><tbody>${filas}</tbody></table></div>
+      <div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Asistencia</th><th>Evidencias</th><th>Productos</th><th>Su presentación</th>${S.cteD.sinRev ? '' : '<th>Revisión</th>'}${conVis ? '<th>Visita</th>' : ''}</tr></thead><tbody>${filas}</tbody></table></div>
       <p class="peq mudo" style="margin:8px 14px 14px">Toque una escuela para ver sus archivos o subirlos por ella.</p></section>`;
   } else {
     const a = cteArch(n, cct), rv = cteRevResumen(n, cct), revOk = !S.cteD.sinRev;
@@ -7750,7 +7795,11 @@ function vCteSesion(n) {
       else resumen = `<section class="tarjeta cte-sec"><div class="seccion-t">Revisión de la Supervisión</div><div style="padding:0 14px 14px">
         <div class="peq mudo">Su ATP y la Supervisión revisan que lo que suba corresponda a lo que se pide: 🟢 cumple, 🟡 le falta algo o no coincide (lea la observación) o 🔴 sin evidencia. Al corregir, vuelven a revisarlo.</div>${conteo}${fel}</div></section>`;
     } else if (mesa) resumen = `<div class="aviso-caja" style="margin-bottom:14px">El semáforo y la felicitación del CTE necesitan el servidor versión 22. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</div>`;
-    cuerpo = `${resumen}<section class="tarjeta cte-sec"><div class="seccion-t">Lista de asistencia o firmas</div>
+    const visita = mesa && Array.isArray(S.cteD.ctv) ? (() => { const vs = ctvDe('o' + n, cct);
+      return `<section class="tarjeta cte-sec"><div class="cte-cab-sec"><div class="seccion-t">Visita de la Mesa Técnica</div><button class="boton ${vs.length ? 'sec' : 'terra'}" data-ctv-nueva="1">${ico('i-mas')}Registrar visita</button></div>
+        <div style="padding:0 14px 14px">${vs.length ? vs.map(o => `<button class="ctv-fila" data-ctv-ir="${esc(o.id)}"><span><b>${esc(fechaCorta(o.fecha))}</b> · ${esc(nombreCorto(o.visitoNombre))}${ctvPct(o) !== null ? ' · asistencia ' + ctvPct(o) + ' %' : ''}</span><span style="display:flex;gap:5px;flex-wrap:wrap">${ctvResumenAsp(o)}${(o.fotos || []).length ? '<span class="chip">📷 ' + o.fotos.length + '</span>' : ''}${ctvChip(o)}</span></button>`).join('')
+          : '<div class="peq mudo">Aún no se registra la visita a esta sesión. Solo la ven la Supervisión y los ATP.</div>'}</div></section>`; })() : '';
+    cuerpo = `${resumen}${visita}<section class="tarjeta cte-sec"><div class="seccion-t">Lista de asistencia o firmas</div>
         <div class="cte-bloque"><div class="cte-bt"><div><div class="peq mudo">Foto o PDF de la hoja firmada por el colectivo.</div>${zA.chip}</div><div class="cte-bacc">${zA.btn}<button class="boton sec cte-sub" id="cte-gen-lista">${ico('i-cte')}Generar lista</button>${cteBotonSubir('data-csub="asistencia" data-citem=""')}</div></div>
         ${zA.obs}${cteArchivosHtml(a.filter(x => x.tipo === 'asistencia'), (rub('asistencia') || {}).est === 'otro' ? '' : 'Aún no se sube la lista.')}</div></section>
       <section class="tarjeta cte-sec"><div class="seccion-t">Evidencias</div>
@@ -7784,6 +7833,8 @@ function cteEnlazar(n, cct) {
   if ($('#cte-datos')) $('#cte-datos').onclick = () => cteModalDatos(n);
   if ($('#cte-pide')) $('#cte-pide').onclick = () => cteModalPide(n);
   if ($('#cte-gen-lista')) $('#cte-gen-lista').onclick = () => cteListaAsistencia(n, cct);
+  $$('[data-ctv-ir]').forEach(b => b.onclick = () => ctvAbrir(b.dataset.ctvIr, { ses: n, cct }));
+  $$('[data-ctv-nueva]').forEach(b => b.onclick = () => ctvNueva('o' + n, cct, { ses: n, cct }));
   const inp = $('#cte-file');
   const elegir = fn => { inp.value = ''; inp.onchange = () => { const l = Array.from(inp.files || []); if (l.length) fn(l); }; inp.click(); };
   $$('[data-csub]').forEach(b => b.onclick = () => elegir(l => cteSubirArchivos(n, cct, b.dataset.csub, b.dataset.citem, b.dataset.csub === 'asistencia' ? 'Lista de asistencia' : b.dataset.csub === 'presentacion' ? '' : b.dataset.cetq, l)));
@@ -7800,6 +7851,366 @@ function cteEnlazar(n, cct) {
     if (b.dataset.cins) { const r = await accion('cteQuitarInsumo', { ciclo: cteCiclo(), sesion: n, id }); if (r) { S.cteD.cte = r.cte; vCte(); } return; }
     const r = await accion('cteQuitar', { id }); if (r) { S.cteD.cta = S.cteD.cta.filter(x => x.id !== id); vCte(); aviso('Archivo quitado.', 'ok', 2500); }
   });
+}
+
+/* =========================================================
+   Visitas de la Mesa Técnica al CTE (solo Supervisor y ATP; las escuelas no las ven)
+   Sustituye al formato en papel «Visita a reunión de CTE y taller intensivo»: se captura en la escuela,
+   se guarda como borrador, lleva hasta 3 fotos (Drive de la escuela › Visitas de supervisión › Visitas al CTE)
+   y se descarga en PDF carta con los logos de ISEP y de la Zona 050 para recabar firma y sello.
+   ========================================================= */
+const CTV_ASP = [
+  { k: 'tiempo', t: 'Inicia en tiempo y con quórum' },
+  { k: 'guia', t: 'Se sigue la guía de la sesión' },
+  { k: 'part', t: 'Participación activa del colectivo' },
+  { k: 'res', t: 'Uso de resultados (SisAT / EIA)' },
+  { k: 'pmc', t: 'Vinculación con el PMC y el programa analítico' },
+  { k: 'acu', t: 'Registro de acuerdos y productos' }
+];
+const CTV_EST = { cumple: { t: 'Cumple', cl: 'ok' }, proceso: { t: 'En proceso', cl: 'aviso' }, acomp: { t: 'Requiere acompañamiento', cl: 'mal' }, na: { t: 'No aplica', cl: '' } };
+const CTV_ORDEN = ['cumple', 'proceso', 'acomp', 'na'];
+const CTV_IMG = {};   // fotos ya traídas o recién subidas (id → dataURL ligera)
+const ctvTodas = () => (S.cteD && S.cteD.ctv) || [];
+const ctvDe = (ses, cct) => ctvTodas().filter(x => x.sesion === ses && x.cct === cct).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+const ctvSesTxt = v => (laSesiones().find(s => s.v === v) || {}).t || v;
+const ctvPuede = o => esAdmin() || !o.id || (S.yo && o.visitoPor === S.yo.id);
+const ctvPct = o => +o.total > 0 && String(o.asistentes) !== '' ? Math.round(+o.asistentes / +o.total * 100) : null;
+const ctvChip = o => o.estado === 'cerrada' ? '<span class="chip ok">Cerrada</span>' : '<span class="chip aviso">Borrador</span>';
+const ctvBk = id => 'tequio.visitaCte.' + (id || 'nueva');
+const ctvCelda = (n, cct) => { const vs = ctvDe('o' + n, cct); return vs.length ? vs.map(o => `<button class="sis-ir" data-ctv-ir="${esc(o.id)}" title="${esc(nombreCorto(o.visitoNombre))}">${o.estado === 'cerrada' ? '🟢 Cerrada' : '🟡 Borrador'}</button>`).join(' ') : '<span class="mudo">—</span>'; };
+const ctvLeerBk = id => { try { return JSON.parse(localStorage.getItem(ctvBk(id)) || 'null'); } catch (e) { return null; } };
+const ctvGuardarBk = D => { try { localStorage.setItem(ctvBk(D.id), JSON.stringify(Object.assign({}, D, { guardadoLocal: new Date().toISOString() }))); } catch (e) {} };
+const ctvBorrarBk = id => { try { localStorage.removeItem(ctvBk(id)); } catch (e) {} };
+const ctvSinServidor = () => `<div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2><p style="margin:0">Las visitas al CTE necesitan el servidor de Tequio versión 25. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión.'}</p></div>`;
+function ctvResumenAsp(o) {
+  const c = {}; (o.aspectos || []).forEach(a => { if (a.e) c[a.e] = (c[a.e] || 0) + 1; });
+  return ['cumple', 'proceso', 'acomp'].filter(k => c[k]).map(k => `<span class="chip ${CTV_EST[k].cl}" title="${CTV_EST[k].t}">${k === 'cumple' ? '🟢' : k === 'proceso' ? '🟡' : '🔴'} ${c[k]}</span>`).join(' ');
+}
+function ctvAbrir(id, volver) { vista.ctv = { id }; vista.ctvD = null; vista.ctvVolver = volver || vista.ctvVolver || 'lista'; vCte(); window.scrollTo(0, 0); }
+function ctvNueva(ses, cct, volver) { vista.ctv = { nuevo: true, ses, cct }; vista.ctvD = null; vista.ctvVolver = volver || 'lista'; vCte(); window.scrollTo(0, 0); }
+function ctvRegresar() {
+  const v = vista.ctvVolver; vista.ctv = null; vista.ctvD = null;
+  if (v && v.ses) { vista.ctvLista = false; vista.cteSes = v.ses; vista.cteCct = v.cct || ''; }
+  else vista.ctvLista = true;
+  vCte(); window.scrollTo(0, 0);
+}
+
+/* ---- Lista de visitas del ciclo ---- */
+function vCteVisitas() {
+  const migas = `<nav class="migas" aria-label="Nivel"><button id="ctv-cte">CTE ${esc(cteCiclo())}</button> › <span>Visitas al CTE</span></nav>`;
+  if (!Array.isArray(S.cteD.ctv)) { $('#vista').innerHTML = migas + ctvSinServidor(); $('#ctv-cte').onclick = () => { vista.ctvLista = false; vCte(); }; return; }
+  const f = vista.ctvF || (vista.ctvF = { cct: '', ses: '', por: '' });
+  const ses = laSesiones(), mesaUs = S.usr.filter(u => u.rol !== 'director');
+  const l = ctvTodas().filter(o => (!f.cct || o.cct === f.cct) && (!f.ses || o.sesion === f.ses) && (!f.por || o.visitoPor === f.por))
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.actualizado).localeCompare(String(a.actualizado)));
+  const filas = l.map(o => { const p = ctvPct(o);
+    return `<tr><td class="esc-col"><button class="sis-ir" data-ctv-ir="${esc(o.id)}">${esc(nombreEscuela(o.cct))}</button></td><td>${esc(fechaCorta(o.fecha))}</td><td>${esc(ctvSesTxt(o.sesion))}</td>
+      <td>${esc(nombreCorto(o.visitoNombre))}</td><td>${p === null ? '<span class="mudo">—</span>' : p + ' %'}</td><td>${ctvResumenAsp(o) || '<span class="mudo">—</span>'}</td><td>${(o.fotos || []).length ? '📷 ' + o.fotos.length : '<span class="mudo">—</span>'}</td><td>${ctvChip(o)}</td></tr>`; }).join('');
+  $('#vista').innerHTML = `${migas}<div class="titulo-vista"><div><h1>Visitas al CTE</h1><div class="peq mudo">Ciclo ${esc(cteCiclo())} · solo las ven la Supervisión y los ATP</div></div>
+      <div class="acciones"><button class="boton terra" id="ctv-nueva">${ico('i-mas')}Registrar visita</button></div></div>
+    <div class="filtros"><select id="ctv-fe" aria-label="Escuela"><option value="">Todas las escuelas</option>${directores().map(c => `<option value="${c.cct}" ${f.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>
+      <select id="ctv-fs" aria-label="Sesión"><option value="">Todas las sesiones</option>${ses.map(s => `<option value="${s.v}" ${f.ses === s.v ? 'selected' : ''}>${esc(s.t)}</option>`).join('')}</select>
+      <select id="ctv-fp" aria-label="Quién visitó"><option value="">Toda la Mesa Técnica</option>${mesaUs.map(u => `<option value="${u.id}" ${f.por === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select></div>
+    ${l.length ? `<div class="tarjeta"><div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Fecha</th><th>Sesión</th><th>Visitó</th><th>Asistencia</th><th>Aspectos</th><th>Fotos</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div></div>`
+      : `<div class="tarjeta vacio">${ctvTodas().length ? 'No hay visitas con estos filtros.' : 'Todavía no se registra ninguna visita al CTE en este ciclo.'}</div>`}`;
+  $('#ctv-cte').onclick = () => { vista.ctvLista = false; vCte(); };
+  $('#ctv-nueva').onclick = () => ctvNueva('', f.cct, 'lista');
+  $('#ctv-fe').onchange = e => { f.cct = e.target.value; vCteVisitas(); };
+  $('#ctv-fs').onchange = e => { f.ses = e.target.value; vCteVisitas(); };
+  $('#ctv-fp').onchange = e => { f.por = e.target.value; vCteVisitas(); };
+  $$('[data-ctv-ir]').forEach(b => b.onclick = () => ctvAbrir(b.dataset.ctvIr, 'lista'));
+}
+
+/* ---- Borrador de la visita (lo que se va capturando) ---- */
+function ctvBorrador() {
+  if (vista.ctvD) return vista.ctvD;
+  const p = vista.ctv || {}, o = p.id ? ctvTodas().find(x => x.id === p.id) : null;
+  const misEsc = S.yo && S.yo.rol === 'atp' ? escuelasDeAtp(S.yo) : [];
+  let D = o ? JSON.parse(JSON.stringify(o)) : {
+    id: '', ciclo: cteCiclo(), sesion: p.ses || laSesionInicial(), cct: p.cct || misEsc[0] || (directores()[0] || {}).cct || '', fecha: hoy(), horaIni: '', horaFin: '',
+    total: '', asistentes: '', ausencias: '', aspectos: [], actividades: '', fortalezas: '', oportunidad: '', acuerdos: '', seguimiento: '', fotos: [], estado: 'borrador',
+    visitoPor: S.yo.id, visitoNombre: S.yo.nombre, visitoCargo: esAdmin() ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO' };
+  if (!D.aspectos || !D.aspectos.length) D.aspectos = CTV_ASP.map(a => ({ k: a.k, t: a.t, e: '' }));
+  // Lo capturado en este dispositivo que no alcanzó a guardarse (sin señal en la escuela, se cerró la página…)
+  const bk = ctvLeerBk(D.id);
+  if (bk && bk.sucio && (!o || String(bk.guardadoLocal || '') > String(o.actualizado || ''))) { D = Object.assign(D, bk, { fotos: o ? o.fotos : bk.fotos || [] }); D.recuperado = true; }
+  D.firma = D.firma !== false;
+  vista.ctvD = D;
+  return D;
+}
+
+/* ---- Pantalla de captura ---- */
+function vCteVisita() {
+  if (!Array.isArray(S.cteD.ctv)) { $('#vista').innerHTML = ctvSinServidor(); return; }
+  if (vista.ctv.id && !ctvTodas().some(x => x.id === vista.ctv.id)) { aviso('La visita ya no existe.', 'mal', 5000); ctvRegresar(); return; }
+  const D = ctvBorrador(), puede = ctvPuede(D), dis = puede ? '' : 'disabled';
+  const e = ESC_050[D.cct] || [], c = escuelaDe(D.cct) || {}, ses = laSesiones();
+  const pct = ctvPct(D);
+  const volverTxt = vista.ctvVolver && vista.ctvVolver.ses ? `${CTE_ORD[vista.ctvVolver.ses]} sesión` : 'Visitas al CTE';
+  const asp = D.aspectos.map((a, i) => `<div class="ctv-asp"><span>${esc(a.t)}</span><div class="ctv-sem" role="radiogroup" aria-label="${esc(a.t)}">${CTV_ORDEN.map(k =>
+    `<button type="button" class="ctv-op ${CTV_EST[k].cl}${a.e === k ? ' sel' : ''}" data-ctv-asp="${i}" data-e="${k}" role="radio" aria-checked="${a.e === k}" ${dis}>${CTV_EST[k].t}</button>`).join('')}</div></div>`).join('');
+  $('#vista').innerHTML = `<nav class="migas" aria-label="Nivel"><button id="ctv-cte">CTE ${esc(cteCiclo())}</button> › <button id="ctv-volver">${esc(volverTxt)}</button> › <span>${D.id ? 'Visita' : 'Nueva visita'}</span></nav>
+    <div class="titulo-vista"><div><h1>Visita a CTE y taller intensivo</h1><div class="peq mudo" id="ctv-est">${ctvChip(D)} ${D.id ? 'Registró ' + esc(nombreCorto(D.visitoNombre)) + (D.actualizado ? ' · guardada ' + esc(fechaHora(D.actualizado)) : '') : 'Aún no se guarda'}</div></div>
+      <div class="acciones">${D.id ? `<button class="boton sec" id="ctv-pdf">${ico('i-carpeta')}Descargar PDF</button>` : ''}</div></div>
+    ${D.recuperado ? '<div class="aviso-caja" style="margin-bottom:14px">Se recuperó lo que capturó en este dispositivo y no se había guardado. Revíselo y pulse «Guardar».</div>' : ''}
+    ${!puede ? `<div class="aviso-caja" style="margin-bottom:14px">Esta visita la registró ${esc(D.visitoNombre)}. Solo ella o él y el Supervisor pueden modificarla; usted puede consultarla y descargar el PDF.</div>` : ''}
+    <div class="ctv-grid">
+    <section class="tarjeta cte-sec"><div class="seccion-t">1. Datos de la visita</div><div class="pad" style="padding-top:4px">
+      <div class="fila"><div class="campo"><label for="ctv-esc">Escuela</label><select id="ctv-esc" ${dis}>${directores().map(x => `<option value="${x.cct}" ${x.cct === D.cct ? 'selected' : ''}>${esc(x.escuela)}</option>`).join('')}</select></div>
+        <div class="campo"><label for="ctv-ses">Sesión</label><select id="ctv-ses" ${dis}>${ses.map(s => `<option value="${s.v}" ${s.v === D.sesion ? 'selected' : ''}>${esc(s.t)}</option>`).join('')}</select></div>
+        <div class="campo"><label for="ctv-fec">Fecha</label><input type="date" id="ctv-fec" value="${esc(D.fecha)}" ${dis}></div></div>
+      <div class="fila"><div class="campo"><label for="ctv-hi">Hora de llegada</label><input type="time" id="ctv-hi" value="${esc(D.horaIni)}" ${dis}></div>
+        <div class="campo"><label for="ctv-hf">Hora de salida</label><input type="time" id="ctv-hf" value="${esc(D.horaFin)}" ${dis}></div><div></div></div>
+      <div class="ctv-auto"><div><span>CCT</span><b>${esc(D.cct)}</b></div><div><span>Municipio · localidad</span><b>${esc([e[1] || c.municipio, e[2]].filter(Boolean).join(' · '))}</b></div>
+        <div><span>Turno · organización</span><b>${esc((e[6] || sisTurno(D.cct) || '') + ' · ' + (c.multigrado ? 'Multigrado' : 'Completa'))}</b></div><div><span>${esc(e[5] ? e[5].charAt(0) + e[5].slice(1).toLowerCase() : 'Director(a)')}</span><b>${esc(laTitulo(e[4] || c.nombre || ''))}</b></div></div>
+      <p class="peq mudo" style="margin:6px 0 0">Estos datos se llenan solos al elegir la escuela.</p></div></section>
+
+    <section class="tarjeta cte-sec"><div class="seccion-t">2. Asistencia del colectivo</div><div class="pad" style="padding-top:4px">
+      <div class="fila"><div class="campo"><label for="ctv-tot">Cantidad de personal</label><input type="number" min="0" max="200" inputmode="numeric" id="ctv-tot" value="${esc(D.total)}" ${dis}></div>
+        <div class="campo"><label for="ctv-asi">Personal asistente</label><input type="number" min="0" max="200" inputmode="numeric" id="ctv-asi" value="${esc(D.asistentes)}" ${dis}></div>
+        <div class="campo"><span class="et">Asistencia</span><div class="ctv-pct" id="ctv-pct">${pct === null ? '—' : pct + ' %'}</div></div></div>
+      <div class="campo" style="margin:0"><label for="ctv-aus">Ausencias y motivo</label><input id="ctv-aus" maxlength="500" value="${esc(D.ausencias)}" placeholder="1 licencia médica, 1 comisión" ${dis}></div>
+      <p class="peq mudo" style="margin:6px 0 0" id="ctv-tot-ayuda">${D.totalAuto ? 'Cantidad tomada de la base de datos del personal (incluye a quien dirige). Corríjala si hace falta.' : ''}</p></div></section>
+
+    <section class="tarjeta cte-sec ctv-ancho"><div class="seccion-t">3. Aspectos observados</div><div class="pad" style="padding-top:4px">${asp}
+      <p class="peq mudo" style="margin:8px 0 0">Los productos del CTE se quedan en la escuela: aquí solo se registra lo que se observó en la sesión.</p></div></section>
+
+    <section class="tarjeta cte-sec ctv-ancho"><div class="seccion-t">4. Descripción de las actividades</div><div class="pad" style="padding-top:4px">
+      <div class="campo" style="margin:0"><textarea id="ctv-act" maxlength="6000" rows="6" placeholder="Qué trabajó el colectivo, cómo se organizó y qué productos se elaboraron." ${dis}>${esc(D.actividades)}</textarea></div></div></section>
+
+    <section class="tarjeta cte-sec ctv-ancho"><div class="seccion-t">5. Observaciones</div><div class="pad" style="padding-top:4px">
+      <div class="fila dos"><div class="campo"><label for="ctv-for">Fortalezas</label><textarea id="ctv-for" maxlength="3000" ${dis}>${esc(D.fortalezas)}</textarea></div>
+        <div class="campo"><label for="ctv-opo">Áreas de oportunidad</label><textarea id="ctv-opo" maxlength="3000" ${dis}>${esc(D.oportunidad)}</textarea></div></div>
+      <div class="campo"><label for="ctv-acu">Acuerdos y recomendaciones</label><textarea id="ctv-acu" maxlength="3000" ${dis}>${esc(D.acuerdos)}</textarea></div>
+      <div class="campo" style="margin:0;max-width:240px"><label for="ctv-seg">Fecha de seguimiento</label><input type="date" id="ctv-seg" value="${esc(D.seguimiento)}" ${dis}></div></div></section>
+
+    <section class="tarjeta cte-sec ctv-ancho"><div class="seccion-t">6. Evidencia fotográfica · máximo 3</div><div class="pad" style="padding-top:4px">
+      <div class="ctv-fotos" id="ctv-fotos">${ctvFotosHtml(D, puede)}</div>
+      <p class="peq mudo" style="margin:8px 0 0">Las fotos se guardan en el Drive de la escuela, en «Visitas de supervisión › Visitas al CTE». Las escuelas no ven esta visita en Tequio.</p></div></section>
+    </div>
+    <input type="file" id="ctv-file" accept="image/*" multiple hidden>
+    <div class="ctv-barra">
+      ${D.id && puede ? `<button class="boton sec" id="ctv-borrar" style="margin-right:auto">${ico('i-x')}Eliminar</button>` : '<span style="margin-right:auto"></span>'}
+      ${esAdmin() && D.visitoPor === S.yo.id ? `<label class="casilla" style="margin:0"><input type="checkbox" id="ctv-fir" ${D.firma ? 'checked' : ''}> Firma digital en el PDF</label>` : ''}
+      ${puede ? `<button class="boton sec" id="ctv-guardar">Guardar borrador</button>${D.estado === 'cerrada' ? `<button class="boton sec" id="ctv-reabrir">Reabrir</button><button class="boton terra" id="ctv-guardar2">${ico('i-chk')}Guardar cambios</button>` : `<button class="boton terra" id="ctv-cerrar">${ico('i-chk')}Cerrar visita</button>`}` : ''}
+    </div>`;
+  ctvEnlazar(D, puede);
+  ctvTraerFotos(D);
+  if (!D.id && D.total === '' && !D.totalTocado) ctvTotalAuto(D);
+}
+
+function ctvFotosHtml(D, puede) {
+  const l = D.fotos || [], slots = [];
+  l.forEach((f, i) => slots.push(`<div class="ctv-foto">
+    <div class="ctv-img">${CTV_IMG[f.id] ? `<img src="${CTV_IMG[f.id]}" alt="Foto ${i + 1}">` : `<a href="${esc(f.url || '#')}" target="_blank" rel="noopener" class="ctv-cargando">${ico('i-cam')}<span>${f.url ? 'Cargando…' : 'Foto ' + (i + 1)}</span></a>`}
+      ${puede ? `<button class="icono-btn ctv-quitar" data-ctv-qf="${esc(f.id)}" aria-label="Quitar foto ${i + 1}" title="Quitar">${ico('i-x')}</button>` : ''}</div>
+    <input data-ctv-pie="${esc(f.id)}" maxlength="160" value="${esc(f.pie || '')}" placeholder="Pie de foto" aria-label="Pie de la foto ${i + 1}" ${puede ? '' : 'disabled'}></div>`));
+  if (puede && l.length < 3) slots.push(`<button type="button" class="ctv-foto ctv-nueva" id="ctv-add">${ico('i-cam')}<b>Tomar o subir foto</b><span class="peq mudo">${3 - l.length} disponible${l.length === 2 ? '' : 's'}</span></button>`);
+  while (slots.length < 3) slots.push('<div class="ctv-foto ctv-vacia"></div>');
+  return slots.join('');
+}
+
+// Cantidad de personal según la base de datos (colectivo + quien dirige)
+async function ctvTotalAuto(D) {
+  try { await perCargar(); } catch (e) { return; }
+  if (vista.ctvD !== D || D.totalTocado || !S.trb || !S.trb.length) return;
+  const k = laPersonal(D.cct, true).length;
+  if (!k) return;
+  D.total = String(k + 1); D.totalAuto = true;
+  if ($('#ctv-tot')) { $('#ctv-tot').value = D.total; $('#ctv-tot-ayuda').textContent = 'Cantidad tomada de la base de datos del personal (incluye a quien dirige). Corríjala si hace falta.'; ctvPintarPct(D); }
+}
+function ctvPintarPct(D) { const p = ctvPct(D); if ($('#ctv-pct')) $('#ctv-pct').textContent = p === null ? '—' : p + ' %'; }
+
+// Fotos ya guardadas: se traen una vez para verlas y para el PDF
+async function ctvTraerFotos(D, esperar) {
+  const faltan = (D.fotos || []).filter(f => !CTV_IMG[f.id]);
+  if (!faltan.length || !D.id) return;
+  const pedir = async () => {
+    const r = await api('cteVisitaFotosDatos', { id: D.id });
+    await Promise.all((r.fotos || []).filter(f => f.datos).map(async f => { CTV_IMG[f.id] = await ctvAchicar('data:' + (f.mime || 'image/jpeg') + ';base64,' + f.datos, 1100); }));
+  };
+  if (esperar) return pedir();
+  try { await pedir(); } catch (e) { return; }
+  if (vista.ctvD === D && $('#ctv-fotos')) { $('#ctv-fotos').innerHTML = ctvFotosHtml(D, ctvPuede(D)); ctvEnlazarFotos(D); }
+}
+function ctvAchicar(src, max) {
+  return new Promise(ok => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), cv = document.createElement('canvas');
+    cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ok(cv.toDataURL('image/jpeg', 0.86)); };
+    im.onerror = () => ok(src); im.src = src; });
+}
+
+function ctvDatos(D, estado) {
+  return { id: D.id, ciclo: D.ciclo || cteCiclo(), sesion: D.sesion, cct: D.cct, fecha: D.fecha, horaIni: D.horaIni, horaFin: D.horaFin, total: D.total, asistentes: D.asistentes,
+    ausencias: D.ausencias, aspectos: D.aspectos, actividades: D.actividades, fortalezas: D.fortalezas, oportunidad: D.oportunidad, acuerdos: D.acuerdos, seguimiento: D.seguimiento,
+    fotos: (D.fotos || []).map(f => ({ id: f.id, pie: f.pie || '' })), estado: estado || D.estado || 'borrador' };
+}
+async function ctvGuardar(D, estado, silencio) {
+  if (estado === 'cerrada' && !String(D.actividades || '').trim()) { aviso('Para cerrar la visita escriba la descripción de las actividades.', 'mal', 6000); $('#ctv-act') && $('#ctv-act').focus(); return null; }
+  if (+D.asistentes > +D.total && D.total !== '') { aviso('El personal asistente no puede ser mayor que la cantidad de personal.', 'mal', 6000); return null; }
+  const antes = D.id;
+  const r = await accion('cteVisitaGuardar', ctvDatos(D, estado));
+  if (!r) return null;
+  poner(S.cteD.ctv, r.ctv);
+  const pies = {}; (D.fotos || []).forEach(f => { pies[f.id] = f.pie; });
+  Object.assign(D, r.ctv, { fotos: (r.ctv.fotos || []).map(f => Object.assign({}, f, f.id in pies ? { pie: pies[f.id] } : {})), sucio: false, recuperado: false });
+  ctvBorrarBk(antes); ctvBorrarBk(D.id);
+  vista.ctv = { id: D.id };
+  if (!silencio) aviso(estado === 'cerrada' ? 'Visita cerrada. Ya puede descargar el PDF para recabar firma y sello.' : 'Visita guardada.', 'ok', 4000);
+  return r.ctv;
+}
+
+function ctvEnlazar(D, puede) {
+  $('#ctv-cte').onclick = () => { vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.cteSes = null; vCte(); };
+  $('#ctv-volver').onclick = ctvRegresar;
+  if ($('#ctv-pdf')) $('#ctv-pdf').onclick = () => ctvDescargarPdf(D);
+  ctvEnlazarFotos(D);
+  if (!puede) return;
+  let t;
+  const cambio = () => { D.sucio = true; clearTimeout(t); t = setTimeout(() => ctvGuardarBk(D), 400); };
+  const campo = (sel, k, fn) => { const el = $(sel); if (el) el.oninput = el.onchange = () => { D[k] = el.value; if (fn) fn(); cambio(); }; };
+  campo('#ctv-ses', 'sesion'); campo('#ctv-fec', 'fecha'); campo('#ctv-hi', 'horaIni'); campo('#ctv-hf', 'horaFin');
+  campo('#ctv-tot', 'total', () => { D.totalTocado = true; D.totalAuto = false; ctvPintarPct(D); }); campo('#ctv-asi', 'asistentes', () => ctvPintarPct(D));
+  campo('#ctv-aus', 'ausencias'); campo('#ctv-act', 'actividades'); campo('#ctv-for', 'fortalezas'); campo('#ctv-opo', 'oportunidad'); campo('#ctv-acu', 'acuerdos'); campo('#ctv-seg', 'seguimiento');
+  $('#ctv-esc').onchange = e => { D.cct = e.target.value; if (D.totalAuto || !D.total) { D.total = ''; D.totalAuto = false; D.totalTocado = false; } cambio(); const y = window.scrollY; vCteVisita(); window.scrollTo(0, y); };
+  $$('[data-ctv-asp]').forEach(b => b.onclick = () => { const a = D.aspectos[+b.dataset.ctvAsp]; a.e = a.e === b.dataset.e ? '' : b.dataset.e; cambio();
+    b.parentElement.querySelectorAll('.ctv-op').forEach(x => { const s = x.dataset.e === a.e; x.classList.toggle('sel', s); x.setAttribute('aria-checked', s); }); });
+  if ($('#ctv-fir')) $('#ctv-fir').onchange = e => { D.firma = e.target.checked; };
+  if ($('#ctv-guardar')) $('#ctv-guardar').onclick = async () => { if (await ctvGuardar(D, D.estado === 'cerrada' ? 'cerrada' : 'borrador')) vCteVisita(); };
+  if ($('#ctv-guardar2')) $('#ctv-guardar2').onclick = async () => { if (await ctvGuardar(D, 'cerrada')) vCteVisita(); };
+  if ($('#ctv-reabrir')) $('#ctv-reabrir').onclick = async () => { if (await ctvGuardar(D, 'borrador')) vCteVisita(); };
+  if ($('#ctv-cerrar')) $('#ctv-cerrar').onclick = async () => {
+    const sin = D.aspectos.filter(a => !a.e).length;
+    if (sin && !confirm(`Hay ${sin} aspecto${sin === 1 ? '' : 's'} sin marcar. ¿Cerrar la visita de todos modos?`)) return;
+    if (await ctvGuardar(D, 'cerrada')) { vCteVisita(); if (confirm('¿Descargar ahora el PDF para recabar la firma y el sello de la escuela?')) ctvDescargarPdf(D); }
+  };
+  if ($('#ctv-borrar')) $('#ctv-borrar').onclick = async () => {
+    if (!confirm('¿Eliminar esta visita? Las fotos se quedan en el Drive de la escuela.')) return;
+    const r = await accion('cteVisitaBorrar', { id: D.id });
+    if (r) { S.cteD.ctv = S.cteD.ctv.filter(x => x.id !== D.id); ctvBorrarBk(D.id); aviso('Visita eliminada.', 'ok', 3000); ctvRegresar(); }
+  };
+}
+
+function ctvEnlazarFotos(D) {
+  const puede = ctvPuede(D);
+  $$('[data-ctv-pie]').forEach(inp => inp.oninput = () => { const f = (D.fotos || []).find(x => x.id === inp.dataset.ctvPie); if (f) { f.pie = inp.value; D.sucio = true; ctvGuardarBk(D); } });
+  if (!puede) return;
+  const inp = $('#ctv-file');
+  if ($('#ctv-add')) $('#ctv-add').onclick = () => { inp.value = ''; inp.click(); };
+  inp.onchange = async () => {
+    const fs = [...(inp.files || [])].filter(f => /^image\//.test(mimeDe(f)));
+    if (!fs.length) return;
+    const libres = 3 - (D.fotos || []).length;
+    if (fs.length > libres) aviso(`Solo caben ${libres} foto${libres === 1 ? '' : 's'} más; se suben las primeras.`, 'mal', 5000);
+    // La visita debe existir en el servidor antes de subir fotos
+    if (!D.id || D.sucio) { if (!await ctvGuardar(D, D.estado, true)) return; }
+    let ok = 0;
+    await conCarga(async () => {
+      for (const f of fs.slice(0, libres)) {
+        try {
+          const b = await fotoLigera(f), url = URL.createObjectURL(b), vista_ = await ctvAchicar(url, 1100); URL.revokeObjectURL(url);
+          const nombre = `Visita CTE ${ctvSesTxt(D.sesion)} - ${D.fecha} - ${((D.fotos || []).length + 1)}.jpg`.replace(/[\\/:*?"<>|]+/g, ' ');
+          const r = await api('cteVisitaFoto', { id: D.id, nombre, mime: b.type || 'image/jpeg', datos: await blobAB64(b) });
+          const pies = {}; (D.fotos || []).forEach(x => { pies[x.id] = x.pie; });
+          D.fotos = (r.ctv.fotos || []).map(x => Object.assign({}, x, x.id in pies ? { pie: pies[x.id] } : {}));
+          const nueva = D.fotos[D.fotos.length - 1]; if (nueva) CTV_IMG[nueva.id] = vista_;
+          poner(S.cteD.ctv, r.ctv); ok++;
+        } catch (e) { aviso('No se pudo subir «' + esc(f.name) + '»: ' + esc(e.message), 'mal', 9000); break; }
+      }
+    });
+    if (ok) aviso(ok === 1 ? 'Foto guardada.' : ok + ' fotos guardadas.', 'ok', 3000);
+    $('#ctv-fotos').innerHTML = ctvFotosHtml(D, puede); ctvEnlazarFotos(D);
+  };
+  $$('[data-ctv-qf]').forEach(b => b.onclick = async () => {
+    if (!confirm('¿Quitar esta foto? Se manda a la papelera del Drive.')) return;
+    const r = await accion('cteVisitaQuitarFoto', { id: D.id, fotoId: b.dataset.ctvQf });
+    if (!r) return;
+    const pies = {}; (D.fotos || []).forEach(x => { pies[x.id] = x.pie; });
+    D.fotos = (r.ctv.fotos || []).map(x => Object.assign({}, x, x.id in pies ? { pie: pies[x.id] } : {}));
+    poner(S.cteD.ctv, r.ctv);
+    $('#ctv-fotos').innerHTML = ctvFotosHtml(D, puede); ctvEnlazarFotos(D);
+  });
+}
+
+/* ---- El formato en PDF (carta vertical) ---- */
+const CTV_CSS = `
+.ctv-doc{width:730px;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;position:relative}
+.ctv-doc *{box-sizing:border-box}
+.ctv-agua{position:absolute;left:50%;top:330px;width:380px;height:380px;transform:translateX(-50%);opacity:.06;pointer-events:none}
+.ctv-doc .la-enc{grid-template-columns:120px 1fr 120px}
+.ctv-doc .la-isep{width:96px;height:54px}.ctv-doc .la-zona{width:60px;height:60px}.ctv-doc .la-filete{margin:5px 0 7px}
+.ctv-doc .la-tit .c{font-size:13.5px;line-height:1.25}
+.ctv-t{width:100%;border-collapse:collapse;table-layout:fixed;position:relative}
+.ctv-t th,.ctv-t td{border:.8px solid #7F7F7F;padding:3px 6px;vertical-align:middle}
+.ctv-t th{background:#691C32;color:#fff;font-size:8.8px;font-weight:700;text-align:left;letter-spacing:.02em}
+.ctv-t td{font-size:10px;background:rgba(255,255,255,.6)}
+.ctv-t td.c{text-align:center;font-weight:700;font-size:12px}
+.ctv-t th.c{text-align:center}
+.ctv-blq{margin-top:8px;position:relative}
+.ctv-cab{background:#691C32;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:4px 8px;border:.8px solid #691C32}
+.ctv-cuerpo{border:.8px solid #7F7F7F;border-top:0;padding:6px 9px;min-height:42px;white-space:pre-wrap;line-height:1.4;font-size:10.3px;background:rgba(255,255,255,.6)}
+.ctv-dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctv-fts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border:.8px solid #7F7F7F;border-top:0;padding:8px}
+.ctv-fts figure{margin:0}
+.ctv-fts img{width:100%;height:104px;object-fit:cover;display:block;border:.5px solid #ccc}
+.ctv-fts figcaption{font-size:9px;color:#333;margin-top:3px;line-height:1.3;text-align:center}
+.ctv-pie{display:grid;grid-template-columns:1fr 1fr;gap:70px;padding:0 40px;margin-top:12px}
+.ctv-pie .la-fir{padding-top:46px}
+.ctv-folio{text-align:right;font-size:7.5px;color:#777;margin-top:8px}`;
+
+function ctvHtml(D, firmaImg) {
+  const e = ESC_050[D.cct] || [], c = escuelaDe(D.cct) || {}, x = s => esc(s || '');
+  const fec = D.fecha ? D.fecha.split('-').reverse().join('/') : '';
+  const pct = ctvPct(D), horario = [D.horaIni, D.horaFin].filter(Boolean).join(' a ');
+  const cuerpo = (t, alto) => `<div class="ctv-cuerpo" style="min-height:${alto || 62}px">${x(String(t || '').trim())}</div>`;
+  const fotos = (D.fotos || []).filter(f => CTV_IMG[f.id]);
+  const visitante = D.visitoCargo && /SUPERVISOR/.test(D.visitoCargo) ? OFI.firmante : laMay(D.visitoNombre);
+  return `<div class="ctv-doc"><img class="ctv-agua" src="img/zona050.png" alt="">
+    <div class="la-enc"><img class="la-isep" src="img/isep.png" alt="ISEP">
+      <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">SUPERVISIÓN ESCOLAR ZONA 050 · EDUCACIÓN PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div>
+        <div class="c">VISITA A REUNIÓN DE CONSEJO TÉCNICO ESCOLAR<br>Y TALLER INTENSIVO DE FORMACIÓN CONTINUA PARA DOCENTES</div><div class="d">CICLO ESCOLAR ${x(D.ciclo || cteCiclo())}</div></div>
+      <img class="la-zona" src="img/zona050.png" alt="Zona 050"></div>
+    <div class="la-filete"></div>
+    <table class="ctv-t"><colgroup><col style="width:14%"><col style="width:40%"><col style="width:13%"><col style="width:33%"></colgroup>
+      <tr><th>ESCUELA</th><td><b>${x(laMay(e[0] || c.escuela))}</b></td><th>FECHA</th><td>${x(fec)}</td></tr>
+      <tr><th>C.C.T.</th><td>${x(D.cct)}</td><th>MUNICIPIO</th><td>${x(laMay(e[1] || c.municipio))}${e[2] ? ' · ' + x(laMay(e[2])) : ''}</td></tr>
+      <tr><th>SESIÓN</th><td>${x(laMay(ctvSesTxt(D.sesion)))}</td><th>TURNO</th><td>${x(laMay(e[6] || sisTurno(D.cct)))} · ${c.multigrado ? 'MULTIGRADO' : 'ORGANIZACIÓN COMPLETA'}</td></tr>
+      <tr><th>HORARIO</th><td>${x(horario)}</td><th>VISITÓ</th><td>${x(visitante)}</td></tr></table>
+    <table class="ctv-t" style="margin-top:8px"><colgroup><col style="width:20%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:16%"><col style="width:18%"></colgroup>
+      <tr><th>CANTIDAD DE PERSONAL</th><td class="c">${x(D.total)}</td><th>PERSONAL ASISTENTE</th><td class="c">${x(D.asistentes)}</td><th>ASISTENCIA</th><td class="c">${pct === null ? '' : pct + ' %'}</td></tr>
+      <tr><th>AUSENCIAS Y MOTIVO</th><td colspan="5">${x(D.ausencias)}</td></tr></table>
+    <div class="ctv-blq"><table class="ctv-t"><colgroup><col style="width:52%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:10%"></colgroup>
+      <tr><th>ASPECTOS OBSERVADOS</th><th class="c">CUMPLE</th><th class="c">EN PROCESO</th><th class="c">REQUIERE ACOMPAÑAMIENTO</th><th class="c">NO APLICA</th></tr>
+      ${(D.aspectos || []).map(a => `<tr><td>${x(a.t)}</td>${CTV_ORDEN.map(k => `<td class="c">${a.e === k ? '✕' : ''}</td>`).join('')}</tr>`).join('')}</table></div>
+    <div class="ctv-blq"><div class="ctv-cab">DESCRIPCIÓN DE LAS ACTIVIDADES</div>${cuerpo(D.actividades, 70)}</div>
+    <div class="ctv-blq ctv-dos"><div><div class="ctv-cab">FORTALEZAS</div>${cuerpo(D.fortalezas, 42)}</div><div><div class="ctv-cab">ÁREAS DE OPORTUNIDAD</div>${cuerpo(D.oportunidad, 42)}</div></div>
+    <div class="ctv-blq"><div class="ctv-cab">ACUERDOS Y RECOMENDACIONES${D.seguimiento ? ' · SEGUIMIENTO: ' + x(D.seguimiento.split('-').reverse().join('/')) : ''}</div>${cuerpo(D.acuerdos, 42)}</div>
+    ${fotos.length ? `<div class="ctv-blq"><div class="ctv-cab">EVIDENCIA FOTOGRÁFICA</div><div class="ctv-fts">${fotos.map(f => `<figure><img src="${CTV_IMG[f.id]}" alt=""><figcaption>${x(f.pie)}</figcaption></figure>`).join('')}</div></div>` : ''}
+    <div class="ctv-pie ctv-blq">
+      <div class="la-fir">${firmaImg ? `<img src="data:image/png;base64,${firmaImg}" alt="Firma">` : ''}<div class="r">${x(visitante)}</div><div class="c">${x(D.visitoCargo)}<br>NOMBRE, CARGO Y FIRMA DE QUIEN REALIZÓ LA VISITA</div></div>
+      <div class="la-fir"><div class="r">${x(e[4] || 'NOMBRE Y FIRMA')}</div><div class="c">${x(e[5] || 'DIRECTOR(A)')} · NOMBRE Y FIRMA<br>SELLO DE LA ESCUELA</div></div></div>
+    <div class="ctv-folio">Tequio · Supervisión Escolar Zona 050</div></div>`;
+}
+
+async function ctvDescargarPdf(D) {
+  if (D.sucio && ctvPuede(D)) { if (!await ctvGuardar(D, D.estado, true)) return; }
+  const blob = await conCarga(async () => {
+    await ctvTraerFotos(D, true);
+    let firma = '';
+    if (esAdmin() && D.visitoPor === S.yo.id && D.firma) firma = await laFirma() || '';
+    await cargarScript('lib/html2pdf.bundle.min.js');
+    const caja = document.createElement('div');
+    caja.style.cssText = 'position:fixed;left:-12000px;top:0;width:730px;background:#fff';
+    caja.innerHTML = `<style>${LA_CSS}${CTV_CSS}</style>${ctvHtml(D, firma)}`;
+    document.body.appendChild(caja);
+    try {
+      await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+      return await window.html2pdf().set({ margin: [0.4, 0.39, 0.45, 0.39], image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.ctv-blq', 'tr'] } }).from(caja.querySelector('.ctv-doc')).outputPdf('blob');
+    } finally { caja.remove(); }
+  });
+  if (!blob) return;
+  descargarBlob(blob, `Visita CTE · ${ctvSesTxt(D.sesion)} · ${nombreEscuela(D.cct)} · ${D.fecha}.pdf`.replace(/[\\/:*?"<>|]+/g, ' '));
+  aviso('PDF descargado. Imprímalo en hoja carta para la firma del director y el sello de la escuela.', 'ok', 5000);
 }
 
 /* =========================================================

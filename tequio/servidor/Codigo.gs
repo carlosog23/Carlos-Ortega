@@ -74,6 +74,10 @@ const HOJAS = {
   // Semáforo de lo que subió cada escuela en una sesión de CTE (clave: asistencia, ev:<id>, pr:<id>, ev:otras, pr:otros, presentacion)
   // y registro de la felicitación de la Supervisión (clave: felicitacion)
   ctr: ['id', 'ciclo', 'sesion', 'cct', 'clave', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
+  // Visitas de la Mesa Técnica (Supervisor y ATP) a las sesiones de CTE. Solo la ven la Supervisión y los ATP.
+  // sesion: i1–i5 (fase intensiva), o1–o8 (ordinarias) o x (extraordinaria). fotos: hasta 3, en el Drive de la escuela.
+  ctv: ['id', 'ciclo', 'sesion', 'cct', 'fecha', 'horaIni', 'horaFin', 'total', 'asistentes', 'ausencias', 'aspectos', 'actividades', 'fortalezas',
+        'oportunidad', 'acuerdos', 'seguimiento', 'fotos', 'estado', 'visitoPor', 'visitoNombre', 'visitoCargo', 'creado', 'actualizado', 'activo'],
   // Permisos (días) y facilidades (horas: salir temprano, asunto personal…) que autoriza el Supervisor. La cuenta es por año calendario.
   prm: ['id', 'anio', 'persona', 'nombre', 'tipoPersona', 'cct', 'clase', 'subtipo', 'inicio', 'fin', 'dias', 'horas', 'descuenta', 'motivo',
         'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor', 'obs', 'expediente'],
@@ -82,14 +86,14 @@ const HOJAS = {
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas' };
-const VERSION = 24;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica' };
+const VERSION = 25;
 
 // Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv'];
+const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -178,7 +182,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo',
+const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -268,7 +272,92 @@ const ACCIONES = {
     let cta = leer_('cta').filter(x => x.ciclo === ciclo && x.activo !== false);
     let ctr = leer_('ctr').filter(x => x.ciclo === ciclo);
     if (yo.rol === 'director') { const c = cctDe_(yo); cta = cta.filter(x => x.cct === c); ctr = ctr.filter(x => x.cct === c); }
-    return { cte: cte, cta: cta, ctr: ctr };
+    const r = { cte: cte, cta: cta, ctr: ctr };
+    if (yo.rol !== 'director') r.ctv = leer_('ctv').filter(x => x.ciclo === ciclo && x.activo !== false);  // las visitas no las ven las escuelas
+    return r;
+  },
+  // Guarda (crea o actualiza) la visita de la Mesa Técnica a un CTE. Las fotos se manejan aparte; aquí solo cambia su pie.
+  cteVisitaGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const cct = String(d.cct || '').trim();
+    if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('Elija la escuela visitada.');
+    const sesion = String(d.sesion || '');
+    if (!/^(i[1-5]|o[1-8]|x)$/.test(sesion)) throw new Error('Elija la sesión del CTE.');
+    const fecha = String(d.fecha || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error('Escriba la fecha de la visita.');
+    let o = d.id ? buscar_('ctv', String(d.id)) : null;
+    if (d.id && !o) throw new Error('La visita ya no existe; tal vez la eliminaron.');
+    if (o) puedeCtv_(yo, o);
+    const t = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+    const num = v => { const x = parseInt(v, 10); return isNaN(x) || x < 0 ? '' : String(Math.min(x, 200)); };
+    const ests = ['cumple', 'proceso', 'acomp', 'na'];
+    const aspectos = (Array.isArray(d.aspectos) ? d.aspectos : []).slice(0, 20).map(a => ({ k: t(a.k, 20), t: t(a.t, 120), e: ests.indexOf(a.e) >= 0 ? a.e : '' })).filter(a => a.k);
+    const estado = d.estado === 'cerrada' ? 'cerrada' : 'borrador';
+    if (estado === 'cerrada' && !t(d.actividades, 10)) throw new Error('Para cerrar la visita escriba la descripción de las actividades.');
+    const nuevo = !o;
+    if (nuevo) o = { id: 'ctv-' + Utilities.getUuid().slice(0, 13), ciclo: t(d.ciclo, 12), fotos: [], visitoPor: yo.id, visitoNombre: yo.nombre,
+      visitoCargo: yo.rol === 'admin' ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora_(), activo: true };
+    const pies = {}; (Array.isArray(d.fotos) ? d.fotos : []).forEach(f => { if (f && f.id) pies[f.id] = t(f.pie, 160); });
+    Object.assign(o, { sesion: sesion, cct: cct, fecha: fecha, horaIni: t(d.horaIni, 5), horaFin: t(d.horaFin, 5), total: num(d.total), asistentes: num(d.asistentes),
+      ausencias: t(d.ausencias, 500), aspectos: aspectos, actividades: t(d.actividades, 6000), fortalezas: t(d.fortalezas, 3000), oportunidad: t(d.oportunidad, 3000),
+      acuerdos: t(d.acuerdos, 3000), seguimiento: /^\d{4}-\d{2}-\d{2}$/.test(d.seguimiento || '') ? d.seguimiento : '', estado: estado, actualizado: ahora_() });
+    o.fotos = (o.fotos || []).map(f => Object.assign({}, f, f.id in pies ? { pie: pies[f.id] } : {}));
+    guardar_('ctv', o);
+    if (nuevo || estado === 'cerrada') bitacora_('cte', cct, [], 'Visita al CTE (' + sesion + ')', (estado === 'cerrada' ? 'cerrada' : 'registrada') + ' por ' + yo.nombre);
+    return { ctv: o };
+  },
+  // Foto de la visita (máximo 3): Drive de la escuela › Visitas de supervisión › Visitas al CTE · <ciclo>
+  cteVisitaFoto: (yo, d) => {
+    soloMesa_(yo);
+    const o0 = buscar_('ctv', String(d.id || ''));
+    if (!o0) throw new Error('Guarde primero la visita.');
+    puedeCtv_(yo, o0);
+    if ((o0.fotos || []).length >= 3) throw new Error('La visita ya tiene 3 fotos. Quite una para subir otra.');
+    const raiz = leer_('evi').find(e => e.cct === o0.cct && !e.ruta);
+    if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+    const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+    const carpeta = sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), 'Visitas al CTE · ' + o0.ciclo);
+    const f = carpeta.createFile(blobCte_({ datos: d.datos, mime: d.mime || 'image/jpeg', nombre: d.nombre || 'foto.jpg' }));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    return conLock_(() => {
+      const o = buscar_('ctv', o0.id);
+      if ((o.fotos || []).length >= 3) { try { f.setTrashed(true); } catch (e) {} throw new Error('La visita ya tiene 3 fotos.'); }
+      o.fotos = (o.fotos || []).concat([{ id: f.getId(), nombre: f.getName(), url: f.getUrl(), pie: String(d.pie || '').trim().slice(0, 160), por: yo.nombre, fecha: ahora_() }]);
+      o.actualizado = ahora_();
+      guardar_('ctv', o);
+      return { ctv: o };
+    });
+  },
+  cteVisitaQuitarFoto: (yo, d) => {
+    soloMesa_(yo);
+    const o0 = buscar_('ctv', String(d.id || ''));
+    if (!o0) throw new Error('La visita ya no existe.');
+    puedeCtv_(yo, o0);
+    papeleraCte_(String(d.fotoId || ''));
+    return conLock_(() => {
+      const o = buscar_('ctv', o0.id);
+      o.fotos = (o.fotos || []).filter(f => f.id !== d.fotoId);
+      o.actualizado = ahora_();
+      guardar_('ctv', o);
+      return { ctv: o };
+    });
+  },
+  // Las fotos en base64, para el PDF de la visita
+  cteVisitaFotosDatos: (yo, d) => {
+    soloMesa_(yo);
+    const o = buscar_('ctv', String(d.id || ''));
+    if (!o) throw new Error('La visita ya no existe.');
+    return { fotos: (o.fotos || []).map(f => { try { const b = DriveApp.getFileById(f.id).getBlob(); return { id: f.id, mime: b.getContentType(), datos: Utilities.base64Encode(b.getBytes()) }; } catch (e) { return { id: f.id, error: true }; } }) };
+  },
+  cteVisitaBorrar: (yo, d) => {
+    soloMesa_(yo);
+    const o = buscar_('ctv', String(d.id || ''));
+    if (!o) return { id: d.id };
+    puedeCtv_(yo, o);
+    o.activo = false; o.actualizado = ahora_();
+    guardar_('ctv', o);
+    bitacora_('cte', o.cct, [], 'Visita al CTE (' + o.sesion + ')', 'eliminada por ' + yo.nombre);
+    return { id: o.id };
   },
   // Semáforo de un apartado del CTE de una escuela: '' (sin revisar), cumple, incompleto (con observación) o sin
   cteRevisar: (yo, d) => {
@@ -1624,6 +1713,8 @@ const PERMISOS_EXPEDIENTE = 3;
 function expedientes_(persona, anio, sin) {
   return leer_('prm').filter(x => x.persona === persona && x.anio === anio && x.id !== sin && x.activo !== false && x.clase === 'permiso' && x.expediente).length;
 }
+// La visita la modifica quien la registró o el Supervisor
+function puedeCtv_(yo, o) { if (yo.rol !== 'admin' && o.visitoPor !== yo.id) throw new Error('Solo quien registró la visita o el Supervisor puede modificarla.'); }
 function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden hacer esto.'); }
 function folio_(n, anio) { return 'SE-050/' + ('00' + n).slice(-3) + '/' + anio; }
 
