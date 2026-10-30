@@ -349,11 +349,12 @@ const ACCIONES = {
     if (!o) throw new Error('La visita ya no existe.');
     return { fotos: (o.fotos || []).map(f => { try { const b = DriveApp.getFileById(f.id).getBlob(); return { id: f.id, mime: b.getContentType(), datos: Utilities.base64Encode(b.getBytes()) }; } catch (e) { return { id: f.id, error: true }; } }) };
   },
+  // Solo el Supervisor elimina visitas; las fotos van a la papelera del Drive
   cteVisitaBorrar: (yo, d) => {
-    soloMesa_(yo);
+    soloAdmin_(yo);
     const o = buscar_('ctv', String(d.id || ''));
     if (!o) return { id: d.id };
-    puedeCtv_(yo, o);
+    (o.fotos || []).forEach(f => papeleraCte_(f.id));
     o.activo = false; o.actualizado = ahora_();
     guardar_('ctv', o);
     bitacora_('cte', o.cct, [], 'Visita al CTE (' + o.sesion + ')', 'eliminada por ' + yo.nombre);

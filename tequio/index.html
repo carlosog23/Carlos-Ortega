@@ -768,7 +768,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-30-0930';
+const PUBLICACION = '2026-10-30-1010';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -7905,13 +7905,13 @@ function vCteVisitas() {
     .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.actualizado).localeCompare(String(a.actualizado)));
   const filas = l.map(o => { const p = ctvPct(o);
     return `<tr><td class="esc-col"><button class="sis-ir" data-ctv-ir="${esc(o.id)}">${esc(nombreEscuela(o.cct))}</button></td><td>${esc(fechaCorta(o.fecha))}</td><td>${esc(ctvSesTxt(o.sesion))}</td>
-      <td>${esc(nombreCorto(o.visitoNombre))}</td><td>${p === null ? '<span class="mudo">—</span>' : p + ' %'}</td><td>${ctvResumenAsp(o) || '<span class="mudo">—</span>'}</td><td>${(o.fotos || []).length ? '📷 ' + o.fotos.length : '<span class="mudo">—</span>'}</td><td>${ctvChip(o)}</td></tr>`; }).join('');
+      <td>${esc(nombreCorto(o.visitoNombre))}</td><td>${p === null ? '<span class="mudo">—</span>' : p + ' %'}</td><td>${ctvResumenAsp(o) || '<span class="mudo">—</span>'}</td><td>${(o.fotos || []).length ? '📷 ' + o.fotos.length : '<span class="mudo">—</span>'}</td><td>${ctvChip(o)}</td>${esAdmin() ? `<td><button class="icono-btn" data-ctv-del="${esc(o.id)}" aria-label="Eliminar visita" title="Eliminar visita">${ico('i-x')}</button></td>` : ''}</tr>`; }).join('');
   $('#vista').innerHTML = `${migas}<div class="titulo-vista"><div><h1>Visitas al CTE</h1><div class="peq mudo">Ciclo ${esc(cteCiclo())} · solo las ven la Supervisión y los ATP</div></div>
       <div class="acciones"><button class="boton terra" id="ctv-nueva">${ico('i-mas')}Registrar visita</button></div></div>
     <div class="filtros"><select id="ctv-fe" aria-label="Escuela"><option value="">Todas las escuelas</option>${directores().map(c => `<option value="${c.cct}" ${f.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>
       <select id="ctv-fs" aria-label="Sesión"><option value="">Todas las sesiones</option>${ses.map(s => `<option value="${s.v}" ${f.ses === s.v ? 'selected' : ''}>${esc(s.t)}</option>`).join('')}</select>
       <select id="ctv-fp" aria-label="Quién visitó"><option value="">Toda la Mesa Técnica</option>${mesaUs.map(u => `<option value="${u.id}" ${f.por === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select></div>
-    ${l.length ? `<div class="tarjeta"><div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Fecha</th><th>Sesión</th><th>Visitó</th><th>Asistencia</th><th>Aspectos</th><th>Fotos</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div></div>`
+    ${l.length ? `<div class="tarjeta"><div class="matriz-caja"><table class="matriz cte-tab"><thead><tr><th class="esc-col">Escuela</th><th>Fecha</th><th>Sesión</th><th>Visitó</th><th>Asistencia</th><th>Aspectos</th><th>Fotos</th><th>Estado</th>${esAdmin() ? '<th></th>' : ''}</tr></thead><tbody>${filas}</tbody></table></div></div>`
       : `<div class="tarjeta vacio">${ctvTodas().length ? 'No hay visitas con estos filtros.' : 'Todavía no se registra ninguna visita al CTE en este ciclo.'}</div>`}`;
   $('#ctv-cte').onclick = () => { vista.ctvLista = false; vCte(); };
   $('#ctv-nueva').onclick = () => ctvNueva('', f.cct, 'lista');
@@ -7919,6 +7919,17 @@ function vCteVisitas() {
   $('#ctv-fs').onchange = e => { f.ses = e.target.value; vCteVisitas(); };
   $('#ctv-fp').onchange = e => { f.por = e.target.value; vCteVisitas(); };
   $$('[data-ctv-ir]').forEach(b => b.onclick = () => ctvAbrir(b.dataset.ctvIr, 'lista'));
+  $$('[data-ctv-del]').forEach(b => b.onclick = () => ctvBorrar(b.dataset.ctvDel, vCteVisitas));
+}
+// Solo el Supervisor elimina visitas (subidas por error o que no hacen falta). Las fotos se mandan a la papelera del Drive.
+async function ctvBorrar(id, despues) {
+  const o = ctvTodas().find(x => x.id === id); if (!o || !esAdmin()) return;
+  if (!confirm(`¿Eliminar la visita a ${nombreEscuela(o.cct)} del ${fechaCorta(o.fecha)} (${ctvSesTxt(o.sesion)})? No se puede deshacer.`)) return;
+  const r = await accion('cteVisitaBorrar', { id });
+  if (!r) return;
+  S.cteD.ctv = S.cteD.ctv.filter(x => x.id !== id); ctvBorrarBk(id);
+  aviso('Visita eliminada.', 'ok', 3000);
+  despues();
 }
 
 /* ---- Borrador de la visita (lo que se va capturando) ---- */
@@ -7990,7 +8001,7 @@ function vCteVisita() {
     </div>
     <input type="file" id="ctv-file" accept="image/*" multiple hidden>
     <div class="ctv-barra">
-      ${D.id && puede ? `<button class="boton sec" id="ctv-borrar" style="margin-right:auto">${ico('i-x')}Eliminar</button>` : '<span style="margin-right:auto"></span>'}
+      ${D.id && esAdmin() ? `<button class="boton sec" id="ctv-borrar" style="margin-right:auto">${ico('i-x')}Eliminar</button>` : '<span style="margin-right:auto"></span>'}
       ${esAdmin() && D.visitoPor === S.yo.id ? `<label class="casilla" style="margin:0"><input type="checkbox" id="ctv-fir" ${D.firma ? 'checked' : ''}> Firma digital en el PDF</label>` : ''}
       ${puede ? `<button class="boton sec" id="ctv-guardar">Guardar borrador</button>${D.estado === 'cerrada' ? `<button class="boton sec" id="ctv-reabrir">Reabrir</button><button class="boton terra" id="ctv-guardar2">${ico('i-chk')}Guardar cambios</button>` : `<button class="boton terra" id="ctv-cerrar">${ico('i-chk')}Cerrar visita</button>`}` : ''}
     </div>`;
@@ -8083,11 +8094,7 @@ function ctvEnlazar(D, puede) {
     if (sin && !confirm(`Hay ${sin} aspecto${sin === 1 ? '' : 's'} sin marcar. ¿Cerrar la visita de todos modos?`)) return;
     if (await ctvGuardar(D, 'cerrada')) { vCteVisita(); if (confirm('¿Descargar ahora el PDF para recabar la firma y el sello de la escuela?')) ctvDescargarPdf(D); }
   };
-  if ($('#ctv-borrar')) $('#ctv-borrar').onclick = async () => {
-    if (!confirm('¿Eliminar esta visita? Las fotos se quedan en el Drive de la escuela.')) return;
-    const r = await accion('cteVisitaBorrar', { id: D.id });
-    if (r) { S.cteD.ctv = S.cteD.ctv.filter(x => x.id !== D.id); ctvBorrarBk(D.id); aviso('Visita eliminada.', 'ok', 3000); ctvRegresar(); }
-  };
+  if ($('#ctv-borrar')) $('#ctv-borrar').onclick = () => ctvBorrar(D.id, ctvRegresar);
 }
 
 function ctvEnlazarFotos(D) {
