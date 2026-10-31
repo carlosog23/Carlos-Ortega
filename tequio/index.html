@@ -671,7 +671,8 @@ function zonaArmar(g) {
   z.instNombreMay = z.estatal ? 'SECRETARÍA DE EDUCACIÓN DE BAJA CALIFORNIA' : 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA';
   z.logoInst = z.estatal ? 'img/se.png' : 'img/isep.png';
   z.logoInstAbs = SITIO_TQ + z.logoInst;
-  z.logoZonaAbs = new URL(z.logoZona, SITIO_TQ).href;
+  if (!z.logoZona) z.logoZona = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';   // sin logo: imagen vacía
+  z.logoZonaAbs = /^data:/.test(z.logoZona) ? '' : new URL(z.logoZona, SITIO_TQ).href;
   z.lugar = z.sede + ', ' + z.municipioSede + ', B.C.';
   z.municipios = (z.autoridades || []).map(a => a.municipio);
   z.firmante = z.supervisor.toUpperCase();
@@ -956,7 +957,12 @@ function portada(mensaje) {
 }
 
 /* ---------------- Marco general ---------------- */
+// Pestañas, sin los módulos que la zona apagó (agenda, directorio y enlaces siempre están)
 function pestanas() {
+  const on = ZONA.modulos;
+  return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0]));
+}
+function pestanasTodas() {
   if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
@@ -975,6 +981,7 @@ function pintar() {
     <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}${insigniaPest(t[0])}</button>`).join('')}</nav>
     <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : esDirector() ? esc(nombreEscuela(miCct())) : 'Mesa Técnica'}</span></div>
   </div></header>
+  ${ZONA.aviso && ZONA.aviso.texto ? `<div class="aviso-caja" style="max-width:1100px;margin:12px auto 0"><b>Aviso del administrador de Tequio:</b> ${esc(ZONA.aviso.texto)}</div>` : ''}
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;

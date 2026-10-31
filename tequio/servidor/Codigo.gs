@@ -34,6 +34,10 @@
 const URL_APP = 'PEGUE_AQUI_LA_URL_DE_LA_APLICACION_WEB';
 // ▲▲─────────────────────────────────────────────────────────────────────────────▲▲
 
+// ▼▼ Registro central de Tequio (cuenta tequio023@gmail.com). Lo pone el administrador; no lo cambie. ▼▼
+const REGISTRO_URL = '';
+// ▲▲─────────────────────────────────────────────────────────────────────────────▲▲
+
 const TZ = 'America/Tijuana';
 const PAGINA = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
 /* ===================== Perfil de la zona ===================== */
@@ -87,16 +91,27 @@ function Z() {
   z.lugar = z.sede + ', ' + z.municipioSede + ', B.C.';            // Camalú, San Quintín, B.C.
   z.municipios = (z.autoridades || []).map(a => a.municipio);
   z.firmaCorreo = z.supervisor + ' · Supervisión Zona ' + z.numero;
+  if (z.logoZonaId) z.logoZona = '';   // el logo de las zonas nuevas vive en su Drive (logoZonaId)
   return ZONA_CACHE_ = z;
 }
 /** Lo que la página necesita saber de la zona (sin datos privados de configuración). */
-function zonaPublica_() {
+// Logo de la zona como blob (Drive en zonas nuevas, página en la 050); null si no tiene
+function logoZonaBlob_() {
   const z = Z();
+  try { if (z.logoZonaId) return DriveApp.getFileById(z.logoZonaId).getBlob(); if (z.logoZona) return UrlFetchApp.fetch(z.logoZona).getBlob(); } catch (e) {}
+  return null;
+}
+function zonaPublica_() {
+  const z = Z(), p = PropertiesService.getScriptProperties();
+  let logo = z.logoZona;
+  if (z.logoZonaId) { const b = logoZonaBlob_(); logo = b ? 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) : ''; }
+  let modulos = null; try { modulos = JSON.parse(p.getProperty('MODULOS') || 'null'); } catch (e) {}
   return { numero: z.numero, nivel: z.nivel, sostenimiento: z.sostenimiento, estatal: z.estatal, sede: z.sede, municipioSede: z.municipioSede,
     telefono: z.telefono, supervisor: z.supervisor, cargoSupervisor: z.cargoSupervisor, correoSupervision: z.correoSupervision, correoInstitucional: z.correoInstitucional,
-    lemaZona: z.lemaZona, logoZona: z.logoZona, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
+    lemaZona: z.lemaZona, logoZona: logo, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
     carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
-    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado };
+    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado,
+    modulos: modulos, aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
 }
 const REMITENTE = Z().nombre + ' · Tequio';
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
@@ -212,6 +227,182 @@ function instalar() {
   Logger.log('Listo. Enlace de administrador (también se envió por correo):\n' + enlace);
 }
 
+/* ===================== Instalación desde el asistente (zonas nuevas) ===================== */
+
+const SUBCARPETAS_ESCUELA = ['01-Expedientes de trabajadores', '02-Evidencias', '03-Inscripción inicial', '04-CTE', '05-Visitas de supervisión', '06-EIA', '07-SISAT'];
+const CLAVES_PERFIL = ['numero', 'nivel', 'sostenimiento', 'sede', 'municipioSede', 'codigoPostal', 'telefono', 'supervisor', 'cargoSupervisor',
+  'correoSupervision', 'correoInstitucional', 'whatsappAdmin', 'lemaZona', 'cctSupervision', 'autoridades', 'pesos', 'sedeMultigrado'];
+
+/**
+ * Para una zona que ya usaba Tequio antes del registro central (la 050): ejecútela UNA vez desde el editor,
+ * después de escribir abajo el código de invitación que generó la consola para esta zona.
+ */
+function registrarZonaExistente() {
+  const CODIGO = 'TQ-XXXX-XXXX';   // ← código de invitación de la consola
+  const p = PropertiesService.getScriptProperties();
+  if (p.getProperty('REGISTRO_LLAVE')) { Logger.log('Esta zona ya está registrada.'); return; }
+  const url = p.getProperty('WEBAPP_URL') || ScriptApp.getService().getUrl();
+  const reg = registro_('registrarZona', { codigo: CODIGO, url: url, nivel: Z().nivel, sostenimiento: Z().sostenimiento, supervisor: Z().supervisor,
+    correo: Z().correoSupervision, municipios: Z().municipios.join(', '), version: VERSION, escuelas: leer_('dir').filter(c => c.tipo === 'director' && c.activo).length });
+  p.setProperty('REGISTRO_LLAVE', reg.llave); p.setProperty('REGISTRO_ESTADO', 'activa');
+  Logger.log('Listo: la Zona ' + Z().numero + ' quedó registrada en el registro central.');
+}
+
+function instalada_() { const p = PropertiesService.getScriptProperties(); return !!(p.getProperty('SHEET_ID') || p.getProperty('ZONA')); }
+
+function registro_(accion, datos, llave) {
+  if (!REGISTRO_URL) throw new Error('Este servidor no tiene el registro central de Tequio configurado. Avise al administrador.');
+  const r = UrlFetchApp.fetch(REGISTRO_URL, { method: 'post', contentType: 'text/plain', muteHttpExceptions: true, followRedirects: true,
+    payload: JSON.stringify({ accion: accion, datos: datos, llave: llave || '' }) });
+  let j; try { j = JSON.parse(r.getContentText()); } catch (e) { throw new Error('El registro central de Tequio no respondió. Intente en unos minutos.'); }
+  if (!j.ok) throw new Error(j.mensaje || 'El registro central rechazó la operación.');
+  return j;
+}
+
+// Estado de esta zona en el registro (activa o suspendida). Se consulta cuando mucho cada 30 minutos.
+function estadoRegistro_() {
+  const p = PropertiesService.getScriptProperties();
+  if (!REGISTRO_URL || !p.getProperty('REGISTRO_LLAVE')) return { estado: 'activa' };
+  const c = CacheService.getScriptCache(), g = c.get('estadoRegistro');
+  if (g) return JSON.parse(g);
+  let e = { estado: p.getProperty('REGISTRO_ESTADO') || 'activa', motivo: p.getProperty('REGISTRO_MOTIVO') || '' };
+  try { e = latido_(); } catch (err) {}
+  c.put('estadoRegistro', JSON.stringify(e), 1800);
+  return e;
+}
+
+// Avisa al registro que la zona sigue en uso (versión, último uso, entradas del mes) y recibe su estado y avisos
+function latido_() {
+  const p = PropertiesService.getScriptProperties(), llave = p.getProperty('REGISTRO_LLAVE');
+  if (!REGISTRO_URL || !llave) return { estado: 'activa' };
+  const mes = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  const r = registro_('latido', { numero: Z().numero, version: VERSION, ultimoUso: p.getProperty('ULTIMO_USO') || '', entradasMes: +(p.getProperty('ENTRADAS_' + mes) || 0),
+    escuelas: leer_('dir').filter(c => c.tipo === 'director' && c.activo).length, supervisor: Z().supervisor }, llave);
+  p.setProperty('REGISTRO_ESTADO', r.estado || 'activa'); p.setProperty('REGISTRO_MOTIVO', r.motivo || '');
+  if (r.aviso) p.setProperty('AVISO_ADMIN', JSON.stringify(r.aviso)); else p.deleteProperty('AVISO_ADMIN');
+  if (r.versionVigente) p.setProperty('VERSION_VIGENTE', String(r.versionVigente));
+  return { estado: r.estado || 'activa', motivo: r.motivo || '' };
+}
+function contarEntrada_() {
+  try { const p = PropertiesService.getScriptProperties(), k = 'ENTRADAS_' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+    p.setProperty(k, String(+(p.getProperty(k) || 0) + 1)); p.setProperty('ULTIMO_USO', ahora_()); } catch (e) {}
+}
+function avisoAdmin_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('AVISO_ADMIN') || 'null'); } catch (e) { return null; } }
+
+/**
+ * La llama el asistente de instalación (página tequio/instalar) una sola vez, con el código de invitación.
+ * Guarda el perfil de la zona, crea la hoja de datos y las carpetas del Drive, carga escuelas y ATP,
+ * programa las tareas diarias, registra la zona en el registro central y devuelve el enlace del supervisor.
+ */
+function instalarZona_(d) {
+  if (instalada_()) throw new Error('Esta cuenta ya tiene Tequio instalado. Si necesita reinstalar, comuníquese con el administrador.');
+  const inv = registro_('validarInvitacion', { codigo: d.codigo }).invitacion;
+  const hecho = { carpeta: null };
+  try { return instalarZonaPasos_(d, inv, hecho); }
+  catch (e) {
+    // Si algo falla antes de registrar la zona, se deshace todo para poder intentarlo de nuevo con el mismo código
+    if (!PropertiesService.getScriptProperties().getProperty('REGISTRO_LLAVE')) {
+      const p = PropertiesService.getScriptProperties();
+      ['ZONA', 'SHEET_ID', 'WEBAPP_URL', 'FIRMA_ID', 'SELLO_ID', 'INFORME_CFG', 'MODULOS', 'SEMANAL_PROXIMO'].forEach(k => p.deleteProperty(k));
+      ScriptApp.getProjectTriggers().forEach(t => { if (['tareaDiaria', 'informeSemanal'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+      try { if (hecho.carpeta) hecho.carpeta.setTrashed(true); } catch (e2) {}
+      ZONA_CACHE_ = null;
+    }
+    throw e;
+  }
+}
+function instalarZonaPasos_(d, inv, hecho) {
+  const pf = d.perfil || {}, perfil = {};
+  CLAVES_PERFIL.forEach(k => { if (pf[k] != null) perfil[k] = pf[k]; });
+  perfil.numero = inv.numero; perfil.sostenimiento = inv.sostenimiento; perfil.nivel = inv.nivel || perfil.nivel || 'Primaria';
+  ['sede', 'municipioSede', 'supervisor'].forEach(k => { if (!String(perfil[k] || '').trim()) throw new Error('Falta un dato de la supervisión: ' + k + '.'); });
+  perfil.autoridades = (Array.isArray(pf.autoridades) ? pf.autoridades : []).filter(a => a && a.municipio).slice(0, 8)
+    .map(a => ({ municipio: String(a.municipio).trim(), nombre: String(a.nombre || '').trim().toUpperCase(), cargo: String(a.cargo || '').trim(), institucion: String(a.institucion || '').trim() }));
+  if (!perfil.autoridades.length) perfil.autoridades = [{ municipio: perfil.municipioSede, nombre: '', cargo: '', institucion: '' }];
+  const ps = pf.pesos || {}, suma = ['acu', 'evi', 'sis', 'eia'].reduce((t, k) => t + (+ps[k] || 0), 0);
+  perfil.pesos = suma === 100 ? { acu: +ps.acu, evi: +ps.evi, sis: +ps.sis, eia: +ps.eia } : { acu: 70, evi: 20, sis: 5, eia: 5 };
+  perfil.cargoSupervisor = perfil.cargoSupervisor || 'Supervisor Escolar';
+  perfil.correoSupervision = Session.getEffectiveUser().getEmail();
+  perfil.folioPrefijo = 'SE-' + inv.numero; perfil.ultimoOficioInicial = 0;
+  perfil.nombreCarpeta = 'Tequio · Zona ' + inv.numero;
+  const escuelas = (Array.isArray(d.escuelas) ? d.escuelas : []).filter(e => e && /^\d{2}[A-Z]{3}\d{4}[A-Z]$/.test(String(e.cct || '').toUpperCase())).slice(0, 80);
+  if (!escuelas.length) throw new Error('Agregue al menos una escuela con su C.C.T.');
+  perfil.vespertinas = escuelas.filter(e => /vesp/i.test(e.turno)).map(e => String(e.cct).toUpperCase());
+  perfil.sedeMultigrado = pf.sedeMultigrado || '';
+
+  // Drive: carpeta de la zona, una carpeta por escuela con sus subcarpetas, y el logo
+  const raiz = DriveApp.createFolder(perfil.nombreCarpeta);
+  hecho.carpeta = raiz;
+  perfil.carpetaEvidencias = raiz.getId();
+  escuelas.forEach((e, i) => {
+    const f = raiz.createFolder(('0' + (i + 1)).slice(-2) + ' - ' + String(e.escuela || e.cct).trim());
+    SUBCARPETAS_ESCUELA.forEach(n => f.createFolder(n));
+  });
+  perfil.logoZona = '';
+  if (d.logo && /^data:image\/(png|jpe?g|webp);base64,/.test(d.logo)) {
+    const m = d.logo.match(/^data:(image\/[\w+]+);base64,(.*)$/);
+    const f = raiz.createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], 'Logo de la zona'));
+    perfil.logoZonaId = f.getId();
+  }
+  ['firma', 'sello'].forEach(k => {
+    const v = d[k]; if (!v || !/^data:image\/png;base64,/.test(v)) return;
+    const f = raiz.createFile(Utilities.newBlob(Utilities.base64Decode(v.split(',')[1]), 'image/png', k === 'firma' ? 'Firma' : 'Sello'));
+    PropertiesService.getScriptProperties().setProperty(k === 'firma' ? 'FIRMA_ID' : 'SELLO_ID', f.getId());
+  });
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('ZONA', JSON.stringify(perfil));
+  ZONA_CACHE_ = null;
+
+  // Hoja de datos
+  const ss = SpreadsheetApp.create('Tequio · Zona ' + perfil.numero + ' (datos, no editar a mano)');
+  DriveApp.getFileById(ss.getId()).moveTo(raiz);
+  props.setProperty('SHEET_ID', ss.getId());
+  Object.keys(HOJAS).forEach(k => hoja_(k));
+  const sobrante = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet1');
+  if (sobrante && ss.getSheets().length > 1) ss.deleteSheet(sobrante);
+
+  // Directorio, ATP y usuarios
+  const dirs = escuelas.map(e => ({ id: 'd-' + String(e.cct).toUpperCase(), tipo: 'director', nombre: String(e.director || '').trim(), cargo: String(e.cargo || 'Director(a)').trim(),
+    cct: String(e.cct).toUpperCase(), escuela: String(e.escuela || '').trim(), municipio: String(e.municipio || perfil.municipioSede).trim(), multigrado: /multi/i.test(e.organizacion) || e.multigrado === true,
+    correo1: String(e.correo || '').trim(), correo2: '', whatsapp: String(e.whatsapp || '').replace(/\D/g, '').slice(0, 10), activo: true,
+    localidad: String(e.localidad || '').trim(), domicilio: String(e.domicilio || '').trim(), turno: /vesp/i.test(e.turno) ? 'Vespertino' : 'Matutino' }));
+  const atps = (Array.isArray(d.atps) ? d.atps : []).filter(a => a && String(a.nombre || '').trim()).slice(0, 20).map((a, i) => ({
+    id: 'c-atp' + (i + 1), tipo: 'atp', nombre: String(a.nombre).trim(), cargo: 'ATP de la Supervisión',
+    cct: (Array.isArray(a.escuelas) ? a.escuelas : []).map(x => String(x).toUpperCase()).filter(x => dirs.some(e => e.cct === x)).join(',') || '-',
+    escuela: '', municipio: '', multigrado: false, correo1: String(a.correo || '').trim(), correo2: '', whatsapp: String(a.whatsapp || '').replace(/\D/g, '').slice(0, 10), activo: true }));
+  guardarVarios_('dir', dirs.concat(atps));
+  const ahora = ahora_();
+  const usuarios = [{ id: 'u-admin', nombre: perfil.supervisor, rol: 'admin', contacto: '', correo: [perfil.correoSupervision, perfil.correoInstitucional].filter(Boolean).join(','),
+    whatsapp: String(perfil.whatsappAdmin || ''), tokenHash: '', activo: true, creado: ahora }]
+    .concat(atps.map(a => ({ id: 'u-' + a.id.slice(2), nombre: a.nombre, rol: 'atp', contacto: a.id, correo: a.correo1, whatsapp: a.whatsapp, tokenHash: '', activo: true, creado: ahora })));
+  guardarVarios_('usr', usuarios);
+
+  // Tareas programadas
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tareaDiaria') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('tareaDiaria').timeBased().everyDays(1).atHour(6).inTimezone(TZ).create();
+  const url = ScriptApp.getService().getUrl();
+  props.setProperty('WEBAPP_URL', url);
+  if (d.informe && d.informe.dia) props.setProperty('INFORME_CFG', JSON.stringify({ dia: String(d.informe.dia), hora: +d.informe.hora || 7, ccAtp: d.informe.ccAtp !== false, vacaciones: d.informe.vacaciones !== false }));
+  if (Array.isArray(d.modulos)) props.setProperty('MODULOS', JSON.stringify(d.modulos.slice(0, 20)));
+  try { asegurarInformeSemanal_(); } catch (e) {}
+
+  const enlace = nuevoEnlace_('u-admin');
+
+  // Registro central (último paso: después de esto el código de invitación queda usado)
+  const reg = registro_('registrarZona', { codigo: d.codigo, url: url, nivel: perfil.nivel, sostenimiento: perfil.sostenimiento, supervisor: perfil.supervisor,
+    correo: perfil.correoSupervision, municipios: perfil.autoridades.map(a => a.municipio).join(', '), version: VERSION, escuelas: dirs.length });
+  props.setProperty('REGISTRO_LLAVE', reg.llave); props.setProperty('REGISTRO_ESTADO', 'activa');
+
+  try {
+    MailApp.sendEmail({ to: usuarios[0].correo, subject: 'Tequio · Su enlace de supervisor(a)', name: Z().nombre + ' · Tequio',
+      htmlBody: plantilla_('Tequio quedó instalado en su zona', '<p>Este es su <b>enlace personal de supervisor(a)</b>. Ábralo en su teléfono y en su computadora; no lo comparta.</p>' +
+        boton_(enlace, 'Abrir Tequio') + '<p style="font-size:13px;color:#6A5C4C;word-break:break-all">' + enlace + '</p>' +
+        '<p>Los datos de su zona están en la carpeta «' + esc_(perfil.nombreCarpeta) + '» de su Drive. Desde Tequio › Enlaces puede generar los de sus ATP y directores.</p>') });
+  } catch (e) {}
+  return { enlace: enlace, carpeta: raiz.getUrl(), escuelas: dirs.length, atps: atps.length };
+}
+
 /* ===================== Página ↔ servidor ===================== */
 
 function doGet() {
@@ -222,6 +413,13 @@ function doPost(e) {
   let r;
   try {
     const q = JSON.parse(e.postData.contents || '{}');
+    if (q.accion === 'estadoInstalacion') return json_({ ok: true, instalada: instalada_(), version: VERSION, cuenta: Session.getEffectiveUser().getEmail() });
+    if (q.accion === 'instalarZona') {
+      const lock = LockService.getScriptLock(); lock.waitLock(30000);
+      try { return json_(Object.assign({ ok: true }, instalarZona_(q.datos || {}))); } finally { lock.releaseLock(); }
+    }
+    const susp = estadoRegistro_();
+    if (susp.estado === 'suspendida') return json_({ ok: false, error: 'suspendida', mensaje: 'Tequio está suspendido para esta zona' + (susp.motivo ? ' (' + susp.motivo + ')' : '') + '. Comuníquese con el administrador de Tequio.' });
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -250,7 +448,7 @@ const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVis
 const MAX_MB = 20;
 
 const ACCIONES = {
-  datos: (yo) => yo.rol === 'director' ? datosDirector_(yo) : ({
+  datos: (yo) => (contarEntrada_(), yo.rol === 'director' ? datosDirector_(yo) : ({
     zona: zonaPublica_(),
     yo: publico_(yo),
     act: leer_('act').filter(a => visible_(yo, a)),
@@ -279,7 +477,7 @@ const ACCIONES = {
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
-  }),
+  })),
 
   /* ---- SisAT (Sistema de Alerta Temprana): resultados por grupo y observaciones ---- */
 
@@ -2416,6 +2614,7 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
 /* ===================== Tarea diaria (6:00 a. m.) ===================== */
 
 function tareaDiaria() {
+  try { latido_(); CacheService.getScriptCache().remove('estadoRegistro'); } catch (e) {}
   try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
   try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
   try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
@@ -2496,8 +2695,10 @@ function programarInformeSemanal_() {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'informeSemanal') ScriptApp.deleteTrigger(t); });
   const hoy = hoy_(), dow = +Utilities.formatDate(new Date(), TZ, 'u');   // 1 = lunes … 7 = domingo
   const hora = +Utilities.formatDate(new Date(), TZ, 'H') * 60 + +Utilities.formatDate(new Date(), TZ, 'm');
-  let dias = (8 - dow) % 7; if (dias === 0 && hora >= 7 * 60) dias = 7;
-  const f = Utilities.parseDate(sumarDias_(hoy, dias) + ' 07:00', TZ, 'yyyy-MM-dd HH:mm');
+  let c = { dia: 1, hora: 7 }; try { c = Object.assign(c, JSON.parse(PropertiesService.getScriptProperties().getProperty('INFORME_CFG') || '{}')); } catch (e) {}
+  const dia = Math.min(7, Math.max(1, +c.dia || 1)), h = Math.min(20, Math.max(5, +c.hora || 7));   // la 050: lunes a las 7:00
+  let dias = (dia + 7 - dow) % 7; if (dias === 0 && hora >= h * 60) dias = 7;
+  const f = Utilities.parseDate(sumarDias_(hoy, dias) + ' ' + ('0' + h).slice(-2) + ':00', TZ, 'yyyy-MM-dd HH:mm');
   ScriptApp.newTrigger('informeSemanal').timeBased().at(f).create();
   PropertiesService.getScriptProperties().setProperty('SEMANAL_PROXIMO', Utilities.formatDate(f, TZ, "yyyy-MM-dd'T'HH:mm"));
   return f;
@@ -2760,7 +2961,7 @@ function correoCte_(yo, cct, d) {
   if (!texto) throw new Error('Escriba el mensaje.');
   const inline = {};
   const img = (k, url) => { try { inline[k] = UrlFetchApp.fetch(url).getBlob().setName(k + '.png'); return 'cid:' + k; } catch (e) { return url; } };
-  const isep = img('isep', Z().logoInst), zona = img('zona050', Z().logoZona);
+  const isep = img('isep', Z().logoInst), lz = logoZonaBlob_(), zona = lz ? (inline['zona050'] = lz.setName('zona050.png'), 'cid:zona050') : '';
   const sup = yo.rol === 'admin';
   let firma = '';
   const fid = PropertiesService.getScriptProperties().getProperty('FIRMA_ID');
