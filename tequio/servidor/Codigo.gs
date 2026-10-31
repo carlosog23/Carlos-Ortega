@@ -381,7 +381,8 @@ function instalarZonaPasos_(d, inv, hecho) {
   // Tareas programadas
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'tareaDiaria') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('tareaDiaria').timeBased().everyDays(1).atHour(6).inTimezone(TZ).create();
-  const url = ScriptApp.getService().getUrl();
+  // La URL que pegó el supervisor en el asistente (Google a veces reporta la de prueba /dev)
+  const url = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(String(d.url || '')) ? d.url : ScriptApp.getService().getUrl().replace(/\/dev$/, '/exec');
   props.setProperty('WEBAPP_URL', url);
   if (d.informe && d.informe.dia) props.setProperty('INFORME_CFG', JSON.stringify({ dia: String(d.informe.dia), hora: +d.informe.hora || 7, ccAtp: d.informe.ccAtp !== false, vacaciones: d.informe.vacaciones !== false }));
   if (Array.isArray(d.modulos)) props.setProperty('MODULOS', JSON.stringify(d.modulos.slice(0, 20)));

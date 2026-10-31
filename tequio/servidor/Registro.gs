@@ -15,6 +15,9 @@
  * impleméntelo como aplicación web (Ejecutar como: yo · Acceso: cualquier usuario) y ejecute «instalar».
  */
 
+// URL de esta aplicación web (termina en /exec). Desde el editor, Google a veces da la de prueba (/dev), que no sirve a la consola.
+const URL_APP = 'https://script.google.com/macros/s/AKfycby5gd_mRHBrIBiybcvcqtOiq0nftQzdv6EJbRFyX3T8SYGT_9fxs1YPf9c9H3qQauFX/exec';
+
 const TZ = 'America/Tijuana';
 const ADMIN_CORREOS = 'tequio023@gmail.com,carlosog23@gmail.com';
 const CONSOLA = 'https://carlosog23.github.io/Carlos-Ortega/tequio/consola/';
@@ -38,7 +41,7 @@ function instalar() {
   const sobra = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet1');
   if (sobra && ss.getSheets().length > 1) ss.deleteSheet(sobra);
   if (!p.getProperty('VERSION_VIGENTE')) p.setProperty('VERSION_VIGENTE', '26');
-  const url = ScriptApp.getService().getUrl();
+  const url = /\/exec$/.test(URL_APP) ? URL_APP : ScriptApp.getService().getUrl();
   if (!url) throw new Error('Primero implemente el proyecto como aplicación web y vuelva a ejecutar «instalar».');
   const llave = nuevaLlave_();
   p.setProperty('ADMIN_HASH', sha_(llave));

@@ -447,7 +447,7 @@ async function instalar() {
   let k = 0; const tic = setInterval(() => { if (k < T.length - 1) { $('#t' + k).className = 'tarea ok'; k++; $('#t' + k).className = 'tarea run'; } }, 6000);
   try {
     const p = E.p;
-    const r = await post(E.url, { accion: 'instalarZona', datos: { codigo: E.codigo,
+    const r = await post(E.url, { accion: 'instalarZona', datos: { codigo: E.codigo, url: E.url,
       perfil: { sede: p.sede, municipioSede: p.municipioSede, codigoPostal: p.codigoPostal, telefono: p.telefono, supervisor: supervisor(), cargoSupervisor: p.cargoSupervisor,
         correoInstitucional: p.correoInstitucional, whatsappAdmin: p.whatsappAdmin, lemaZona: p.lemaZona, cctSupervision: p.cctSupervision, autoridades: p.autoridades, pesos: E.pesos, sedeMultigrado: E.sedeMultigrado },
       escuelas: E.escuelas, atps: E.atps, logo: E.logo, firma: E.firma, sello: E.sello, informe: E.informe, modulos: E.modulos } });
