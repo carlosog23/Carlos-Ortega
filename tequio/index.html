@@ -161,6 +161,7 @@ main{padding:20px 0 40px}
 .hoja *{box-sizing:border-box}
 .h-enc{position:absolute;top:33px;left:96px;right:96px;display:grid;grid-template-columns:113px 1fr 113px;align-items:center}
 .h-isep{width:100px;height:75px;object-fit:contain}
+.zona-estatal .h-isep{width:113px}   /* logo de la Secretaría de Educación: más ancho */
 .h-zona{width:80px;height:80px;object-fit:contain;justify-self:end}
 .h-tit{text-align:center;line-height:1.25}
 .h-tit .t1{font-size:6.5pt;font-weight:700;color:#1F3A6B}
@@ -654,7 +655,8 @@ const ZONA_DEF = {
     { municipio: 'Ensenada', nombre: 'PROFR. ARTURO AGUILAR CITAL', cargo: 'Jefe del Departamento de Educación Primaria en Ensenada', institucion: 'ISEP' }
   ],
   pesos: { acu: 70, evi: 20, sis: 5, eia: 5 },
-  vespertinas: ['02DPR0077J', '02DPR0150B', '02DPR0882N']
+  vespertinas: ['02DPR0077J', '02DPR0150B', '02DPR0882N'],
+  sedeMultigrado: '02DPR0378F'   // escuela que encabeza la sesión conjunta de CTE de las multigrado
 };
 const SITIO_TQ = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
 function zonaArmar(g) {
@@ -683,6 +685,7 @@ function zonaAplicar(g) {
   ZONA = zonaArmar(g);
   const z = ZONA, mun = z.municipios, varios = mun.length > 1 ? mun.slice().sort((x, y) => x.localeCompare(y, 'es')).join(' Y ').toUpperCase() + ', B.C.' : 'MUNICIPIO DE ' + (mun[0] || z.municipioSede).toUpperCase() + ', B.C.';
   ISEP_TXT = z.instNombreMay;
+  document.body.classList.toggle('zona-estatal', z.estatal);
   DESTINOS = {};
   (z.autoridades || []).forEach(a => { DESTINOS[a.municipio] = { destNombre: a.nombre, destCargo: String(a.cargo || '').toUpperCase(), destInst: a.institucion && !/^isep$/i.test(a.institucion) ? String(a.institucion).toUpperCase() : ISEP_TXT }; });
   DESTINOS['Otro'] = { destNombre: '', destCargo: '', destInst: '' };
@@ -705,7 +708,11 @@ function zonaAplicar(g) {
   SIS_VESPERTINAS = z.vespertinas || [];
   DEP_MUN = mun.concat(['Estatal', 'Federal']);
   DEP_FILTROS = mun.map(m => ['dep-' + m, 'Dependencias ' + m]);
+  LA_MULTI_SEDE = z.sedeMultigrado || '';
+  if (!esZona050()) LIGAS_EVI = [];   // carpetas ligadas a acuerdos de la 050
 }
+// Datos y semillas que solo existen para la Zona 050
+const esZona050 = () => ZONA.numero === '050';
 // Municipios de la zona en orden alfabético (para listas) y selector de municipio
 const munOrden = () => ZONA.municipios.slice().sort((a, b) => a.localeCompare(b, 'es'));
 const munSelect = (id, actual) => `<select id="${id}" aria-label="Municipio"><option value="">${esc(munOrden().join(' y '))}</option>${munOrden().map(m => `<option ${actual === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>`;
@@ -912,7 +919,7 @@ const contactoAtp = u => S.dir.find(c => c.tipo === 'atp' && c.id === u.contacto
 function escuelasDeAtp(u) {
   const c = contactoAtp(u);
   if (c && c.cct) return c.cct === '-' ? [] : String(c.cct).split(',').map(x => x.trim()).filter(Boolean);
-  const f = ASIGNACION_INICIAL.find(([re]) => re.test(u.nombre));
+  const f = esZona050() && ASIGNACION_INICIAL.find(([re]) => re.test(u.nombre));
   return f ? f[1].slice() : [];
 }
 const atpDe = cct => atps().find(u => escuelasDeAtp(u).includes(cct));
@@ -2486,11 +2493,17 @@ function formContacto(id) {
     <div class="campo"><label for="c-c2">Correo personal</label><input type="email" id="c-c2" value="${esc(c.correo2)}"></div>
   </div>
   <div class="campo"><label for="c-wa">WhatsApp (10 dígitos; si son dos, sepárelos con coma)</label><input id="c-wa" inputmode="tel" value="${esc(c.whatsapp)}"></div>
+  ${esDir ? `<div class="fila dos">
+    <div class="campo"><label for="c-loc">Localidad de la escuela</label><input id="c-loc" value="${esc(c.localidad || '')}" placeholder="Ej. ${esc(ZONA.sede)}"></div>
+    <div class="campo"><label for="c-tur">Turno</label><select id="c-tur"><option value="">${esc(sisTurno(c.cct))} (como está)</option>${['Matutino', 'Vespertino'].map(t => `<option ${c.turno === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+  </div>
+  <div class="campo"><label for="c-dom">Domicilio de la escuela (para oficios)</label><input id="c-dom" value="${esc(c.domicilio || '')}" placeholder="Calle, colonia o ejido, C.P."></div>` : ''}
   <label class="casilla"><input type="checkbox" id="c-act" ${c.activo ? 'checked' : ''}><span>Activo (recibe avisos)</span></label>`;
   modal(id ? 'Editar contacto' : 'Agregar contacto', cuerpo, '<button class="boton sec" id="c-cancel">Cancelar</button><button class="boton terra" id="c-guardar">Guardar</button>');
   $('#c-cancel').onclick = cerrarModal;
   $('#c-guardar').onclick = () => {
-    const d = Object.assign({}, c, { nombre: $('#c-nom').value.trim(), cargo: $('#c-cargo').value.trim(), correo1: $('#c-c1').value.trim(), correo2: $('#c-c2').value.trim(), whatsapp: $('#c-wa').value.trim(), activo: $('#c-act').checked });
+    const d = Object.assign({}, c, { nombre: $('#c-nom').value.trim(), cargo: $('#c-cargo').value.trim(), correo1: $('#c-c1').value.trim(), correo2: $('#c-c2').value.trim(), whatsapp: $('#c-wa').value.trim(), activo: $('#c-act').checked },
+      esDir ? { localidad: $('#c-loc').value.trim(), domicilio: $('#c-dom').value.trim(), turno: $('#c-tur').value } : {});
     if (!d.nombre) return aviso('Escriba el nombre.', 'mal');
     const malos = [d.correo1, d.correo2].filter(x => x && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
     if (malos.length) return aviso('Revise el correo: ' + esc(malos[0]), 'mal');
@@ -2928,7 +2941,7 @@ function importarReunion() {
 /* ---------------- Evidencias en el Drive de la zona ---------------- */
 let RAIZ_DRIVE = 'https://drive.google.com/drive/folders/1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas ligadas a acuerdos del checklist (la evidencia aparece con 📎 junto al acuerdo)
-const LIGAS_EVI = [
+let LIGAS_EVI = [
   { ruta: '02-Evidencias 2026-2027/CTEs/01-CTE Primera sesión', acu: ['acu-0923-01'] },
   { ruta: '02-Evidencias 2026-2027/PMC', acu: ['acu-0909-05', 'acu-0923-05'] },
   { ruta: '02-Evidencias 2026-2027/Érase una vez', acu: ['acu-0923-15'] },
@@ -4913,7 +4926,7 @@ function sisTendenciaAlumnos(v) {
 /* ---- Comparativos de la zona (Supervisión y Mesa Técnica) ---- */
 // Escuelas del turno vespertino (las demás se toman como matutinas)
 let SIS_VESPERTINAS = ['02DPR0077J', '02DPR0150B', '02DPR0882N'];   // 13 de Septiembre, Josefa Ortiz de Domínguez, Luis Donaldo Colosio Murrieta
-const sisTurno = cct => SIS_VESPERTINAS.includes(cct) ? 'Vespertino' : 'Matutino';
+const sisTurno = cct => { const c = S && S.dir ? escuelaDe(cct) : null; return c && c.turno ? c.turno : SIS_VESPERTINAS.includes(cct) ? 'Vespertino' : 'Matutino'; };
 const SIS_CRITERIOS = [
   ['ind', 'Índice general', 1], ['lec.pne', 'Lectura · nivel esperado', 1], ['tex.pne', 'Producción de textos · nivel esperado', 1], ['cal.pne', 'Cálculo mental · nivel esperado', 1],
   ['lec.pra', 'Lectura · requiere apoyo', -1], ['tex.pra', 'Producción de textos · requiere apoyo', -1], ['cal.pra', 'Cálculo mental · requiere apoyo', -1]
@@ -5349,7 +5362,7 @@ async function sisWordInforme(I) {
   const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, nb = { top: none, bottom: none, left: none, right: none };
   const header = new Header({ children: [
     new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [1600, 6160, 1600], borders: Object.assign({}, nb, { insideHorizontal: none, insideVertical: none }), rows: [new TableRow({ children: [
-      new TableCell({ width: { size: 1600, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 92, height: 69 } })] })] }),
+      new TableCell({ width: { size: 1600, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new ImageRun({ type: 'png', data: isep, transformation: ZONA.estatal ? { width: 106, height: 39 } : { width: 92, height: 69 } })] })] }),
       new TableCell({ width: { size: 6160, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [
         new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx(ISEP_TXT, { size: 13, bold: true, color: AZ })] }),
         new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx('DEPARTAMENTO DE EDUCACIÓN PRIMARIA', { size: 14, color: GR })] }),
@@ -8023,7 +8036,7 @@ function vCteVisita() {
   if (!Array.isArray(S.cteD.ctv)) { $('#vista').innerHTML = ctvSinServidor(); return; }
   if (vista.ctv.id && !ctvTodas().some(x => x.id === vista.ctv.id)) { aviso('La visita ya no existe.', 'mal', 5000); ctvRegresar(); return; }
   const D = ctvBorrador(), puede = ctvPuede(D), dis = puede ? '' : 'disabled';
-  const e = ESC_050[D.cct] || [], c = escuelaDe(D.cct) || {}, ses = laSesiones();
+  const e = escDatos(D.cct) || [], c = escuelaDe(D.cct) || {}, ses = laSesiones();
   const pct = ctvPct(D);
   const volverTxt = vista.ctvVolver && vista.ctvVolver.ses ? `${CTE_ORD[vista.ctvVolver.ses]} sesión` : 'Visitas al CTE';
   const asp = D.aspectos.map((a, i) => `<div class="ctv-asp"><span>${esc(a.t)}</span><div class="ctv-sem" role="radiogroup" aria-label="${esc(a.t)}">${CTV_ORDEN.map(k =>
@@ -8212,7 +8225,7 @@ const CTV_CSS = `
 .ctv-doc *{box-sizing:border-box}
 .ctv-agua{position:absolute;left:50%;top:330px;width:380px;height:380px;transform:translateX(-50%);opacity:.06;pointer-events:none}
 .ctv-doc .la-enc{grid-template-columns:120px 1fr 120px}
-.ctv-doc .la-isep{width:96px;height:54px}.ctv-doc .la-zona{width:60px;height:60px}.ctv-doc .la-filete{margin:5px 0 7px}
+.ctv-doc .la-isep{width:96px;height:54px;object-fit:contain}.ctv-doc .la-zona{width:60px;height:60px}.ctv-doc .la-filete{margin:5px 0 7px}
 .ctv-doc .la-tit .c{font-size:13.5px;line-height:1.25}
 .ctv-t{width:100%;border-collapse:collapse;table-layout:fixed;position:relative}
 .ctv-t th,.ctv-t td{border:.8px solid #7F7F7F;padding:3px 6px;vertical-align:middle}
@@ -8233,7 +8246,7 @@ const CTV_CSS = `
 .ctv-folio{text-align:right;font-size:7.5px;color:#777;margin-top:8px}`;
 
 function ctvHtml(D, firmaImg) {
-  const e = ESC_050[D.cct] || [], c = escuelaDe(D.cct) || {}, x = s => esc(s || '');
+  const e = escDatos(D.cct) || [], c = escuelaDe(D.cct) || {}, x = s => esc(s || '');
   const fec = D.fecha ? D.fecha.split('-').reverse().join('/') : '';
   const pct = ctvPct(D), horario = [D.horaIni, D.horaFin].filter(Boolean).join(' a ');
   const cuerpo = (t, alto) => `<div class="ctv-cuerpo" style="min-height:${alto || 62}px">${x(String(t || '').trim())}</div>`;
@@ -8323,7 +8336,7 @@ function laSesionInicial(n) {
 
 // Colectivo de la escuela según la base de datos del personal: sin el director (firma abajo) y, si se pide, sin el personal de apoyo
 function laPersonal(cct, apoyo) {
-  const e = ESC_050[cct], dir = e ? laNorm(e[4]) : '';
+  const e = escDatos(cct), dir = e ? laNorm(e[4]) : '';
   const rango = f => /^subdirector/i.test(f) ? 0 : /frente a grupo/i.test(f) ? 1 : LA_APOYO.test(f) ? 3 : 2;
   return (S.trb || []).filter(t => t.estado !== 'baja').map(t => ({ t, p: perActivas(t).find(p => p.cct === cct) })).filter(x => x.p)
     .filter(x => !/^director/i.test(x.p.funcion || '') && !(dir && laNorm(perNombre(x.t)) === dir))
@@ -8332,13 +8345,14 @@ function laPersonal(cct, apoyo) {
     .map(({ t, p }) => ({ rfc: laMay(t.rfc), paterno: laMay(t.paterno), materno: laMay(t.materno), nombre: laMay(t.nombre), sexo: t.sexo === 'H' || t.sexo === 'M' ? t.sexo : '', funcion: laAbrev(p.funcion), curp: laMay(t.curp) }));
 }
 // Escuelas multigrado: sesionan juntas. Dirige los trabajos la encargada de la Margarita Maza de Juárez
-const LA_MULTI = 'multi', LA_MULTI_SEDE = '02DPR0378F';
+const LA_MULTI = 'multi';
+let LA_MULTI_SEDE = '02DPR0378F';
 // Las multigrado de turno vespertino (Luis Donaldo Colosio Murrieta) no entran a la sesión conjunta: sesionan solas
-const laMultis = () => directores().filter(c => c.multigrado && !SIS_VESPERTINAS.includes(c.cct)).sort((a, b) => (a.cct === LA_MULTI_SEDE ? -1 : b.cct === LA_MULTI_SEDE ? 1 : a.escuela.localeCompare(b.escuela, 'es')));
+const laMultis = () => directores().filter(c => c.multigrado && sisTurno(c.cct) !== 'Vespertino').sort((a, b) => (a.cct === LA_MULTI_SEDE ? -1 : b.cct === LA_MULTI_SEDE ? 1 : a.escuela.localeCompare(b.escuela, 'es')));
 const laAbrevMulti = f => /^director/i.test(f || '') ? 'ENC. DESP.' : laAbrev(f);
 // Todo el personal de las escuelas multigrado; los encargados de despacho firman en la tabla, salvo quien dirige los trabajos (firma abajo)
 function laPersonalMulti(apoyo) {
-  const lider = laNorm((ESC_050[LA_MULTI_SEDE] || [])[4]), vistos = new Set(), l = [];
+  const lider = laNorm((escDatos(LA_MULTI_SEDE) || [])[4]), vistos = new Set(), l = [];
   const rango = f => /^director/i.test(f) ? 0 : /^subdirector/i.test(f) ? 1 : /frente a grupo/i.test(f) ? 2 : LA_APOYO.test(f) ? 4 : 3;
   laMultis().forEach(c => {
     (S.trb || []).filter(t => t.estado !== 'baja').map(t => ({ t, p: perActivas(t).find(p => p.cct === c.cct) })).filter(x => x.p)
@@ -8402,9 +8416,9 @@ const LA_CSS = `
 // La hoja (o las hojas, si el colectivo no cabe en una) en HTML
 function laHtml(d) {
   const multi = d.cct === LA_MULTI, esc2 = s => esc(s || '');
-  const e = multi ? (() => { const ms = laMultis(), lid = ESC_050[LA_MULTI_SEDE] || [], muns = [...new Set(ms.map(c => laMay(c.municipio)))];
+  const e = multi ? (() => { const ms = laMultis(), lid = escDatos(LA_MULTI_SEDE) || [], muns = [...new Set(ms.map(c => laMay(c.municipio)))];
       return ['ESCUELAS MULTIGRADO · SESIÓN CONJUNTA', muns.join(' Y '), 'SEDE: ' + laMay(lid[0] || ''), '', lid[4] || '', 'RESPONSABLE DE DIRIGIR LOS TRABAJOS · ' + (lid[5] || 'ENCARGADA DE DESPACHO') + ' DE LA ESC. ' + laMay(lid[0] || ''), 'MATUTINO', ms.length + ' ESCUELAS'];
-    })() : (ESC_050[d.cct] || []);
+    })() : (escDatos(d.cct) || []);
   const filas = d.personas.length ? d.personas.slice() : [];
   const total = d.personas.length ? Math.max(filas.length + (+d.extra || 0), 14) : (+d.renglones || 14);
   while (filas.length < total) filas.push(null);
@@ -8965,7 +8979,7 @@ async function wordOficio(o, rec) {
   const celda = (w, children, al) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children });
   const header = new Header({ children: [
     new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [1700, 5960, 1700], borders: { ...nb, insideHorizontal: none, insideVertical: none }, rows: [new TableRow({ children: [
-      celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 100, height: 75 } })] })]),
+      celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: ZONA.estatal ? { width: 113, height: 42 } : { width: 100, height: 75 } })] })]),
       celda(5960, [
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ISEP_TXT, font: F, size: 13, bold: true, color: AZ })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA', font: F, size: 14, color: GR })] }),
@@ -9053,6 +9067,15 @@ async function archivarPdf(o, blob) {
    Todo se queda en el dispositivo de quien lo usa: no se envía al servidor, no se guarda
    en el Drive de la Supervisión y no se mezcla con el consecutivo de la Supervisión.
    ========================================================= */
+// Datos de una escuela para documentos: [nombre, municipio, localidad, domicilio, director, cargo, turno].
+// En la Zona 050 se usan los capturados abajo; en las demás, los del Directorio (localidad, domicilio y turno).
+function escDatos(cct) {
+  if (!cct) return undefined;
+  if (esZona050() && ESC_050[cct]) return ESC_050[cct];
+  const c = escuelaDe(cct);
+  if (!c) return undefined;
+  return [c.escuela || '', c.municipio || '', c.localidad || '', c.domicilio || '', String(c.nombre || '').toUpperCase(), String(c.cargo || 'Director').toUpperCase(), sisTurno(cct)];
+}
 const ESC_050 = {
   '02DPR0210Z': ['Belisario Domínguez', 'San Quintín', 'Camalú', 'Carretera Transpeninsular, Camalú, C.P. 22910', 'PROFR. LUIS ÁNGEL BANDALA GUERRERO', 'DIRECTOR', 'Matutino'],
   '02DPR0150B': ['Josefa Ortiz de Domínguez', 'San Quintín', 'Camalú', 'Carretera Transpeninsular, Camalú, C.P. 22910', 'PROFR. CARLOS GUSTAVO DOMÍNGUEZ FIGUEROA', 'DIRECTOR', 'Vespertino'],
@@ -9076,7 +9099,7 @@ let EO_VUELTA = 0; // evita que una vista previa pendiente pinte sobre la pantal
 const eoClave = () => 'tequio.oficiosEscuela.' + (miCct() || 'escuela');
 const eoDemo = () => !!(cfg && cfg.demo);
 function eoBase() {
-  const cct = miCct(), e = ESC_050[cct], c = escuelaDe(cct) || {};
+  const cct = miCct(), e = escDatos(cct), c = escuelaDe(cct) || {};
   const escuela = e ? e[0] : (c.escuela || ''), municipio = e ? e[1] : (c.municipio || ''), localidad = e ? e[2] : '';
   return { cct, ofi: [], per: [], cfg: { escuela, cct, municipio, localidad, domicilio: e ? e[3] : '', turno: e ? e[6] : 'Matutino', telefono: '', correo: '',
     lugar: [localidad, municipio].filter(Boolean).join(', ') + (municipio ? ', B.C.' : ''), firmante: e ? e[4] : String(c.nombre || '').toUpperCase(), cargo: e ? e[5] : 'DIRECTOR(A)',
@@ -9205,7 +9228,7 @@ async function wordOficioEsc(o) {
   const lg = c.logo ? eoAjusta(c.logo, 90, 80) : null;
   const header = new Header({ children: [
     new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [1700, 5960, 1700], borders: { ...nb, insideHorizontal: none, insideVertical: none }, rows: [new TableRow({ children: [
-      celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 100, height: 75 } })] })]),
+      celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: ZONA.estatal ? { width: 113, height: 42 } : { width: 100, height: 75 } })] })]),
       celda(5960, [
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ISEP_TXT, font: F, size: 13, bold: true, color: AZ })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA · ZONA ESCOLAR ' + ZONA.numero, font: F, size: 14, color: GR })] }),
@@ -9781,6 +9804,7 @@ const depFiltra = (x, f) => x.g === 'dep' && (f === 'dep' || x.mun === f.slice(4
 let DEP_FILTROS = [['dep-San Quintín', 'Dependencias San Quintín'], ['dep-Ensenada', 'Dependencias Ensenada']];
 
 async function depBase() {
+  if (!esZona050()) return [];   // el directorio base reunido es de San Quintín y Ensenada (Zona 050)
   const r = await fetch('datos/dependencias.json', { cache: 'no-store' });
   if (!r.ok) throw new Error('No se pudo leer el directorio base. Revise su conexión.');
   return (await r.json()).registros || [];

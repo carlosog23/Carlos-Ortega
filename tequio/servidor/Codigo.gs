@@ -62,6 +62,7 @@ const ZONA_DEF = {
   cctSupervision: '02FIZ0094X',
   codigoPostal: '22910',
   vespertinas: ['02DPR0077J', '02DPR0150B', '02DPR0882N'],   // escuelas de turno vespertino (comparativos del SisAT)
+  sedeMultigrado: '02DPR0378F',   // escuela que encabeza la sesión conjunta de CTE de las multigrado
   // Autoridad inmediata de la Supervisión en cada municipio de la zona (los oficios no mezclan municipios)
   autoridades: [
     { municipio: 'San Quintín', nombre: 'C. HUMBERTO GARCÍA SOLORIO', cargo: 'Jefe del Departamento de Educación Primaria en San Quintín', institucion: 'ISEP' },
@@ -95,7 +96,7 @@ function zonaPublica_() {
     telefono: z.telefono, supervisor: z.supervisor, cargoSupervisor: z.cargoSupervisor, correoSupervision: z.correoSupervision, correoInstitucional: z.correoInstitucional,
     lemaZona: z.lemaZona, logoZona: z.logoZona, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
     carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
-    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas };
+    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado };
 }
 const REMITENTE = Z().nombre + ' · Tequio';
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
@@ -104,7 +105,7 @@ const HOJAS = {
   act: ['id', 'titulo', 'tipo', 'fecha', 'horaInicio', 'horaFin', 'lugar', 'escuelas', 'destinatarios', 'responsables',
         'proposito', 'confidencial', 'avisos', 'estado', 'enviado', 'calEventId', 'creadoPor', 'creado', 'actualizado'],
   seg: ['id', 'actividadId', 'cct', 'fecha', 'resumen', 'acuerdos', 'confidencial', 'minutaEnviada', 'creadoPor', 'creado', 'actualizado'],
-  dir: ['id', 'tipo', 'nombre', 'cargo', 'cct', 'escuela', 'municipio', 'multigrado', 'correo1', 'correo2', 'whatsapp', 'activo'],
+  dir: ['id', 'tipo', 'nombre', 'cargo', 'cct', 'escuela', 'municipio', 'multigrado', 'correo1', 'correo2', 'whatsapp', 'activo', 'localidad', 'domicilio', 'turno'],
   usr: ['id', 'nombre', 'rol', 'contacto', 'correo', 'whatsapp', 'tokenHash', 'activo', 'creado'],
   log: ['fecha', 'tipo', 'ref', 'destinatarios', 'asunto', 'resultado'],
   reu: ['id', 'titulo', 'tipo', 'fecha', 'horario', 'lugar', 'descripcion', 'activo', 'creadoPor', 'creado', 'actualizado'],
@@ -1961,7 +1962,7 @@ function datosDirector_(yo) {
   const cct = cctDe_(yo);
   if (!cct) throw new Error('Su usuario no está ligado a una escuela. Avise a la Supervisión.');
   const dir = leer_('dir').filter(c => c.activo && (c.tipo === 'director' || c.tipo === 'atp')).map(c => c.cct === cct && c.tipo === 'director' ? c :
-    { id: c.id, tipo: c.tipo, nombre: c.nombre, cargo: c.cargo, cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: c.multigrado, activo: c.activo });
+    { id: c.id, tipo: c.tipo, nombre: c.nombre, cargo: c.cargo, cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: c.multigrado, activo: c.activo, turno: c.turno });
   return {
     zona: zonaPublica_(),
     yo: Object.assign(publico_(yo), { cct: cct }),
@@ -2552,7 +2553,7 @@ function datosSemanal_() {
   D.atps = D.usr.filter(u => u.rol === 'atp' && u.activo);
   D.escuelasDeAtp = u => { const c = D.dir.find(x => x.tipo === 'atp' && x.id === u.contacto);
     if (c && c.cct) return c.cct === '-' ? [] : String(c.cct).split(',').map(x => x.trim()).filter(Boolean);
-    const f = ASIGNACION_INICIAL.find(a => a[0].test(u.nombre)); return f ? f[1] : []; };
+    const f = Z().numero === '050' && ASIGNACION_INICIAL.find(a => a[0].test(u.nombre)); return f ? f[1] : []; };
   D.atpDe = cct => D.atps.find(u => D.escuelasDeAtp(u).indexOf(cct) >= 0) || null;
   return D;
 }
