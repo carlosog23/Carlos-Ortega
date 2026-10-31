@@ -1,16 +1,16 @@
 /**
- * TEQUIO · Asesoría y seguimiento · Supervisión Escolar Zona 050
+ * TEQUIO · Asesoría y seguimiento · Supervisiones escolares
  * «Lo que acordamos juntos, lo caminamos juntos»
  *
  * Programa de servidor (Google Apps Script). Se instala UNA vez en la cuenta
- * supervision050sep@gmail.com siguiendo la guía de instalación de la app.
+ * de la supervisión siguiendo la guía de instalación de la app. Los datos de la zona están en «Perfil de la zona».
  *
  *  · Guarda actividades, seguimiento y directorio en una hoja de cálculo propia.
  *  · Atiende a la página de Tequio (cada usuario entra con su enlace personal).
  *  · Envía invitaciones de Google Calendar, avisos y minutas por correo.
  *  · Cada mañana manda los recordatorios del día y los de seguimiento.
  *  · Lleva el checklist de acuerdos de reuniones y CTZ, escuela por escuela.
- *  · Revisa las carpetas de evidencias del Drive «Supervisión 050» (solo nombres y fechas).
+ *  · Revisa las carpetas de evidencias del Drive de la zona (solo nombres y fechas).
  *  · La Supervisión y los ATP califican cada rubro de evidencias con semáforo (verde, amarillo con observación, rojo).
  *  · Lleva la base de datos del personal de la zona (expedientes, plazas, doble plaza, altas, bajas e interinos).
  *    La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.
@@ -36,7 +36,68 @@ const URL_APP = 'PEGUE_AQUI_LA_URL_DE_LA_APLICACION_WEB';
 
 const TZ = 'America/Tijuana';
 const PAGINA = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
-const REMITENTE = 'Supervisión Escolar Zona 050 · Tequio';
+/* ===================== Perfil de la zona ===================== */
+// Todo lo propio de una supervisión vive aquí. La Zona 050 usa estos valores tal cual.
+// En otra zona, el asistente de instalación guarda los suyos en la propiedad ZONA (JSON)
+// y se combinan con estos: lo que no se guarde, conserva el valor de abajo.
+const ZONA_DEF = {
+  numero: '050',
+  nivel: 'Primaria',
+  sostenimiento: 'Federalizada',          // 'Federalizada' (CCT 02DPR, logo ISEP) o 'Estatal' (CCT 02EPR, logo de la Secretaría de Educación)
+  sede: 'Camalú',
+  municipioSede: 'San Quintín',
+  telefono: '616 165 5622',
+  supervisor: 'Mtro. Carlos Gabriel Ortega Gutiérrez',
+  cargoSupervisor: 'Supervisor Escolar',
+  correoSupervision: 'supervision050sep@gmail.com',
+  correoInstitucional: 'cortegagutierrez@bcedu.mx',
+  correosAdmin: 'cortegagutierrez@bcedu.mx,carlosog23@gmail.com',
+  whatsappAdmin: '6618501585',
+  lemaZona: 'Responsabilidad y superación',
+  logoZona: PAGINA + 'img/zona050.png',
+  carpetaEvidencias: '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D',
+  nombreCarpeta: 'Supervisión 050',
+  folioPrefijo: 'SE-050',
+  ultimoOficioInicial: 46,
+  cctSupervision: '02FIZ0094X',
+  codigoPostal: '22910',
+  vespertinas: ['02DPR0077J', '02DPR0150B', '02DPR0882N'],   // escuelas de turno vespertino (comparativos del SisAT)
+  // Autoridad inmediata de la Supervisión en cada municipio de la zona (los oficios no mezclan municipios)
+  autoridades: [
+    { municipio: 'San Quintín', nombre: 'C. HUMBERTO GARCÍA SOLORIO', cargo: 'Jefe del Departamento de Educación Primaria en San Quintín', institucion: 'ISEP' },
+    { municipio: 'Ensenada', nombre: 'PROFR. ARTURO AGUILAR CITAL', cargo: 'Jefe del Departamento de Educación Primaria en Ensenada', institucion: 'ISEP' }
+  ],
+  pesos: { acu: 70, evi: 20, sis: 5, eia: 5 }
+};
+let ZONA_CACHE_ = null;
+/** Perfil de esta instalación, con los datos derivados que usan correos, oficios e informes. */
+function Z() {
+  if (ZONA_CACHE_) return ZONA_CACHE_;
+  let g = {};
+  try { g = JSON.parse(PropertiesService.getScriptProperties().getProperty('ZONA') || '{}') || {}; } catch (e) { g = {}; }
+  const z = Object.assign({}, ZONA_DEF, g);
+  z.estatal = /estatal/i.test(z.sostenimiento);
+  z.nombre = 'Supervisión Escolar Zona ' + z.numero;              // Supervisión Escolar Zona 050
+  z.nombreNo = 'Supervisión Escolar Zona No. ' + z.numero;        // Supervisión Escolar Zona No. 050
+  z.nivelSost = z.nivel + ' ' + z.sostenimiento;                  // Primaria Federalizada
+  z.inst = z.estatal ? 'Secretaría de Educación' : 'ISEP';
+  z.instNombre = z.estatal ? 'Secretaría de Educación de Baja California' : 'Instituto de Servicios Educativos y Pedagógicos de Baja California';
+  z.logoInst = PAGINA + (z.estatal ? 'img/se.png' : 'img/isep.png');
+  z.lugar = z.sede + ', ' + z.municipioSede + ', B.C.';            // Camalú, San Quintín, B.C.
+  z.municipios = (z.autoridades || []).map(a => a.municipio);
+  z.firmaCorreo = z.supervisor + ' · Supervisión Zona ' + z.numero;
+  return ZONA_CACHE_ = z;
+}
+/** Lo que la página necesita saber de la zona (sin datos privados de configuración). */
+function zonaPublica_() {
+  const z = Z();
+  return { numero: z.numero, nivel: z.nivel, sostenimiento: z.sostenimiento, estatal: z.estatal, sede: z.sede, municipioSede: z.municipioSede,
+    telefono: z.telefono, supervisor: z.supervisor, cargoSupervisor: z.cargoSupervisor, correoSupervision: z.correoSupervision, correoInstitucional: z.correoInstitucional,
+    lemaZona: z.lemaZona, logoZona: z.logoZona, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
+    carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
+    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas };
+}
+const REMITENTE = Z().nombre + ' · Tequio';
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
 
 const HOJAS = {
@@ -87,10 +148,10 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica' };
-const VERSION = 25;
+const VERSION = 26;
 
-// Carpeta principal del Drive de evidencias («Supervisión 050»), con una subcarpeta por escuela
-const CARPETA_EVIDENCIAS = '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
+// Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
+const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
 const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos'];
@@ -108,7 +169,7 @@ function instalar() {
   if (props.getProperty('SHEET_ID')) {
     ss = SpreadsheetApp.openById(props.getProperty('SHEET_ID'));
   } else {
-    ss = SpreadsheetApp.create('Tequio · Zona 050 (datos, no editar a mano)');
+    ss = SpreadsheetApp.create('Tequio · Zona ' + Z().numero + ' (datos, no editar a mano)');
     props.setProperty('SHEET_ID', ss.getId());
   }
   Object.keys(HOJAS).forEach(k => {
@@ -121,16 +182,16 @@ function instalar() {
   const sobrante = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet1');
   if (sobrante && ss.getSheets().length > 1) ss.deleteSheet(sobrante);
 
-  if (leer_('dir').length === 0) {
+  if (leer_('dir').length === 0 && typeof ESCUELAS !== 'undefined') {
     ESCUELAS.forEach(e => guardar_('dir', { id: 'd-' + e[1], tipo: 'director', nombre: e[4], cargo: e[5], cct: e[1], escuela: e[0],
       municipio: e[2], multigrado: e[3], correo1: e[7], correo2: e[8], whatsapp: e[6], activo: true }));
     ATPS.forEach(a => guardar_('dir', { id: a[0], tipo: 'atp', nombre: a[1], cargo: 'ATP de la Supervisión', cct: '', escuela: '',
       municipio: '', multigrado: false, correo1: a[3], correo2: a[4], whatsapp: a[2], activo: true }));
   }
   if (leer_('usr').length === 0) {
-    guardar_('usr', { id: 'u-carlos', nombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', rol: 'admin', contacto: '',
-      correo: 'cortegagutierrez@bcedu.mx,carlosog23@gmail.com', whatsapp: '6618501585', tokenHash: '', activo: true, creado: ahora_() });
-    ATPS.forEach(a => guardar_('usr', { id: 'u-' + a[0].slice(2), nombre: a[1], rol: 'atp', contacto: a[0],
+    guardar_('usr', { id: 'u-carlos', nombre: Z().supervisor, rol: 'admin', contacto: '',
+      correo: Z().correosAdmin, whatsapp: Z().whatsappAdmin, tokenHash: '', activo: true, creado: ahora_() });
+    if (typeof ATPS !== 'undefined') ATPS.forEach(a => guardar_('usr', { id: 'u-' + a[0].slice(2), nombre: a[1], rol: 'atp', contacto: a[0],
       correo: a[3] + ',' + a[4], whatsapp: a[2], tokenHash: '', activo: true, creado: ahora_() }));
   }
 
@@ -145,8 +206,8 @@ function instalar() {
     '<p>La instalación terminó correctamente. Este es su <b>enlace personal de administrador</b>. Ábralo en su teléfono y en su computadora; no lo comparta.</p>' +
     boton_(enlace, 'Abrir Tequio') +
     '<p style="font-size:13px;color:#6A5C4C;word-break:break-all">' + enlace + '</p>' +
-    '<p>La hoja de datos se llama «Tequio · Zona 050 (datos, no editar a mano)» y está en el Drive de esta cuenta.</p>');
-  MailApp.sendEmail({ to: 'cortegagutierrez@bcedu.mx,carlosog23@gmail.com', subject: 'Tequio · Su enlace de administrador', htmlBody: html, name: REMITENTE });
+    '<p>La hoja de datos se llama «Tequio · Zona ' + Z().numero + ' (datos, no editar a mano)» y está en el Drive de esta cuenta.</p>');
+  MailApp.sendEmail({ to: Z().correosAdmin, subject: 'Tequio · Su enlace de administrador', htmlBody: html, name: REMITENTE });
   Logger.log('Listo. Enlace de administrador (también se envió por correo):\n' + enlace);
 }
 
@@ -189,6 +250,7 @@ const MAX_MB = 20;
 
 const ACCIONES = {
   datos: (yo) => yo.rol === 'director' ? datosDirector_(yo) : ({
+    zona: zonaPublica_(),
     yo: publico_(yo),
     act: leer_('act').filter(a => visible_(yo, a)),
     seg: leer_('seg').filter(s => visible_(yo, s)),
@@ -296,7 +358,7 @@ const ACCIONES = {
     if (estado === 'cerrada' && !t(d.actividades, 10)) throw new Error('Para cerrar la visita escriba la descripción de las actividades.');
     const nuevo = !o;
     if (nuevo) o = { id: 'ctv-' + Utilities.getUuid().slice(0, 13), ciclo: t(d.ciclo, 12), fotos: [], visitoPor: yo.id, visitoNombre: yo.nombre,
-      visitoCargo: yo.rol === 'admin' ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora_(), activo: true };
+      visitoCargo: yo.rol === 'admin' ? (Z().cargoSupervisor + ' Zona ' + Z().numero).toUpperCase() : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora_(), activo: true };
     const pies = {}; (Array.isArray(d.fotos) ? d.fotos : []).forEach(f => { if (f && f.id) pies[f.id] = t(f.pie, 160); });
     Object.assign(o, { sesion: sesion, cct: cct, fecha: fecha, horaIni: t(d.horaIni, 5), horaFin: t(d.horaFin, 5), total: num(d.total), asistentes: num(d.asistentes),
       ausencias: t(d.ausencias, 500), aspectos: aspectos, actividades: t(d.actividades, 6000), fortalezas: t(d.fortalezas, 3000), oportunidad: t(d.oportunidad, 3000),
@@ -1159,7 +1221,7 @@ const ACCIONES = {
       let resultado = '';
       if (!para.length) resultado = 'Sin correo de la dirección en el Directorio; quedó guardado en Tequio.';
       else {
-        try { MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: 'supervision050sep@gmail.com' }); resultado = 'Enviado'; }
+        try { MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: CORREO_SUPERVISION }); resultado = 'Enviado'; }
         catch (e) { resultado = 'No se pudo enviar: ' + e.message; }
       }
       const o = { id: 'inf-' + Utilities.getUuid().slice(0, 8), cct: x.cct, fecha: hoy_(), asunto: asunto, cifras: x.cifras || {}, pendientes: (x.pendientes || []).slice(0, 60),
@@ -1415,7 +1477,7 @@ const ACCIONES = {
     guardar_('vis', v);
     return { vis: v };
   },
-  // Sube una foto de evidencia de un tema a Drive: Supervisión 050 › Escuela › Visitas de supervisión › Visita N (ciclo)
+  // Sube una foto de evidencia de un tema a Drive: carpeta de la zona › Escuela › Visitas de supervisión › Visita N (ciclo)
   visitaFoto: (yo, d) => {
     const cct = cctPermitido_(yo, d.cct);
     const datos = String(d.datos || '');
@@ -1472,13 +1534,13 @@ const ACCIONES = {
 
   /* ---- Oficios de la Supervisión ---- */
 
-  // Guarda un oficio. Si es nuevo, le asigna el siguiente número del año (SE-050/047/2026).
+  // Guarda un oficio. Si es nuevo, le asigna el siguiente número del año (p. ej. SE-050/047/2026, según el prefijo de la zona).
   guardarOficio: (yo, d) => {
     soloMesa_(yo);
     const previo = d.id ? buscar_('ofi', d.id) : null;
     const o = Object.assign({}, previo || {}, {
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
-      municipio: ['San Quintín', 'Ensenada', 'Otro', 'Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
+      municipio: destinosOficio_().indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
       destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300), destCorreo: String(d.destCorreo || '').slice(0, 500), recibidoId: String(d.recibidoId || '').slice(0, 100), recibidoNombre: String(d.recibidoNombre || '').slice(0, 200),
       escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
       cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
@@ -1510,10 +1572,10 @@ const ACCIONES = {
     if (!String(d.asunto || '').trim()) throw new Error('Escriba primero el asunto.');
     const esc = leer_('dir').filter(c => c.tipo === 'director' && (d.escuelas || []).indexOf(c.cct) >= 0)
       .map(c => 'Esc. Prim. «' + c.escuela + '» (C.C.T. ' + c.cct + ', ' + c.municipio + ')');
-    const prompt = INSTRUCCIONES_OFICIO +
+    const prompt = instruccionesOficio_() +
       '\n\nDATOS DEL OFICIO\n' +
       '- Destinatario: ' + [d.destNombre, d.destCargo, d.destInst].filter(Boolean).join(', ') + '\n' +
-      (['Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(d.municipio) >= 0 ? '- Va dirigido a varios directores a la vez: diríjase a ellos en plural (ustedes), como circular de la Supervisión.\n' : '') +
+      (destinosVarios_().indexOf(d.municipio) >= 0 ? '- Va dirigido a varios directores a la vez: diríjase a ellos en plural (ustedes), como circular de la Supervisión.\n' : '') +
       '- Asunto: ' + d.asunto + '\n' +
       (d.referencia ? '- Referencia: ' + d.referencia + '\n' : '') +
       (esc.length ? '- Escuelas relacionadas: ' + esc.join('; ') + '\n' : '') +
@@ -1538,10 +1600,10 @@ const ACCIONES = {
     const escuelas = leer_('dir').filter(c => c.tipo === 'director')
       .map(c => '- ' + c.escuela + ' | C.C.T. ' + c.cct + ' | ' + c.municipio + ' | ' + (c.multigrado ? 'multigrado' : 'organización completa') + ' | ' + (c.cargo || 'Director(a)') + ': ' + c.nombre).join('\n');
     const modo = d.modo === 'turnar' ? 'turnar' : 'responder';
-    const prompt = INSTRUCCIONES_RECIBIDO + '\n\n' + MODOS_RECIBIDO[modo] + '\n\nESCUELAS DE LA ZONA 050\n' + escuelas + '\n\nFecha de hoy: ' + fechaLarga_(hoy_()) +
+    const prompt = instruccionesRecibido_() + '\n\n' + modosRecibido_()[modo] + '\n\nESCUELAS DE LA ZONA ' + Z().numero + '\n' + escuelas + '\n\nFecha de hoy: ' + fechaLarga_(hoy_()) +
       (String(d.notas || '').trim() ? '\n\nIndicaciones del Supervisor: ' + String(d.notas).trim() : '') +
-      '\n\n' + INSTRUCCIONES_OFICIO.replace('Escriba SOLO el cuerpo del oficio', 'En el campo «cuerpo» escriba SOLO el cuerpo del oficio').replace('Responda únicamente con el texto del cuerpo.', '') +
-      '\n\n' + FORMATO_RECIBIDO;
+      '\n\n' + instruccionesOficio_().replace('Escriba SOLO el cuerpo del oficio', 'En el campo «cuerpo» escriba SOLO el cuerpo del oficio').replace('Responda únicamente con el texto del cuerpo.', '') +
+      '\n\n' + formatoRecibido_();
     let a;
     const texto = gemini_(prompt, { archivo: String(d.archivo), tipo: tipo, json: true });
     try { a = JSON.parse(texto.replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { throw new Error('La IA no pudo leer bien el oficio. Intente de nuevo o revise que el archivo sea legible.'); }
@@ -1570,14 +1632,14 @@ const ACCIONES = {
     const asunto = String(d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto)).slice(0, 250);
     const cuerpo = String(d.mensaje || '').trim() || ('Por este medio le hago llegar el oficio ' + o.folio + '. Asunto: ' + o.asunto + '.');
     const html = '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
-      '<p style="margin-top:18px;color:#555">Supervisión Escolar Zona 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · Tel. 616 165 5622</p></div>';
+      '<p style="margin-top:18px;color:#555">' + Z().nombre + ' · ' + Z().nivelSost + ' · ' + Z().inst + '<br>' + Z().lugar + ' · Tel. ' + Z().telefono + '</p></div>';
     // Los ATP envían siempre desde la cuenta de la Supervisión; el Supervisor puede elegir su correo institucional
     let de = CORREO_SUPERVISION, nota = '';
     if (yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL) {
       let alias = [];
       try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
       if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
-        GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: adjuntos });
+        GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: Z().supervisor, replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: adjuntos });
         de = CORREO_INSTITUCIONAL;
       } else {
         nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
@@ -1585,12 +1647,12 @@ const ACCIONES = {
     }
     if (de === CORREO_SUPERVISION) {
       const institucional = yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL;
-      MailApp.sendEmail({ to: para.join(','), subject: asunto, name: institucional ? 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050' : 'Supervisión Escolar Zona 050',
+      MailApp.sendEmail({ to: para.join(','), subject: asunto, name: institucional ? Z().firmaCorreo : Z().nombre,
         replyTo: institucional ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, attachments: adjuntos, htmlBody: html });
     }
     const envio = { f: ahora_(), por: 'correo', de: de, a: para.join(', '), u: yo.id };
     // el correo queda guardado con el destinatario para los siguientes oficios
-    if (['Directores', 'Directores Ensenada', 'Directores San Quintín', 'Multigrado'].indexOf(o.municipio) < 0) o.destCorreo = para.join(', ');
+    if (destinosVarios_().indexOf(o.municipio) < 0) o.destCorreo = para.join(', ');
     try { envio.copia = guardarCorreo_(o, envio, asunto, cuerpo, yo); } catch (e) { nota = (nota ? nota + ' ' : '') + 'No se pudo guardar la copia del correo en el Drive.'; }
     o.envios = (o.envios || []).concat([envio]);
     guardar_('ofi', o);
@@ -1669,37 +1731,49 @@ const PROMPT_DIRECTORIO = [
   'Responda ÚNICAMENTE con JSON: {"personas":[{"nombre":"","cargo":"","institucion":"","correo":"","telefono":"","grupo":""}]}'
 ].join('\n');
 
-const ULTIMO_OFICIO_INICIAL = 46;
+const ULTIMO_OFICIO_INICIAL = Z().ultimoOficioInicial;
 
-const INSTRUCCIONES_RECIBIDO = [
-  'Usted apoya al Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar de la Zona 050 (Primaria Federalizada, ISEP, Baja California). Se adjunta un oficio o escrito que recibió la Supervisión. Puede enviarlo cualquier persona o institución, sin importar su cargo: un director o directora, un docente, un ATP, un padre o madre de familia, el comité o consejo de participación, una autoridad educativa (jefes de departamento, otras supervisiones, oficinas del ISEP o de la SEP), un ayuntamiento o delegación, otra dependencia (salud, Protección Civil, seguridad, CFE, comisión de agua), un sindicato, una asociación o un particular.',
-  'Léalo con cuidado y determine: quién lo firma (nombre, cargo e institución), si tiene relación con alguna escuela de la zona, qué plantea y qué solicita.',
-  'Autoridades inmediatas del Supervisor: en el municipio de San Quintín, el C. HUMBERTO GARCÍA SOLORIO, Jefe del Departamento de Educación Primaria en San Quintín (ISEP); en el municipio de Ensenada, el PROFR. ARTURO AGUILAR CITAL, Jefe del Departamento de Educación Primaria en Ensenada (ISEP). Nunca mezcle municipios.'
-].join('\n');
+function instruccionesRecibido_() {
+  const z = Z();
+  const aut = z.autoridades.map(a => 'en el municipio de ' + a.municipio + ', el ' + a.nombre + ', ' + a.cargo + (a.institucion ? ' (' + a.institucion + ')' : '')).join('; ');
+  return [
+    'Usted apoya al ' + z.supervisor + ', ' + z.cargoSupervisor + ' de la Zona ' + z.numero + ' (' + z.nivelSost + ', ' + z.inst + ', Baja California). Se adjunta un oficio o escrito que recibió la Supervisión. Puede enviarlo cualquier persona o institución, sin importar su cargo: un director o directora, un docente, un ATP, un padre o madre de familia, el comité o consejo de participación, una autoridad educativa (jefes de departamento, otras supervisiones, oficinas del ISEP, de la Secretaría de Educación o de la SEP), un ayuntamiento o delegación, otra dependencia (salud, Protección Civil, seguridad, CFE, comisión de agua), un sindicato, una asociación o un particular.',
+    'Léalo con cuidado y determine: quién lo firma (nombre, cargo e institución), si tiene relación con alguna escuela de la zona, qué plantea y qué solicita.',
+    'Autoridades inmediatas del Supervisor: ' + aut + '.' + (z.autoridades.length > 1 ? ' Nunca mezcle municipios.' : '')
+  ].join('\n');
+}
 
 // Lo que se pide redactar según lo que quiera hacer el Supervisor con el oficio recibido
-const MODOS_RECIBIDO = {
+function modosRecibido_() {
+  const m = Z().municipios, lista = m.map(x => '«' + x + '»').join(' o ');
+  return {
   responder: [
     'TAREA: redacte el oficio de RESPUESTA que el Supervisor le enviará a quien firmó el escrito, sea quien sea.',
     'El destinatario es el remitente: use su nombre, cargo e institución tal como aparecen en el escrito (si es un particular o padre de familia sin cargo, deje el cargo vacío o use «Padre/Madre de familia de la Esc. Prim. «...»» si se identifica la escuela).',
     'En el cuerpo haga referencia a su escrito (número y fecha si los tiene), dé respuesta puntual a cada planteamiento o petición, indique con claridad lo que la Supervisión hará, lo que no le compete y ante quién debe acudir, y los pasos o plazos si corresponden. Si falta información para responder algo, dígalo con respeto y pídala. Tono institucional, respetuoso y cercano; adapte el registro al cargo del destinatario. No copie textual el escrito.',
-    'En «autoridad» ponga «San Quintín» o «Ensenada» SOLO si el remitente es el Jefe de Departamento de ese municipio; en cualquier otro caso ponga «Otro».'
+    'En «autoridad» ponga ' + lista + ' SOLO si el remitente es la autoridad inmediata de ese municipio; en cualquier otro caso ponga «Otro».'
   ].join('\n'),
   turnar: [
     'TAREA: redacte el oficio de SEGUIMIENTO o turno que el Supervisor enviará a la autoridad a la que le compete atender el asunto.',
-    'Si el asunto es de una escuela de San Quintín, la autoridad es el Jefe de Departamento de San Quintín; si es de Ensenada, el de Ensenada. Solo si claramente compete a otra dependencia (ayuntamiento, comisión de agua, CFE, Protección Civil, Seguridad Pública, etc.) indique autoridad «Otro» con los datos de esa dependencia en «otraDependencia», y mencione en «motivoAutoridad» si conviene marcar copia al Jefe de Departamento.',
+    'La autoridad es la del municipio de la escuela de que se trate (' + m.join(', ') + '). Solo si claramente compete a otra dependencia (ayuntamiento, comisión de agua, CFE, Protección Civil, Seguridad Pública, etc.) indique autoridad «Otro» con los datos de esa dependencia en «otraDependencia», y mencione en «motivoAutoridad» si conviene marcar copia a la autoridad inmediata.',
     'En el cuerpo haga referencia al escrito recibido (quién lo firma, número y fecha si los tiene), exponga el planteamiento de forma objetiva y solicite con respeto la atención o intervención que corresponda. No copie textual el escrito. En «ccp» incluya a quien envió el escrito, para su conocimiento.'
   ].join('\n')
-};
+  };
+}
 
-const FORMATO_RECIBIDO = [
+function formatoRecibido_() {
+  const m = Z().municipios.join(' | ');
+  return [
   'Responda SOLO con un objeto JSON válido, sin texto adicional, con estas claves:',
-  '{"escuelaCct": "C.C.T. de la escuela de la lista con la que tiene relación, o vacío", "escuelaNombre": "", "remitente": "nombre y cargo de quien firma, en una línea", "remitenteDatos": {"nombre": "nombre con su título (Profr., Lic., C., etc.)", "cargo": "cargo, o vacío si no tiene", "institucion": "escuela, dependencia u organización, o vacío", "correo": "correo si aparece en el escrito, o vacío", "municipio": "San Quintín | Ensenada | otro | vacío"}, "tipoRemitente": "director | docente | padre de familia | autoridad educativa | otra dependencia | sindicato | particular | otro", "oficioRemitente": "número y fecha del escrito recibido, si aparecen", "resumen": "2 a 4 renglones con lo que plantea", "peticiones": ["lo que solicita, una por elemento"], "autoridad": "San Quintín | Ensenada | Otro", "otraDependencia": {"nombre": "", "cargo": "", "dependencia": ""}, "motivoAutoridad": "a quién le compete atender el asunto y por qué", "asunto": "asunto breve del oficio que se redacta", "referencia": "Escrito u oficio [número] de [remitente], de fecha ..., o vacío", "cuerpo": "cuerpo del oficio, párrafos separados por \\n\\n", "ccp": "copias sugeridas, una por renglón separadas por \\n, terminando con «Archivo.»"}',
+  '{"escuelaCct": "C.C.T. de la escuela de la lista con la que tiene relación, o vacío", "escuelaNombre": "", "remitente": "nombre y cargo de quien firma, en una línea", "remitenteDatos": {"nombre": "nombre con su título (Profr., Lic., C., etc.)", "cargo": "cargo, o vacío si no tiene", "institucion": "escuela, dependencia u organización, o vacío", "correo": "correo si aparece en el escrito, o vacío", "municipio": "' + m + ' | otro | vacío"}, "tipoRemitente": "director | docente | padre de familia | autoridad educativa | otra dependencia | sindicato | particular | otro", "oficioRemitente": "número y fecha del escrito recibido, si aparecen", "resumen": "2 a 4 renglones con lo que plantea", "peticiones": ["lo que solicita, una por elemento"], "autoridad": "' + m + ' | Otro", "otraDependencia": {"nombre": "", "cargo": "", "dependencia": ""}, "motivoAutoridad": "a quién le compete atender el asunto y por qué", "asunto": "asunto breve del oficio que se redacta", "referencia": "Escrito u oficio [número] de [remitente], de fecha ..., o vacío", "cuerpo": "cuerpo del oficio, párrafos separados por \\n\\n", "ccp": "copias sugeridas, una por renglón separadas por \\n, terminando con «Archivo.»"}',
   'Si el documento no es legible o no es un oficio o escrito, responda el JSON con «resumen» explicando el problema y los demás campos vacíos.'
 ].join('\n');
+}
 
-const INSTRUCCIONES_OFICIO = [
-  'Usted redacta oficios de la Supervisión Escolar Zona 050 (Primaria Federalizada, ISEP, Baja California), firmados por el Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar.',
+function instruccionesOficio_() {
+  const z = Z();
+  return [
+  'Usted redacta oficios de la ' + z.nombre + ' (' + z.nivelSost + ', ' + z.inst + ', Baja California), firmados por el ' + z.supervisor + ', ' + z.cargoSupervisor + '.',
   'Escriba SOLO el cuerpo del oficio: sin encabezado, sin fecha, sin número, sin destinatario, sin «PRESENTE», sin «ATENTAMENTE», sin firma y sin copias.',
   'Estilo: español formal administrativo de México, claro y respetuoso, en primera persona del supervisor («me permito informarle», «solicito respetuosamente»).',
   'Estructura: 2 a 4 párrafos. Inicie con «Por medio del presente,» o «Por este conducto,». Desarrolle los hechos o la solicitud con precisión. Cierre con una fórmula como «Lo anterior para su conocimiento y lo que estime conducente. Sin otro particular, le envío un cordial saludo.» o «Sin otro particular por el momento, agradezco de antemano su atención y le envío un cordial saludo.».',
@@ -1708,6 +1782,7 @@ const INSTRUCCIONES_OFICIO = [
   'Las escuelas se nombran como Esc. Prim. «Nombre» con su C.C.T. cuando se proporcionen.',
   'Separe cada párrafo con una línea en blanco. No use negritas, asteriscos, títulos ni formato Markdown. Responda únicamente con el texto del cuerpo.'
 ].join('\n');
+}
 
 const PERMISOS_EXPEDIENTE = 3;
 // Cuántos permisos al expediente (vigentes) tiene una persona en un año, sin contar el registro «sin»
@@ -1717,7 +1792,10 @@ function expedientes_(persona, anio, sin) {
 // La visita la modifica quien la registró o el Supervisor
 function puedeCtv_(yo, o) { if (yo.rol !== 'admin' && o.visitoPor !== yo.id) throw new Error('Solo quien registró la visita o el Supervisor puede modificarla.'); }
 function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden hacer esto.'); }
-function folio_(n, anio) { return 'SE-050/' + ('00' + n).slice(-3) + '/' + anio; }
+// Destinos válidos de un oficio: autoridad de cada municipio, otro, o varios directores a la vez
+function destinosVarios_() { return ['Directores', 'Multigrado'].concat(Z().municipios.map(m => 'Directores ' + m)); }
+function destinosOficio_() { return Z().municipios.concat(['Otro']).concat(destinosVarios_()); }
+function folio_(n, anio) { return Z().folioPrefijo + '/' + ('00' + n).slice(-3) + '/' + anio; }
 
 function cfgOficios_() {
   const p = PropertiesService.getScriptProperties();
@@ -1729,8 +1807,8 @@ function cfgOficios_() {
     firma: !!p.getProperty('FIRMA_ID'), sello: !!p.getProperty('SELLO_ID'), remitentes: [CORREO_SUPERVISION, CORREO_INSTITUCIONAL] };
 }
 
-const CORREO_SUPERVISION = 'supervision050sep@gmail.com';
-const CORREO_INSTITUCIONAL = 'cortegagutierrez@bcedu.mx';
+const CORREO_SUPERVISION = Z().correoSupervision;
+const CORREO_INSTITUCIONAL = Z().correoInstitucional;
 
 function carpetaPorNombre_(padre, nombre) {
   const it = padre.getFoldersByName(nombre);
@@ -1754,7 +1832,7 @@ function carpetaCorreos_(anio) {
 function guardarCorreo_(o, envio, asunto, cuerpo, yo) {
   const fila = (k, v) => '<tr><td style="padding:4px 12px 4px 0;color:#555;white-space:nowrap;vertical-align:top"><b>' + k + '</b></td><td style="padding:4px 0">' + esc_(v) + '</td></tr>';
   const html = '<html><body style="font:12px/1.5 Arial,sans-serif;color:#1E2A40;margin:30px">' +
-    '<div style="font-size:11px;color:#555;border-bottom:2px solid #1F2A44;padding-bottom:6px;margin-bottom:12px">SUPERVISIÓN ESCOLAR ZONA 050 · Copia de correo enviado desde Tequio</div>' +
+    '<div style="font-size:11px;color:#555;border-bottom:2px solid #1F2A44;padding-bottom:6px;margin-bottom:12px">' + Z().nombre.toUpperCase() + ' · Copia de correo enviado desde Tequio</div>' +
     '<table style="border-collapse:collapse;margin-bottom:14px">' + fila('Fecha', envio.f.replace('T', ' ').slice(0, 16)) + fila('De', envio.de) + fila('Para', envio.a) +
     fila('Asunto', asunto) + fila('Adjunto', o.folio.replace(/\//g, '-') + '.pdf') + fila('Oficio', o.folio + ' · ' + o.asunto) + fila('Enviado por', yo.nombre) + '</table>' +
     '<div style="border-top:1px solid #ccc;padding-top:12px">' + esc_(cuerpo).replace(/\n/g, '<br>') + '</div>' +
@@ -1885,6 +1963,7 @@ function datosDirector_(yo) {
   const dir = leer_('dir').filter(c => c.activo && (c.tipo === 'director' || c.tipo === 'atp')).map(c => c.cct === cct && c.tipo === 'director' ? c :
     { id: c.id, tipo: c.tipo, nombre: c.nombre, cargo: c.cargo, cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: c.multigrado, activo: c.activo });
   return {
+    zona: zonaPublica_(),
     yo: Object.assign(publico_(yo), { cct: cct }),
     act: leer_('act').filter(a => !a.confidencial),
     seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial),
@@ -1979,7 +2058,7 @@ function resumenPendientes_() {
 function avisoAclaracion_(para, asunto, cuerpo) {
   const l = String(para || '').split(',').map(m => m.trim()).filter(m => /@/.test(m));
   if (!l.length) return;
-  try { MailApp.sendEmail({ to: l.join(','), subject: 'Tequio · ' + asunto, htmlBody: plantilla_(asunto, cuerpo), name: REMITENTE, replyTo: 'supervision050sep@gmail.com' }); } catch (e) {}
+  try { MailApp.sendEmail({ to: l.join(','), subject: 'Tequio · ' + asunto, htmlBody: plantilla_(asunto, cuerpo), name: REMITENTE, replyTo: CORREO_SUPERVISION }); } catch (e) {}
 }
 // Visitas de supervisión: ciclo escolar (agosto a julio) y registro de la visita de una escuela
 function cicloVis_(c) {
@@ -2184,7 +2263,7 @@ function enviarCorreo_(para, asunto, html, tipo, ref) {
     bitacora_(tipo, ref, para, asunto, 'pendiente: cuota insuficiente (' + cuota + ')');
     return { tipo: tipo, ok: false, pendiente: true, mensaje: 'Hoy quedan ' + cuota + ' envíos disponibles y se necesitan ' + para.length + '. Se enviará mañana a primera hora.' };
   }
-  MailApp.sendEmail({ to: Session.getEffectiveUser().getEmail(), bcc: para.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: 'supervision050sep@gmail.com' });
+  MailApp.sendEmail({ to: Session.getEffectiveUser().getEmail(), bcc: para.join(','), subject: asunto, htmlBody: html, name: REMITENTE, replyTo: CORREO_SUPERVISION });
   bitacora_(tipo, ref, para, asunto, 'enviado');
   return { tipo: tipo, ok: true, mensaje: 'Correo enviado a ' + para.length + ' direcciones.' };
 }
@@ -2222,7 +2301,7 @@ function enviarMinuta_(s) {
     (s.resumen ? '<p style="white-space:pre-line">' + esc_(s.resumen) + '</p>' : '') +
     (filas ? '<h3 style="font-size:16px;color:#24427A;margin:18px 0 6px">Acuerdos</h3><table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="background:#F1E4CC;text-align:left"><th style="padding:8px">#</th><th style="padding:8px">Acuerdo</th><th style="padding:8px">Responsable</th><th style="padding:8px">Revisión</th></tr>' + filas + '</table>' : '') +
     '<p style="margin-top:16px">Antes de cada fecha de revisión le enviaremos un recordatorio.</p>';
-  const r = enviarCorreo_(unicos, 'Minuta de seguimiento · ' + (esc ? esc.escuela : 'Zona 050') + ' · ' + fechaCorta_(s.fecha), plantilla_('Minuta de seguimiento', cuerpo), 'minuta', s.id);
+  const r = enviarCorreo_(unicos, 'Minuta de seguimiento · ' + (esc ? esc.escuela : 'Zona ' + Z().numero) + ' · ' + fechaCorta_(s.fecha), plantilla_('Minuta de seguimiento', cuerpo), 'minuta', s.id);
   if (r.ok) s.minutaEnviada = true;
   return r;
 }
@@ -2231,7 +2310,7 @@ function sincronizarCalendario_(a, previa) {
   try {
     const cal = CalendarApp.getDefaultCalendar();
     const invitados = correosDe_(a);
-    const desc = (a.proposito ? a.proposito + '\n\n' : '') + 'Supervisión Escolar Zona 050 · Tequio\n«' + LEMA + '»';
+    const desc = (a.proposito ? a.proposito + '\n\n' : '') + Z().nombre + ' · Tequio\n«' + LEMA + '»';
     let ev = a.calEventId ? (function () { try { return cal.getEventById(a.calEventId); } catch (e) { return null; } })() : null;
     const ini = a.horaInicio ? Utilities.parseDate(a.fecha + ' ' + a.horaInicio, TZ, 'yyyy-MM-dd HH:mm') : null;
     const fin = a.horaInicio ? Utilities.parseDate(a.fecha + ' ' + (a.horaFin || sumarHora_(a.horaInicio)), TZ, 'yyyy-MM-dd HH:mm') : null;
@@ -2363,7 +2442,7 @@ function tareaDiaria() {
           ', con fecha de revisión el <b>' + fechaLarga_(x.revision) + '</b>:</p>' +
           '<p style="background:#F1E4CC;border-radius:8px;padding:12px 14px">' + esc_(x.texto) + (x.responsable ? '<br><span style="color:#6A5C4C">Responsable: ' + esc_(x.responsable) + '</span>' : '') + '</p>';
         const para = correosDe_({ destinatarios: esc ? [esc.id] : [], responsables: [s.creadoPor] });
-        const r = enviarCorreo_(para, 'Seguimiento: acuerdo por revisar · ' + (esc ? esc.escuela : 'Zona 050'), plantilla_('Acuerdo por revisar', cuerpo), 'acuerdo', s.id);
+        const r = enviarCorreo_(para, 'Seguimiento: acuerdo por revisar · ' + (esc ? esc.escuela : 'Zona ' + Z().numero), plantilla_('Acuerdo por revisar', cuerpo), 'acuerdo', s.id);
         if (r.ok) { x.avisado = x.revision; cambio = true; }
       }
     });
@@ -2388,7 +2467,7 @@ function tareaDiaria() {
    (calendario oficial de Baja California); en días de suspensión sí se envía.
    Criterio del nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %; lo que no le aplica a la
    escuela cuenta como cumplido, y en evidencias cuenta que cada carpeta tenga archivos, no cuántos. */
-const PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };
+const PESO_GENERAL = Z().pesos;
 const CALENDARIO_URL = 'https://carlosog23.github.io/Carlos-Ortega/formatos-ppie/formatos/calendario.json';
 const VACACIONES_RESPALDO = [['2026-12-21', '2027-01-05'], ['2027-03-22', '2027-04-02']];   // por si no se puede leer el calendario
 const EVI_IGNORAR = [/^contingencia/, /^oficio/];
@@ -2617,7 +2696,7 @@ function htmlSemanal_(c, r, z, atp, hoy, prueba) {
 <body style="margin:0;background:#EEF0F3;font-family:Arial,Helvetica,sans-serif">
 ${prueba ? `<div style="max-width:680px;margin:14px auto 8px;padding:8px 14px;background:#FFF1D6;color:${AMB};border-radius:10px;font-size:13px;text-align:center"><b>PRUEBA</b>: este informe no se envió a la escuela.</div>` : ''}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto 24px;background:#FBF8F3;border-radius:14px;overflow:hidden;border:1px solid #E6DCCF">
-<tr><td style="padding:16px 24px 12px;background:#fff"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${MU};font-weight:700">Supervisión Escolar Zona 050 · ISEP · Tequio</div><div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
+<tr><td style="padding:16px 24px 12px;background:#fff"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:${MU};font-weight:700">${e(Z().nombre)} · ${e(Z().inst)} · Tequio</div><div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
 <tr><td style="padding:18px 24px 4px;color:${INK};font-size:15px;line-height:1.55">
  <div style="font-size:22px;font-weight:800;color:${G}">Informe semanal de seguimiento</div>
  <div style="font-size:15px;color:${MU};margin:2px 0 12px">Esc. Prim. «${e(c.escuela)}» · C.C.T. ${e(c.cct)}${c.municipio ? ' · ' + e(c.municipio) : ''}<br>${semanaTxt} · corte al ${fechaLarga_(hoy)}, 7:00 h</div>
@@ -2637,8 +2716,8 @@ ${agendaHTML}
  ${areas.map(([n, w, p, pz]) => `<tr><td width="130" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n} <span style="color:${MU};font-weight:400">(${w} %)</span></td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barra(p, G)}<div style="height:4px"></div>${barra(pz, A)}</td></tr>`).join('')}</table>
  <div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp; <span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas · Lo que no le aplica a la escuela cuenta como cumplido; en evidencias cuenta cada rubro cumplido (en verde, o con archivos si aún no se revisa), no cuántos archivos.</div></div></td></tr>
 ${logros.length ? `<tr><td style="padding:12px 24px 4px"><div style="background:#E3F3EA;border-radius:10px;padding:14px 16px"><div style="font-size:17px;font-weight:800;color:${VER};margin-bottom:6px">Lo que avanzaron la semana pasada</div><div style="font-size:14px;color:${INK};line-height:1.7">${logros.join('<br>')}<br>¡Gracias al colectivo docente por su compromiso!</div></div></td></tr>` : ''}
-<tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, comuníquese con su ATP${atp ? ', <b>' + e(atp.nombre) + '</b>,' : ''} para su aclaración, o solicítela en Tequio › Mi escuela › «Solicitar aclaración».<br><br>Atentamente<br><i style="color:${MU}">«Responsabilidad y superación»</i><br><br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</td></tr>
-<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe semanal automático de Tequio · <i>${e(LEMA)}</i> · Supervisión Escolar Zona 050 · Tel. 616 165 5622 · ${CORREO_SUPERVISION}</td></tr>
+<tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, comuníquese con su ATP${atp ? ', <b>' + e(atp.nombre) + '</b>,' : ''} para su aclaración, o solicítela en Tequio › Mi escuela › «Solicitar aclaración».<br><br>Atentamente<br>${Z().lemaZona ? '<i style="color:' + MU + '">«' + e(Z().lemaZona) + '»</i><br>' : ''}<br><b>${e(Z().supervisor)}</b><br>${e(Z().cargoSupervisor)} · Zona ${e(Z().numero)}</td></tr>
+<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe semanal automático de Tequio · <i>${e(LEMA)}</i> · ${e(Z().nombre)} · Tel. ${e(Z().telefono)} · ${CORREO_SUPERVISION}</td></tr>
 </table></body></html>`;
 }
 
@@ -2666,7 +2745,7 @@ function resumenSemanal_(res, z, hoy, prueba) {
 // Apartados del CTE que se revisan (no la felicitación ni los avisos)
 const CTE_CLAVES_REV = /^(asistencia|presentacion|ev:.+|pr:.+)$/;
 
-// Correo formal del CTE a la dirección (felicitación o aviso de pendientes): logos de ISEP y Zona 050 y firma de quien envía. No es oficio.
+// Correo formal del CTE a la dirección (felicitación o aviso de pendientes): logos de la institución y de la zona y firma de quien envía. No es oficio.
 function correoCte_(yo, cct, d) {
   const c = leer_('dir').find(e => e.tipo === 'director' && e.cct === cct);
   if (!c) throw new Error('La escuela no está en el Directorio.');
@@ -2680,23 +2759,23 @@ function correoCte_(yo, cct, d) {
   if (!texto) throw new Error('Escriba el mensaje.');
   const inline = {};
   const img = (k, url) => { try { inline[k] = UrlFetchApp.fetch(url).getBlob().setName(k + '.png'); return 'cid:' + k; } catch (e) { return url; } };
-  const isep = img('isep', PAGINA + 'img/isep.png'), zona = img('zona050', PAGINA + 'img/zona050.png');
+  const isep = img('isep', Z().logoInst), zona = img('zona050', Z().logoZona);
   const sup = yo.rol === 'admin';
   let firma = '';
   const fid = PropertiesService.getScriptProperties().getProperty('FIRMA_ID');
   if (sup && fid && d.firma !== false) { try { inline.firma = DriveApp.getFileById(fid).getBlob().setName('firma.png'); firma = '<img src="cid:firma" alt="" style="height:70px;display:block;margin:6px 0 -6px">'; } catch (e) {} }
-  const quien = sup ? '<b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050' : '<b>' + esc_(yo.nombre) + '</b><br>Asesoría Técnico Pedagógica · Supervisión Escolar Zona 050';
+  const quien = sup ? '<b>' + esc_(Z().supervisor) + '</b><br>' + esc_(Z().cargoSupervisor) + ' · Zona ' + Z().numero : '<b>' + esc_(yo.nombre) + '</b><br>Asesoría Técnico Pedagógica · ' + esc_(Z().nombre);
   const parrafos = texto.split(/\n\s*\n/).map(p => '<p style="margin:0 0 14px">' + esc_(p).replace(/\n/g, '<br>') + '</p>').join('');
   const html = '<div style="background:#F4F1EA;padding:22px 10px;font-family:Arial,Helvetica,sans-serif;color:#1E2A40">' +
     '<div style="max-width:620px;margin:0 auto;background:#FFFFFF;border:1px solid #E4D8C3;border-radius:10px;overflow:hidden">' +
     '<table role="presentation" width="100%" style="border-collapse:collapse;border-bottom:3px solid #C2603A"><tr>' +
     '<td style="padding:14px 18px;width:50%"><img src="' + isep + '" alt="ISEP" style="height:58px"></td>' +
-    '<td style="padding:14px 18px;text-align:right"><img src="' + zona + '" alt="Zona 050" style="height:66px"></td></tr></table>' +
-    '<div style="padding:8px 26px 0;text-align:center;font-size:12px;letter-spacing:.06em;color:#6A5C4C">SUPERVISIÓN ESCOLAR ZONA No. 050 · PRIMARIA FEDERALIZADA</div>' +
+    '<td style="padding:14px 18px;text-align:right"><img src="' + zona + '" alt="Zona ' + Z().numero + '" style="height:66px"></td></tr></table>' +
+    '<div style="padding:8px 26px 0;text-align:center;font-size:12px;letter-spacing:.06em;color:#6A5C4C">' + esc_(Z().nombreNo + ' · ' + Z().nivelSost).toUpperCase() + '</div>' +
     '<div style="padding:18px 26px 6px;font-size:15px;line-height:1.6">' + parrafos +
     '<p style="margin:22px 0 0">Atentamente,</p>' + firma + '<p style="margin:0">' + quien + '</p></div>' +
     (d.boton ? '<div style="padding:4px 26px 0">' + boton_(PAGINA, 'Abrir Tequio') + '</div>' : '') +
-    '<div style="background:#F1E4CC;padding:12px 22px;margin-top:18px;font-size:12px;color:#6A5C4C">Supervisión Escolar Zona No. 050 · ISEP · Camalú, San Quintín, B.C. · «Responsabilidad y superación»</div>' +
+    '<div style="background:#F1E4CC;padding:12px 22px;margin-top:18px;font-size:12px;color:#6A5C4C">' + esc_(Z().nombreNo + ' · ' + Z().inst + ' · ' + Z().lugar) + (Z().lemaZona ? ' · «' + esc_(Z().lemaZona) + '»' : '') + '</div>' +
     '</div></div>';
   // Los ATP envían desde la cuenta de la Supervisión; el Supervisor puede elegir su correo institucional
   let de = CORREO_SUPERVISION, nota = '';
@@ -2704,12 +2783,12 @@ function correoCte_(yo, cct, d) {
     let alias = [];
     try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
     if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
-      GmailApp.sendEmail(para.join(','), asunto, texto, { from: CORREO_INSTITUCIONAL, cc: cc.join(','), name: 'Mtro. Carlos Gabriel Ortega Gutiérrez', replyTo: CORREO_INSTITUCIONAL, htmlBody: html, inlineImages: inline });
+      GmailApp.sendEmail(para.join(','), asunto, texto, { from: CORREO_INSTITUCIONAL, cc: cc.join(','), name: Z().supervisor, replyTo: CORREO_INSTITUCIONAL, htmlBody: html, inlineImages: inline });
       de = CORREO_INSTITUCIONAL;
     } else nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
   }
   if (de === CORREO_SUPERVISION) MailApp.sendEmail({ to: para.join(','), cc: cc.join(','), subject: asunto, htmlBody: html, inlineImages: inline,
-    name: sup ? 'Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Zona 050' : 'Supervisión Escolar Zona 050', replyTo: sup && d.de === CORREO_INSTITUCIONAL ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION });
+    name: sup ? Z().firmaCorreo : Z().nombre, replyTo: sup && d.de === CORREO_INSTITUCIONAL ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION });
   return { asunto: asunto, de: de, nota: nota, a: para.concat(cc).join(', '), lista: para.concat(cc) };
 }
 
@@ -2720,8 +2799,8 @@ function plantilla_(titulo, cuerpo, sinFirma) {
     '<div style="font-family:Georgia,serif;font-size:26px;font-weight:bold">Tequio</div>' +
     '<div style="font-family:Georgia,serif;font-style:italic;font-size:14px;color:#E9D8BA">' + LEMA + '</div></div>' +
     '<div style="padding:22px;font-size:15px;line-height:1.55"><h2 style="font-size:20px;color:#24427A;margin:0 0 12px">' + esc_(titulo) + '</h2>' + cuerpo +
-    (sinFirma ? '' : '<p style="margin-top:22px">Atentamente,<br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</p>') + '</div>' +
-    '<div style="background:#F1E4CC;padding:12px 22px;font-size:12px;color:#6A5C4C">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · Camalú, San Quintín, B.C.<br>«Responsabilidad y superación» · Tel. 616 165 5622 · supervision050sep@gmail.com</div>' +
+    (sinFirma ? '' : '<p style="margin-top:22px">Atentamente,<br><b>' + esc_(Z().supervisor) + '</b><br>' + esc_(Z().cargoSupervisor) + ' · Zona ' + Z().numero + '</p>') + '</div>' +
+    '<div style="background:#F1E4CC;padding:12px 22px;font-size:12px;color:#6A5C4C">' + esc_(Z().nombreNo + ' · ' + Z().nivelSost + ' · ' + Z().inst + ' · ' + Z().lugar) + '<br>' + (Z().lemaZona ? '«' + esc_(Z().lemaZona) + '» · ' : '') + 'Tel. ' + esc_(Z().telefono) + ' · ' + esc_(CORREO_SUPERVISION) + '</div>' +
     '</div></div>';
 }
 

@@ -11,12 +11,12 @@
 (function(){var O="https://carlosog23.github.io/Carlos-Ortega/",H=["carlosog23.github.io","localhost","127.0.0.1"],h=location.hostname;
 if(H.indexOf(h)>-1)return;window.__copiaNoAutorizada=true;
 try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURIComponent("/copia-no-autorizada/"+(h||"archivo-local")+location.pathname)+"&t="+encodeURIComponent("Copia no autorizada: "+location.href)+"&rnd="+Math.random()}catch(e){}
-function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta pertenece a la Supervisión Escolar Zona 050 (ISEP) y es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
+function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tequio · Zona 050</title>
-<meta name="description" content="Tequio · Asesoría y seguimiento de la Supervisión Escolar Zona 050. Lo que acordamos juntos, lo caminamos juntos.">
+<title>Tequio</title>
+<meta name="description" content="Tequio · Asesoría y seguimiento de supervisiones escolares. Lo que acordamos juntos, lo caminamos juntos.">
 <meta name="theme-color" content="#1F3A6B">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='94' fill='%23F4E1C1'/%3E%3Cg fill='none' stroke-width='13' stroke-linecap='round'%3E%3Cpath d='M79.7 56.5 A48 48 0 0 1 120.3 56.5' stroke='%2324427A'/%3E%3Cpath d='M127.5 60.7 A48 48 0 0 1 147.8 95.8' stroke='%23C2603A'/%3E%3Cpath d='M147.8 104.2 A48 48 0 0 1 127.5 139.3' stroke='%2324427A'/%3E%3Cpath d='M120.3 143.5 A48 48 0 0 1 79.7 143.5' stroke='%23C2603A'/%3E%3Cpath d='M72.5 139.3 A48 48 0 0 1 52.2 104.2' stroke='%2324427A'/%3E%3Cpath d='M52.2 95.8 A48 48 0 0 1 72.5 60.7' stroke='%23C2603A'/%3E%3C/g%3E%3Ccircle cx='100' cy='30' r='11' fill='%2324427A'/%3E%3Ccircle cx='160.6' cy='65' r='11' fill='%23C2603A'/%3E%3Ccircle cx='160.6' cy='135' r='11' fill='%2324427A'/%3E%3Ccircle cx='100' cy='170' r='11' fill='%23C2603A'/%3E%3Ccircle cx='39.4' cy='135' r='11' fill='%2324427A'/%3E%3Ccircle cx='39.4' cy='65' r='11' fill='%23C2603A'/%3E%3Ccircle cx='100' cy='100' r='13' fill='%23E8A33D'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -635,12 +635,80 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 <script>
 'use strict';
 /* =========================================================
-   TEQUIO · Asesoría y seguimiento · Supervisión Escolar Zona 050
+   TEQUIO · Asesoría y seguimiento · Supervisiones escolares
    Página (GitHub Pages). Los datos viven en el servidor de
-   Google Apps Script de supervision050sep@gmail.com.
+   Google Apps Script de la cuenta de cada supervisión (ver «Perfil de la zona»).
    ========================================================= */
 
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
+/* ---------------- Perfil de la zona ---------------- */
+// Lo propio de cada supervisión. Por omisión, la Zona 050; al entrar, el servidor manda el de la zona instalada.
+const ZONA_DEF = {
+  numero: '050', nivel: 'Primaria', sostenimiento: 'Federalizada', sede: 'Camalú', municipioSede: 'San Quintín', codigoPostal: '22910',
+  telefono: '616 165 5622', supervisor: 'Mtro. Carlos Gabriel Ortega Gutiérrez', cargoSupervisor: 'Supervisor Escolar',
+  correoSupervision: 'supervision050sep@gmail.com', correoInstitucional: 'cortegagutierrez@bcedu.mx',
+  lemaZona: 'Responsabilidad y superación', logoZona: 'img/zona050.png',
+  carpetaEvidencias: '1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D', nombreCarpeta: 'Supervisión 050', folioPrefijo: 'SE-050', cctSupervision: '02FIZ0094X',
+  autoridades: [
+    { municipio: 'San Quintín', nombre: 'C. HUMBERTO GARCÍA SOLORIO', cargo: 'Jefe del Departamento de Educación Primaria en San Quintín', institucion: 'ISEP' },
+    { municipio: 'Ensenada', nombre: 'PROFR. ARTURO AGUILAR CITAL', cargo: 'Jefe del Departamento de Educación Primaria en Ensenada', institucion: 'ISEP' }
+  ],
+  pesos: { acu: 70, evi: 20, sis: 5, eia: 5 },
+  vespertinas: ['02DPR0077J', '02DPR0150B', '02DPR0882N']
+};
+const SITIO_TQ = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
+function zonaArmar(g) {
+  const z = Object.assign({}, ZONA_DEF, g || {});
+  z.estatal = /estatal/i.test(z.sostenimiento);
+  z.nombre = 'Supervisión Escolar Zona ' + z.numero;
+  z.nombreNo = 'Supervisión Escolar Zona No. ' + z.numero;
+  z.nombreMay = z.nombre.toUpperCase();
+  z.nivelSost = z.nivel + ' ' + z.sostenimiento;
+  z.nivelSostMay = z.nivelSost.toUpperCase();
+  z.inst = z.estatal ? 'Secretaría de Educación' : 'ISEP';
+  z.instNombreMay = z.estatal ? 'SECRETARÍA DE EDUCACIÓN DE BAJA CALIFORNIA' : 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA';
+  z.logoInst = z.estatal ? 'img/se.png' : 'img/isep.png';
+  z.logoInstAbs = SITIO_TQ + z.logoInst;
+  z.logoZonaAbs = new URL(z.logoZona, SITIO_TQ).href;
+  z.lugar = z.sede + ', ' + z.municipioSede + ', B.C.';
+  z.municipios = (z.autoridades || []).map(a => a.municipio);
+  z.firmante = z.supervisor.toUpperCase();
+  z.cargoMay = (z.cargoSupervisor + ' Zona ' + z.numero).toUpperCase();
+  z.lemaTxt = z.lemaZona ? ' · «' + z.lemaZona + '»' : '';
+  return z;
+}
+let ZONA = zonaArmar();
+// Al entrar: toma el perfil que manda el servidor y rehace lo que depende de él (oficios, destinos, Drive, pesos…)
+function zonaAplicar(g) {
+  ZONA = zonaArmar(g);
+  const z = ZONA, mun = z.municipios, varios = mun.length > 1 ? mun.slice().sort((x, y) => x.localeCompare(y, 'es')).join(' Y ').toUpperCase() + ', B.C.' : 'MUNICIPIO DE ' + (mun[0] || z.municipioSede).toUpperCase() + ', B.C.';
+  ISEP_TXT = z.instNombreMay;
+  DESTINOS = {};
+  (z.autoridades || []).forEach(a => { DESTINOS[a.municipio] = { destNombre: a.nombre, destCargo: String(a.cargo || '').toUpperCase(), destInst: a.institucion && !/^isep$/i.test(a.institucion) ? String(a.institucion).toUpperCase() : ISEP_TXT }; });
+  DESTINOS['Otro'] = { destNombre: '', destCargo: '', destInst: '' };
+  const zonaEsc = 'ZONA ESCOLAR ' + z.numero;
+  DESTINOS['Directores'] = { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: zonaEsc, destInst: varios };
+  GRUPOS_DIR = { 'Directores': 'Todos los directores' };
+  if (mun.length > 1) mun.slice().sort((a, b) => a.localeCompare(b, 'es')).forEach(m => {
+    DESTINOS['Directores ' + m] = { destNombre: 'C.C. DIRECTORES DE LAS ESCUELAS PRIMARIAS', destCargo: zonaEsc, destInst: 'MUNICIPIO DE ' + m.toUpperCase() + ', B.C.' };
+    GRUPOS_DIR['Directores ' + m] = 'Directores de ' + m;
+  });
+  DESTINOS['Multigrado'] = { destNombre: 'C.C. ENCARGADOS DE DESPACHO DE LAS ESCUELAS MULTIGRADO', destCargo: zonaEsc, destInst: varios };
+  GRUPOS_DIR['Multigrado'] = 'Encargados multigrado';
+  OFI = { lugar: z.lugar, firmante: z.firmante, cargo: z.cargoMay, cct: z.cctSupervision };
+  SUPERVISOR_DEST = { destNombre: z.firmante, destCargo: z.cargoMay, destInst: z.nivelSostMay + ' · C.C.T. ' + z.cctSupervision };
+  CCP_SUP = z.supervisor + ', ' + z.cargoSupervisor + ' Zona ' + z.numero + '. Para su conocimiento.';
+  EO_DEST_ETQ.sup = 'Supervisión ' + z.numero;
+  RAIZ_DRIVE = 'https://drive.google.com/drive/folders/' + z.carpetaEvidencias;
+  SUP_CENTRO = { cct: z.cctSupervision, escuela: z.nombre, municipio: z.municipioSede, multigrado: false };
+  PESO_GENERAL = z.pesos;
+  SIS_VESPERTINAS = z.vespertinas || [];
+  DEP_MUN = mun.concat(['Estatal', 'Federal']);
+  DEP_FILTROS = mun.map(m => ['dep-' + m, 'Dependencias ' + m]);
+}
+// Municipios de la zona en orden alfabético (para listas) y selector de municipio
+const munOrden = () => ZONA.municipios.slice().sort((a, b) => a.localeCompare(b, 'es'));
+const munSelect = (id, actual) => `<select id="${id}" aria-label="Municipio"><option value="">${esc(munOrden().join(' y '))}</option>${munOrden().map(m => `<option ${actual === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>`;
 const CFG_KEY = 'tequio.cfg';
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -787,6 +855,7 @@ async function cargar() {
   cargando(true);
   try {
     const r = await api('datos');
+    if (r.zona) { zonaAplicar(r.zona); document.title = 'Tequio · Zona ' + ZONA.numero; }
     S = { yo: r.yo, act: r.act || [], seg: r.seg || [], dir: r.dir || [], usr: r.usr || [], cuota: r.cuota,
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eve: Array.isArray(r.eve) ? r.eve : null, eviRevisado: r.eviRevisado || '',
@@ -856,15 +925,15 @@ const selAtp = () => `<select id="f-atp" aria-label="ATP"><option value="">Toda 
 
 /* ---------------- Portada (sin enlace) ---------------- */
 function portada(mensaje) {
-  document.title = 'Tequio · Zona 050';
+  document.title = 'Tequio · Zona ' + ZONA.numero;
   $('#app').innerHTML = `
   <div class="portada"><div class="caja">
     <svg class="logo" role="img" aria-label="Logotipo de Tequio: seis personas unidas en círculo alrededor de una luz"><use href="#logo"/></svg>
     <h1>Tequio</h1>
     <div class="lema">${LEMA}</div>
-    <div class="sub">Asesoría y seguimiento · Zona 050</div>
+    <div class="sub">Asesoría y seguimiento · Zona ${esc(ZONA.numero)}</div>
     ${mensaje ? `<div class="aviso-caja" style="margin-top:18px;text-align:left">${esc(mensaje)}</div>` : ''}
-    <p style="margin-top:18px">Tequio es el calendario de asesoría y seguimiento de la Supervisión Escolar Zona 050. Para entrar, abra el <b>enlace personal</b> que le envió la Supervisión.</p>
+    <p style="margin-top:18px">Tequio es el calendario de asesoría y seguimiento de la ${esc(ZONA.nombre)}. Para entrar, abra el <b>enlace personal</b> que le envió la Supervisión.</p>
     <div class="botones">
       <a class="boton" href="#demo" id="b-demo">Ver una demostración</a>
       <a class="boton sec" href="#demo" id="b-demo-dir">Demostración como director</a>
@@ -873,7 +942,7 @@ function portada(mensaje) {
     <div class="tarjeta significado">
       <b style="color:var(--terra-d)">Tequio</b> es el trabajo que la comunidad hace en conjunto, sin esperar pago, para el bien de todos. En los pueblos que hoy dan vida al Valle de San Quintín, cuando hay que levantar una escuela o abrir un camino, nadie se queda en casa. Así queremos trabajar la asesoría y el seguimiento: lo que acordamos en cada escuela lo caminamos juntos.
     </div>
-    <p class="peq" style="margin-top:18px">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · «Responsabilidad y superación»</p>
+    <p class="peq" style="margin-top:18px">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}<br>${esc(ZONA.lugar)}${esc(ZONA.lemaTxt)}</p>
   </div></div>`;
   $('#b-demo').onclick = ev => { ev.preventDefault(); cfg = { demo: true }; cargar(); };
   $('#b-demo-dir').onclick = ev => { ev.preventDefault(); cfg = { demo: true, dir: true }; cargar(); };
@@ -900,7 +969,7 @@ function pintar() {
     <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : esDirector() ? esc(nombreEscuela(miCct())) : 'Mesa Técnica'}</span></div>
   </div></header>
   <main><div class="envoltura" id="vista"></div></main>
-  <div class="pie">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP · «Responsabilidad y superación»</div>
+  <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
   <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
@@ -1052,8 +1121,7 @@ function formActividad(id, base) {
       <button type="button" class="boton sec chico" data-sel="todas">Todas</button>
       <button type="button" class="boton sec chico" data-sel="ninguna">Ninguna</button>
       <button type="button" class="boton sec chico" data-sel="multigrado">Multigrado</button>
-      <button type="button" class="boton sec chico" data-sel="Ensenada">Ensenada</button>
-      <button type="button" class="boton sec chico" data-sel="San Quintín">San Quintín</button>
+      ${munOrden().map(m => `<button type="button" class="boton sec chico" data-sel="${esc(m)}">${esc(m)}</button>`).join('\n      ')}
     </div>
     <div class="casillas" id="a-escs">${dirs.map(c => `<label class="casilla"><input type="checkbox" value="${c.cct}" data-mun="${esc(c.municipio)}" data-mg="${c.multigrado}" ${(a.escuelas || []).includes(c.cct) ? 'checked' : ''}><span>${esc(c.escuela)}</span></label>`).join('')}</div>
     <div class="ayuda">Los avisos llegan a la dirección de cada escuela marcada.</div>
@@ -1070,7 +1138,7 @@ function formActividad(id, base) {
       <div class="casillas" style="grid-template-columns:1fr">${Object.entries(AVISOS).map(([k, v]) => `<label class="casilla"><input type="checkbox" value="${k}" ${(a.avisos || []).includes(k) ? 'checked' : ''}><span>${v[0]}<br><span class="ayuda">${v[1]}</span></span></label>`).join('')}</div>
     </div>
     <label class="casilla" style="margin-bottom:6px"><input type="checkbox" id="a-ahora" ${id ? '' : 'checked'}><span>${id ? 'Enviar ahora un correo avisando del cambio' : 'Enviar ahora un correo con el aviso'}</span></label>
-    <div class="ayuda">Salen de supervision050sep@gmail.com. Hoy quedan ${S.cuota != null ? S.cuota : '—'} envíos disponibles.</div>
+    <div class="ayuda">Salen de ${esc(ZONA.correoSupervision)}. Hoy quedan ${S.cuota != null ? S.cuota : '—'} envíos disponibles.</div>
   </div>`;
   modal(id ? 'Editar actividad' : 'Nueva actividad', cuerpo, `<button class="boton sec" id="a-cancelar">Cancelar</button><button class="boton terra" id="a-guardar">Guardar</button>`);
   const cajaAvisos = () => { const c = $('#a-conf'); $('#a-avisos-caja').classList.toggle('oculto', !!(c && c.checked)); };
@@ -1117,11 +1185,11 @@ function textoWhatsApp(a, clase) {
     recordatorio: 'Le recordamos la siguiente actividad:',
     cancelada: 'Le informamos que la siguiente actividad *fue cancelada*. Le avisaremos la nueva fecha cuando se defina.'
   }[clase || 'aviso'];
-  const l = ['*Supervisión Escolar Zona 050 · Tequio*', '', intro, '', '*' + a.titulo + '*', '📅 ' + fechaLarga(a.fecha), '🕘 ' + horario(a)];
+  const l = ['*' + ZONA.nombre + ' · Tequio*', '', intro, '', '*' + a.titulo + '*', '📅 ' + fechaLarga(a.fecha), '🕘 ' + horario(a)];
   if (a.lugar) l.push('📍 ' + a.lugar);
   if (escuelasTexto(a)) l.push('🏫 ' + escuelasTexto(a));
   if (a.proposito && clase !== 'cancelada') l.push('', a.proposito);
-  l.push('', 'Atentamente,', 'Mtro. Carlos Gabriel Ortega Gutiérrez', 'Supervisor Escolar · Zona 050', '_' + LEMA + '_');
+  l.push('', 'Atentamente,', ZONA.supervisor, ZONA.cargoSupervisor + ' · Zona ' + ZONA.numero, '_' + LEMA + '_');
   return l.join('\n');
 }
 function personasDe(a) {
@@ -1165,7 +1233,7 @@ function detalleActividad(id, recienGuardada) {
   ${a.confidencial ? '<div class="aviso-caja conf" style="margin-top:12px">Actividad confidencial: Tequio no envía avisos automáticos. Use los botones de abajo para avisar desde su correo personal o por WhatsApp.</div>' : ''}
   ${segs.length ? `<div class="campo" style="margin-top:12px"><span class="et">Seguimiento registrado</span>${segs.map(s => `<div class="peq">· ${esc(nombreEscuela(s.cct))}: ${(s.acuerdos || []).length} acuerdo(s)</div>`).join('')}</div>` : ''}
   ${soloVer ? '' : `<details style="margin-top:12px" ${recienGuardada ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;color:var(--indigo)">Avisar por WhatsApp o desde mi correo</summary>
-    <div style="margin-top:10px">${bloqueWhatsApp(textoWhatsApp(a, a.estado === 'cancelada' ? 'cancelada' : 'aviso'), personasDe(a), 'Supervisión Zona 050 · ' + a.titulo + ' · ' + fechaCorta(a.fecha))}</div>
+    <div style="margin-top:10px">${bloqueWhatsApp(textoWhatsApp(a, a.estado === 'cancelada' ? 'cancelada' : 'aviso'), personasDe(a), 'Supervisión Zona ' + ZONA.numero + ' · ' + a.titulo + ' · ' + fechaCorta(a.fecha))}</div>
   </details>`}`;
   const pie = soloVer ? '<button class="boton" id="d-cerrar">Cerrar</button>' : `
     ${programada ? `<button class="boton peligro" id="d-cancelar">Cancelar actividad</button>` : `<button class="boton sec" id="d-reactivar">Volver a programar</button>`}
@@ -1224,7 +1292,7 @@ function vSeguimiento() {
   ${zh ? cuadroHonor(zh.podio.lista) : ''}
   <div class="filtros">
     ${selAtp()}
-    <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>
+    ${munSelect('f-mun', vista.municipio)}
   </div>
   <div class="escuelas">${dirs.map(c => {
     const ss = S.seg.filter(s => s.cct === c.cct);
@@ -1325,21 +1393,21 @@ function enlazarSeg() {
 
 function textoMinuta(s) {
   const c = escuelaDe(s.cct), a = s.actividadId ? S.act.find(x => x.id === s.actividadId) : null;
-  const l = ['*Supervisión Escolar Zona 050 · Tequio*', '*Minuta de seguimiento*', '', (c ? '🏫 ' + c.escuela + ' (' + c.cct + ')' : ''), '📅 ' + fechaLarga(s.fecha)];
+  const l = ['*' + ZONA.nombre + ' · Tequio*', '*Minuta de seguimiento*', '', (c ? '🏫 ' + c.escuela + ' (' + c.cct + ')' : ''), '📅 ' + fechaLarga(s.fecha)];
   if (a) l.push('📌 ' + a.titulo);
   if (s.resumen) l.push('', s.resumen);
   if ((s.acuerdos || []).length) {
     l.push('', '*Acuerdos*');
     s.acuerdos.forEach((x, i) => l.push((i + 1) + '. ' + x.texto + (x.responsable ? ' — ' + x.responsable : '') + (x.revision ? ' (revisión: ' + fechaCorta(x.revision) + ')' : '')));
   }
-  l.push('', 'Atentamente,', 'Mtro. Carlos Gabriel Ortega Gutiérrez', 'Supervisor Escolar · Zona 050', '_' + LEMA + '_');
+  l.push('', 'Atentamente,', ZONA.supervisor, ZONA.cargoSupervisor + ' · Zona ' + ZONA.numero, '_' + LEMA + '_');
   return l.filter((x, i) => x !== '' || i > 2).join('\n');
 }
 function minutaWhatsApp(id) {
   const s = S.seg.find(x => x.id === id), c = escuelaDe(s.cct);
   const personas = c ? [{ nombre: c.nombre, sub: c.escuela, tels: telefonos(c.whatsapp), correos: correos(c) }] : [];
   modal('Compartir minuta', (s.confidencial ? '<div class="aviso-caja conf">Seguimiento confidencial: compártalo solo desde su cuenta personal.</div>' : '') +
-    bloqueWhatsApp(textoMinuta(s), personas, 'Minuta de seguimiento · ' + (c ? c.escuela : 'Zona 050') + ' · ' + fechaCorta(s.fecha)), '<button class="boton sec" id="w-cerrar">Cerrar</button>');
+    bloqueWhatsApp(textoMinuta(s), personas, 'Minuta de seguimiento · ' + (c ? c.escuela : 'Zona ' + ZONA.numero) + ' · ' + fechaCorta(s.fecha)), '<button class="boton sec" id="w-cerrar">Cerrar</button>');
   $('#w-copiar').onclick = () => copiar($('#w-msg').textContent, 'Minuta copiada');
   $('#w-cerrar').onclick = cerrarModal;
 }
@@ -1563,9 +1631,9 @@ function vEditorVisita() {
   if ($('#v-tema')) $('#v-tema').onclick = () => formTemaVisita(D, null);
   $$('[data-et]').forEach(b => b.onclick = () => formTemaVisita(D, D.temas.find(t => t.k === b.dataset.et)));
   if ($('#v-wa')) $('#v-wa').onclick = () => {
-    const l = ['*Supervisión Escolar Zona 050 · Tequio*', '*' + visNombre(n, v) + '*', '🏫 ' + (c ? c.escuela : cct), D.fecha ? '📅 ' + fechaLarga(D.fecha) : '', '', 'Temas que se revisarán:'];
+    const l = ['*' + ZONA.nombre + ' · Tequio*', '*' + visNombre(n, v) + '*', '🏫 ' + (c ? c.escuela : cct), D.fecha ? '📅 ' + fechaLarga(D.fecha) : '', '', 'Temas que se revisarán:'];
     temas.forEach((t, i) => l.push((i + 1) + '. ' + t.t + (t.f ? ' (evidencia: ' + t.f.charAt(0).toLowerCase() + t.f.slice(1) + ')' : '')));
-    l.push('', 'Puede ver la guía completa, subir sus fotos de evidencia y marcar cada tema como listo en Tequio › Visitas.', '', 'Atentamente,', 'Mtro. Carlos Gabriel Ortega Gutiérrez', 'Supervisor Escolar · Zona 050');
+    l.push('', 'Puede ver la guía completa, subir sus fotos de evidencia y marcar cada tema como listo en Tequio › Visitas.', '', 'Atentamente,', ZONA.supervisor, ZONA.cargoSupervisor + ' · Zona ' + ZONA.numero);
     const personas = c ? [{ nombre: c.nombre, sub: c.escuela, tels: telefonos(c.whatsapp), correos: correos(c) }] : [];
     modal('Enviar la guía a la escuela', bloqueWhatsApp(l.filter((x, i) => x !== '' || i > 3).join('\n'), personas, visNombre(n, v) + ' · ' + (c ? c.escuela : '')), '<button class="boton sec" id="w-cerrar">Cerrar</button>');
     $('#w-copiar').onclick = () => copiar($('#w-msg').textContent, 'Guía copiada');
@@ -1636,7 +1704,7 @@ const pctDe = (h, t) => t ? Math.round(h * 100 / t) : null;
 const nomGrupo = k => { const [g, gr] = k.split('|'); return g + '.°' + (gr ? ' ' + gr : ''); };
 const diasEntre = (a, b) => Math.max(0, Math.round((new Date(String(b).slice(0, 10) + 'T12:00') - new Date(String(a).slice(0, 10) + 'T12:00')) / 864e5));
 
-const PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };   // nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 %, EIA 5 %
+let PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };   // nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 %, EIA 5 %
 // Cifras y pendientes de una escuela con lo que Tequio tiene en este momento
 function infCifras(cct) {
   const ciclo = cicloActual(), r = { cct };
@@ -1748,9 +1816,9 @@ function infHTML(r, z, fecha) {
 <body style="margin:0;background:#EEF0F3;font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto 24px;background:#FBF8F3;border-radius:14px;overflow:hidden;border:1px solid #E6DCCF">
 <tr><td style="padding:16px 24px 10px;background:#fff"><table role="presentation" width="100%"><tr>
-<td width="80"><img src="${IMG_INF}isep.png" alt="ISEP" height="55"></td>
-<td align="center" style="font-size:13px;color:${INK};line-height:1.4"><b style="color:${G};letter-spacing:.04em">SUPERVISIÓN ESCOLAR ZONA 050</b><br>Primaria Federalizada · ISEP<br><span style="color:${MU}">Camalú, San Quintín, B.C. · C.C.T. 02FIZ0094X</span></td>
-<td width="80" align="right"><img src="${IMG_INF}zona050.png" alt="Zona 050" height="55"></td></tr></table>
+<td width="80"><img src="${ZONA.logoInstAbs}" alt="${esc(ZONA.inst)}" height="55"></td>
+<td align="center" style="font-size:13px;color:${INK};line-height:1.4"><b style="color:${G};letter-spacing:.04em">${esc(ZONA.nombreMay)}</b><br>${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}<br><span style="color:${MU}">${esc(ZONA.lugar)} · C.C.T. ${esc(ZONA.cctSupervision)}</span></td>
+<td width="80" align="right"><img src="${ZONA.logoZonaAbs}" alt="Zona ${esc(ZONA.numero)}" height="55"></td></tr></table>
 <div style="height:4px;background:${G};border-right:50% solid ${A};margin-top:10px"></div></td></tr>
 <tr><td style="padding:18px 24px 4px;color:${INK};font-size:15px;line-height:1.55">
 <div style="font-size:21px;font-weight:800;color:${G}">Informe de seguimiento</div>
@@ -1780,8 +1848,8 @@ ${sec('2. Evidencias en el Drive de la Supervisión', tabla(['Carpeta', 'Archivo
 ${sec('3. SisAT · ' + r.sis.m + '.er momento', tabla(['Grupo', 'Estado', 'Requieren apoyo*'], r.sis.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL), riesgo(o.x)])) + `<div style="font-size:13px;color:${MU};margin-top:6px">* Alumnos en «requiere apoyo» en lectura (L), producción de textos (E) y cálculo mental (C). El detalle por alumno está en Tequio › SisAT (solo lo ve la dirección).</div>`)}
 ${sec('4. Ejercicios Integradores del Aprendizaje (EIA)', tabla(['Grupo', 'Captura de resultados'], r.eia.grupos.map(o => [nomGrupo(o.g), o.x ? chip('Cargado', OK) : chip('Falta', MAL)])))}
 <tr><td style="padding:20px 24px 6px;font-size:15px;color:${INK};line-height:1.55">Si algún dato no coincide con lo que tiene la escuela, por favor comuníquese con su ATP${atp ? ', <b>' + esc(atp.nombre) + '</b>,' : ''} para su aclaración y/o revisión. También puede solicitarla en Tequio › Mi escuela › «Solicitar aclaración». Gracias por su compromiso.<br><br>
-Atentamente<br><i style="color:${MU}">«Responsabilidad y superación»</i><br><br><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><br>Supervisor Escolar · Zona 050</td></tr>
-<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe generado por Tequio · <i>${esc(LEMA)}</i> · Supervisión Escolar Zona 050 · Tel. 616 165 5622 · supervision050sep@gmail.com</td></tr>
+Atentamente<br>${ZONA.lemaZona ? `<i style="color:${MU}">«${esc(ZONA.lemaZona)}»</i><br>` : ''}<br><b>${esc(ZONA.supervisor)}</b><br>${esc(ZONA.cargoSupervisor)} · Zona ${esc(ZONA.numero)}</td></tr>
+<tr><td style="padding:14px 24px 18px;font-size:12px;color:${MU};border-top:1px solid #E6DCCF">Informe generado por Tequio · <i>${esc(LEMA)}</i> · ${esc(ZONA.nombre)} · Tel. ${esc(ZONA.telefono)} · ${esc(ZONA.correoSupervision)}</td></tr>
 </table></body></html>`;
 }
 const infVer = (titulo, html, pie) => { modal(esc(titulo), `<iframe title="Informe" srcdoc="${esc(html)}" style="width:100%;height:68vh;border:1px solid var(--borde);border-radius:10px;background:#fff"></iframe>`, pie || '<button class="boton" id="iv-ok">Cerrar</button>'); if ($('#iv-ok')) $('#iv-ok').onclick = cerrarModal; };
@@ -1793,7 +1861,7 @@ function formInforme(preCct) {
   const sel = new Set(preCct ? [preCct] : []);
   modal('Enviar informe de seguimiento', `
     <p class="peq" style="margin-top:0">Se envía a la dirección de cada escuela con el estado de sus acuerdos, evidencias, SisAT y EIA, comparado con el promedio de la zona (<b>${z.general}%</b>), y su lista de pendientes. La dirección puede pedir aclaraciones a su ATP desde Tequio.</p>
-    <div class="filtros" id="fi-r"><button type="button" class="chip" data-r="todas" style="cursor:pointer;border:0">Todas</button><button type="button" class="chip" data-r="San Quintín" style="cursor:pointer;border:0">San Quintín</button><button type="button" class="chip" data-r="Ensenada" style="cursor:pointer;border:0">Ensenada</button>${mias.length ? '<button type="button" class="chip" data-r="mias" style="cursor:pointer;border:0">Mis escuelas</button>' : ''}<button type="button" class="chip" data-r="bajo" style="cursor:pointer;border:0">Abajo del promedio</button><button type="button" class="chip" data-r="ninguna" style="cursor:pointer;border:0">Ninguna</button></div>
+    <div class="filtros" id="fi-r"><button type="button" class="chip" data-r="todas" style="cursor:pointer;border:0">Todas</button>${ZONA.municipios.map(m => `<button type="button" class="chip" data-r="${esc(m)}" style="cursor:pointer;border:0">${esc(m)}</button>`).join('')}${mias.length ? '<button type="button" class="chip" data-r="mias" style="cursor:pointer;border:0">Mis escuelas</button>' : ''}<button type="button" class="chip" data-r="bajo" style="cursor:pointer;border:0">Abajo del promedio</button><button type="button" class="chip" data-r="ninguna" style="cursor:pointer;border:0">Ninguna</button></div>
     <div id="fi-l" style="max-height:44vh;overflow:auto;border:1px solid var(--borde);border-radius:10px">${dirs.map(c => { const r = z.porCct[c.cct], a = atpDe(c.cct), sinCorreo = !correos(c).length; return `<label class="casilla" style="padding:8px 10px;border-bottom:1px solid var(--borde);margin:0;align-items:center">
       <input type="checkbox" data-cct="${c.cct}"><span style="flex:1"><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : ''} · ${r.pend.length} pendiente${r.pend.length === 1 ? '' : 's'}${sinCorreo ? ' · <b style="color:var(--alerta)">sin correo de la dirección</b>' : ''}</span></span>
       ${insignia(z, c.cct)} <span class="chip ${r.general >= z.general ? 'ok' : 'aviso'}">${r.general}%</span></label>`; }).join('')}</div>
@@ -2563,7 +2631,7 @@ function vAcuerdos() {
   <div class="filtros">
     ${selAtp()}
     <select id="f-reu" aria-label="Reunión"><option value="">Todas las reuniones</option>${reuniones().map(r => `<option value="${r.id}" ${vista.acuReu === r.id ? 'selected' : ''}>${fechaCorta(r.fecha)} · ${esc(r.titulo)}</option>`).join('')}</select>
-    <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>
+    ${munSelect('f-mun', vista.municipio)}
   </div>
   ${porAtp.length ? `<div class="tarjeta" style="margin-bottom:16px">
     <div class="seccion-t" style="display:flex;align-items:center;gap:8px">Avance por ATP${esAdmin() ? `<button class="boton sec chico" id="b-asignar" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}Asignar escuelas</button>` : ''}</div>
@@ -2857,8 +2925,8 @@ function importarReunion() {
 }
 
 
-/* ---------------- Evidencias en el Drive «Supervisión 050» ---------------- */
-const RAIZ_DRIVE = 'https://drive.google.com/drive/folders/1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
+/* ---------------- Evidencias en el Drive de la zona ---------------- */
+let RAIZ_DRIVE = 'https://drive.google.com/drive/folders/1ZfvGdYObOhxG9oyixzOviuaC5OCVLc9D';
 // Carpetas ligadas a acuerdos del checklist (la evidencia aparece con 📎 junto al acuerdo)
 const LIGAS_EVI = [
   { ruta: '02-Evidencias 2026-2027/CTEs/01-CTE Primera sesión', acu: ['acu-0923-01'] },
@@ -2962,7 +3030,7 @@ function vEvidencias() {
     <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton sec" id="b-revisar">${ico('i-act')}Revisar ahora</button><button class="boton sec" id="b-carpeta">${ico('i-carpeta')}Nueva carpeta</button><button class="boton terra" id="b-subir">${ico('i-mas')}Subir archivos</button></div></div>
   <div class="aviso-caja peq">Tequio revisa las carpetas cada mañana a las 6:00. Última revisión: <b>${revisado ? fechaHora(revisado) : 'todavía no se ha hecho'}</b>. Solo lee nombres y fechas de los archivos, no su contenido.</div>
   <div class="filtros">${selAtp()}
-    <select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select></div>
+    ${munSelect('f-mun', vista.municipio)}</div>
   ${!S.evi.length ? '<div class="tarjeta vacio">Aún no hay datos del Drive. Pulse «Revisar ahora».</div>' : `
   <div class="tablero">
     <div class="tarjeta pad general">${anillo(tot.pct, 128, 'cumplido')}
@@ -3191,7 +3259,7 @@ function detalleEvidencias(cct) {
    Base de datos de los trabajadores: datos del expediente y sus plazas. Quien tiene dos plazas activas
    (dos escuelas o dos turnos) es «doble plaza» y se resalta en morado. La Supervisión y la Mesa Técnica ven y
    modifican a todo el personal; cada dirección consulta solo al de su escuela. Los datos se piden al abrir la pestaña. */
-const SUP_CENTRO = { cct: '02FIZ0094X', escuela: 'Supervisión Escolar Zona 050', municipio: 'San Quintín', multigrado: false };
+let SUP_CENTRO = { cct: '02FIZ0094X', escuela: 'Supervisión Escolar Zona 050', municipio: 'San Quintín', multigrado: false };
 const PER_FUNCIONES = ['Supervisor(a)', 'ATP', 'Director(a)', 'Director(a) con grupo', 'Subdirector(a)', 'Docente frente a grupo', 'Docente de educación física', 'Docente de inglés', 'Docente de USAER', 'Promotor(a) de lectura', 'Secretario(a)', 'Intendente', 'Velador', 'Administrativo', 'Otra'];
 const PER_NOMB = { definitiva: 'Base (definitiva)', interino: 'Interino (temporal)', provisional: 'Provisional' };
 const PER_ESTUDIOS = ['Normal básica', 'Licenciatura', 'Especialidad', 'Maestría', 'Doctorado', 'Otro'];
@@ -3265,7 +3333,7 @@ function vPersonal() {
   <div class="filtros">
     ${esDirector() ? '' : `<select id="pf-modo" aria-label="Ver"><option value="escuela">Por escuela</option><option value="zona">Lista de toda la zona</option></select>
     <select id="pf-cct" aria-label="Centro de trabajo"><option value="">Todos los centros</option>${perCentros().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select>
-    <select id="pf-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option>Ensenada</option><option>San Quintín</option></select>
+    ${munSelect('pf-mun', '')}
     <select id="pf-org" aria-label="Organización"><option value="">Toda organización</option><option value="multi">Multigrado</option><option value="completa">Organización completa</option><option value="sup">Supervisión</option></select>
     <select id="pf-turno" aria-label="Turno"><option value="">Ambos turnos</option><option>Matutino</option><option>Vespertino</option></select>`}
     <select id="pf-est" aria-label="Situación"><option value="activos">Activos</option><option value="interinos">Interinos</option><option value="bajas">Bajas</option><option value="todos">Todos</option></select>
@@ -3430,7 +3498,7 @@ async function perExcel(lista) {
   ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: Math.min(40, Math.max(10, k.length + 2)) }));
   X.utils.book_append_sheet(wb, ws, 'Personal');
   const b = X.write(wb, { type: 'array', bookType: 'xlsx' });
-  descargarBlob(new Blob([b], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Personal Zona 050 · ' + hoy() + '.xlsx');
+  descargarBlob(new Blob([b], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Personal Zona ' + ZONA.numero + ' · ' + hoy() + '.xlsx');
   aviso('Excel descargado (una fila por plaza; la columna «Doble plaza» marca a quien tiene dos).', 'ok', 4500);
 }
 
@@ -3456,7 +3524,7 @@ function vEnlaces() {
   ${dirs.length ? `<div class="contactos">${dirs.map(tarjeta).join('')}</div>` : '<div class="tarjeta vacio peq">Pulse «Agregar a los directores» para crear un usuario por cada escuela con los datos del Directorio. Después genere y envíe el enlace de cada uno.</div>'}
   <div class="tarjeta pad" style="margin-top:16px">
     <h2 style="font-size:19px;margin-bottom:6px">Correos de hoy</h2>
-    <p class="peq" style="margin:0">Quedan <b>${S.cuota != null ? S.cuota : '—'}</b> envíos disponibles hoy en supervision050sep@gmail.com. Gmail permite cerca de 100 destinatarios al día en una cuenta gratuita; si se agotan, Tequio deja los avisos para la mañana siguiente.</p>
+    <p class="peq" style="margin:0">Quedan <b>${S.cuota != null ? S.cuota : '—'}</b> envíos disponibles hoy en ${esc(ZONA.correoSupervision)}. Gmail permite cerca de 100 destinatarios al día en una cuenta gratuita; si se agotan, Tequio deja los avisos para la mañana siguiente.</p>
   </div>`;
   $('#b-dirs').onclick = () => accion('prepararDirectores', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'Directores actualizados: ' + r.cambios + '.' : 'Los directores ya estaban al día.', 'ok', 3000); });
   $$('[data-genlace]').forEach(b => b.onclick = () => {
@@ -3472,8 +3540,8 @@ function vEnlaces() {
 }
 function mostrarEnlace(u, enlace) {
   const texto = u.rol === 'director'
-    ? `Hola, ${nombreCorto(u.nombre)}. Este es el enlace de su escuela para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona 050. Ahí puede ver la agenda de la zona, el avance y los pendientes de su escuela, y subir sus evidencias al Drive:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`
-    : `Hola, ${nombreCorto(u.nombre)}. Este es su enlace personal para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona 050:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`;
+    ? `Hola, ${nombreCorto(u.nombre)}. Este es el enlace de su escuela para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona ${ZONA.numero}. Ahí puede ver la agenda de la zona, el avance y los pendientes de su escuela, y subir sus evidencias al Drive:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`
+    : `Hola, ${nombreCorto(u.nombre)}. Este es su enlace personal para entrar a *Tequio*, la agenda de asesoría y seguimiento de la Supervisión Zona ${ZONA.numero}:\n\n${enlace}\n\nÁbralo en su teléfono y guárdelo; no lo comparta. _${LEMA}_`;
   const tels = telefonos(u.whatsapp), mails = correos(u);
   modal('Enlace de ' + esc(nombreCorto(u.nombre)), `
     <p class="peq" style="margin-top:0">Envíeselo solo a esta persona. Por seguridad, no se vuelve a mostrar; si se pierde, genere otro.</p>
@@ -3581,7 +3649,7 @@ function sisDelta(act, prev, inverso) {
 // Etiqueta del nivel para títulos, migas y observaciones
 function sisRef(v) { return { zona: '', zgrado: v.grado, escuela: v.cct, grado: v.cct + '|' + v.grado, grupo: v.cct + '|' + v.grado + '|' + v.grupo }[v.nivel]; }
 function sisTitulo(v) {
-  if (v.nivel === 'zona') return esDirector() ? 'Zona 050 (promedio general)' : 'Zona 050';
+  if (v.nivel === 'zona') return esDirector() ? 'Zona ' + ZONA.numero + ' (promedio general)' : 'Zona ' + ZONA.numero;
   if (v.nivel === 'zgrado') return v.grado + '.° grado en la zona';
   if (v.nivel === 'escuela') return nombreEscuela(v.cct);
   if (v.nivel === 'grado') return v.grado + '.° grado · ' + nombreEscuela(v.cct);
@@ -3705,10 +3773,10 @@ function vSisat() {
     <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Informe del SisAT</button><button class="boton sec" id="b-sis-int">${ico('i-graf')}Informe integrado SisAT + EIA</button><button class="boton sec" id="b-sis-ins">${ico('i-lapiz')}Insumo para la lectura de la realidad</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
     <div class="filtros sis-filtros">
-      <select id="s-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
+      <select id="s-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona ${esc(ZONA.numero)} (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
         : `<option value="zona" ${['zona', 'zgrado'].includes(v.nivel) ? 'selected' : ''}>Toda la zona</option><optgroup label="Escuelas">${directores().map(c => `<option value="${c.cct}" ${!['zona', 'zgrado'].includes(v.nivel) && v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</optgroup>`}</select>
       <select id="s-ciclo" aria-label="Ciclo escolar">${sisCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
-      ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `<select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>` : ''}
+      ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `${munSelect('f-mun', vista.municipio)}` : ''}
     </div>
     <div class="seg-op sis-mom" role="group" aria-label="Momento del SisAT">${momBtns}</div>
     ${migas}
@@ -3723,7 +3791,7 @@ function vSisat() {
 function sisMigas(v) {
   const p = [];
   const b = (n, t, extra) => `<button data-snav="${n}" ${extra || ''}>${esc(t)}</button>`;
-  if (!esDirector() || v.nivel === 'zona') p.push(v.nivel === 'zona' ? `<span>${esDirector() ? 'Zona (promedio)' : 'Zona 050'}</span>` : b('zona', 'Zona 050'));
+  if (!esDirector() || v.nivel === 'zona') p.push(v.nivel === 'zona' ? `<span>${esDirector() ? 'Zona (promedio)' : 'Zona ' + esc(ZONA.numero)}</span>` : b('zona', 'Zona ' + ZONA.numero));
   else p.push(b('zona', 'Zona (promedio)'));
   if (v.nivel === 'zgrado') p.push(`<span>${v.grado}.° grado en la zona</span>`);
   if (['escuela', 'grado', 'grupo'].includes(v.nivel)) {
@@ -4844,7 +4912,7 @@ function sisTendenciaAlumnos(v) {
 
 /* ---- Comparativos de la zona (Supervisión y Mesa Técnica) ---- */
 // Escuelas del turno vespertino (las demás se toman como matutinas)
-const SIS_VESPERTINAS = ['02DPR0077J', '02DPR0150B', '02DPR0882N'];   // 13 de Septiembre, Josefa Ortiz de Domínguez, Luis Donaldo Colosio Murrieta
+let SIS_VESPERTINAS = ['02DPR0077J', '02DPR0150B', '02DPR0882N'];   // 13 de Septiembre, Josefa Ortiz de Domínguez, Luis Donaldo Colosio Murrieta
 const sisTurno = cct => SIS_VESPERTINAS.includes(cct) ? 'Vespertino' : 'Matutino';
 const SIS_CRITERIOS = [
   ['ind', 'Índice general', 1], ['lec.pne', 'Lectura · nivel esperado', 1], ['tex.pne', 'Producción de textos · nivel esperado', 1], ['cal.pne', 'Cálculo mental · nivel esperado', 1],
@@ -4859,7 +4927,7 @@ function sisCmpGrupos(v, filas) {
   const de = l => filas.filter(r => l.some(e => e.cct === r.cct));
   if (c.tipo === 'multi') return [['Multigrado', escs.filter(e => e.multigrado)], ['Organización completa', escs.filter(e => !e.multigrado)]].map(([n, l]) => ({ etq: n, escs: l, filas: de(l) }));
   if (c.tipo === 'turno') return [['Turno matutino', escs.filter(e => sisTurno(e.cct) === 'Matutino')], ['Turno vespertino', escs.filter(e => sisTurno(e.cct) === 'Vespertino')]].map(([n, l]) => ({ etq: n, escs: l, filas: de(l) }));
-  if (c.tipo === 'mun') return ['San Quintín', 'Ensenada'].map(n => { const l = escs.filter(e => e.municipio === n); return { etq: 'Municipio de ' + n, escs: l, filas: de(l) }; });
+  if (c.tipo === 'mun') return ZONA.municipios.map(n => { const l = escs.filter(e => e.municipio === n); return { etq: 'Municipio de ' + n, escs: l, filas: de(l) }; });
   if (c.tipo === 'elegir') return c.sel.map(cct => { const e = escs.find(x => x.cct === cct) || { cct, escuela: nombreEscuela(cct) }; return { etq: e.escuela, escs: [e], filas: de([e]) }; });
   return [];
 }
@@ -4870,7 +4938,7 @@ function sisCuerpoComparativo(v) {
   const sin1 = +m === 1 && !v.con1;
   let filas = sisFilas(m).filter(r => filtroEscuelas().some(e => e.cct === r.cct));
   if (c.grado) filas = filas.filter(r => r.grado === c.grado);
-  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', 'San Quintín vs. Ensenada'], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
+  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', ZONA.municipios.join(' vs. ')], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
   const panel = `<div class="tarjeta pad sis-cmp-p">
     <div class="sis-cmp-f">
       <div class="campo" style="margin:0"><label for="cmp-tipo">Comparar</label><select id="cmp-tipo">${tipos.map(([k, t]) => `<option value="${k}" ${c.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
@@ -4955,7 +5023,7 @@ async function sisInformeComparativo(v) {
   let filas = sisFilas(m).filter(r => filtroEscuelas().some(e => e.cct === r.cct));
   if (c.grado) filas = filas.filter(r => r.grado === c.grado);
   if (!filas.length) throw new Error('No hay resultados para comparar en este momento.');
-  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: 'San Quintín y Ensenada', elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
+  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: ZONA.municipios.join(' y '), elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
   if (c.tipo === 'rank') {
     const crit = SIS_CRITERIOS.find(x => x[0] === c.crit) || SIS_CRITERIOS[0];
     const l = filtroEscuelas().map(e => { const rs = filas.filter(r => r.cct === e.cct); const a = rs.length ? sisSuma(rs, sin1) : null; return { e, a, val: sisValor(a, crit[0]) }; }).filter(x => x.val != null)
@@ -5227,7 +5295,7 @@ const SIS_INF_CSS = `.sis-inf{width:816px;padding:44px 64px 40px;box-sizing:bord
 // Partes del documento (cada grado o grupo empieza en hoja nueva); la primera lleva el encabezado
 function sisHtmlInforme(I) {
   const tabla = b => `<table class="it ${b.chica ? 'chica' : ''}">${b.anchos ? `<colgroup>${b.anchos.map(a => `<col style="width:${a}%">`).join('')}</colgroup>` : ''}<thead><tr>${b.cab.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${b.filas.map(f => `<tr>${f.map(c => `<td>${esc(c).replace(/\n/g, '<br>')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-  const partes = [`<div class="enc"><img src="img/isep.png" alt=""><div class="c"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div><img src="img/zona050.png" alt=""></div>
+  const partes = [`<div class="enc"><img src="${ZONA.logoInst}" alt=""><div class="c"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">${esc(ZONA.nombreMay)}</div><div class="t2">${esc(ZONA.nivelSostMay)} · C.C.T. ${OFI.cct}</div></div><img src="${ZONA.logoZona}" alt=""></div>
   <h1>${esc(I.titulo)}</h1><div class="niv">${esc(I.nivel)}</div><p class="sub">${esc(I.sub)} · Elaborado el ${esc(I.fecha)}</p>`];
   I.B.forEach(b => {
     if (b.t === 'salto') { partes.push(''); return; }
@@ -5235,7 +5303,7 @@ function sisHtmlInforme(I) {
       : b.t === 'titulo' ? `<div class="tit2">${esc(b.x)}</div><p class="sub">${esc(I.sub)}</p>`
       : b.t === 'lista' ? `<ul>${b.l.map(x => `<li>${x}</li>`).join('')}</ul>` : b.t === 'tabla' ? tabla(b) : b.t === 'img' ? `<div class="ig"><img src="${b.g.url}" style="width:${Math.min(624, b.g.w)}px"></div>` : '';
   });
-  partes[partes.length - 1] += '<div class="pie">' + esc(I.pie || 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados del SisAT') + '</div>';
+  partes[partes.length - 1] += '<div class="pie">' + esc(I.pie || ZONA.nombre + ZONA.lemaTxt + ' · Análisis generado con Tequio a partir de los resultados del SisAT') + '</div>';
   return partes;
 }
 
@@ -5274,7 +5342,7 @@ async function sisWordInforme(I) {
   await cargarScript('lib/docx.iife.js');
   const D = window.docx;
   const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: Al, BorderStyle, VerticalAlign, Footer, Header, PageNumber, ShadingType } = D;
-  const [isep, zona] = await Promise.all([bytesDe('img/isep.png'), bytesDe('img/zona050.png')]);
+  const [isep, zona] = await Promise.all([bytesDe(ZONA.logoInst), bytesDe(ZONA.logoZona)]);
   const F = 'Arial', AZ = '1F3A6B', GR = '555555';
   const tx = (t, o = {}) => new TextRun({ text: t, font: F, size: o.size || 20, bold: o.bold, color: o.color, italics: o.it });
   const runs = (html, o = {}) => sisTramos(html).map(r => tx(r.t, Object.assign({}, o, { bold: o.bold || r.b })));
@@ -5285,14 +5353,14 @@ async function sisWordInforme(I) {
       new TableCell({ width: { size: 6160, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [
         new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx(ISEP_TXT, { size: 13, bold: true, color: AZ })] }),
         new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx('DEPARTAMENTO DE EDUCACIÓN PRIMARIA', { size: 14, color: GR })] }),
-        new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx('SUPERVISIÓN ESCOLAR ZONA 050', { size: 18, bold: true })] }),
+        new Paragraph({ alignment: Al.CENTER, spacing: { after: 20 }, children: [tx(ZONA.nombreMay, { size: 18, bold: true })] }),
         new Paragraph({ alignment: Al.CENTER, children: [tx('PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct, { size: 14, color: GR })] })] }),
       new TableCell({ width: { size: 1600, type: WidthType.DXA }, borders: nb, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: Al.RIGHT, children: [new ImageRun({ type: 'png', data: zona, transformation: { width: 72, height: 72 } })] })] })
     ] })] }),
     new Paragraph({ border: { bottom: { style: BorderStyle.DOUBLE, size: 6, color: AZ, space: 1 } }, spacing: { before: 60, after: 0 }, children: [] })
   ] });
   const footer = new Footer({ children: [new Paragraph({ alignment: Al.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: AZ, space: 4 } }, children: [
-    tx('Supervisión Escolar Zona 050 · Análisis generado con Tequio · Página ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 15, color: GR }), tx(' de ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 15, color: GR })] })] });
+    tx(ZONA.nombre + ' · Análisis generado con Tequio · Página ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 15, color: GR }), tx(' de ', { size: 15, color: GR }), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 15, color: GR })] })] });
   const borde = { style: BorderStyle.SINGLE, size: 4, color: 'E4D8C3' }, bt = { top: borde, bottom: borde, left: borde, right: borde };
   const tablaW = b => {
     const n = b.cab.length, total = 9360, primera = n >= 5 ? 3000 : 3400, resto = Math.floor((total - primera) / (n - 1));
@@ -5321,7 +5389,7 @@ async function sisWordInforme(I) {
     else if (b.t === 'tabla') { kids.push(tablaW(b)); kids.push(new Paragraph({ spacing: { after: 80 }, children: [] })); }
     else if (b.t === 'img') { const w = Math.min(600, b.g.w), h = Math.round(b.g.h * w / b.g.w); kids.push(new Paragraph({ alignment: Al.CENTER, spacing: { after: 160 }, children: [new ImageRun({ type: 'png', data: b.g.bytes, transformation: { width: w, height: h } })] })); }
   });
-  const doc = new Document({ creator: 'Supervisión Escolar Zona 050 · Tequio', title: I.titulo + ' · ' + I.nivel,
+  const doc = new Document({ creator: ZONA.nombre + ' · Tequio', title: I.titulo + ' · ' + I.nivel,
     sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1900, bottom: 1100, left: 1440, right: 1440, header: 450, footer: 450 } } }, headers: { default: header }, footers: { default: footer }, children: kids }] });
   return Packer.toBlob(doc);
 }
@@ -6057,10 +6125,10 @@ function vEia() {
   const cab = `<div class="titulo-vista"><h1>EIA · Ejercicios Integradores</h1>
     <div class="acciones">${!esDirector() ? `<button class="boton terra" id="b-eia-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-eia-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-eia-doc">${ico('i-graf')}Informe de los EIA</button><button class="boton sec" id="b-eia-int">${ico('i-graf')}Informe integrado SisAT + EIA</button><button class="boton sec" id="b-eia-ins">${ico('i-lapiz')}Insumo para la lectura de la realidad</button></div></div>
     <div class="filtros sis-filtros">
-      <select id="e-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona 050 (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
+      <select id="e-ver" class="sis-ver" aria-label="Qué ver">${esDirector() ? `<option value="zona" ${v.nivel === 'zona' ? 'selected' : ''}>Zona ${esc(ZONA.numero)} (promedio)</option><option value="${miCct()}" ${v.nivel !== 'zona' ? 'selected' : ''}>Mi escuela: ${esc(nombreEscuela(miCct()))}</option>`
         : `<option value="zona" ${['zona', 'zgrado'].includes(v.nivel) ? 'selected' : ''}>Toda la zona</option><optgroup label="Escuelas">${directores().map(c => `<option value="${c.cct}" ${!['zona', 'zgrado'].includes(v.nivel) && v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</optgroup>`}</select>
       <select id="e-ciclo" aria-label="Ciclo escolar">${eiaCiclos().map(c => `<option ${c === v.ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>
-      ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `<select id="f-mun" aria-label="Municipio"><option value="">Ensenada y San Quintín</option><option ${vista.municipio === 'Ensenada' ? 'selected' : ''}>Ensenada</option><option ${vista.municipio === 'San Quintín' ? 'selected' : ''}>San Quintín</option></select>` : ''}
+      ${!esDirector() && (v.nivel === 'zona' || v.nivel === 'zgrado') ? selAtp() + `${munSelect('f-mun', vista.municipio)}` : ''}
     </div>
     ${eiaMigas(v)}
     <h2 class="sis-h2">${esc(sisTitulo(v))}</h2>
@@ -6071,7 +6139,7 @@ function vEia() {
 }
 function eiaMigas(v) {
   const p = [], b = (n, t) => `<button data-enav="${n}">${esc(t)}</button>`;
-  p.push(v.nivel === 'zona' ? `<span>${esDirector() ? 'Zona (promedio)' : 'Zona 050'}</span>` : b('zona', esDirector() ? 'Zona (promedio)' : 'Zona 050'));
+  p.push(v.nivel === 'zona' ? `<span>${esDirector() ? 'Zona (promedio)' : 'Zona ' + esc(ZONA.numero)}</span>` : b('zona', esDirector() ? 'Zona (promedio)' : 'Zona ' + ZONA.numero));
   if (v.nivel === 'zgrado') p.push(`<span>${v.grado}.° grado en la zona</span>`);
   if (['escuela', 'grado', 'grupo'].includes(v.nivel)) {
     p.push(v.nivel === 'escuela' ? `<span>${esc(nombreEscuela(v.cct))}</span>` : b('escuela', nombreEscuela(v.cct)));
@@ -6320,7 +6388,7 @@ function eiaCuerpoComparativo(v) {
   const c = eiaCmpV(v);
   let filas = eiaFilas().filter(r => filtroEscuelas().some(e => e.cct === r.cct));
   if (c.grado) filas = filas.filter(r => r.grado === c.grado);
-  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', 'San Quintín vs. Ensenada'], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
+  const tipos = [['multi', 'Multigrado vs. organización completa'], ['turno', 'Matutino vs. vespertino'], ['mun', ZONA.municipios.join(' vs. ')], ['elegir', 'Escuelas que yo elija'], ['rank', 'Jerarquizar todas las escuelas']];
   const panel = `<div class="tarjeta pad sis-cmp-p"><div class="sis-cmp-f">
       <div class="campo" style="margin:0"><label for="ecmp-tipo">Comparar</label><select id="ecmp-tipo">${tipos.map(([k, t]) => `<option value="${k}" ${c.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       <div class="campo" style="margin:0"><label for="ecmp-grado">Grados</label><select id="ecmp-grado"><option value="">Todos los grados</option>${[1, 2, 3, 4, 5, 6].map(g => `<option value="${g}" ${c.grado === String(g) ? 'selected' : ''}>Solo ${g}.° grado</option>`).join('')}</select></div>
@@ -6615,14 +6683,14 @@ async function eiaInforme(v) {
   }
   B.push({ t: 'nota', x: 'Valoraciones de la rúbrica: 0 sin evidencias, 1 requiere apoyo, 2 en proceso de desarrollo, 3 aprendizaje desarrollado. Índice: promedio sobre 3 en escala de 0 a 100. Rezago: alumno con la mitad o más de sus criterios en 0 o 1 (alto: tres cuartas partes o más). Contenidos, PDA, sugerencias y libros: retroalimentación oficial de los EIA (SEP) y programas sintéticos.' });
   return { titulo: 'Análisis de los Ejercicios Integradores del Aprendizaje', nivel: sisTitulo(v), sub: 'Ciclo escolar ' + v.ciclo, fecha: fechaOficio(hoy()), B,
-    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados de los EIA' };
+    pie: ZONA.nombre + ZONA.lemaTxt + ' · Análisis generado con Tequio a partir de los resultados de los EIA' };
 }
 async function eiaInformeComparativo(v) {
   const c = eiaCmpV(v), B = [];
   let filas = eiaFilas().filter(r => filtroEscuelas().some(e => e.cct === r.cct));
   if (c.grado) filas = filas.filter(r => r.grado === c.grado);
   if (!filas.length) throw new Error('No hay resultados para comparar.');
-  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: 'San Quintín y Ensenada', elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
+  const nombres = { multi: 'Multigrado y organización completa', turno: 'Turno matutino y vespertino', mun: ZONA.municipios.join(' y '), elegir: 'Escuelas elegidas', rank: 'Jerarquía de las escuelas' };
   if (c.tipo === 'rank') {
     const { crit, con } = eiaRankLista(filas, c);
     B.push({ t: 'h', x: 'Escuelas por ' + crit[1].toLowerCase() + (c.orden === 'asc' ? ' (de menor a mayor)' : ' (de mayor a menor)') });
@@ -6638,7 +6706,7 @@ async function eiaInformeComparativo(v) {
     if (c.tipo !== 'elegir') B.push({ t: 'h', x: 'Escuelas de cada bloque' }, { t: 'lista', l: G.map(g => `<b>${esc(g.etq)}:</b> ${esc(g.escs.map(e => e.escuela).join(', '))}`) });
   }
   return { titulo: 'Comparativo de los EIA', nivel: nombres[c.tipo] + (c.grado ? ' · ' + c.grado + '.° grado' : ''), sub: 'Ciclo escolar ' + v.ciclo, fecha: fechaOficio(hoy()), B,
-    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Análisis generado con Tequio a partir de los resultados de los EIA' };
+    pie: ZONA.nombre + ZONA.lemaTxt + ' · Análisis generado con Tequio a partir de los resultados de los EIA' };
 }
 async function eiaInformeVarios(v, modo) {
   if (v.nivel === 'zona' && v.vista === 'comp' && !esDirector()) return eiaInformeComparativo(v);
@@ -6874,7 +6942,7 @@ async function insInforme(w, anidado) {
       F.m && F.m < 3 ? `¿Cómo se dará seguimiento? El siguiente referente es el Momento ${F.m + 1} del SisAT.` : '¿Cómo se dará seguimiento a lo largo del ciclo y cómo se registrará el avance en el CTE?'] });
   }
   return { titulo: 'Insumo para la lectura de la realidad', nivel: sisTitulo(w), sub: 'Ciclo escolar ' + w.ciclo + ' · ' + [aS ? 'SisAT Momento ' + F.m : '', aE ? 'EIA' : ''].filter(Boolean).join(' y '), fecha: fechaOficio(hoy()), B,
-    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Insumo generado con Tequio a partir de los resultados del SisAT y de los EIA' };
+    pie: ZONA.nombre + ZONA.lemaTxt + ' · Insumo generado con Tequio a partir de los resultados del SisAT y de los EIA' };
 }
 /* ==== Informe integrado SisAT + EIA: lectura conjunta y líneas de trabajo para el docente ==== */
 // Áreas donde los dos instrumentos se pueden leer juntos (SisAT por habilidad, EIA por campo formativo)
@@ -7036,7 +7104,7 @@ async function intInforme(w, anidado) {
       : ['Observar en el aula al menos una actividad permanente por línea de trabajo y dar realimentación al docente.', 'Revisar en el CTE las metas y el avance de los alumnos con prioridad alta.', 'Acordar con las familias de los alumnos con prioridad alta un apoyo sencillo en casa (lectura de 10 minutos, juegos de cálculo).']) });
   }
   return { titulo: 'Informe integrado SisAT y EIA', nivel: sisTitulo(w), sub: 'Ciclo escolar ' + w.ciclo + ' · ' + [aS ? 'SisAT Momento ' + F.m : '', aE ? 'EIA' : ''].filter(Boolean).join(' y ') + ' · líneas de trabajo', fecha: fechaOficio(hoy()), B,
-    pie: 'Supervisión Escolar Zona 050 · «Responsabilidad y superación» · Informe integrado generado con Tequio a partir de los resultados del SisAT y de los EIA' };
+    pie: ZONA.nombre + ZONA.lemaTxt + ' · Informe integrado generado con Tequio a partir de los resultados del SisAT y de los EIA' };
 }
 // Grupos de una escuela con resultados de cualquiera de los dos instrumentos
 function insGrupos(ciclo, cct) {
@@ -7532,7 +7600,7 @@ const Demo = (() => {
     cteDatos: d => { D.cte = D.cte || []; D.cta = D.cta || []; const c = D.yo.rol === 'director' ? D.yo.cct : null; const r = { cte: copia(D.cte.filter(x => x.ciclo === d.ciclo)), cta: copia(D.cta.filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))), ctr: copia((D.ctr || []).filter(x => x.ciclo === d.ciclo && (!c || x.cct === c))) };
       if (!c) r.ctv = copia((D.ctv || []).filter(x => x.ciclo === d.ciclo && x.activo !== false)); return r; },
     cteVisitaGuardar: d => { D.ctv = D.ctv || []; let o = d.id ? D.ctv.find(x => x.id === d.id) : null;
-      if (!o) { o = { id: uid('ctv'), ciclo: d.ciclo, fotos: [], visitoPor: D.yo.id, visitoNombre: D.yo.nombre, visitoCargo: D.yo.rol === 'admin' ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora(), activo: true }; D.ctv.push(o); }
+      if (!o) { o = { id: uid('ctv'), ciclo: d.ciclo, fotos: [], visitoPor: D.yo.id, visitoNombre: D.yo.nombre, visitoCargo: D.yo.rol === 'admin' ? ZONA.cargoMay : 'ASESOR(A) TÉCNICO PEDAGÓGICO', creado: ahora(), activo: true }; D.ctv.push(o); }
       const pies = {}; (d.fotos || []).forEach(f => { pies[f.id] = f.pie; });
       ['sesion', 'cct', 'fecha', 'horaIni', 'horaFin', 'total', 'asistentes', 'ausencias', 'aspectos', 'actividades', 'fortalezas', 'oportunidad', 'acuerdos', 'seguimiento', 'estado'].forEach(k => { o[k] = d[k]; });
       o.fotos = o.fotos.map(f => Object.assign({}, f, f.id in pies ? { pie: pies[f.id] } : {})); o.actualizado = ahora(); return { ctv: copia(o) }; },
@@ -7857,7 +7925,7 @@ function cteEnlazar(n, cct) {
    Visitas de la Mesa Técnica al CTE (solo Supervisor y ATP; las escuelas no las ven)
    Sustituye al formato en papel «Visita a reunión de CTE y taller intensivo»: se captura en la escuela,
    se guarda como borrador, lleva hasta 3 fotos (Drive de la escuela › Visitas de supervisión › Visitas al CTE)
-   y se descarga en PDF carta con los logos de ISEP y de la Zona 050 para recabar firma y sello.
+   y se descarga en PDF carta con los logos de la institución y de la zona para recabar firma y sello.
    ========================================================= */
 const CTV_ASP = [
   { k: 'tiempo', t: 'Inicia en tiempo y con quórum' },
@@ -7940,7 +8008,7 @@ function ctvBorrador() {
   let D = o ? JSON.parse(JSON.stringify(o)) : {
     id: '', ciclo: cteCiclo(), sesion: p.ses || laSesionInicial(), cct: p.cct || misEsc[0] || (directores()[0] || {}).cct || '', fecha: hoy(), horaIni: '', horaFin: '',
     total: '', asistentes: '', ausencias: '', aspectos: [], actividades: '', fortalezas: '', oportunidad: '', acuerdos: '', seguimiento: '', fotos: [], estado: 'borrador',
-    visitoPor: S.yo.id, visitoNombre: S.yo.nombre, visitoCargo: esAdmin() ? 'SUPERVISOR ESCOLAR ZONA 050' : 'ASESOR(A) TÉCNICO PEDAGÓGICO' };
+    visitoPor: S.yo.id, visitoNombre: S.yo.nombre, visitoCargo: esAdmin() ? ZONA.cargoMay : 'ASESOR(A) TÉCNICO PEDAGÓGICO' };
   if (!D.aspectos || !D.aspectos.length) D.aspectos = CTV_ASP.map(a => ({ k: a.k, t: a.t, e: '' }));
   // Lo capturado en este dispositivo que no alcanzó a guardarse (sin señal en la escuela, se cerró la página…)
   const bk = ctvLeerBk(D.id);
@@ -8171,11 +8239,11 @@ function ctvHtml(D, firmaImg) {
   const cuerpo = (t, alto) => `<div class="ctv-cuerpo" style="min-height:${alto || 62}px">${x(String(t || '').trim())}</div>`;
   const fotos = (D.fotos || []).filter(f => CTV_IMG[f.id]);
   const visitante = D.visitoCargo && /SUPERVISOR/.test(D.visitoCargo) ? OFI.firmante : laMay(D.visitoNombre);
-  return `<div class="ctv-doc"><img class="ctv-agua" src="img/zona050.png" alt="">
-    <div class="la-enc"><img class="la-isep" src="img/isep.png" alt="ISEP">
-      <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">SUPERVISIÓN ESCOLAR ZONA 050 · EDUCACIÓN PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div>
+  return `<div class="ctv-doc"><img class="ctv-agua" src="${ZONA.logoZona}" alt="">
+    <div class="la-enc"><img class="la-isep" src="${ZONA.logoInst}" alt="${esc(ZONA.inst)}">
+      <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">${esc(ZONA.nombreMay)} · EDUCACIÓN ${esc(ZONA.nivelSostMay)} · C.C.T. ${OFI.cct}</div>
         <div class="c">VISITA A REUNIÓN DE CONSEJO TÉCNICO ESCOLAR<br>Y TALLER INTENSIVO DE FORMACIÓN CONTINUA PARA DOCENTES</div><div class="d">CICLO ESCOLAR ${x(D.ciclo || cteCiclo())}</div></div>
-      <img class="la-zona" src="img/zona050.png" alt="Zona 050"></div>
+      <img class="la-zona" src="${ZONA.logoZona}" alt="Zona ${esc(ZONA.numero)}"></div>
     <div class="la-filete"></div>
     <table class="ctv-t"><colgroup><col style="width:14%"><col style="width:40%"><col style="width:13%"><col style="width:33%"></colgroup>
       <tr><th>ESCUELA</th><td><b>${x(laMay(e[0] || c.escuela))}</b></td><th>FECHA</th><td>${x(fec)}</td></tr>
@@ -8195,7 +8263,7 @@ function ctvHtml(D, firmaImg) {
     <div class="ctv-pie ctv-blq">
       <div class="la-fir">${firmaImg ? `<img src="data:image/png;base64,${firmaImg}" alt="Firma">` : ''}<div class="r">${x(visitante)}</div><div class="c">${x(D.visitoCargo)}<br>NOMBRE, CARGO Y FIRMA DE QUIEN REALIZÓ LA VISITA</div></div>
       <div class="la-fir"><div class="r">${x(e[4] || 'NOMBRE Y FIRMA')}</div><div class="c">${x(e[5] || 'DIRECTOR(A)')} · NOMBRE Y FIRMA<br>SELLO DE LA ESCUELA</div></div></div>
-    <div class="ctv-folio">Tequio · Supervisión Escolar Zona 050</div></div>`;
+    <div class="ctv-folio">Tequio · ${esc(ZONA.nombre)}</div></div>`;
 }
 
 async function ctvDescargarPdf(D) {
@@ -8222,7 +8290,7 @@ async function ctvDescargarPdf(D) {
 
 /* =========================================================
    Generador de la lista de asistencia del CTE
-   Hoja carta horizontal con los logos de ISEP y de la Zona 050, el logo de la Supervisión como marca de agua,
+   Hoja carta horizontal con los logos de la institución y de la zona, el logo de la Supervisión como marca de agua,
    los datos de la escuela y la sesión, el colectivo docente (de la base de datos del personal o escrito a mano)
    y al pie la firma del Supervisor (digital) y la del director, que solo firma abajo.
    ========================================================= */
@@ -8352,11 +8420,11 @@ function laHtml(d) {
       ? `<td>${esc2(p.rfc)}</td><td class="iz">${esc2(p.paterno)}</td><td class="iz">${esc2(p.materno)}</td><td class="iz">${esc2(p.nombre)}</td><td>${p.sexo === 'H' ? '✕' : ''}</td><td>${p.sexo === 'M' ? '✕' : ''}</td><td>${esc2(p.funcion)}</td><td>${esc2(p.curp)}</td>${multi ? `<td style="font-size:8.6px">${esc2(p.cct)}</td>` : ''}<td></td><td></td>`
       : '<td></td>'.repeat(vacias)}</tr>`).join('');
     return `<div class="la-hoja">
-      <img class="la-agua" src="img/zona050.png" alt="">
-      <div class="la-enc"><img class="la-isep" src="img/isep.png" alt="ISEP">
-        <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">SUPERVISIÓN ESCOLAR ZONA 050 · EDUCACIÓN PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div>
+      <img class="la-agua" src="${ZONA.logoZona}" alt="">
+      <div class="la-enc"><img class="la-isep" src="${ZONA.logoInst}" alt="${esc(ZONA.inst)}">
+        <div class="la-tit"><div class="a">${ISEP_TXT}</div><div class="b">${esc(ZONA.nombreMay)} · EDUCACIÓN ${esc(ZONA.nivelSostMay)} · C.C.T. ${OFI.cct}</div>
           <div class="c">LISTA DE ASISTENCIA · CONSEJO TÉCNICO ESCOLAR</div><div class="d">CICLO ESCOLAR ${esc2(d.ciclo)}</div></div>
-        <img class="la-zona" src="img/zona050.png" alt="Zona 050"></div>
+        <img class="la-zona" src="${ZONA.logoZona}" alt="Zona ${esc(ZONA.numero)}"></div>
       <div class="la-filete"></div>
       <table class="la-t la-dat${multi ? ' multi' : ''}"><colgroup>${(multi ? [50, 84, 214, 160, 206, 70, 92, 88] : [56, 96, 250, 104, 150, 86, 102, 120]).map(w => `<col style="width:${w}px">`).join('')}</colgroup>
         <tr><th>ZONA</th><th>CLAVE DE CT</th><th>${multi ? 'ESCUELAS' : 'NOMBRE DE LA ESCUELA'}</th><th>MUNICIPIO</th><th>LOCALIDAD</th><th>TURNO</th><th>FECHA</th><th>SESIÓN</th></tr>
@@ -8366,7 +8434,7 @@ function laHtml(d) {
         <tr><th class="s">APELLIDO PATERNO</th><th class="s">APELLIDO MATERNO</th><th class="s">NOMBRE(S)</th><th class="s">H</th><th class="s">M</th><th class="s">ENTRADA</th><th class="s">SALIDA</th></tr></thead>
         <tbody>${cuerpo}</tbody></table>
       <div class="la-pie">
-        <div class="la-fir">${d.firma && d.firmaImg ? `<img src="data:image/png;base64,${d.firmaImg}" alt="Firma">` : ''}<div class="r">${OFI.firmante}</div><div class="c">SUPERVISOR ESCOLAR ZONA 050</div></div>
+        <div class="la-fir">${d.firma && d.firmaImg ? `<img src="data:image/png;base64,${d.firmaImg}" alt="Firma">` : ''}<div class="r">${OFI.firmante}</div><div class="c">${esc(OFI.cargo)}</div></div>
         <div class="la-fir"><div class="r">${esc2(e[4] || 'NOMBRE Y FIRMA')}</div><div class="c">${multi ? esc2(e[5]) : esc2(e[5] || 'DIRECTOR(A)') + ' · FACILITADOR(A) DE LA SESIÓN · SELLO DE LA ESCUELA'}</div></div>
       </div>
       ${hojas.length > 1 ? `<div class="la-folio">Hoja ${ih + 1} de ${hojas.length}</div>` : ''}
@@ -8600,13 +8668,13 @@ function cteModalAvisar(n, ccts) {
   if (!candidatas.length) { aviso('Ninguna escuela tiene pendientes en esta sesión.', 'ok', 3500); return; }
   const t1 = una ? cteTextoAviso(n, ccts[0]) : null;
   modal(una ? 'Aviso de lo que falta' : 'Avisar pendientes · ' + CTE_ORD[n] + ' sesión', `
-    <p class="peq mudo" style="margin-top:0">Llega a la dirección como correo con los logos de ISEP y de la Zona 050${sup ? ' y su firma' : ' y su nombre'}. ${una ? 'Puede ajustar el texto.' : 'Cada escuela recibe solo la lista de lo suyo.'}</p>
+    <p class="peq mudo" style="margin-top:0">Llega a la dirección como correo con los logos de ${esc(ZONA.inst)} y de la Zona ${esc(ZONA.numero)}${sup ? ' y su firma' : ' y su nombre'}. ${una ? 'Puede ajustar el texto.' : 'Cada escuela recibe solo la lista de lo suyo.'}</p>
     ${una ? '' : `<div class="campo"><label>Escuelas con pendientes</label><div style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto">${candidatas.map(c => { const v = cteRevResumen(n, c);
       return `<label class="casilla"><input type="checkbox" data-av="${c}" checked> <span><b>${esc(nombreEscuela(c))}</b> <span class="peq mudo">· ${v.pend.length} pendiente${v.pend.length === 1 ? '' : 's'}${v.aviso ? ' · ya avisada ' + esc(fechaCorta(v.aviso.actualizado.slice(0, 10))) : ''}</span></span></label>`; }).join('')}</div></div>`}
     <div class="campo"><label for="ca-lim">Fecha límite para subirlo (opcional)</label><input type="date" id="ca-lim"></div>
     <label class="casilla"><input type="checkbox" id="ca-atp" checked> Con copia a su ATP</label>
-    ${sup ? `<div class="campo"><label for="ca-de">Enviar desde</label><select id="ca-de"><option value="supervision050sep@gmail.com">supervision050sep@gmail.com</option><option value="cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</option></select></div>
-    <label class="casilla"><input type="checkbox" id="ca-firma" checked> Agregar mi firma digital</label>` : '<p class="peq mudo">Sale de supervision050sep@gmail.com.</p>'}
+    ${sup ? `<div class="campo"><label for="ca-de">Enviar desde</label><select id="ca-de"><option value="${esc(ZONA.correoSupervision)}">${esc(ZONA.correoSupervision)}</option><option value="${esc(ZONA.correoInstitucional)}">${esc(ZONA.correoInstitucional)}</option></select></div>
+    <label class="casilla"><input type="checkbox" id="ca-firma" checked> Agregar mi firma digital</label>` : '<p class="peq mudo">Sale de ' + esc(ZONA.correoSupervision) + '.</p>'}
     ${una ? `<div class="campo"><label for="ca-asunto">Asunto</label><input id="ca-asunto" maxlength="200" value="${esc(t1.asunto)}"></div>
       <div class="campo"><label for="ca-texto">Mensaje</label><textarea id="ca-texto" style="min-height:300px;line-height:1.5">${esc(t1.texto)}</textarea></div>` : ''}`,
     `<button class="boton sec" id="ca-no">Cancelar</button><button class="boton terra" id="ca-si">📩 Enviar aviso${una ? '' : 's'}</button>`);
@@ -8637,14 +8705,14 @@ function cteModalFelicitar(n, cct) {
   const correos = [c.correo1, c.correo2].filter(x => /@/.test(x || ''));
   modal('Felicitación a la dirección', `
     ${prev ? `<div class="aviso-caja peq" style="margin-top:0">Ya se envió una felicitación por esta sesión el ${esc(fechaHora(prev.actualizado))}. Si la envía de nuevo, llegará otra vez.</div>` : ''}
-    <p class="peq mudo" style="margin-top:0">No es oficio: llega como correo con los logos de ISEP y de la Zona 050, su firma y su nombre al final. Puede ajustar el texto.</p>
+    <p class="peq mudo" style="margin-top:0">No es oficio: llega como correo con los logos de ${esc(ZONA.inst)} y de la Zona ${esc(ZONA.numero)}, su firma y su nombre al final. Puede ajustar el texto.</p>
     <div class="campo"><label>Para</label><div>${correos.length ? esc(correos.join(', ')) : '<b style="color:var(--alerta)">La escuela no tiene correo en el Directorio.</b>'}</div></div>
     ${atp ? `<label class="casilla"><input type="checkbox" id="cf-atp" checked> Con copia a su ATP (${esc(nombreCorto(atp.nombre))})</label>` : ''}
-    <div class="campo"><label for="cf-de">Enviar desde</label><select id="cf-de"><option value="supervision050sep@gmail.com">supervision050sep@gmail.com</option><option value="cortegagutierrez@bcedu.mx">cortegagutierrez@bcedu.mx</option></select></div>
+    <div class="campo"><label for="cf-de">Enviar desde</label><select id="cf-de"><option value="${esc(ZONA.correoSupervision)}">${esc(ZONA.correoSupervision)}</option><option value="${esc(ZONA.correoInstitucional)}">${esc(ZONA.correoInstitucional)}</option></select></div>
     <label class="casilla"><input type="checkbox" id="cf-firma" checked> Agregar mi firma digital</label>
     <div class="campo"><label for="cf-asunto">Asunto</label><input id="cf-asunto" maxlength="200" value="${esc(t.asunto)}"></div>
     <div class="campo"><label for="cf-texto">Mensaje</label><textarea id="cf-texto" style="min-height:300px;line-height:1.5">${esc(t.texto)}</textarea>
-      <div class="ayuda">Al final se agregan su firma y «Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar · Zona 050».</div></div>`,
+      <div class="ayuda">Al final se agregan su firma y «${esc(ZONA.supervisor)} · ${esc(ZONA.cargoSupervisor)} · Zona ${esc(ZONA.numero)}».</div></div>`,
     `<button class="boton sec" id="cf-no">Cancelar</button><button class="boton terra" id="cf-si" ${correos.length ? '' : 'disabled'}>🏅 Enviar felicitación</button>`);
   $('#cf-no').onclick = cerrarModal;
   $('#cf-si').onclick = () => {
@@ -8736,8 +8804,8 @@ function cteModalPide(n) {
 /* =========================================================
    Oficios de la Supervisión (Supervisión y Mesa Técnica)
    ========================================================= */
-const ISEP_TXT = 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA';
-const DESTINOS = {
+let ISEP_TXT = 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA';
+let DESTINOS = {
   'San Quintín': { destNombre: 'C. HUMBERTO GARCÍA SOLORIO', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: ISEP_TXT },
   'Ensenada': { destNombre: 'PROFR. ARTURO AGUILAR CITAL', destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN ENSENADA', destInst: ISEP_TXT },
   'Otro': { destNombre: '', destCargo: '', destInst: '' },
@@ -8747,7 +8815,7 @@ const DESTINOS = {
   'Multigrado': { destNombre: 'C.C. ENCARGADOS DE DESPACHO DE LAS ESCUELAS MULTIGRADO', destCargo: 'ZONA ESCOLAR 050', destInst: 'ENSENADA Y SAN QUINTÍN, B.C.' }
 };
 // Oficios a los directores: a qué escuelas va cada grupo
-const GRUPOS_DIR = { 'Directores': 'Todos los directores', 'Directores Ensenada': 'Directores de Ensenada', 'Directores San Quintín': 'Directores de San Quintín', 'Multigrado': 'Encargados multigrado' };
+let GRUPOS_DIR = { 'Directores': 'Todos los directores', 'Directores Ensenada': 'Directores de Ensenada', 'Directores San Quintín': 'Directores de San Quintín', 'Multigrado': 'Encargados multigrado' };
 const esGrupo = m => !!GRUPOS_DIR[m];
 const esMultigrado = c => c.multigrado === true || c.multigrado === 'true';
 function escuelasDeGrupo(m) {
@@ -8777,12 +8845,12 @@ function destinatariosUsados() {
   });
   return l;
 }
-const OFI = { lugar: 'Camalú, San Quintín, B.C.', firmante: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', cargo: 'SUPERVISOR ESCOLAR ZONA 050', cct: '02FIZ0094X' };
+let OFI = { lugar: 'Camalú, San Quintín, B.C.', firmante: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', cargo: 'SUPERVISOR ESCOLAR ZONA 050', cct: '02FIZ0094X' };
 let RECURSOS = null;        // firma y sello (solo Supervisión), en base64
 const BIBLIO = {};          // scripts que se cargan solo al generar archivos
 const esMesa = () => S && S.yo && (S.yo.rol === 'admin' || S.yo.rol === 'atp');
 const fechaOficio = f => { const d = deIso(f || hoy()); return d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear(); };
-const folioDe = o => o.folio || (S.ofiCfg ? S.ofiCfg.siguiente : 'SE-050/___/' + hoy().slice(0, 4));
+const folioDe = o => o.folio || (S.ofiCfg ? S.ofiCfg.siguiente : ZONA.folioPrefijo + '/___/' + hoy().slice(0, 4));
 const nombreArchivoOfi = o => (o.folio || 'Oficio').replace(/\//g, '-') + ' ' + String(o.asunto || '').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 60).trim();
 function cargarScript(src) {
   if (!BIBLIO[src]) BIBLIO[src] = new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => { delete BIBLIO[src]; mal(new Error('No se pudo cargar ' + src + '. Revise su conexión.')); }; document.head.appendChild(s); });
@@ -8816,9 +8884,9 @@ function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
   }).join('') || `<p class="h-p" style="margin:0;color:#aaa">El texto del oficio aparecerá aquí.</p>`;
   return `<div class="hoja" style="font-size:${pt(10)};line-height:${(1.125 * MULT_LINEA).toFixed(3)}">
     <div class="h-enc">
-      <img class="h-isep" src="img/isep.png" alt="ISEP">
-      <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">SUPERVISIÓN ESCOLAR ZONA 050</div><div class="t2">PRIMARIA FEDERALIZADA · C.C.T. ${OFI.cct}</div></div>
-      <img class="h-zona" src="img/zona050.png" alt="Zona 050">
+      <img class="h-isep" src="${ZONA.logoInst}" alt="${esc(ZONA.inst)}">
+      <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA</div><div class="t3">${esc(ZONA.nombreMay)}</div><div class="t2">${esc(ZONA.nivelSostMay)} · C.C.T. ${OFI.cct}</div></div>
+      <img class="h-zona" src="${ZONA.logoZona}" alt="Zona ${esc(ZONA.numero)}">
     </div>
     <div class="h-filete"></div>
     <div class="h-cuerpo${abajo ? ' abajo' : ''}"><div class="h-princ">
@@ -8835,7 +8903,7 @@ function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
       ${parr}
       <div class="h-firma" style="margin-top:${px(13 + 90 * t)}">
         <div class="h-at">A T E N T A M E N T E</div>
-        <div class="h-lema">“Responsabilidad y superación”</div>
+        ${ZONA.lemaZona ? `<div class="h-lema">“${esc(ZONA.lemaZona)}”</div>` : ''}
         <div class="h-esp" style="height:${px(110 + 24 * t)}"></div>
         <div class="h-linea">
           ${o.firma && rec.firma ? `<img class="h-img-firma" src="data:image/png;base64,${rec.firma}" alt="Firma">` : ''}
@@ -8848,7 +8916,7 @@ function htmlOficio(o, s = 1, rec = {}, t = 0, abajo = false) {
       </div></div>
       <div class="h-ccp">${lineasCcp(o).map(l => `<div><b>C.c.p.</b> ${esc(l)}</div>`).join('')}</div>
     </div>
-    <div class="h-pie"><div>Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910</div><div>Tel. 616 165 5622 · supervision050sep@gmail.com</div></div>
+    <div class="h-pie"><div>${esc(ZONA.nombre)} · ${esc(ZONA.lugar)}${ZONA.codigoPostal ? ' · C.P. ' + esc(ZONA.codigoPostal) : ''}</div><div>Tel. ${esc(ZONA.telefono)} · ${esc(ZONA.correoSupervision)}</div></div>
   </div>`;
 }
 // Acomoda el oficio en la hoja: si se pasa por poco, reduce un poco la letra; si queda vacía, reparte el espacio
@@ -8887,7 +8955,7 @@ async function wordOficio(o, rec) {
   const s = dis.s, t = dis.t;
   const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: A, BorderStyle, VerticalAlign, Footer, Header, PageNumber,
     HorizontalPositionRelativeFrom: H, VerticalPositionRelativeFrom: V, TextWrappingType } = D;
-  const [isep, zona, fuente] = await Promise.all([bytesDe('img/isep.png'), bytesDe('img/zona050.png'), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
+  const [isep, zona, fuente] = await Promise.all([bytesDe(ZONA.logoInst), bytesDe(ZONA.logoZona), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
   const F = 'Montserrat', AZ = '1F3A6B', OS = '1F2A44', GR = '555555';
   const z = v => Math.max(12, Math.floor(v * s + 0.001));  // medios puntos hacia abajo para no crecer al redondear
   const tx = (text, x = {}) => new TextRun({ text, font: F, size: x.size ? z(x.size) : z(20), bold: x.bold, italics: x.italics, color: x.color, characterSpacing: x.sp });
@@ -8901,7 +8969,7 @@ async function wordOficio(o, rec) {
       celda(5960, [
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ISEP_TXT, font: F, size: 13, bold: true, color: AZ })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA', font: F, size: 14, color: GR })] }),
-        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'SUPERVISIÓN ESCOLAR ZONA 050', font: F, size: 19, bold: true, color: OS, characterSpacing: 20 })] }),
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ZONA.nombreMay, font: F, size: 19, bold: true, color: OS, characterSpacing: 20 })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 0, line: 240 }, children: [new TextRun({ text: 'PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct, font: F, size: 14, color: GR })] })]),
       celda(1700, [new Paragraph({ alignment: A.RIGHT, children: [new ImageRun({ type: 'png', data: zona, transformation: { width: 80, height: 80 } })] })])
     ] })] }),
@@ -8915,8 +8983,8 @@ async function wordOficio(o, rec) {
     children: ccp.flatMap((l, i) => [...(i ? [new TextRun({ break: 1 })] : []), tx('C.c.p. ', { bold: true, size: 15 }), tx(l, { size: 15 })]) });
   const footer = new Footer({ children: [
     ...(dis.unaHoja && ccp.length ? [parCcp(160)] : []),
-    new Paragraph({ alignment: A.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: OS, space: 4 } }, spacing: { after: 20 }, children: [pie('Supervisión Escolar Zona 050 · Camalú, San Quintín, B.C. · C.P. 22910')] }),
-    new Paragraph({ alignment: A.CENTER, spacing: { after: 0 }, children: [pie('Tel. 616 165 5622 · supervision050sep@gmail.com     Página '), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 14, color: GR }), pie(' de '), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 14, color: GR })] })
+    new Paragraph({ alignment: A.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: OS, space: 4 } }, spacing: { after: 20 }, children: [pie(ZONA.nombre + ' · ' + ZONA.lugar + (ZONA.codigoPostal ? ' · C.P. ' + ZONA.codigoPostal : ''))] }),
+    new Paragraph({ alignment: A.CENTER, spacing: { after: 0 }, children: [pie('Tel. ' + ZONA.telefono + ' · ' + ZONA.correoSupervision + '     Página '), new TextRun({ children: [PageNumber.CURRENT], font: F, size: 14, color: GR }), pie(' de '), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: F, size: 14, color: GR })] })
   ] });
   const B = (x, y = {}) => tx(x, Object.assign({ bold: true }, y));
   const der = { align: A.RIGHT, after: 60 };
@@ -8941,7 +9009,7 @@ async function wordOficio(o, rec) {
   if (o.sello && rec.sello) imgs.push(flota(b64aBytes(rec.sello), 72, 127, 4.75, -1.05, 10));
   kids.push(
     p([B('A T E N T A M E N T E', { sp: 10 })], { align: A.CENTER, after: 40, keepNext: true, before: Math.round((190 + 1350 * t) * s) }),
-    p([tx('“Responsabilidad y superación”', { italics: true, color: OS })], { align: A.CENTER, after: 0, keepNext: true }),
+    p([tx(ZONA.lemaZona ? '“' + ZONA.lemaZona + '”' : '', { italics: true, color: OS })], { align: A.CENTER, after: 0, keepNext: true }),
     new Paragraph({ keepNext: true, spacing: { before: 0, after: 0, line: Math.round((1650 + 360 * t) * s), lineRule: 'exact' }, children: [tx(' ')] }),
     new Paragraph({ alignment: A.CENTER, keepNext: true, spacing: { before: 0, after: 0 }, children: [...imgs, tx('_________________________________________', { color: '777777' })] }),
     p([B(OFI.firmante)], { align: A.CENTER, after: 0, line: 250, keepNext: true }),
@@ -8949,7 +9017,7 @@ async function wordOficio(o, rec) {
     p([tx('C.C.T. ' + OFI.cct, { size: 16, color: GR })], { align: A.CENTER, after: dis.unaHoja ? 0 : 260, line: 250 }),
     ...(!dis.unaHoja && ccp.length ? [parCcp(0)] : [])
   );
-  const doc = new Document({ creator: 'Supervisión Escolar Zona 050 · Tequio', title: o.folio + ' · ' + o.asunto,
+  const doc = new Document({ creator: ZONA.nombre + ' · Tequio', title: o.folio + ' · ' + o.asunto,
     fonts: fuente ? [{ name: F, data: fuente, characterSet: D.CharacterSet.ANSI }] : undefined,
     sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 2050, bottom: 1150, left: 1440, right: 1440, header: 500, footer: 500 } } }, headers: { default: header }, footers: { default: footer }, children: kids }] });
   return Packer.toBlob(doc);
@@ -9001,8 +9069,8 @@ const ESC_050 = {
   '02DPR0556S': ['Ignacio Allende', 'Ensenada', 'Ej. Alfredo V. Bonfil', 'Carr. Transpeninsular km 120, Ej. Alfredo V. Bonfil, C.P. 22905', 'PROFR. JESÚS AARÓN MONTERO MELÉNDREZ', 'ENCARGADO DE DESPACHO', 'Matutino'],
   '02DPR0382S': ['José Ma. Pino Suárez', 'Ensenada', 'Ej. Rodolfo Sánchez Taboada', 'Ej. Rodolfo Sánchez Taboada, C.P. 22793', 'PROFR. ARMANDO URZÚA OSUNA', 'ENCARGADO DE DESPACHO', 'Matutino']
 };
-const SUPERVISOR_DEST = { destNombre: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', destCargo: 'SUPERVISOR ESCOLAR ZONA 050', destInst: 'PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct };
-const CCP_SUP = 'Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar Zona 050. Para su conocimiento.';
+let SUPERVISOR_DEST = { destNombre: 'MTRO. CARLOS GABRIEL ORTEGA GUTIÉRREZ', destCargo: 'SUPERVISOR ESCOLAR ZONA 050', destInst: 'PRIMARIA FEDERALIZADA · C.C.T. ' + OFI.cct };
+let CCP_SUP = 'Mtro. Carlos Gabriel Ortega Gutiérrez, Supervisor Escolar Zona 050. Para su conocimiento.';
 let EO = null;   // datos de la escuela en este dispositivo
 let EO_VUELTA = 0; // evita que una vista previa pendiente pinte sobre la pantalla nueva
 const eoClave = () => 'tequio.oficiosEscuela.' + (miCct() || 'escuela');
@@ -9037,7 +9105,7 @@ const eoFolio = o => o.folio || eoNum(eoSiguiente(eoAnio(o.fecha)), eoAnio(o.fec
 const eoArchivo = o => ('Oficio ' + (o.folio || '')).replace(/\//g, '-') + ' ' + String(o.asunto || '').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 60).trim();
 const eoEscuelaTxt = c => 'ESCUELA PRIMARIA «' + String(c.escuela || '').toUpperCase() + '»';
 function eoDestinos() {
-  const c = EO.cfg, j = DESTINOS[c.municipio] || DESTINOS['San Quintín'];
+  const c = EO.cfg, j = DESTINOS[c.municipio] || DESTINOS[ZONA.municipios[0]];
   return {
     sup: Object.assign({ plural: false, ccp: 'Archivo.' }, SUPERVISOR_DEST),
     jefe: Object.assign({ plural: false, ccp: CCP_SUP + '\nArchivo.' }, j),
@@ -9080,8 +9148,8 @@ function htmlOficioEsc(o, s = 1, rec = {}, t = 0, abajo = false) {
   const pie2 = [c.telefono ? 'Tel. ' + c.telefono : '', c.correo].filter(Boolean).join(' · ');
   return `<div class="hoja" style="font-size:${pt(10)};line-height:${(1.125 * MULT_LINEA).toFixed(3)}">
     <div class="h-enc">
-      <img class="h-isep" src="img/isep.png" alt="ISEP">
-      <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA · ZONA ESCOLAR 050</div><div class="t3">${esc(eoEscuelaTxt(c))}</div><div class="t2">C.C.T. ${esc(c.cct)} · TURNO ${esc(String(c.turno || '').toUpperCase())}</div></div>
+      <img class="h-isep" src="${ZONA.logoInst}" alt="${esc(ZONA.inst)}">
+      <div class="h-tit"><div class="t1">${ISEP_TXT}</div><div class="t2">DEPARTAMENTO DE EDUCACIÓN PRIMARIA · ZONA ESCOLAR ${esc(ZONA.numero)}</div><div class="t3">${esc(eoEscuelaTxt(c))}</div><div class="t2">C.C.T. ${esc(c.cct)} · TURNO ${esc(String(c.turno || '').toUpperCase())}</div></div>
       ${lg ? `<img src="${c.logo.src}" alt="Logo de la escuela" style="width:${lg.w}px;height:${lg.h}px;justify-self:end">` : '<span></span>'}
     </div>
     <div class="h-filete"></div>
@@ -9126,7 +9194,7 @@ async function wordOficioEsc(o) {
   const s = dis.s, t = dis.t;
   const { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType: A, BorderStyle, VerticalAlign, Footer, Header, PageNumber,
     HorizontalPositionRelativeFrom: H, VerticalPositionRelativeFrom: V, TextWrappingType } = D;
-  const [isep, fuente] = await Promise.all([bytesDe('img/isep.png'), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
+  const [isep, fuente] = await Promise.all([bytesDe(ZONA.logoInst), bytesDe('fuentes/Montserrat-Regular.ttf').catch(() => null)]);
   const F = 'Montserrat', AZ = '1F3A6B', OS = '1F2A44', GR = '555555';
   const z = v => Math.max(12, Math.floor(v * s + 0.001));
   const tx = (text, x = {}) => new TextRun({ text, font: F, size: x.size ? z(x.size) : z(20), bold: x.bold, italics: x.italics, color: x.color, characterSpacing: x.sp });
@@ -9140,7 +9208,7 @@ async function wordOficioEsc(o) {
       celda(1700, [new Paragraph({ alignment: A.LEFT, children: [new ImageRun({ type: 'png', data: isep, transformation: { width: 100, height: 75 } })] })]),
       celda(5960, [
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: ISEP_TXT, font: F, size: 13, bold: true, color: AZ })] }),
-        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA · ZONA ESCOLAR 050', font: F, size: 14, color: GR })] }),
+        new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: 'DEPARTAMENTO DE EDUCACIÓN PRIMARIA · ZONA ESCOLAR ' + ZONA.numero, font: F, size: 14, color: GR })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 20, line: 240 }, children: [new TextRun({ text: eoEscuelaTxt(c), font: F, size: 19, bold: true, color: OS, characterSpacing: 10 })] }),
         new Paragraph({ alignment: A.CENTER, spacing: { after: 0, line: 240 }, children: [new TextRun({ text: 'C.C.T. ' + c.cct + ' · TURNO ' + String(c.turno || '').toUpperCase(), font: F, size: 14, color: GR })] })]),
       celda(1700, [new Paragraph({ alignment: A.RIGHT, children: lg ? [new ImageRun({ type: 'png', data: eoBytes(c.logo), transformation: { width: lg.w, height: lg.h } })] : [] })])
@@ -9278,7 +9346,7 @@ function vEditorOficioEsc() {
       <label class="casilla" style="margin:-4px 0 12px"><input type="checkbox" id="o-pl" ${o.plural ? 'checked' : ''}> Va dirigido a varias personas (P R E S E N T E S)</label>
       <div class="fila">
         <div class="campo"><label for="o-fe">Fecha</label><input type="date" id="o-fe" value="${o.fecha}"></div>
-        <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio SE-050/044/2026"></div>
+        <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio ${esc(ZONA.folioPrefijo)}/044/2026"></div>
       </div>
       <div class="campo"><label for="o-as">Asunto</label><input id="o-as" maxlength="400" value="${esc(o.asunto)}" placeholder="Ej. Solicitud de mantenimiento de sanitarios"></div>
       <div class="campo"><label for="o-cu">Texto del oficio</label><textarea id="o-cu" style="min-height:260px" placeholder="Por medio del presente, ...&#10;&#10;Deje una línea en blanco entre párrafos. Para una lista, inicie cada renglón con «• ».">${esc(o.cuerpo)}</textarea></div>
@@ -9388,7 +9456,7 @@ function formMembreteEsc() {
       <div class="campo"><label for="m-mu">Municipio</label><input id="m-mu" value="${esc(c.municipio)}" readonly></div>
     </div>
     <div class="campo"><label for="m-do">Domicilio</label><input id="m-do" value="${esc(c.domicilio)}"></div>
-    <div class="campo"><label for="m-lu">Lugar que aparece antes de la fecha</label><input id="m-lu" value="${esc(c.lugar)}" placeholder="Ej. Camalú, San Quintín, B.C."></div>
+    <div class="campo"><label for="m-lu">Lugar que aparece antes de la fecha</label><input id="m-lu" value="${esc(c.lugar)}" placeholder="Ej. ${esc(ZONA.lugar)}"></div>
     <div class="fila dos">
       <div class="campo"><label for="m-te">Teléfono de la escuela <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="m-te" value="${esc(c.telefono)}"></div>
       <div class="campo"><label for="m-co">Correo de la escuela <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="m-co" type="email" value="${esc(c.correo)}"></div>
@@ -9643,7 +9711,7 @@ function formPersona(G, p, filtro) {
   const x = Object.assign({ nombre: '', cargo: '', institucion: '', correo: '', telefono: '', grupo: '' }, p || {});
   modal(p ? 'Editar persona' : 'Agregar persona', `
     <div class="campo"><label for="p-n">Nombre con título</label><input id="p-n" value="${esc(x.nombre)}" placeholder="Ej. Lic. María López Ruiz"></div>
-    <div class="campo"><label for="p-c">Cargo o puesto</label><input id="p-c" value="${esc(x.cargo)}" placeholder="Ej. Delegada de ISEP en San Quintín"></div>
+    <div class="campo"><label for="p-c">Cargo o puesto</label><input id="p-c" value="${esc(x.cargo)}" placeholder="Ej. Delegada de ${esc(ZONA.inst)} en ${esc(ZONA.municipioSede)}"></div>
     <div class="campo"><label for="p-i">Institución, dependencia o escuela</label><input id="p-i" value="${esc(x.institucion)}"></div>
     <div class="fila dos"><div class="campo"><label for="p-co">Correo</label><input id="p-co" type="email" value="${esc(x.correo)}"></div>
       <div class="campo"><label for="p-t">Teléfono</label><input id="p-t" value="${esc(x.telefono)}"></div></div>
@@ -9688,7 +9756,7 @@ function dirEscuela(alVolver) {
    ========================================================= */
 const DEP_REVISAR_MESES = 6;
 const DEP_TRAT = ['C.', 'Lic.', 'Mtro.', 'Mtra.', 'Profr.', 'Profra.', 'Dr.', 'Dra.', 'Ing.', 'Arq.', 'C.P.'];
-const DEP_MUN = ['San Quintín', 'Ensenada', 'Estatal', 'Federal'];
+let DEP_MUN = ['San Quintín', 'Ensenada', 'Estatal', 'Federal'];
 const DEP_ORDEN = ['Municipal', 'Estatal', 'Federal', 'Otro'];
 const depSi = v => v === true || v === 'true';
 const depNombre = p => p.nombre ? (p.tratamiento || 'C.') + ' ' + p.nombre : '';
@@ -9710,7 +9778,7 @@ function depItems(extra) {
 }
 // «dep» = todas; «dep-San Quintín» / «dep-Ensenada» = las del municipio más las estatales y federales (no se mezclan los municipios)
 const depFiltra = (x, f) => x.g === 'dep' && (f === 'dep' || x.mun === f.slice(4) || x.mun === 'Estatal' || x.mun === 'Federal');
-const DEP_FILTROS = [['dep-San Quintín', 'Dependencias San Quintín'], ['dep-Ensenada', 'Dependencias Ensenada']];
+let DEP_FILTROS = [['dep-San Quintín', 'Dependencias San Quintín'], ['dep-Ensenada', 'Dependencias Ensenada']];
 
 async function depBase() {
   const r = await fetch('datos/dependencias.json', { cache: 'no-store' });
@@ -9730,14 +9798,14 @@ async function depExcel() {
   ws['!cols'] = [12, 14, 30, 26, 10, 30, 40, 26, 30, 36, 40, 30, 11, 10].map(w => ({ wch: w }));
   XLSX.utils.book_append_sheet(wb, ws, 'Dependencias');
   const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  descargarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Directorio de dependencias Zona 050 ' + hoy() + '.xlsx');
+  descargarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Directorio de dependencias Zona ' + ZONA.numero + ' ' + hoy() + '.xlsx');
 }
 function gestorDependencias(alVolver, estado) {
   if (!S.dep) return depSinServidor();
   const puede = esMesa();
   const e = Object.assign({ f: '', q: '' }, estado || {});
   modal('Directorio de dependencias', `
-    <p class="peq" style="margin-top:0">Autoridades y dependencias municipales, estatales y federales que pueden apoyar a las escuelas de San Quintín y Ensenada. ${puede ? 'Lo que corrija aquí lo ven al momento la Mesa Técnica y los directores.' : 'Lo mantiene la Supervisión; si un dato cambió, avísele.'} Al hacer un oficio, búsquelo en «Elegir destinatario».</p>
+    <p class="peq" style="margin-top:0">Autoridades y dependencias municipales, estatales y federales que pueden apoyar a las escuelas de ${esc(ZONA.municipios.join(' y '))}. ${puede ? 'Lo que corrija aquí lo ven al momento la Mesa Técnica y los directores.' : 'Lo mantiene la Supervisión; si un dato cambió, avísele.'} Al hacer un oficio, búsquelo en «Elegir destinatario».</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       ${puede ? `<button type="button" class="boton terra chico" id="dp-nueva">${ico('i-mas')}Agregar</button><button type="button" class="boton sec chico" id="dp-base">${ico('i-carpeta')}${S.dep.length ? 'Agregar lo que falte del directorio base' : 'Cargar el directorio base'}</button>` : ''}
       ${S.dep.length ? `<button type="button" class="boton sec chico" id="dp-xls">${ico('i-carpeta')}Descargar en Excel</button>` : ''}</div>
@@ -9803,12 +9871,12 @@ function fichaDependencia(p, volver) {
   };
 }
 function formDependencia(p, volver) {
-  const x = Object.assign({ orden: 'Municipal', municipio: 'San Quintín', dependencia: '', area: '', tratamiento: '', nombre: '', cargo: '', telefono: '', correo: '', domicilio: '', apoyo: '', fuente: 'A mano', confirmar: false }, p || {});
+  const x = Object.assign({ orden: 'Municipal', municipio: ZONA.municipios[0] || '', dependencia: '', area: '', tratamiento: '', nombre: '', cargo: '', telefono: '', correo: '', domicilio: '', apoyo: '', fuente: 'A mano', confirmar: false }, p || {});
   const sel = (id, ops, v) => `<select id="${id}" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 10px;min-height:44px">${ops.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
   modal(p ? 'Editar dependencia' : 'Agregar dependencia', `
     <div class="fila dos"><div class="campo"><label for="fd-or">Orden de gobierno</label>${sel('fd-or', DEP_ORDEN, x.orden)}</div>
       <div class="campo"><label for="fd-mu">Municipio o ámbito</label>${sel('fd-mu', DEP_MUN, x.municipio)}</div></div>
-    <div class="campo"><label for="fd-de">Dependencia</label><input id="fd-de" value="${esc(x.dependencia)}" placeholder="Ej. DIF San Quintín"></div>
+    <div class="campo"><label for="fd-de">Dependencia</label><input id="fd-de" value="${esc(x.dependencia)}" placeholder="Ej. DIF ${esc(ZONA.municipioSede)}"></div>
     <div class="campo"><label for="fd-ar">Área</label><input id="fd-ar" value="${esc(x.area)}" placeholder="Ej. Dirección"></div>
     <div class="fila dos"><div class="campo"><label for="fd-tr">Tratamiento</label><input id="fd-tr" value="${esc(x.tratamiento)}" list="fd-trl" placeholder="Lic., Mtro., Dra.… (vacío = C.)"><datalist id="fd-trl">${DEP_TRAT.map(t => `<option>${t}</option>`).join('')}</datalist></div>
       <div class="campo"><label for="fd-no">Nombre</label><input id="fd-no" value="${esc(x.nombre)}" placeholder="Sin título; vacío si no se sabe"></div></div>
@@ -9842,7 +9910,7 @@ function elegirDestinatarioEsc(usados, listo, alVolver) {
   const items = [...per.map(p => ({ g: 'per', t: p.nombre, s: [p.cargo, p.institucion].filter(Boolean).join(' · '), d: () => Object.assign(perDest(p), { tipo: 'otro', plural: false }) })),
     ...usados.map(x => ({ g: 'usados', t: x.destNombre, s: x.destCargo, d: () => ({ destNombre: x.destNombre, destCargo: x.destCargo, destInst: x.destInst, plural: !!x.plural, tipo: x.tipo || 'otro' }) })),
     ...deps];
-  const munEsc = EO.cfg.municipio === 'Ensenada' ? 'Ensenada' : 'San Quintín';
+  const munEsc = ZONA.municipios.includes(EO.cfg.municipio) ? EO.cfg.municipio : ZONA.municipios[0];
   let f = per.length ? 'per' : deps.length ? 'dep-' + munEsc : 'usados';
   modal('Elegir destinatario', `
     <input id="d-q" type="search" placeholder="Buscar por nombre o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
@@ -9903,7 +9971,7 @@ function vEditorOficio() {
   const guardado = vista.ofiEdit !== 'nuevo' ? S.ofi.find(x => x.id === vista.ofiEdit) : null;
   if (vista.ofiEdit !== 'nuevo' && !guardado) { vista.ofiEdit = null; return vOficios(); }
   if (!vista.ofiBorrador) vista.ofiBorrador = guardado ? JSON.parse(JSON.stringify(guardado)) :
-    Object.assign({ fecha: hoy(), municipio: 'San Quintín', escuelas: [], referencia: '', asunto: '', cuerpo: '', ccp: 'Archivo.', firma: esAdmin() && !!(S.ofiCfg || {}).firma, sello: esAdmin() && !!(S.ofiCfg || {}).sello, notas: '' }, DESTINOS['San Quintín']);
+    Object.assign({ fecha: hoy(), municipio: ZONA.municipios[0] || 'Otro', escuelas: [], referencia: '', asunto: '', cuerpo: '', ccp: 'Archivo.', firma: esAdmin() && !!(S.ofiCfg || {}).firma, sello: esAdmin() && !!(S.ofiCfg || {}).sello, notas: '' }, DESTINOS['San Quintín']);
   const o = vista.ofiBorrador, cfgO = S.ofiCfg || {};
   const escs = esGrupo(o.municipio) ? escuelasDeGrupo(o.municipio) : directores().filter(c => o.municipio === 'Otro' || c.municipio === o.municipio);
   $('#vista').innerHTML = `
@@ -9915,10 +9983,10 @@ function vEditorOficio() {
       ${o.analisis ? panelAnalisis(o.analisis, o) : o.recibidoId ? `<div class="aviso-caja peq">Oficio recibido: <a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${esc(o.recibidoId)}/view">${esc(o.recibidoNombre || 'ver oficio recibido')}</a></div>` : ''}
       <div class="campo"><span class="et">¿A quién va dirigido?</span>
         <div class="ayuda" style="margin:0 0 4px">A la autoridad</div>
-        <div class="seg-op" id="o-mun">${['San Quintín', 'Ensenada', 'Otro'].map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra persona' : 'Jefe ' + m}</button>`).join('')}</div>
+        <div class="seg-op" id="o-mun">${ZONA.municipios.concat(['Otro']).map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${m === 'Otro' ? 'Otra persona' : 'Jefe ' + m}</button>`).join('')}</div>
         <div class="ayuda" style="margin:8px 0 4px">A los directores de la zona</div>
         <div class="seg-op">${Object.keys(GRUPOS_DIR).map(m => `<button type="button" data-mun="${m}" aria-pressed="${o.municipio === m}">${GRUPOS_DIR[m]}</button>`).join('')}</div>
-        <div class="ayuda">${esGrupo(o.municipio) ? 'Al enviarlo por correo se agregan solos los correos de estas direcciones.' : 'San Quintín y Ensenada no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.'}</div></div>
+        <div class="ayuda">${esGrupo(o.municipio) ? 'Al enviarlo por correo se agregan solos los correos de estas direcciones.' : (ZONA.municipios.length > 1 ? ZONA.municipios.join(' y ') + ' no se mezclan: cada uno va a su Jefe de Departamento y solo con sus escuelas.' : 'Va a la autoridad inmediata de la zona.')}</div></div>
       <div class="campo"><div style="display:flex;align-items:end;justify-content:space-between;gap:8px;flex-wrap:wrap"><label for="o-dn">Destinatario</label>
         <button type="button" class="boton sec chico" id="o-lista">${ico('i-dir')}Elegir de la lista</button></div>
         <input id="o-dn" value="${esc(o.destNombre)}" placeholder="Nombre con título"></div>
@@ -9929,7 +9997,7 @@ function vEditorOficio() {
         <div class="casillas" id="o-esc">${escs.map(c => `<label class="casilla"><input type="checkbox" value="${c.cct}" ${(o.escuelas || []).includes(c.cct) ? 'checked' : ''}> ${esc(c.escuela)}</label>`).join('')}</div></div>` : ''}
       <div class="fila">
         <div class="campo"><label for="o-fe">Fecha</label><input type="date" id="o-fe" value="${o.fecha}"></div>
-        <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio SE-050/044/2026"></div>
+        <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio ${esc(ZONA.folioPrefijo)}/044/2026"></div>
       </div>
       <div class="campo"><label for="o-as">Asunto</label><input id="o-as" maxlength="400" value="${esc(o.asunto)}" placeholder="Ej. Solicitud de apoyo para mantenimiento del plantel"></div>
       <div class="campo ia-caja"><label for="o-no">Redactar con IA <span class="mudo" style="font-weight:400">· escriba lo que debe decir el oficio</span></label>
@@ -10052,7 +10120,7 @@ function subirOficioRecibido() {
     const a = r.analisis || {};
     a.modo = a.modo || modo;
     const esc0 = a.escuelaCct ? escuelaDe(a.escuelaCct) : null;
-    let mun = ['San Quintín', 'Ensenada'].includes(a.autoridad) ? a.autoridad : 'Otro';
+    let mun = ZONA.municipios.includes(a.autoridad) ? a.autoridad : 'Otro';
     let dest;
     if (a.modo === 'responder') {
       const rd = a.remitenteDatos || {};
@@ -10096,13 +10164,13 @@ function elegirDestinatario(listo) {
   const otros = dir.filter(c => c.tipo !== 'director').sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const usados = destinatariosUsados();
   const items = [
-    ...usados.map((u, i) => ({ g: 'usados', t: u.destNombre, s: u.destCargo + (u.veces > 1 ? ' · ' + u.veces + ' oficios' : ''), d: () => Object.assign({ municipio: u.municipio === 'San Quintín' || u.municipio === 'Ensenada' ? u.municipio : 'Otro' }, u) })),
+    ...usados.map((u, i) => ({ g: 'usados', t: u.destNombre, s: u.destCargo + (u.veces > 1 ? ' · ' + u.veces + ' oficios' : ''), d: () => Object.assign({ municipio: ZONA.municipios.includes(u.municipio) ? u.municipio : 'Otro' }, u) })),
     ...dirs.map(c => ({ g: esMultigrado(c) ? 'multi' : 'dir', mun: c.municipio, t: c.nombre, s: (c.cargo || 'Director(a)') + ' · ' + c.escuela + ' · ' + c.municipio, d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
     ...otros.map(c => ({ g: 'otros', t: c.nombre, s: [c.cargo, c.escuela].filter(Boolean).join(' · '), d: () => Object.assign({ municipio: 'Otro' }, destDeContacto(c)) })),
     ...(S.per || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')).map(p => ({ g: 'per', t: p.nombre, s: [p.cargo, p.institucion].filter(Boolean).join(' · ') + (p.grupo ? ' · ' + p.grupo : ''), d: () => Object.assign({ municipio: 'Otro', escuelas: [] }, perDest(p)) })),
     ...depItems({ municipio: 'Otro', escuelas: [] })
   ];
-  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ...DEP_FILTROS, ['dep', 'Todas las dependencias'], ['per', 'Directorio de oficios'], ['dir-Ensenada', 'Directores Ensenada'], ['dir-San Quintín', 'Directores San Quintín'], ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
+  const filtros = [['todos', 'Todos'], ['usados', 'Usados antes'], ...DEP_FILTROS, ['dep', 'Todas las dependencias'], ['per', 'Directorio de oficios'], ...munOrden().map(m => ['dir-' + m, 'Directores ' + m]), ['multi', 'Encargados multigrado'], ['otros', 'Otros contactos']];
   let f = usados.length ? 'usados' : (S.per || []).length ? 'per' : 'todos';
   modal('Elegir destinatario', `
     <input id="d-q" type="search" placeholder="Buscar por nombre, escuela o cargo" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:9px 11px;margin-bottom:8px">
@@ -10129,8 +10197,8 @@ function elegirDestinatario(listo) {
 
 function formCorreoOficio(o) {
   let guardados = {}; try { guardados = JSON.parse(localStorage.getItem('tequio.correosOficio') || '{}'); } catch (e) {}
-  const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar Zona 050`;
-  const rem = (S.ofiCfg && S.ofiCfg.remitentes) || ['supervision050sep@gmail.com'];
+  const msg = `Buen día.\n\nPor este medio le hago llegar el oficio ${o.folio}, relativo a: ${o.asunto}.\n\nQuedo atento a sus comentarios.\n\nAtentamente,\n${ZONA.supervisor}\n${ZONA.cargoSupervisor} Zona ${ZONA.numero}`;
+  const rem = (S.ofiCfg && S.ofiCfg.remitentes) || [ZONA.correoSupervision];
   const dirsGrupo = esGrupo(o.municipio) ? directores().filter(c => (o.escuelas || []).includes(c.cct)) : [];
   const sinCorreo = dirsGrupo.filter(c => !correos(c).length);
   const paraIni = esGrupo(o.municipio) ? [...new Set(dirsGrupo.flatMap(correos))].join(', ') : (o.destCorreo || guardados[o.destNombre] || '');
@@ -10164,7 +10232,7 @@ async function compartirOficio(o) {
   await conCarga(async () => {
     const b = await pdfOficio(o, await recursos());
     const nombre = nombreArchivoOfi(o) + '.pdf';
-    const texto = `Supervisión Escolar Zona 050 · Oficio ${o.folio}\nAsunto: ${o.asunto}`;
+    const texto = `${ZONA.nombre} · Oficio ${o.folio}\nAsunto: ${o.asunto}`;
     archivarPdf(o, b);
     const archivo = new File([b], nombre, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
@@ -10185,12 +10253,12 @@ function formNumeroOficio() {
   modal('Número del siguiente oficio', `
     <p style="margin-top:0">Si se hicieron oficios fuera de Tequio (en otra computadora o a mano), escriba en qué número debe seguir el conteo.</p>
     <div class="campo"><label for="n-sig">El siguiente oficio será el número</label>
-      <div style="display:flex;align-items:center;gap:8px"><span>SE-050/</span><input id="n-sig" type="number" min="1" max="999" value="${+sig || ''}" style="width:110px"><span>/${anio}</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span>${esc(ZONA.folioPrefijo)}/</span><input id="n-sig" type="number" min="1" max="999" value="${+sig || ''}" style="width:110px"><span>/${anio}</span></div>
       <div class="ayuda" id="n-ayuda"></div></div>`,
     '<button class="boton sec" id="n-no">Cancelar</button><button class="boton terra" id="n-si">Guardar</button>');
   const usados = (S.ofi || []).filter(o => String(o.anio) === anio).map(o => +o.numero);
   const revisar = () => { const n = +$('#n-sig').value;
-    $('#n-ayuda').innerHTML = !n ? '' : usados.includes(n) ? `<b>Ojo:</b> el SE-050/${String(n).padStart(3, '0')}/${anio} ya existe en Tequio; se usará el siguiente número libre.` : `Los siguientes oficios serán ${String(n).padStart(3, '0')}, ${String(n + 1).padStart(3, '0')}, ${String(n + 2).padStart(3, '0')}…`; };
+    $('#n-ayuda').innerHTML = !n ? '' : usados.includes(n) ? `<b>Ojo:</b> el ${esc(ZONA.folioPrefijo)}/${String(n).padStart(3, '0')}/${anio} ya existe en Tequio; se usará el siguiente número libre.` : `Los siguientes oficios serán ${String(n).padStart(3, '0')}, ${String(n + 1).padStart(3, '0')}, ${String(n + 2).padStart(3, '0')}…`; };
   $('#n-sig').oninput = revisar; revisar();
   $('#n-no').onclick = cerrarModal;
   $('#n-si').onclick = () => { const n = parseInt($('#n-sig').value, 10);
@@ -10227,15 +10295,15 @@ function formCfgOficios() {
 // Página que se muestra cuando una invitación de consulta ya venció.
 function invitacionTerminada() {
   cfg = null; S = null;
-  document.title = 'Tequio · Zona 050';
+  document.title = 'Tequio · Zona ' + ZONA.numero;
   $('#app').innerHTML = `
   <div class="portada"><div class="caja">
     <svg class="logo" role="img" aria-label="Logotipo de Tequio: seis personas unidas en círculo alrededor de una luz"><use href="#logo"/></svg>
     <h1>Tequio</h1>
     <div class="lema">${LEMA}</div>
     <div class="aviso-caja" style="margin-top:18px;text-align:left">Este enlace de consulta ya venció. Gracias por su interés en Tequio.</div>
-    <p style="margin-top:18px">Si desea conocer más, comuníquese con la Supervisión Escolar Zona 050: <b>supervision050sep@gmail.com</b> · 616 165 5622.</p>
-    <p class="peq" style="margin-top:18px">Supervisión Escolar Zona No. 050 · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · «Responsabilidad y superación»</p>
+    <p style="margin-top:18px">Si desea conocer más, comuníquese con la ${esc(ZONA.nombre)}: <b>${esc(ZONA.correoSupervision)}</b> · ${esc(ZONA.telefono)}.</p>
+    <p class="peq" style="margin-top:18px">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}<br>${esc(ZONA.lugar)}${esc(ZONA.lemaTxt)}</p>
   </div></div>`;
 }
 cfg = leerCfg();
