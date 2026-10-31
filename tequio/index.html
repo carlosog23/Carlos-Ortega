@@ -974,7 +974,7 @@ function portada(mensaje) {
 function pestanas() {
   const on = ZONA.modulos;
   return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0])
-      || (t[0] === 'herramientas' && String(ZONA.numero) === '050'))
+      || (t[0] === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado))
     .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
@@ -3632,7 +3632,9 @@ function vEnlaces() {
   <div class="tarjeta pad" style="margin-top:16px">
     <h2 style="font-size:19px;margin-bottom:6px">Correos de hoy</h2>
     <p class="peq" style="margin:0">Quedan <b>${S.cuota != null ? S.cuota : '—'}</b> envíos disponibles hoy en ${esc(ZONA.correoSupervision)}. Gmail permite cerca de 100 destinatarios al día en una cuenta gratuita; si se agotan, Tequio deja los avisos para la mañana siguiente.</p>
-  </div>`;
+  </div>
+  ${esAdmin() ? tarjetaModulos() : ''}`;
+  ligarModulos();
   $('#b-dirs').onclick = () => accion('prepararDirectores', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'Directores actualizados: ' + r.cambios + '.' : 'Los directores ya estaban al día.', 'ok', 3000); });
   $$('[data-genlace]').forEach(b => b.onclick = () => {
     const u = usuario(b.dataset.genlace);
@@ -3644,6 +3646,39 @@ function vEnlaces() {
     if (!confirm('¿Anular el enlace de ' + u.nombre + '? Ya no podrá entrar a Tequio hasta que le genere uno nuevo.')) return;
     accion('anularUsuario', { id: u.id }, r => { poner(S.usr, r.usuario); vEnlaces(); aviso('Enlace anulado.', 'ok', 2500); });
   });
+}
+// Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
+const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'],
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
+function moduloEncendido(m) {
+  const on = ZONA.modulos;
+  if (!Array.isArray(on)) return true;
+  return on.includes(m) || (m === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado);
+}
+function tarjetaModulos() {
+  return `<div class="tarjeta pad" style="margin-top:16px" id="t-modulos">
+    <h2 style="font-size:19px;margin-bottom:6px">Módulos de la zona</h2>
+    <p class="peq mudo" style="margin:0 0 10px">Encienda solo las secciones que usa su zona. La Agenda, el Directorio y los Enlaces siempre están. Lo que apague deja de verse para todos, pero sus datos no se borran.</p>
+    <div style="display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr))">${MODULOS_TQ.map(([k, n]) => `<label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-mod="${k}" ${moduloEncendido(k) ? 'checked' : ''} style="margin-top:3px">${esc(n)}</label>`).join('')}</div>
+    <button class="boton terra chico" id="b-modulos" style="margin-top:12px">Guardar módulos</button>
+    <div id="m-modulos" class="peq" style="margin-top:8px"></div>
+  </div>`;
+}
+function ligarModulos() {
+  const b = $('#b-modulos'); if (!b) return;
+  b.onclick = async () => {
+    const lista = $$('[data-mod]:checked').map(c => c.dataset.mod), m = $('#m-modulos');
+    if (cfg.invitado || cfg.lectura) { m.textContent = 'En el modo de consulta no se pueden guardar cambios.'; return; }
+    if (cfg.demo) { ZONA.modulos = lista; ZONA.modulosEditado = true; pintar(); aviso('Módulos actualizados (demostración).', 'ok', 2500); return; }
+    b.disabled = true; m.textContent = 'Guardando…';
+    try {
+      const r = await api('guardarModulos', { modulos: lista });
+      ZONA.modulos = r.modulos; ZONA.modulosEditado = true; pintar(); aviso('Módulos actualizados.', 'ok', 2500);
+    } catch (e) {
+      b.disabled = false;
+      m.innerHTML = /desconocida/i.test(e.message) ? '<b>Falta actualizar el servidor.</b> Para guardar los módulos, actualice el servidor de Tequio (Código.gs) a la versión 27 o más nueva.' : esc(e.message);
+    }
+  };
 }
 function mostrarEnlace(u, enlace) {
   const texto = u.rol === 'director'

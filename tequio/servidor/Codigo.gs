@@ -111,7 +111,7 @@ function zonaPublica_() {
     lemaZona: z.lemaZona, logoZona: logo, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
     carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
     autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado,
-    modulos: modulos, aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
+    modulos: modulos, modulosEditado: p.getProperty('MODULOS_EDITADO') === '1', aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
 }
 const REMITENTE = Z().nombre + ' · Tequio';
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
@@ -164,7 +164,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica' };
-const VERSION = 26;
+const VERSION = 27;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -448,7 +448,18 @@ const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVis
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
+// Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
+
 const ACCIONES = {
+  // El Supervisor elige los módulos que usa su zona
+  guardarModulos: (yo, d) => {
+    soloAdmin_(yo);
+    const lista = (Array.isArray(d.modulos) ? d.modulos : []).map(String).filter((m, i, a) => MODULOS_VALIDOS.indexOf(m) >= 0 && a.indexOf(m) === i);
+    const p = PropertiesService.getScriptProperties();
+    p.setProperty('MODULOS', JSON.stringify(lista)); p.setProperty('MODULOS_EDITADO', '1');
+    return { modulos: lista, modulosEditado: true };
+  },
   datos: (yo) => (contarEntrada_(), yo.rol === 'director' ? datosDirector_(yo) : ({
     zona: zonaPublica_(),
     yo: publico_(yo),
