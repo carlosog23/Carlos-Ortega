@@ -88,7 +88,7 @@ td input,td select{min-width:110px}td input.ancho{min-width:190px}
 <script>
 'use strict';
 const PASOS = ['Bienvenida', 'Supervisión', 'Escuelas', 'Equipo y accesos', 'Criterios y módulos', 'Conexión con Google', '¡Listo!'];
-const MODULOS = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'], ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades']];
+const MODULOS = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'], ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
 const MUNICIPIOS_BC = ['Ensenada', 'San Quintín', 'Tijuana', 'Playas de Rosarito', 'Tecate', 'Mexicali', 'San Felipe'];
 const DIAS = [[1, 'Lunes'], [2, 'Martes'], [3, 'Miércoles'], [4, 'Jueves'], [5, 'Viernes']];
 const CLAVE = 'tequio.instalacion';
@@ -102,7 +102,7 @@ function nuevo() {
     p: { sede: '', municipioSede: '', titulo: 'Mtro.', nombre: '', cargoSupervisor: 'Supervisor Escolar', correoInstitucional: '', whatsappAdmin: '', telefono: '', codigoPostal: '', cctSupervision: '', lemaZona: '',
       autoridades: [] },
     logo: '', firma: '', sello: '', escuelas: [], atps: [], pesos: { acu: 70, evi: 20, sis: 5, eia: 5 }, informe: { dia: 1, hora: 7, ccAtp: true, vacaciones: true },
-    modulos: MODULOS.map(m => m[0]), sedeMultigrado: '', url: '', cuenta: '', resultado: null };
+    modulos: MODULOS.map(m => m[0]).filter(m => m !== 'herramientas'), sedeMultigrado: '', url: '', cuenta: '', resultado: null };
 }
 function cargarEstado() { try { const g = JSON.parse(localStorage.getItem(CLAVE) || 'null'); if (g && g.p) return Object.assign(nuevo(), g); } catch (e) {} return nuevo(); }
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(E)); } catch (e) { try { const c = Object.assign({}, E, { firma: '', sello: '' }); localStorage.setItem(CLAVE, JSON.stringify(c)); } catch (e2) {} } }

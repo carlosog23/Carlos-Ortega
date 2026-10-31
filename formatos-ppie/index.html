@@ -524,6 +524,10 @@ h3{font-family:var(--display);font-weight:700;letter-spacing:0}
   .ini-pie .signif{max-width:680px}
 }
 @media print{.ini-nav{display:none!important}}
+/* Botón para volver cuando se llegó desde Tequio */
+.tlm-regreso{display:block;background:#24427A;color:#FBF6EC!important;text-decoration:none;font-weight:600;font-size:14px;text-align:center;padding:9px 14px;padding-top:max(9px,env(safe-area-inset-top))}
+.tlm-regreso:hover{background:#1F3A6B}
+@media print{.tlm-regreso{display:none!important}}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -531,6 +535,19 @@ h3{font-family:var(--display);font-weight:700;letter-spacing:0}
 
 <script>
 const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+/* Zona activa. Por omisión, la Zona 050. Si la persona llega desde el Tequio de otra zona, Tequio deja sus datos
+   («tequio-zona»: escuelas, supervisor, logos) y Tlamatini los usa en lugar de los de la 050 en listas y documentos. */
+const ZONA_TQ=(()=>{try{const z=JSON.parse(localStorage.getItem("tequio-zona")||"null");if(!z||!z.numero||z.numero==="050")return null;
+  const pf=JSON.parse(localStorage.getItem("ppie-perfil")||"{}");return(!pf.zona||pf.zona===z.numero||pf.origenTequio)?z:null}catch(e){return null}})();
+const ZONA_NUM=ZONA_TQ?ZONA_TQ.numero:"050";
+const INST_SEBS=()=>(typeof perfil!=="undefined"&&perfil.subsis==="SEBS")||!!(ZONA_TQ&&ZONA_TQ.estatal);
+const INST_IMG=()=>INST_SEBS()?"img/se.png":"img/isep.png";
+const INST_TXT=()=>INST_SEBS()?"SECRETARÍA DE EDUCACIÓN DE BAJA CALIFORNIA":"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA";
+const INST_TXT2=()=>INST_SEBS()?["SECRETARÍA DE EDUCACIÓN","DE BAJA CALIFORNIA"]:["INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS","DE BAJA CALIFORNIA"];
+/* Logo de la zona activa para los documentos: el que mandó Tequio, el de la 050, o ninguno si la persona es de otra zona capturada a mano */
+async function embedZonaLogo(doc){try{if(ZONA_TQ){const d=ZONA_TQ.logo||"";if(!d)return null;return d.startsWith("data:image/png")?await doc.embedPng(d):await doc.embedJpg(d)}
+  if(typeof perfil!=="undefined"&&perfil.modo==="otra"&&perfil.zona&&perfil.zona!=="050")return null;
+  return await doc.embedPng(new Uint8Array(await(await fetch("img/zona050.png")).arrayBuffer()))}catch(e){return null}}
 const ESCUELAS_050=[
  ["Belisario Domínguez","02DPR0210Z","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Luis Ángel Bandala Guerrero"],
  ["Josefa Ortiz de Domínguez","02DPR0150B","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Carlos Gustavo Domínguez Figueroa"],
@@ -670,11 +687,15 @@ const ANEXOS={
 };
 
 /* ---------- Licencia económica con goce de sueldo ---------- */
-const SUP_NOMBRE="Mtro. Carlos Gabriel Ortega Gutiérrez";
+const SUP_NOMBRE=ZONA_TQ?(ZONA_TQ.supervisor||""):"Mtro. Carlos Gabriel Ortega Gutiérrez";
 const CARGOS_050=["Director","Director","Director","Directora","Encargado de despacho","Director","Encargada de despacho","Directora","Director","Directora","Encargado de despacho","Encargado de despacho","Encargado de despacho","Encargado de despacho"];
+if(ZONA_TQ&&Array.isArray(ZONA_TQ.escuelas)&&ZONA_TQ.escuelas.length){ // escuelas de la zona activa
+  ESCUELAS_050.splice(0,ESCUELAS_050.length,...ZONA_TQ.escuelas.map(e=>[e.nombre,e.cct,e.mun,e.loc,e.dom,e.dir]));
+  CARGOS_050.splice(0,CARGOS_050.length,...ZONA_TQ.escuelas.map(e=>/encargad/i.test(e.cargo)?(/encargada/i.test(e.cargo)?"Encargada de despacho":"Encargado de despacho"):/directora/i.test(e.cargo)?"Directora":"Director"))}
 const CENTROS=ESCUELAS_050.map((e,i)=>{const m=e[4].match(/^(.*?),?\s*C\.P\.\s*(\d{5})/);const cargo=CARGOS_050[i];
   return{label:"Esc. Prim. "+e[0],nombre:"Escuela Primaria "+e[0],cct:e[1],mun:e[2],dir:m?m[1]:e[4],cp:m?m[2]:"",resp:(/a$|Encargada/.test(cargo)?"Mtra. ":"Mtro. ")+e[5],cargo}});
-CENTROS.push({label:"Supervisión Escolar Zona 050",nombre:"Supervisión Escolar Zona 050",cct:"02FIZ0094X",mun:"San Quintín",dir:"Camalú, San Quintín",cp:"22910",tel:"616 165 5622",resp:SUP_NOMBRE,cargo:"Supervisor Escolar"});
+CENTROS.push(ZONA_TQ?{label:"Supervisión Escolar Zona "+ZONA_NUM,nombre:"Supervisión Escolar Zona "+ZONA_NUM,cct:ZONA_TQ.cctSupervision||"",mun:ZONA_TQ.municipioSede||"",dir:[ZONA_TQ.sede,ZONA_TQ.municipioSede].filter(Boolean).join(", "),cp:ZONA_TQ.codigoPostal||"",tel:ZONA_TQ.telefono||"",resp:SUP_NOMBRE,cargo:ZONA_TQ.cargoSupervisor||"Supervisor Escolar"}
+  :{label:"Supervisión Escolar Zona 050",nombre:"Supervisión Escolar Zona 050",cct:"02FIZ0094X",mun:"San Quintín",dir:"Camalú, San Quintín",cp:"22910",tel:"616 165 5622",resp:SUP_NOMBRE,cargo:"Supervisor Escolar"});
 const CARGOS_RESP=["Director","Directora","Encargado de despacho","Encargada de despacho","Supervisor Escolar"];
 const LEYENDA={"Director":"DEL DIRECTOR","Directora":"DE LA DIRECTORA","Encargado de despacho":"DEL ENCARGADO DE DESPACHO","Encargada de despacho":"DE LA ENCARGADA DE DESPACHO","Supervisor Escolar":"DEL SUPERVISOR ESCOLAR"};
 function addWeekdays(iso,n){const p=parseDate(iso);if(!p)return"";const d=new Date(p.y,p.m-1,p.d);let k=0;while(k<n){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)k++}return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
@@ -1434,11 +1455,11 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     ${DEMO?demoRecorrido():""}
     <div class="fams">${fams.map((f,i)=>`<section aria-labelledby="fam${i}"><h2 class="gt" id="fam${i}">${esc(f[0])}</h2><div class="lista">${f[1].map(r=>iniFila(r[0],r[1],r[2],drafts)).join("")}</div></section>`).join("")}</div>
     <footer class="ini-pie">
-     <div class="ini-sup"><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div><p><b>Supervisión Escolar Zona No. 050</b><br><span>Primaria Federalizada · C.C.T. 02FIZ0094X · Camalú, San Quintín, B.C.</span></p></div>
-     <div class="ini-firma"><b>Mtro. Carlos Gabriel Ortega Gutiérrez</b><i aria-hidden="true"></i><span>Supervisor Escolar</span></div>
+     ${(()=>{const z=supZona();return`<div class="ini-sup"><div class="seal"><img src="${z.inst}" alt="${z.instAlt}">${z.logo?`<img src="${esc(z.logo)}" alt="Zona Escolar ${esc(z.num)}">`:""}</div><p><b>Supervisión Escolar Zona No. ${esc(z.num)}</b><br><span>${esc(z.linea)}</span></p></div>
+     ${z.sup?`<div class="ini-firma"><b>${esc(z.sup)}</b><i aria-hidden="true"></i><span>${esc(z.cargo)}</span></div>`:""}`})()}
      <div class="ini-chips"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a><a href="mailto:tlamatini023@gmail.com?subject=Tlamatini%3A%20observaci%C3%B3n">Reportar un error o pedir un formato</a></div>
      ${TLM_SIGNIF}
-     <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
+     <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>${ZONA_TQ?`Supervisión Escolar Zona ${esc(ZONA_NUM)} · ${ZONA_TQ.estatal?"Secretaría de Educación":"ISEP"}${ZONA_TQ.lemaZona?" · «"+esc(ZONA_TQ.lemaZona)+"»":""}`:"Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»"}<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
     </footer>
    </div>
    <nav class="ini-nav" aria-label="Navegación principal">
@@ -1498,13 +1519,16 @@ function miEscuelaView(){S.view="miescuela";S.sec=null;S.letra=null;setBar("");
    <section class="lista">${iniFila("misalumnos","Mis alumnos","",[])}${iniFila("directorio","","",[])}${iniFila("misdocs","","",[])}</section>
    ${equipoHTML()}
    <section class="sup" aria-label="Datos de la Supervisión">
-    <div class="sup-h"><div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div></div>
+    ${ZONA_TQ?(()=>{const z=supZona(),t=ZONA_TQ;return`<div class="sup-h"><div class="sup-t">Supervisión Escolar Zona No. ${esc(z.num)} · ${esc(z.nivelSost)}</div><div class="seal"><img src="${z.inst}" alt="${z.instAlt}">${z.logo?`<img src="${esc(z.logo)}" alt="Zona Escolar ${esc(z.num)}">`:""}</div></div>
+    <div class="sup-g">${t.cctSupervision?`<span><i>C.C.T.</i>${esc(t.cctSupervision)}</span>`:""}<span><i>Sede</i>${esc([t.sede,t.municipioSede].filter(Boolean).join(", "))}, B.C.${t.codigoPostal?" · C.P. "+esc(t.codigoPostal):""}</span>
+     ${t.telefono?`<span><i>Teléfono</i><a href="tel:${esc(t.telefono.replace(/\D/g,""))}">${esc(t.telefono)}</a></span>`:""}${t.correo?`<span><i>Correo</i><a href="mailto:${esc(t.correo)}">${esc(t.correo)}</a></span>`:""}</div>
+    ${z.sup?`<div class="sup-n">${esc(z.sup)} · ${esc(z.cargo)}</div>`:""}`})():`<div class="sup-h"><div class="sup-t">Supervisión Escolar Zona No. 050 · Primaria Federalizada</div><div class="seal"><img src="img/isep.png" alt="ISEP"><img src="img/zona050.png" alt="Zona Escolar 050"></div></div>
     <div class="sup-g">
      <span><i>C.C.T.</i>02FIZ0094X</span><span><i>Sede</i>Camalú, San Quintín, B.C. · C.P. 22910</span>
      <span><i>Teléfono</i><a href="tel:6161655622">616 165 5622</a></span><span><i>Correo</i><a href="mailto:supervision050sep@gmail.com">supervision050sep@gmail.com</a></span>
      <span><i>Turno</i>Matutino-vespertino</span><span><i>Delegación</i>San Quintín · ISEP</span>
     </div>
-    <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>
+    <div class="sup-n">Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</div>`}
    </section>
    <div class="ini-chips" style="justify-content:flex-start"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a></div>
    <p class="foot">¿Le falta un formato o encontró un error? Escriba a ${CONTACTO}${accPie()}</p>`;
@@ -1853,7 +1877,7 @@ function perfilView(){if(perfil.modo==="otra")return setupOtraView(true);S.view=
   document.getElementById("salir").onclick=home;document.getElementById("cancel").onclick=home;
   document.getElementById("selEsc").onchange=e=>{const v=e.target.value;const set=(k,x)=>{const el=document.getElementById("f_"+k);if(el)el.value=x};
     if(v===""){["escuela","cct","localidad","domicilio","director","telefono"].forEach(k=>set(k,""));set("municipio","");return}
-    const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("zona","050");set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
+    const[n,cct,mun,loc,dom,dir]=ESCUELAS_050[+v];set("escuela","Escuela Primaria "+n);set("cct",cct);set("zona",ZONA_NUM);set("municipio",mun);set("localidad",loc);set("domicilio",dom);set("director",dir);set("nivel","Primaria");set("subsistema","Federalizado")};
   document.getElementById("save").onclick=()=>{for(const f of PERFIL){if(f.type==="choice"){const r=app.querySelector(`input[name="f_${f.id}"]:checked`);perfil[f.id]=r?r.value:""}else perfil[f.id]=document.getElementById("f_"+f.id).value.trim()}yoLeer();store.set("ppie-perfil",perfil);home()};window.scrollTo(0,0)}
 
 /* ---------- Estadística de edades (inicio de ciclo) ---------- */
@@ -2060,7 +2084,7 @@ const dOf=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const fechaLarga=s=>{const d=dOf(s);return`${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`};
 const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`};
 function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
-function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
+function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
 function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
   const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,orient:"vertical",tercios:false,filasH:10,filas3:5,
     portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
@@ -2118,8 +2142,8 @@ const LF_NORMAS=[
 async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocument,StandardFonts,rgb}=PDFLib;
   const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
   const C={ink:rgb(0,0,0),gu:rgb(.43,.12,.2),gray:rgb(.75,.75,.75),hd:rgb(.75,.75,.75),red:rgb(.86,.08,.08),mid:rgb(.3,.3,.32)};
-  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
-  const logo=await embedLogo(doc);const es050=String(v.zona||"").trim()==="050";const escLogo=logo||(es050?zona:null);
+  const isep=await doc.embedPng(await lvBytes(INST_IMG())),zona=await embedZonaLogo(doc);
+  const logo=await embedLogo(doc);const es050=!!zona&&String(v.zona||"").trim()===ZONA_NUM;const escLogo=logo||(es050?zona:null);
   const PW=612,PH=792,Y=t=>PH-t,up=t=>t.toLocaleUpperCase("es-MX");
   const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),lugar=clean(v.lugar.trim()),ciclo=clean(CAL?.ciclo||"");
   const fit=(t,font,size,maxW,min=6)=>{let s=size;while(s>min&&font.widthOfTextAtSize(t,s)>maxW)s-=0.25;return s};
@@ -2142,7 +2166,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
   /* Normatividad */
   if(v.normas){const hojas=preview?LF_NORMAS.slice(0,1):LF_NORMAS;const X0=58,WW=PW-116;
     for(const H of hojas){let pg=doc.addPage([PW,PH]);
-      const cab=p=>{img(p,isep,48,30,104,62);img(p,es050?zona:escLogo,PW-48-74,26,74,70);ctr(p,"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS",52,10.5,F.b,C.ink,PW/2,330);ctr(p,"DE BAJA CALIFORNIA",65,10.5,F.b,C.ink,PW/2,330);
+      const cab=p=>{img(p,isep,48,30,104,62);img(p,es050?zona:escLogo,PW-48-74,26,74,70);ctr(p,INST_TXT2()[0],52,10.5,F.b,C.ink,PW/2,330);ctr(p,INST_TXT2()[1],65,10.5,F.b,C.ink,PW/2,330);
         if(zn)ctr(p,`SUPERVISIÓN ESCOLAR ZONA ${zn}`,79,10,F.b,C.gu,PW/2,330);hline(p,48,PW-48,104,1,C.gu);return 128};
       let top=cab(pg);const base=H.s||10.8;
       for(const bl of H.bloques){const s=bl.s||base,lh=s*1.52,ind=bl.ind||0;let segs=bl.p;
@@ -2311,7 +2335,7 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
 const LV_KEY="libro-visitas";
 let LV=null;const LVIMG={};
 const lvPad=n=>String(n).padStart(3,"0");
-function lvFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, Baja California.`}
+function lvFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.ubic=`${e[3]}, ${e[2]}, Baja California.`}
 function lvInit(){const s=store.get(LV_KEY,null);if(s)return s;
   const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
   const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",ubic:"",hojas:100,filas:14,folio:1,ciclo:true,cicloTxt:cicloActual(),portada:true,bienv:true};
@@ -2336,9 +2360,9 @@ async function lvBytes(u){if(!LVIMG[u])LVIMG[u]=new Uint8Array(await(await fetch
 async function lvPDF(preview){await fonts();const v=LV,R=lvRango(v);const{PDFDocument,StandardFonts,rgb}=PDFLib;
   const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
   const C={g:rgb(.106,.302,.18),gu:rgb(.43,.12,.2),gold:rgb(.69,.55,.24),gray:rgb(.33,.33,.36),red:rgb(.86,.08,.08),ink:rgb(0,0,0),hd:rgb(.75,.75,.75),white:rgb(1,1,1),cream:rgb(.90,.88,.83),tg:rgb(.18,.49,.31),tr:rgb(.70,.16,.20),lgold:rgb(.93,.86,.62)};
-  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
+  const isep=await doc.embedPng(await lvBytes(INST_IMG())),zona=await embedZonaLogo(doc);
   const logo=await embedLogo(doc);
-  const es050=String(v.zona||"").trim()==="050";const escLogo=logo||(es050?zona:null);
+  const es050=!!zona&&String(v.zona||"").trim()===ZONA_NUM;const escLogo=logo||(es050?zona:null);
   const PW=792,PH=612,Y=t=>PH-t;
   const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),ubic=clean(v.ubic.trim()),ciclo=v.ciclo?clean(v.cicloTxt.trim()):"";
   const up=t=>t.toLocaleUpperCase("es-MX");
@@ -2355,7 +2379,7 @@ async function lvPDF(preview){await fonts();const v=LV,R=lvRango(v);const{PDFDoc
   /* Portada */
   if(v.portada){const pg=doc.addPage([PW,PH]);marco(pg);
     img(pg,isep,66,40,96,74);if(es050)img(pg,zona,632,36,94,82);else if(logo)img(pg,logo,640,38,80,78);
-    ctr(pg,"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",66,9.5,F.b,C.g,PW/2,440);
+    ctr(pg,INST_TXT(),66,9.5,F.b,C.g,PW/2,440);
     if(zn)ctr(pg,`Supervisión Escolar Zona ${zn} · Educación Primaria Federalizada`,80,8.5,F.b,C.gu,PW/2,440);
     if(es050)ctr(pg,"Camalú, San Quintín, Baja California",92,7.8,F.r,C.gray);
     regla(pg,136);
@@ -2491,7 +2515,7 @@ let PS=null;
 const PS_ED=["02DPR0379E","02DPR0378F","02DPR0882N","02DPR0012Z","02DPR0556S","02DPR0382S"];   // encargados de despacho
 const PS_MUJ=["02DPR0378F","02DPR0077J","02DPR0593W","02DPR0684N"];                               // titular mujer
 function psFromZona(o,i){const e=ESCUELAS_050[i],ed=PS_ED.includes(e[1]),m=PS_MUJ.includes(e[1]);
-  o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona="050";o.ubic=`${e[3]}, ${e[2]}, B.C.`;o.dnom=e[5];o.dtit=m?"Profra.":"Profr.";
+  o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.ubic=`${e[3]}, ${e[2]}, B.C.`;o.dnom=e[5];o.dtit=m?"Profra.":"Profr.";
   o.dcar=ed?(m?"Encargada de despacho":"Encargado de despacho"):(m?"Directora":"Director")}
 function psInit(){const s=store.get(PS_KEY,null);if(s)return s;
   const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
@@ -2512,7 +2536,7 @@ function psProblemas(v){const p=[];if(!v.nombre.trim())p.push("Escriba el nombre
 async function psPDF(preview){await fonts();const v=PS;const{PDFDocument,StandardFonts,rgb}=PDFLib;
   const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold),i:await doc.embedFont(StandardFonts.HelveticaOblique)};
   const C={nav:rgb(.122,.165,.267),ind:rgb(.122,.227,.42),gray:rgb(.33,.33,.36),lg:rgb(.6,.65,.69),ink:rgb(.1,.1,.1),line:rgb(.2,.2,.2)};
-  const isep=await doc.embedPng(await lvBytes("img/isep.png")),zona=await doc.embedPng(await lvBytes("img/zona050.png"));
+  const isep=await doc.embedPng(await lvBytes(INST_IMG())),zona=await embedZonaLogo(doc);
   const logo=await embedLogo(doc);
   const PW=612,PH=792,M=30,W=PW-2*M;
   const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),ubic=clean(v.ubic.trim()),
@@ -2527,7 +2551,7 @@ async function psPDF(preview){await fonts();const v=PS;const{PDFDocument,Standar
     lin:(x1,x2,top,th=0.7,color=C.line)=>pg.drawLine({start:{x:x1,y:Y(top)},end:{x:x2,y:Y(top)},thickness:th,color}),
     rect:(x,top,w,h,o={})=>pg.drawRectangle(Object.assign({x,y:Y(top)-h,width:w,height:h},o)),Y}};
   const encabezado=d=>{d.img(isep,M,16,58,44);d.img(zona,M+62,18,40,40);if(logo)d.img(logo,PW-M-48,12,48,56);
-    d.ctr("INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",28,6.6,F.b,C.ind,PW/2,330);
+    d.ctr(INST_TXT(),28,6.6,F.b,C.ind,PW/2,330);
     d.ctr(up(`${tipo} «${nombre}»`),41,10.5,F.b,C.nav,PW/2,330);
     d.ctr([cct&&`C.C.T. ${cct}`,turno&&`TURNO ${up(turno)}`,zn&&`ZONA ESCOLAR ${zn}`].filter(Boolean).join(" · "),51,6.8,F.r,C.gray,PW/2,330);
     if(ubic)d.ctr(ubic,60,6.8,F.r,C.gray,PW/2,330);
@@ -2556,7 +2580,7 @@ async function psPDF(preview){await fonts();const v=PS;const{PDFDocument,Standar
     d.ctr("previa identificación oficial vigente. Esta autorización se integra al expediente de la alumna o el alumno.",376,6.1,F.r,C.gray)};
 
   const portada=(b,R)=>(d)=>{d.img(isep,PW/2-122,26,80,60);d.img(zona,PW/2-29,26,58,58);if(logo)d.img(logo,PW/2+50,20,64,72);
-    d.ctr("INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA",108,7.4,F.b,C.ind);
+    d.ctr(INST_TXT(),108,7.4,F.b,C.ind);
     d.ctr(up(`${tipo} «${nombre}»`),122,12,F.b,C.nav);
     d.ctr([cct&&`C.C.T. ${cct}`,turno&&`TURNO ${up(turno)}`,zn&&`ZONA ESCOLAR ${zn}`,ubic].filter(Boolean).join(" · "),134,7.4,F.r,C.gray);
     d.ctr("L I B R O   D E   R E G I S T R O",160,8.4,F.r,C.gray);
@@ -2808,11 +2832,50 @@ async function accesoGate(){
   try{const r=await fetch("formatos/acceso.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;ACC=await r.json();store.set("acc-cache",ACC)}catch(e){ACC=store.get("acc-cache",null)}
   if(!ACC||!ACC.activo)return true;
   if(store.get("gh-token",""))return true; // la Supervisión siempre entra
+  if(paseTequio())return true; // ATP y directores que vienen de Tequio con su enlace vigente
   if(DEMO&&ACC.demoVence&&Date.now()<Date.parse(ACC.demoVence))return true; // demostración abierta (solo datos ficticios) hasta la fecha fijada en acceso.json
   const tok=store.get("acc-token","");if(!tok)return false;
   const h=await sha256(tok);const e=(ACC.enlaces||[]).find(x=>x.h===h);ACC_YO=e||null;
   return accEstado(e,ACC.generacion)==="vigente"}
 addEventListener("hashchange",()=>{if(/acceso=/.test(location.hash))accesoGate().then(ok=>ok?home():bloqueoView())});
+/* Pase de Tequio: Tequio (mismo sitio, mismo almacenamiento) lo deja a ATP y directores con sesión real;
+   vale 7 días y se renueva cada vez que entran a Tequio. La primera vez llena el perfil con su escuela. */
+function paseTequio(){const p=store.get("tequio-pase",null);
+  if(!p||!["admin","atp","director"].includes(p.rol)||!p.vence||p.vence<today())return false;
+  const zt=store.get("tequio-zona",null);
+  if(p.zona&&p.zona!=="050"&&zt&&zt.numero===p.zona){ // otra zona: sus datos y sus logos (los datos personales se respetan)
+    const nueva=perfil.zona!==p.zona||perfil.modo!=="otra";
+    Object.assign(perfil,{modo:"otra",origenTequio:p.zona,zona:p.zona,cctzona:zt.cctSupervision||"",supervisor:zt.supervisor||"",subsis:zt.estatal?"SEBS":"ISEP",
+      subsistema:zt.estatal?"Estatal":"Federalizado",nivel:zt.nivel||"Primaria",instLogo:zt.estatal?"img/se.png":"img/isep.png"});
+    if(nueva||!perfil.cct){const e=p.cct?(zt.escuelas||[]).find(x=>x.cct===p.cct):null;
+      if(e)Object.assign(perfil,{escuela:"Escuela Primaria "+e.nombre,cct:e.cct,municipio:e.mun,localidad:e.loc,domicilio:e.dom,director:e.dir,turno:e.turno||perfil.turno||""});
+      else if(nueva)["escuela","cct","municipio","localidad","domicilio","director"].forEach(k=>perfil[k]="")}
+    if(p.nombre&&!perfil.minombre)perfil.minombre=p.nombre;
+    if(!perfil.micargo)perfil.micargo=p.rol==="director"?"Director(a)":p.rol==="atp"?"Asesor(a) Técnico Pedagógico":"Supervisor Escolar";
+    INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);
+    // las listas de escuelas se arman al abrir la página: si aún no son de esta zona, se recarga una sola vez
+    if(ZONA_NUM!==p.zona){let r="";try{r=sessionStorage.getItem("tlm-zona-recarga")||""}catch(e){}
+      if(r!==p.zona){try{sessionStorage.setItem("tlm-zona-recarga",p.zona)}catch(e){}location.reload();return true}}
+    return true}
+  if(!perfil.modo&&p.zona==="050"){perfil.modo="050";perfil.zona="050";perfil.subsis="ISEP";perfil.nivel="Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";
+    const e=p.cct&&typeof ESCUELAS_050!=="undefined"?ESCUELAS_050.find(x=>x[1]===p.cct):null;
+    if(e){const[n,cct,mun,loc,dom,dir]=e;Object.assign(perfil,{escuela:"Escuela Primaria "+n,cct,municipio:mun,localidad:loc,domicilio:dom,director:dir})}
+    if(p.nombre&&!perfil.minombre)perfil.minombre=p.nombre;
+    if(!perfil.micargo)perfil.micargo=p.rol==="director"?"Director(a)":p.rol==="atp"?"Asesor(a) Técnico Pedagógico":"Supervisor Escolar";
+    store.set("ppie-perfil",perfil)}
+  return true}
+function supZona(){
+  if(ZONA_TQ){const t=ZONA_TQ,ns=`${t.nivel||"Primaria"} ${t.sostenimiento||(t.estatal?"Estatal":"Federalizada")}`;
+    return{num:t.numero,inst:t.estatal?"img/se.png":"img/isep.png",instAlt:t.estatal?"Secretaría de Educación":"ISEP",logo:t.logo||"",nivelSost:ns,
+      linea:[ns,t.cctSupervision&&"C.C.T. "+t.cctSupervision,[t.sede,t.municipioSede].filter(Boolean).join(", ")+", B.C."].filter(Boolean).join(" · "),
+      sup:t.supervisor||"",cargo:t.cargoSupervisor||"Supervisor Escolar"}}
+  if(perfil.modo==="otra"&&perfil.zona&&perfil.zona!=="050"){const sebs=perfil.subsis==="SEBS",ns="Primaria "+(sebs?"Estatal":"Federalizada");
+    return{num:perfil.zona,inst:sebs?"img/se.png":"img/isep.png",instAlt:sebs?"Secretaría de Educación":"ISEP",logo:"",nivelSost:ns,
+      linea:[ns,perfil.cctzona&&"C.C.T. "+perfil.cctzona].filter(Boolean).join(" · "),sup:perfil.supervisor||"",cargo:"Supervisor Escolar"}}
+  return{num:"050",inst:"img/isep.png",instAlt:"ISEP",logo:"img/zona050.png",nivelSost:"Primaria Federalizada",linea:"Primaria Federalizada · C.C.T. 02FIZ0094X · Camalú, San Quintín, B.C.",sup:"Mtro. Carlos Gabriel Ortega Gutiérrez",cargo:"Supervisor Escolar"}}
+function regresoTequio(){let u="";try{u=sessionStorage.getItem("tlm-regreso")||""}catch(e){}
+  if(!/\/tequio\//.test(u)||document.getElementById("tlm-regreso"))return;
+  const a=document.createElement("a");a.id="tlm-regreso";a.href=u;a.className="tlm-regreso";a.innerHTML="← Regresar a Tequio";document.body.prepend(a)}
 function bloqueoView(){S.view="bloqueo";setBar("");const e=ACC_YO,st=e?accEstado(e,ACC.generacion):"no";
   app.innerHTML=`<header class="band brand"><div class="band-in tlm">${TLM("oscuro")}
    <div><p class="band-k">Supervisión Escolar Zona 050 · ISEP</p><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div></header>
@@ -3916,7 +3979,7 @@ const INV_CAP={resguardo:26,transferencia:28,alta:30,baja_obs:30,baja_robo:30,no
 const INV_KEY="ppie-inventario";let INV=null,INV_GEO=null,INV_TPL=null;
 const invT=()=>INV_T.find(t=>t.k===INV.tipo)||INV_T[0];
 const invItem=()=>({inv:"",desc:"",cant:"",monto:"",sit:""});
-function invCentro(i){const c=CENTROS[i];return{sel:String(i),nombre:c.nombre,clave:c.cct,zona:"050",dom:[c.dir,c.cp&&"C.P. "+c.cp,c.mun,"B.C."].filter(Boolean).join(", "),resp:c.resp,cargo:c.cargo,rfc:""}}
+function invCentro(i){const c=CENTROS[i];return{sel:String(i),nombre:c.nombre,clave:c.cct,zona:ZONA_NUM,dom:[c.dir,c.cp&&"C.P. "+c.cp,c.mun,"B.C."].filter(Boolean).join(", "),resp:c.resp,cargo:c.cargo,rfc:""}}
 function invCentroVacio(){return{sel:"otra",nombre:"",clave:"",zona:"",dom:"",resp:"",cargo:"",rfc:""}}
 function invNuevo(){const i=CENTROS.findIndex(c=>c.cct===perfil.cct);
   return{tipo:"resguardo",fecha:today(),c:i>=0?invCentro(i):invCentroVacio(),r:invCentroVacio(),resguardante:yoNombre(),rfc:yoRfc(),forma:"",items:[invItem(),invItem(),invItem()]}}
@@ -4008,7 +4071,7 @@ const cpComite=(nombre,fijo)=>({nombre,fijo:fijo||"",on:true,coord:cpPersona(),i
 const cpMiembro=()=>({cargo:"",calidad:"",curp:"",nom:"",ap1:"",ap2:"",genero:"",escol:"",correo:"",tel:"",hnom:"",hap1:"",hap2:"",hgrado:""});
 const cpAB=()=>({fecha:today(),horaIni:"",horaFin:"",bajaTipo:"",bajas:[0,1,2,3].map(()=>({n:"",rep:"",fecha:""})),motivos:"",altaTipo:"",altas:[0,1,2,3].map(()=>({n:"",rep:"",tel:"",curp:""})),firmas:[0,1,2,3,4].map(()=>({n:"",cargo:""})),supervisor:SUP_NOMBRE});
 function cpCiclo(){const d=new Date(),y=d.getFullYear();return d.getMonth()>=7?`${y}-${y+1}`:`${y-1}-${y}`}
-function cpEscDe(i){const e=ESCUELAS_050[i],c=CENTROS[i];return{sel:String(i),nombre:"Escuela Primaria "+e[0],cct:e[1],nivel:"Primaria",subsistema:"Federalizado",zona:"050",sector:"",turno:"",mun:e[2],loc:e[3],dom:e[4],tel:"",correo:"",director:c.resp,padres:"",alumnos:""}}
+function cpEscDe(i){const e=ESCUELAS_050[i],c=CENTROS[i];return{sel:String(i),nombre:"Escuela Primaria "+e[0],cct:e[1],nivel:"Primaria",subsistema:INST_SEBS()?"Estatal":"Federalizado",zona:ZONA_NUM,sector:"",turno:"",mun:e[2],loc:e[3],dom:e[4],tel:"",correo:"",director:c.resp,padres:"",alumnos:""}}
 function cpEscVacia(){return{sel:"otra",nombre:"",cct:"",nivel:"Primaria",subsistema:"",zona:"",sector:"",turno:"",mun:"",loc:"",dom:"",tel:"",correo:"",director:"",padres:"",alumnos:""}}
 function cpNuevo(){const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
   return{ver:2026,doc:"conv",ciclo:cpCiclo(),esc:i>=0?cpEscDe(i):cpEscVacia(),pres:{nom:"",ap1:"",ap2:""},
@@ -4490,7 +4553,7 @@ function cteModelo(){const C=cteCur();const pres=new Set(C.presentes);
 async function ctePDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
   try{await fonts();const M=cteModelo();const doc=await PDFLib.PDFDocument.create();const F=await doc.embedFont(PDFLib.StandardFonts.Helvetica),FB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
     const{rgb}=PDFLib,ink=rgb(.1,.13,.19),azul=rgb(.07,.227,.42),gray=rgb(.38,.42,.5),soft=rgb(.93,.95,.98),line=rgb(.78,.81,.86);
-    const W=612,Hh=792,MG=50,AW=W-MG*2;let pg,y;const inst=await embedInst(doc);let sch=await embedLogo(doc);if(!sch){try{sch=await doc.embedPng(await(await fetch("img/zona050.png")).arrayBuffer())}catch(e){}}
+    const W=612,Hh=792,MG=50,AW=W-MG*2;let pg,y;const inst=await embedInst(doc);let sch=await embedLogo(doc);if(!sch){sch=await embedZonaLogo(doc)}
     const wrap=(t,f,s,w)=>{const o=[];for(const para of clean(t).split("\n")){if(!para.trim()){o.push("");continue}let ln="";for(const wd of para.split(/\s+/)){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te}if(ln)o.push(ln)}return o};
     const nueva=()=>{pg=doc.addPage([W,Hh]);y=Hh-MG;const bh=62;pg.drawRectangle({x:0,y:Hh-bh,width:W,height:bh,color:azul});const sz=44,by=Hh-bh+(bh-sz)/2;let lx=MG;
       const caja=(img,x)=>{pg.drawRectangle({x,y:by,width:sz,height:sz,color:rgb(1,1,1)});const d=img.scaleToFit(sz-6,sz-6);pg.drawImage(img,{x:x+3+(sz-6-d.width)/2,y:by+3+(sz-6-d.height)/2,width:d.width,height:d.height})};
@@ -4781,13 +4844,13 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <p style="margin:0 0 10px">Su propósito es simplificar la elaboración y generación de los formatos de uso cotidiano, a fin de contribuir a una gestión escolar más ágil y a una mejor práctica profesional.</p>
     <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través de los correos ${CONTACTO}.</p>
     <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
-    <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><p class="firma-nom">Mtro. Carlos Gabriel Ortega Gutiérrez</p><span class="firma-raya" aria-hidden="true"></span><p class="firma-cargo">Supervisor Escolar · Zona 050</p></div></section>
+    <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><p class="firma-nom">${esc(ZONA_TQ?(ZONA_TQ.supervisor||""):"Mtro. Carlos Gabriel Ortega Gutiérrez")}</p><span class="firma-raya" aria-hidden="true"></span><p class="firma-cargo">${esc(ZONA_TQ?(ZONA_TQ.cargoSupervisor||"Supervisor Escolar")+" · Zona "+ZONA_NUM:"Supervisor Escolar · Zona 050")}</p></div></section>
    ${TLM_SIGNIF}
    <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
    <a class="btn ghost tour-btn" href="tlami.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">${EI.spark}Conozca a Tlami, su acompañante</a>
    <section class="card"><h3>Para comenzar</h3>
     <p class="help">Seleccione la opción que corresponda a su caso.</p>
-    <div class="acts"><button class="btn primary act" id="su050">Zona Escolar No. 050</button><button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
+    <div class="acts">${ZONA_TQ?`<button class="btn primary act" id="suTq">Zona Escolar No. ${esc(ZONA_NUM)}</button>`:`<button class="btn primary act" id="su050">Zona Escolar No. 050</button>`}<button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
    ${DEMO?"":dirCargaCard()}
    <section class="card demo-inv"><h3>¿Quiere conocerla primero?</h3>
     <p class="help">Recorra Tlamatini con una escuela de ejemplo ya capturada y vea todo lo que puede hacer. Lo que haga en la demostración no se guarda ni toca sus datos.</p>
@@ -4796,7 +4859,8 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
    <p class="foot"><span class="muted">v2026-10-14.5</span></p>`;
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
-  document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);if(perfil.escuela&&perfil.minombre)home();else perfilView()};
+  if(document.getElementById("suTq"))document.getElementById("suTq").onclick=()=>{if(perfil.escuela&&perfil.minombre)home();else setupOtraView(true)};
+  if(document.getElementById("su050"))document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);if(perfil.escuela&&perfil.minombre)home();else perfilView()};
   document.getElementById("suOtra").onclick=()=>setupSubsisView();
   document.getElementById("suDemo").onclick=demoEntrar;
   window.scrollTo(0,0)}
@@ -4999,7 +5063,7 @@ if(DEMO&&!store.get(CP_KEY,null)){try{CP=cpNuevo();CP.esc=Object.assign(cpEscVac
   CP.pres={nom:"Rosa María",ap1:"Ejemplo",ap2:"Gómez"};const P=(n,c,t)=>({n,c,t});CP.comites[0].coord=P("Rosa María Ejemplo Gómez","rosa.ejemplo@correo.mx","616 555 0102");CP.comites[1].coord=P(perfil.director,"","616 555 0000");CP.comites[2].coord=P("Martha Ejemplo Soto","","616 555 0105");
   Object.assign(CP.conv,{turno:"M",fecha:"2026-10-20",hora:"12:30"});cpSave()}catch(e){console.warn("demo cp",e)}}
 tlmRed();
-if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK()));
+if(!window.PDFLib){app.innerHTML=`<div class="alert"><b>No se pudo cargar la aplicación.</b> Revise su conexión a internet y vuelva a abrir el enlace.</div>`}else Promise.race([Promise.all([cargarSeguro(),cargarCal()]),new Promise(r=>setTimeout(r,2500))]).finally(()=>{try{paseTequio();regresoTequio()}catch(e){}accesoGate().then(ok=>ok?inicioOK():bloqueoView(),()=>inicioOK())});
 </script>
 <script>
 /* ---------- Directorio de la comunidad escolar: escuelas de la zona → maestros → alumnos ----------

@@ -76,6 +76,18 @@ main{padding:20px 0 40px}
 .boton.sec{background:var(--papel);color:var(--indigo);border-color:var(--borde)}
 .boton.sec:hover{background:var(--arena-2)}
 .boton.terra{background:var(--terra);border-color:var(--terra)}
+.tlm-cab{display:flex;gap:14px;align-items:center;margin:6px 0 14px}
+.tlm-cab .tlm-logo{width:64px;height:64px;flex:none}
+.tlm-cab h1{margin:0;line-height:1.1}
+.tlm-k{text-transform:uppercase;letter-spacing:.08em;color:var(--terra-d);font-weight:700}
+.tlm-l{color:var(--gris);font-style:italic}
+.tlm-intro{border-top:3px solid var(--terra);padding:16px 18px}
+.tlm-fam{font-size:18px;margin:20px 0 8px}
+.tlm-rejilla{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.tlm-sec{position:relative;text-align:left;cursor:pointer;font:inherit;color:inherit;padding:14px 38px 14px 16px;display:flex;flex-direction:column;gap:3px;border:1px solid var(--borde)}
+.tlm-sec:hover,.tlm-sec:focus-visible{border-color:var(--terra)}
+.tlm-sec span{color:var(--gris);font-size:14px;line-height:1.35}
+.tlm-sec .tlm-chev{position:absolute;right:12px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--terra)}
 .boton.terra:hover{background:var(--terra-d)}
 .boton.peligro{background:var(--papel);color:var(--alerta);border-color:#E9B8B3}
 .boton.wa{background:#1F8F55;border-color:#1F8F55}
@@ -627,6 +639,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-eia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l2 2 4-4M9 16h6"/></symbol>
   <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-pend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-.9 5.6 3.9 3.9H6l3.9-3.9z"/><path d="M12 13v7.5"/></symbol>
+  <symbol id="i-tlm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h3v-3h3v-3h3v-3h2a5 5 0 0 0 0-10 3.5 3.5 0 0 0 0 7 2 2 0 0 0 0-4"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -960,19 +973,23 @@ function portada(mensaje) {
 // Pestañas, sin los módulos que la zona apagó (agenda, directorio y enlaces siempre están)
 function pestanas() {
   const on = ZONA.modulos;
-  return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0]));
+  return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0])
+      || (t[0] === 'herramientas' && String(ZONA.numero) === '050'))
+    .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['herramientas', 'Herramientas', 'i-tlm']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
+  l.push(['herramientas', 'Herramientas', 'i-tlm']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
 function pintar() {
   const tabs = pestanas();
+  if (tabs.some(t => t[0] === 'herramientas')) tlmPase();
   if (!tabs.find(t => t[0] === vista.tab)) vista.tab = 'agenda';
   $('#app').innerHTML = `
   ${cfg.invitado ? `<div class="banda-demo">Invitación de consulta · datos de ejemplo · puede explorar todo, pero no modificar nada · disponible hasta ${esc(INVITACIONES[cfg.invitado].texto)}</div>` : cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
@@ -984,11 +1001,11 @@ function pintar() {
   ${ZONA.aviso && ZONA.aviso.texto ? `<div class="aviso-caja" style="max-width:1100px;margin:12px auto 0"><b>Aviso del administrador de Tequio:</b> ${esc(ZONA.aviso.texto)}</div>` : ''}
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
+  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios', herramientas: 'Tlamatini' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos })[vista.tab]();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
 // Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
@@ -996,6 +1013,76 @@ function insigniaPest(tab) {
   if (tab !== 'pendientes' || !Array.isArray(S.pen)) return '';
   const n = esAdmin() ? penNuevos().length : S.pen.filter(p => p.estado !== 'atendido' && p.prioridad === 'urgente').length;
   return n ? ` <span class="pest-n" aria-label="${n} ${esAdmin() ? 'sin ver' : 'urgentes'}">${n}</span>` : '';
+}
+
+/* ---------------- Vista: Herramientas (Tlamatini) ----------------
+   Tlamatini es la app hermana para generar documentos. Vive en el mismo sitio, así que comparte el
+   almacenamiento del dispositivo: Tequio deja un «pase» que Tlamatini acepta en lugar de su enlace de acceso
+   (vale 7 días y se renueva cada vez que se entra a Tequio) y, la primera vez, sus datos de escuela. */
+const TLM_URL = '../formatos-ppie/index.html';
+const TLM_FAMILIAS = [
+  ['Mi escuela y mis alumnos', [['misalumnos', 'Mis alumnos y directorio', 'Alumnos, tutores, emergencias y maestros de la escuela'], ['estadistica', 'Estadística y control escolar', 'Asistencia mensual y edades al 1 de septiembre'], ['familias', 'Comunicación con familias', 'Recados, citatorios, avisos y autorizaciones'], ['reconocimientos', 'Reconocimientos y diplomas', 'Diplomas para los alumnos, uno por uno o toda la lista']]],
+  ['Pedagógico', [['pedagogico', 'Pedagógico', 'Lectura de la realidad, PMCE, programa analítico y planeación'], ['eia', 'Ejercicios Integradores (EIA)', 'Qué son y materiales de las fases 3, 4 y 5']]],
+  ['Dirección y gestión', [['direccion', 'Dirección', 'Libros de firmas y de visitas, minuta de CTE, inventarios y pases de salida'], ['ppie', 'Protección escolar (PPIE)', 'Anexos A al I, idénticos al formato oficial'], ['consejo', 'Consejo de Participación Escolar', 'Convocatoria, minuta, comités y plan de trabajo']]],
+  ['Trámites del personal', [['laboral', 'Laboral', 'Licencias, correo @bcedu.mx y CURP'], ['salario', 'Salario y declaración patrimonial', 'Ingreso anual neto desde los talones de pago'], ['becas', 'Becas', 'Formato Único de Beca de la Secretaría de Educación']]],
+  ['Consulta', [['calendario', 'Calendario escolar oficial', 'El calendario de Baja California que rige el ciclo'], ['normas', 'Normatividad y libros de texto', 'Leyes, acuerdos, protocolos y libros de texto'], ['seguro', 'Seguro escolar', 'Teléfonos para reportar, aviso de accidente y red de clínicas']]]
+];
+function tlmEnPrueba() { return !!(cfg && (cfg.demo || cfg.invitado || cfg.lectura)); }
+function tlmPase() {
+  if (tlmEnPrueba() || !S || !S.yo || !['admin', 'atp', 'director'].includes(S.yo.rol)) return;
+  const v = new Date(); v.setDate(v.getDate() + 7);
+  const pase = { v: 1, rol: S.yo.rol, nombre: S.yo.nombre || '', cct: miCct(), escuela: miCct() ? nombreEscuela(miCct()) : '',
+    zona: String(ZONA.numero || ''), estatal: !!ZONA.estatal, vence: v.toISOString().slice(0, 10) };
+  try { localStorage.setItem('tequio-pase', JSON.stringify(pase)); } catch (e) {}
+  tlmZona();
+}
+// Datos de la zona para Tlamatini (escuelas, supervisor, logos), para que sus documentos salgan con la zona correcta
+let TLM_ZONA_HECHA = '';
+async function tlmZona() {
+  const z = ZONA;
+  const escuelas = (S.dir || []).filter(c => c.tipo === 'director' && c.activo !== false && c.cct).map(c => ({
+    nombre: String(c.escuela || '').replace(/^(escuela\s+primaria|esc\.?\s*prim\.?)\s+/i, ''), cct: c.cct, mun: c.municipio || '',
+    loc: c.localidad || '', dom: c.domicilio || '', dir: c.nombre || '', cargo: c.cargo || '', turno: c.turno || '' }));
+  const base = { numero: String(z.numero), nivel: z.nivel, sostenimiento: z.sostenimiento, estatal: !!z.estatal, sede: z.sede || '',
+    municipioSede: z.municipioSede || '', codigoPostal: z.codigoPostal || '', telefono: z.telefono || '', correo: z.correoSupervision || '',
+    supervisor: z.supervisor || '', cargoSupervisor: z.cargoSupervisor || 'Supervisor Escolar', cctSupervision: z.cctSupervision || '',
+    lemaZona: z.lemaZona || '', escuelas };
+  const huella = JSON.stringify(base) + '|' + String(z.logoZona || '').length;
+  if (huella === TLM_ZONA_HECHA) return;
+  let logo = '';
+  try {
+    if (/^data:image\//.test(z.logoZona) && z.logoZona.length > 300) logo = z.logoZona;
+    else if (z.logoZona && !/^data:/.test(z.logoZona)) {
+      const b = await (await fetch(z.logoZona)).blob();
+      logo = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result)); fr.onerror = () => ok(''); fr.readAsDataURL(b); });
+    }
+  } catch (e) { logo = ''; }
+  try { localStorage.setItem('tequio-zona', JSON.stringify({ ...base, logo, actualizado: new Date().toISOString() })); TLM_ZONA_HECHA = huella; } catch (e) {}
+}
+function irTlamatini(sec) {
+  try { sessionStorage.setItem('tlm-regreso', location.href); } catch (e) {}
+  if (tlmEnPrueba()) { location.href = TLM_URL + '#demo'; return; }
+  tlmPase();
+  location.href = TLM_URL + (sec ? '#ir=' + sec : '');
+}
+function vHerramientas() {
+  const prueba = tlmEnPrueba();
+  const quien = esDirector() ? `Se abre con los datos de <b>${esc(nombreEscuela(miCct()))}</b> la primera vez; después puede ajustarlos en «Mi escuela y mis datos».`
+    : 'Como Mesa Técnica, puede elegir la escuela dentro de cada formato o capturar sus propios datos.';
+  $('#vista').innerHTML = `
+  <div class="tlm-cab">
+    <svg class="tlm-logo" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="94" fill="#F4E1C1"/><g transform="translate(10 -4)"><g fill="#C2603A"><circle cx="109.3" cy="24.8" r="3.4"/><circle cx="130.9" cy="25.7" r="3"/><circle cx="150.1" cy="35.7" r="2.6"/><circle cx="163.3" cy="52.9" r="2.2"/><circle cx="168" cy="74" r="1.8"/></g><path d="M26 170 H50 V150 H74 V130 H96 V110 H118 A36 36 0 0 0 118 38 A26 26 0 0 0 118 90 A18 18 0 0 0 118 54 A10 10 0 0 0 118 74" fill="none" stroke="#24427A" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="118" cy="63.5" r="4.6" fill="#E8A33D"/></g></svg>
+    <div><div class="peq tlm-k">Herramientas de</div><h1>Tlamatini</h1><div class="tlm-l">Un camino para la labor docente</div></div>
+  </div>
+  <div class="tarjeta tlm-intro">
+    <p style="margin:0 0 8px">Tlamatini es la app hermana de Tequio para <b>generar los documentos</b> de la escuela: formatos oficiales, libros, planeación, recados y más. Tequio da seguimiento; Tlamatini produce.</p>
+    <p class="peq mudo" style="margin:0">${prueba ? 'Está en una demostración: Tlamatini también se abrirá en modo de demostración, con una escuela de ejemplo.' : quien + ' No necesita otro enlace de acceso. Lo que genere se guarda solo en este dispositivo.'}</p>
+    <div class="botones" style="margin-top:12px"><button class="boton terra" data-tlm="">${ico('i-tlm')}Abrir Tlamatini</button>${prueba ? '' : `<button class="boton sec" data-tlm="misdocs">${ico('i-carpeta')}Mis documentos</button>`}</div>
+  </div>
+  ${TLM_FAMILIAS.map(([fam, secs]) => `<h2 class="tlm-fam">${esc(fam)}</h2>
+    <div class="tlm-rejilla">${secs.map(([id, t, d]) => `<button class="tarjeta tlm-sec" data-tlm="${id}"><b>${esc(t)}</b><span>${esc(d)}</span>${ico('i-der', 'tlm-chev')}</button>`).join('')}</div>`).join('')}
+  <p class="peq mudo" style="margin-top:18px">Para volver, use la franja «Regresar a Tequio» en la parte de arriba de Tlamatini.</p>`;
+  $$('[data-tlm]').forEach(b => b.onclick = () => irTlamatini(b.dataset.tlm));
 }
 
 /* ---------------- Vista: Agenda ---------------- */
