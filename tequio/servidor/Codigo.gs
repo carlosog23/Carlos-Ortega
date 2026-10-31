@@ -35,7 +35,7 @@ const URL_APP = 'PEGUE_AQUI_LA_URL_DE_LA_APLICACION_WEB';
 // ▲▲─────────────────────────────────────────────────────────────────────────────▲▲
 
 // ▼▼ Registro central de Tequio (cuenta tequio023@gmail.com). Lo pone el administrador; no lo cambie. ▼▼
-const REGISTRO_URL = '';
+const REGISTRO_URL = 'https://script.google.com/macros/s/AKfycby5gd_mRHBrIBiybcvcqtOiq0nftQzdv6EJbRFyX3T8SYGT_9fxs1YPf9c9H3qQauFX/exec';
 // ▲▲─────────────────────────────────────────────────────────────────────────────▲▲
 
 const TZ = 'America/Tijuana';
