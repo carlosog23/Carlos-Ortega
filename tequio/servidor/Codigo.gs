@@ -167,7 +167,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
-const VERSION = 32;
+const VERSION = 33;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -446,7 +446,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -1831,6 +1831,7 @@ const ACCIONES = {
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(),
       municipio: destinosOficio_().indexOf(d.municipio) >= 0 ? d.municipio : 'Otro',
       destNombre: String(d.destNombre || '').slice(0, 200), destCargo: String(d.destCargo || '').slice(0, 300), destInst: String(d.destInst || '').slice(0, 300), destCorreo: String(d.destCorreo || '').slice(0, 500), recibidoId: String(d.recibidoId || '').slice(0, 100), recibidoNombre: String(d.recibidoNombre || '').slice(0, 200),
+      anexos: (Array.isArray(d.anexos) ? d.anexos : []).slice(0, 10).map(a => ({ id: String(a.id || '').slice(0, 100), nombre: String(a.nombre || '').slice(0, 200), tipo: String(a.tipo || '').slice(0, 100), tam: +a.tam || 0 })).filter(a => a.id),
       escuelas: (d.escuelas || []).slice(0, 20), referencia: String(d.referencia || '').slice(0, 300), asunto: String(d.asunto || '').slice(0, 400),
       cuerpo: String(d.cuerpo || '').slice(0, 20000), ccp: String(d.ccp || '').slice(0, 2000),
       firma: yo.rol === 'admin' && !!d.firma, sello: yo.rol === 'admin' && !!d.sello, escala: String(d.escala || '1'),
@@ -1876,6 +1877,21 @@ const ACCIONES = {
 
   // Lee con la IA un oficio que recibió la Supervisión (de quien sea: director, docente, padre de familia, autoridad, dependencia...),
   // lo archiva y propone la respuesta al remitente (modo «responder») o el oficio de seguimiento a la autoridad que corresponde (modo «turnar»)
+  // Sube un anexo (documento o foto) para un oficio; se guarda en Oficios Tequio → Anexos → año
+  subirAnexoOficio: (yo, d) => {
+    soloMesa_(yo);
+    const tipo = String(d.tipo || '');
+    const ok = /^(application\/pdf|image\/(png|jpeg|webp|heic|heif)|application\/msword|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|application\/vnd\.ms-excel)$/.test(tipo);
+    if (!ok) throw new Error('El anexo debe ser PDF, foto (JPG o PNG), Word, Excel o PowerPoint.');
+    if (!d.archivo) throw new Error('Falta el archivo.');
+    const datos = Utilities.base64Decode(String(d.archivo));
+    if (datos.length > 15 * 1024 * 1024) throw new Error('El anexo pesa más de 15 MB. Redúzcalo e intente de nuevo.');
+    const nombre = String(d.nombre || 'Anexo').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 150);
+    const f = carpetaPorNombre_(carpetaPorNombre_(carpetaOficios_(), 'Anexos'), hoy_().slice(0, 4)).createFile(Utilities.newBlob(datos, tipo, hoy_() + ' · ' + nombre));
+    f.setDescription('Anexo de oficio, subido a Tequio por ' + yo.nombre);
+    return { anexo: { id: f.getId(), nombre: nombre, tipo: tipo, tam: datos.length } };
+  },
+
   analizarOficioRecibido: (yo, d) => {
     soloMesa_(yo);
     const tipo = String(d.tipo || 'application/pdf');
@@ -1918,6 +1934,9 @@ const ACCIONES = {
     const pdf = DriveApp.getFileById(o.pdfId).getBlob().setName(o.folio.replace(/\//g, '-') + '.pdf');
     const adjuntos = [pdf];
     if (d.adjuntarRecibido && o.recibidoId) { try { const r = DriveApp.getFileById(o.recibidoId); adjuntos.push(r.getBlob().setName('Anexo · ' + r.getName())); } catch (e) {} }
+    // Anexos del oficio (documentos o fotos que se subieron en el editor)
+    if (d.adjuntarAnexos !== false) (o.anexos || []).forEach(a => { try { adjuntos.push(DriveApp.getFileById(a.id).getBlob().setName(a.nombre || 'Anexo')); } catch (e) {} });
+    if (adjuntos.reduce((t, b) => t + b.getBytes().length, 0) > 24 * 1024 * 1024) throw new Error('El oficio y sus anexos pesan más de 24 MB, el límite del correo. Quite algún anexo o redúzcalo.');
     const asunto = String(d.asuntoCorreo || ('Oficio ' + o.folio + ' · ' + o.asunto)).slice(0, 250);
     const cuerpo = String(d.mensaje || '').trim() || ('Por este medio le hago llegar el oficio ' + o.folio + '. Asunto: ' + o.asunto + '.');
     const html = '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +

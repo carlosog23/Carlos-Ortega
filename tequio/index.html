@@ -11367,7 +11367,7 @@ function vOficios() {
     <div class="fecha"><b>${esc(String(o.numero).padStart(3, '0'))}</b><span>${esc(o.anio)}</span></div>
     <div class="cuerpo"><div class="t">${esc(o.asunto)}</div>
       <div class="m"><span>${fechaCorta(o.fecha)}</span><span>· ${esc(o.destNombre || 'Sin destinatario')}</span></div>
-      <div class="chips"><span class="chip">${esc(o.municipio)}</span>${o.pdfId ? '<span class="chip ok">PDF en Drive</span>' : ''}${(o.envios || []).length ? `<span class="chip indigo">Enviado ${fechaCorta(o.envios[o.envios.length - 1].f.slice(0, 10))}</span>` : ''}${o.firma ? '<span class="chip">Firma digital</span>' : ''}</div></div>
+      <div class="chips"><span class="chip">${esc(o.municipio)}</span>${o.pdfId ? '<span class="chip ok">PDF en Drive</span>' : ''}${(o.envios || []).length ? `<span class="chip indigo">Enviado ${fechaCorta(o.envios[o.envios.length - 1].f.slice(0, 10))}</span>` : ''}${o.firma ? '<span class="chip">Firma digital</span>' : ''}${(o.anexos || []).length ? `<span class="chip">${o.anexos.length} anexo${o.anexos.length > 1 ? 's' : ''}</span>` : ''}</div></div>
   </button>`).join('')}</div></div>` : `<div class="tarjeta vacio">${q ? 'No hay oficios que coincidan con la búsqueda.' : 'Aún no hay oficios hechos en Tequio. Pulse «Nuevo oficio».'}</div>`}`;
   $('#b-ofi-nuevo').onclick = () => { vista.ofiEdit = 'nuevo'; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); };
   $('#b-ofi-recibido').onclick = subirOficioRecibido;
@@ -11377,6 +11377,38 @@ function vOficios() {
   if ($('#b-ofi-num')) $('#b-ofi-num').onclick = formNumeroOficio;
   $('#f-ofi').oninput = e => { vista.ofiBuscar = e.target.value; const pos = e.target.selectionStart; vOficios(); const i = $('#f-ofi'); i.focus(); i.setSelectionRange(pos, pos); };
   $$('[data-ofi]').forEach(b => b.onclick = () => { vista.ofiEdit = b.dataset.ofi; vista.ofiBorrador = null; vOficios(); window.scrollTo(0, 0); });
+}
+
+/* ---- Anexos de los oficios (documentos o fotos que viajan con el oficio por correo) ---- */
+const ANEXO_TIPOS = 'application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
+const ANEXO_MIME = { doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic' };
+const tamTxt = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+function anexosOficioHTML(o) {
+  if (S.version && S.version < 33) return `<div class="campo"><span class="et">Anexos</span><div class="ayuda">Para adjuntar documentos o fotos al oficio, primero actualice el servidor a la versión 33${esAdmin() ? ' (<a href="instalacion.html#actualizar">«Actualizar el servidor»</a>)' : ' (avise a la Supervisión)'}.</div></div>`;
+  const ax = o.anexos || [];
+  return `<div class="campo"><span class="et">Anexos <span class="mudo" style="font-weight:400">(opcional · documentos o fotos que van con el oficio)</span></span>
+    ${ax.length ? `<div class="lista-anexos" style="display:flex;flex-direction:column;gap:6px;margin:4px 0 8px">${ax.map((a, i) => `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--borde, #ddd);border-radius:10px;padding:6px 10px">
+      <span style="width:18px;height:18px;flex:none;display:inline-flex">${ico('i-carpeta')}</span><a target="_blank" rel="noopener" href="https://drive.google.com/file/d/${esc(a.id)}/view" style="flex:1;min-width:140px;word-break:break-word">${esc(a.nombre)}</a><span class="mudo" style="font-size:13px">${tamTxt(a.tam || 0)}</span>
+      <button type="button" class="boton sec chico" data-anx-del="${i}">Quitar</button></div>`).join('')}</div>` : ''}
+    ${ax.length < 10 ? `<label class="boton sec chico" style="cursor:pointer">${ico('i-mas')}Agregar anexo<input id="o-anx" type="file" multiple accept="${ANEXO_TIPOS}" style="display:none"></label>` : ''}
+    <div class="ayuda">PDF, fotos, Word, Excel o PowerPoint, hasta 15 MB cada uno (máximo 10). Se guardan en el Drive (Oficios Tequio → Anexos) y se adjuntan al enviar por correo. Por WhatsApp solo va el PDF del oficio.</div></div>`;
+}
+async function subirAnexosOficio(o, archivos, despues) {
+  if (!archivos.length) return;
+  o.anexos = o.anexos || [];
+  if (o.anexos.length + archivos.length > 10) return aviso('Puede adjuntar hasta 10 anexos por oficio.', 'mal');
+  const ok = await conCarga(async () => {
+    for (const f of archivos) {
+      if (f.size > 15 * 1024 * 1024) throw new Error('«' + f.name + '» pesa más de 15 MB. Redúzcalo e intente de nuevo.');
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      const tipo = f.type || ANEXO_MIME[ext] || '';
+      const r = await api('subirAnexoOficio', { archivo: await blobAB64(f), tipo, nombre: f.name });
+      o.anexos.push(r.anexo);
+    }
+    return true;
+  });
+  despues();
+  if (ok) aviso(archivos.length > 1 ? 'Anexos agregados.' : 'Anexo agregado.' + (o.folio ? ' Pulse «Guardar cambios» para que quede ligado al oficio.' : ''), 'ok', 5000);
 }
 
 /* ---- Editor de oficio con vista previa ---- */
@@ -11419,6 +11451,7 @@ function vEditorOficio() {
         ${cfgO.ia ? '<div class="ayuda">La IA propone el texto; usted lo revisa y corrige antes de guardar. No incluya datos personales delicados.</div>' : `<div class="ayuda">${esAdmin() ? 'Active la IA en Oficios → Configuración (clave gratuita de Gemini).' : 'La Supervisión aún no activa la redacción con IA.'}</div>`}</div>
       <div class="campo"><label for="o-cu">Texto del oficio</label><textarea id="o-cu" style="min-height:260px" placeholder="Por medio del presente, ...&#10;&#10;Deje una línea en blanco entre párrafos. Para una lista, inicie cada renglón con «• ».">${esc(o.cuerpo)}</textarea></div>
       <div class="campo"><label for="o-cc">Con copia para (C.c.p.) <span class="mudo" style="font-weight:400">· uno por renglón</span></label><textarea id="o-cc" style="min-height:60px">${esc(o.ccp)}</textarea></div>
+      ${anexosOficioHTML(o)}
       ${esAdmin() ? `<div class="campo"><span class="et">Firma y sello</span>
         <label class="casilla"><input type="checkbox" id="o-fi" ${o.firma ? 'checked' : ''} ${cfgO.firma ? '' : 'disabled'}> Agregar firma digital</label>
         <label class="casilla"><input type="checkbox" id="o-se" ${o.sello ? 'checked' : ''} ${cfgO.sello ? '' : 'disabled'}> Agregar sello digital</label>
@@ -11453,7 +11486,7 @@ function vEditorOficio() {
     marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficio(vo, dis.s, rec, dis.t, dis.unaHoja)}</div>`;
     marco.style.height = (marco.querySelector('.hoja').offsetHeight * k) + 'px';
     const de = $('#o-escala'); if (de) de.textContent = dis.s < 1 ? '· ajustado a una hoja (' + Math.round(dis.s * 100) + ' %)' : dis.unaHoja ? '' : '· ocupa dos hojas';
-    const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'destCorreo', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []);
+    const est = $('#o-estado'); if (est && guardado) { const cambio = ['destNombre', 'destCargo', 'destInst', 'destCorreo', 'fecha', 'referencia', 'asunto', 'cuerpo', 'ccp', 'firma', 'sello', 'municipio'].some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')) || JSON.stringify(o.escuelas || []) !== JSON.stringify(guardado.escuelas || []) || JSON.stringify(o.anexos || []) !== JSON.stringify(guardado.anexos || []);
       est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
   };
   const programar = () => { clearTimeout(tPrev); tPrev = setTimeout(pintarPrev, 250); };
@@ -11468,6 +11501,8 @@ function vEditorOficio() {
     vEditorOficio();
   });
   $('#b-volver').onclick = () => { vista.ofiEdit = null; vista.ofiBorrador = null; vOficios(); };
+  if ($('#o-anx')) $('#o-anx').onchange = e => { leerForm(); const fs = [...e.target.files]; e.target.value = ''; subirAnexosOficio(o, fs, () => vEditorOficio()); };
+  $$('[data-anx-del]').forEach(b => b.onclick = () => { leerForm(); o.anexos = (o.anexos || []).filter((_, i) => i !== +b.dataset.anxDel); vEditorOficio(); });
   $('#o-lista').onclick = () => { leerForm(); elegirDestinatario(d => { Object.assign(o, d); vEditorOficio(); }); };
   $('#o-ia').onclick = async () => {
     leerForm();
@@ -11624,6 +11659,7 @@ function formCorreoOficio(o) {
     <div class="campo"><label for="m-as">Asunto del correo</label><input id="m-as" value="${esc('Oficio ' + o.folio + ' · ' + o.asunto)}"></div>
     <div class="campo"><label for="m-msg">Mensaje</label><textarea id="m-msg" style="min-height:160px">${esc(msg)}</textarea></div>
     ${o.recibidoId ? `<label class="casilla"><input type="checkbox" id="m-anexo" ${o.analisis && o.analisis.modo === 'responder' ? '' : 'checked'}> Adjuntar también el oficio recibido (${esc(o.recibidoNombre || 'anexo')})</label>` : ''}
+    ${(o.anexos || []).length ? `<label class="casilla"><input type="checkbox" id="m-anx" checked> Adjuntar los anexos: ${esc(o.anexos.map(a => a.nombre).join(', '))}</label>` : ''}
     <div class="ayuda">Va con el PDF adjunto y queda una copia del correo en el Drive (Oficios Tequio → Correos enviados). Quedan ${S.cuota != null ? S.cuota : '—'} envíos hoy.</div>`,
     '<button class="boton sec" id="m-no">Cancelar</button><button class="boton terra" id="m-si">Enviar</button>');
   $('#m-no').onclick = cerrarModal;
@@ -11633,7 +11669,7 @@ function formCorreoOficio(o) {
     const b = await pdfOficio(o, await recursos());
     const de = $('#m-de') ? $('#m-de').value : rem[0];
     try { if ($('#m-de')) localStorage.setItem('tequio.remitenteOficio', de); } catch (e) {}
-    const r = await api('enviarOficio', { id: o.id, de, para, adjuntarRecibido: !!($('#m-anexo') && $('#m-anexo').checked), asuntoCorreo: $('#m-as').value, mensaje: $('#m-msg').value, pdf: await blobAB64(b) });
+    const r = await api('enviarOficio', { id: o.id, de, para, adjuntarRecibido: !!($('#m-anexo') && $('#m-anexo').checked), adjuntarAnexos: !($('#m-anx') && !$('#m-anx').checked), asuntoCorreo: $('#m-as').value, mensaje: $('#m-msg').value, pdf: await blobAB64(b) });
     poner(S.ofi, r.oficio); if (typeof r.cuota === 'number') S.cuota = r.cuota;
     guardados[o.destNombre] = para; try { localStorage.setItem('tequio.correosOficio', JSON.stringify(guardados)); } catch (e) {}
     cerrarModal(); vista.ofiBorrador = null; vEditorOficio();
