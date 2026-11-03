@@ -890,6 +890,8 @@ async function cargar() {
       sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, prm: Array.isArray(r.prm) ? r.prm : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
+    // el semáforo de la carpeta CTEs (Evidencias, informes) sale del apartado CTE: se carga en segundo plano
+    if (S.evi && pestanas().some(t => t[0] === 'cte') && !S.cteD) cteCargar();
   } catch (e) {
     if (!S) portada(e.message); else aviso(esc(e.message), 'mal', 9000);
   } finally { cargando(false); }
@@ -3171,10 +3173,10 @@ const EVI_EST = {
   incompleto: { t: 'Incompleto', e: '🟡', cl: 'aviso', col: '#E0A030' },
   sin: { t: 'Sin evidencia', e: '🔴', cl: 'mal', col: '#C0453A' }
 };
-const eveDe = (cct, ruta) => { const r = (S.eve || []).find(x => x.cct === cct && normRuta(x.ruta) === normRuta(ruta)); return r && r.estado && EVI_EST[r.estado] ? r : null; };
-const eviCumple = (cct, ruta, e) => { const r = eveDe(cct, ruta); return r ? r.estado === 'cumple' : nArch(e) > 0; };
+const eveDe = (cct, ruta) => { const c = cteCol(cct, ruta); if (c) return c.rev; const r = (S.eve || []).find(x => x.cct === cct && normRuta(x.ruta) === normRuta(ruta)); return r && r.estado && EVI_EST[r.estado] ? r : null; };
+const eviCumple = (cct, ruta, e) => { const c = cteCol(cct, ruta); if (c) return c.ok; const r = eveDe(cct, ruta); return r ? r.estado === 'cumple' : nArch(e) > 0; };
 // subieron archivos después de la última revisión: conviene volver a revisar
-const eviNuevo = (cct, ruta, e) => { const r = eveDe(cct, ruta); return !!(r && e && e.ultimo && e.ultimo.slice(0, 16) > String(r.actualizado || '').slice(0, 16)); };
+const eviNuevo = (cct, ruta, e) => { if (cteCol(cct, ruta)) return false; const r = eveDe(cct, ruta); return !!(r && e && e.ultimo && e.ultimo.slice(0, 16) > String(r.actualizado || '').slice(0, 16)); };
 const chipSem = r => r ? `<span class="chip ${EVI_EST[r.estado].cl}">${EVI_EST[r.estado].e} ${EVI_EST[r.estado].t}</span>` : '';
 const leyendaSem = () => `<div class="sem-ley"><span><b style="background:#7CC59A"></b>Cumple</span><span><b style="background:#E8B04A"></b>Incompleto (con observación)</span><span><b style="background:#E59A93"></b>Sin evidencia</span><span><b style="background:var(--ok-f);border:1px solid var(--borde)"></b>Con archivos, sin revisar</span><span><b style="background:var(--arena-2);border:1px solid var(--borde)"></b>Vacía</span><span><i style="font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--indigo);border-radius:999px;padding:0 6px">nuevo</i>subieron archivos después de la revisión</span></div>`;
 const eviPuedeRevisar = () => !esDirector() && !!S.eve;
@@ -3228,10 +3230,13 @@ function vEvidencias() {
     <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· ${eviPuedeRevisar() ? 'toque una casilla para revisarla y ponerle su semáforo' : 'toque una casilla para abrir la carpeta'}</span></div>
     ${leyendaSem()}
     <div class="matriz-caja"><table class="matriz">
-      <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => `<th title="${esc(c.ruta)}"><span>${esc(c.corto)}</span></th>`).join('')}<th>Avance</th></tr></thead>
+      <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => { const sv = esColCte(c.ruta) && cteVigente(); return `<th title="${esc(c.ruta)}${sv ? ' · se valida con el apartado CTE, ' + CTE_ORD[sv].toLowerCase() + ' sesión' : ''}"><span>${esc(c.corto)}${sv ? ' · ' + sv + '.ª' : ''}</span></th>`; }).join('')}<th>Avance</th></tr></thead>
       <tbody>${dirs.map(d => { const a = avanceEvi([d.cct]); return `<tr><th class="esc-col"><button class="enlace" data-eesc="${d.cct}" style="text-decoration:none;color:var(--tinta);font-size:14px;text-align:left;white-space:normal">${esc(d.escuela)}</button>${atpDe(d.cct) && !vista.atp ? `<div class="ayuda">${esc(nombreCorto(atpDe(d.cct).nombre))}</div>` : ''}</th>
-        ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), n = nArch(e), r = e ? eveDe(d.cct, c.ruta) : null, nuevo = r && eviNuevo(d.cct, c.ruta, e);
+        ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), cc = e ? cteCol(d.cct, c.ruta) : null, n = cc ? cc.n : nArch(e), r = e ? eveDe(d.cct, c.ruta) : null, nuevo = r && eviNuevo(d.cct, c.ruta, e);
           if (!e) return '<td class="sin" title="No existe esta carpeta">—</td>';
+          if (cc) { const tc = `${d.escuela} · CTE ${CTE_ORD[cc.ses].toLowerCase()} sesión: ${cc.texto}`;
+            const dc = r ? `<b>${EVI_EST[r.estado].e} ${n}</b><span class="sem">${EVI_EST[r.estado].t}</span>` : cc.ok ? `<b>✓ ${n}</b><span>sin revisar</span>` : '<span class="falta">vacía</span>';
+            return `<td class="${r ? 'e-' + r.estado : cc.ok ? 'con' : 'vacia'}"><a href="#" data-rev="${esc(d.cct)}" data-ruta="${esc(c.ruta)}" title="${esc(tc)}">${dc}</a></td>`; }
           const tit = `${d.escuela} · ${c.corto}: ${n ? n + ' archivo' + (n === 1 ? '' : 's') + ', último ' + fechaHora(e.ultimo) : 'vacía'}${r ? ' · ' + EVI_EST[r.estado].t + (r.nota ? ': ' + r.nota : '') : ' · sin revisar'}`;
           const dentro = r ? `<b>${EVI_EST[r.estado].e} ${n}</b><span class="sem">${EVI_EST[r.estado].t}</span>${nuevo ? '<i class="nuevo">nuevo</i>' : ''}`
             : n ? `<b>✓ ${n}</b><span>${fechaCorta(e.ultimo.slice(0, 10)).replace(/ \d{4}$/, '')}</span>` : '<span class="falta">vacía</span>';
@@ -3260,6 +3265,7 @@ function vEvidencias() {
 
 /* Revisar un rubro de evidencias de una escuela y ponerle su semáforo (Supervisión y Mesa Técnica) */
 function revisarEvi(cct, ruta, alVolver) {
+  if (cteCol(cct, ruta)) return cteEviModal(cct, ruta, alVolver);
   const e = eviDe(cct, ruta), c = columnasEvi().find(x => normRuta(x.ruta) === normRuta(ruta));
   const corto = c ? c.corto : sinNum(String(ruta).split('/').pop());
   const r = eveDe(cct, ruta), n = nArch(e), atp = atpDe(cct);
@@ -3322,7 +3328,7 @@ function vEviDirector() {
     <div class="tarjeta pad general">${anillo(a.pct, 128, 'cumplido')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">${esc(c ? c.escuela : cct)}</div>
         <div><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> rubros de evidencia cumplidos</div>
-        ${(() => { const inc = (S.eve || []).filter(x => x.cct === cct && x.estado === 'incompleto').length, sin = (S.eve || []).filter(x => x.cct === cct && x.estado === 'sin').length;
+        ${(() => { const sems = columnasEvi().map(o => eviDe(cct, o.ruta) && eveDe(cct, o.ruta)).filter(Boolean), inc = sems.filter(x => x.estado === 'incompleto').length, sin = sems.filter(x => x.estado === 'sin').length;
           return inc || sin ? `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${inc ? `<span class="chip aviso">🟡 ${inc} incompleta${inc === 1 ? '' : 's'}</span>` : ''}${sin ? `<span class="chip mal">🔴 ${sin} sin evidencia</span>` : ''}</div>` : ''; })()}</div></div>
     <div class="tarjeta"><div class="seccion-t">Lo último que se subió</div>
       ${nov.length ? `<div class="lista-act">${nov.map(x => `<div class="nov"><div class="nov-f"><b>${deIso(x.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(x.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
@@ -3333,7 +3339,7 @@ function vEviDirector() {
     <div class="checklist sin-borde">${filas.map(e => { const nivel = e.ruta ? e.ruta.split('/').length - 1 : 0, n = nArch(e), r = e.ruta ? eveDe(cct, e.ruta) : null; return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap;padding-left:${12 + nivel * 18}px">
       <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${e.ruta ? esc(e.ruta.split('/').pop()) : '<b>Carpeta principal</b>'}${e.ruta ? acuerdosDeCarpeta(e.ruta, cct).map(x => ` <span class="chip indigo" title="${esc(x.texto)}">Acuerdo ${esc(x.numero)}</span>`).join('') : ''}</span>
       ${chipSem(r)}
-      ${e.ruta ? (n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>') : ''}
+      ${e.ruta && cteCol(cct, e.ruta) ? cteChipSes(cct, e.ruta) : e.ruta ? (n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>') : ''}
       <button class="boton sec chico" data-subir="${e.carpetaId}">Subir aquí</button>
       ${r && r.nota ? `<div class="sem-obs" style="flex-basis:100%"><b>Observación${r.marcadoNombre ? ' de ' + esc(nombreCorto(r.marcadoNombre)) : ''}:</b> ${esc(r.nota)}</div>` : ''}</div>`; }).join('')}</div></div>`}`;
   $('#b-subir').onclick = () => formSubir(cct);
@@ -3428,7 +3434,7 @@ function detalleEvidencias(cct) {
     ${sueltos ? `<div class="aviso-caja">Hay <b>${sueltos}</b> archivo${sueltos === 1 ? '' : 's'} suelto${sueltos === 1 ? '' : 's'} fuera de las carpetas. Conviene moverlos a la carpeta que corresponde.</div>` : ''}
     <div class="checklist" style="max-height:60vh">${filas.filter(e => e.ruta).map(e => { const nivel = e.ruta.split('/').length - 1, n = nArch(e), r = eveDe(cct, e.ruta); return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap;padding-left:${12 + nivel * 18}px">
       <a style="flex:1;min-width:0;text-decoration:none;color:inherit" target="_blank" rel="noopener" href="${urlCarpeta(e.carpetaId)}" title="Abrir en Drive">${nivel ? '└ ' : ''}${esc(e.ruta.split('/').pop())}</a>
-      ${chipSem(r)}${n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}
+      ${chipSem(r)}${cteCol(cct, e.ruta) ? cteChipSes(cct, e.ruta) : n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>'}
       ${eviPuedeRevisar() ? `<button class="boton sec chico" data-drev="${esc(e.ruta)}">Revisar</button>` : ''}
       ${r && r.nota ? `<div class="sem-obs" style="flex-basis:100%">${esc(r.nota)}</div>` : ''}</div>`; }).join('') || '<div class="vacio peq">Sin datos de esta escuela.</div>'}</div>
     ${raiz ? `<p class="peq" style="margin-bottom:0"><a target="_blank" rel="noopener" href="${urlCarpeta(raiz.carpetaId)}">Abrir la carpeta de la escuela en Drive</a></p>` : ''}`,
@@ -8846,10 +8852,57 @@ const cteRevChip = r => r.est ? `<span class="chip ${CTE_EST[r.est].cl}">${CTE_E
 const ctePendTexto = r => r.est === 'incompleto' ? 'está incompleto o no coincide con lo solicitado.' + (r.rev && r.rev.nota ? ' Observación: ' + r.rev.nota : '')
   : r.est === 'sin' ? 'no se encontró la evidencia.' + (r.rev && r.rev.nota ? ' ' + r.rev.nota : '') : 'aún no se ha subido.';
 
+/* ---- Carpeta «CTEs» de Evidencias: se valida con el apartado CTE ----
+   Cuenta solo la sesión vigente: la más alta en la que la Supervisión ya subió lo que se va a requerir
+   (evidencias, productos, presentación, cuadernillo o insumos) o cuya fecha ya llegó. Al subir lo de la
+   sesión siguiente, la carpeta vuelve a quedar vacía para todas las escuelas hasta que suban lo nuevo. */
+const esColCte = ruta => /^ctes?$/.test(clave(String(ruta || '').split('/').pop()));
+const cteListo = () => !!(S && S.cteD && Array.isArray(S.cteD.cte) && S.cteD.ciclo === cicloActual() && (S.cteD.cte.length || (S.cteD.cta || []).length));
+function cteVigente() {
+  if (!cteListo()) return 0;
+  const h = hoy(), pide = s => ['evid', 'prod', 'presentacion', 'cuadernillo', 'insumos'].some(k => (s[k] || []).length);
+  let v = 0;
+  for (let n = 1; n <= 8; n++) { const s = (S.cteD.cte || []).find(x => +x.sesion === n); if ((s && pide(s)) || (cteFecha(n) && cteFecha(n) <= h)) v = n; }
+  return v;
+}
+function cteCol(cct, ruta) {
+  if (!esColCte(ruta)) return null;
+  const n = cteVigente(); if (!n) return null;
+  const v = cteRevResumen(n, cct), arch = cteArch(n, cct).length, ses = CTE_ORD[n].toLowerCase() + ' sesión de CTE';
+  const nombres = l => l.map(r => r.nombre).join(', ');
+  const o = { ses: n, n: arch, ok: false, rev: null, estado: 'vacia', texto: '' };
+  const rev = (estado, nota) => ({ cct, ruta, estado, nota, marcadoNombre: '', actualizado: '', cte: true });
+  if (v.felic || v.completo) { o.estado = 'cumple'; o.ok = true; o.rev = rev('cumple', ''); o.texto = v.felic ? 'todo correcto, felicitada' : 'todo correcto'; }
+  else if (!arch && !v.verdes && !v.amar && !v.rojos) { o.texto = 'aún no sube nada de esta sesión'; }
+  else if (v.pend.length) {
+    const soloRojo = !arch && !v.verdes && !v.amar;
+    o.estado = soloRojo ? 'sin' : 'incompleto';
+    o.texto = 'pendiente: ' + nombres(v.pend);
+    o.rev = rev(o.estado, 'En la ' + ses + ' falta o hay que corregir: ' + v.pend.map(r => r.nombre + (r.rev && r.rev.nota ? ' (' + r.rev.nota + ')' : '')).join('; ') + '.');
+  }
+  else { o.estado = 'subido'; o.ok = true; o.texto = 'ya subió todo, falta revisarlo en el apartado CTE'; }
+  return o;
+}
+const cteChipSes = (cct, ruta) => { const c = cteCol(cct, ruta); return `<span class="chip ${c.ok ? 'ok' : ''}">${c.ses}.ª sesión · ${c.n ? c.n + ' archivo' + (c.n === 1 ? '' : 's') : 'vacía'}</span>`; };
+// En Evidencias, la casilla CTEs muestra lo de la sesión vigente y lleva a revisarlo en el apartado CTE
+function cteEviModal(cct, ruta, alVolver) {
+  const c = cteCol(cct, ruta), n = cteVigente(), v = cteRevResumen(n, cct);
+  modal(esc(nombreEscuela(cct)) + ' · CTE ' + esc(CTE_ORD[n].toLowerCase()) + ' sesión', `
+    <div class="aviso-caja peq" style="margin-top:0">Esta carpeta se valida con el apartado <b>CTE</b>: cuenta solo lo de la sesión vigente (la ${esc(CTE_ORD[n].toLowerCase())}). Cuando la Supervisión suba lo que se pedirá en la siguiente sesión, vuelve a quedar vacía hasta que la escuela suba lo nuevo.</div>
+    <div class="checklist sin-borde">${v.l.map(r => `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:0">${esc(r.nombre)}${r.req ? '' : ' <span class="peq mudo">(opcional)</span>'}</span>
+      ${r.arch.length ? `<span class="chip">${r.arch.length} archivo${r.arch.length === 1 ? '' : 's'}</span>` : ''}${cteRevChip(r)}
+      ${r.rev && r.rev.nota ? `<div class="sem-obs" style="flex-basis:100%">${esc(r.rev.nota)}</div>` : ''}</div>`).join('')}</div>
+    <p class="peq" style="margin-bottom:0"><b>Resultado en Evidencias:</b> ${c.rev ? EVI_EST[c.rev.estado].e + ' ' + EVI_EST[c.rev.estado].t : c.ok ? '✓ Cuenta como cumplido (sin revisar)' : 'Vacía'} · ${esc(c.texto)}.</p>`,
+    `<button class="boton sec" id="ce-cerrar">${alVolver ? 'Volver' : 'Cerrar'}</button><button class="boton terra" id="ce-ir">${ico('i-cte')}Revisar en el apartado CTE</button>`);
+  $('#ce-cerrar').onclick = () => alVolver ? alVolver() : cerrarModal();
+  $('#ce-ir').onclick = () => { cerrarModal(); vista.tab = 'cte'; vista.cteSes = n; vista.cteCct = cct; vista.ctv = null; vista.ctvLista = false; pintar(); window.scrollTo(0, 0); };
+}
+
 async function cteCargar() {
   try { const r = await api('cteDatos', { ciclo: cteCiclo() }); S.cteD = { ciclo: cteCiclo(), cte: r.cte || [], cta: r.cta || [], ctr: r.ctr || [], sinRev: !Array.isArray(r.ctr), ctv: Array.isArray(r.ctv) ? r.ctv : undefined }; }
   catch (e) { S.cteD = /desconocid/i.test(e.message) ? { falta: true } : { error: e.message }; }
   if (vista.tab === 'cte') vCte();
+  else if (vista.tab === 'evidencias' && !$('#velo')) vEvidencias();
 }
 // Resumen de una escuela en una sesión
 function cteEstado(n, cct) {

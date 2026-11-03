@@ -167,7 +167,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
-const VERSION = 29;
+const VERSION = 30;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -2817,6 +2817,41 @@ function columnasEvi_(evi) {
   const vistas = {};
   return cols.filter(c => { const k = normRuta_(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
 }
+/* Carpeta «CTEs» de Evidencias: se valida con el apartado CTE, solo con la sesión vigente (la más alta en la que
+   la Supervisión ya subió lo que se pedirá, o cuya fecha ya llegó). Mismo cálculo que la página de Tequio. */
+const CTE_FECHAS_ = { '2026-2027': ['', '2026-09-25', '2026-10-30', '2026-11-27', '2027-01-29', '2027-02-26', '2027-04-30', '2027-05-28', '2027-06-25'] };
+const esColCte_ = ruta => /^ctes?$/.test(clave_(String(ruta || '').split('/').pop()));
+function cteVigente_(D, ciclo) {
+  if (!D.cte.length && !D.cta.length) return 0;
+  const h = hoy_(), pide = s => ['evid', 'prod', 'presentacion', 'cuadernillo', 'insumos'].some(k => (s[k] || []).length);
+  let v = 0;
+  for (let n = 1; n <= 8; n++) { const s = D.cte.find(x => +x.sesion === n), f = (s && s.fecha) || (CTE_FECHAS_[ciclo] || [])[n] || '';
+    if ((s && pide(s)) || (f && f <= h)) v = n; }
+  return v;
+}
+function cteEvi_(D, cct) {
+  const n = D.cteVig; if (!n) return null;
+  const s = D.cte.find(x => +x.sesion === n) || {}, a = D.cta.filter(x => +x.sesion === n && x.cct === cct);
+  const ev = [{ id: 'jornada', nombre: 'Fotos de la jornada de trabajo' }].concat(s.evid || []), pr = s.prod || [];
+  const l = [{ k: 'asistencia', nombre: 'Lista de asistencia', arch: a.filter(x => x.tipo === 'asistencia'), req: true }];
+  ev.forEach(i => l.push({ k: 'ev:' + i.id, nombre: i.nombre, arch: a.filter(x => x.tipo === 'evidencia' && x.item === i.id), req: true }));
+  pr.forEach(i => l.push({ k: 'pr:' + i.id, nombre: i.nombre, arch: a.filter(x => x.tipo === 'producto' && x.item === i.id), req: true }));
+  const otEv = a.filter(x => x.tipo === 'evidencia' && !ev.some(i => i.id === x.item)); if (otEv.length) l.push({ k: 'ev:otras', nombre: 'Otras evidencias', arch: otEv, req: false });
+  const otPr = a.filter(x => x.tipo === 'producto' && !pr.some(i => i.id === x.item)); if (otPr.length || !pr.length) l.push({ k: 'pr:otros', nombre: pr.length ? 'Otros productos' : 'Productos del colectivo', arch: otPr, req: !pr.length });
+  const pres = a.filter(x => x.tipo === 'presentacion'); if (pres.length) l.push({ k: 'presentacion', nombre: 'Presentación de la escuela', arch: pres, req: false });
+  const EST = ['cumple', 'otro', 'incompleto', 'sin'], verde = e => e === 'cumple' || e === 'otro';
+  l.forEach(r => { const v = D.ctr.find(x => +x.sesion === n && x.cct === cct && x.clave === r.k); r.rev = v && EST.indexOf(v.estado) >= 0 ? v : null; r.est = r.rev ? r.rev.estado : ''; });
+  const cuentan = l.filter(r => r.req || r.arch.length), verdes = cuentan.filter(r => verde(r.est)).length;
+  const amar = l.filter(r => r.est === 'incompleto').length, rojos = l.filter(r => r.est === 'sin').length;
+  const felic = D.ctr.some(x => +x.sesion === n && x.cct === cct && x.clave === 'felicitacion' && x.estado === 'enviada');
+  const pend = l.filter(r => r.est === 'incompleto' || r.est === 'sin' || (r.req && !r.arch.length && !r.est));
+  const rev = (estado, nota) => ({ cct: cct, estado: estado, nota: nota, marcadoNombre: '', cte: true });
+  if (felic || (cuentan.length && verdes === cuentan.length)) return { ok: true, rev: rev('cumple', '') };
+  if (!a.length && !verdes && !amar && !rojos) return { ok: false, rev: null };
+  if (pend.length) return { ok: false, rev: rev(!a.length && !verdes && !amar ? 'sin' : 'incompleto',
+    'En la ' + CTE_ORD[n].toLowerCase() + ' sesión de CTE falta o hay que corregir: ' + pend.map(r => r.nombre + (r.rev && r.rev.nota ? ' (' + r.rev.nota + ')' : '')).join('; ') + '.') };
+  return { ok: true, rev: null };
+}
 function cicloActual_() { const d = new Date(), y = +Utilities.formatDate(d, TZ, 'yyyy'), m = +Utilities.formatDate(d, TZ, 'M'); return m >= 8 ? y + '-' + (y + 1) : (y - 1) + '-' + y; }
 
 // Datos de toda la zona, leídos una sola vez
@@ -2824,6 +2859,9 @@ function datosSemanal_() {
   const D = { dir: leer_('dir'), usr: leer_('usr'), reu: leer_('reu').filter(r => r.activo), acu: leer_('acu').filter(a => a.activo), cum: leer_('cum'),
     evi: leer_('evi'), eve: leer_('eve'), sis: leer_('sis'), eig: leer_('eig'), seg: leer_('seg').filter(s => !s.confidencial), inf: leer_('inf'),
     act: leer_('act').filter(a => !a.confidencial && a.estado === 'programada') };
+  const cicloCte = cicloActual_();
+  D.cte = leer_('cte').filter(x => x.ciclo === cicloCte); D.cta = leer_('cta').filter(x => x.ciclo === cicloCte && x.activo !== false); D.ctr = leer_('ctr').filter(x => x.ciclo === cicloCte);
+  D.cteVig = cteVigente_(D, cicloCte);
   D.escuelas = D.dir.filter(c => c.tipo === 'director' && c.activo !== false).sort((a, b) => String(a.escuela).localeCompare(String(b.escuela), 'es'));
   D.cols = columnasEvi_(D.evi);
   D.cumPor = {}; D.cum.forEach(m => { D.cumPor[m.id] = m; });
@@ -2852,7 +2890,8 @@ function cifrasSemanal_(D, c, hoy) {
   // evidencias
   // si la Supervisión o el ATP ya revisaron el rubro, manda su semáforo (solo verde cuenta); si no, cuenta que la carpeta tenga archivos
   const ev = D.cols.map(col => ({ c: col, e: D.evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(col.ruta)) })).filter(o => o.e)
-    .map(o => { const v = D.eve.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(o.c.ruta)); o.rev = v && v.estado ? v : null; o.ok = o.rev ? o.rev.estado === 'cumple' : +o.e.archivos > 0; return o; });
+    .map(o => { const cc = esColCte_(o.c.ruta) ? cteEvi_(D, cct) : null; if (cc) { o.rev = cc.rev; o.ok = cc.ok; return o; }
+      const v = D.eve.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(o.c.ruta)); o.rev = v && v.estado ? v : null; o.ok = o.rev ? o.rev.estado === 'cumple' : +o.e.archivos > 0; return o; });
   r.evi = { lista: ev, hecho: ev.filter(o => o.ok).length, total: ev.length, na: D.cols.length - ev.length };
   r.faltaEvi = ev.filter(o => !o.ok).sort((a, b) => (a.rev && a.rev.estado === 'incompleto' ? 0 : 1) - (b.rev && b.rev.estado === 'incompleto' ? 0 : 1));
   // archivos nuevos en la semana anterior (cada archivo una vez, aunque aparezca en sus carpetas «madre»)
