@@ -3459,10 +3459,13 @@ const perNombre = t => [t.paterno, t.materno, t.nombre].filter(Boolean).join(' '
 const perActivas = t => (t.plazas || []).filter(p => p.activa !== false);
 // Doble plaza: dos o más plazas activas en distinta escuela, en distinto turno o con distinta clave (p. ej., las dos plazas en la Supervisión)
 const normClave = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+// La misma plaza escrita de distintas formas (02-E00281-047007, E281-47007, E281/47007, 02-E-0281-047007) da la misma llave
+const claveKey = c => { const m = String(c || '').toUpperCase().match(/([ES])\D{0,3}0*(\d{2,5})\D+0*(\d{1,7})/); return m ? m[1] + (+m[2]) + '-' + (+m[3]) : normClave(c); };
 const perDoble = t => { const a = perActivas(t); if (t.estado === 'baja' || a.length < 2) return false;
-  const cl = a.map(p => normClave(p.clave)).filter(Boolean);
+  const cl = a.map(p => perClaves(p).map(claveKey).sort().join('|')).filter(Boolean);
   return new Set(a.map(p => p.cct + '|' + (p.turno || ''))).size > 1 || new Set(cl).size > 1; };
 // Plazas activas sin clave registrada
+const perClaves = p => String(p.clave || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
 const perSinClave = t => t.estado !== 'baja' && perActivas(t).some(p => !normClave(p.clave));
 const perInterino = t => t.estado !== 'baja' && (t.tipoAlta === 'interino' || perActivas(t).some(p => /interin/i.test(p.nombramiento || '')));
 const perFin = t => perActivas(t).map(p => p.hasta).filter(Boolean).sort()[0] || '';
@@ -3503,10 +3506,10 @@ function vPersonal() {
     const otras = c ? pl.filter(p => p.cct !== c.cct || aqui.indexOf(p) < 0) : [];
     return `<tr class="${doble ? 'per-doble' : ''}${t.estado === 'baja' ? ' per-baja' : ''}">
       <th class="esc-col"><button class="enlace per-nom" data-trb="${esc(t.id)}">${esc(perNombre(t))}</button>${doble ? '<span class="chip morado">Doble plaza</span>' : ''}${t.revisar ? ' <span class="chip aviso" title="' + esc(t.revisar) + '">Revisar</span>' : ''}</th>
-      <td>${c ? esc((aqui[0] || pl[0] || {}).funcion || '—') : pl.map(p => esc(p.funcion || '—')).join('<br>') || '—'}</td>
+      <td>${c ? (aqui.length ? aqui : pl).map(p => esc(p.funcion || '—') + (p.grupo ? ' <span class="mudo">· ' + esc(p.grupo) + '</span>' : '')).join('<br>') : pl.map(p => esc(p.funcion || '—')).join('<br>') || '—'}</td>
       ${c ? '' : `<td style="text-align:left">${pl.map(p => esc(perCentro(p.cct).escuela)).join('<br>') || '—'}</td>`}
-      <td>${c ? esc((aqui[0] || pl[0] || {}).turno || '—') : pl.map(p => esc(p.turno || '—')).join('<br>') || '—'}</td>
-      <td class="peq" style="white-space:nowrap">${(c ? (aqui.length ? aqui : pl) : pl).map(p => normClave(p.clave) ? esc(p.clave) + (c && aqui.length > 1 && p.turno ? ' <span class="mudo">(' + esc(p.turno.toLowerCase()) + ')</span>' : '') : '<span class="chip aviso">Sin clave</span>').join('<br>') || '—'}</td>
+      <td>${(c ? (aqui.length ? aqui : pl) : pl).map(p => esc(p.turno || '—')).join('<br>') || '—'}</td>
+      <td class="peq" style="white-space:nowrap">${(c ? (aqui.length ? aqui : pl) : pl).map(p => normClave(p.clave) ? perClaves(p).map(esc).join('<br>') : '<span class="chip aviso">Sin clave</span>').join('<br>') || '—'}</td>
       <td>${t.estado === 'baja' ? `<span class="chip">Baja ${fechaCorta(t.fechaBaja)}</span>` : perInterino(t) ? `<span class="chip ${perVencido(t) ? 'mal' : 'aviso'}">Interino${perFin(t) ? ' al ' + fechaCorta(perFin(t)) : ''}</span>` : '<span class="chip ok">Base</span>'}</td>
       ${c ? `<td class="peq" style="text-align:left">${otras.length ? 'También: ' + otras.map(p => esc(perCentro(p.cct).escuela) + (p.turno ? ' (' + esc(p.turno.toLowerCase()) + ')' : '')).join(', ') : ''}</td>` : ''}
       <td>${t.celular ? `<a href="tel:${esc(String(t.celular).replace(/\D/g, ''))}">${esc(t.celular)}</a>` : '—'}</td></tr>`;
@@ -3523,7 +3526,7 @@ function vPersonal() {
   }
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>${esDirector() ? 'Personal de su escuela' : 'Personal de la zona'}</h1>
-    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
+    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button><button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
   <div class="aviso-caja peq">Datos personales confidenciales. ${esDirector() ? 'Usted ve solo al personal de su escuela.' : 'La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.'} Úselos solo para trámites de la zona y no los comparta.</div>
   <div class="pen-cifras per-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) || (c[3] === 'sinclave' && f.sinClave) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
   <div class="filtros">
@@ -3551,6 +3554,7 @@ function vPersonal() {
   $('#pe-xls').onclick = () => perExcel(lista);
   if ($('#pe-alta')) $('#pe-alta').onclick = () => perForm();
   if ($('#pe-imp')) $('#pe-imp').onclick = perImportar;
+  if ($('#pe-plant')) $('#pe-plant').onclick = perPlantilla;
 }
 
 /* Ficha del trabajador */
@@ -3563,7 +3567,7 @@ function perFicha(id) {
     ${t.revisar ? `<div class="aviso-caja peq"><b>Por revisar:</b> ${esc(t.revisar)}</div>` : ''}
     ${t.estado === 'baja' ? `<div class="aviso-caja peq"><b>Motivo de la baja:</b> ${esc(t.motivoBaja || '—')}</div>` : ''}
     <div class="seccion-t" style="padding:4px 0">Plazas</div>
-    ${pl.length ? `<div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th class="esc-col">Centro</th><th>Función</th><th>Turno</th><th>Clave</th><th>Nombramiento</th><th>Vigencia</th></tr></thead><tbody>${pl.map(p => `<tr class="${p.activa === false ? 'per-baja' : ''}"><th class="esc-col">${esc(perCentro(p.cct).escuela)}<div class="ayuda">${esc(p.cct)}</div></th><td>${esc(p.funcion || '—')}</td><td>${esc(p.turno || '—')}</td><td>${esc(p.clave || '—')}${p.horas ? '<div class="ayuda">' + esc(p.horas) + ' h</div>' : ''}</td><td>${esc(p.nombramiento || '—')}${p.sustituye ? '<div class="ayuda">Cubre a ' + esc(p.sustituye) + '</div>' : ''}</td><td class="peq">${p.desde ? 'Desde ' + fechaCorta(p.desde) : ''}${p.hasta ? '<br>Hasta ' + fechaCorta(p.hasta) : ''}${p.activa === false ? '<br>Inactiva' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="peq mudo">Sin plazas registradas.</p>'}
+    ${pl.length ? `<div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th class="esc-col">Centro</th><th>Función</th><th>Turno</th><th>Clave</th><th>Nombramiento</th><th>Vigencia</th></tr></thead><tbody>${pl.map(p => `<tr class="${p.activa === false ? 'per-baja' : ''}"><th class="esc-col">${esc(perCentro(p.cct).escuela)}<div class="ayuda">${esc(p.cct)}</div></th><td>${esc(p.funcion || '—')}${p.grupo ? '<div class="ayuda">' + esc(p.grupo) + '</div>' : ''}</td><td>${esc(p.turno || '—')}</td><td>${esc(p.clave || '—')}${p.horas ? '<div class="ayuda">' + esc(p.horas) + ' h</div>' : ''}</td><td>${esc(p.nombramiento || '—')}${p.sustituye ? '<div class="ayuda">Cubre a ' + esc(p.sustituye) + '</div>' : ''}</td><td class="peq">${p.desde ? 'Desde ' + fechaCorta(p.desde) : ''}${p.hasta ? '<br>Hasta ' + fechaCorta(p.hasta) : ''}${p.activa === false ? '<br>Inactiva' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="peq mudo">Sin plazas registradas.</p>'}
     <div class="seccion-t" style="padding:12px 0 4px">Datos personales</div>
     <table class="per-datos">${dato('CURP', t.curp)}${dato('RFC', t.rfc)}${dato('Fecha de nacimiento', t.fechaNac ? fechaCorta(t.fechaNac) + ' (' + perAnios(t.fechaNac) + ')' : '')}${dato('Lugar de nacimiento', t.lugarNac)}${dato('Sexo', { H: 'Hombre', M: 'Mujer' }[t.sexo])}${dato('Estado civil', t.estadoCivil)}${dato('Hijos', t.hijos !== '' ? t.hijos + (t.hijosGuarderia && t.hijosGuarderia !== '0' ? ' (' + t.hijosGuarderia + ' en guardería)' : '') : '')}${dato('Afiliación ISSSTECALI / ISSSTE', t.afiliacion)}</table>
     <div class="seccion-t" style="padding:12px 0 4px">Contacto y domicilio</div>
@@ -3603,9 +3607,10 @@ function perForm(t0) {
     <div class="fila dos"><div class="campo"><label>Centro de trabajo</label><select data-k="cct"><option value="">— Elija —</option>${cen.map(c => `<option value="${c.cct}" ${p.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)} · ${c.cct}</option>`).join('')}</select></div>
     <div class="campo"><label>Función</label><select data-k="funcion">${PER_FUNCIONES.concat(PER_FUNCIONES.includes(p.funcion) || !p.funcion ? [] : [p.funcion]).map(x => `<option ${p.funcion === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div></div>
     <div class="fila dos"><div class="campo"><label>Turno</label><select data-k="turno">${['Matutino', 'Vespertino', 'Discontinuo'].map(x => `<option ${p.turno === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
-    <div class="campo"><label>Clave de la plaza</label><input data-k="clave" value="${esc(p.clave || '')}" placeholder="Ej. E281/116924"></div></div>
+    <div class="campo"><label>Clave de la plaza</label><input data-k="clave" value="${esc(p.clave || '')}" placeholder="Ej. 02-E00281-116924 (varias, separadas por coma)"></div></div>
     <div class="fila dos"><div class="campo"><label>Nombramiento</label><select data-k="nombramiento">${['Base (definitiva)', 'Interino (temporal)', 'Provisional', 'Comisión'].concat(['Base (definitiva)', 'Interino (temporal)', 'Provisional', 'Comisión'].includes(p.nombramiento) || !p.nombramiento ? [] : [p.nombramiento]).map(x => `<option ${p.nombramiento === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
     <div class="campo"><label>Horas (si aplica)</label><input data-k="horas" value="${esc(p.horas || '')}" inputmode="numeric"></div></div>
+    <div class="campo"><label>Grado y grupo <span class="mudo">(si atiende grupo)</span></label><input data-k="grupo" value="${esc(p.grupo || '')}" placeholder="Ej. 3.° A" maxlength="20"></div>
     <div class="fila dos"><div class="campo"><label>Desde</label><input type="date" data-k="desde" value="${esc(p.desde || '')}"></div>
     <div class="campo"><label>Hasta <span class="mudo">(interinos)</span></label><input type="date" data-k="hasta" value="${esc(p.hasta || '')}"></div></div>
     <div class="campo"><label>Cubre a <span class="mudo">(interinos: a quién sustituye)</span></label><input data-k="sustituye" value="${esc(p.sustituye || '')}"></div>
@@ -3678,6 +3683,121 @@ function perImportar() {
   };
 }
 
+
+/* ---- Actualizar el personal con la plantilla oficial (SIRH · Plantillas por Centro de Trabajo) ----
+   El archivo lo prepara Claude a partir de los PDF oficiales. Se empareja a cada persona por RFC (o por las
+   primeras 10 letras de la CURP); solo cambian sus plazas (centro, turno, función, clave, horas, nombramiento,
+   grado y grupo). Sus datos personales no se tocan. Las plazas de los centros que trae la plantilla y que ya
+   no aparecen ahí se marcan como inactivas; las de otros centros quedan igual. Nada se aplica sin revisarlo. */
+const perRfc10 = t => (String(t.rfc || '').toUpperCase().replace(/[^A-Z0-9Ñ&]/g, '') || String(t.curp || '').toUpperCase()).slice(0, 10);
+const perNorm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z ]/g, ' ').replace(/\s+/g, ' ').trim();
+function perPlanPlantilla(d) {
+  const ccts = d.centros || [], fecha = d.fecha || '', plan = [], usados = {};
+  const viejo = S.version && S.version < 31;
+  d.personas.forEach(x => {
+    const r10 = String(x.rfc || '').slice(0, 10), nom = perNorm(x.nombre);
+    let t = S.trb.find(y => y.estado !== 'baja' && perRfc10(y) && perRfc10(y) === r10) || S.trb.find(y => perRfc10(y) && perRfc10(y) === r10);
+    if (!t) t = S.trb.find(y => { const n = perNorm(perNombre(y)); return n && (n === nom || (nom.length > 20 && n.startsWith(nom))); });
+    if (t) usados[t.id] = 1;
+    const previas = t ? JSON.parse(JSON.stringify(t.plazas || [])) : [];
+    const cambios = [], quedan = previas.filter(p => !ccts.includes(p.cct));
+    const tocadas = new Set();
+    x.plazas.forEach(np => {
+      const nc = np.claves.map(claveKey);
+      let p = previas.find((q, i) => !tocadas.has(i) && ccts.includes(q.cct) && perClaves(q).map(claveKey).some(k => nc.includes(k)));
+      if (!p) p = previas.find((q, i) => !tocadas.has(i) && q.cct === np.cct && (q.turno || '') === np.turno && q.activa !== false && !normClave(q.clave));
+      if (!p) p = previas.find((q, i) => !tocadas.has(i) && !ccts.includes(q.cct) && perClaves(q).map(claveKey).some(k => nc.includes(k)));
+      const nueva = { cct: np.cct, turno: np.turno, funcion: np.funcion, clave: np.claves.join(', '), horas: np.horas ? String(np.horas) : '', nombramiento: np.nombramiento, grupo: np.grupo || '', activa: true };
+      if (np.desde) nueva.desde = np.desde; if (np.hasta) nueva.hasta = np.hasta; if (np.sustituye) nueva.sustituye = np.sustituye;
+      if (p) {
+        tocadas.add(previas.indexOf(p));
+        const qi = quedan.indexOf(p); if (qi >= 0) quedan.splice(qi, 1);
+        // la función de director con grupo o encargado se conserva si la plantilla solo dice «frente a grupo»
+        if (np.funcion === 'Docente frente a grupo' && /director|encargad/i.test(p.funcion || '')) nueva.funcion = p.funcion;
+        const m = Object.assign({}, p, nueva);
+        ['desde', 'hasta', 'sustituye'].forEach(k => { if (!np[k] && p[k] && np.nombramiento === p.nombramiento) m[k] = p[k]; });
+        const dif = [];
+        if (p.cct !== m.cct) dif.push('centro: ' + perCentro(p.cct).escuela + ' → ' + perCentro(m.cct).escuela);
+        if ((p.turno || '') !== m.turno) dif.push('turno: ' + (p.turno || '—') + ' → ' + m.turno);
+        if ((p.funcion || '') !== m.funcion) dif.push('función: ' + (p.funcion || '—') + ' → ' + m.funcion);
+        if (perClaves(p).map(claveKey).sort().join() !== perClaves(m).map(claveKey).sort().join() || p.clave !== m.clave) dif.push('clave: ' + (p.clave || 'sin clave') + ' → ' + m.clave);
+        if (String(p.horas || '') !== String(m.horas || '') && m.horas) dif.push('horas: ' + (p.horas || '—') + ' → ' + m.horas);
+        if ((p.nombramiento || '') !== m.nombramiento) dif.push('nombramiento: ' + (p.nombramiento || '—') + ' → ' + m.nombramiento);
+        if ((p.grupo || '') !== m.grupo && m.grupo) dif.push('grupo: ' + m.grupo);
+        if (p.activa === false) dif.push('se reactiva la plaza');
+        if (dif.length) cambios.push(perCentro(m.cct).escuela + ' (' + m.turno.toLowerCase() + '): ' + dif.join('; '));
+        quedan.push(m);
+      } else { cambios.push('nueva plaza: ' + perCentro(nueva.cct).escuela + ' (' + nueva.turno.toLowerCase() + ') · ' + nueva.funcion + (nueva.grupo ? ' ' + nueva.grupo : '') + ' · ' + nueva.clave); quedan.push(nueva); }
+    });
+    // plazas activas en los centros de la plantilla que ya no aparecen
+    previas.forEach((p, i) => { if (!tocadas.has(i) && ccts.includes(p.cct) && p.activa === false && !quedan.includes(p)) quedan.push(p); });
+    previas.forEach((p, i) => { if (!tocadas.has(i) && ccts.includes(p.cct) && p.activa !== false) { const q = quedan.find(z => z === p); const m = Object.assign({}, p, { activa: false }); if (q) quedan.splice(quedan.indexOf(q), 1, m); else quedan.push(m); cambios.push('ya no aparece en ' + perCentro(p.cct).escuela + ': la plaza queda inactiva'); } });
+    if (t) {
+      if (!cambios.length) return;
+      const nt = Object.assign(JSON.parse(JSON.stringify(t)), { plazas: quedan.map((p, i) => Object.assign({ id: p.id || 'pl' + (i + 1) }, p)) });
+      if (!t.rfc && x.rfc) { nt.rfc = x.rfc; cambios.push('RFC: ' + x.rfc); }
+      if (x.nota) nt.observaciones = [t.observaciones, x.nota].filter(Boolean).join(' · ');
+      plan.push({ tipo: 'cambio', t: nt, nombre: perNombre(t), cambios, nota: x.nota });
+    } else {
+      const pa = x.nombre.split(' '), nt = { paterno: pa[0] || '', materno: pa.length > 2 ? pa[1] : '', nombre: pa.slice(pa.length > 2 ? 2 : 1).join(' '), rfc: x.rfc, curp: '',
+        tipoAlta: x.plazas.some(p => /interin/i.test(p.nombramiento)) ? 'interino' : 'definitiva', entidad: 'Baja California', observaciones: x.nota || '',
+        revisar: 'Alta desde la plantilla oficial' + (fecha ? ' del ' + fecha : '') + ': faltan CURP y datos personales; confirme cuáles son los apellidos y el nombre.' + (x.recortado ? ' En la plantilla el nombre viene recortado.' : ''),
+        plazas: quedan.map((p, i) => Object.assign({ id: 'pl' + (i + 1) }, p)) };
+      plan.push({ tipo: 'alta', t: nt, nombre: x.nombre, cambios });
+    }
+  });
+  // quien tiene plaza activa en un centro de la plantilla y no aparece en ella
+  S.trb.filter(t => !usados[t.id] && t.estado !== 'baja' && (t.plazas || []).some(p => p.activa !== false && ccts.includes(p.cct))).forEach(t => {
+    const fuera = t.plazas.filter(p => p.activa !== false && ccts.includes(p.cct));
+    const nt = Object.assign(JSON.parse(JSON.stringify(t)), { plazas: t.plazas.map(p => fuera.includes(p) ? Object.assign({}, p, { activa: false }) : p) });
+    nt.revisar = [t.revisar, 'No aparece en la plantilla oficial' + (fecha ? ' del ' + fecha : '') + ' de ' + fuera.map(p => perCentro(p.cct).escuela).join(', ') + '.'].filter(Boolean).join(' ');
+    plan.push({ tipo: 'fuera', t: nt, nombre: perNombre(t), cambios: fuera.map(p => 'no aparece en ' + perCentro(p.cct).escuela + ' (' + (p.turno || '').toLowerCase() + '): la plaza queda inactiva') });
+  });
+  return { plan, viejo };
+}
+function perPlantilla() {
+  modal('Actualizar con la plantilla oficial', `<p style="margin-top:0">Elija el archivo <b>.json</b> con las plantillas por centro de trabajo que le preparó Claude. Antes de guardar verá qué cambia en cada persona y podrá desmarcar lo que no quiera aplicar.</p>
+    <div class="campo"><input type="file" id="pp-f" accept=".json,application/json"></div>`,
+    '<button class="boton sec" id="pp-no">Cancelar</button><button class="boton terra" id="pp-ver">Revisar cambios</button>');
+  $('#pp-no').onclick = cerrarModal;
+  $('#pp-ver').onclick = async () => {
+    const f = $('#pp-f').files[0]; if (!f) return aviso('Elija el archivo.', 'mal');
+    let d; try { d = JSON.parse(await f.text()); } catch (e) { return aviso('El archivo no es un JSON válido.', 'mal'); }
+    if (!d || d.tipo !== 'tequio-plantilla' || !Array.isArray(d.personas)) return aviso('Este archivo no es una plantilla oficial para Tequio.', 'mal');
+    perPlantillaRevisar(d);
+  };
+}
+function perPlantillaRevisar(d) {
+  const { plan, viejo } = perPlanPlantilla(d);
+  const grupo = (tipo, tit, ayuda) => { const l = plan.map((x, i) => [x, i]).filter(([x]) => x.tipo === tipo); if (!l.length) return '';
+    return `<div class="seccion-t" style="padding:12px 0 4px">${tit} · ${l.length}</div>${ayuda ? `<p class="peq mudo" style="margin:0 0 6px">${ayuda}</p>` : ''}
+      <div class="checklist sin-borde">${l.map(([x, i]) => `<label class="chk-fila" style="align-items:flex-start;gap:10px"><input type="checkbox" data-pp="${i}" checked style="margin-top:3px">
+        <span style="flex:1;min-width:0"><b>${esc(x.nombre)}</b>${x.nota ? ` <span class="chip indigo" style="white-space:normal;height:auto">${esc(x.nota)}</span>` : ''}<span class="peq mudo" style="display:block;line-height:1.5">${x.cambios.map(esc).join('<br>')}</span></span></label>`).join('')}</div>`; };
+  modal('Plantilla oficial · revisar cambios', `
+    <p class="peq" style="margin-top:0">${esc(d.fuente || '')}${d.fecha ? ' · ' + esc(d.fecha) : ''}. Centros que trae: ${d.centros.length}. ${d.sinPlantilla && d.sinPlantilla.length ? 'Sin plantilla (no se tocan): ' + esc(d.sinPlantilla.map(c => perCentro(c).escuela).join(', ')) + '.' : ''}</p>
+    ${viejo ? '<div class="aviso-caja peq"><b>Primero actualice el servidor a la versión 31.</b> La versión actual recorta las claves largas (maestros de educación física con varias claves) y no guarda el grado y grupo.</div>' : ''}
+    ${!plan.length ? '<div class="tarjeta vacio">Todo coincide con la plantilla: no hay nada que cambiar.</div>' : ''}
+    ${grupo('cambio', 'Se actualizan sus plazas', 'Solo cambian las plazas; sus datos personales quedan igual.')}
+    ${grupo('alta', 'Altas nuevas', 'Están en la plantilla y no en Tequio. Se dan de alta con su RFC y sus plazas, marcadas «Revisar» para completar CURP y datos personales.')}
+    ${grupo('fuera', 'Ya no aparecen en la plantilla de su centro', 'Su plaza en ese centro queda inactiva (no es una baja). Desmarque a quien sí deba seguir ahí.')}`,
+    `<button class="boton sec" id="pp-no">Cancelar</button>${plan.length ? `<button class="boton terra" id="pp-si" ${viejo ? 'disabled' : ''}>Aplicar los marcados</button>` : ''}`);
+  $('#pp-no').onclick = cerrarModal;
+  if ($('#pp-si')) $('#pp-si').onclick = async () => {
+    const sel = $$('[data-pp]:checked').map(i => plan[+i.dataset.pp]);
+    if (!sel.length) return aviso('No marcó ningún cambio.', 'mal');
+    $('#pp-si').disabled = true;
+    let n = 0;
+    for (const x of sel) {
+      $('#pp-si').textContent = 'Guardando ' + (++n) + ' de ' + sel.length + '…';
+      const r = await accion('personalGuardar', { trabajador: x.t });
+      if (!r) { $('#pp-si').disabled = false; $('#pp-si').textContent = 'Aplicar los marcados'; return aviso('Se guardaron ' + (n - 1) + ' de ' + sel.length + '. Revise el error y vuelva a intentar con el mismo archivo.', 'mal', 9000); }
+      poner(S.trb, r.trabajador);
+    }
+    cerrarModal(); vPersonal();
+    aviso('Plantilla aplicada: ' + sel.length + ' trabajador' + (sel.length === 1 ? '' : 'es') + ' actualizado' + (sel.length === 1 ? '' : 's') + '.', 'ok', 5000);
+  };
+}
+
 /* Excel con lo que se ve en pantalla */
 async function perExcel(lista) {
   if (!lista.length) return aviso('No hay trabajadores con estos filtros.', 'mal');
@@ -3687,7 +3807,7 @@ async function perExcel(lista) {
     pl.forEach(p => { const c = p.cct ? perCentro(p.cct) : {};
       filas.push({ 'Apellido paterno': t.paterno, 'Apellido materno': t.materno, 'Nombre(s)': t.nombre, 'Doble plaza': perDoble(t) ? 'SÍ' : '', 'Situación': t.estado === 'baja' ? 'Baja' : 'Activo',
         'Centro de trabajo': c.escuela || '', 'C.C.T.': p.cct || '', 'Municipio': c.municipio || '', 'Organización': c.sup ? 'Supervisión' : c.cct ? (c.multigrado ? 'Multigrado' : 'Completa') : '', 'Turno': p.turno || '',
-        'Función': p.funcion || '', 'Clave de plaza': p.clave || '', 'Horas': p.horas || '', 'Nombramiento': p.nombramiento || '', 'Desde': p.desde || '', 'Hasta': p.hasta || '', 'Cubre a': p.sustituye || '', 'Plaza activa': p.activa === false ? 'No' : 'Sí',
+        'Función': p.funcion || '', 'Clave de plaza': p.clave || '', 'Grado y grupo': p.grupo || '', 'Horas': p.horas || '', 'Nombramiento': p.nombramiento || '', 'Desde': p.desde || '', 'Hasta': p.hasta || '', 'Cubre a': p.sustituye || '', 'Plaza activa': p.activa === false ? 'No' : 'Sí',
         'CURP': t.curp, 'RFC': t.rfc, 'Fecha de nacimiento': t.fechaNac, 'Sexo': { H: 'Hombre', M: 'Mujer' }[t.sexo] || '', 'Lugar de nacimiento': t.lugarNac, 'Estado civil': t.estadoCivil, 'Hijos': t.hijos, 'Hijos en guardería': t.hijosGuarderia,
         'Afiliación': t.afiliacion, 'Celular': t.celular, 'Teléfono de casa': t.telCasa, 'Correo institucional': t.correoInst, 'Correo personal': t.correoPers,
         'Domicilio': [t.calle, t.numero].filter(Boolean).join(' '), 'Colonia': t.colonia, 'C.P.': t.cp, 'Municipio de residencia': t.municipio, 'Entidad': t.entidad,

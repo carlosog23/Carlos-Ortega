@@ -167,7 +167,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
-const VERSION = 30;
+const VERSION = 31;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -2221,8 +2221,8 @@ function limpiarTrabajador_(d) {
   t.hijos = txt(d.hijos, 3); t.hijosGuarderia = txt(d.hijosGuarderia, 3);
   t.tipoAlta = ['definitiva', 'interino', 'provisional'].indexOf(d.tipoAlta) >= 0 ? d.tipoAlta : 'definitiva';
   t.observaciones = txt(d.observaciones, 1500); t.revisar = txt(d.revisar, 1500);
-  t.plazas = (Array.isArray(d.plazas) ? d.plazas : []).slice(0, 6).map((p, i) => ({
-    id: txt(p.id, 40) || ('pl' + (i + 1)), cct: may(p.cct, 12), turno: txt(p.turno, 20), funcion: txt(p.funcion, 80), clave: txt(p.clave, 60), horas: txt(p.horas, 6),
+  t.plazas = (Array.isArray(d.plazas) ? d.plazas : []).slice(0, 12).map((p, i) => ({
+    id: txt(p.id, 40) || ('pl' + (i + 1)), cct: may(p.cct, 12), turno: txt(p.turno, 20), funcion: txt(p.funcion, 80), clave: txt(p.clave, 400), horas: txt(p.horas, 6), grupo: txt(p.grupo, 20),
     nombramiento: txt(p.nombramiento, 40), desde: fecha(p.desde), hasta: fecha(p.hasta), sustituye: txt(p.sustituye, 120), activa: p.activa !== false
   })).filter(p => p.cct || p.funcion);
   return t;
