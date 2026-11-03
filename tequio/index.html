@@ -303,6 +303,11 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .acu-ed{border:1px solid var(--borde);border-radius:10px;padding:8px;margin-bottom:8px;background:var(--crema);display:flex;flex-direction:column;gap:6px}
 .acu-ed input,.acu-ed textarea{border:1px solid var(--borde);border-radius:8px;padding:7px 9px;background:#fff;width:100%;min-height:38px}
 .acu-ed textarea{min-height:56px;resize:vertical}
+.acu-evi{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;border-top:1px dashed var(--borde);padding-top:6px}
+.acu-evi .casilla{white-space:nowrap;display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:14px}
+.acu-ed .acu-evi .casilla input{width:18px;height:18px;min-height:0;padding:0;flex:none}
+.acu-evi select,.acu-evi input[data-evi-nom]{flex:1;min-width:200px;border:1px solid var(--borde);border-radius:8px;padding:6px 8px;background:#fff}
+.evi-acu{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .acu-ed .fila{gap:6px}
 @media (max-width:520px){.acu-ed .fila:not([style]){grid-template-columns:1fr 1fr}.acu-ed .fila input[data-k=responsable]{grid-column:1/-1}}
 
@@ -2797,7 +2802,7 @@ function tarjetaReunion(r, ccts) {
       ${xs.map(x => { const ax = avance([x], ccts); return `<div class="acu-fila">
         <span class="acu-num">${esc(x.numero)}</span>
         <div class="tx"><div>${esc(x.texto)}</div>
-          <div class="ayuda">${x.responsable ? esc(x.responsable) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div>
+          <div class="ayuda">${x.responsable ? esc(x.responsable) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.nota ? ' · ' + esc(x.nota) : ''}${x.evidencia ? ' · 📁 Evidencia en «' + esc(sinNum(String(x.evidencia).split('/').pop())) + '»' : ''}</div></div>
         <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}${(() => { const n = S.evi ? ccts.filter(c => estadoDe(x.id, c) === 'pendiente' && eviAcuerdo(x.id, c)).length : 0; return n ? `<span class="chip ok" title="Escuelas con archivos en Drive y sin palomear">📎 ${n} por revisar</span>` : ''; })()}</div>
         <button class="boton sec chico" data-palomear="${x.id}">${ico('i-seg')}Palomear</button>
       </div>`; }).join('')}`).join('')}
@@ -2860,10 +2865,12 @@ function vChecklistEscuela(cct) {
     <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; const autor = m && usuario(m.marcadoPor); return `<div class="chk-fila ${e}" data-acu="${x.id}">
       <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}>
         <span><b>${esc(x.numero)}.</b> ${esc(x.texto)}
-          ${S.evi && e !== 'hecho' ? chipEvi(x.id, cct) : ''}
-          <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'pendiente' && limiteVencido(x) ? ' · <b style="color:var(--alerta)">fecha vencida</b>' : ''}${e === 'hecho' && m.fecha ? ' · palomeado el ' + fechaCorta(m.fecha) + (autor ? ' por ' + esc(nombreCorto(autor.nombre)) : '') : ''}${m && m.nota ? '<br>Observación: ' + esc(m.nota) : ''}</span></span></label>
+          ${S.evi && e !== 'hecho' && !x.evidencia ? chipEvi(x.id, cct) : ''}
+          <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'pendiente' && limiteVencido(x) ? ' · <b style="color:var(--alerta)">fecha vencida</b>' : ''}${e === 'hecho' && m.fecha ? ' · palomeado el ' + fechaCorta(m.fecha) + (autor ? ' por ' + esc(nombreCorto(autor.nombre)) : '') : ''}${m && m.nota ? '<br>Observación: ' + esc(m.nota) : ''}</span>${e !== 'no_aplica' ? eviDelAcuerdo(x, cct, true) : ''}</span></label>
       <div class="chk-acc"><button class="enlace" data-nota>Observación</button><button class="enlace" data-na>${e === 'no_aplica' ? 'Sí aplica' : 'No aplica'}</button></div></div>`; }).join('')}</div></div>` : ''; }).join('') || '<div class="tarjeta vacio">No hay acuerdos registrados.</div>'}`;
   $('#b-volver').onclick = () => { vista.acuEsc = null; vAcuerdos(); };
+  $$('[data-subir-acu]').forEach(b => b.onclick = ev => { ev.preventDefault(); formSubir(cct, b.dataset.subirAcu); });
+  $$('[data-rev-acu]').forEach(b => b.onclick = ev => { ev.preventDefault(); revisarEvi(cct, b.dataset.revAcu); });
   $('#e-ant').onclick = () => { vista.acuEsc = ant.cct; vAcuerdos(); };
   $('#e-sig').onclick = () => { vista.acuEsc = sig.cct; vAcuerdos(); };
   const guardarMarca = (acuId, estado, nota) => accion('marcar', { marcas: [Object.assign({ acuerdoId: acuId, cct, estado }, nota != null ? { nota } : {})] }, res => {
@@ -2911,7 +2918,7 @@ function vMiEscuela() {
   </div>
   <div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Pendientes de su escuela</div>
     ${pend.length ? `<div class="checklist sin-borde">${pend.map(x => { const r = (S.reu || []).find(y => y.id === x.reunionId); return `<div class="chk-fila pendiente"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
-      ${S.evi ? chipEvi(x.id, cct) : ''}<br><span class="ayuda">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}</span></span>${chipEstado(x, 'pendiente')}</div>`; }).join('')}</div>` : '<div class="vacio peq">Su escuela no tiene compromisos pendientes. ¡Excelente trabajo!</div>'}
+      ${S.evi && !x.evidencia ? chipEvi(x.id, cct) : ''}<br><span class="ayuda">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.evidencia ? ' · <b>requiere evidencia</b>' : ''}</span>${eviDelAcuerdo(x, cct)}</span>${chipEstado(x, 'pendiente')}</div>`; }).join('')}</div>` : '<div class="vacio peq">Su escuela no tiene compromisos pendientes. ¡Excelente trabajo!</div>'}
   </div>
   ${visitas.length ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Acuerdos de las visitas de la Supervisión</div>
     <div class="pad" style="padding-top:4px">${visitas.map(x => `<div class="acuerdo"><div class="tx">${esc(x.texto)}${x.responsable ? `<div class="peq mudo">Responsable: ${esc(x.responsable)}</div>` : ''}</div>
@@ -2919,9 +2926,10 @@ function vMiEscuela() {
   ${reus.map(r => { const xs = acuerdosReu(r.id).filter(x => aplicaA(x, cct)); if (!xs.length) return ''; const ar = avance(xs, [cct]); return `<details class="tarjeta" style="margin-bottom:12px">
     <summary class="seccion-t" style="cursor:pointer;display:flex;gap:10px;align-items:center"><span style="flex:1">${fechaCorta(r.fecha)} · ${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></summary>
     <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; return `<div class="chk-fila ${e}"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
-      <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'hecho' && m.fecha ? ' · cumplido el ' + fechaCorta(m.fecha) : ''}${m && m.nota ? ' · ' + esc(m.nota) : ''}</span></span>${chipEstado(x, e)}</div>`; }).join('')}</div></details>`; }).join('')}
-  <p class="peq mudo">La Supervisión y su ATP palomean los compromisos al revisar sus evidencias. Si ya cumplió alguno, suba la evidencia en la pestaña <b>Evidencias</b>.</p>`;
+      <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'hecho' && m.fecha ? ' · cumplido el ' + fechaCorta(m.fecha) : ''}${m && m.nota ? ' · ' + esc(m.nota) : ''}</span>${e !== 'no_aplica' ? eviDelAcuerdo(x, cct) : ''}</span>${chipEstado(x, e)}</div>`; }).join('')}</div></details>`; }).join('')}
+  <p class="peq mudo">La Supervisión y su ATP palomean los compromisos al revisar sus evidencias. Los que piden evidencia traen su botón <b>Subir evidencia</b>, que la guarda directo en la carpeta que corresponde; las demás se suben en la pestaña <b>Evidencias</b>.</p>`;
   $('#b-recargar').onclick = cargar;
+  $$('[data-subir-acu]').forEach(b => b.onclick = () => formSubir(cct, b.dataset.subirAcu));
   enlazarInformeDir(cct, vMiEscuela);
 }
 
@@ -2969,11 +2977,27 @@ function recibirReunion(res) {
 function formReunion(id, base) {
   const r = id ? S.reu.find(x => x.id === id) : Object.assign({ titulo: '', tipo: 'reunion', fecha: hoy(), horario: '', lugar: '', descripcion: '' }, base && base.reunion || {});
   const acs = id ? acuerdosReu(id) : (base && base.acuerdos || []);
-  const filaAc = x => `<div class="acu-ed" data-id="${esc(x.id || '')}">
+  /* «Requiere evidencia»: el acuerdo queda ligado a una carpeta del Drive de cada escuela (existente o nueva).
+     La carpeta nueva se crea dentro de la carpeta de evidencias del ciclo, así aparece sola como rubro con su semáforo. */
+  const puedeEvi = !!S.evi && (S.version >= 28 || (cfg && cfg.demo));
+  const rutasEvi = [...new Map((S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta) && !/^01-expedientes/i.test(e.ruta)).map(e => [normRuta(e.ruta), e.ruta])).values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  const dentroEvi = rutasEvi.filter(x => !x.includes('/') && /^evidencias/.test(clave(x))).sort((a, b) => b.localeCompare(a, 'es', { numeric: true }))[0] || '';
+  const nomSug = x => ('Acuerdo ' + (x.numero || '') + ' ' + fechaCorta(r.fecha || hoy()).replace(/ \d{4}$/, '') + ' - ' + String(x.texto || '').split(/\s+/).slice(0, 5).join(' ')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  function filaEvi(x) {
+    if (!puedeEvi) return '';
+    const v = x.evidencia, on = !!v || x.requiereEvidencia === true;
+    const existe = typeof v === 'string' && rutasEvi.find(y => normRuta(y) === normRuta(v));
+    const nombreNuevo = typeof v === 'string' && v && !existe ? String(v).split('/').pop() : '';
+    return `<div class="acu-evi"><label class="casilla"><input type="checkbox" data-evi-on ${on ? 'checked' : ''}> 📁 Requiere evidencia</label>
+      <select data-evi-sel aria-label="Carpeta de la evidencia" ${on ? '' : 'hidden'}><option value="__nueva" ${existe ? '' : 'selected'}>Carpeta nueva para este acuerdo${dentroEvi ? ' (dentro de ' + esc(sinNum(dentroEvi)) + ')' : ''}</option>${rutasEvi.map(y => `<option value="${esc(y)}" ${existe === y ? 'selected' : ''}>${esc(y.replace(/\//g, ' › '))}</option>`).join('')}</select>
+      <input data-evi-nom aria-label="Nombre de la carpeta nueva" placeholder="Nombre de la carpeta" value="${esc(nombreNuevo)}" ${on && !existe ? '' : 'hidden'}></div>`;
+  }
+  const filaAc = x => `<div class="acu-ed" data-id="${esc(x.id || '')}" data-esc="${esc(JSON.stringify(x.escuelas || []))}">
     <div class="fila" style="grid-template-columns:90px 1fr 36px"><input aria-label="Número" placeholder="No." value="${esc(x.numero || '')}" data-k="numero"><input aria-label="Sección" placeholder="Sección (opcional)" value="${esc(x.seccion || '')}" data-k="seccion" list="l-secc"><button type="button" class="icono-btn" data-quitar aria-label="Quitar acuerdo">${ico('i-x')}</button></div>
     <textarea aria-label="Acuerdo" placeholder="Acuerdo o acción a implementar" data-k="texto">${esc(x.texto || '')}</textarea>
     <div class="fila"><input aria-label="Responsable" placeholder="Responsable" value="${esc(x.responsable || '')}" data-k="responsable"><input type="date" aria-label="Fecha límite" value="${x.limite || ''}" data-k="limite"><input aria-label="Plazo como se escribió" placeholder="Plazo (ej. Permanente)" value="${esc(x.plazo || '')}" data-k="plazo"></div>
-    <input aria-label="Evidencia u observaciones" placeholder="Evidencia u observaciones (opcional)" value="${esc(x.nota || '')}" data-k="nota"></div>`;
+    <input aria-label="Evidencia u observaciones" placeholder="Evidencia u observaciones (opcional)" value="${esc(x.nota || '')}" data-k="nota">
+    ${filaEvi(x)}</div>`;
   const cuerpo = `
   <div class="campo"><label for="r-tit">Nombre de la reunión</label><input id="r-tit" value="${esc(r.titulo)}" placeholder="Ej. Segunda Sesión Ordinaria del CTZ"></div>
   <div class="fila">
@@ -2988,9 +3012,21 @@ function formReunion(id, base) {
     <datalist id="l-secc">${[...new Set((S.acu || []).map(x => x.seccion).filter(Boolean))].map(s => `<option value="${esc(s)}">`).join('')}</datalist>
     <div><button type="button" class="boton sec chico" id="r-mas">${ico('i-mas')}Agregar acuerdo</button></div>
   </div>
+  ${puedeEvi ? '<div class="ayuda">📁 <b>Requiere evidencia</b>: el acuerdo lleva un botón «Subir evidencia» para la dirección, que guarda los archivos en esa carpeta de cada escuela, y la carpeta aparece en Evidencias con su semáforo. La carpeta nueva se crea al guardar.</div>' : S.evi ? '<div class="ayuda">Para marcar qué acuerdos requieren evidencia, actualice el servidor a la versión 28.</div>' : ''}
   ${id ? '<div class="ayuda">Si quita un acuerdo, deja de contar en el avance (sus palomeos se conservan en la hoja de datos).</div>' : ''}`;
   modal(id ? 'Editar reunión' : 'Nueva reunión', cuerpo, `${id ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar reunión</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
-  const quitar = () => $$('#r-acs [data-quitar]').forEach(b => b.onclick = () => b.closest('.acu-ed').remove());
+  const quitar = () => {
+    $$('#r-acs [data-quitar]').forEach(b => b.onclick = () => b.closest('.acu-ed').remove());
+    $$('#r-acs .acu-ed').forEach(f => {
+      const on = f.querySelector('[data-evi-on]'); if (!on) return;
+      const sel = f.querySelector('[data-evi-sel]'), nom = f.querySelector('[data-evi-nom]');
+      const ajustar = () => {
+        sel.hidden = !on.checked; nom.hidden = !on.checked || sel.value !== '__nueva';
+        if (!nom.hidden && !nom.value.trim()) nom.value = nomSug({ numero: f.querySelector('[data-k=numero]').value, texto: f.querySelector('[data-k=texto]').value });
+      };
+      on.onchange = ajustar; sel.onchange = ajustar; ajustar();
+    });
+  };
   quitar();
   if (!acs.length) { $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: '1' })); quitar(); }
   $('#r-mas').onclick = () => { const prev = $$('#r-acs .acu-ed').pop(); $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: String($$('#r-acs .acu-ed').length + 1), seccion: prev ? prev.querySelector('[data-k=seccion]').value : '' })); quitar(); $$('#r-acs textarea').pop().focus(); };
@@ -2999,10 +3035,22 @@ function formReunion(id, base) {
     if (!confirm('¿Quitar «' + r.titulo + '» y todos sus acuerdos del checklist? Los datos se conservan en la hoja de cálculo.')) return;
     accion('eliminarReunion', { id }, () => { S.reu = S.reu.filter(x => x.id !== id); S.acu = S.acu.filter(x => x.reunionId !== id); cerrarModal(); vista.acuReu = ''; pintar(); aviso('Reunión quitada.', 'ok', 2500); });
   };
-  $('#r-guardar').onclick = () => {
+  $('#r-guardar').onclick = async () => {
     const d = {
       reunion: { id: id || (base && base.reunion && base.reunion.id) || '', titulo: $('#r-tit').value.trim(), tipo: $('#r-tipo').value, fecha: $('#r-fecha').value, horario: $('#r-hor').value.trim(), lugar: $('#r-lugar').value.trim(), descripcion: $('#r-desc').value.trim() },
-      acuerdos: $$('#r-acs .acu-ed').map(f => { const o = { id: f.dataset.id || undefined }; $$('[data-k]', f).forEach(i => o[i.dataset.k] = i.value.trim()); return o; }).filter(x => x.texto),
+      acuerdos: $$('#r-acs .acu-ed').map(f => {
+        const o = { id: f.dataset.id || undefined, escuelas: JSON.parse(f.dataset.esc || '[]'), evidencia: '' };
+        $$('[data-k]', f).forEach(i => o[i.dataset.k] = i.value.trim());
+        const on = f.querySelector('[data-evi-on]');
+        if (on && on.checked) {
+          const sel = f.querySelector('[data-evi-sel]').value;
+          if (sel === '__nueva') o._nueva = f.querySelector('[data-evi-nom]').value.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || nomSug(o);
+          else o.evidencia = sel;
+        } else if (!on) {   // servidor sin la versión nueva: se conserva lo que ya tenía
+          const prev = (S.acu || []).find(y => y.id === o.id); o.evidencia = prev && prev.evidencia || '';
+        }
+        return o;
+      }).filter(x => x.texto),
       actividades: (base && base.actividades || [])
     };
     if (!d.reunion.titulo) return aviso('Escriba el nombre de la reunión.', 'mal');
@@ -3010,6 +3058,15 @@ function formReunion(id, base) {
     if (!d.acuerdos.length) return aviso('Agregue al menos un acuerdo.', 'mal');
     const todas = directores();
     d.actividades.forEach(a => { a.escuelas = a.escuelas || todas.map(c => c.cct); a.destinatarios = a.escuelas.map(c => (escuelaDe(c) || {}).id).filter(Boolean); a.responsables = [S.yo.id]; });
+    // primero se crean las carpetas nuevas en las escuelas a las que aplica cada acuerdo
+    const nuevas = d.acuerdos.filter(x => x._nueva);
+    for (const x of nuevas) {
+      const ccts = todas.map(c => c.cct).filter(c => aplicaA(x, c));
+      const ok = await accion('crearCarpeta', { nombre: x._nueva, dentro: dentroEvi, ccts }, res => { S.evi = res.evi; });
+      if (!ok) return;
+      x.evidencia = dentroEvi ? dentroEvi + '/' + x._nueva : x._nueva;
+      delete x._nueva;
+    }
     accion('guardarReunion', d, res => { recibirReunion(res); cerrarModal(); vista.acuReu = ''; vista.acuEsc = null; pintar(); setTimeout(() => { const t = document.getElementById('r-' + res.reunion.id); if (t) t.scrollIntoView({ block: 'start' }); }, 50); aviso('Reunión guardada con ' + res.acuerdos.length + ' acuerdos.', 'ok', 3000); });
   };
 }
@@ -3084,8 +3141,25 @@ const fechaHora = f => /^\d{4}-\d{2}-\d{2}/.test(f || '') ? fechaCorta(f.slice(0
 // Evidencia en Drive ligada a un acuerdo del checklist
 function eviAcuerdo(acuId, cct) {
   let mejor = null;
-  LIGAS_EVI.filter(c => (c.acu || []).includes(acuId)).forEach(c => { const e = eviDe(cct, c.ruta); if (nArch(e) && (!mejor || e.ultimo > mejor.e.ultimo)) mejor = { c: Object.assign({ corto: sinNum(c.ruta.split('/').pop()) }, c), e }; });
+  ligasEvi().filter(c => (c.acu || []).includes(acuId)).forEach(c => { const e = eviDe(cct, c.ruta); if (nArch(e) && (!mejor || e.ultimo > mejor.e.ultimo)) mejor = { c: Object.assign({ corto: sinNum(c.ruta.split('/').pop()) }, c), e }; });
   return mejor;
+}
+/* Carpetas ligadas: las fijas de la 050 más las que la Supervisión liga a cada acuerdo («Requiere evidencia») */
+function ligasEvi() {
+  return LIGAS_EVI.concat((S.acu || []).filter(x => x.evidencia).map(x => ({ ruta: x.evidencia, acu: [x.id] })));
+}
+// Acuerdos que piden su evidencia en esa carpeta (para rotular la carpeta en Evidencias)
+const acuerdosDeCarpeta = (ruta, cct) => (S.acu || []).filter(x => x.evidencia && normRuta(x.evidencia) === normRuta(ruta) && (!cct || aplicaA(x, cct)));
+/* Bloque «Subir evidencia» junto al acuerdo: semáforo de la carpeta, observación y botón que abre la carpeta correcta */
+function eviDelAcuerdo(x, cct, revisar) {
+  if (!x.evidencia || !S.evi) return '';
+  const e = eviDe(cct, x.evidencia), r = e ? eveDe(cct, x.evidencia) : null, n = nArch(e);
+  const corto = sinNum(String(x.evidencia).split('/').pop());
+  return `<div class="evi-acu">${chipSem(r)}${e ? `${!r ? (n ? `<span class="chip ok">📎 ${n} en Drive</span>` : '<span class="chip">Sin archivos</span>') : ''}
+    <button type="button" class="boton sec chico" data-subir-acu="${e.carpetaId}" title="Carpeta ${esc(corto)}">${ico('i-mas')}Subir evidencia</button>
+    ${revisar && eviPuedeRevisar() ? `<button type="button" class="boton sec chico" data-rev-acu="${esc(x.evidencia)}">Semáforo</button>` : ''}`
+    : '<span class="chip">Carpeta de evidencia sin crear</span>'}
+    ${r && r.nota && r.estado !== 'cumple' ? `<div class="sem-obs" style="flex-basis:100%"><b>Observación:</b> ${esc(r.nota)}</div>` : ''}</div>`;
 }
 const chipEvi = (acuId, cct) => { const m = eviAcuerdo(acuId, cct); return m ? `<a class="chip ok" target="_blank" rel="noopener" href="${urlCarpeta(m.e.carpetaId)}" title="Abrir la carpeta ${esc(m.c.corto)} en Drive">📎 ${nArch(m.e)} en Drive · ${fechaCorta(m.e.ultimo.slice(0, 10))}</a>` : ''; };
 /* Semáforo de revisión (Supervisión y ATP): verde = cumple, amarillo = incompleto (con observación para la escuela), rojo = sin evidencia.
@@ -3163,7 +3237,7 @@ function vEvidencias() {
         <td class="pct">${a.pct}%</td></tr>`; }).join('')}</tbody></table></div>
   </div>
   <div class="tarjeta"><div class="seccion-t">Lo que se subió en las últimas dos semanas</div>
-    ${recientes.length ? `<div class="lista-act">${recientes.map(a => { const c = LIGAS_EVI.find(x => normRuta(a.ruta).startsWith(normRuta(x.ruta))); return `<div class="nov">
+    ${recientes.length ? `<div class="lista-act">${recientes.map(a => { const c = ligasEvi().find(x => normRuta(a.ruta).startsWith(normRuta(x.ruta))); return `<div class="nov">
       <div class="nov-f"><b>${deIso(a.f.slice(0, 10)).getDate()}</b><span>${MESES[deIso(a.f.slice(0, 10)).getMonth()].slice(0, 3)}</span></div>
       <div style="min-width:0;flex:1"><div class="t">${a.n ? (a.id ? `<a target="_blank" rel="noopener" href="${urlArchivo(a.id)}">${esc(a.n)}</a>` : esc(a.n)) : '<span class="mudo">Archivo de expediente (nombre reservado)</span>'}</div>
         <div class="peq mudo">${esc(nombreEscuela(a.cct))} · ${esc(a.ruta.split('/').slice(-2).join(' › '))}${a.p ? ' · subió ' + esc(quienSubio(a.p)) : ''} · ${a.f.slice(11, 16)} h</div></div>
@@ -3255,7 +3329,7 @@ function vEviDirector() {
   <div class="tarjeta"><div class="seccion-t">Carpetas de su escuela</div>
     <p class="peq mudo" style="margin:-4px 14px 8px">Su ATP y la Supervisión revisan cada carpeta: 🟢 cumple, 🟡 incompleta (lea la observación de lo que falta) o 🔴 sin evidencia. Al subir lo que falta, vuelven a revisarla.</p>
     <div class="checklist sin-borde">${filas.map(e => { const nivel = e.ruta ? e.ruta.split('/').length - 1 : 0, n = nArch(e), r = e.ruta ? eveDe(cct, e.ruta) : null; return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap;padding-left:${12 + nivel * 18}px">
-      <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${e.ruta ? esc(e.ruta.split('/').pop()) : '<b>Carpeta principal</b>'}</span>
+      <span style="flex:1;min-width:0">${nivel ? '└ ' : ''}${e.ruta ? esc(e.ruta.split('/').pop()) : '<b>Carpeta principal</b>'}${e.ruta ? acuerdosDeCarpeta(e.ruta, cct).map(x => ` <span class="chip indigo" title="${esc(x.texto)}">Acuerdo ${esc(x.numero)}</span>`).join('') : ''}</span>
       ${chipSem(r)}
       ${e.ruta ? (n ? `<span class="chip ok">${n} · ${fechaCorta(e.ultimo.slice(0, 10))}</span>` : '<span class="chip">vacía</span>') : ''}
       <button class="boton sec chico" data-subir="${e.carpetaId}">Subir aquí</button>
