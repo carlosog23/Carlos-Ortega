@@ -2087,6 +2087,7 @@ function lfAuto(v){const org=lfOrg(v),n=parseInt(v.personas,10);v.aviso="";
   v.tercios=false;if(org==="multi")v.aviso="Con este personal no caben tres días por hoja: el libro será de un día por hoja.";
   if(v.orient==="horizontal"&&r>14){v.orient="vertical";v.aviso=(v.aviso?v.aviso+" ":"")+"En horizontal caben hasta 14 renglones; se cambió a vertical."}
   if(v.orient==="horizontal")v.filasH=Math.max(6,r);else{v.filas=Math.min(24,Math.max(8,r));if(r>24)v.aviso=(v.aviso?v.aviso+" ":"")+"La hoja vertical admite hasta 24 renglones."}}
+function lfSup(v){if(v.supnom==null)v.supnom=String(v.zona||"").trim()===ZONA_NUM?SUP_NOMBRE:"";return v.supnom}
 function lfMun(v){if(v.mun==null){const i=v.sel!==""&&v.sel!=="otra"?+v.sel:-1;v.mun=i>=0&&ESCUELAS_050[i]?ESCUELAS_050[i][2]:(perfil.municipio||"")}return v.mun}
 async function cargarCal(){if(CAL)return CAL;try{const r=await fetch("formatos/calendario.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;CAL=await r.json();store.set("cal-cache",CAL)}catch(e){CAL=store.get("cal-cache",null)}return CAL}
 const DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
@@ -2095,7 +2096,7 @@ const dOf=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const fechaLarga=s=>{const d=dOf(s);return`${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`};
 const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`};
 function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
-function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.mun=e[2];o.org=LF_MULTI.includes(e[1])?"multi":"completa";o.firma=lfFirmaDe(i);o.dirnom=""}
+function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.mun=e[2];o.org=LF_MULTI.includes(e[1])?"multi":"completa";o.supnom=SUP_NOMBRE;o.firma=lfFirmaDe(i);o.dirnom=""}
 function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
   const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",mun:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,orient:"vertical",tercios:false,filasH:10,filas3:5,
     portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
@@ -2223,7 +2224,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     const ly=bot-sz*(nom?3.3:2.3);const sm=Math.max(6,(ly-t)*0.55);if(!wm&&ly-t>sz*2.2)ctrP(pg,ph,"SELLO",(t+ly)/2+sm*0.18,Math.min(sm,14),F.b,cx,mw,C.gray);
     pg.drawLine({start:{x:x0+8,y:ph-ly},end:{x:x1-8,y:ph-ly},thickness:0.7,color:C.ink});
     if(nom)ctrP(pg,ph,nom,ly+sz*1.15,sz*0.95,F.r,cx,mw);ctrP(pg,ph,cargo,bot-sz*0.7,sz*0.9,F.b,cx,mw)};
-  const wmZ=es050?zona:null;const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
+  const wmZ=es050?zona:null;const supNom=clean(String(lfSup(v)||"").trim());const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
   /* Hojas diarias */
   const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre y","apellidos"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
   const hT=186,hB=220,bT=220,bB=548,fl=+v.filas||19,rh=(bB-bT)/fl;
@@ -2245,7 +2246,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro){pg.drawRectangle({x:X[0],y:Y(fB),width:168,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctr(pg,"Fechas importantes",fT+11,7.5,F.b,C.mid,X[0]+84,160);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],156,9);L.slice(0,9).forEach((ln,i)=>ctr(pg,ln.map(w=>w.w).join(" "),fT+28+i*11,9,F.b,C.ink,X[0]+84,156))}bx=X[0]+176}
     const bw=(X[7]-bx-8)/2;sf(pg,PH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo());
-    sf(pg,PH,bx+bw+8,X[7],fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8,wmZ)};
+    sf(pg,PH,bx+bw+8,X[7],fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)",supNom,supCargo,8,wmZ)};
   /* tabla genérica: columnas proporcionales a la hoja vertical original */
   const XR=X.map(x=>(x-X[0])/(X[7]-X[0]));
   const tabla=(pg,ph,x0,x1,hT,hB,bB,fl,sz=8,nsz=9)=>{const XX=XR.map(r=>x0+r*(x1-x0)),YY=t=>ph-t,rh=(bB-hB)/fl;
@@ -2275,7 +2276,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro){pg.drawRectangle({x:40,y:LH-fB,width:236,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctrP(pg,LH,"Fechas importantes",fT+11,7.5,F.b,158,228,C.mid);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],222,9.5);L.slice(0,8).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),fT+28+i*11.5,9.5,F.b,158,222))}bx=286}
     const bw=(LW-40-bx-10)/2;sf(pg,LH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo(),8.5);
-    sf(pg,LH,bx+bw+10,LW-40,fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8.5,wmZ)};
+    sf(pg,LH,bx+bw+10,LW-40,fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)",supNom,supCargo,8.5,wmZ)};
   /* tres días por hoja (escuelas multigrado) */
   const fl3=Math.max(3,+v.filas3||5);
   const tercio=(pg,ph,pw,d,top,h)=>{const M=34,x0=M,x1=pw-M,W=x1-x0;
@@ -2288,7 +2289,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro&&d&&d.ev)txt(pg,ph,clean(d.ev),x0+2,fy+12,7.4,F.b,C.gu,tx1-x0-4);else pg.drawLine({start:{x:x0+2,y:ph-fy-12},end:{x:tx1,y:ph-fy-12},thickness:0.5,color:C.ink});
     const bx=tx1+8,bt=hT,bb=top+h-2,bm=(bt+bb)/2;
     sf(pg,ph,bx,x1,bt,bm-3,"Sello y firma del Director(a)","",dirNom(),dirCargo(),7);
-    sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)","",supCargo,7,wmZ)};
+    sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)",supNom,supCargo,7,wmZ)};
   const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=22,hh=(ph-54)/3;
     ds.forEach((d,i)=>{tercio(pg,ph,pw,d,top0+i*hh,hh-6);if(i<2){const yy=ph-(top0+(i+1)*hh-3);for(let x=20;x<pw-20;x+=9)pg.drawLine({start:{x,y:yy},end:{x:x+4.5,y:yy},thickness:0.5,color:C.gray})}})};
   let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
@@ -2339,7 +2340,8 @@ async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaVie
     <div class="field"><label for="lf_lugar">Lugar (va antes de la fecha)</label><p class="help">Ejemplo: «${esc(v.lugar||"Camalú, San Quintín, Baja California")} a lunes, 24 de agosto de 2026».</p><input type="text" id="lf_lugar" value="${esc(v.lugar)}" autocomplete="off"></div>
     <div class="row2"><div class="field"><label for="lf_firma">Firma de abajo</label><input type="text" id="lf_firma" value="${esc(v.firma)}" autocomplete="off"></div>
      <div class="field"><label for="lf_dirnom">Nombre sobre la firma <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="lf_dirnom" value="${esc(v.dirnom)}" autocomplete="off"></div></div>
-    <div class="chips">${["Director del plantel","Directora del plantel","Encargado de despacho","Encargada de despacho"].map(c=>`<button type="button" class="chip" data-firma="${esc(c)}">${esc(c)}</button>`).join("")}</div></section>
+    <div class="chips">${["Director del plantel","Directora del plantel","Encargado de despacho","Encargada de despacho"].map(c=>`<button type="button" class="chip" data-firma="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="field" style="margin-top:12px"><label for="lf_supnom">Nombre de la o el Supervisor <span class="muted" style="font-weight:400">(va en el recuadro de la Supervisión)</span></label><input type="text" id="lf_supnom" value="${esc(lfSup(v))}" autocomplete="off"></div></section>
    ${logoWidgetHTML()}
    ${CAL?`<section class="card"><h3>Calendario oficial ${esc(CAL.ciclo)}</h3>
     <p class="help">Calendario escolar de ${esc(CAL.entidad)} cargado por la Supervisión Escolar Zona 050. Del ${fechaLarga(CAL.inicio)} al ${fechaLarga(CAL.fin)}; no se incluyen sábados, domingos ni vacaciones.</p>
@@ -2375,7 +2377,7 @@ async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaVie
     <div id="msg"></div></section>
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
-  const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.mun=g("lf_mun").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;
+  const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.mun=g("lf_mun").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;v.supnom=g("lf_supnom").value;
     v.desde=g("lf_desde").value===CAL?.inicio?"":g("lf_desde").value;v.hasta=g("lf_hasta").value===CAL?.fin?"":g("lf_hasta").value;if(v.tercios)v.filas3=+g("lf_filas").value;else if(v.orient==="horizontal")v.filasH=+g("lf_filas").value;else v.filas=+g("lf_filas").value;v.blancas=g("lf_blancas").value;
     v.portada=g("lf_portada").checked;v.normas=g("lf_normas").checked;v.recuadro=g("lf_recuadro").checked;v.susp=g("lf_susp").checked;store.set(LF_KEY,v);OUT=null;resumen()};
   const resumen=()=>{const p=lfProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
@@ -2388,7 +2390,7 @@ async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaVie
   app.querySelectorAll(".lf_org").forEach(b=>b.onclick=()=>{leer();v.org=b.dataset.o;lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
   g("lf_pers").addEventListener("change",()=>{leer();v.personas=g("lf_pers").value;lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
   app.querySelectorAll(".lf_or").forEach(b=>b.onclick=()=>{leer();v.orient=b.dataset.o;if(v.personas)lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
-  g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.mun="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);lfAuto(v);store.set(LF_KEY,v);lfView()};
+  g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.mun="";v.supnom="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);lfAuto(v);store.set(LF_KEY,v);lfView()};
   const reRender=()=>{store.set(LF_KEY,v);const open=app.querySelector("details")?.open;const y=window.scrollY;lfView().then(()=>{const d=app.querySelector("details");if(d)d.open=open;window.scrollTo(0,y)})};
   app.querySelectorAll("[data-ev]").forEach(i=>i.addEventListener("change",()=>{const k=i.dataset.ev,t=i.value.trim();const of=(()=>{const s=v.ed;v.ed={};const o=lfEventos()[k]||"";v.ed=s;return o})();if(t===of)delete v.ed[k];else v.ed[k]=t;reRender()}));
   app.querySelectorAll("[data-evdel]").forEach(b=>b.onclick=()=>{v.ed[b.dataset.evdel]="";reRender()});
