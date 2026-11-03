@@ -468,7 +468,8 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 
 .pen-intro{margin:-4px 0 14px;max-width:72ch;color:var(--gris)}
 .pen-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
-.per-cifras{grid-template-columns:repeat(5,minmax(0,1fr))}
+.per-cifras{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:900px){.per-cifras{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:760px){.pen-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .pen-cifra{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:10px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
 .pen-cifra b{font-family:'Fraunces',serif;font-size:30px;line-height:1.05;color:var(--gris);font-variant-numeric:tabular-nums}
@@ -3490,22 +3491,22 @@ function vPersonal() {
     if (!S.trbError) perCargar().then(() => { if (vista.tab === 'personal') vPersonal(); });
     return;
   }
-  const f = vista.perF || (vista.perF = { modo: esDirector() ? 'escuela' : 'escuela', cct: '', mun: '', org: '', turno: '', est: 'activos', doble: false, sinClave: false, q: '' });
+  const f = vista.perF || (vista.perF = { modo: esDirector() ? 'escuela' : 'escuela', cct: '', mun: '', org: '', turno: '', est: 'activos', doble: false, sinClave: false, inc: false, q: '' });
   const centros = perCentros().filter(c => !esDirector() || c.cct === miCct());
   const q = f.q.trim().toLowerCase();
   const enCentro = (t, c) => (t.plazas || []).some(p => p.cct === c.cct && (t.estado === 'baja' || p.activa !== false));
   const pasaCentro = c => (!f.cct || c.cct === f.cct) && (!f.mun || c.municipio === f.mun) && (!f.org || (f.org === 'multi' ? c.multigrado : f.org === 'completa' ? !c.multigrado && !c.sup : !!c.sup)) && (!f.turno || c.turno === f.turno);
   const pasaEst = t => f.est === 'todos' || (f.est === 'activos' ? t.estado !== 'baja' : f.est === 'bajas' ? t.estado === 'baja' : f.est === 'interinos' ? perInterino(t) : true);
-  const pasa = t => pasaEst(t) && (!f.doble || perDoble(t)) && (!f.sinClave || perSinClave(t)) && (!q || (perNombre(t) + ' ' + t.curp + ' ' + t.rfc + ' ' + (t.plazas || []).map(p => p.funcion + ' ' + p.clave).join(' ')).toLowerCase().includes(q));
+  const pasa = t => pasaEst(t) && (!f.doble || perDoble(t)) && (!f.sinClave || perSinClave(t)) && (!f.inc || perObservaciones(t).length > 0) && (!q || (perNombre(t) + ' ' + t.curp + ' ' + t.rfc + ' ' + (t.plazas || []).map(p => p.funcion + ' ' + p.clave).join(' ')).toLowerCase().includes(q));
   const vis = centros.filter(pasaCentro);
   const lista = S.trb.filter(t => vis.some(c => enCentro(t, c)) || (!(t.plazas || []).length && !f.cct && !esDirector())).filter(pasa).sort((a, b) => perNombre(a).localeCompare(perNombre(b), 'es'));
   const act = S.trb.filter(t => t.estado !== 'baja' && (!esDirector() || enCentro(t, { cct: miCct() })));
-  const cif = [[act.length, 'activos', 'indigo', 'activos'], [act.filter(perDoble).length, 'doble plaza', 'morado', 'doble'], [act.filter(perSinClave).length, 'sin clave de plaza', 'aviso', 'sinclave'], [act.filter(perInterino).length, 'interinos' + (act.filter(perVencido).length ? ' · ' + act.filter(perVencido).length + ' vencido' + (act.filter(perVencido).length === 1 ? '' : 's') : ''), 'aviso', 'interinos'], [S.trb.filter(t => t.estado === 'baja' && (!esDirector() || enCentro(t, { cct: miCct() }))).length, 'bajas', '', 'bajas']];
+  const cif = [[act.length, 'activos', 'indigo', 'activos'], [act.filter(perDoble).length, 'doble plaza', 'morado', 'doble'], [act.filter(perSinClave).length, 'sin clave de plaza', 'aviso', 'sinclave'], [act.filter(t => perObservaciones(t).length).length, 'con inconsistencias', 'mal', 'inc'], [act.filter(perInterino).length, 'interinos' + (act.filter(perVencido).length ? ' · ' + act.filter(perVencido).length + ' vencido' + (act.filter(perVencido).length === 1 ? '' : 's') : ''), 'aviso', 'interinos'], [S.trb.filter(t => t.estado === 'baja' && (!esDirector() || enCentro(t, { cct: miCct() }))).length, 'bajas', '', 'bajas']];
   const fila = (t, c) => {
     const pl = perActivas(t), doble = perDoble(t), aqui = c ? (t.plazas || []).filter(p => p.cct === c.cct) : pl;
     const otras = c ? pl.filter(p => p.cct !== c.cct || aqui.indexOf(p) < 0) : [];
     return `<tr class="${doble ? 'per-doble' : ''}${t.estado === 'baja' ? ' per-baja' : ''}">
-      <th class="esc-col"><button class="enlace per-nom" data-trb="${esc(t.id)}">${esc(perNombre(t))}</button>${doble ? '<span class="chip morado">Doble plaza</span>' : ''}${t.revisar ? ' <span class="chip aviso" title="' + esc(t.revisar) + '">Revisar</span>' : ''}</th>
+      <th class="esc-col"><button class="enlace per-nom" data-trb="${esc(t.id)}">${esc(perNombre(t))}</button>${doble ? '<span class="chip morado">Doble plaza</span>' : ''}${(() => { const o = t.estado !== 'baja' && perPuede() ? perObservaciones(t) : []; return o.length ? ` <button class="chip mal" data-pcor="${esc(t.id)}" title="${esc(o.join(' · '))}" style="border:0;cursor:pointer">⚠ ${o.length} · Corregir</button>` : ''; })()}</th>
       <td>${c ? (aqui.length ? aqui : pl).map(p => esc(p.funcion || '—') + (p.grupo ? ' <span class="mudo">· ' + esc(p.grupo) + '</span>' : '')).join('<br>') : pl.map(p => esc(p.funcion || '—')).join('<br>') || '—'}</td>
       ${c ? '' : `<td style="text-align:left">${pl.map(p => esc(perCentro(p.cct).escuela)).join('<br>') || '—'}</td>`}
       <td>${(c ? (aqui.length ? aqui : pl) : pl).map(p => esc(p.turno || '—')).join('<br>') || '—'}</td>
@@ -3528,7 +3529,7 @@ function vPersonal() {
   <div class="titulo-vista"><h1>${esDirector() ? 'Personal de su escuela' : 'Personal de la zona'}</h1>
     <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-inc">${ico('i-graf')}Informe de inconsistencias</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
   <div class="aviso-caja peq">Datos personales confidenciales. ${esDirector() ? 'Usted ve solo al personal de su escuela.' : 'La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.'} Úselos solo para trámites de la zona y no los comparta.</div>
-  <div class="pen-cifras per-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) || (c[3] === 'sinclave' && f.sinClave) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
+  <div class="pen-cifras per-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) || (c[3] === 'sinclave' && f.sinClave) || (c[3] === 'inc' && f.inc) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
   <div class="filtros">
     ${esDirector() ? '' : `<select id="pf-modo" aria-label="Ver"><option value="escuela">Por escuela</option><option value="zona">Lista de toda la zona</option></select>
     <select id="pf-cct" aria-label="Centro de trabajo"><option value="">Todos los centros</option>${perCentros().map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select>
@@ -3538,6 +3539,7 @@ function vPersonal() {
     <select id="pf-est" aria-label="Situación"><option value="activos">Activos</option><option value="interinos">Interinos</option><option value="bajas">Bajas</option><option value="todos">Todos</option></select>
     <label class="casilla" style="margin:0"><input type="checkbox" id="pf-doble" ${f.doble ? 'checked' : ''}> Solo doble plaza</label>
     <label class="casilla" style="margin:0"><input type="checkbox" id="pf-sinc" ${f.sinClave ? 'checked' : ''}> Solo sin clave</label>
+    <label class="casilla" style="margin:0"><input type="checkbox" id="pf-inc" ${f.inc ? 'checked' : ''}> Solo con inconsistencias</label>
     <input id="pf-q" type="search" placeholder="Buscar por nombre, CURP, RFC o función" value="${esc(f.q)}" style="flex:1;min-width:220px">
   </div>
   ${cuerpo}
@@ -3548,8 +3550,10 @@ function vPersonal() {
   [['#pf-modo', 'modo'], ['#pf-cct', 'cct'], ['#pf-mun', 'mun'], ['#pf-org', 'org'], ['#pf-turno', 'turno'], ['#pf-est', 'est']].forEach(([id, k]) => { if ($(id)) $(id).onchange = e => { f[k] = e.target.value; re(); }; });
   $('#pf-doble').onchange = e => { f.doble = e.target.checked; re(); };
   $('#pf-sinc').onchange = e => { f.sinClave = e.target.checked; re(); };
+  $('#pf-inc').onchange = e => { f.inc = e.target.checked; re(); };
+  $$('[data-pcor]').forEach(b => b.onclick = () => { const t = S.trb.find(x => x.id === b.dataset.pcor); if (t) perForm(t, () => vPersonal()); });
   let tq; $('#pf-q').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { f.q = e.target.value; re(); const i = $('#pf-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 300); };
-  $$('[data-pcif]').forEach(b => b.onclick = () => { const k = b.dataset.pcif; if (k === 'doble') { f.doble = !f.doble; f.est = 'activos'; } else if (k === 'sinclave') { f.sinClave = !f.sinClave; f.est = 'activos'; } else { f.est = f.est === k && k !== 'activos' ? 'activos' : k; f.doble = false; } re(); });
+  $$('[data-pcif]').forEach(b => b.onclick = () => { const k = b.dataset.pcif; if (k === 'doble') { f.doble = !f.doble; f.est = 'activos'; } else if (k === 'sinclave') { f.sinClave = !f.sinClave; f.est = 'activos'; } else if (k === 'inc') { f.inc = !f.inc; f.est = 'activos'; } else { f.est = f.est === k && k !== 'activos' ? 'activos' : k; f.doble = false; } re(); });
   $$('[data-trb]').forEach(b => b.onclick = () => perFicha(b.dataset.trb));
   $('#pe-xls').onclick = () => perExcel(lista);
   if ($('#pe-alta')) $('#pe-alta').onclick = () => perForm();
@@ -3565,7 +3569,7 @@ function perFicha(id) {
   const pl = (t.plazas || []);
   modal(esc(perNombre(t)), `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${t.estado === 'baja' ? `<span class="chip">Baja · ${fechaCorta(t.fechaBaja)}</span>` : '<span class="chip ok">Activo</span>'}${perDoble(t) ? '<span class="chip morado">Doble plaza</span>' : ''}${perInterino(t) ? `<span class="chip ${perVencido(t) ? 'mal' : 'aviso'}">Interino${perFin(t) ? ' hasta el ' + fechaCorta(perFin(t)) : ''}${perVencido(t) ? ' · vencido' : ''}</span>` : ''}</div>
-    ${t.revisar ? `<div class="aviso-caja peq"><b>Por revisar:</b> ${esc(t.revisar)}</div>` : ''}
+    ${(() => { const o = t.estado !== 'baja' ? perObservaciones(t) : []; return o.length ? `<div class="aviso-caja peq"><b>Inconsistencias (${o.length}):</b><ul style="margin:4px 0 0 18px;padding:0">${o.map(x => '<li>' + esc(x) + '</li>').join('')}</ul>${perPuede() ? '<div style="margin-top:6px">Pulse <b>Editar</b> para corregirlas.</div>' : ''}</div>` : ''; })()}
     ${t.estado === 'baja' ? `<div class="aviso-caja peq"><b>Motivo de la baja:</b> ${esc(t.motivoBaja || '—')}</div>` : ''}
     <div class="seccion-t" style="padding:4px 0">Plazas</div>
     ${pl.length ? `<div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th class="esc-col">Centro</th><th>Función</th><th>Turno</th><th>Clave</th><th>Nombramiento</th><th>Vigencia</th></tr></thead><tbody>${pl.map(p => `<tr class="${p.activa === false ? 'per-baja' : ''}"><th class="esc-col">${esc(perCentro(p.cct).escuela)}<div class="ayuda">${esc(p.cct)}</div></th><td>${esc(p.funcion || '—')}${p.grupo ? '<div class="ayuda">' + esc(p.grupo) + '</div>' : ''}</td><td>${esc(p.turno || '—')}</td><td>${esc(p.clave || '—')}${p.horas ? '<div class="ayuda">' + esc(p.horas) + ' h</div>' : ''}</td><td>${esc(p.nombramiento || '—')}${p.sustituye ? '<div class="ayuda">Cubre a ' + esc(p.sustituye) + '</div>' : ''}</td><td class="peq">${p.desde ? 'Desde ' + fechaCorta(p.desde) : ''}${p.hasta ? '<br>Hasta ' + fechaCorta(p.hasta) : ''}${p.activa === false ? '<br>Inactiva' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="peq mudo">Sin plazas registradas.</p>'}
@@ -3604,7 +3608,7 @@ function perBaja(t) {
 }
 
 /* Alta o edición */
-function perForm(t0) {
+function perForm(t0, volver) {
   const t = JSON.parse(JSON.stringify(t0 || { plazas: [{ cct: '', turno: 'Matutino', funcion: 'Docente frente a grupo', nombramiento: 'Base (definitiva)', activa: true }], tipoAlta: 'definitiva', entidad: 'Baja California' }));
   const cen = perCentros();
   const v = (k, ph, tipo) => `<input id="pf-${k}" ${tipo ? 'type="' + tipo + '"' : ''} value="${esc(t[k] || '')}" ${ph ? 'placeholder="' + esc(ph) + '"' : ''}>`;
@@ -3621,7 +3625,9 @@ function perForm(t0) {
     <div class="campo"><label>Hasta <span class="mudo">(interinos)</span></label><input type="date" data-k="hasta" value="${esc(p.hasta || '')}"></div></div>
     <div class="campo"><label>Cubre a <span class="mudo">(interinos: a quién sustituye)</span></label><input data-k="sustituye" value="${esc(p.sustituye || '')}"></div>
     <label class="casilla" style="margin:0"><input type="checkbox" data-k="activa" ${p.activa !== false ? 'checked' : ''}> Plaza activa</label></div>`;
+  const obsF = t0 ? perObservaciones(t0) : [];
   modal(t0 ? 'Editar trabajador' : 'Alta de trabajador', `
+    ${obsF.length ? `<div class="aviso-caja peq" style="margin-top:0"><b>Por corregir (${obsF.length}):</b><ul style="margin:4px 0 0 18px;padding:0">${obsF.map(x => '<li>' + esc(x) + '</li>').join('')}</ul><div class="mudo" style="margin-top:4px">Complete o corrija los datos abajo. Cuando lo marcado «Por revisar» ya esté resuelto, borre ese texto al final del formulario.</div></div>` : ''}
     <div class="fila dos"><div class="campo"><label for="pf-tipoAlta">Tipo de alta</label><select id="pf-tipoAlta">${Object.entries(PER_NOMB).map(([k, n]) => `<option value="${k}" ${t.tipoAlta === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
     <div class="campo"><label for="pf-fechaAlta">Fecha de alta en la zona</label>${v('fechaAlta', '', 'date')}</div></div>
     <div class="seccion-t" style="padding:6px 0">Datos personales</div>
@@ -3653,7 +3659,7 @@ function perForm(t0) {
   ligar();
   $('#pf-add').onclick = () => { const l = leerPlazas(); l.push({ cct: '', turno: 'Vespertino', funcion: (l[0] || {}).funcion || 'Docente frente a grupo', nombramiento: 'Base (definitiva)', activa: true }); repintar(l); };
   $('#pf-tipoAlta').onchange = e => { if (e.target.value === 'interino') $$('#pf-plazas [data-k="nombramiento"]').forEach(s => { s.value = 'Interino (temporal)'; }); };
-  $('#pf-no').onclick = () => t0 ? perFicha(t0.id) : cerrarModal();
+  $('#pf-no').onclick = () => volver ? (cerrarModal(), volver()) : t0 ? perFicha(t0.id) : cerrarModal();
   $('#pf-si').onclick = () => {
     const d = { id: t.id || '' };
     ['tipoAlta', 'fechaAlta', 'paterno', 'materno', 'nombre', 'curp', 'rfc', 'fechaNac', 'sexo', 'lugarNac', 'estadoCivil', 'hijos', 'hijosGuarderia', 'afiliacion', 'celular', 'telCasa', 'correoInst', 'correoPers', 'calle', 'numero', 'colonia', 'cp', 'municipio', 'entidad', 'fechaIngreso', 'estudios', 'estudiosStatus', 'observaciones', 'revisar'].forEach(k => { d[k] = $('#pf-' + k).value.trim(); });
@@ -3662,7 +3668,8 @@ function perForm(t0) {
     if (d.curp && !/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/i.test(d.curp)) return aviso('La CURP debe tener 18 caracteres con el formato oficial.', 'mal');
     if (!d.plazas.some(p => p.cct)) return aviso('Elija el centro de trabajo de al menos una plaza.', 'mal');
     if (d.tipoAlta === 'interino' && !d.plazas.some(p => p.hasta)) return aviso('En un interino, escriba hasta cuándo es la plaza.', 'mal');
-    accion('personalGuardar', { trabajador: d }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); aviso(t0 ? 'Datos actualizados.' : 'Trabajador dado de alta.', 'ok', 2500); });
+    accion('personalGuardar', { trabajador: d }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); const q = perObservaciones(r.trabajador);
+      aviso(t0 ? 'Datos actualizados.' + (q.length ? ' Le quedan ' + q.length + ' observacion' + (q.length === 1 ? '' : 'es') + '.' : ' Ya no tiene inconsistencias.') : 'Trabajador dado de alta.', 'ok', 3500); });
   };
 }
 
