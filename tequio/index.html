@@ -3526,7 +3526,7 @@ function vPersonal() {
   }
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>${esDirector() ? 'Personal de su escuela' : 'Personal de la zona'}</h1>
-    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button><button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
+    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button><button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-inc">${ico('i-graf')}Informe de inconsistencias</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
   <div class="aviso-caja peq">Datos personales confidenciales. ${esDirector() ? 'Usted ve solo al personal de su escuela.' : 'La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.'} Úselos solo para trámites de la zona y no los comparta.</div>
   <div class="pen-cifras per-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) || (c[3] === 'sinclave' && f.sinClave) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
   <div class="filtros">
@@ -3555,6 +3555,7 @@ function vPersonal() {
   if ($('#pe-alta')) $('#pe-alta').onclick = () => perForm();
   if ($('#pe-imp')) $('#pe-imp').onclick = perImportar;
   if ($('#pe-plant')) $('#pe-plant').onclick = perPlantilla;
+  if ($('#pe-inc')) $('#pe-inc').onclick = perInformeInc;
 }
 
 /* Ficha del trabajador */
@@ -3802,6 +3803,80 @@ function perPlantillaRevisar(d) {
     }
     cerrarModal(); vPersonal();
     aviso('Plantilla aplicada: ' + sel.length + ' trabajador' + (sel.length === 1 ? '' : 'es') + ' actualizado' + (sel.length === 1 ? '' : 's') + '.', 'ok', 5000);
+  };
+}
+
+
+/* ---- Informe de inconsistencias del personal, por centro de trabajo ----
+   Revisa los datos de cada trabajador activo y, si se elige el archivo de la plantilla oficial, lo compara con ella. */
+const CURP_RE = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
+function perObservaciones(t) {
+  const o = [], rfc = String(t.rfc || '').toUpperCase().replace(/\s/g, ''), curp = String(t.curp || '').toUpperCase();
+  if (!curp) o.push('Sin CURP'); else if (!CURP_RE.test(curp)) o.push('CURP con formato incorrecto');
+  if (!rfc) o.push('Sin RFC'); else if (rfc.length !== 13) o.push('RFC incompleto (' + rfc.length + ' caracteres; deben ser 13 con homoclave)');
+  if (rfc && curp && rfc.slice(0, 10) !== curp.slice(0, 10)) o.push('El RFC no coincide con la CURP');
+  if (!t.materno) o.push('Sin apellido materno (confirmar)');
+  if (!t.fechaNac) o.push('Sin fecha de nacimiento');
+  if (!t.celular) o.push('Sin celular');
+  if (!t.correoInst) o.push('Sin correo institucional'); else if (!/@bcedu\.mx$/i.test(t.correoInst)) o.push('El correo institucional no es @bcedu.mx');
+  if (!t.afiliacion) o.push('Sin número de afiliación');
+  if (!t.fechaIngreso) o.push('Sin fecha de ingreso al servicio');
+  const act = perActivas(t);
+  if (!act.length) o.push('Sin plaza activa');
+  act.forEach(p => { const c = perCentro(p.cct).escuela;
+    if (!normClave(p.clave)) o.push('Plaza sin clave en ' + c);
+    if (!p.nombramiento) o.push('Plaza sin tipo de nombramiento en ' + c);
+    if (/interin/i.test(p.nombramiento || '') && !p.hasta) o.push('Interinato sin fecha de término en ' + c);
+    if (/interin/i.test(p.nombramiento || '') && p.hasta && p.hasta < hoy()) o.push('Interinato vencido el ' + fechaCorta(p.hasta) + ' en ' + c); });
+  if (t.revisar) o.push('Por revisar: ' + t.revisar);
+  return o;
+}
+function perInformeInc() {
+  modal('Informe de inconsistencias del personal', `<p style="margin-top:0">Revisa a todo el personal activo, centro por centro: datos que faltan o no coinciden (CURP, RFC, claves, contacto, interinatos) y lo marcado «Revisar».</p>
+    <div class="campo"><label for="pi2-f">Plantilla oficial para comparar <span class="mudo">(opcional, el archivo .json)</span></label><input type="file" id="pi2-f" accept=".json,application/json"></div>
+    <label class="casilla"><input type="checkbox" id="pi2-todos"> Incluir también a quien no tiene ninguna observación</label>`,
+    '<button class="boton sec" id="pi2-no">Cancelar</button><button class="boton terra" id="pi2-si">Descargar PDF</button>');
+  $('#pi2-no').onclick = cerrarModal;
+  $('#pi2-si').onclick = async () => {
+    let d = null; const f = $('#pi2-f').files[0];
+    if (f) { try { d = JSON.parse(await f.text()); } catch (e) { return aviso('El archivo no es un JSON válido.', 'mal'); } if (!d || d.tipo !== 'tequio-plantilla') return aviso('Ese archivo no es una plantilla oficial para Tequio.', 'mal'); }
+    const todos = $('#pi2-todos').checked;
+    $('#pi2-si').disabled = true; $('#pi2-si').textContent = 'Preparando…';
+    try {
+      const extra = {}, faltan = {};   // observaciones de la plantilla por trabajador; personas de la plantilla que no están en Tequio, por centro
+      if (d) perPlanPlantilla(d).plan.forEach(x => {
+        if (x.tipo === 'alta') x.t.plazas.forEach(p => { (faltan[p.cct] = faltan[p.cct] || []).push({ n: x.nombre, p }); });
+        else (extra[x.t.id] = extra[x.t.id] || []).push(...x.cambios.map(c => x.tipo === 'fuera' ? 'Plantilla oficial: ' + c : 'Difiere de la plantilla oficial · ' + c));
+      });
+      const B = [], resumen = [];
+      let nTot = 0, nObs = 0;
+      perCentros().forEach(c => {
+        const l = S.trb.filter(t => t.estado !== 'baja' && perActivas(t).some(p => p.cct === c.cct)).sort((a, b) => perNombre(a).localeCompare(perNombre(b), 'es'));
+        const filas = [];
+        l.forEach(t => {
+          const obs = perObservaciones(t).concat(extra[t.id] || []), aqui = perActivas(t).filter(p => p.cct === c.cct);
+          if (perDoble(t)) obs.push('Doble plaza: ' + perActivas(t).filter(p => !aqui.includes(p)).map(p => perCentro(p.cct).escuela + ' (' + (p.turno || '').toLowerCase() + ')').join(', ') || 'Doble plaza en este centro');
+          const reales = obs.filter(x => !/^Doble plaza/.test(x));
+          nTot++; if (reales.length) nObs++;
+          if (!reales.length && !todos) return;
+          filas.push([perNombre(t), aqui.map(p => (p.funcion || '—') + (p.grupo ? ' ' + p.grupo : '') + ' · ' + (p.turno || '')).join('\n'), aqui.map(p => p.clave || 'Sin clave').join('\n'), obs.length ? obs.map(x => '• ' + x).join('\n') : 'Sin observaciones']);
+        });
+        (faltan[c.cct] || []).forEach(x => filas.push([x.n, (x.p.funcion || '') + (x.p.grupo ? ' ' + x.p.grupo : '') + ' · ' + (x.p.turno || ''), x.p.clave, '• Está en la plantilla oficial y no en Tequio: falta darle de alta']));
+        const dir = l.some(t => perActivas(t).some(p => p.cct === c.cct && /director|encargad/i.test(p.funcion || '')));
+        const dirPlant = (faltan[c.cct] || []).some(x => /director/i.test(x.p.funcion || ''));
+        resumen.push([c.escuela, c.cct, String(l.length), String(l.filter(t => perObservaciones(t).concat(extra[t.id] || []).length).length), String((faltan[c.cct] || []).length), c.sup ? '—' : dir ? 'Sí' : 'No']);
+        if (!filas.length && dir) return;
+        B.push({ t: 'h', x: c.escuela + ' · ' + c.cct });
+        if (!c.sup && !dir) B.push({ t: 'nota', x: dirPlant ? 'El director(a) de la plantilla oficial todavía no está dado de alta en Tequio.' : 'No hay director(a) ni encargado(a) registrado en este centro.' });
+        if (filas.length) B.push({ t: 'tabla', chica: true, anchos: [24, 20, 16, 40], cab: ['Trabajador', 'Función y turno', 'Clave(s)', 'Observaciones'], filas });
+        else B.push({ t: 'p', x: 'Todo el personal de este centro está completo.' });
+      });
+      B.unshift({ t: 'h', x: 'Resumen por centro de trabajo' }, { t: 'tabla', chica: true, anchos: [32, 14, 12, 16, 14, 12], cab: ['Centro', 'C.C.T.', 'Personal', 'Con observaciones', 'Faltan en Tequio', 'Director(a)'], filas: resumen },
+        { t: 'p', x: `<b>${nTot}</b> registros revisados; <b>${nObs}</b> con alguna observación.${d ? ' Comparado con la plantilla oficial (' + esc(d.fecha || '') + ').' : ' No se comparó con la plantilla oficial.'}` });
+      const blob = await sisPdfInforme({ titulo: 'Informe de inconsistencias del personal', nivel: 'Por centro de trabajo', sub: ZONA.nombre, fecha: fechaLarga(hoy()), B, pie: ZONA.nombre + ZONA.lemaTxt + ' · Informe generado con Tequio a partir de la base del personal' });
+      descargarBlob(blob, 'Inconsistencias del personal · Zona ' + ZONA.numero + ' · ' + hoy() + '.pdf');
+      cerrarModal(); aviso('Informe descargado: ' + nObs + ' de ' + nTot + ' registros con observaciones.', 'ok', 5000);
+    } catch (e) { aviso('No se pudo generar el informe: ' + esc(e.message), 'mal', 8000); if ($('#pi2-si')) { $('#pi2-si').disabled = false; $('#pi2-si').textContent = 'Descargar PDF'; } }
   };
 }
 
