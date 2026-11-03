@@ -105,13 +105,13 @@ function zonaPublica_() {
   const z = Z(), p = PropertiesService.getScriptProperties();
   let logo = z.logoZona;
   if (z.logoZonaId) { const b = logoZonaBlob_(); logo = b ? 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()) : ''; }
-  let modulos = null; try { modulos = JSON.parse(p.getProperty('MODULOS') || 'null'); } catch (e) {}
+  let modulos = null, vistos = null; try { modulos = JSON.parse(p.getProperty('MODULOS') || 'null'); vistos = JSON.parse(p.getProperty('MODULOS_VISTOS') || 'null'); } catch (e) {}
   return { numero: z.numero, nivel: z.nivel, sostenimiento: z.sostenimiento, estatal: z.estatal, sede: z.sede, municipioSede: z.municipioSede,
     telefono: z.telefono, supervisor: z.supervisor, cargoSupervisor: z.cargoSupervisor, correoSupervision: z.correoSupervision, correoInstitucional: z.correoInstitucional,
     lemaZona: z.lemaZona, logoZona: logo, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
     carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
     autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado,
-    modulos: modulos, modulosEditado: p.getProperty('MODULOS_EDITADO') === '1', aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
+    modulos: modulos, modulosEditado: p.getProperty('MODULOS_EDITADO') === '1', modulosVistos: vistos, aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
 }
 const REMITENTE = Z().nombre + ' · Tequio';
 const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
@@ -158,19 +158,22 @@ const HOJAS = {
   // Permisos (días) y facilidades (horas: salir temprano, asunto personal…) que autoriza el Supervisor. La cuenta es por año calendario.
   prm: ['id', 'anio', 'persona', 'nombre', 'tipoPersona', 'cct', 'clase', 'subtipo', 'inicio', 'fin', 'dias', 'horas', 'descuenta', 'motivo',
         'activo', 'creadoPor', 'creado', 'actualizado', 'actualizadoPor', 'obs', 'expediente'],
+  // Recursos financieros · Ingresos propios. tipo: mov (movimiento del libro de bancos o caja, con su póliza), sol (solicitud de recibos),
+  // req (requisición de combustible), rep (reporte del ejercicio) o cta (datos de la cuenta del ciclo). Nada se borra: eliminar lo manda a la papelera.
+  fin: ['id', 'cct', 'ciclo', 'tipo', 'fecha', 'datos', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'actualizadoPor', 'historial'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica' };
-const VERSION = 28;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
+const VERSION = 29;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos'];
+const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -441,7 +444,7 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
@@ -449,7 +452,7 @@ const SIN_BLOQUEO = ['enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVis
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas'];
 
 const ACCIONES = {
   // El Supervisor elige los módulos que usa su zona
@@ -458,7 +461,9 @@ const ACCIONES = {
     const lista = (Array.isArray(d.modulos) ? d.modulos : []).map(String).filter((m, i, a) => MODULOS_VALIDOS.indexOf(m) >= 0 && a.indexOf(m) === i);
     const p = PropertiesService.getScriptProperties();
     p.setProperty('MODULOS', JSON.stringify(lista)); p.setProperty('MODULOS_EDITADO', '1');
-    return { modulos: lista, modulosEditado: true };
+    // los módulos que existían al guardar: los que se agreguen después aparecen encendidos hasta que el Supervisor decida
+    p.setProperty('MODULOS_VISTOS', JSON.stringify(MODULOS_VALIDOS));
+    return { modulos: lista, modulosEditado: true, modulosVistos: MODULOS_VALIDOS };
   },
   datos: (yo) => (contarEntrada_(), yo.rol === 'director' ? datosDirector_(yo) : ({
     zona: zonaPublica_(),
@@ -1051,6 +1056,65 @@ const ACCIONES = {
     }));
     if (acts.length) guardarVarios_('act', acts);
     return { reunion: reu, acuerdos: nuevos, quitados: quitar.map(x => x.id), act: acts };
+  },
+
+  /* ---- Recursos financieros · Ingresos propios ---- */
+
+  // La dirección recibe lo de su escuela; la Mesa Técnica, todas (la Supervisión también ve la papelera)
+  finDatos: (yo, d) => {
+    const l = leer_('fin');
+    if (yo.rol === 'director') { const c = cctDe_(yo); return { fin: l.filter(x => x.cct === c && x.activo) }; }
+    soloMesa_(yo);
+    return { fin: yo.rol === 'admin' ? l : l.filter(x => x.activo) };
+  },
+  // Crea o edita un registro. Las pólizas (ingresos y egresos por separado) y las requisiciones llevan consecutivo por escuela y ciclo.
+  finGuardar: (yo, d) => {
+    const cct = cctPermitido_(yo, d.cct), tipo = String(d.tipo || '');
+    if (['mov', 'sol', 'req', 'rep', 'cta'].indexOf(tipo) < 0) throw new Error('Tipo de registro no válido.');
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_();
+    const datos = d.datos && typeof d.datos === 'object' && !Array.isArray(d.datos) ? d.datos : {};
+    if (JSON.stringify(datos).length > 40000) throw new Error('El registro es demasiado grande.');
+    const todos = leer_('fin');
+    let prev = d.id ? todos.find(x => x.id === String(d.id)) : null;
+    if (d.id && !prev) throw new Error('No se encontró el registro.');
+    if (prev && prev.cct !== cct) throw new Error('Ese registro es de otra escuela.');
+    if (prev && !prev.activo) throw new Error('Ese registro está eliminado. La Supervisión puede restaurarlo.');
+    const ciclo = finCiclo_(fecha);
+    if (tipo === 'cta' && !prev) prev = todos.find(x => x.tipo === 'cta' && x.cct === cct && x.ciclo === ciclo && x.activo) || null;
+    const mismos = todos.filter(x => x.cct === cct && x.ciclo === ciclo && x.tipo === tipo && (!prev || x.id !== prev.id));
+    const mayor = (l, k) => l.reduce((m, x) => Math.max(m, parseInt((x.datos || {})[k], 10) || 0), 0);
+    if (tipo === 'mov') {
+      const serie = c => ['ingreso', 'interes'].indexOf(c) >= 0 ? 'I' : ['egreso', 'cargo'].indexOf(c) >= 0 ? 'E' : '';
+      const s = serie(datos.clase);
+      if (!s) datos.poliza = '';
+      else if (!datos.poliza || !prev || serie((prev.datos || {}).clase) !== s || prev.ciclo !== ciclo)
+        datos.poliza = String(mayor(mismos.filter(x => serie((x.datos || {}).clase) === s), 'poliza') + 1);
+    }
+    if (tipo === 'req' && (!datos.num || (prev && prev.ciclo !== ciclo))) datos.num = String(mayor(mismos, 'num') + 1);
+    const h = (prev && prev.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: prev ? 'edito' : 'creo' }]).slice(-40);
+    const o = { id: prev ? prev.id : 'fin-' + Utilities.getUuid().slice(0, 10), cct: cct, ciclo: ciclo, tipo: tipo, fecha: fecha, datos: datos, activo: true,
+      creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre, creado: prev ? prev.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.id, historial: h };
+    guardar_('fin', o);
+    return { fin: o };
+  },
+  // Eliminar manda el registro a la papelera (la Supervisión puede restaurarlo)
+  finEliminar: (yo, d) => {
+    const o = buscar_('fin', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    cctPermitido_(yo, o.cct);
+    o.activo = false; o.actualizado = ahora_(); o.actualizadoPor = yo.id;
+    o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'elimino' }]).slice(-40);
+    guardar_('fin', o);
+    return { fin: o };
+  },
+  finRestaurar: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('fin', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    o.activo = true; o.actualizado = ahora_(); o.actualizadoPor = yo.id;
+    o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'restauro' }]).slice(-40);
+    guardar_('fin', o);
+    return { fin: o };
   },
 
   eliminarReunion: (yo, d) => {
@@ -3164,6 +3228,8 @@ function bitacora_(tipo, ref, para, asunto, resultado) {
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 function esc_(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function ahora_() { return Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd'T'HH:mm:ss"); }
+// Ciclo escolar de una fecha: de agosto a julio
+function finCiclo_(f) { const y = +String(f).slice(0, 4), m = +String(f).slice(5, 7); return m >= 8 ? y + '-' + (y + 1) : (y - 1) + '-' + y; }
 function hoy_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
 function sumarDias_(f, n) { const d = Utilities.parseDate(f + ' 12:00', TZ, 'yyyy-MM-dd HH:mm'); d.setDate(d.getDate() + n); return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function sumarHora_(h) { const p = h.split(':'); return ('0' + Math.min(23, +p[0] + 1)).slice(-2) + ':' + p[1]; }

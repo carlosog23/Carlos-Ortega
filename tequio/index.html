@@ -642,6 +642,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-cte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="2.5"/><circle cx="5" cy="9" r="2"/><circle cx="19" cy="9" r="2"/><path d="M8 20v-3a4 4 0 0 1 8 0v3M2 19v-2a3 3 0 0 1 4.5-2.6M22 19v-2a3 3 0 0 0-4.5-2.6"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
   <symbol id="i-eia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l2 2 4-4M9 16h6"/></symbol>
+  <symbol id="i-pesos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/></symbol>
   <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-pend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-.9 5.6 3.9 3.9H6l3.9-3.9z"/><path d="M12 13v7.5"/></symbol>
   <symbol id="i-tlm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h3v-3h3v-3h3v-3h2a5 5 0 0 0 0-10 3.5 3.5 0 0 0 0 7 2 2 0 0 0 0-4"/></symbol>
@@ -862,7 +863,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-10-30-1010';
+const PUBLICACION = '2026-11-03-0700';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -978,15 +979,16 @@ function portada(mensaje) {
 // Pestañas, sin los módulos que la zona apagó (agenda, directorio y enlaces siempre están)
 function pestanas() {
   const on = ZONA.modulos;
-  return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0])
+  return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0]) || moduloNuevo(t[0])
       || (t[0] === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado))
     .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['herramientas', 'Herramientas', 'i-tlm']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
+  l.push(['finanzas', 'Recursos financieros', 'i-pesos']);
   l.push(['herramientas', 'Herramientas', 'i-tlm']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
@@ -1006,11 +1008,11 @@ function pintar() {
   ${ZONA.aviso && ZONA.aviso.texto ? `<div class="aviso-caja" style="max-width:1100px;margin:12px auto 0"><b>Aviso del administrador de Tequio:</b> ${esc(ZONA.aviso.texto)}</div>` : ''}
   <main><div class="envoltura" id="vista"></div></main>
   <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios', herramientas: 'Tlamatini' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
+  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios', herramientas: 'Tlamatini', finanzas: 'Finanzas' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas })[vista.tab]();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
 // Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
@@ -3723,11 +3725,14 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
+// Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
+const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
+const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
 function moduloEncendido(m) {
   const on = ZONA.modulos;
   if (!Array.isArray(on)) return true;
-  return on.includes(m) || (m === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado);
+  return on.includes(m) || moduloNuevo(m) || (m === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado);
 }
 function tarjetaModulos() {
   return `<div class="tarjeta pad" style="margin-top:16px" id="t-modulos">
@@ -3743,11 +3748,11 @@ function ligarModulos() {
   b.onclick = async () => {
     const lista = $$('[data-mod]:checked').map(c => c.dataset.mod), m = $('#m-modulos');
     if (cfg.invitado || cfg.lectura) { m.textContent = 'En el modo de consulta no se pueden guardar cambios.'; return; }
-    if (cfg.demo) { ZONA.modulos = lista; ZONA.modulosEditado = true; pintar(); aviso('Módulos actualizados (demostración).', 'ok', 2500); return; }
+    if (cfg.demo) { ZONA.modulos = lista; ZONA.modulosEditado = true; ZONA.modulosVistos = MODULOS_TQ.map(x => x[0]); pintar(); aviso('Módulos actualizados (demostración).', 'ok', 2500); return; }
     b.disabled = true; m.textContent = 'Guardando…';
     try {
       const r = await api('guardarModulos', { modulos: lista });
-      ZONA.modulos = r.modulos; ZONA.modulosEditado = true; pintar(); aviso('Módulos actualizados.', 'ok', 2500);
+      ZONA.modulos = r.modulos; ZONA.modulosEditado = true; if (r.modulosVistos) ZONA.modulosVistos = r.modulosVistos; pintar(); aviso('Módulos actualizados.', 'ok', 2500);
     } catch (e) {
       b.disabled = false;
       m.innerHTML = /desconocida/i.test(e.message) ? '<b>Falta actualizar el servidor.</b> Para guardar los módulos, actualice el servidor de Tequio (Código.gs) a la versión 27 o más nueva.' : esc(e.message);
@@ -7617,6 +7622,10 @@ const Demo = (() => {
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
   const A = {
+    finDatos: () => { if (!D.fin) D.fin = finDemo(); return { fin: copia(cfg.dir ? D.fin.filter(x => x.cct === '02DPR0684N' && x.activo !== false) : D.fin) }; },
+    finGuardar: d => { if (!D.fin) D.fin = finDemo(); const o = finArmarDemo(D.fin, d, cfg.dir ? { id: 'u-d-02DPR0684N', nombre: 'Dirección (demostración)' } : D.yo); poner(D.fin, o); return { fin: copia(o) }; },
+    finEliminar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, a: 'elimino' }]); return { fin: copia(o) }; },
+    finRestaurar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { fin: copia(o) }; },
     datos: () => {
       if (!cfg.dir) return copia(D);
       const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
@@ -7868,6 +7877,893 @@ const Demo = (() => {
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
 })();
+
+/* =========================================================
+   Recursos financieros · Ingresos propios
+   Libro de bancos (ingresos y egresos, cada uno con su póliza), recibo económico, solicitud de recibos,
+   requisición de combustible y reporte del ejercicio. Todo se guarda en el servidor con su historial:
+   la dirección lleva su escuela, y la Supervisión o el ATP pueden llevarla cuando cubren una ausencia.
+   Lo eliminado va a una papelera que solo la Supervisión puede restaurar.
+   ========================================================= */
+const FIN_VER = 29;
+// Catálogo de partidas de gasto autorizadas (ISEP · Dirección de Recursos Financieros)
+const FIN_GRUPOS = [
+  ['100', 'Servicios personales', [['134', 'Otras remuneraciones al personal de base'], ['143', 'Otras remuneraciones al personal de confianza'], ['176', 'Otras remuneraciones al magisterio']]],
+  ['200', 'Servicios no personales', [['211', 'Viáticos'], ['212', 'Pasajes'], ['222', 'Servicio de energía eléctrica'], ['223', 'Servicio postal y telegráfico'], ['224', 'Servicio telefónico'],
+    ['225', 'Servicio de agua potable'], ['226', 'Gastos y derechos de importación'], ['231', 'Fletes y maniobras'], ['232', 'Renta de vehículos'], ['234', 'Renta de equipo y muebles'],
+    ['235', 'Servicios bancarios y cambios'], ['236', 'Seguros'], ['237', 'Servicio de revelado de fotografías'], ['238', 'Asesoría y capacitación'], ['239', 'Servicios de informática'],
+    ['241', 'Mantenimiento de mobiliario y equipo administrativo'], ['242', 'Mantenimiento y conservación de vehículos y maquinaria'], ['243', 'Mantenimiento de equipo de servicio'],
+    ['245', 'Mantenimiento y conservación de inmuebles'], ['246', 'Servicio de limpieza'], ['248', 'Servicios técnicos de fumigación'], ['249', 'Servicios diversos'],
+    ['251', 'Producciones de publicidad'], ['252', 'Edición de libros, folletos y revistas'], ['254', 'Publicidad institucional'], ['255', 'Impresión de documentos'],
+    ['263', 'Gastos para promoción de actividades artísticas y culturales'], ['264', 'Promoción y apoyo a actividades de bienestar social y gestoría'],
+    ['266', 'Foros, talleres, seminarios y eventos especiales'], ['267', 'Fomento deportivo'], ['272', 'Asistencia a cursos de actualización y congresos']]],
+  ['300', 'Materiales y suministros', [['321', 'Combustibles, lubricantes y aditivos'], ['322', 'Artículos sanitarios y de aseo'], ['323', 'Artículos deportivos'], ['324', 'Ropa de trabajo y protección'],
+    ['325', 'Periódicos, revistas y libros'], ['326', 'Gastos diversos'], ['327', 'Agua de garrafón y hielo'], ['328', 'Artículos de cocina y blancos'], ['329', 'Refacciones menores'],
+    ['331', 'Útiles de administración'], ['332', 'Material didáctico'], ['333', 'Materiales de fotografía, cinematografía y video'], ['334', 'Materiales para imprenta'],
+    ['336', 'Material para conservación, mantenimiento y acondicionamiento'], ['341', 'Material médico y medicamentos'], ['361', 'Alimentación']]],
+  ['400', 'Maquinaria, mobiliario y equipo', [['411', 'Mobiliario e implementos para oficina'], ['412', 'Mobiliario y equipo para escuelas'], ['415', 'Bienes artísticos y culturales'], ['421', 'Equipo de oficina'],
+    ['422', 'Equipo electromecánico y de computación'], ['428', 'Equipo de cocina y blancos'], ['432', 'Equipo para talleres y laboratorios de servicios'], ['434', 'Equipo de conservación y mantenimiento'],
+    ['435', 'Equipo de aire acondicionado'], ['442', 'Equipo de transporte'], ['451', 'Herramientas'], ['461', 'Equipo de ingeniería y dibujo'], ['462', 'Equipo para servicios de difusión'],
+    ['463', 'Equipos para seguridad'], ['464', 'Equipo e instrumental médico'], ['465', 'Otros equipos'], ['471', 'Animales de trabajo'], ['472', 'Animales de reproducción']]]
+];
+const FIN_PART = {}; FIN_GRUPOS.forEach(g => g[2].forEach(p => FIN_PART[p[0]] = p[1]));
+const FIN_TIPOS = { ingreso: 'Ingreso', egreso: 'Egreso', interes: 'Interés bancario', cargo: 'Comisión o cargo bancario', traspaso: 'Traspaso banco ↔ caja' };
+const FIN_COMP = ['Factura', 'Nota de venta', 'Recibo económico', 'Ticket', 'Otro'];
+const FIN_SECC = [['resumen', 'Resumen'], ['libro', 'Libro de bancos'], ['recibos', 'Solicitud de recibos'], ['combustible', 'Combustible'], ['reporte', 'Reporte del ejercicio'], ['cuenta', 'Datos de la cuenta']];
+
+/* ---------- utilidades ---------- */
+const finN = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return isFinite(n) ? Math.round(n * 100) / 100 : 0; };
+const finM = v => '$' + finN(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const finM0 = v => finN(v) ? finM(v) : '';
+const finCiclo = f => { const d = deIso(f || hoy()), y = d.getFullYear(); return d.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y; };
+const finCicloIni = c => String(c).slice(0, 4) + '-08-01';
+const finMay = s => String(s || '').toUpperCase();
+const finActivos = () => (S.fin || []).filter(x => x.activo !== false);
+const finDe = (cct, tipo, ciclo) => finActivos().filter(x => x.cct === cct && (!tipo || x.tipo === tipo) && (!ciclo || x.ciclo === ciclo));
+const finCta = (cct, ciclo) => finDe(cct, 'cta', ciclo)[0] || null;
+const finPuede = () => esDirector() || esMesa();
+// Monto de un movimiento: ingresos y egresos suman sus renglones; los demás tienen un solo importe
+const finMonto = m => { const d = m.datos || {}; return ['ingreso', 'egreso'].includes(d.clase) ? (d.lineas || []).reduce((s, l) => s + finN(l.importe), 0) : finN(d.monto); };
+// Cómo mueve cada movimiento el banco y la caja
+function finEfecto(m) {
+  const d = m.datos || {}, x = finMonto(m), r = { banco: 0, caja: 0 };
+  if (d.clase === 'traspaso') { if (d.direccion === 'retiro') { r.banco -= x; r.caja += x; } else { r.caja -= x; r.banco += x; } }
+  else if (d.clase === 'ingreso' || d.clase === 'interes') r[d.medio === 'caja' && d.clase === 'ingreso' ? 'caja' : 'banco'] += x;
+  else r[d.medio === 'caja' && d.clase === 'egreso' ? 'caja' : 'banco'] -= x;
+  return r;
+}
+const finOrden = (a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.creado || '').localeCompare(String(b.creado || ''));
+const finMovs = (cct, ciclo) => finDe(cct, 'mov', ciclo).sort(finOrden);
+const finCiclos = cct => [...new Set(finActivos().filter(x => !cct || x.cct === cct).map(x => x.ciclo).concat([cicloActual()]))].filter(Boolean).sort().reverse();
+// Saldo inicial del ciclo: el que se capturó en «Datos de la cuenta» o, si no hay, el saldo final del ciclo anterior
+function finInicial(cct, ciclo, prof = 0) {
+  const c = finCta(cct, ciclo);
+  if (c) return { banco: finN(c.datos.saldoBanco), caja: finN(c.datos.saldoCaja), de: 'cta' };
+  const ant = (+String(ciclo).slice(0, 4) - 1) + '-' + String(ciclo).slice(0, 4);
+  if (prof < 6 && finActivos().some(x => x.cct === cct && x.ciclo === ant)) { const f = finSaldo(cct, ant, null, prof + 1); return { banco: f.banco, caja: f.caja, de: 'anterior' }; }
+  return { banco: 0, caja: 0, de: 'nada' };
+}
+// Saldo al cierre de una fecha (incluida); sin fecha, al día de hoy
+function finSaldo(cct, ciclo, hasta, prof = 0) {
+  const s = finInicial(cct, ciclo, prof), r = { banco: s.banco, caja: s.caja };
+  finMovs(cct, ciclo).filter(m => !hasta || m.fecha <= hasta).forEach(m => { const e = finEfecto(m); r.banco += e.banco; r.caja += e.caja; });
+  r.banco = Math.round(r.banco * 100) / 100; r.caja = Math.round(r.caja * 100) / 100;
+  return r;
+}
+// Cifras del reporte del ejercicio en un periodo
+function finCifras(cct, ciclo, del, al) {
+  const ant = finSaldo(cct, ciclo, sumarDias(del, -1)), z = () => ({ ant: 0, ing: 0, int: 0, egr: 0, car: 0, fin: 0 });
+  const c = { banco: z(), caja: z() };
+  c.banco.ant = ant.banco; c.caja.ant = ant.caja;
+  finMovs(cct, ciclo).filter(m => m.fecha >= del && m.fecha <= al).forEach(m => {
+    const d = m.datos, x = finMonto(m);
+    if (d.clase === 'interes') c.banco.int += x;
+    else if (d.clase === 'cargo') c.banco.car += x;
+    else if (d.clase === 'traspaso') { const de = d.direccion === 'retiro' ? 'banco' : 'caja', a = de === 'banco' ? 'caja' : 'banco'; c[de].egr += x; c[a].ing += x; }
+    else c[d.medio === 'caja' ? 'caja' : 'banco'][d.clase === 'ingreso' ? 'ing' : 'egr'] += x;
+  });
+  ['banco', 'caja'].forEach(k => { const o = c[k]; Object.keys(o).forEach(j => o[j] = Math.round(o[j] * 100) / 100); o.fin = Math.round((o.ant + o.ing + o.int - o.egr - o.car) * 100) / 100; });
+  return c;
+}
+// Número con letra (pesos mexicanos)
+function finLetra(v) {
+  const n = finN(v), ent = Math.floor(n), cen = Math.round((n - ent) * 100);
+  const U = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE',
+    'VEINTIÚN', 'VEINTIDÓS', 'VEINTITRÉS', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISÉIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+  const D = ['', '', '', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+  const C = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+  const menor1000 = x => {
+    if (x === 100) return 'CIEN';
+    const c = Math.floor(x / 100), r = x % 100, p = [];
+    if (c) p.push(C[c]);
+    if (r < 30) { if (r) p.push(U[r]); } else { p.push(D[Math.floor(r / 10)] + (r % 10 ? ' Y ' + U[r % 10] : '')); }
+    return p.join(' ');
+  };
+  const texto = x => {
+    if (x === 0) return 'CERO';
+    const mill = Math.floor(x / 1e6), miles = Math.floor((x % 1e6) / 1000), r = x % 1000, p = [];
+    if (mill) p.push(mill === 1 ? 'UN MILLÓN' : texto(mill) + ' MILLONES');
+    if (miles) p.push(miles === 1 ? 'MIL' : menor1000(miles) + ' MIL');
+    if (r) p.push(menor1000(r));
+    return p.join(' ');
+  };
+  return texto(ent) + (ent === 1 ? ' PESO ' : (ent && ent % 1e6 === 0 ? ' DE PESOS ' : ' PESOS ')) + String(cen).padStart(2, '0') + '/100 M.N.';
+}
+const finFechaTxt = f => f ? deIso(f).getDate() + ' de ' + MESES[deIso(f).getMonth()] + ' de ' + deIso(f).getFullYear() : '';
+const finPeriodo = f => f ? finMay(MESES[deIso(f).getMonth()] + ' ' + deIso(f).getFullYear()) : '';
+// Datos del plantel para los formatos: lo capturado en la cuenta, y si no, lo del directorio
+function finPlantel(cct, ciclo) {
+  const c = (finCta(cct, ciclo) || finDe(cct, 'cta').sort((a, b) => String(b.ciclo).localeCompare(String(a.ciclo)))[0] || { datos: {} }).datos;
+  const e = escDatos(cct) || [], dir = escuelaDe(cct) || {};
+  return {
+    nombre: e[0] || nombreEscuela(cct), cct, zona: String(ZONA.numero), sector: c.sector || '', municipio: c.municipio || e[1] || dir.municipio || '', localidad: c.ciudad || e[2] || dir.localidad || '',
+    domicilio: e[3] || dir.domicilio || '', calle: c.calle || '', numero: c.numero || '', colonia: c.colonia || '', ciudad: c.ciudad || e[2] || '', cp: c.cp || '', telefono: c.telefono || '',
+    correo: c.correo || dir.correo1 || '', director: c.director || e[4] || finMay(dir.nombre), cargoDir: e[5] || 'DIRECTOR(A)', tesorero: c.tesorero || '', revisa: c.revisa || '',
+    banco: c.banco || '', cuenta: c.cuenta || '', nivel: c.nivel || 'PRIMARIA'
+  };
+}
+
+/* ---------- carga ---------- */
+async function finCargar(forzar) {
+  if (S.fin && !forzar) return true;
+  const r = await conCarga(() => api('finDatos', {}));
+  if (!r) return false;
+  S.fin = r.fin || [];
+  return true;
+}
+function finRecibir(o) { if (!S.fin) S.fin = []; poner(S.fin, o); }
+
+/* ---------- vista principal ---------- */
+async function vFinanzas() {
+  finEstilos();
+  const vieja = !cfg.demo && (S.version || 0) < FIN_VER;
+  if (vieja) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Recursos financieros</h1></div>
+      <div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Para guardar los ingresos propios con su historial, el servidor de Tequio necesita la versión ${FIN_VER}. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
+    return;
+  }
+  if (!S.fin) {
+    $('#vista').innerHTML = '<div class="tarjeta vacio">Cargando los registros de ingresos propios…</div>';
+    if (!await finCargar()) { $('#vista').innerHTML = '<div class="tarjeta vacio">No se pudieron cargar los registros. <button class="boton sec chico" id="fin-rein">Intentar de nuevo</button></div>'; $('#fin-rein').onclick = vFinanzas; return; }
+    if (vista.tab !== 'finanzas') return;
+  }
+  const v = vista.fin || (vista.fin = { cct: esDirector() ? miCct() : '', secc: 'resumen', ciclo: cicloActual(), medio: 'banco' });
+  if (esDirector()) v.cct = miCct();
+  if (!v.cct) return finZona(v);
+  finEscuela(v);
+}
+
+// Encabezado común: apartados de Recursos financieros, escuela y ciclo
+function finCabecera(v) {
+  const escs = directores();
+  const papelera = esAdmin() && v.cct ? (S.fin || []).filter(x => x.cct === v.cct && x.activo === false).length : 0;
+  return `<div class="titulo-vista"><h1>Recursos financieros</h1>
+    <div class="acciones">${papelera ? `<button class="boton sec" id="fin-pap">${ico('i-x')}Eliminados (${papelera})</button>` : ''}<button class="boton sec" id="fin-rec">${ico('i-act')}Actualizar</button></div></div>
+  <div class="seg-op fin-apart" role="group" aria-label="Apartados de Recursos financieros"><button aria-pressed="true">Ingresos propios</button></div>
+  <div class="filtros" style="margin-top:12px">
+    ${esDirector() ? `<span class="chip indigo" style="align-self:center">${esc(nombreEscuela(v.cct))}</span>` : `<select id="fin-esc" aria-label="Escuela"><option value="">Toda la zona</option>${escs.map(c => `<option value="${c.cct}" ${v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>`}
+    <select id="fin-ciclo" aria-label="Ciclo escolar">${finCiclos(v.cct).map(c => `<option value="${c}" ${v.ciclo === c ? 'selected' : ''}>Ciclo ${c}${c === cicloActual() ? '' : ' · historial'}</option>`).join('')}</select>
+  </div>`;
+}
+function finEnlazarCabecera(v) {
+  if ($('#fin-esc')) $('#fin-esc').onchange = e => { v.cct = e.target.value; vFinanzas(); };
+  $('#fin-ciclo').onchange = e => { v.ciclo = e.target.value; vFinanzas(); };
+  $('#fin-rec').onclick = async () => { if (await finCargar(true)) { vFinanzas(); aviso('Registros actualizados.', 'ok', 2000); } };
+  if ($('#fin-pap')) $('#fin-pap').onclick = () => finPapelera(v.cct);
+}
+
+// Supervisión y ATP: panorama de la zona
+function finZona(v) {
+  const filas = directores().map(c => {
+    const s = finSaldo(c.cct, v.ciclo), ms = finMovs(c.cct, v.ciclo);
+    const ing = ms.filter(m => ['ingreso', 'interes'].includes(m.datos.clase)).reduce((a, m) => a + finMonto(m), 0);
+    const egr = ms.filter(m => ['egreso', 'cargo'].includes(m.datos.clase)).reduce((a, m) => a + finMonto(m), 0);
+    return { c, s, ing, egr, n: ms.length, ult: ms.length ? ms[ms.length - 1].fecha : '', cta: !!finCta(c.cct, v.ciclo) };
+  });
+  const tot = filas.reduce((a, f) => ({ b: a.b + f.s.banco, c: a.c + f.s.caja, i: a.i + f.ing, e: a.e + f.egr }), { b: 0, c: 0, i: 0, e: 0 });
+  $('#vista').innerHTML = `${finCabecera(v)}
+  <p class="peq pen-intro">Cada dirección lleva aquí los ingresos propios de su escuela. Cuando usted o un ATP cubran una escuela por ausencia del director, elíjala arriba y trabaje igual que la dirección: todo queda con el nombre de quien lo registró.</p>
+  <div class="pen-cifras">
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(tot.b)}</b><span>en bancos (zona)</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(tot.c)}</b><span>en caja (zona)</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(tot.i)}</b><span>ingresos del ciclo</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(tot.e)}</b><span>egresos del ciclo</span></div></div>
+  <div class="tarjeta"><div class="seccion-t">Escuelas · ciclo ${esc(v.ciclo)}</div>
+    <div class="fin-tabla-caja"><table class="fin-tabla">
+      <thead><tr><th>Escuela</th><th class="d">Banco</th><th class="d">Caja</th><th class="d">Ingresos</th><th class="d">Egresos</th><th>Último movimiento</th></tr></thead>
+      <tbody>${filas.map(f => `<tr class="clic" data-fesc="${f.c.cct}"><td><b>${esc(f.c.escuela)}</b><div class="ayuda">${esc(f.c.municipio)}${f.cta ? '' : ' · <span style="color:var(--terra-d)">sin datos de la cuenta</span>'}</div></td>
+        <td class="d">${finM(f.s.banco)}</td><td class="d">${finM(f.s.caja)}</td><td class="d">${finM(f.ing)}</td><td class="d">${finM(f.egr)}</td>
+        <td>${f.ult ? fechaCorta(f.ult) + ` <span class="ayuda">(${f.n} mov.)</span>` : '<span class="mudo">Sin movimientos</span>'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  finEnlazarCabecera(v);
+  $$('[data-fesc]').forEach(t => t.onclick = () => { v.cct = t.dataset.fesc; v.secc = 'resumen'; vFinanzas(); window.scrollTo(0, 0); });
+}
+
+// Una escuela: apartados internos
+function finEscuela(v) {
+  const cct = v.cct, ciclo = v.ciclo;
+  const cuerpo = ({ resumen: finResumen, libro: finLibro, recibos: finRecibos, combustible: finCombustible, reporte: finReportes, cuenta: finCuenta })[v.secc] || finResumen;
+  $('#vista').innerHTML = `${finCabecera(v)}
+  ${!esDirector() ? `<div class="aviso-caja peq" style="margin-bottom:12px">Está trabajando los ingresos propios de <b>${esc(nombreEscuela(cct))}</b>. Lo que registre queda con su nombre en el historial.</div>` : ''}
+  <nav class="fin-secc" aria-label="Ingresos propios">${FIN_SECC.map(([k, t]) => `<button data-fsec="${k}" aria-current="${v.secc === k}">${t}</button>`).join('')}</nav>
+  <div id="fin-cuerpo"></div>`;
+  finEnlazarCabecera(v);
+  $$('[data-fsec]').forEach(b => b.onclick = () => { v.secc = b.dataset.fsec; finEscuela(v); });
+  cuerpo(v, cct, ciclo);
+}
+
+/* ---------- Resumen ---------- */
+function finResumen(v, cct, ciclo) {
+  const s = finSaldo(cct, ciclo), ini = finInicial(cct, ciclo), ms = finMovs(cct, ciclo), cta = finCta(cct, ciclo);
+  const suma = cl => ms.filter(m => cl.includes(m.datos.clase)).reduce((a, m) => a + finMonto(m), 0);
+  const porPart = {};
+  ms.filter(m => m.datos.clase === 'egreso').forEach(m => (m.datos.lineas || []).forEach(l => { const k = l.partida || 'S/P'; porPart[k] = (porPart[k] || 0) + finN(l.importe); }));
+  const parts = Object.entries(porPart).sort((a, b) => b[1] - a[1]), max = parts.length ? parts[0][1] : 0;
+  $('#fin-cuerpo').innerHTML = `
+  ${!cta ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>Primero, los datos de la cuenta.</b> Capture el banco, el número de cuenta, el saldo con que inicia el ciclo y quién elabora y autoriza. ${ini.de === 'anterior' ? 'Mientras tanto, Tequio toma el saldo final del ciclo anterior.' : ''}</div><button class="boton" id="fin-acta">Capturar datos de la cuenta</button></div>` : ''}
+  <div class="fin-botones">
+    <button class="boton terra" data-fnuevo="ingreso">${ico('i-mas')}Registrar ingreso</button>
+    <button class="boton terra" data-fnuevo="egreso">${ico('i-mas')}Registrar egreso</button>
+    <button class="boton sec" data-fnuevo="interes">Interés del banco</button>
+    <button class="boton sec" data-fnuevo="cargo">Comisión del banco</button>
+    <button class="boton sec" data-fnuevo="traspaso">Depósito o retiro de caja</button>
+  </div>
+  <div class="pen-cifras">
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(s.banco)}</b><span>saldo en banco</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(s.caja)}</b><span>saldo en caja</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(suma(['ingreso', 'interes']))}</b><span>ingresos del ciclo</span></div>
+    <div class="tarjeta pen-cifra" style="cursor:default"><b>${finM(suma(['egreso', 'cargo']))}</b><span>egresos del ciclo</span></div></div>
+  <div class="tablero">
+    <div class="tarjeta"><div class="seccion-t">Egresos por partida</div>
+      ${parts.length ? `<div class="fin-parts">${parts.map(([k, x]) => `<div class="fin-part"><span class="peq"><b>${esc(k)}</b> ${esc(FIN_PART[k] || '')}</span><b class="fin-tot">${finM(x)}</b><span class="barra-av"><i style="width:${Math.max(3, Math.round(x * 100 / max))}%"></i></span></div>`).join('')}</div>` : '<div class="vacio peq">Todavía no hay egresos en este ciclo.</div>'}</div>
+    <div class="tarjeta"><div class="seccion-t">Últimos movimientos</div>
+      ${ms.length ? `<div class="checklist sin-borde">${ms.slice(-8).reverse().map(m => finFilaMov(m)).join('')}</div>` : '<div class="vacio peq">Aún no hay movimientos. Empiece con «Registrar ingreso» o «Registrar egreso».</div>'}
+      ${ms.length > 8 ? `<div style="padding:0 14px 12px"><button class="enlace" id="fin-vlib">Ver el libro de bancos completo →</button></div>` : ''}</div>
+  </div>
+  <p class="peq mudo">Saldo inicial del ciclo: banco ${finM(ini.banco)} · caja ${finM(ini.caja)}${ini.de === 'anterior' ? ' (tomado del cierre del ciclo anterior)' : ini.de === 'nada' ? ' (sin capturar)' : ''}.</p>`;
+  if ($('#fin-acta')) $('#fin-acta').onclick = () => { v.secc = 'cuenta'; finEscuela(v); };
+  if ($('#fin-vlib')) $('#fin-vlib').onclick = () => { v.secc = 'libro'; finEscuela(v); };
+  $$('[data-fnuevo]').forEach(b => b.onclick = () => finFormMov(cct, null, { clase: b.dataset.fnuevo }));
+  finEnlazarMovs(cct);
+}
+function finFilaMov(m) {
+  const d = m.datos, x = finMonto(m), e = finEfecto(m), entra = e.banco + e.caja > 0 || (d.clase === 'traspaso' && false);
+  const etiqueta = d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco') : FIN_TIPOS[d.clase];
+  return `<button class="chk-fila fin-mov" data-fmov="${m.id}">
+    <span class="fin-f"><b>${deIso(m.fecha).getDate()}</b>${MESES[deIso(m.fecha).getMonth()].slice(0, 3)}</span>
+    <span style="flex:1;min-width:0;text-align:left"><b>${esc(d.concepto || etiqueta)}</b><br><span class="ayuda">${esc(etiqueta)}${d.poliza ? ' · Póliza ' + esc(d.poliza) : ''}${d.clase !== 'traspaso' ? ' · ' + (d.medio === 'caja' && ['ingreso', 'egreso'].includes(d.clase) ? 'Caja' : 'Banco') : ''}</span></span>
+    <span class="fin-monto ${d.clase === 'traspaso' ? '' : entra ? 'ent' : 'sal'}">${d.clase === 'traspaso' ? '' : entra ? '+' : '−'}${finM(x)}</span></button>`;
+}
+function finEnlazarMovs(cct) { $$('[data-fmov]').forEach(b => b.onclick = () => finDetalle(b.dataset.fmov)); }
+
+/* ---------- Libro de bancos ---------- */
+function finLibro(v, cct, ciclo) {
+  const medio = v.medio || 'banco', ini = finInicial(cct, ciclo), filas = finLibroFilas(cct, ciclo, medio);
+  $('#fin-cuerpo').innerHTML = `
+  <div class="fin-botones">
+    <div class="seg-op" role="group" aria-label="Cuenta"><button data-fmed="banco" aria-pressed="${medio === 'banco'}">Banco</button><button data-fmed="caja" aria-pressed="${medio === 'caja'}">Caja</button></div>
+    <span style="flex:1"></span>
+    <button class="boton sec" id="fin-pdf-lib">Descargar libro (PDF)</button>
+    <button class="boton terra" data-fnuevo="ingreso">${ico('i-mas')}Ingreso</button>
+    <button class="boton terra" data-fnuevo="egreso">${ico('i-mas')}Egreso</button>
+    <button class="boton sec" id="fin-otro">Otro movimiento</button>
+  </div>
+  <div class="tarjeta"><div class="fin-tabla-caja"><table class="fin-tabla">
+    <thead><tr><th>Fecha</th><th>Póliza</th><th>Concepto</th><th class="d">Ingreso</th><th class="d">Egreso</th><th class="d">Saldo</th></tr></thead>
+    <tbody><tr class="ini"><td>${fechaCorta(finCicloIni(ciclo))}</td><td></td><td>Saldo inicial del ciclo${ini.de === 'anterior' ? ' (cierre del ciclo anterior)' : ''}</td><td></td><td></td><td class="d"><b>${finM(ini[medio])}</b></td></tr>
+    ${filas.map(f => `<tr class="clic" data-fmov="${f.m.id}"><td>${fechaCorta(f.m.fecha)}</td><td>${esc(f.m.datos.poliza || '')}</td><td>${esc(f.concepto)}</td><td class="d">${finM0(f.ing)}</td><td class="d">${finM0(f.egr)}</td><td class="d">${finM(f.saldo)}</td></tr>`).join('')}
+    ${!filas.length ? '<tr><td colspan="6" class="mudo" style="text-align:center;padding:18px">Sin movimientos en ' + (medio === 'banco' ? 'el banco' : 'la caja') + ' en este ciclo.</td></tr>' : ''}</tbody>
+    ${filas.length ? `<tfoot><tr><td colspan="3">Totales del ciclo</td><td class="d">${finM(filas.reduce((a, f) => a + f.ing, 0))}</td><td class="d">${finM(filas.reduce((a, f) => a + f.egr, 0))}</td><td class="d">${finM(filas[filas.length - 1].saldo)}</td></tr></tfoot>` : ''}
+  </table></div></div>
+  <p class="peq mudo">Toque un movimiento para verlo, editarlo, descargar su póliza o eliminarlo.</p>`;
+  $$('[data-fmed]').forEach(b => b.onclick = () => { v.medio = b.dataset.fmed; finEscuela(v); });
+  $$('[data-fnuevo]').forEach(b => b.onclick = () => finFormMov(cct, null, { clase: b.dataset.fnuevo, medio }));
+  $('#fin-otro').onclick = () => finFormMov(cct, null, { clase: 'interes' });
+  $('#fin-pdf-lib').onclick = () => finPdf('libro', { cct, ciclo, medio }, 'Libro de ' + (medio === 'banco' ? 'bancos' : 'caja') + ' ' + ciclo);
+  finEnlazarMovs(cct);
+}
+function finLibroFilas(cct, ciclo, medio) {
+  let saldo = finInicial(cct, ciclo)[medio];
+  return finMovs(cct, ciclo).map(m => {
+    const e = finEfecto(m)[medio]; if (!e) return null;
+    saldo = Math.round((saldo + e) * 100) / 100;
+    const d = m.datos, et = d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco') : FIN_TIPOS[d.clase];
+    return { m, concepto: (d.concepto || et) + (d.clase === 'ingreso' && d.recibos ? ' · Recibos ' + d.recibos : '') + (d.clase === 'egreso' && d.comprobante ? ' · ' + d.comprobante + (d.compNum ? ' ' + d.compNum : '') : ''), ing: e > 0 ? e : 0, egr: e < 0 ? -e : 0, saldo };
+  }).filter(Boolean);
+}
+
+/* ---------- Detalle de un registro (con historial) ---------- */
+function finHistorial(o) {
+  const h = (o.historial || []).slice().reverse();
+  return h.length ? `<details class="fin-hist"><summary>Historial (${h.length})</summary>${h.map(x => `<div class="peq">• ${esc({ creo: 'Lo registró', edito: 'Lo editó', elimino: 'Lo eliminó', restauro: 'Lo restauró' }[x.a] || x.a)} <b>${esc(x.nom || '')}</b> · ${fechaHora(x.f)}</div>`).join('')}</details>` : '';
+}
+function finDetalle(id) {
+  const m = (S.fin || []).find(x => x.id === id); if (!m) return;
+  const d = m.datos, x = finMonto(m);
+  const et = d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco') : FIN_TIPOS[d.clase];
+  const lineas = (d.lineas || []).filter(l => finN(l.importe) || l.concepto);
+  modal(esc(et) + ' · ' + fechaCorta(m.fecha), `
+    <div class="fin-det">
+      <div class="fin-det-monto">${finM(x)}<span class="ayuda">${esc(finLetra(x))}</span></div>
+      ${d.concepto ? `<p style="margin:8px 0">${esc(d.concepto)}</p>` : ''}
+      <div class="peq mudo">${d.poliza ? 'Póliza de ' + (['ingreso', 'interes'].includes(d.clase) ? 'ingresos' : 'egresos') + ' No. ' + esc(d.poliza) + ' · ' : ''}${d.clase !== 'traspaso' ? (d.medio === 'caja' && ['ingreso', 'egreso'].includes(d.clase) ? 'Caja' : 'Banco') : ''}${d.recibos ? ' · Recibos oficiales: ' + esc(d.recibos) : ''}${d.comprobante ? ' · ' + esc(d.comprobante) + (d.compNum ? ' ' + esc(d.compNum) : '') : ''}${d.proveedor ? ' · ' + esc(d.proveedor) : ''}</div>
+      ${lineas.length ? `<table class="fin-tabla" style="margin-top:10px"><tbody>${lineas.map(l => `<tr><td>${l.partida ? '<b>' + esc(l.partida) + '</b> ' + esc(FIN_PART[l.partida] || '') + (l.concepto ? '<br>' : '') : ''}${esc(l.concepto || '')}</td><td class="d">${finM(l.importe)}</td></tr>`).join('')}</tbody></table>` : ''}
+      ${d.obs ? `<p class="peq" style="margin-top:8px"><b>Observaciones:</b> ${esc(d.obs)}</p>` : ''}
+      ${finHistorial(m)}
+    </div>`,
+    `<button class="boton peligro" id="fd-borrar" style="margin-right:auto">Eliminar</button>
+     ${d.clase !== 'traspaso' ? '<button class="boton sec" id="fd-pol">Póliza (PDF)</button>' : ''}
+     ${d.clase === 'egreso' && d.comprobante === 'Recibo económico' ? '<button class="boton sec" id="fd-rec">Recibo económico (PDF)</button>' : ''}
+     <button class="boton terra" id="fd-ed">${ico('i-lapiz')}Editar</button>`);
+  $('#fd-ed').onclick = () => finFormMov(m.cct, m.id);
+  if ($('#fd-pol')) $('#fd-pol').onclick = () => finPdf('poliza', { id }, 'Póliza ' + (['ingreso', 'interes'].includes(d.clase) ? 'de ingresos' : 'de egresos') + ' ' + (d.poliza || '') + ' ' + nombreEscuela(m.cct));
+  if ($('#fd-rec')) $('#fd-rec').onclick = () => finPdf('recibo', { id }, 'Recibo económico ' + fechaCorta(m.fecha) + ' ' + nombreEscuela(m.cct));
+  $('#fd-borrar').onclick = () => finEliminar(m, 'este movimiento de ' + finM(x));
+}
+function finEliminar(o, que) {
+  if (!confirm('¿Eliminar ' + que + '? ' + (esAdmin() ? 'Podrá restaurarlo desde «Eliminados».' : 'Si fue un error, la Supervisión puede restaurarlo.'))) return;
+  accion('finEliminar', { id: o.id }, r => { finRecibir(r.fin); cerrarModal(); vFinanzas(); aviso('Registro eliminado.', 'ok', 2500); });
+}
+function finPapelera(cct) {
+  const l = (S.fin || []).filter(x => x.cct === cct && x.activo === false).sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  const desc = o => ({ mov: () => (FIN_TIPOS[o.datos.clase] || 'Movimiento') + ' · ' + finM(finMonto(o)) + (o.datos.concepto ? ' · ' + o.datos.concepto : ''), sol: () => 'Solicitud de recibos · folios ' + (o.datos.inicial || '') + '–' + (o.datos.final || ''),
+    req: () => 'Requisición de combustible No. ' + (o.datos.num || '') + ' · ' + finM(o.datos.cantidad), rep: () => 'Reporte del ejercicio ' + fechaCorta(o.datos.del) + ' al ' + fechaCorta(o.datos.al), cta: () => 'Datos de la cuenta ' + o.ciclo })[o.tipo]();
+  modal('Registros eliminados · ' + esc(nombreEscuela(cct)), l.length ? `<div class="checklist">${l.map(o => { const u = (o.historial || []).slice(-1)[0] || {}; return `<div class="chk-fila" style="align-items:center"><span style="flex:1;min-width:0">${esc(desc(o))}<br><span class="ayuda">${fechaCorta(o.fecha)} · eliminó ${esc(u.nom || '')} ${u.f ? '· ' + fechaHora(u.f) : ''}</span></span><button class="boton sec chico" data-frest="${o.id}">Restaurar</button></div>`; }).join('')}</div>` : '<div class="vacio">No hay registros eliminados.</div>', '<button class="boton sec" id="fp-cerrar">Cerrar</button>');
+  $('#fp-cerrar').onclick = cerrarModal;
+  $$('[data-frest]').forEach(b => b.onclick = () => accion('finRestaurar', { id: b.dataset.frest }, r => { finRecibir(r.fin); vFinanzas(); finPapelera(cct); aviso('Registro restaurado.', 'ok', 2500); }));
+}
+
+/* ---------- Formulario de movimiento ---------- */
+function finFormMov(cct, id, base) {
+  const prev = id ? (S.fin || []).find(x => x.id === id) : null;
+  const P = finPlantel(cct, prev ? prev.ciclo : vista.fin.ciclo);
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : Object.assign({ clase: 'ingreso', medio: 'banco', concepto: '', lineas: [], recibos: '', comprobante: 'Factura', compNum: '', proveedor: '', domProv: '', elaboro: P.tesorero, autorizo: P.director, reviso: P.revisa, monto: '', direccion: 'deposito', obs: '' }, base || {})));
+  if (!d.lineas.length) d.lineas.push(d.clase === 'egreso' ? { partida: '', concepto: '', importe: '' } : { concepto: '', importe: '' });
+  const st = { clase: d.clase, fecha: prev ? prev.fecha : (base && base.fecha) || hoy() };
+  const optPart = sel => `<option value="">Partida…</option>${FIN_GRUPOS.map(g => `<optgroup label="${g[0]} · ${esc(g[1])}">${g[2].map(p => `<option value="${p[0]}" ${sel === p[0] ? 'selected' : ''}>${p[0]} · ${esc(p[1])}</option>`).join('')}</optgroup>`).join('')}`;
+  const filaL = (l, eg) => `<div class="fin-lin">${eg ? `<select data-l="partida" aria-label="Partida">${optPart(l.partida)}</select>` : ''}<input data-l="concepto" placeholder="${eg ? 'Qué se compró o pagó' : 'Concepto (ej. cuotas voluntarias de 3.° A)'}" value="${esc(l.concepto || '')}" ${eg ? '' : 'list="fin-ling"'}><input data-l="importe" inputmode="decimal" placeholder="Importe" value="${esc(l.importe || '')}" class="d"><button type="button" class="icono-btn" data-lq aria-label="Quitar renglón">${ico('i-x')}</button></div>`;
+  const pintarCuerpo = () => {
+    const c = st.clase, eg = c === 'egreso', conLin = c === 'ingreso' || eg;
+    $('#fm-var').innerHTML = `
+      ${conLin ? `<div class="campo"><span class="et">Medio</span><div class="seg-op" role="group"><button type="button" data-fmd="banco" aria-pressed="${d.medio !== 'caja'}">Banco${P.banco ? ' · ' + esc(P.banco) : ''}</button><button type="button" data-fmd="caja" aria-pressed="${d.medio === 'caja'}">Caja (efectivo)</button></div></div>` : ''}
+      ${c === 'traspaso' ? `<div class="campo"><span class="et">Movimiento</span><div class="seg-op" role="group"><button type="button" data-fdir="deposito" aria-pressed="${d.direccion !== 'retiro'}">Depósito de caja al banco</button><button type="button" data-fdir="retiro" aria-pressed="${d.direccion === 'retiro'}">Retiro del banco a caja</button></div></div>` : ''}
+      <div class="campo"><label for="fm-con">Concepto${conLin ? ' general (aparece en la póliza y en el libro)' : ''}</label><input id="fm-con" value="${esc(d.concepto)}" placeholder="${eg ? 'Ej. Compra de material de limpieza para el plantel' : c === 'ingreso' ? 'Ej. Cuotas voluntarias de padres de familia, noviembre' : c === 'interes' ? 'Intereses de la cuenta' : c === 'cargo' ? 'Comisión por manejo de cuenta' : 'Depósito del efectivo de caja'}"></div>
+      ${conLin ? `<div class="campo"><span class="et">${eg ? 'Partidas del gasto (catálogo autorizado)' : 'Renglones del ingreso'}</span>
+          <div id="fm-lins">${d.lineas.map(l => filaL(l, eg)).join('')}</div>
+          <datalist id="fin-ling">${['Cuotas voluntarias de padres de familia', 'Cooperativa escolar', 'Donativo', 'Evento escolar', 'Rifa o kermés', 'Renta de espacios'].map(x => `<option value="${x}">`).join('')}</datalist>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="boton sec chico" id="fm-mas">${ico('i-mas')}Agregar renglón</button><span style="flex:1"></span><b id="fm-tot" class="fin-tot"></b></div></div>`
+        : `<div class="fila dos"><div class="campo"><label for="fm-monto">Importe</label><input id="fm-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div><div class="campo"><span class="et">Con letra</span><div class="ayuda" id="fm-let" style="padding-top:10px"></div></div></div>`}
+      ${c === 'ingreso' ? `<div class="campo"><label for="fm-rec">Folios de los recibos oficiales que se entregaron</label><input id="fm-rec" value="${esc(d.recibos)}" placeholder="Ej. 0151 al 0168">${finFoliosAyuda(cct)}</div>` : ''}
+      ${eg ? `<div class="fila"><div class="campo"><label for="fm-comp">Comprobante</label><select id="fm-comp">${FIN_COMP.map(x => `<option ${d.comprobante === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+          <div class="campo"><label for="fm-cnum">Folio del comprobante</label><input id="fm-cnum" value="${esc(d.compNum)}"></div>
+          <div class="campo"><label for="fm-prov" id="fm-lprov">Proveedor</label><input id="fm-prov" value="${esc(d.proveedor)}"></div></div>
+        <div class="campo" id="fm-cdom"><label for="fm-dom">Domicilio de quien recibe el pago (para el recibo económico)</label><input id="fm-dom" value="${esc(d.domProv)}"><div class="ayuda">Al recibo económico se le anexa copia de la INE de quien recibe.</div></div>` : ''}
+      ${c !== 'traspaso' ? `<details class="fin-firmas" ${prev ? '' : 'open'}><summary>Firmas de la póliza</summary><div class="fila">
+          <div class="campo"><label for="fm-ela">Elaborado por</label><input id="fm-ela" value="${esc(d.elaboro)}"></div>
+          <div class="campo"><label for="fm-aut">Autorizado por</label><input id="fm-aut" value="${esc(d.autorizo)}"></div>
+          <div class="campo"><label for="fm-rev">Revisado por</label><input id="fm-rev" value="${esc(d.reviso)}"></div></div>
+          ${prev ? `<div class="campo" style="max-width:220px"><label for="fm-pol">No. de póliza</label><input id="fm-pol" value="${esc(d.poliza || '')}"></div>` : '<div class="ayuda">El número de póliza se asigna solo al guardar (consecutivo del ciclo).</div>'}</details>` : ''}
+      <div class="campo"><label for="fm-obs">Observaciones (opcional)</label><input id="fm-obs" value="${esc(d.obs)}"></div>`;
+    $$('[data-fmd]').forEach(b => b.onclick = () => { guardarEnD(); d.medio = b.dataset.fmd; pintarCuerpo(); });
+    $$('[data-fdir]').forEach(b => b.onclick = () => { guardarEnD(); d.direccion = b.dataset.fdir; pintarCuerpo(); });
+    const quitar = () => $$('#fm-lins [data-lq]').forEach(q => q.onclick = () => { if ($$('#fm-lins .fin-lin').length > 1) q.closest('.fin-lin').remove(); else $$('input', q.closest('.fin-lin')).forEach(i => i.value = ''); total(); });
+    const total = () => { if ($('#fm-tot')) { const t = $$('#fm-lins [data-l=importe]').reduce((a, i) => a + finN(i.value), 0); $('#fm-tot').innerHTML = 'Total: ' + finM(t) + `<span class="ayuda" style="display:block;font-weight:400">${esc(finLetra(t))}</span>`; }
+      if ($('#fm-let')) $('#fm-let').textContent = finLetra($('#fm-monto').value); };
+    if ($('#fm-mas')) $('#fm-mas').onclick = () => { $('#fm-lins').insertAdjacentHTML('beforeend', filaL({}, eg)); quitar(); enlazarL(); $$('#fm-lins [data-l=concepto]').pop().focus(); };
+    const enlazarL = () => $$('#fm-lins input, #fm-lins select').forEach(i => i.oninput = i.onchange = total);
+    if ($('#fm-monto')) $('#fm-monto').oninput = total;
+    const comp = () => { if (!$('#fm-comp')) return; const re = $('#fm-comp').value === 'Recibo económico'; $('#fm-cdom').style.display = re ? '' : 'none'; $('#fm-lprov').textContent = re ? 'Nombre de quien recibe' : 'Proveedor'; };
+    if ($('#fm-comp')) $('#fm-comp').onchange = comp;
+    quitar(); enlazarL(); total(); comp();
+  };
+  const guardarEnD = () => {
+    const val = s => $(s) ? $(s).value.trim() : undefined, set = (k, s) => { const x = val(s); if (x !== undefined) d[k] = x; };
+    set('concepto', '#fm-con'); set('monto', '#fm-monto'); set('recibos', '#fm-rec'); set('comprobante', '#fm-comp'); set('compNum', '#fm-cnum'); set('proveedor', '#fm-prov'); set('domProv', '#fm-dom');
+    set('elaboro', '#fm-ela'); set('autorizo', '#fm-aut'); set('reviso', '#fm-rev'); set('poliza', '#fm-pol'); set('obs', '#fm-obs');
+    if ($('#fm-lins')) d.lineas = $$('#fm-lins .fin-lin').map(f => { const o = {}; $$('[data-l]', f).forEach(i => o[i.dataset.l] = i.value.trim()); return o; });
+  };
+  modal(prev ? 'Editar movimiento' : 'Nuevo movimiento', `
+    <p class="peq mudo" style="margin-top:0">${esc(nombreEscuela(cct))}</p>
+    <div class="campo"><span class="et">Tipo</span><div class="seg-op fin-tipos" role="group">${Object.entries(FIN_TIPOS).map(([k, t]) => `<button type="button" data-fcl="${k}" aria-pressed="${st.clase === k}">${t}</button>`).join('')}</div></div>
+    <div class="campo" style="max-width:220px"><label for="fm-fecha">Fecha</label><input type="date" id="fm-fecha" value="${st.fecha}"></div>
+    <div id="fm-var"></div>`,
+    `<button class="boton sec" id="fm-cancelar">Cancelar</button><button class="boton terra" id="fm-guardar">Guardar</button>`);
+  $$('[data-fcl]').forEach(b => b.onclick = () => {
+    guardarEnD(); const antes = st.clase; st.clase = b.dataset.fcl;
+    if ((antes === 'egreso') !== (st.clase === 'egreso') && ['ingreso', 'egreso'].includes(st.clase)) d.lineas = d.lineas.map(l => st.clase === 'egreso' ? Object.assign({ partida: '' }, l) : { concepto: l.concepto, importe: l.importe });
+    if (st.clase === 'cargo' && !d.concepto) d.concepto = '';
+    $$('[data-fcl]').forEach(x => x.setAttribute('aria-pressed', x === b)); pintarCuerpo();
+  });
+  pintarCuerpo();
+  $('#fm-cancelar').onclick = cerrarModal;
+  $('#fm-guardar').onclick = () => {
+    guardarEnD();
+    const c = st.clase, fecha = $('#fm-fecha').value;
+    if (!fecha) return aviso('Elija la fecha.', 'mal');
+    const datos = { clase: c, concepto: d.concepto, obs: d.obs };
+    if (['ingreso', 'egreso'].includes(c)) {
+      const lineas = d.lineas.filter(l => finN(l.importe) || l.concepto || l.partida);
+      if (!lineas.length || !lineas.some(l => finN(l.importe) > 0)) return aviso('Escriba al menos un renglón con su importe.', 'mal');
+      if (lineas.some(l => !(finN(l.importe) > 0))) return aviso('Cada renglón necesita un importe mayor a cero.', 'mal');
+      if (c === 'egreso' && lineas.some(l => !l.partida)) return aviso('Elija la partida de cada renglón del egreso.', 'mal');
+      Object.assign(datos, { medio: d.medio === 'caja' ? 'caja' : 'banco', lineas: lineas.map(l => Object.assign(c === 'egreso' ? { partida: l.partida } : {}, { concepto: l.concepto || '', importe: finN(l.importe).toFixed(2) })) });
+      if (!datos.concepto) datos.concepto = c === 'egreso' ? (lineas.length === 1 ? (lineas[0].concepto || FIN_PART[lineas[0].partida]) : 'Egresos varios') : (lineas[0].concepto || 'Ingresos propios');
+    } else {
+      if (!(finN(d.monto) > 0)) return aviso('Escriba el importe.', 'mal');
+      Object.assign(datos, { monto: finN(d.monto).toFixed(2), medio: 'banco' });
+      if (c === 'traspaso') datos.direccion = d.direccion === 'retiro' ? 'retiro' : 'deposito';
+      if (!datos.concepto) datos.concepto = { interes: 'Intereses de la cuenta', cargo: 'Comisión o cargo bancario', traspaso: datos.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco' }[c];
+    }
+    if (c === 'ingreso') datos.recibos = d.recibos;
+    if (c === 'egreso') Object.assign(datos, { comprobante: d.comprobante, compNum: d.compNum, proveedor: d.proveedor, domProv: d.comprobante === 'Recibo económico' ? d.domProv : '' });
+    if (c === 'egreso' && d.comprobante === 'Recibo económico' && !d.proveedor) return aviso('Escriba el nombre de quien recibe el pago.', 'mal');
+    if (c !== 'traspaso') Object.assign(datos, { elaboro: d.elaboro, autorizo: d.autorizo, reviso: d.reviso });
+    if (prev && prev.datos.clase === c) datos.poliza = d.poliza || prev.datos.poliza || '';
+    if (base && base.reqId) datos.reqId = base.reqId; else if (prev && prev.datos.reqId) datos.reqId = prev.datos.reqId;
+    // dinero que sale: avisar si deja la cuenta en negativo
+    const ef = finEfecto({ datos }), ant = prev ? finEfecto(prev) : { banco: 0, caja: 0 };
+    const s = finSaldo(cct, finCiclo(fecha)), ab = s.banco - ant.banco + ef.banco, ac = s.caja - ant.caja + ef.caja;
+    if ((ef.banco < 0 && ab < -0.004) || (ef.caja < 0 && ac < -0.004)) { if (!confirm('Con este movimiento ' + (ab < 0 ? 'el banco' : 'la caja') + ' quedaría en ' + finM(ab < 0 ? ab : ac) + '. ¿Guardarlo de todos modos?')) return; }
+    accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'mov', fecha, datos }, async r => {
+      finRecibir(r.fin);
+      if (datos.reqId && r.fin) { const q = (S.fin || []).find(x => x.id === datos.reqId); if (q && q.datos.movId !== r.fin.id) { const qd = Object.assign({}, q.datos, { movId: r.fin.id }); const r2 = await api('finGuardar', { id: q.id, cct, tipo: 'req', fecha: q.fecha, datos: qd }).catch(() => null); if (r2) finRecibir(r2.fin); } }
+      vista.fin.ciclo = r.fin.ciclo; cerrarModal(); vFinanzas();
+      aviso((prev ? 'Movimiento actualizado' : 'Movimiento registrado') + (r.fin.datos.poliza ? ' · póliza ' + r.fin.datos.poliza : '') + '.', 'ok', 3000);
+    });
+  };
+}
+// Folios de recibos oficiales: los que se solicitaron y el último que se usó
+function finFoliosAyuda(cct) {
+  const sol = finDe(cct, 'sol').sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+  if (!sol.length) return '<div class="ayuda">Registre en «Solicitud de recibos» los folios que le entregaron, para llevar su control.</div>';
+  const usados = finDe(cct, 'mov').map(m => String(m.datos.recibos || '').match(/\d+/g) || []).flat().map(Number);
+  const max = usados.length ? Math.max(...usados) : 0, r = sol[sol.length - 1].datos;
+  return `<div class="ayuda">Folios solicitados: ${sol.map(s => esc(s.datos.inicial) + '–' + esc(s.datos.final)).join(', ')}.${max ? ' Último usado: <b>' + max + '</b>.' : ''}${+r.final && max >= +r.final ? ' <b style="color:var(--alerta)">Ya se usaron todos los folios de la última solicitud.</b>' : ''}</div>`;
+}
+
+/* ---------- Solicitud de recibos ---------- */
+function finRecibos(v, cct, ciclo) {
+  const l = finDe(cct, 'sol').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  $('#fin-cuerpo').innerHTML = `
+  <div class="fin-botones"><p class="peq mudo" style="margin:0;flex:1;min-width:220px">Solicitud de recibos de ingresos propios al Departamento de Recursos Financieros del ISEP. Se llena con los datos del plantel y se imprime para firma y sello.</p>
+    <button class="boton terra" id="fr-nueva">${ico('i-mas')}Nueva solicitud</button></div>
+  ${l.length ? `<div class="tarjeta"><div class="checklist sin-borde">${l.map(o => `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>Folios ${esc(o.datos.inicial)} al ${esc(o.datos.final)}</b> · ${finTotRec(o.datos)} recibos<br><span class="ayuda">${fechaCorta(o.fecha)} · ${finM(o.datos.cantidad)}</span>${finHistorial(o)}</span>
+    <button class="boton sec chico" data-frpdf="${o.id}">PDF</button><button class="boton sec chico" data-fred="${o.id}">${ico('i-lapiz')}Editar</button><button class="icono-btn" data-frdel="${o.id}" aria-label="Eliminar">${ico('i-x')}</button></div>`).join('')}</div></div>` : '<div class="tarjeta vacio">No hay solicitudes registradas.</div>'}`;
+  $('#fr-nueva').onclick = () => finFormSol(cct, null);
+  $$('[data-fred]').forEach(b => b.onclick = () => finFormSol(cct, b.dataset.fred));
+  $$('[data-frpdf]').forEach(b => b.onclick = () => finPdf('solicitud', { id: b.dataset.frpdf }, 'Solicitud de recibos ' + nombreEscuela(cct)));
+  $$('[data-frdel]').forEach(b => b.onclick = () => finEliminar(S.fin.find(x => x.id === b.dataset.frdel), 'esta solicitud de recibos'));
+}
+const finTotRec = d => (+d.inicial && +d.final && +d.final >= +d.inicial) ? (+d.final - +d.inicial + 1) : (d.total || '');
+function finFormSol(cct, id) {
+  const prev = id ? S.fin.find(x => x.id === id) : null, P = finPlantel(cct, vista.fin.ciclo);
+  const d = prev ? prev.datos : { nivel: P.nivel, cantidad: '', inicial: '', final: '', nombre: finMay(P.nombre), zona: P.zona, clave: cct, calle: P.calle, numero: P.numero, colonia: P.colonia, ciudad: P.ciudad, municipio: P.municipio, cp: P.cp, telefono: P.telefono, correo: P.correo, director: P.director };
+  const c = (k, t, extra = '') => `<div class="campo"><label for="fs-${k}">${t}</label><input id="fs-${k}" data-fs="${k}" value="${esc(d[k] || '')}" ${extra}></div>`;
+  modal(prev ? 'Editar solicitud de recibos' : 'Solicitud de recibos de ingresos propios', `
+    <div class="fila">${c('nivel', 'Nivel educativo')}<div class="campo"><label for="fs-fecha">Fecha</label><input type="date" id="fs-fecha" value="${prev ? prev.fecha : hoy()}"></div>${c('cantidad', 'Cantidad recibida ($)', 'inputmode="decimal"')}</div>
+    <div class="ayuda" id="fs-let" style="margin:-6px 0 10px"></div>
+    <div class="fila">${c('inicial', 'Folio inicial', 'inputmode="numeric"')}${c('final', 'Folio final', 'inputmode="numeric"')}<div class="campo"><span class="et">Total de recibos</span><b id="fs-tot" style="padding-top:10px"></b></div></div>
+    <div class="seccion-t" style="padding:4px 0 8px">Datos del plantel educativo</div>
+    <div class="fila">${c('nombre', 'Nombre')}${c('zona', 'Zona')}${c('clave', 'Clave')}</div>
+    <div class="fila">${c('calle', 'Calle')}${c('numero', 'Número')}${c('colonia', 'Colonia')}</div>
+    <div class="fila">${c('ciudad', 'Ciudad')}${c('municipio', 'Municipio o delegación')}${c('cp', 'C.P.')}</div>
+    <div class="fila dos">${c('telefono', 'Teléfono')}${c('correo', 'Correo electrónico')}</div>
+    ${c('director', 'Nombre del director(a)')}
+    <div class="ayuda">Los datos del plantel se guardan también en «Datos de la cuenta» si allí están vacíos, para no volver a escribirlos.</div>`,
+    `<button class="boton sec" id="fs-cancelar">Cancelar</button><button class="boton sec" id="fs-pdf">Guardar y descargar PDF</button><button class="boton terra" id="fs-guardar">Guardar</button>`);
+  const act = () => { const o = leer(); $('#fs-tot').textContent = finTotRec(o) || '—'; $('#fs-let').textContent = finN(o.cantidad) ? 'Con letra: ' + finLetra(o.cantidad) : ''; };
+  const leer = () => { const o = {}; $$('[data-fs]').forEach(i => o[i.dataset.fs] = i.value.trim()); return o; };
+  $$('[data-fs]').forEach(i => i.oninput = act); act();
+  $('#fs-cancelar').onclick = cerrarModal;
+  const guardar = pdf => {
+    const o = leer(); o.total = String(finTotRec(o));
+    if (!(+o.inicial > 0) || !(+o.final >= +o.inicial)) return aviso('Revise los folios: el final debe ser mayor o igual al inicial.', 'mal');
+    accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'sol', fecha: $('#fs-fecha').value || hoy(), datos: o }, r => {
+      finRecibir(r.fin); cerrarModal(); vFinanzas(); finCompletarCuenta(cct, o); aviso('Solicitud guardada.', 'ok', 2500);
+      if (pdf) finPdf('solicitud', { id: r.fin.id }, 'Solicitud de recibos ' + nombreEscuela(cct));
+    });
+  };
+  $('#fs-guardar').onclick = () => guardar(false);
+  $('#fs-pdf').onclick = () => guardar(true);
+}
+// Los datos del plantel que se capturan en un formato llenan los que falten en «Datos de la cuenta»
+function finCompletarCuenta(cct, o) {
+  const ciclo = vista.fin.ciclo, c = finCta(cct, ciclo); if (!c) return;
+  const k = ['calle', 'numero', 'colonia', 'ciudad', 'municipio', 'cp', 'telefono', 'correo', 'director'], nd = Object.assign({}, c.datos); let cambia = false;
+  k.forEach(x => { if (!nd[x] && o[x]) { nd[x] = o[x]; cambia = true; } });
+  if (cambia) api('finGuardar', { id: c.id, cct, tipo: 'cta', fecha: c.fecha, datos: nd }).then(r => finRecibir(r.fin)).catch(() => {});
+}
+
+/* ---------- Requisición de combustible ---------- */
+function finCombustible(v, cct, ciclo) {
+  const l = finDe(cct, 'req', ciclo).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || (+b.datos.num || 0) - (+a.datos.num || 0));
+  $('#fin-cuerpo').innerHTML = `
+  <div class="fin-botones"><p class="peq mudo" style="margin:0;flex:1;min-width:220px">Requisición de combustible (Dirección de Recursos Financieros · Coordinación de Tesorería). Al guardarla puede registrar el egreso en la partida 321 con un toque.</p>
+    <button class="boton terra" id="fq-nueva">${ico('i-mas')}Nueva requisición</button></div>
+  ${l.length ? `<div class="tarjeta"><div class="checklist sin-borde">${l.map(o => { const mv = o.datos.movId && finActivos().find(x => x.id === o.datos.movId); return `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>No. ${esc(o.datos.num || '')} · ${esc(o.datos.solicitante || '')}</b> · ${finM(o.datos.cantidad)}${o.datos.litros ? ' · ' + esc(o.datos.litros) + ' L' : ''}<br><span class="ayuda">${fechaCorta(o.fecha)} · ${o.datos.tipo === 'comision' ? 'Comisión' : 'Consumo normal'}${o.datos.motivo ? ' · ' + esc(o.datos.motivo) : ''}</span>
+      ${mv ? '<br><span class="chip ok">Egreso registrado · póliza ' + esc(mv.datos.poliza || '') + '</span>' : ''}${finHistorial(o)}</span>
+    ${mv ? '' : `<button class="boton sec chico" data-fqeg="${o.id}">Registrar egreso</button>`}<button class="boton sec chico" data-fqpdf="${o.id}">PDF</button><button class="boton sec chico" data-fqed="${o.id}">${ico('i-lapiz')}Editar</button><button class="icono-btn" data-fqdel="${o.id}" aria-label="Eliminar">${ico('i-x')}</button></div>`; }).join('')}</div></div>` : '<div class="tarjeta vacio">No hay requisiciones en este ciclo.</div>'}`;
+  $('#fq-nueva').onclick = () => finFormReq(cct, null);
+  $$('[data-fqed]').forEach(b => b.onclick = () => finFormReq(cct, b.dataset.fqed));
+  $$('[data-fqpdf]').forEach(b => b.onclick = () => finPdf('requisicion', { id: b.dataset.fqpdf }, 'Requisición de combustible ' + nombreEscuela(cct)));
+  $$('[data-fqdel]').forEach(b => b.onclick = () => finEliminar(S.fin.find(x => x.id === b.dataset.fqdel), 'esta requisición de combustible'));
+  $$('[data-fqeg]').forEach(b => b.onclick = () => finEgresoDeReq(S.fin.find(x => x.id === b.dataset.fqeg)));
+}
+function finEgresoDeReq(q) {
+  const d = q.datos;
+  finFormMov(q.cct, null, { clase: 'egreso', fecha: q.fecha, reqId: q.id, concepto: 'Combustible · requisición No. ' + (d.num || '') + (d.motivo ? ' · ' + d.motivo : ''),
+    lineas: [{ partida: '321', concepto: (d.litros ? d.litros + ' litros' : 'Combustible') + (d.solicitante ? ' · ' + d.solicitante : ''), importe: d.cantidad }], comprobante: 'Ticket', proveedor: '' });
+}
+function finFormReq(cct, id) {
+  const prev = id ? S.fin.find(x => x.id === id) : null, P = finPlantel(cct, vista.fin.ciclo);
+  const d = prev ? prev.datos : { num: '', lugar: P.localidad + (P.municipio ? ', ' + P.municipio : '') + ', B.C.', plantel: finMay(P.nombre), clave: cct, domicilio: P.domicilio, solicitante: '', filiacion: '', puesto: '', adscripcion: finMay(P.nombre), tipo: 'normal', motivo: '', cantidad: '', litros: '', precio: '', obs: '', autoriza: P.director, recibe: '' };
+  const c = (k, t, extra = '') => `<div class="campo"><label for="fq-${k}">${t}</label><input id="fq-${k}" data-fq="${k}" value="${esc(d[k] || '')}" ${extra}></div>`;
+  modal(prev ? 'Editar requisición de combustible' : 'Requisición de combustible', `
+    <div class="fila"><div class="campo"><label for="fq-fecha">Fecha</label><input type="date" id="fq-fecha" value="${prev ? prev.fecha : hoy()}"></div>${c('lugar', 'Lugar')}${prev ? c('num', 'Número') : '<div class="campo"><span class="et">Número</span><div class="ayuda" style="padding-top:10px">Se asigna al guardar</div></div>'}</div>
+    <div class="fila">${c('plantel', 'Nombre del plantel')}${c('clave', 'Clave del centro de trabajo')}${c('domicilio', 'Domicilio')}</div>
+    <div class="seccion-t" style="padding:4px 0 8px">Datos del solicitante</div>
+    <div class="fila dos">${c('solicitante', 'Nombre')}${c('filiacion', 'Filiación (RFC)')}</div>
+    <div class="fila dos">${c('puesto', 'Puesto')}${c('adscripcion', 'Adscripción')}</div>
+    <div class="campo"><span class="et">Tipo de requisición</span><div class="seg-op" role="group"><button type="button" data-fqt="normal" aria-pressed="${d.tipo !== 'comision'}">Consumo normal</button><button type="button" data-fqt="comision" aria-pressed="${d.tipo === 'comision'}">Comisión</button></div></div>
+    <div class="campo"><label for="fq-motivo">Motivo de la comisión o consumo de combustible</label><textarea id="fq-motivo" data-fq="motivo" style="min-height:64px">${esc(d.motivo || '')}</textarea></div>
+    <div class="fila">${c('litros', 'Cantidad en litros', 'inputmode="decimal"')}${c('precio', 'Precio vigente por litro', 'inputmode="decimal"')}${c('cantidad', 'Cantidad ($)', 'inputmode="decimal"')}</div>
+    <div class="ayuda" id="fq-let" style="margin:-6px 0 10px"></div>
+    <div class="campo"><label for="fq-obs">Observaciones</label><textarea id="fq-obs" data-fq="obs" style="min-height:56px">${esc(d.obs || '')}</textarea></div>
+    <div class="fila dos">${c('autoriza', 'Autoriza (nombre)')}${c('recibe', 'Recibe (nombre)')}</div>`,
+    `<button class="boton sec" id="fq-cancelar">Cancelar</button><button class="boton sec" id="fq-pdf">Guardar y descargar PDF</button><button class="boton terra" id="fq-guardar">Guardar</button>`);
+  let tipo = d.tipo === 'comision' ? 'comision' : 'normal';
+  $$('[data-fqt]').forEach(b => b.onclick = () => { tipo = b.dataset.fqt; $$('[data-fqt]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  const leer = () => { const o = {}; $$('[data-fq]').forEach(i => o[i.dataset.fq] = i.value.trim()); return o; };
+  const act = e => {
+    const L = finN($('#fq-litros').value), Pr = finN($('#fq-precio').value);
+    if (e && (e.target.id === 'fq-litros' || e.target.id === 'fq-precio') && L && Pr) $('#fq-cantidad').value = (L * Pr).toFixed(2);
+    if (e && e.target.id === 'fq-cantidad' && Pr && !L) $('#fq-litros').value = (finN($('#fq-cantidad').value) / Pr).toFixed(2);
+    $('#fq-let').textContent = finN($('#fq-cantidad').value) ? 'Con letra: ' + finLetra($('#fq-cantidad').value) : '';
+  };
+  $$('[data-fq]').forEach(i => i.oninput = act); act();
+  $('#fq-cancelar').onclick = cerrarModal;
+  const guardar = pdf => {
+    const o = Object.assign({}, prev ? { movId: prev.datos.movId || '' } : {}, leer(), { tipo });
+    if (!o.solicitante) return aviso('Escriba el nombre del solicitante.', 'mal');
+    if (!(finN(o.cantidad) > 0)) return aviso('Escriba la cantidad en pesos.', 'mal');
+    accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'req', fecha: $('#fq-fecha').value || hoy(), datos: o }, r => {
+      finRecibir(r.fin); cerrarModal(); vFinanzas(); aviso('Requisición guardada' + (r.fin.datos.num ? ' · No. ' + r.fin.datos.num : '') + '.', 'ok', 2500);
+      if (pdf) finPdf('requisicion', { id: r.fin.id }, 'Requisición de combustible ' + nombreEscuela(cct));
+      else if (!prev && confirm('¿Registrar ahora el egreso de este combustible en el libro de bancos (partida 321)?')) finEgresoDeReq(r.fin);
+    });
+  };
+  $('#fq-guardar').onclick = () => guardar(false);
+  $('#fq-pdf').onclick = () => guardar(true);
+}
+
+/* ---------- Reporte del ejercicio ---------- */
+function finReportes(v, cct, ciclo) {
+  const l = finDe(cct, 'rep', ciclo).sort((a, b) => String(b.datos.al).localeCompare(String(a.datos.al)));
+  $('#fin-cuerpo').innerHTML = `
+  <div class="fin-botones"><p class="peq mudo" style="margin:0;flex:1;min-width:220px">Tequio calcula el saldo anterior, los ingresos, intereses, egresos, cargos y el saldo final del periodo con lo registrado en el libro de bancos y la caja.</p>
+    <button class="boton terra" id="fe-nuevo">${ico('i-mas')}Nuevo reporte</button></div>
+  ${l.length ? `<div class="tarjeta"><div class="checklist sin-borde">${l.map(o => `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>Del ${fechaCorta(o.datos.del)} al ${fechaCorta(o.datos.al)}</b><br><span class="ayuda">Saldo final: banco ${finM(o.datos.cifras.banco.fin)} · caja ${finM(o.datos.cifras.caja.fin)}</span>${finHistorial(o)}</span>
+    <button class="boton sec chico" data-fepdf="${o.id}">PDF</button><button class="boton sec chico" data-feed="${o.id}">${ico('i-lapiz')}Editar</button><button class="icono-btn" data-fedel="${o.id}" aria-label="Eliminar">${ico('i-x')}</button></div>`).join('')}</div></div>` : '<div class="tarjeta vacio">No hay reportes del ejercicio en este ciclo.</div>'}`;
+  $('#fe-nuevo').onclick = () => finFormRep(cct, null, ciclo);
+  $$('[data-feed]').forEach(b => b.onclick = () => finFormRep(cct, b.dataset.feed, ciclo));
+  $$('[data-fepdf]').forEach(b => b.onclick = () => finPdf('reporte', { id: b.dataset.fepdf }, 'Reporte del ejercicio ' + nombreEscuela(cct)));
+  $$('[data-fedel]').forEach(b => b.onclick = () => finEliminar(S.fin.find(x => x.id === b.dataset.fedel), 'este reporte del ejercicio'));
+}
+function finFormRep(cct, id, ciclo) {
+  const prev = id ? S.fin.find(x => x.id === id) : null, P = finPlantel(cct, ciclo);
+  const ini = finCicloIni(ciclo), fin = String(+ciclo.slice(0, 4) + 1) + '-07-31';
+  const d = prev ? JSON.parse(JSON.stringify(prev.datos)) : { del: ini, al: hoy() < fin ? hoy() : fin, banco: P.banco, cuenta: P.cuenta, apf: { banco: '', cuenta: '', ant: { b: '', c: '' }, ing: { b: '', c: '' }, egr: { b: '', c: '' } }, lugar: P.localidad, fechaFirma: hoy(), tesorero: P.tesorero, director: P.director, sector: P.sector, obs: '' };
+  const a = d.apf, n = (k, s, t) => `<input data-apf="${k}.${s}" inputmode="decimal" value="${esc((a[k] || {})[s] || '')}" aria-label="${t}">`;
+  modal(prev ? 'Editar reporte del ejercicio' : 'Reporte del ejercicio', `
+    <div class="fila"><div class="campo"><label for="fe-del">Del</label><input type="date" id="fe-del" value="${d.del}"></div><div class="campo"><label for="fe-al">Al</label><input type="date" id="fe-al" value="${d.al}"></div><div class="campo"><label for="fe-sec">Sector</label><input id="fe-sec" value="${esc(d.sector || '')}"></div></div>
+    <div class="fila dos"><div class="campo"><label for="fe-ban">Nombre del banco</label><input id="fe-ban" value="${esc(d.banco || '')}"></div><div class="campo"><label for="fe-cta">No. de cuenta</label><input id="fe-cta" value="${esc(d.cuenta || '')}"></div></div>
+    <div class="seccion-t" style="padding:4px 0 8px">Cifras del plantel (calculadas)</div>
+    <div id="fe-cif"></div>
+    <details class="fin-firmas"><summary>Datos informativos de la Asociación de Padres de Familia (opcional)</summary>
+      <div class="fila dos"><div class="campo"><label for="fe-abanco">Banco</label><input id="fe-abanco" value="${esc(a.banco || '')}"></div><div class="campo"><label for="fe-acta">No. de cuenta</label><input id="fe-acta" value="${esc(a.cuenta || '')}"></div></div>
+      <table class="fin-tabla fin-apf"><thead><tr><th></th><th class="d">Banco</th><th class="d">Caja</th></tr></thead><tbody>
+        <tr><td>Saldo anterior</td><td>${n('ant', 'b', 'Saldo anterior banco')}</td><td>${n('ant', 'c', 'Saldo anterior caja')}</td></tr>
+        <tr><td>Más: total de ingresos</td><td>${n('ing', 'b', 'Ingresos banco')}</td><td>${n('ing', 'c', 'Ingresos caja')}</td></tr>
+        <tr><td>Menos: total de egresos</td><td>${n('egr', 'b', 'Egresos banco')}</td><td>${n('egr', 'c', 'Egresos caja')}</td></tr>
+        <tr><td><b>Saldo final</b></td><td class="d" id="fe-afb"></td><td class="d" id="fe-afc"></td></tr></tbody></table></details>
+    <div class="fila"><div class="campo"><label for="fe-lug">Lugar</label><input id="fe-lug" value="${esc(d.lugar || '')}"></div><div class="campo"><label for="fe-ff">Fecha de firma</label><input type="date" id="fe-ff" value="${d.fechaFirma || hoy()}"></div><div></div></div>
+    <div class="fila dos"><div class="campo"><label for="fe-tes">Elaborado por · tesorero(a) o contralor(a)</label><input id="fe-tes" value="${esc(d.tesorero || '')}"></div><div class="campo"><label for="fe-dir">Autorizado por · director(a)</label><input id="fe-dir" value="${esc(d.director || '')}"></div></div>`,
+    `<button class="boton sec" id="fe-cancelar">Cancelar</button><button class="boton sec" id="fe-pdf">Guardar y descargar PDF</button><button class="boton terra" id="fe-guardar">Guardar</button>`);
+  const cif = () => {
+    const del = $('#fe-del').value, al = $('#fe-al').value;
+    if (!del || !al || al < del) { $('#fe-cif').innerHTML = '<div class="aviso-caja peq">Revise el periodo.</div>'; return null; }
+    const c = finCifras(cct, finCiclo(del), del, al);
+    const fila = (t, k, neg) => `<tr><td>${t}</td><td class="d">${neg && c.banco[k] ? '−' : ''}${finM(c.banco[k])}</td><td class="d">${neg && c.caja[k] ? '−' : ''}${finM(c.caja[k])}</td></tr>`;
+    $('#fe-cif').innerHTML = `<table class="fin-tabla" style="margin-bottom:12px"><thead><tr><th></th><th class="d">Banco</th><th class="d">Caja</th></tr></thead><tbody>
+      ${fila('<b>Saldo anterior</b>', 'ant')}${fila('Más: ingresos', 'ing')}${fila('Más: intereses', 'int')}${fila('Menos: egresos', 'egr', 1)}${fila('Menos: cargos', 'car', 1)}${fila('<b>Saldo final</b>', 'fin')}</tbody></table>
+      ${finCiclo(del) !== finCiclo(al) ? '<div class="aviso-caja peq">El periodo abarca dos ciclos escolares; conviene hacer un reporte por ciclo.</div>' : ''}`;
+    return c;
+  };
+  const apf = () => { const g = k => finN(($(`[data-apf="${k}"]`) || {}).value); $('#fe-afb').textContent = finM(g('ant.b') + g('ing.b') - g('egr.b')); $('#fe-afc').textContent = finM(g('ant.c') + g('ing.c') - g('egr.c')); };
+  $('#fe-del').onchange = $('#fe-al').onchange = cif; $$('[data-apf]').forEach(i => i.oninput = apf); cif(); apf();
+  $('#fe-cancelar').onclick = cerrarModal;
+  const guardar = pdf => {
+    const c = cif(); if (!c) return aviso('Revise el periodo del reporte.', 'mal');
+    const ap = { banco: $('#fe-abanco').value.trim(), cuenta: $('#fe-acta').value.trim(), ant: {}, ing: {}, egr: {} };
+    $$('[data-apf]').forEach(i => { const [k, s] = i.dataset.apf.split('.'); ap[k][s] = i.value.trim(); });
+    const o = { del: $('#fe-del').value, al: $('#fe-al').value, sector: $('#fe-sec').value.trim(), banco: $('#fe-ban').value.trim(), cuenta: $('#fe-cta').value.trim(), cifras: c, apf: ap,
+      lugar: $('#fe-lug').value.trim(), fechaFirma: $('#fe-ff').value, tesorero: $('#fe-tes').value.trim(), director: $('#fe-dir').value.trim() };
+    accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'rep', fecha: o.al, datos: o }, r => {
+      finRecibir(r.fin); cerrarModal(); vFinanzas(); aviso('Reporte guardado.', 'ok', 2500);
+      if (pdf) finPdf('reporte', { id: r.fin.id }, 'Reporte del ejercicio ' + nombreEscuela(cct));
+    });
+  };
+  $('#fe-guardar').onclick = () => guardar(false);
+  $('#fe-pdf').onclick = () => guardar(true);
+}
+
+/* ---------- Datos de la cuenta (por ciclo) ---------- */
+function finCuenta(v, cct, ciclo) {
+  const prev = finCta(cct, ciclo), P = finPlantel(cct, ciclo), ini = finInicial(cct, ciclo);
+  const ant = (+ciclo.slice(0, 4) - 1) + '-' + ciclo.slice(0, 4), cierre = finActivos().some(x => x.cct === cct && x.ciclo === ant) ? finSaldo(cct, ant) : null;
+  const d = prev ? prev.datos : { banco: P.banco, cuenta: P.cuenta, saldoBanco: cierre ? cierre.banco.toFixed(2) : '', saldoCaja: cierre ? cierre.caja.toFixed(2) : '', tesorero: P.tesorero, director: P.director, revisa: P.revisa, sector: P.sector,
+    nivel: P.nivel, calle: P.calle, numero: P.numero, colonia: P.colonia, ciudad: P.ciudad, municipio: P.municipio, cp: P.cp, telefono: P.telefono, correo: P.correo };
+  const c = (k, t, extra = '') => `<div class="campo"><label for="fc-${k}">${t}</label><input id="fc-${k}" data-fc="${k}" value="${esc(d[k] || '')}" ${extra}></div>`;
+  $('#fin-cuerpo').innerHTML = `<div class="tarjeta pad">
+    <h2 style="font-size:19px;margin:0 0 4px">Datos de la cuenta · ciclo ${esc(ciclo)}</h2>
+    <p class="peq mudo" style="margin-top:0">Se usan en las pólizas, el libro de bancos, los recibos y el reporte del ejercicio.</p>
+    <div class="fila">${c('banco', 'Banco')}${c('cuenta', 'No. de cuenta')}${c('sector', 'Sector (si aplica)')}</div>
+    <div class="fila dos">${c('saldoBanco', 'Saldo en banco al iniciar el ciclo ($)', 'inputmode="decimal"')}${c('saldoCaja', 'Saldo en caja al iniciar el ciclo ($)', 'inputmode="decimal"')}</div>
+    ${cierre ? `<div class="ayuda" style="margin:-6px 0 12px">Cierre del ciclo ${esc(ant)} en Tequio: banco ${finM(cierre.banco)} · caja ${finM(cierre.caja)}.${prev && (finN(d.saldoBanco) !== cierre.banco || finN(d.saldoCaja) !== cierre.caja) ? ' <b>No coincide con el saldo inicial capturado.</b>' : ''}</div>` : ''}
+    <div class="fila">${c('tesorero', 'Tesorero(a) o contralor(a) · elabora')}${c('director', 'Director(a) · autoriza')}${c('revisa', 'Revisa')}</div>
+    <div class="seccion-t" style="padding:4px 0 8px">Domicilio y contacto del plantel</div>
+    <div class="fila">${c('calle', 'Calle')}${c('numero', 'Número')}${c('colonia', 'Colonia')}</div>
+    <div class="fila">${c('ciudad', 'Ciudad o localidad')}${c('municipio', 'Municipio')}${c('cp', 'C.P.')}</div>
+    <div class="fila">${c('telefono', 'Teléfono')}${c('correo', 'Correo electrónico')}${c('nivel', 'Nivel educativo')}</div>
+    ${prev ? finHistorial(prev) : ''}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="boton terra" id="fc-guardar">Guardar datos de la cuenta</button></div></div>
+    <p class="peq mudo">Saldo inicial que usa hoy Tequio: banco ${finM(ini.banco)} · caja ${finM(ini.caja)}${ini.de === 'anterior' ? ' (cierre del ciclo anterior)' : ini.de === 'nada' ? ' (sin capturar)' : ''}.</p>`;
+  $('#fc-guardar').onclick = () => {
+    const o = {}; $$('[data-fc]').forEach(i => o[i.dataset.fc] = i.value.trim());
+    o.saldoBanco = finN(o.saldoBanco).toFixed(2); o.saldoCaja = finN(o.saldoCaja).toFixed(2);
+    accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'cta', fecha: finCicloIni(ciclo), datos: o }, r => { finRecibir(r.fin); vFinanzas(); aviso('Datos de la cuenta guardados.', 'ok', 2500); });
+  };
+}
+
+/* ---------- Formatos en PDF ---------- */
+function finEstilos() {
+  if ($('#fin-css')) return;
+  const s = document.createElement('style'); s.id = 'fin-css';
+  s.textContent = `
+.fin-secc{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--borde);margin:4px 0 14px;scrollbar-width:thin}
+.fin-secc button{border:0;background:none;padding:10px 12px;font-weight:600;color:var(--gris);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;font-size:14.5px}
+.fin-secc button[aria-current="true"]{color:var(--indigo);border-bottom-color:var(--indigo)}
+.fin-apart{max-width:420px}
+.fin-botones{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fin-tabla-caja{overflow-x:auto}
+.fin-tabla{width:100%;border-collapse:collapse;font-size:14px}
+.fin-tabla th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris);padding:10px 12px;border-bottom:1px solid var(--borde);white-space:nowrap}
+.fin-tabla td{padding:9px 12px;border-bottom:1px solid var(--borde);vertical-align:top}
+.fin-tabla .d{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-tabla tr.clic{cursor:pointer}.fin-tabla tr.clic:hover td{background:var(--crema)}
+.fin-tabla tr.ini td{background:var(--arena-2)}
+.fin-tabla tfoot td{font-weight:700;border-top:2px solid var(--borde)}
+.fin-mov{width:100%;background:none;border:0;border-top:1px dashed var(--borde);font:inherit;color:inherit;cursor:pointer;align-items:center;gap:12px}
+.fin-mov:first-child{border-top:0}.fin-mov:hover{background:var(--crema)}
+.fin-f{display:flex;flex-direction:column;align-items:center;min-width:38px;font-size:11px;text-transform:uppercase;color:var(--gris)}.fin-f b{font-size:18px;color:var(--tinta);line-height:1}
+.fin-monto{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.fin-monto.ent{color:var(--ok)}.fin-monto.sal{color:var(--terra-d)}
+.fin-lin{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) 120px 36px;gap:6px;margin-bottom:6px}
+.fin-lin input,.fin-lin select{border:1px solid var(--borde);border-radius:8px;padding:8px 9px;background:#fff;min-height:40px;width:100%}
+.fin-lin input.d{text-align:right}
+#fm-lins .fin-lin:has(> :nth-child(3):last-child){grid-template-columns:minmax(0,1fr) 120px 36px}
+@media (max-width:640px){.fin-lin{grid-template-columns:1fr 110px 36px}.fin-lin select{grid-column:1/-1}}
+.fin-tot{font-variant-numeric:tabular-nums;text-align:right}
+.fin-tipos button{flex:1 1 auto;font-size:13.5px}
+.fin-firmas{border:1px solid var(--borde);border-radius:10px;padding:8px 12px;margin-bottom:12px;background:var(--crema)}
+.fin-firmas summary{cursor:pointer;font-weight:600;padding:4px 0}
+.fin-hist{margin-top:6px}.fin-hist summary{cursor:pointer;font-size:12.5px;color:var(--gris)}
+.fin-det-monto{font-family:'Fraunces',serif;font-size:32px;font-variant-numeric:tabular-nums}.fin-det-monto .ayuda{display:block;font-family:inherit;font-size:12px}
+.fin-parts{padding:4px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.fin-part{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline}
+.fin-part .barra-av{grid-column:1/-1;width:100%}
+.fin-apf input{border:1px solid var(--borde);border-radius:8px;padding:6px 8px;width:100%;text-align:right}`;
+  document.head.appendChild(s);
+}
+const FIN_PDF_CSS = `
+.fp{width:816px;min-height:1054px;padding:44px 58px 40px;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;position:relative;font-size:12px}
+.fp+.fp{page-break-before:always}
+.fp .enc{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.fp .enc img{height:62px;width:auto}
+.fp .enc .t{flex:1;text-align:center}
+.fp .enc .t .a{font-size:11.5px;font-weight:700;letter-spacing:.02em}
+.fp .enc .t .b{font-size:10.5px;font-weight:700;margin-top:2px}
+.fp h1{font-size:20px;text-align:center;margin:8px 0 14px;letter-spacing:.02em;color:#111;font-family:inherit;font-weight:700}
+.fp .ren{display:flex;gap:6px;align-items:flex-end;margin:7px 0;font-size:12px}
+.fp .ren b{white-space:nowrap}
+.fp .ln{flex:1;border-bottom:1px solid #111;min-height:16px;padding:0 4px;font-size:12px}
+.fp table{width:100%;border-collapse:collapse}
+.fp td,.fp th{border:1px solid #111;padding:4px 6px;font-size:11.5px;vertical-align:top}
+.fp th{font-weight:700;text-align:center;background:#f2f2f2}
+.fp .d{text-align:right;white-space:nowrap}
+.fp .c{text-align:center}
+.fp .caja{border:1px solid #111;padding:10px 12px;margin:10px 0}
+.fp .firmas{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:70px;text-align:center;font-size:11px;font-weight:700}
+.fp .firmas div{border-top:1px solid #111;padding-top:4px}
+.fp .firmas .n{font-weight:400;font-size:11px;display:block;margin-bottom:2px;border:0}
+.fp .nota{font-size:9px;font-weight:700;line-height:1.35;position:absolute;left:58px;right:58px;bottom:54px}
+.fp .pie{position:absolute;right:58px;bottom:16px;font-size:8.5px;color:#777}
+.fp .sum td{font-weight:700}`;
+function finEnc(titulo, sub) {
+  return `<div class="enc"><img src="${ZONA.logoInst}" alt=""><div class="t"><div class="a">${ISEP_TXT}</div>${sub ? `<div class="b">${sub}</div>` : ''}</div><div style="width:62px"></div></div>${titulo ? `<h1>${titulo}</h1>` : ''}`;
+}
+const fr = (et, val, extra = '') => `<div class="ren" ${extra}><b>${et}</b><span class="ln">${esc(val || '')}</span></div>`;
+function finHtml(tipo, q) {
+  const o = q.id ? S.fin.find(x => x.id === q.id) : null, cct = o ? o.cct : q.cct, ciclo = o ? o.ciclo : q.ciclo, P = finPlantel(cct, ciclo);
+  const pie = `<div class="pie">Tequio · ${esc(nombreEscuela(cct))} · ${fechaCorta(hoy())}</div>`;
+  if (tipo === 'poliza') {
+    const d = o.datos, x = finMonto(o), ing = ['ingreso', 'interes'].includes(d.clase), medio = d.medio === 'caja' && ['ingreso', 'egreso'].includes(d.clase) ? 'CAJA' : 'BANCOS' + (P.banco ? ' · ' + finMay(P.banco) : '') + (P.cuenta ? ' CTA. ' + P.cuenta : '');
+    const R = [];
+    if (ing) {
+      R.push(['', medio, '', x, '']);
+      if (d.clase === 'interes') R.push(['', 'PRODUCTOS FINANCIEROS (INTERESES)', '', '', x]);
+      else { R.push(['', 'INGRESOS PROPIOS', '', '', x]); const ls = d.lineas || []; if (ls.length > 1 || (ls[0] && ls[0].concepto)) ls.forEach(l => R.push(['', '    ' + finMay(l.concepto || ''), finN(l.importe), '', ''])); }
+    } else {
+      const lineas = d.clase === 'cargo' ? [{ partida: '235', concepto: d.concepto, importe: x }] : (d.lineas || []);
+      const grupos = []; lineas.forEach(l => { let g = grupos.find(y => y.p === l.partida); if (!g) grupos.push(g = { p: l.partida, l: [] }); g.l.push(l); });
+      grupos.forEach(g => {
+        const t = g.l.reduce((a, l) => a + finN(l.importe), 0);
+        if (g.l.length === 1) R.push([g.p, finMay(FIN_PART[g.p] || '') + (g.l[0].concepto ? ' · ' + finMay(g.l[0].concepto) : ''), '', t, '']);
+        else { R.push([g.p, finMay(FIN_PART[g.p] || ''), '', t, '']); g.l.forEach(l => R.push(['', '    ' + finMay(l.concepto || ''), finN(l.importe), '', ''])); }
+      });
+      R.push(['', medio, '', '', x]);
+    }
+    while (R.length < 16) R.push(['', '', '', '', '']);
+    return `<div class="fp">${finEnc('PÓLIZA DE ' + (ing ? 'INGRESOS' : 'EGRESOS'))}
+      ${fr('PERIODO:', finPeriodo(o.fecha) + ' · ' + finFechaTxt(o.fecha).toUpperCase())}${fr('NOMBRE DEL PLANTEL:', finMay(P.nombre))}
+      <div class="ren"><b>CLAVE DEL PLANTEL:</b><span class="ln">${esc(cct)}</span><b>ZONA</b><span class="ln" style="flex:.35">${esc(P.zona)}</span><b>SECTOR</b><span class="ln" style="flex:.5">${esc(P.sector)}</span></div>
+      ${fr('MUNICIPIO:', finMay(P.municipio))}
+      <table style="margin-top:12px"><colgroup><col style="width:70px"><col><col style="width:90px"><col style="width:90px"><col style="width:90px"></colgroup>
+        <tr><th>PARTIDA</th><th>CONCEPTO</th><th>PARCIAL</th><th>DEBE</th><th>HABER</th></tr>
+        ${R.map(r => `<tr style="height:24px"><td class="c">${esc(r[0])}</td><td style="white-space:pre">${esc(r[1])}</td><td class="d">${finM0(r[2])}</td><td class="d">${finM0(r[3])}</td><td class="d">${finM0(r[4])}</td></tr>`).join('')}
+        <tr class="sum"><td colspan="3" class="d" style="border-left:0;border-bottom:0">SUMAS IGUALES $</td><td class="d">${finM(x)}</td><td class="d">${finM(x)}</td></tr></table>
+      <div style="font-weight:700;margin-top:14px">CONCEPTO</div><div class="caja" style="min-height:44px;margin-top:4px">${esc(finMay(d.concepto || ''))}${d.clase === 'ingreso' && d.recibos ? '<br>RECIBOS OFICIALES: ' + esc(d.recibos) : ''}${d.clase === 'egreso' && d.comprobante ? '<br>COMPROBANTE: ' + esc(finMay(d.comprobante)) + (d.compNum ? ' ' + esc(d.compNum) : '') + (d.proveedor ? ' · ' + esc(finMay(d.proveedor)) : '') : ''}<br><span style="font-size:10.5px">(${esc(finLetra(x))})</span></div>
+      <table style="margin-top:16px"><tr><th style="text-align:left;font-weight:400">No. DE PÓLIZA</th><th style="text-align:left;font-weight:400">ELABORADO POR</th><th style="text-align:left;font-weight:400">AUTORIZADO POR</th><th style="font-weight:400">REVISADO POR</th></tr>
+        <tr style="height:48px"><td class="c" style="vertical-align:middle;font-weight:700">${esc(d.poliza || '')}</td><td style="vertical-align:bottom">${esc(finMay(d.elaboro))}</td><td style="vertical-align:bottom">${esc(finMay(d.autorizo))}</td><td style="vertical-align:bottom">${esc(finMay(d.reviso))}</td></tr></table>${pie}</div>`;
+  }
+  if (tipo === 'recibo') {
+    const d = o.datos, x = finMonto(o);
+    return `<div class="fp">${finEnc('RECIBO ECONÓMICO')}
+      <div class="ren" style="justify-content:flex-end"><b>Lugar y fecha:</b><span class="ln" style="flex:0 0 300px">${esc(P.localidad + (P.municipio ? ', ' + P.municipio : '') + ', B.C., a ' + finFechaTxt(o.fecha))}</span></div>
+      <div style="height:14px"></div>
+      ${fr('Recibí de la Dirección de la Escuela:', P.nombre)}${fr('Clave Escolar:', cct)}
+      <div class="ren"><b>La cantidad de</b><span class="ln" style="flex:0 0 120px">${finM(x)}</span><b>Son: (</b><span class="ln">${esc(finLetra(x))}</span><b>)</b></div>
+      ${fr('Por concepto de:', (d.lineas || []).map(l => (l.concepto || FIN_PART[l.partida] || '')).filter(Boolean).join('; ') || d.concepto)}
+      <div class="ren"><span class="ln">${esc(d.concepto && (d.lineas || []).length ? d.concepto : '')}</span></div>
+      <div style="height:10px"></div>
+      ${fr('Nombre de quien recibe:', d.proveedor)}${fr('Domicilio:', d.domProv)}
+      <div class="firmas" style="margin-top:110px"><div>FIRMA DE QUIEN RECIBE</div><div><span class="n">${esc(P.director)}</span>NOMBRE Y FIRMA DEL DIRECTOR</div></div>
+      <div class="c" style="margin-top:70px;font-weight:700;font-size:11px">SELLO DEL PLANTEL</div>
+      <div class="nota">*Anexar copia del INE de quien recibe.<br>*Visto bueno del área de Infraestructura solo en el caso de que se trate de construcción o adecuación de espacios educativos.<br>*Visto bueno de la Coordinación Académica Municipal en caso de cursos de capacitación, adiestramiento y formación académica. Anexar documentos de validación de centro de maestros/ProNAP y la Coordinación Municipal del PEC.</div>${pie}</div>`;
+  }
+  if (tipo === 'solicitud') {
+    const d = o.datos, l2 = (pares) => `<div style="display:flex;gap:18px;margin-top:18px">${pares.map(([v, t, f]) => `<div style="flex:${f || 1};text-align:center"><div class="ln" style="display:block;min-height:18px;text-align:center">${esc(v || '')}</div><div style="font-weight:700;font-size:11px;margin-top:3px">${t}</div></div>`).join('')}</div>`;
+    return `<div class="fp">${finEnc('', 'DEPARTAMENTO DE RECURSOS FINANCIEROS<br>SOLICITUD DE RECIBOS DE INGRESOS PROPIOS')}
+      <div style="display:flex;gap:24px;margin-top:18px"><div class="ren" style="flex:1"><b>NIVEL EDUCATIVO:</b><span class="ln">${esc(finMay(d.nivel))}</span></div><div class="ren" style="flex:1.2"><b>FECHA:</b><span class="ln">${esc(finFechaTxt(o.fecha).toUpperCase())}</span></div></div>
+      <div class="caja" style="font-weight:700;margin-top:16px">
+        <div style="display:flex;gap:14px;align-items:flex-end"><span>RECIBÍ LA CANTIDAD DE</span><div style="flex:0 0 130px;text-align:center"><div class="ln" style="display:block">${finM(d.cantidad)}</div><div style="font-size:10.5px">(CON NÚMERO)</div></div><div style="flex:1;text-align:center"><div class="ln" style="display:block;font-size:10.5px">${esc(finLetra(d.cantidad))}</div><div style="font-size:10.5px">(CON LETRA)</div></div></div>
+        <p style="margin:14px 0 0;font-size:11.5px;line-height:1.45">FORMAS AUTORIZADAS PARA EL COBRO Y RECEPCIÓN DE INGRESOS QUE SE CAPTEN EN ESTE PLANTEL EDUCATIVO AUTORIZADOS POR LA DIRECCIÓN DE RECURSOS FINANCIEROS DEL ${ISEP_TXT}.</p></div>
+      <div class="c" style="font-weight:700;margin-top:18px">NÚMERO DE FOLIOS</div>
+      <div class="caja" style="display:flex;gap:16px;font-weight:700"><div class="ren" style="flex:1"><b>INICIAL</b><span class="ln c">${esc(d.inicial)}</span></div><div class="ren" style="flex:1"><b>FINAL</b><span class="ln c">${esc(d.final)}</span></div><div class="ren" style="flex:1.2"><b>TOTAL DE RECIBOS</b><span class="ln c">${esc(String(finTotRec(d)))}</span></div></div>
+      <div class="c" style="font-weight:700;margin-top:6px">DATOS DEL PLANTEL EDUCATIVO</div>
+      <div class="caja" style="padding-bottom:16px">${l2([[finMay(d.nombre), 'NOMBRE', 2.4], [d.zona, 'ZONA', .6], [d.clave, 'CLAVE', 1.2]])}${l2([[finMay(d.calle), 'CALLE', 2], [d.numero, 'NÚMERO', .7], [finMay(d.colonia), 'COLONIA', 1.5]])}${l2([[finMay(d.ciudad), 'CIUDAD', 1.3], [finMay(d.municipio), 'MUNICIPIO O DELEGACIÓN', 2], [d.cp, 'C.P.', .6]])}${l2([[d.telefono, 'TELÉFONO', 1], [d.correo, 'CORREO ELECTRÓNICO', 1.6], ['', '', 1]]).replace('<div class="ln" style="display:block;min-height:18px;text-align:center"></div><div style="font-weight:700;font-size:11px;margin-top:3px"></div>', '')}</div>
+      <div style="display:grid;grid-template-columns:1.3fr .8fr 1.1fr;gap:26px;margin-top:80px;text-align:center;font-weight:700;font-size:11px"><div style="border-top:1px solid #111;padding-top:4px"><span style="font-weight:400;display:block">${esc(finMay(d.director))}</span>NOMBRE Y FIRMA DEL DIRECTOR</div><div style="padding-top:20px">SELLO DEL PLANTEL</div><div style="border-top:1px solid #111;padding-top:20px">ATENDIÓ</div></div>${pie}</div>`;
+  }
+  if (tipo === 'requisicion') {
+    const d = o.datos, chk = v => `<span style="display:inline-block;width:22px;height:13px;border:1px solid #111;margin-left:8px;vertical-align:middle;text-align:center;line-height:12px;font-size:12px">${v ? '✕' : ''}</span>`;
+    return `<div class="fp" style="font-family:'Times New Roman',Times,serif;font-size:13px">
+      <div style="text-align:right;font-weight:700;font-size:12.5px;line-height:1.3">DIRECCIÓN DE RECURSOS FINANCIEROS<br>COORDINACIÓN DE TESORERÍA<br>DEPARTAMENTO DE INGRESOS</div>
+      ${finEnc('REQUISICIÓN DE COMBUSTIBLE')}
+      <div class="ren" style="justify-content:flex-end"><b>Num.</b><span class="ln" style="flex:0 0 90px;text-align:center">${esc(d.num || '')}</span></div>
+      <div style="height:8px"></div>
+      ${fr('Lugar y fecha', (d.lugar ? d.lugar + ', a ' : '') + finFechaTxt(o.fecha))}${fr('Nombre del plantel', d.plantel)}${fr('Clave del centro de trabajo', d.clave)}${fr('Domicilio', d.domicilio)}
+      <h1 style="font-size:17px;margin:20px 0 8px">DATOS DEL SOLICITANTE</h1>
+      <div style="display:flex;gap:16px">${fr('Nombre', d.solicitante, 'style="flex:1.2"')}${fr('Filiación', d.filiacion, 'style="flex:1"')}</div>
+      <div style="display:flex;gap:16px">${fr('Puesto', d.puesto, 'style="flex:1.2"')}${fr('Adscripción', d.adscripcion, 'style="flex:1"')}</div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;margin:18px 0 10px"><span>TIPO DE REQUISICIÓN</span><span>CONSUMO NORMAL${chk(d.tipo !== 'comision')}</span><span>COMISIÓN${chk(d.tipo === 'comision')}</span></div>
+      <table><tr><td style="width:50%;height:150px"><b style="font-size:11px">MOTIVO COMISIÓN O CONSUMO DE COMBUSTIBLE</b><div style="margin-top:8px">${esc(d.motivo || '')}</div></td>
+        <td style="font-size:11.5px;line-height:2.3;padding-left:10px">CANTIDAD <span class="ln" style="display:inline-block;min-width:150px">${finM(d.cantidad)}</span><br>CON LETRA <span class="ln" style="display:inline-block;min-width:150px;line-height:1.3;font-size:10px">${esc(finLetra(d.cantidad))}</span><br>CANTIDAD EN LITROS <span class="ln" style="display:inline-block;min-width:100px">${esc(d.litros || '')}</span><br>PRECIO VIGENTE X LITRO <span class="ln" style="display:inline-block;min-width:90px">${d.precio ? finM(d.precio) : ''}</span></td></tr></table>
+      <div class="caja" style="min-height:110px;margin-top:18px"><b>OBSERVACIONES:</b><div style="margin-top:6px">${esc(d.obs || '')}</div></div>
+      <table style="margin-top:14px"><tr><td style="height:120px;width:50%;vertical-align:bottom;text-align:center;font-size:11px"><div style="font-size:12px">${esc(finMay(d.autoriza))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE FIRMA DE AUTORIZACIÓN Y SELLO DEL PLANTEL</div></td>
+        <td style="vertical-align:bottom;text-align:center;font-size:11px"><div style="font-size:12px">${esc(finMay(d.recibe))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE Y FIRMA DE QUIEN RECIBE</div></td></tr></table>${pie}</div>`;
+  }
+  if (tipo === 'reporte') {
+    const d = o.datos, c = d.cifras, a = d.apf || {}, dd = deIso(d.del), da = deIso(d.al), ff = deIso(d.fechaFirma || hoy());
+    const f2 = (t, k, sign) => `<tr><td style="border-left:1px solid #111">${t}</td><td class="d">${finM(c.banco[k])}</td><td class="d">${finM(c.caja[k])}</td><td></td><td></td></tr>`;
+    const g = (k, s) => finN(((a[k] || {})[s]));
+    const apfOn = a.banco || a.cuenta || ['ant', 'ing', 'egr'].some(k => g(k, 'b') || g(k, 'c'));
+    const fa = (t, b, cj) => `<tr><td>${t}</td><td class="d">${apfOn && b !== '' ? finM(b) : ''}</td><td class="d">${apfOn && cj !== '' ? finM(cj) : ''}</td></tr>`;
+    const revisa = ZONA.estatal ? 'SEE' : 'ISEP';
+    return `<div class="fp" style="padding:34px 46px"><div style="border:2px solid #111;padding:14px 16px 18px;min-height:900px;box-sizing:border-box;position:relative">
+      <div class="enc" style="margin-bottom:4px"><img src="${ZONA.logoInst}" alt="" style="height:70px"><div class="t"><div style="font-family:Impact,'Arial Narrow',sans-serif;font-size:30px;letter-spacing:.01em">REPORTE DEL EJERCICIO</div><div style="font-size:12.5px">Ingresos propios del plantel</div><div style="font-size:14px;font-weight:700">${esc(ZONA.inst === 'ISEP' ? ISEP_TXT : ZONA.inst)}</div></div></div>
+      <div class="c" style="font-weight:700;margin:10px 0 6px">POR EL PERIODO COMPRENDIDO</div>
+      <div class="c">DEL <u>&nbsp;${dd.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[dd.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${dd.getFullYear()}&nbsp;</u> AL <u>&nbsp;${da.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[da.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${da.getFullYear()}&nbsp;</u>.</div>
+      ${fr('NOMBRE DEL PLANTEL:', finMay(P.nombre), 'style="margin-top:12px"')}
+      <div class="ren"><b>CLAVE DEL PLANTEL:</b><span class="ln">${esc(cct)}</span><b>ZONA:</b><span class="ln" style="flex:.3">${esc(P.zona)}</span><b>SECTOR:</b><span class="ln" style="flex:.4">${esc(d.sector || '')}</span></div>
+      <table style="margin-top:12px"><colgroup><col style="width:38%"><col><col><col><col></colgroup>
+        <tr><th style="text-align:left">DATOS DE LA CUENTA BANCARIA</th><th colspan="2">PARA SER LLENADO POR EL PLANTEL</th><th colspan="2">PARA SER LLENADO POR ${revisa}<br>CIFRAS AJUSTADAS</th></tr>
+        <tr><td>NOMBRE DEL BANCO: ${esc(finMay(d.banco))}</td><th rowspan="2" style="vertical-align:bottom">BANCO</th><th rowspan="2" style="vertical-align:bottom">CAJA</th><th rowspan="2" style="vertical-align:bottom">BANCO</th><th rowspan="2" style="vertical-align:bottom">CAJA</th></tr>
+        <tr><td>NO. DE CUENTA: ${esc(d.cuenta)}</td></tr>
+        ${f2('<b>SALDO ANTERIOR</b> $', 'ant')}${f2('MÁS: <b>INGRESOS</b>', 'ing')}${f2('MÁS: INTERESES', 'int')}${f2('MENOS: <b>EGRESOS</b>', 'egr')}${f2('MENOS: CARGOS', 'car')}${f2('<b>SALDO FINAL</b> $', 'fin')}</table>
+      <table style="margin-top:12px;width:72%"><colgroup><col style="width:52%"><col><col></colgroup>
+        <tr><th colspan="3">Datos informativos de la Asociación de Padres de Familia</th></tr>
+        <tr><td>BANCO: ${esc(finMay(a.banco || ''))}</td><th colspan="2">MANEJO DE INGRESOS</th></tr>
+        <tr><td>NO. DE CUENTA: ${esc(a.cuenta || '')}</td><th>BANCO</th><th>CAJA</th></tr>
+        ${fa('SALDO ANTERIOR:', g('ant', 'b'), g('ant', 'c'))}${fa('MÁS: TOTAL DE INGRESOS', g('ing', 'b'), g('ing', 'c'))}${fa('MENOS: TOTAL DE EGRESOS', g('egr', 'b'), g('egr', 'c'))}${fa('SALDO FINAL:', g('ant', 'b') + g('ing', 'b') - g('egr', 'b'), g('ant', 'c') + g('ing', 'c') - g('egr', 'c'))}</table>
+      <div style="border-top:2px solid #111;border-bottom:2px solid #111;margin:12px -16px 0;padding:6px 16px;min-height:70px"><div class="c" style="font-weight:700">OBSERVACIONES DEL ÁREA DE VERIFICACIÓN</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:16px;text-align:center;font-weight:700"><div>ELABORADO POR</div><div>AUTORIZADO POR</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:30px;text-align:center;font-size:11.5px"><div><div>${esc(finMay(d.tesorero))}</div><div style="border-top:1px solid #111;padding-top:3px">TESORERO(A) O CONTRALOR(A)</div></div><div><div>${esc(finMay(d.director))}</div><div style="border-top:1px solid #111;padding-top:3px">DIRECTOR(A) DEL PLANTEL</div></div></div>
+      <div class="c" style="margin-top:20px"><u>&nbsp;${esc(finMay(d.lugar || ''))}&nbsp;</u> B.C. A <u>&nbsp;${ff.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[ff.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${ff.getFullYear()}&nbsp;</u>.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:44px;text-align:center;font-weight:700;font-size:12px"><div style="border-top:1px solid #111;padding-top:3px">SELLO DEL PLANTEL</div><div style="border-top:1px solid #111;padding-top:3px">SELLO DE RECIBIDO</div></div>
+      </div>${pie}</div>`;
+  }
+  if (tipo === 'libro') {
+    const medio = q.medio, ini = finInicial(cct, ciclo), filas = finLibroFilas(cct, ciclo, medio), POR = 30;
+    const todas = [{ f: finCicloIni(ciclo), c: 'SALDO INICIAL DEL CICLO', i: '', e: '', s: ini[medio] }].concat(filas.map(f => ({ f: f.m.fecha, c: finMay(f.concepto) + (f.m.datos.poliza ? ' (PÓL. ' + f.m.datos.poliza + ')' : ''), i: f.ing, e: f.egr, s: f.saldo })));
+    const hojas = []; for (let i = 0; i < todas.length; i += POR) hojas.push(todas.slice(i, i + POR));
+    const ti = filas.reduce((a, f) => a + f.ing, 0), te = filas.reduce((a, f) => a + f.egr, 0);
+    return hojas.map((h, k) => { const r = h.slice(); if (k === hojas.length - 1) while (r.length < Math.min(POR, Math.max(r.length, 24))) r.push(null);
+      return `<div class="fp">${finEnc(medio === 'banco' ? 'LIBRO DE BANCOS' : 'LIBRO DE CAJA')}
+      ${fr('ESCUELA:', finMay(P.nombre) + ' · ' + cct)}${fr('CICLO ESCOLAR:', ciclo)}${medio === 'banco' && (P.banco || P.cuenta) ? fr('BANCO Y CUENTA:', finMay(P.banco) + (P.cuenta ? ' · ' + P.cuenta : '')) : ''}
+      <table style="margin-top:12px"><colgroup><col style="width:82px"><col><col style="width:90px"><col style="width:90px"><col style="width:96px"></colgroup>
+        <tr><th>FECHA</th><th>CONCEPTO</th><th>INGRESO</th><th>EGRESO</th><th>SALDO</th></tr>
+        ${r.map(x => x ? `<tr style="height:22px"><td class="c">${x.f.split('-').reverse().join('/')}</td><td style="font-size:10.5px">${esc(x.c)}</td><td class="d">${finM0(x.i)}</td><td class="d">${finM0(x.e)}</td><td class="d">${finM(x.s)}</td></tr>` : '<tr style="height:22px"><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+        ${k === hojas.length - 1 ? `<tr class="sum"><td colspan="2" class="d">TOTALES</td><td class="d">${finM(ti)}</td><td class="d">${finM(te)}</td><td class="d">${finM(todas[todas.length - 1].s)}</td></tr>` : ''}</table>
+      ${hojas.length > 1 ? `<div class="pie" style="right:auto;left:58px">Hoja ${k + 1} de ${hojas.length}</div>` : ''}${pie}</div>`; }).join('');
+  }
+  return '';
+}
+async function finPdf(tipo, q, nombre) {
+  await conCarga(async () => {
+    await cargarScript('lib/html2pdf.bundle.min.js');
+    const caja = document.createElement('div');
+    caja.style.cssText = 'position:fixed;left:-12000px;top:0;width:816px;background:#fff';
+    caja.innerHTML = `<style>${FIN_PDF_CSS}</style><div class="fp-doc">${finHtml(tipo, q)}</div>`;
+    document.body.appendChild(caja);
+    try {
+      await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
+      const blob = await window.html2pdf().set({ margin: 0, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2.2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'] } }).from(caja.querySelector('.fp-doc')).outputPdf('blob');
+      descargarBlob(blob, String(nombre || 'Formato').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf');
+    } finally { caja.remove(); }
+  });
+}
+
+/* ---------- Demostración: mismo comportamiento que el servidor ---------- */
+function finArmarDemo(lista, d, yo) {
+  const cct = d.cct, tipo = d.tipo, fecha = d.fecha || hoy(), datos = d.datos || {}, ciclo = finCiclo(fecha);
+  let prev = d.id ? lista.find(x => x.id === d.id) : null;
+  if (tipo === 'cta' && !prev) prev = lista.find(x => x.tipo === 'cta' && x.cct === cct && x.ciclo === ciclo && x.activo !== false) || null;
+  const mismos = lista.filter(x => x.cct === cct && x.ciclo === ciclo && x.tipo === tipo && (!prev || x.id !== prev.id));
+  const mayor = (l, k) => l.reduce((m, x) => Math.max(m, parseInt((x.datos || {})[k], 10) || 0), 0);
+  if (tipo === 'mov') {
+    const serie = c => ['ingreso', 'interes'].includes(c) ? 'I' : ['egreso', 'cargo'].includes(c) ? 'E' : '', sr = serie(datos.clase);
+    if (!sr) datos.poliza = '';
+    else if (!datos.poliza || !prev || serie(prev.datos.clase) !== sr || prev.ciclo !== ciclo) datos.poliza = String(mayor(mismos.filter(x => serie(x.datos.clase) === sr), 'poliza') + 1);
+  }
+  if (tipo === 'req' && (!datos.num || (prev && prev.ciclo !== ciclo))) datos.num = String(mayor(mismos, 'num') + 1);
+  const ah = new Date().toISOString().slice(0, 19);
+  return { id: prev ? prev.id : 'fin-' + Math.random().toString(36).slice(2, 12), cct, ciclo, tipo, fecha, datos, activo: true, creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre,
+    creado: prev ? prev.creado : ah, actualizado: ah, actualizadoPor: yo.id, historial: ((prev && prev.historial) || []).concat([{ f: ah, por: yo.id, nom: yo.nombre, a: prev ? 'edito' : 'creo' }]) };
+}
+function finDemo() {
+  const l = [], yo = { id: 'u-d-02DPR0684N', nombre: 'Dirección (demostración)' }, c = cicloActual(), y = +c.slice(0, 4);
+  const add = (cct, tipo, fecha, datos) => l.push(finArmarDemo(l, { cct, tipo, fecha, datos }, yo));
+  ['02DPR0684N', '02DPR0210Z'].forEach((cct, k) => {
+    add(cct, 'cta', y + '-08-01', { banco: 'BBVA', cuenta: '0123456789', saldoBanco: k ? '8450.00' : '3210.50', saldoCaja: k ? '0.00' : '350.00', tesorero: 'Profra. Ana López Ruiz', director: (escDatos(cct) || [])[4] || '', revisa: '', sector: '', nivel: 'PRIMARIA' });
+    add(cct, 'sol', y + '-08-28', { nivel: 'PRIMARIA', cantidad: '0', inicial: '0101', final: '0200', total: '100', nombre: finMay(nombreEscuela(cct)), zona: '050', clave: cct });
+    add(cct, 'mov', y + '-09-08', { clase: 'ingreso', medio: 'banco', concepto: 'Cuotas voluntarias de padres de familia, septiembre', lineas: [{ concepto: 'Cuotas voluntarias 1.° a 3.°', importe: '2400.00' }, { concepto: 'Cuotas voluntarias 4.° a 6.°', importe: '2650.00' }], recibos: '0101 al 0142', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '', reviso: '' });
+    add(cct, 'mov', y + '-09-19', { clase: 'egreso', medio: 'banco', concepto: 'Compra de material de limpieza', lineas: [{ partida: '322', concepto: 'Cloro, jabón y bolsas', importe: '1180.40' }], comprobante: 'Factura', compNum: 'A-2231', proveedor: 'Abarrotes del Valle', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '' });
+    add(cct, 'mov', y + '-10-03', { clase: 'egreso', medio: 'caja', concepto: 'Reparación de chapa de la dirección', lineas: [{ partida: '245', concepto: 'Mano de obra de cerrajería', importe: '300.00' }], comprobante: 'Recibo económico', proveedor: 'Juan Pérez Gómez', domProv: 'Camalú, San Quintín', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '' });
+    add(cct, 'mov', y + '-10-31', { clase: 'interes', medio: 'banco', concepto: 'Intereses de octubre', monto: '12.35' });
+    add(cct, 'mov', y + '-10-31', { clase: 'cargo', medio: 'banco', concepto: 'Comisión por manejo de cuenta', monto: '58.00' });
+  });
+  return l;
+}
 
 /* =========================================================
    CTE · Consejo Técnico Escolar (8 sesiones ordinarias)
