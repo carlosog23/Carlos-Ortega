@@ -2226,7 +2226,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
   const wmZ=es050?zona:null;const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
   /* Hojas diarias */
   const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre y","apellidos"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
-  const hT=201.6,hB=237.6,bT=246,bB=572,fl=+v.filas||19,rh=(bB-bT)/fl;
+  const hT=186,hB=220,bT=220,bB=548,fl=+v.filas||19,rh=(bB-bT)/fl;
   const dia=(d)=>{const pg=doc.addPage([PW,PH]);
     pg.drawRectangle({x:492.5,y:Y(65),width:72,height:24,borderColor:C.ink,borderWidth:0.8});ctr(pg,d?`No. ${d.no}`:"No.",57,10.5,F.b,C.red,528.5,66);
     ctr(pg,`Registro de Asistencia del Personal adscrito a la ${tipo}`,62,8.6,F.b,C.ink,306,300);
@@ -2240,8 +2240,8 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     HD.forEach((ls,i)=>{const cx=(X[i]+X[i+1])/2,s=8,lh=9.4;const t0=(hT+hB)/2-(ls.length*lh)/2+s*0.8;ls.forEach((l,j)=>{const w=F.b.widthOfTextAtSize(l,s);pg.drawText(l,{x:cx-w/2,y:Y(t0+j*lh),size:s,font:F.b,color:C.ink})})});
     for(let r=0;r<=fl;r++)hline(pg,X[0],X[7],bT+r*rh,0.7);X.forEach(x=>pg.drawLine({start:{x,y:Y(bT)},end:{x,y:Y(bB)},thickness:0.7,color:C.ink}));
     for(let r=0;r<fl;r++){const t=`${r+1}.`;const w=F.r.widthOfTextAtSize(t,9);pg.drawText(t,{x:(X[0]+X[1])/2-w/2,y:Y(bT+r*rh+rh/2+3.2),size:9,font:F.r,color:C.ink})}
-    pg.drawText("Observaciones:",{x:45,y:Y(588),size:10,font:F.r,color:C.ink});hline(pg,118,X[7],589,0.6);hline(pg,45,X[7],606,0.6);hline(pg,45,X[7],623,0.6);
-    const fT=634,fB=774;let bx=X[0];
+    pg.drawText("Observaciones:",{x:45,y:Y(564),size:10,font:F.r,color:C.ink});hline(pg,118,X[7],565,0.6);hline(pg,45,X[7],582,0.6);hline(pg,45,X[7],599,0.6);
+    const fT=610,fB=748;let bx=X[0];
     if(v.recuadro){pg.drawRectangle({x:X[0],y:Y(fB),width:168,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctr(pg,"Fechas importantes",fT+11,7.5,F.b,C.mid,X[0]+84,160);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],156,9);L.slice(0,9).forEach((ln,i)=>ctr(pg,ln.map(w=>w.w).join(" "),fT+28+i*11,9,F.b,C.ink,X[0]+84,156))}bx=X[0]+176}
     const bw=(X[7]-bx-8)/2;sf(pg,PH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo());
@@ -2269,9 +2269,9 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     ctrP(pg,LH,nombre,54,15,F.b,LW/2-20,380);ctrP(pg,LH,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",munT,ciclo?`Ciclo escolar ${ciclo}`:""].filter(Boolean).join("  ·  "),70,9.5,F.r,LW/2-20,400);
     pg.drawLine({start:{x:40,y:LH-88},end:{x:LW-40,y:LH-88},thickness:1.1,color:C.gu});
     fechaTxt(pg,LH,d,44,106,11,LW-88);
-    const hT=116,hB=140,bB=418;tabla(pg,LH,40,LW-40,hT,hB,bB,flH,8.5,9.5);
-    txt(pg,LH,"Observaciones:",44,434,9.5,F.r);pg.drawLine({start:{x:118,y:LH-435},end:{x:LW-40,y:LH-435},thickness:0.6,color:C.ink});pg.drawLine({start:{x:44,y:LH-451},end:{x:LW-40,y:LH-451},thickness:0.6,color:C.ink});
-    const fT=462,fB=596;let bx=40;
+    const hT=114,hB=138,bB=402;tabla(pg,LH,40,LW-40,hT,hB,bB,flH,8.5,9.5);
+    txt(pg,LH,"Observaciones:",44,418,9.5,F.r);pg.drawLine({start:{x:118,y:LH-419},end:{x:LW-40,y:LH-419},thickness:0.6,color:C.ink});pg.drawLine({start:{x:44,y:LH-435},end:{x:LW-40,y:LH-435},thickness:0.6,color:C.ink});
+    const fT=444,fB=576;let bx=40;
     if(v.recuadro){pg.drawRectangle({x:40,y:LH-fB,width:236,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctrP(pg,LH,"Fechas importantes",fT+11,7.5,F.b,158,228,C.mid);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],222,9.5);L.slice(0,8).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),fT+28+i*11.5,9.5,F.b,158,222))}bx=286}
     const bw=(LW-40-bx-10)/2;sf(pg,LH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo(),8.5);
@@ -2289,7 +2289,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     const bx=tx1+8,bt=hT,bb=top+h-2,bm=(bt+bb)/2;
     sf(pg,ph,bx,x1,bt,bm-3,"Sello y firma del Director(a)","",dirNom(),dirCargo(),7);
     sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)","",supCargo,7,wmZ)};
-  const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=18,hh=(ph-36)/3;
+  const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=22,hh=(ph-54)/3;
     ds.forEach((d,i)=>{tercio(pg,ph,pw,d,top0+i*hh,hh-6);if(i<2){const yy=ph-(top0+(i+1)*hh-3);for(let x=20;x<pw-20;x+=9)pg.drawLine({start:{x,y:yy},end:{x:x+4.5,y:yy},thickness:0.5,color:C.gray})}})};
   let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
   const nb=preview?Math.min(1,+v.blancas||0):(+v.blancas||0);
