@@ -167,7 +167,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
-const VERSION = 31;
+const VERSION = 32;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1164,6 +1164,18 @@ const ACCIONES = {
     t.actualizado = ahora; t.actualizadoPor = yo.nombre;
     guardar_('trb', t);
     return { trabajador: t };
+  },
+  // Eliminar a quien no pertenece a la zona (p. ej., personal de USAER que solo apoya): se borra el registro completo
+  personalEliminar: (yo, d) => {
+    soloAdmin_(yo);
+    const id = String(d.id || ''), t = buscar_('trb', id);
+    if (!t) throw new Error('No se encontró al trabajador.');
+    const sh = hoja_('trb'), n = sh.getLastRow();
+    const ids = n > 1 ? sh.getRange(2, 1, n - 1, 1).getValues().map(r => String(r[0])) : [];
+    const i = ids.indexOf(id);
+    if (i >= 0) sh.deleteRow(i + 2);
+    bitacora_('personal', '', [], 'Eliminado de la base del personal', [t.paterno, t.materno, t.nombre].join(' ') + ' · ' + String(d.motivo || '').slice(0, 200) + ' · ' + yo.nombre);
+    return { id: id };
   },
   // Baja (o reactivación) de un trabajador; no se borra: queda con su historial
   personalBaja: (yo, d) => {

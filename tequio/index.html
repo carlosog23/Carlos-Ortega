@@ -3575,10 +3575,15 @@ function perFicha(id) {
     <div class="seccion-t" style="padding:12px 0 4px">Trayectoria</div>
     <table class="per-datos">${dato('Ingreso al servicio', t.fechaIngreso ? fechaCorta(t.fechaIngreso) + ' (' + perAnios(t.fechaIngreso) + ' de servicio)' : '')}${dato('Último grado de estudios', [t.estudios, t.estudiosStatus].filter(Boolean).join(' · '))}${dato('Observaciones', t.observaciones)}</table>
     ${(t.historial || []).length ? `<details class="sis-mas" style="margin-top:10px"><summary>Historial de movimientos (${t.historial.length})</summary><div class="peq" style="padding:6px 4px;line-height:1.7">${t.historial.slice().reverse().map(h => `${fechaHora(h.f)} · ${esc(h.txt)}${h.por ? ' · ' + esc(nombreCorto(h.por)) : ''}`).join('<br>')}</div></details>` : ''}`,
-    `<button class="boton sec" id="pt-cerrar">Cerrar</button>${perPuede() ? (t.estado === 'baja' ? '<button class="boton sec" id="pt-react">Reactivar</button>' : '<button class="boton peligro" id="pt-baja">Dar de baja</button>') + `<button class="boton terra" id="pt-editar">${ico('i-lapiz')}Editar</button>` : ''}`);
+    `<button class="boton sec" id="pt-cerrar">Cerrar</button>${perPuede() ? (t.estado === 'baja' ? '<button class="boton sec" id="pt-react">Reactivar</button>' : '<button class="boton peligro" id="pt-baja">Dar de baja</button>') + (esAdmin() ? '<button class="boton sec" id="pt-elim" title="Para quien no pertenece a la zona">Eliminar</button>' : '') + `<button class="boton terra" id="pt-editar">${ico('i-lapiz')}Editar</button>` : ''}`);
   $('#pt-cerrar').onclick = cerrarModal;
   if ($('#pt-editar')) $('#pt-editar').onclick = () => perForm(t);
   if ($('#pt-baja')) $('#pt-baja').onclick = () => perBaja(t);
+  if ($('#pt-elim')) $('#pt-elim').onclick = () => {
+    if (S.version && S.version < 32) return aviso('Para eliminar, primero actualice el servidor a la versión 32. Mientras tanto puede darle de baja.', 'mal', 7000);
+    if (!confirm('¿Eliminar a ' + perNombre(t) + ' de Tequio? Úselo solo para quien no pertenece a la zona (por ejemplo, personal de USAER que solo apoya). Se borra su registro completo y no se puede deshacer. Si dejó de trabajar en la zona, mejor use «Dar de baja».')) return;
+    accion('personalEliminar', { id: t.id, motivo: 'No pertenece a la zona' }, () => { S.trb = S.trb.filter(y => y.id !== t.id); cerrarModal(); vPersonal(); aviso('Trabajador eliminado de Tequio.', 'ok', 3000); });
+  };
   if ($('#pt-react')) $('#pt-react').onclick = () => { if (!confirm('¿Reactivar a ' + perNombre(t) + '? Revise después sus plazas.')) return; accion('personalBaja', { id: t.id, reactivar: true }, r => { poner(S.trb, r.trabajador); cerrarModal(); vPersonal(); aviso('Trabajador reactivado.', 'ok', 2500); }); };
 }
 
@@ -3771,7 +3776,7 @@ function perPlantillaRevisar(d) {
   const { plan, viejo } = perPlanPlantilla(d);
   const grupo = (tipo, tit, ayuda) => { const l = plan.map((x, i) => [x, i]).filter(([x]) => x.tipo === tipo); if (!l.length) return '';
     return `<div class="seccion-t" style="padding:12px 0 4px">${tit} · ${l.length}</div>${ayuda ? `<p class="peq mudo" style="margin:0 0 6px">${ayuda}</p>` : ''}
-      <div class="checklist sin-borde">${l.map(([x, i]) => `<label class="chk-fila" style="align-items:flex-start;gap:10px"><input type="checkbox" data-pp="${i}" checked style="margin-top:3px">
+      <div class="checklist sin-borde">${l.map(([x, i]) => `<label class="chk-fila" style="align-items:flex-start;gap:10px">${tipo === 'fuera' ? `<select data-ppf="${i}" style="max-width:200px"><option value="inactiva">Plaza inactiva</option><option value="eliminar">Eliminar de Tequio (no es de la zona)</option><option value="">Dejar igual</option></select>` : `<input type="checkbox" data-pp="${i}" checked style="margin-top:3px">`}
         <span style="flex:1;min-width:0"><b>${esc(x.nombre)}</b>${x.nota ? ` <span class="chip indigo" style="white-space:normal;height:auto">${esc(x.nota)}</span>` : ''}<span class="peq mudo" style="display:block;line-height:1.5">${x.cambios.map(esc).join('<br>')}</span></span></label>`).join('')}</div>`; };
   modal('Plantilla oficial · revisar cambios', `
     <p class="peq" style="margin-top:0">${esc(d.fuente || '')}${d.fecha ? ' · ' + esc(d.fecha) : ''}. Centros que trae: ${d.centros.length}. ${d.sinPlantilla && d.sinPlantilla.length ? 'Sin plantilla (no se tocan): ' + esc(d.sinPlantilla.map(c => perCentro(c).escuela).join(', ')) + '.' : ''}</p>
@@ -3779,17 +3784,19 @@ function perPlantillaRevisar(d) {
     ${!plan.length ? '<div class="tarjeta vacio">Todo coincide con la plantilla: no hay nada que cambiar.</div>' : ''}
     ${grupo('cambio', 'Se actualizan sus plazas', 'Solo cambian las plazas; sus datos personales quedan igual.')}
     ${grupo('alta', 'Altas nuevas', 'Están en la plantilla y no en Tequio. Se dan de alta con su RFC y sus plazas, marcadas «Revisar» para completar CURP y datos personales.')}
-    ${grupo('fuera', 'Ya no aparecen en la plantilla de su centro', 'Su plaza en ese centro queda inactiva (no es una baja). Desmarque a quien sí deba seguir ahí.')}`,
+    ${grupo('fuera', 'Ya no aparecen en la plantilla de su centro', 'Elija qué hacer con cada uno: dejar su plaza inactiva (no es una baja), eliminarlo de Tequio si no pertenece a la zona (por ejemplo, personal de USAER que solo apoya) o dejarlo igual.')}`,
     `<button class="boton sec" id="pp-no">Cancelar</button>${plan.length ? `<button class="boton terra" id="pp-si" ${viejo ? 'disabled' : ''}>Aplicar los marcados</button>` : ''}`);
   $('#pp-no').onclick = cerrarModal;
   if ($('#pp-si')) $('#pp-si').onclick = async () => {
-    const sel = $$('[data-pp]:checked').map(i => plan[+i.dataset.pp]);
+    const sel = $$('[data-pp]:checked').map(i => plan[+i.dataset.pp]).concat($$('[data-ppf]').filter(s => s.value).map(s => Object.assign({}, plan[+s.dataset.ppf], { eliminar: s.value === 'eliminar' })));
     if (!sel.length) return aviso('No marcó ningún cambio.', 'mal');
     $('#pp-si').disabled = true;
     let n = 0;
     for (const x of sel) {
       $('#pp-si').textContent = 'Guardando ' + (++n) + ' de ' + sel.length + '…';
-      const r = await accion('personalGuardar', { trabajador: x.t });
+      if (x.eliminar && S.version && S.version < 32) { aviso('Para eliminar, primero actualice el servidor a la versión 32.', 'mal', 7000); continue; }
+      const r = x.eliminar ? await accion('personalEliminar', { id: x.t.id, motivo: 'No pertenece a la zona (plantilla oficial)' }) : await accion('personalGuardar', { trabajador: x.t });
+      if (r && x.eliminar) { S.trb = S.trb.filter(y => y.id !== x.t.id); continue; }
       if (!r) { $('#pp-si').disabled = false; $('#pp-si').textContent = 'Aplicar los marcados'; return aviso('Se guardaron ' + (n - 1) + ' de ' + sel.length + '. Revise el error y vuelva a intentar con el mismo archivo.', 'mal', 9000); }
       poner(S.trb, r.trabajador);
     }
@@ -7991,6 +7998,7 @@ const Demo = (() => {
     firmaLista: () => ({ firma: '' }),
     personalGuardar: d => { const t = Object.assign({ historial: [] }, d.trabajador); if (!t.id) { t.id = uid('trb'); t.estado = 'activo'; t.historial = [{ f: ahora(), tipo: 'alta', por: D.yo.nombre, txt: 'Alta' }]; } else { const p = D.trb.find(x => x.id === t.id); t.estado = p.estado; t.fechaBaja = p.fechaBaja; t.motivoBaja = p.motivoBaja; t.historial = (p.historial || []).concat([{ f: ahora(), tipo: 'cambio', por: D.yo.nombre, txt: 'Datos actualizados' }]); }
       ['paterno', 'materno', 'nombre', 'curp', 'rfc'].forEach(k => { t[k] = String(t[k] || '').toUpperCase(); }); t.plazas = (t.plazas || []).map(p => Object.assign({}, p, { activa: p.activa !== false })); poner(D.trb, t); return { trabajador: copia(t) }; },
+    personalEliminar: d => { D.trb = D.trb.filter(x => x.id !== d.id); return { id: d.id }; },
     personalBaja: d => { const t = D.trb.find(x => x.id === d.id); if (d.reactivar) { t.estado = 'activo'; t.fechaBaja = ''; t.motivoBaja = ''; } else { t.estado = 'baja'; t.fechaBaja = d.fecha; t.motivoBaja = d.motivo; t.plazas.forEach(p => { p.activa = false; }); }
       t.historial = (t.historial || []).concat([{ f: ahora(), tipo: d.reactivar ? 'reactivacion' : 'baja', por: D.yo.nombre, txt: d.reactivar ? 'Reactivado' : 'Baja: ' + d.motivo }]); return { trabajador: copia(t) }; },
     personalImportar: d => { let n = 0, a = 0; d.trabajadores.forEach(x => { const p = D.trb.find(y => x.curp && y.curp === x.curp); if (p) { Object.assign(p, x, { id: p.id }); a++; } else { D.trb.push(Object.assign({ id: uid('trb'), estado: 'activo', historial: [] }, x)); n++; } }); return { trb: copia(D.trb), nuevos: n, actualizados: a }; },
