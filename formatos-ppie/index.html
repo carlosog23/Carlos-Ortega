@@ -2077,6 +2077,17 @@ function wireLogo(onChange){const g=id=>document.getElementById(id);
 
 /* ---------- Libro de firmas (registro de asistencia del personal) ---------- */
 const LF_KEY="libro-firmas";let LF=null,CAL=null;
+const LF_MULTI=["02DPR0379E","02DPR0378F","02DPR0882N","02DPR0012Z","02DPR0556S","02DPR0382S"];
+function lfOrg(v){if(v.org==null)v.org=LF_MULTI.includes(String(v.cct||"").toUpperCase())||v.tercios?"multi":"completa";return v.org}
+/* el tipo de libro depende de la organización y de cuántos renglones se ocupan (personas que firman + 2 de reserva) */
+function lfAuto(v){const org=lfOrg(v),n=parseInt(v.personas,10);v.aviso="";
+  if(!(n>0)){if(org==="multi"){v.tercios=true;v.filas3=v.filas3||5}else v.tercios=false;return}
+  const r=n+2;
+  if(org==="multi"&&r<=7){v.tercios=true;v.filas3=Math.max(3,r);return}
+  v.tercios=false;if(org==="multi")v.aviso="Con este personal no caben tres días por hoja: el libro será de un día por hoja.";
+  if(v.orient==="horizontal"&&r>14){v.orient="vertical";v.aviso=(v.aviso?v.aviso+" ":"")+"En horizontal caben hasta 14 renglones; se cambió a vertical."}
+  if(v.orient==="horizontal")v.filasH=Math.max(6,r);else{v.filas=Math.min(24,Math.max(8,r));if(r>24)v.aviso=(v.aviso?v.aviso+" ":"")+"La hoja vertical admite hasta 24 renglones."}}
+function lfMun(v){if(v.mun==null){const i=v.sel!==""&&v.sel!=="otra"?+v.sel:-1;v.mun=i>=0&&ESCUELAS_050[i]?ESCUELAS_050[i][2]:(perfil.municipio||"")}return v.mun}
 async function cargarCal(){if(CAL)return CAL;try{const r=await fetch("formatos/calendario.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;CAL=await r.json();store.set("cal-cache",CAL)}catch(e){CAL=store.get("cal-cache",null)}return CAL}
 const DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -2084,11 +2095,11 @@ const dOf=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const fechaLarga=s=>{const d=dOf(s);return`${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`};
 const fechaCorta=s=>{const d=dOf(s);return`${DIAS[d.getDay()].slice(0,3)} ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`};
 function lfFirmaDe(i){const c=CARGOS_050[i]||"Director";return/Encargad/.test(c)?c:(c==="Directora"?"Directora del plantel":"Director del plantel")}
-function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.firma=lfFirmaDe(i);o.dirnom=""}
+function lfFromZona(o,i){const e=ESCUELAS_050[i];o.tipo="Escuela Primaria";o.nombre=e[0];o.cct=e[1];o.zona=ZONA_NUM;o.lugar=`${e[3]}, ${e[2]}, Baja California`;o.mun=e[2];o.org=LF_MULTI.includes(e[1])?"multi":"completa";o.firma=lfFirmaDe(i);o.dirnom=""}
 function lfInit(){const s=store.get(LF_KEY,null);if(s)return s;const i=ESCUELAS_050.findIndex(e=>e[1]===perfil.cct);
-  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,orient:"vertical",tercios:false,filasH:10,filas3:5,
+  const o={sel:i>=0?String(i):(perfil.cct?"otra":""),tipo:"Escuela Primaria",nombre:"",cct:"",zona:perfil.zona||"050",lugar:"",mun:"",firma:"Director del plantel",dirnom:"",filas:19,blancas:3,orient:"vertical",tercios:false,filasH:10,filas3:5,
     portada:true,normas:true,recuadro:true,susp:true,desde:"",hasta:"",ed:{}};
-  if(i>=0)lfFromZona(o,i);else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.lugar=[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", ")}
+  if(i>=0){lfFromZona(o,i);lfAuto(o)}else if(perfil.escuela){o.nombre=perfil.escuela.replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();o.cct=perfil.cct||"";o.mun=perfil.municipio||"";o.lugar=[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", ")}
   return o}
 function lfEventos(){const ev={};(CAL?.eventos||[]).forEach(([a,b,t])=>{for(let d=dOf(a);isoD(d)<=b;d.setDate(d.getDate()+1)){const k=isoD(d);(ev[k]=ev[k]||[]).push(t)}});
   const out={};for(const[k,v]of Object.entries(ev))out[k]=v.join(" · ");for(const[k,v]of Object.entries(LF.ed||{})){if(v)out[k]=v;else delete out[k]}return out}
@@ -2097,21 +2108,23 @@ function lfDias(){if(!CAL)return[];const ev=lfEventos(),vac=CAL.vacaciones||[],o
   for(let d=dOf(CAL.inicio);isoD(d)<=CAL.fin;d.setDate(d.getDate()+1)){const k=isoD(d),w=d.getDay();if(w===0||w===6)continue;if(vac.some(([a,b])=>k>=a&&k<=b))continue;
     if(!LF.susp&&esSusp(ev[k]))continue;n++;out.push({f:k,no:n,ev:ev[k]||""})}return out}
 function lfSel(){const D=lfDias();const a=LF.desde||CAL?.inicio||"",b=LF.hasta||CAL?.fin||"";return D.filter(x=>x.f>=a&&x.f<=b)}
-function lfProblemas(v){const p=[];if(!CAL)p.push("No se pudo cargar el calendario oficial. Revise su conexión.");if(!v.nombre.trim())p.push("Escriba el nombre de la escuela.");
+function lfProblemas(v){const p=[];if(!CAL)p.push("No se pudo cargar el calendario oficial. Revise su conexión.");if(!v.nombre.trim())p.push("Escriba el nombre de la escuela.");if(!String(lfMun(v)).trim())p.push("Escriba el municipio (lo pide la Circular 40).");
   if(CAL&&!lfSel().length)p.push("El periodo elegido no tiene días hábiles.");const b=Number(v.blancas);if(!Number.isInteger(b)||b<0||b>50)p.push("Las hojas en blanco deben ser de 0 a 50.");return p}
 
 /* textos de las hojas de normatividad (sin logos del Gobierno ni de la SE) */
 const LF_NORMAS=[
- {titulo:null,bloques:[
-  {p:[{t:"Con base en la Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII; Artículo 47, Fracción III, y las Condiciones Generales de Trabajo del Personal de la SEP, Artículos 25 y 80, en donde la autoridad correspondiente cumplirá y hará cumplir dicha normatividad haciendo las observaciones a quien le corresponda, se integra el presente registro, considerando lo siguiente:"}],a:"j",after:12},
+ {titulo:null,s:10,bloques:[
+  {p:[{t:"Con base en la Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII; Artículo 47, Fracción III; el Reglamento de las Condiciones Generales de Trabajo del Personal de la SEP, Artículos 25 y 80; las Condiciones Generales de Trabajo de la Secretaría de Educación del Estado de Baja California, cláusula Séptima, fracción I, y la Circular 40 de la Dirección de Administración de Personal de la SE/ISEP (30 de octubre de 2026), en donde la autoridad correspondiente cumplirá y hará cumplir dicha normatividad haciendo las observaciones a quien le corresponda, se integra el presente registro, considerando lo siguiente:"}],a:"j",after:12},
   {p:[{t:"1. Los directivos, personal docente, administrativo y de intendencia anotarán su nombre y firmarán en el orden de llegada al centro de trabajo, anotando la hora de su ingreso.",b:1}],a:"j",after:4},
   {p:[{t:"2. Transcurridos los 10 minutos de tolerancia se deberá trazar una línea roja a partir del último firmante en el registro de asistencia."}],a:"j",after:4},
   {p:[{t:"3. Transcurridos los 30 minutos después de la hora de entrada, la autoridad correspondiente resguardará el registro de asistencia y anotará, en caso de requerirse, el nombre del trabajador ausente y en observaciones «falta injustificada». En caso de que el trabajador muestre documentos que justifiquen su inasistencia, la autoridad inmediata hará las observaciones que correspondan."}],a:"j",after:4},
-  {p:[{t:"4. Firma de salida. El registro de asistencia se deberá instalar en un lugar visible para que el personal que labora en el centro de trabajo firme indicando su hora de salida."}],a:"j",after:16},
+  {p:[{t:"4. Firma de salida. El registro de asistencia se deberá instalar en un lugar visible para que el personal que labora en el centro de trabajo firme indicando su hora de salida."}],a:"j",after:4},
+  {p:[{t:"5. Cada hoja llevará el sello y la firma de la o el Director del centro de trabajo. Cuando la Supervisión Escolar visite la escuela o realice una jornada de trabajo en ella, sellará y firmará la hoja del día."}],a:"j",after:4},
+  {p:[{t:"6. Cualquier omisión en el registro se considerará falta. Las incidencias se justificarán con la documentación correspondiente en un plazo no mayor a 3 días hábiles, y se anexarán al registro. La o el Director remitirá a la Supervisión Escolar los justificantes del personal a su cargo cada quincena.",b:1}],a:"j",after:16},
   {p:[{t:"RECOMENDACIONES GENERALES",b:1}],a:"c",after:10},
   {p:[{t:"De acuerdo con la Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII, las autoridades educativas deberán tener acceso a este Registro de Asistencia. El resguardo será responsabilidad de la autoridad inmediata del centro de trabajo que corresponda."}],a:"j",after:16},
   {p:[{t:"ANEXOS",b:1}],a:"c",after:10},
-  {p:[{t:"Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII y Artículo 47, Fracción III; y Condiciones Generales de Trabajo del Personal de la SEP, Artículo 25, Fracción II, y Artículo 80."}],a:"j",after:0}]},
+  {p:[{t:"Ley de Responsabilidades de los Servidores Públicos del Estado de Baja California, Capítulo I, Artículo 46, Fracción XII y Artículo 47, Fracción III; Reglamento de las Condiciones Generales de Trabajo del Personal de la SEP, Artículo 25, Fracción II, y Artículo 80; Condiciones Generales de Trabajo de la Secretaría de Educación del Estado de Baja California, cláusula Séptima, fracción I; Guía Operativa para la Organización y Funcionamiento de los Servicios Educativos de Educación Básica de la SE/ISEP, fracciones XX, XXI y XXIII, y Circular 40 de la Dirección de Administración de Personal de la SE/ISEP."}],a:"j",after:0}]},
  {titulo:null,bloques:[
   {p:[{t:"LEY DE RESPONSABILIDADES DE LOS SERVIDORES PÚBLICOS DEL ESTADO DE BAJA CALIFORNIA",b:1}],a:"c",after:2,s:11.5},
   {p:[{t:"Publicada en el Periódico Oficial No. 40, de fecha 29 de agosto de 2003, Sección II",b:1}],a:"c",after:12,s:10.5},
@@ -2137,7 +2150,32 @@ const LF_NORMAS=[
    ["f)","La falta del trabajador a sus labores, que no se justifique por medio de licencia legalmente concedida, lo priva del derecho de reclamar el salario correspondiente a la jornada o jornadas de trabajo no desempeñadas."],
    ["g)","Sin perjuicio de lo establecido en el inciso que antecede, cuando las faltas sean consecutivas se impondrán al empleado: por 2 faltas, el importe del salario correspondiente y amonestación por escrito; por 3 faltas, el importe del salario que deje de devengar durante los días faltados y un día de suspensión; por 4 faltas, el importe del salario correspondiente a los días que deje de concurrir y 2 de suspensión, sin perjuicio de la facultad concedida a la Secretaría por el artículo 44, fracción V, inciso (b) del Estatuto."],
    ["h)","Si las faltas no son consecutivas, se observarán las siguientes reglas: hasta 4 faltas en 2 meses, se amonestará al empleado por escrito sin derecho a cobrar el importe de los días no trabajados; hasta por 6 faltas en dos meses, se le impondrán hasta tres días de suspensión sin derecho a cobrar el importe del salario correspondiente a los días no laborados injustificadamente, ni el de los relativos a la suspensión; por 13 a 18 en seis meses, 7 días de suspensión también sin derecho a cobrar el salario de los días no laborados, ni los relativos a la suspensión, y sin perjuicio de aplicar el inciso (i), fracción V del artículo 44 del Estatuto."]]
-   .map(([l,t])=>({p:[{t:l},{t}],a:"j",after:3,ind:16,lab:l}))]}];
+   .map(([l,t])=>({p:[{t:l},{t}],a:"j",after:3,ind:16,lab:l}))]},
+ {titulo:null,s:9.6,bloques:[
+  {p:[{t:"CONTROL DE ASISTENCIA EN LOS CENTROS EDUCATIVOS",b:1}],a:"c",after:2,s:11.5},
+  {p:[{t:"Circular 40 · Dirección de Administración de Personal de la Secretaría de Educación y del ISEP · Mexicali, B.C., 30 de octubre de 2026",b:1}],a:"c",after:10,s:9.6},
+  {p:[{t:"Derivado de las observaciones de la Auditoría Superior de la Federación al ejercicio fiscal 2025, por la posible falta de autenticidad en los controles de asistencia (omisión de sellos oficiales, claves de centro de trabajo y firma del titular), cada centro educativo deberá contar con un sistema de control de asistencia que contenga como mínimo:"}],a:"j",after:5},
+  ...[["1.","Nombre del C.C.T."],["2.","Clave del C.C.T."],["3.","Fecha: día, mes y año."],["4.","Ciclo escolar al que corresponde."],["5.","Nombre del municipio correspondiente."],
+   ["6.","Lista de asistencia con número consecutivo, nombre y apellido del docente, hora de entrada seguida de su firma y hora de salida seguida de su firma."],
+   ["7.","Sello y firma del Director del C.C.T."],["8.","Sello y firma de la Supervisión (ISEP) o del Inspector (SE)."],["9.","Espacio para observaciones."],
+   ["10.","Anexo con los justificantes de las incidencias."]].map(([l,t])=>({p:[{t:l},{t}],a:"j",after:2,ind:18,lab:l})),
+  {p:[{t:"Justificantes que se anexan al registro",b:1}],a:"l",after:4,s:10},
+  ...[["•","Incapacidad médica (emitida por la dependencia de la que es derechohabiente)."],["•","Cita médica (solicitada previamente o comprobante de estadía)."],
+   ["•","Comisión laboral o trámite administrativo (mediante oficio)."],["•","Caso fortuito (accidente, emergencia médica)."],
+   ["•","Permiso o licencia (formato firmado por el titular de la Unidad Administrativa o por el director del centro educativo)."],
+   ["•","Día inhábil (circular u oficio)."],["•","Comisión sindical (circular u oficio)."],["•","Días económicos (mediante el formato correspondiente)."]].map(([l,t])=>({p:[{t:l},{t}],a:"j",after:1,ind:14,lab:l})),
+  {p:[{t:"Cualquier omisión en el control de asistencia se considerará como falta. La justificación por inasistencia deberá ir respaldada por la documentación respectiva y entregarse en un plazo no mayor a 3 días hábiles. Los titulares de los centros educativos remitirán a la supervisión o inspección escolar los justificantes de las incidencias del personal a su cargo cada quincena.",b:1}],a:"j",after:8},
+  {p:[{t:"CONDICIONES GENERALES DE TRABAJO DE LA SECRETARÍA DE EDUCACIÓN DEL ESTADO DE BAJA CALIFORNIA",b:1}],a:"c",after:5,s:10},
+  {p:[{t:"Séptima. Son obligaciones de las y los trabajadores:",b:1},{t:"I.- Asistir con puntualidad al desempeño de sus labores y cumplir con cualquier sistema de control de asistencia implementado para dicho efecto en el centro de trabajo de su adscripción, tanto a la hora de entrada, como a la salida de sus labores."}],a:"j",after:8},
+  ]},
+ {titulo:null,s:10.4,bloques:[
+  {p:[{t:"GUÍA OPERATIVA PARA LA ORGANIZACIÓN Y FUNCIONAMIENTO DE LOS SERVICIOS EDUCATIVOS DE EDUCACIÓN BÁSICA DE LA SE/ISEP",b:1}],a:"c",after:5,s:10},
+  {p:[{t:"La o el Director es la máxima autoridad de la escuela y le corresponde la vigilancia y el debido cumplimiento del control de asistencia del personal adscrito al plantel. Son deberes de la o el Director:"}],a:"j",after:4},
+  ...[["XX.","Garantizar, junto con la o el Subdirector y las y los docentes, el pleno cumplimiento del horario de atención a las y los alumnos, verificando que todo el personal inicie puntualmente sus actividades."],
+   ["XXI.","Vigilar la puntualidad y asistencia del personal escolar e informar a la o el Inspector (Supervisor) sobre las incidencias."],
+   ["XXIII.","Levantar las actas administrativas que procedan por irresponsabilidad e incumplimiento del personal a su cargo, otorgando al trabajador el derecho de manifestar lo que a su derecho convenga, y reportar de manera inmediata a la o el Inspector (Supervisor) las incidencias del personal, así como las medidas y acuerdos tomados."]]
+   .map(([l,t])=>({p:[{t:l},{t}],a:"j",after:3,ind:30,lab:l})),
+  {p:[{t:"Los registros deberán mantenerse a disposición de la Coordinación General de Educación Básica del ISEP, a través de su estructura educativa, y de las autoridades competentes cuando sean requeridos."}],a:"j",after:0}]}];
 
 async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocument,StandardFonts,rgb}=PDFLib;
   const doc=await PDFDocument.create();const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)};
@@ -2145,7 +2183,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
   const isep=await doc.embedPng(await lvBytes(INST_IMG())),zona=await embedZonaLogo(doc);
   const logo=await embedLogo(doc);const es050=!!zona&&String(v.zona||"").trim()===ZONA_NUM;const escLogo=logo||(es050?zona:null);
   const PW=612,PH=792,Y=t=>PH-t,up=t=>t.toLocaleUpperCase("es-MX");
-  const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),lugar=clean(v.lugar.trim()),ciclo=clean(CAL?.ciclo||"");
+  const tipo=clean(v.tipo.trim()||"Escuela Primaria"),nombre=clean(v.nombre.trim()),cct=clean(v.cct.trim().toUpperCase()),zn=clean(String(v.zona||"").trim()),lugar=clean(v.lugar.trim()),ciclo=clean(CAL?.ciclo||""),mun=clean(String(lfMun(v)||"").trim()),munT=mun?`Municipio de ${mun}`:"";
   const fit=(t,font,size,maxW,min=6)=>{let s=size;while(s>min&&font.widthOfTextAtSize(t,s)>maxW)s-=0.25;return s};
   const img=(pg,im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:Y(top)-h+(h-ih)/2,width:iw,height:ih})};
   const ctr=(pg,t,top,size,font,color=C.ink,cx=PW/2,maxW=520)=>{const s=fit(t,font,size,maxW);const w=font.widthOfTextAtSize(t,s);pg.drawText(t,{x:cx-w/2,y:Y(top),size:s,font,color});return{w,s}};
@@ -2157,7 +2195,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     ctr(pg,`Registro de Asistencia del Personal adscrito a la ${tipo}`,178,12,F.b,C.ink,PW/2,540);
     ctr(pg,nombre,262,50,F.b,C.ink,PW/2,540);
     if(cct)ctr(pg,`CLAVE: ${cct}`,296,14,F.b);
-    if(zn)ctr(pg,`Zona Escolar ${zn}`,314,11,F.r,C.mid);
+    if(zn||munT)ctr(pg,[zn?`Zona Escolar ${zn}`:"",munT].filter(Boolean).join("  ·  "),314,11,F.r,C.mid);
     img(pg,escLogo||isep,186,336,240,250);
     ctr(pg,"CICLO ESCOLAR",666,34,F.r);hline(pg,170,442,674,2.4,C.gu);
     pg.drawRectangle({x:0,y:Y(718),width:150,height:12,color:C.gray});pg.drawRectangle({x:462,y:Y(718),width:150,height:12,color:C.gray});
@@ -2178,14 +2216,21 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
           ln.forEach(w=>{pg.drawText(w.w,{x,y,size:s,font:w.b?F.b:F.r,color:C.ink});x+=w.ww+gap})});
         top+=L.length*lh+(bl.after||0)}}}
 
+  /* bloque de sello y firma (Circular 40, puntos 7 y 8) */
+  const sf=(pg,ph,x0,x1,top,bot,titulo,sub,nom,cargo,sz=8)=>{pg.drawRectangle({x:x0,y:ph-bot,width:x1-x0,height:bot-top,borderColor:C.ink,borderWidth:0.8});
+    const cx=(x0+x1)/2,mw=x1-x0-8;let t=top+sz+3;ctrP(pg,ph,titulo,t,sz,F.b,cx,mw);if(sub){t+=sz*1.05;ctrP(pg,ph,sub,t,sz*0.82,F.r,cx,mw,C.mid)}
+    const ly=bot-sz*(nom?3.3:2.3);const sm=Math.max(6,(ly-t)*0.55);if(ly-t>sz*2.2)ctrP(pg,ph,"SELLO",(t+ly)/2+sm*0.18,Math.min(sm,14),F.b,cx,mw,C.gray);
+    pg.drawLine({start:{x:x0+8,y:ph-ly},end:{x:x1-8,y:ph-ly},thickness:0.7,color:C.ink});
+    if(nom)ctrP(pg,ph,nom,ly+sz*1.15,sz*0.95,F.r,cx,mw);ctrP(pg,ph,cargo,bot-sz*0.7,sz*0.9,F.b,cx,mw)};
+  const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
   /* Hojas diarias */
-  const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
-  const hT=201.6,hB=237.6,bT=246,bB=628.6,fl=+v.filas||19,rh=(bB-bT)/fl;
+  const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre y","apellidos"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
+  const hT=201.6,hB=237.6,bT=246,bB=572,fl=+v.filas||19,rh=(bB-bT)/fl;
   const dia=(d)=>{const pg=doc.addPage([PW,PH]);
     pg.drawRectangle({x:492.5,y:Y(65),width:72,height:24,borderColor:C.ink,borderWidth:0.8});ctr(pg,d?`No. ${d.no}`:"No.",57,10.5,F.b,C.red,528.5,66);
     ctr(pg,`Registro de Asistencia del Personal adscrito a la ${tipo}`,62,8.6,F.b,C.ink,306,300);
     img(pg,isep,62,68,108,70);if(escLogo)img(pg,escLogo,478,68,82,70);
-    ctr(pg,nombre,80,15,F.b,C.ink,306,290);if(cct)ctr(pg,`CLAVE: ${cct}`,96,10,F.b,C.ink,306);if(zn)ctr(pg,`Zona ${zn}`,111,10,F.r,C.ink,306);
+    ctr(pg,nombre,80,15,F.b,C.ink,306,290);if(cct)ctr(pg,`CLAVE: ${cct}`,96,10,F.b,C.ink,306);if(zn||munT)ctr(pg,[zn?`Zona ${zn}`:"",munT].filter(Boolean).join("  ·  "),111,10,F.r,C.ink,306,290);
     ctr(pg,"CICLO ESCOLAR",128,12,F.r,C.ink,306);hline(pg,228,385,135,1.2,C.gu);ctr(pg,ciclo,151,14,F.b,C.ink,306);
     const pre=`${lugar?lugar+" ":""}a `;const s1=11;pg.drawText(pre,{x:59,y:Y(176),size:s1,font:F.r,color:C.ink});
     if(d)pg.drawText(fechaLarga(d.f)+".",{x:59+F.r.widthOfTextAtSize(pre,s1)+2,y:Y(176),size:s1,font:F.b,color:C.ink});else hline(pg,59+F.r.widthOfTextAtSize(pre,s1)+2,400,177,0.6);
@@ -2194,10 +2239,12 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     HD.forEach((ls,i)=>{const cx=(X[i]+X[i+1])/2,s=8,lh=9.4;const t0=(hT+hB)/2-(ls.length*lh)/2+s*0.8;ls.forEach((l,j)=>{const w=F.b.widthOfTextAtSize(l,s);pg.drawText(l,{x:cx-w/2,y:Y(t0+j*lh),size:s,font:F.b,color:C.ink})})});
     for(let r=0;r<=fl;r++)hline(pg,X[0],X[7],bT+r*rh,0.7);X.forEach(x=>pg.drawLine({start:{x,y:Y(bT)},end:{x,y:Y(bB)},thickness:0.7,color:C.ink}));
     for(let r=0;r<fl;r++){const t=`${r+1}.`;const w=F.r.widthOfTextAtSize(t,9);pg.drawText(t,{x:(X[0]+X[1])/2-w/2,y:Y(bT+r*rh+rh/2+3.2),size:9,font:F.r,color:C.ink})}
-    pg.drawText("Observaciones:",{x:49,y:Y(646),size:10,font:F.r,color:C.ink});hline(pg,49,589,662,0.6);hline(pg,49,589,681,0.6);
-    if(v.recuadro){pg.drawRectangle({x:48,y:Y(754),width:267,height:64,borderColor:C.ink,borderWidth:0.8});
-      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],255,9.5);L.slice(0,5).forEach((ln,i)=>{const t=ln.map(w=>w.w).join(" ");ctr(pg,t,701+i*11.5,9.5,F.b,C.ink,181.5,255)})}}
-    hline(pg,358.6,560,752,0.8);if(v.dirnom.trim())ctr(pg,clean(v.dirnom.trim()),746,9.5,F.r,C.ink,459.3,200);ctr(pg,clean(v.firma.trim()||"Director del plantel"),765,11,F.b,C.ink,459.3,200)};
+    pg.drawText("Observaciones:",{x:45,y:Y(588),size:10,font:F.r,color:C.ink});hline(pg,118,X[7],589,0.6);hline(pg,45,X[7],606,0.6);hline(pg,45,X[7],623,0.6);
+    const fT=634,fB=774;let bx=X[0];
+    if(v.recuadro){pg.drawRectangle({x:X[0],y:Y(fB),width:168,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctr(pg,"Fechas importantes",fT+11,7.5,F.b,C.mid,X[0]+84,160);
+      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],156,9);L.slice(0,9).forEach((ln,i)=>ctr(pg,ln.map(w=>w.w).join(" "),fT+28+i*11,9,F.b,C.ink,X[0]+84,156))}bx=X[0]+176}
+    const bw=(X[7]-bx-8)/2;sf(pg,PH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo());
+    sf(pg,PH,bx+bw+8,X[7],fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo)};
   /* tabla genérica: columnas proporcionales a la hoja vertical original */
   const XR=X.map(x=>(x-X[0])/(X[7]-X[0]));
   const tabla=(pg,ph,x0,x1,hT,hB,bB,fl,sz=8,nsz=9)=>{const XX=XR.map(r=>x0+r*(x1-x0)),YY=t=>ph-t,rh=(bB-hB)/fl;
@@ -2218,25 +2265,29 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
   const diaH=(d)=>{const pg=doc.addPage([LW,LH]);
     imgP(pg,LH,isep,40,22,92,58);if(escLogo)imgP(pg,LH,escLogo,LW-40-150,22,64,58);folio(pg,LH,d,LW-40-78,30,78,26,11);
     ctrP(pg,LH,`Registro de Asistencia del Personal adscrito a la ${tipo}`,36,9,F.b,LW/2-20,380);
-    ctrP(pg,LH,nombre,54,15,F.b,LW/2-20,380);ctrP(pg,LH,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",ciclo?`Ciclo escolar ${ciclo}`:""].filter(Boolean).join("  ·  "),70,9.5,F.r,LW/2-20,400);
+    ctrP(pg,LH,nombre,54,15,F.b,LW/2-20,380);ctrP(pg,LH,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",munT,ciclo?`Ciclo escolar ${ciclo}`:""].filter(Boolean).join("  ·  "),70,9.5,F.r,LW/2-20,400);
     pg.drawLine({start:{x:40,y:LH-88},end:{x:LW-40,y:LH-88},thickness:1.1,color:C.gu});
     fechaTxt(pg,LH,d,44,106,11,LW-88);
-    const hT=116,hB=140,bB=448;tabla(pg,LH,40,LW-40,hT,hB,bB,flH,8.5,9.5);
-    txt(pg,LH,"Observaciones:",44,466,9.5,F.r);pg.drawLine({start:{x:118,y:LH-467},end:{x:LW-40,y:LH-467},thickness:0.6,color:C.ink});pg.drawLine({start:{x:44,y:LH-484},end:{x:LW-40,y:LH-484},thickness:0.6,color:C.ink});
-    if(v.recuadro){pg.drawRectangle({x:40,y:LH-578,width:330,height:80,borderColor:C.ink,borderWidth:0.8});
-      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],315,9.5);L.slice(0,6).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),514+i*11.5,9.5,F.b,205,315))}}
-    pg.drawLine({start:{x:470,y:LH-562},end:{x:720,y:LH-562},thickness:0.8,color:C.ink});if(v.dirnom.trim())ctrP(pg,LH,clean(v.dirnom.trim()),556,9.5,F.r,595,240);ctrP(pg,LH,clean(v.firma.trim()||"Director del plantel"),576,11,F.b,595,240)};
+    const hT=116,hB=140,bB=418;tabla(pg,LH,40,LW-40,hT,hB,bB,flH,8.5,9.5);
+    txt(pg,LH,"Observaciones:",44,434,9.5,F.r);pg.drawLine({start:{x:118,y:LH-435},end:{x:LW-40,y:LH-435},thickness:0.6,color:C.ink});pg.drawLine({start:{x:44,y:LH-451},end:{x:LW-40,y:LH-451},thickness:0.6,color:C.ink});
+    const fT=462,fB=596;let bx=40;
+    if(v.recuadro){pg.drawRectangle({x:40,y:LH-fB,width:236,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctrP(pg,LH,"Fechas importantes",fT+11,7.5,F.b,158,228,C.mid);
+      if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],222,9.5);L.slice(0,8).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),fT+28+i*11.5,9.5,F.b,158,222))}bx=286}
+    const bw=(LW-40-bx-10)/2;sf(pg,LH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo(),8.5);
+    sf(pg,LH,bx+bw+10,LW-40,fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8.5)};
   /* tres días por hoja (escuelas multigrado) */
   const fl3=Math.max(3,+v.filas3||5);
   const tercio=(pg,ph,pw,d,top,h)=>{const M=34,x0=M,x1=pw-M,W=x1-x0;
     imgP(pg,ph,isep,x0,top+6,46,30);if(escLogo)imgP(pg,ph,escLogo,x1-80-40,top+6,36,30);folio(pg,ph,d,x1-76,top+8,76,22,10);
     ctrP(pg,ph,`Registro de Asistencia del Personal · ${tipo} «${nombre}»`,top+17,8.6,F.b,x0+W/2-24,W-250);
-    ctrP(pg,ph,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",ciclo?`Ciclo ${ciclo}`:""].filter(Boolean).join("  ·  "),top+29,7.6,F.r,x0+W/2-24,W-250);
+    ctrP(pg,ph,[cct?`CLAVE: ${cct}`:"",zn?`Zona ${zn}`:"",munT,ciclo?`Ciclo ${ciclo}`:""].filter(Boolean).join("  ·  "),top+29,7.6,F.r,x0+W/2-24,W-250);
     fechaTxt(pg,ph,d,x0+2,top+48,9,W-4);
-    const foot=v.recuadro?34:26;const hT=top+54,hB=hT+20,bB=top+h-foot;tabla(pg,ph,x0,x1,hT,hB,bB,fl3,7,8);
-    const fy=bB+14;txt(pg,ph,"Obs.:",x0+2,fy,8,F.r);pg.drawLine({start:{x:x0+26,y:ph-fy-1},end:{x:x0+W*0.52,y:ph-fy-1},thickness:0.5,color:C.ink});
-    if(v.recuadro&&d&&d.ev)txt(pg,ph,clean(d.ev),x0+2,fy+11,7.4,F.b,C.gu,W*0.55);
-    pg.drawLine({start:{x:x0+W*0.62,y:ph-fy+2},end:{x:x1,y:ph-fy+2},thickness:0.7,color:C.ink});ctrP(pg,ph,(v.dirnom.trim()?clean(v.dirnom.trim())+" · ":"")+clean(v.firma.trim()||"Director del plantel"),fy+10,8,F.b,x0+W*0.81,W*0.38)};
+    const foot=v.recuadro?36:26;const tx1=x0+W*0.7;const hT=top+54,hB=hT+20,bB=top+h-foot;tabla(pg,ph,x0,tx1,hT,hB,bB,fl3,7,8);
+    const fy=bB+12;txt(pg,ph,"Observaciones:",x0+2,fy,8,F.r);const ow=F.r.widthOfTextAtSize("Observaciones:",8)+6;pg.drawLine({start:{x:x0+ow,y:ph-fy-1},end:{x:tx1,y:ph-fy-1},thickness:0.5,color:C.ink});
+    if(v.recuadro&&d&&d.ev)txt(pg,ph,clean(d.ev),x0+2,fy+12,7.4,F.b,C.gu,tx1-x0-4);else pg.drawLine({start:{x:x0+2,y:ph-fy-12},end:{x:tx1,y:ph-fy-12},thickness:0.5,color:C.ink});
+    const bx=tx1+8,bt=hT,bb=top+h-2,bm=(bt+bb)/2;
+    sf(pg,ph,bx,x1,bt,bm-3,"Sello y firma del Director(a)","",dirNom(),dirCargo(),7);
+    sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)","",supCargo,7)};
   const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=18,hh=(ph-36)/3;
     ds.forEach((d,i)=>{tercio(pg,ph,pw,d,top0+i*hh,hh-6);if(i<2){const yy=ph-(top0+(i+1)*hh-3);for(let x=20;x<pw-20;x+=9)pg.drawLine({start:{x,y:yy},end:{x:x+4.5,y:yy},thickness:0.5,color:C.gray})}})};
   let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
@@ -2253,7 +2304,7 @@ async function prepararFirmas(){if(OUT&&OUT.letra==="firmas")return OUT;const by
 
 async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("");OUT=null;
   if(!CAL){app.innerHTML=`<p class="muted">Cargando el calendario oficial…</p>`;await cargarCal();if(S.view!=="firmas")return}
-  const v=LF;v.ed=v.ed||{};const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
+  const v=LF;v.ed=v.ed||{};lfOrg(v);const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
   const ev=CAL?lfEventos():{};const evList=Object.keys(ev).sort();const nEd=Object.keys(v.ed).length;
   const vacs=(CAL?.vacaciones||[]).map(([a,b,t])=>`${esc(t)}: ${fechaCorta(a)} al ${fechaCorta(b)}`).join("<br>");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de firmas del personal</h2></div></div>
@@ -2266,6 +2317,7 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     <div class="field"><label for="lf_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="lf_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
     <div class="row2"><div class="field"><label for="lf_cct">Clave (C.C.T.)</label><input type="text" id="lf_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
      <div class="field"><label for="lf_zona">Zona escolar</label><input type="text" id="lf_zona" value="${esc(v.zona)}" inputmode="numeric" autocomplete="off"></div></div>
+    <div class="field"><label for="lf_mun">Municipio</label><p class="help">La Circular 40 pide el nombre del municipio en el registro de asistencia.</p><input type="text" id="lf_mun" value="${esc(lfMun(v))}" autocomplete="off"></div>
     <div class="field"><label for="lf_lugar">Lugar (va antes de la fecha)</label><p class="help">Ejemplo: «${esc(v.lugar||"Camalú, San Quintín, Baja California")} a lunes, 24 de agosto de 2026».</p><input type="text" id="lf_lugar" value="${esc(v.lugar)}" autocomplete="off"></div>
     <div class="row2"><div class="field"><label for="lf_firma">Firma de abajo</label><input type="text" id="lf_firma" value="${esc(v.firma)}" autocomplete="off"></div>
      <div class="field"><label for="lf_dirnom">Nombre sobre la firma <span class="muted" style="font-weight:400">(opcional)</span></label><input type="text" id="lf_dirnom" value="${esc(v.dirnom)}" autocomplete="off"></div></div>
@@ -2284,8 +2336,9 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     <div class="row2"><div class="field"><label for="lf_desde">Desde</label><input type="date" id="lf_desde" value="${esc(v.desde||CAL?.inicio||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div>
      <div class="field"><label for="lf_hasta">Hasta</label><input type="date" id="lf_hasta" value="${esc(v.hasta||CAL?.fin||"")}" min="${CAL?.inicio||""}" max="${CAL?.fin||""}"></div></div>
     <p class="help">Para todo el ciclo deje las fechas como están. Si lo imprime por partes (por ejemplo, por mes), el número de hoja sigue la numeración del ciclo completo.</p>
-    <div class="field"><label>Formato</label><div class="chips">${[[false,"Un día por hoja"],[true,"Tres días por hoja (multigrado)"]].map(([t,l])=>`<button type="button" class="chip lf_fmt ${!!v.tercios===t?"sel":""}" data-t="${t?1:0}">${l}</button>`).join("")}</div>
-     ${v.tercios?`<p class="help">La hoja se divide en tres partes, cada una es un día con su propio número (folio), su fecha y sus renglones. Ideal para escuelas multigrado con poco personal; se recorta por la línea punteada o se deja completa.</p>`:""}</div>
+    <div class="field"><label>Organización de la escuela</label><div class="chips">${[["completa","Organización completa"],["multi","Multigrado"]].map(([o,l])=>`<button type="button" class="chip lf_org ${v.org===o?"sel":""}" data-o="${o}">${l}</button>`).join("")}</div></div>
+    <div class="field"><label for="lf_pers">¿Cuántas personas firman el libro?</label><p class="help">Director(a) o encargado(a), docentes, apoyo e intendencia. Se agregan 2 renglones de reserva para suplentes o personal de apoyo que asista.</p><input type="number" id="lf_pers" min="1" max="40" step="1" inputmode="numeric" value="${esc(v.personas||"")}" placeholder="Ej. 4"></div>
+    <div class="okmsg" style="margin-bottom:12px"><b>Tipo de libro:</b> ${v.tercios?`tres días por hoja (multigrado), ${v.filas3||5} renglones por día`:`un día por hoja, ${v.orient==="horizontal"?(v.filasH||10):v.filas} renglones`}${v.tercios?`<br><span style="font-size:14px">La hoja se divide en tres partes; cada una es un día con su propio número (folio), su fecha y sus renglones. Se recorta por la línea punteada o se deja completa.</span>`:""}${v.aviso?`<br><span style="font-size:14px">${esc(v.aviso)}</span>`:""}</div>
     <div class="field"><label>Orientación de la hoja</label><div class="chips">${[["vertical","Vertical"],["horizontal","Horizontal"]].map(([o,l])=>`<button type="button" class="chip lf_or ${(v.orient||"vertical")===o?"sel":""}" data-o="${o}">${l}</button>`).join("")}</div></div>
     <div class="row2"><div class="field"><label for="lf_filas">Renglones por ${v.tercios?"día":"hoja"}</label><select id="lf_filas">${(v.tercios?[3,4,5,6,7]:v.orient==="horizontal"?[6,7,8,9,10,11,12,13,14]:[8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]).map(n=>`<option ${(v.tercios?+(v.filas3||5):v.orient==="horizontal"?+(v.filasH||10):+v.filas)===n?"selected":""}>${n}</option>`).join("")}</select></div>
      <div class="field"><label for="lf_blancas">Hojas en blanco al final</label><input type="number" id="lf_blancas" min="0" max="50" step="1" inputmode="numeric" value="${esc(v.blancas)}"></div></div>
@@ -2304,19 +2357,20 @@ async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("
     <div id="msg"></div></section>
    <p class="foot">Los datos y el logo se guardan solo en este dispositivo.</p>`;
   const g=id=>document.getElementById(id);
-  const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;
+  const leer=()=>{v.tipo=g("lf_tipo").value;v.nombre=g("lf_nombre").value;v.cct=g("lf_cct").value.toUpperCase();v.zona=g("lf_zona").value;v.lugar=g("lf_lugar").value;v.mun=g("lf_mun").value;v.firma=g("lf_firma").value;v.dirnom=g("lf_dirnom").value;
     v.desde=g("lf_desde").value===CAL?.inicio?"":g("lf_desde").value;v.hasta=g("lf_hasta").value===CAL?.fin?"":g("lf_hasta").value;if(v.tercios)v.filas3=+g("lf_filas").value;else if(v.orient==="horizontal")v.filasH=+g("lf_filas").value;else v.filas=+g("lf_filas").value;v.blancas=g("lf_blancas").value;
     v.portada=g("lf_portada").checked;v.normas=g("lf_normas").checked;v.recuadro=g("lf_recuadro").checked;v.susp=g("lf_susp").checked;store.set(LF_KEY,v);OUT=null;resumen()};
   const resumen=()=>{const p=lfProblemas(v);app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
     if(p.length){g("lf_res").innerHTML=`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`;return}
     const DS=lfSel(),nb=+v.blancas||0,tot=(v.tercios?Math.ceil((DS.length+nb*3)/3):DS.length+nb)+(v.portada?1:0)+(v.normas?LF_NORMAS.length:0);
     g("lf_res").innerHTML=`<div class="okmsg"><b>${DS.length} días hábiles</b> · hojas No. ${DS[0].no} a ${DS[DS.length-1].no}<br><span style="font-size:14px">Del ${fechaLarga(DS[0].f)} al ${fechaLarga(DS[DS.length-1].f)}. ${tot} páginas en total.</span></div>`};
-  app.querySelectorAll("input,select").forEach(el=>{if(["lf_sel","lg_file","lf_nf","lf_nt"].includes(el.id)||el.dataset.ev)return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"||el.type==="date"?"change":"input",leer)});
+  app.querySelectorAll("input,select").forEach(el=>{if(["lf_sel","lg_file","lf_nf","lf_nt","lf_pers"].includes(el.id)||el.dataset.ev)return;el.addEventListener(el.type==="checkbox"||el.tagName==="SELECT"||el.type==="date"?"change":"input",leer)});
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
   app.querySelectorAll("[data-firma]").forEach(b=>b.onclick=()=>{g("lf_firma").value=b.dataset.firma;leer()});
-  app.querySelectorAll(".lf_fmt").forEach(b=>b.onclick=()=>{leer();v.tercios=b.dataset.t==="1";store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
-  app.querySelectorAll(".lf_or").forEach(b=>b.onclick=()=>{leer();v.orient=b.dataset.o;store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
-  g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);store.set(LF_KEY,v);lfView()};
+  app.querySelectorAll(".lf_org").forEach(b=>b.onclick=()=>{leer();v.org=b.dataset.o;lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
+  g("lf_pers").addEventListener("change",()=>{leer();v.personas=g("lf_pers").value;lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
+  app.querySelectorAll(".lf_or").forEach(b=>b.onclick=()=>{leer();v.orient=b.dataset.o;if(v.personas)lfAuto(v);store.set(LF_KEY,v);const y=window.scrollY;lfView().then(()=>window.scrollTo(0,y))});
+  g("lf_sel").onchange=()=>{const s=g("lf_sel").value;leer();v.sel=s;if(s==="otra"){v.nombre="";v.cct="";v.lugar="";v.mun="";v.zona="";v.tipo="Escuela Primaria";v.firma="Director del plantel";v.dirnom=""}else if(s!=="")lfFromZona(v,+s);lfAuto(v);store.set(LF_KEY,v);lfView()};
   const reRender=()=>{store.set(LF_KEY,v);const open=app.querySelector("details")?.open;const y=window.scrollY;lfView().then(()=>{const d=app.querySelector("details");if(d)d.open=open;window.scrollTo(0,y)})};
   app.querySelectorAll("[data-ev]").forEach(i=>i.addEventListener("change",()=>{const k=i.dataset.ev,t=i.value.trim();const of=(()=>{const s=v.ed;v.ed={};const o=lfEventos()[k]||"";v.ed=s;return o})();if(t===of)delete v.ed[k];else v.ed[k]=t;reRender()}));
   app.querySelectorAll("[data-evdel]").forEach(b=>b.onclick=()=>{v.ed[b.dataset.evdel]="";reRender()});
