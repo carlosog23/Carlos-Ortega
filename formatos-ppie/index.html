@@ -2217,12 +2217,13 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
         top+=L.length*lh+(bl.after||0)}}}
 
   /* bloque de sello y firma (Circular 40, puntos 7 y 8) */
-  const sf=(pg,ph,x0,x1,top,bot,titulo,sub,nom,cargo,sz=8)=>{pg.drawRectangle({x:x0,y:ph-bot,width:x1-x0,height:bot-top,borderColor:C.ink,borderWidth:0.8});
-    const cx=(x0+x1)/2,mw=x1-x0-8;let t=top+sz+3;ctrP(pg,ph,titulo,t,sz,F.b,cx,mw);if(sub){t+=sz*1.05;ctrP(pg,ph,sub,t,sz*0.82,F.r,cx,mw,C.mid)}
-    const ly=bot-sz*(nom?3.3:2.3);const sm=Math.max(6,(ly-t)*0.55);if(ly-t>sz*2.2)ctrP(pg,ph,"SELLO",(t+ly)/2+sm*0.18,Math.min(sm,14),F.b,cx,mw,C.gray);
+  const sf=(pg,ph,x0,x1,top,bot,titulo,sub,nom,cargo,sz=8,wm=null)=>{pg.drawRectangle({x:x0,y:ph-bot,width:x1-x0,height:bot-top,borderColor:C.ink,borderWidth:0.8});
+    const cx=(x0+x1)/2,mw=x1-x0-8;let t=top+sz+3;
+    if(wm){const wt=top+sz*(sub?2.6:1.6)+4,wb=bot-sz*2.2-2,ww=x1-x0-16,wh=wb-wt;if(wh>10){const k=Math.min(ww/wm.width,wh/wm.height),iw=wm.width*k,ih=wm.height*k;pg.drawImage(wm,{x:cx-iw/2,y:ph-wt-wh+(wh-ih)/2,width:iw,height:ih,opacity:0.13})}}ctrP(pg,ph,titulo,t,sz,F.b,cx,mw);if(sub){t+=sz*1.05;ctrP(pg,ph,sub,t,sz*0.82,F.r,cx,mw,C.mid)}
+    const ly=bot-sz*(nom?3.3:2.3);const sm=Math.max(6,(ly-t)*0.55);if(!wm&&ly-t>sz*2.2)ctrP(pg,ph,"SELLO",(t+ly)/2+sm*0.18,Math.min(sm,14),F.b,cx,mw,C.gray);
     pg.drawLine({start:{x:x0+8,y:ph-ly},end:{x:x1-8,y:ph-ly},thickness:0.7,color:C.ink});
     if(nom)ctrP(pg,ph,nom,ly+sz*1.15,sz*0.95,F.r,cx,mw);ctrP(pg,ph,cargo,bot-sz*0.7,sz*0.9,F.b,cx,mw)};
-  const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
+  const wmZ=es050?zona:null;const supCargo=zn?`Supervisión Escolar Zona ${zn}`:"Supervisión Escolar";const dirCargo=()=>clean(v.firma.trim()||"Director del plantel");const dirNom=()=>v.dirnom.trim()?clean(v.dirnom.trim()):"";
   /* Hojas diarias */
   const X=[43.2,71.3,277.2,317.5,369.4,446.4,496.8,579.6],HD=[["No."],["Nombre y","apellidos"],["Grado","y","grupo"],["Hora de","entrada"],["Firma"],["Hora de","salida"],["Firma"]];
   const hT=201.6,hB=237.6,bT=246,bB=572,fl=+v.filas||19,rh=(bB-bT)/fl;
@@ -2244,7 +2245,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro){pg.drawRectangle({x:X[0],y:Y(fB),width:168,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctr(pg,"Fechas importantes",fT+11,7.5,F.b,C.mid,X[0]+84,160);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],156,9);L.slice(0,9).forEach((ln,i)=>ctr(pg,ln.map(w=>w.w).join(" "),fT+28+i*11,9,F.b,C.ink,X[0]+84,156))}bx=X[0]+176}
     const bw=(X[7]-bx-8)/2;sf(pg,PH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo());
-    sf(pg,PH,bx+bw+8,X[7],fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo)};
+    sf(pg,PH,bx+bw+8,X[7],fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8,wmZ)};
   /* tabla genérica: columnas proporcionales a la hoja vertical original */
   const XR=X.map(x=>(x-X[0])/(X[7]-X[0]));
   const tabla=(pg,ph,x0,x1,hT,hB,bB,fl,sz=8,nsz=9)=>{const XX=XR.map(r=>x0+r*(x1-x0)),YY=t=>ph-t,rh=(bB-hB)/fl;
@@ -2274,7 +2275,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro){pg.drawRectangle({x:40,y:LH-fB,width:236,height:fB-fT,borderColor:C.ink,borderWidth:0.8});ctrP(pg,LH,"Fechas importantes",fT+11,7.5,F.b,158,228,C.mid);
       if(d&&d.ev){const L=lvWrap([{t:d.ev,b:1}],222,9.5);L.slice(0,8).forEach((ln,i)=>ctrP(pg,LH,ln.map(w=>w.w).join(" "),fT+28+i*11.5,9.5,F.b,158,222))}bx=286}
     const bw=(LW-40-bx-10)/2;sf(pg,LH,bx,bx+bw,fT,fB,"Sello y firma del Director(a) del C.C.T.","",dirNom(),dirCargo(),8.5);
-    sf(pg,LH,bx+bw+10,LW-40,fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8.5)};
+    sf(pg,LH,bx+bw+10,LW-40,fT,fB,"Sello y firma de la Supervisión Escolar","(en visita o jornada de trabajo)","",supCargo,8.5,wmZ)};
   /* tres días por hoja (escuelas multigrado) */
   const fl3=Math.max(3,+v.filas3||5);
   const tercio=(pg,ph,pw,d,top,h)=>{const M=34,x0=M,x1=pw-M,W=x1-x0;
@@ -2287,7 +2288,7 @@ async function lfPDF(preview){await fonts();const v=LF,DS=lfSel();const{PDFDocum
     if(v.recuadro&&d&&d.ev)txt(pg,ph,clean(d.ev),x0+2,fy+12,7.4,F.b,C.gu,tx1-x0-4);else pg.drawLine({start:{x:x0+2,y:ph-fy-12},end:{x:tx1,y:ph-fy-12},thickness:0.5,color:C.ink});
     const bx=tx1+8,bt=hT,bb=top+h-2,bm=(bt+bb)/2;
     sf(pg,ph,bx,x1,bt,bm-3,"Sello y firma del Director(a)","",dirNom(),dirCargo(),7);
-    sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)","",supCargo,7)};
+    sf(pg,ph,bx,x1,bm+3,bb,"Sello y firma de la Supervisión","(en visita o jornada de trabajo)","",supCargo,7,wmZ)};
   const hoja3=(ds)=>{const vert=v.orient!=="horizontal";const pw=vert?PW:LW,ph=vert?PH:LH;const pg=doc.addPage([pw,ph]);const top0=18,hh=(ph-36)/3;
     ds.forEach((d,i)=>{tercio(pg,ph,pw,d,top0+i*hh,hh-6);if(i<2){const yy=ph-(top0+(i+1)*hh-3);for(let x=20;x<pw-20;x+=9)pg.drawLine({start:{x,y:yy},end:{x:x+4.5,y:yy},thickness:0.5,color:C.gray})}})};
   let lista=DS;if(preview){const conEv=DS.find(d=>d.ev&&d.ev!==DS[0].ev);lista=[DS[0],conEv].filter(Boolean)}
