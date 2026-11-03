@@ -1341,7 +1341,7 @@ const SECCIONES=[
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
  {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan solos los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"Registro de asistencia diario con las fechas del calendario oficial, listo para imprimir.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Becas:"",Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -1360,7 +1360,7 @@ const FAVS=[
  {k:"calplan",t:"Planeación didáctica",sec:"pedagogico",go:()=>plView()},
  {k:"work",t:"Permiso económico (licencia)",sec:"laboral",go:()=>openAnexo("L")}];
 const TMETA={
- firmas:{grp:"Libros para imprimir",tags:["PDF","Calendario oficial"],dest:"Ya trae las fechas del calendario oficial: CTE, suspensiones y vacaciones."},
+ firmas:{grp:"Libros para imprimir",tags:["En actualización","Circular 40"],dest:"Se está ajustando a los lineamientos de la Circular 40 sobre el control de asistencia."},
  visitas:{grp:"Libros para imprimir",tags:["PDF","Logo de la escuela"]},
  pases:{grp:"Libros para imprimir",tags:["PDF","Por grado y grupo"]},
  cte:{grp:"Reuniones y actas",tags:["PDF","Word","Lista para firmar"]},
@@ -2303,7 +2303,24 @@ async function prepararFirmas(){if(OUT&&OUT.letra==="firmas")return OUT;const by
   const filename=`Libro de firmas - ${LF.tipo} ${LF.nombre} - ${CAL?.ciclo||""}${rango}.pdf`.replace(/[\\/:*?"<>|«»]/g,"").replace(/\s+/g," ");
   const blob=new Blob([bytes],{type:"application/pdf"});OUT={letra:"firmas",filename,blob,file:new File([blob],filename,{type:"application/pdf"})};return OUT}
 
-async function lfView(){S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("");OUT=null;
+/* Pausa temporal del libro de firmas (ajuste a la Circular 40). Solo la Supervisión (con su clave guardada en el equipo) puede generarlo.
+   Para volver a abrirlo a todos, cambiar LF_PAUSA a false. */
+const LF_PAUSA=true;
+function lfPausaView(){S.view="firmas";S.letra=null;setBar("");OUT=null;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de firmas del personal</h2></div></div>
+   <section class="card"><h3>En actualización por la Circular 40</h3>
+    <p>La Dirección de Administración de Personal de la SE/ISEP emitió la <b>Circular 40</b> (30 de octubre de 2026) sobre el <b>control de asistencia en los centros educativos</b>. El libro de firmas se está ajustando a sus lineamientos: sello y firma del director y de la Supervisión, municipio, justificación de incidencias y su sustento normativo.</p>
+    <p>Por ahora este apartado no está disponible. La Supervisión Escolar Zona 050 avisará por los grupos en cuanto el nuevo libro esté listo. Mientras tanto, continúe con su registro de asistencia actual.</p>
+    <p class="muted" style="font-size:14px">Gracias por su comprensión.</p></section>
+   <details class="card" style="padding:12px"><summary class="muted" style="font-size:14px">Acceso de la Supervisión</summary>
+    <div class="field"><label for="lf_tk">Clave de acceso</label><input type="password" id="lf_tk" autocomplete="off" spellcheck="false"><p class="help">La misma clave del calendario y de los teléfonos del seguro. Se guarda solo en este equipo.</p></div>
+    <button class="btn primary" id="lf_ent">Entrar</button><div id="lf_msg"></div></details>`;
+  const g=id=>document.getElementById(id);g("salir").onclick=goBack;
+  g("lf_ent").onclick=async()=>{const t=g("lf_tk").value.trim();const m=g("lf_msg");if(!t)return;m.innerHTML=`<p class="help">Verificando…</p>`;
+    try{await ghLeer(t,REPO_CALP);store.set("gh-token",t);lfView()}catch(e){m.innerHTML=`<div class="alert"><b>No se pudo entrar.</b> ${e.status===401||e.status===403||e.status===404?"La clave no es válida.":"Revise su conexión a internet."}</div>`}};
+  window.scrollTo(0,0)}
+async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaView();
+  S.view="firmas";S.letra=null;if(!LF)LF=lfInit();setBar("");OUT=null;
   if(!CAL){app.innerHTML=`<p class="muted">Cargando el calendario oficial…</p>`;await cargarCal();if(S.view!=="firmas")return}
   const v=LF;v.ed=v.ed||{};lfOrg(v);const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
   const ev=CAL?lfEventos():{};const evList=Object.keys(ev).sort();const nEd=Object.keys(v.ed).length;
