@@ -863,7 +863,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-03-0700';
+const PUBLICACION = '2026-11-03-0645';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -8565,7 +8565,7 @@ function finEstilos() {
   document.head.appendChild(s);
 }
 const FIN_PDF_CSS = `
-.fp{width:816px;min-height:1054px;padding:44px 58px 40px;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;position:relative;font-size:12px}
+.fp{width:816px;height:1054px;overflow:hidden;padding:44px 58px 40px;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;position:relative;font-size:12px}
 .fp+.fp{page-break-before:always}
 .fp .enc{display:flex;align-items:center;gap:16px;margin-bottom:10px}
 .fp .enc img{height:62px;width:auto}
@@ -8578,7 +8578,11 @@ const FIN_PDF_CSS = `
 .fp .ln{flex:1;border-bottom:1px solid #111;min-height:16px;padding:0 4px;font-size:12px}
 .fp table{width:100%;border-collapse:collapse}
 .fp td,.fp th{border:1px solid #111;padding:4px 6px;font-size:11.5px;vertical-align:top}
-.fp th{font-weight:700;text-align:center;background:#f2f2f2}
+.fp th{font-weight:700;text-align:center}
+.fp table.lib th{font-weight:400;font-size:13px;padding:2px}
+.fp table.pol-f td{font-size:10.5px}
+.fp .rt td,.fp .rt th{font-size:10.5px;padding:2px 4px;border-color:#111}
+.fp .rt th{font-size:10.5px}
 .fp .d{text-align:right;white-space:nowrap}
 .fp .c{text-align:center}
 .fp .caja{border:1px solid #111;padding:10px 12px;margin:10px 0}
@@ -8588,13 +8592,14 @@ const FIN_PDF_CSS = `
 .fp .nota{font-size:9px;font-weight:700;line-height:1.35;position:absolute;left:58px;right:58px;bottom:54px}
 .fp .pie{position:absolute;right:58px;bottom:16px;font-size:8.5px;color:#777}
 .fp .sum td{font-weight:700}`;
-function finEnc(titulo, sub) {
-  return `<div class="enc"><img src="${ZONA.logoInst}" alt=""><div class="t"><div class="a">${ISEP_TXT}</div>${sub ? `<div class="b">${sub}</div>` : ''}</div><div style="width:62px"></div></div>${titulo ? `<h1>${titulo}</h1>` : ''}`;
-}
+/* Los formatos son del área de Recursos Financieros del Gobierno del Estado: se reproducen tal cual,
+   con sus logos y textos originales (no llevan los logos de la zona ni del ISEP). */
+const FIN_LOGO = { bc: 'img/fin/bc-educacion.png', see: 'img/fin/see.png', se: 'img/fin/se-educacion.png', gob: 'img/fin/se-gobierno.png' };
 const fr = (et, val, extra = '') => `<div class="ren" ${extra}><b>${et}</b><span class="ln">${esc(val || '')}</span></div>`;
+// «DEL 202__»: los formatos traen impreso el 202 y se llena el último dígito
+const finAnio = y => '202<u>&nbsp;' + String(y).slice(3) + '&nbsp;</u>';
 function finHtml(tipo, q) {
   const o = q.id ? S.fin.find(x => x.id === q.id) : null, cct = o ? o.cct : q.cct, ciclo = o ? o.ciclo : q.ciclo, P = finPlantel(cct, ciclo);
-  const pie = `<div class="pie">Tequio · ${esc(nombreEscuela(cct))} · ${fechaCorta(hoy())}</div>`;
   if (tipo === 'poliza') {
     const d = o.datos, x = finMonto(o), ing = ['ingreso', 'interes'].includes(d.clase), medio = d.medio === 'caja' && ['ingreso', 'egreso'].includes(d.clase) ? 'CAJA' : 'BANCOS' + (P.banco ? ' · ' + finMay(P.banco) : '') + (P.cuenta ? ' CTA. ' + P.cuenta : '');
     const R = [];
@@ -8613,107 +8618,120 @@ function finHtml(tipo, q) {
       R.push(['', medio, '', '', x]);
     }
     while (R.length < 16) R.push(['', '', '', '', '']);
-    return `<div class="fp">${finEnc('PÓLIZA DE ' + (ing ? 'INGRESOS' : 'EGRESOS'))}
-      ${fr('PERIODO:', finPeriodo(o.fecha) + ' · ' + finFechaTxt(o.fecha).toUpperCase())}${fr('NOMBRE DEL PLANTEL:', finMay(P.nombre))}
+    return `<div class="fp">
+      <div style="display:flex;justify-content:center;margin:6px 0 0 -170px"><img src="${FIN_LOGO.bc}" alt="" style="height:66px"></div>
+      <h1 style="text-align:right;margin:10px 96px 22px 0;font-size:21px">POLIZA DE ${ing ? 'INGRESOS' : 'EGRESOS'}</h1>
+      ${fr('PERIODO:', finPeriodo(o.fecha))}${fr('NOMBRE DEL PLANTEL:', finMay(P.nombre))}
       <div class="ren"><b>CLAVE DEL PLANTEL:</b><span class="ln">${esc(cct)}</span><b>ZONA</b><span class="ln" style="flex:.35">${esc(P.zona)}</span><b>SECTOR</b><span class="ln" style="flex:.5">${esc(P.sector)}</span></div>
       ${fr('MUNICIPIO:', finMay(P.municipio))}
-      <table style="margin-top:12px"><colgroup><col style="width:70px"><col><col style="width:90px"><col style="width:90px"><col style="width:90px"></colgroup>
-        <tr><th>PARTIDA</th><th>CONCEPTO</th><th>PARCIAL</th><th>DEBE</th><th>HABER</th></tr>
-        ${R.map(r => `<tr style="height:24px"><td class="c">${esc(r[0])}</td><td style="white-space:pre">${esc(r[1])}</td><td class="d">${finM0(r[2])}</td><td class="d">${finM0(r[3])}</td><td class="d">${finM0(r[4])}</td></tr>`).join('')}
-        <tr class="sum"><td colspan="3" class="d" style="border-left:0;border-bottom:0">SUMAS IGUALES $</td><td class="d">${finM(x)}</td><td class="d">${finM(x)}</td></tr></table>
-      <div style="font-weight:700;margin-top:14px">CONCEPTO</div><div class="caja" style="min-height:44px;margin-top:4px">${esc(finMay(d.concepto || ''))}${d.clase === 'ingreso' && d.recibos ? '<br>RECIBOS OFICIALES: ' + esc(d.recibos) : ''}${d.clase === 'egreso' && d.comprobante ? '<br>COMPROBANTE: ' + esc(finMay(d.comprobante)) + (d.compNum ? ' ' + esc(d.compNum) : '') + (d.proveedor ? ' · ' + esc(finMay(d.proveedor)) : '') : ''}<br><span style="font-size:10.5px">(${esc(finLetra(x))})</span></div>
-      <table style="margin-top:16px"><tr><th style="text-align:left;font-weight:400">No. DE PÓLIZA</th><th style="text-align:left;font-weight:400">ELABORADO POR</th><th style="text-align:left;font-weight:400">AUTORIZADO POR</th><th style="font-weight:400">REVISADO POR</th></tr>
-        <tr style="height:48px"><td class="c" style="vertical-align:middle;font-weight:700">${esc(d.poliza || '')}</td><td style="vertical-align:bottom">${esc(finMay(d.elaboro))}</td><td style="vertical-align:bottom">${esc(finMay(d.autorizo))}</td><td style="vertical-align:bottom">${esc(finMay(d.reviso))}</td></tr></table>${pie}</div>`;
+      <table style="margin-top:20px" class="pol"><colgroup><col style="width:76px"><col><col style="width:68px"><col style="width:76px"><col style="width:68px"></colgroup>
+        <tr><th style="height:44px;vertical-align:middle">PARTIDA</th><th style="vertical-align:middle">CONCEPTO</th><th style="vertical-align:middle">PARCIAL</th><th style="vertical-align:middle">DEBE</th><th style="vertical-align:middle">HABER</th></tr>
+        ${R.map((r, i) => `<tr style="height:23px" class="${i === R.length - 1 ? 'ult' : ''}"><td class="c">${esc(r[0])}</td><td style="white-space:pre;font-size:10.5px">${esc(r[1])}</td><td class="d">${finM0(r[2])}</td><td class="d">${finM0(r[3])}</td><td class="d">${finM0(r[4])}</td></tr>`).join('')}
+        <tr class="sum"><td colspan="3" class="d" style="border:0;vertical-align:middle;padding-right:30px">SUMAS IGUALES &nbsp;$</td><td class="d" style="height:40px;vertical-align:middle">${finM(x)}</td><td class="d" style="vertical-align:middle">${finM(x)}</td></tr></table>
+      <div style="font-weight:700;margin-top:16px">CONCEPTO</div><div class="caja" style="min-height:52px;margin-top:14px">${esc(finMay(d.concepto || ''))}${d.clase === 'ingreso' && d.recibos ? '<br>RECIBOS OFICIALES: ' + esc(d.recibos) : ''}${d.clase === 'egreso' && d.comprobante ? '<br>COMPROBANTE: ' + esc(finMay(d.comprobante)) + (d.compNum ? ' ' + esc(d.compNum) : '') + (d.proveedor ? ' · ' + esc(finMay(d.proveedor)) : '') : ''}<br><span style="font-size:10.5px">(${esc(finLetra(x))})</span></div>
+      <table style="margin-top:40px" class="pol-f"><colgroup><col style="width:19%"><col style="width:21%"><col style="width:21%"><col></colgroup><tr><td>No.DE POLIZA</td><td>ELABORADO POR</td><td>AUTORIZADO POR</td><td class="c">REVISADO POR</td></tr>
+        <tr style="height:46px"><td class="c" style="vertical-align:middle;font-weight:700">${esc(d.poliza || '')}</td><td style="vertical-align:bottom;font-size:9.5px">${esc(finMay(d.elaboro))}</td><td style="vertical-align:bottom;font-size:9.5px">${esc(finMay(d.autorizo))}</td><td style="vertical-align:bottom;font-size:9.5px">${esc(finMay(d.reviso))}</td></tr></table></div>`;
   }
   if (tipo === 'recibo') {
     const d = o.datos, x = finMonto(o);
-    return `<div class="fp">${finEnc('RECIBO ECONÓMICO')}
-      <div class="ren" style="justify-content:flex-end"><b>Lugar y fecha:</b><span class="ln" style="flex:0 0 300px">${esc(P.localidad + (P.municipio ? ', ' + P.municipio : '') + ', B.C., a ' + finFechaTxt(o.fecha))}</span></div>
-      <div style="height:14px"></div>
-      ${fr('Recibí de la Dirección de la Escuela:', P.nombre)}${fr('Clave Escolar:', cct)}
-      <div class="ren"><b>La cantidad de</b><span class="ln" style="flex:0 0 120px">${finM(x)}</span><b>Son: (</b><span class="ln">${esc(finLetra(x))}</span><b>)</b></div>
-      ${fr('Por concepto de:', (d.lineas || []).map(l => (l.concepto || FIN_PART[l.partida] || '')).filter(Boolean).join('; ') || d.concepto)}
-      <div class="ren"><span class="ln">${esc(d.concepto && (d.lineas || []).length ? d.concepto : '')}</span></div>
-      <div style="height:10px"></div>
-      ${fr('Nombre de quien recibe:', d.proveedor)}${fr('Domicilio:', d.domProv)}
-      <div class="firmas" style="margin-top:110px"><div>FIRMA DE QUIEN RECIBE</div><div><span class="n">${esc(P.director)}</span>NOMBRE Y FIRMA DEL DIRECTOR</div></div>
-      <div class="c" style="margin-top:70px;font-weight:700;font-size:11px">SELLO DEL PLANTEL</div>
-      <div class="nota">*Anexar copia del INE de quien recibe.<br>*Visto bueno del área de Infraestructura solo en el caso de que se trate de construcción o adecuación de espacios educativos.<br>*Visto bueno de la Coordinación Académica Municipal en caso de cursos de capacitación, adiestramiento y formación académica. Anexar documentos de validación de centro de maestros/ProNAP y la Coordinación Municipal del PEC.</div>${pie}</div>`;
+    return `<div class="fp" style="font-family:Inter,Arial,Helvetica,sans-serif;font-size:13px">
+      <img src="${FIN_LOGO.se}" alt="" style="height:116px;margin:-8px 0 0 -12px">
+      <h1 style="font-size:21px;margin:26px 0 40px">RECIBO ECONÓMICO</h1>
+      <div class="ren" style="justify-content:flex-end"><span>Lugar y Fecha:</span><span class="ln" style="flex:0 0 260px">${esc(P.localidad + ', B.C., ' + finFechaTxt(o.fecha))}</span></div>
+      <div style="height:22px"></div>
+      <div class="ren"><span>Recibí de la Dirección de la Escuela:</span><span class="ln">${esc(P.nombre)}</span></div><div class="ren"><span class="ln"></span></div>
+      <div class="ren"><span>Clave Escolar:</span><span class="ln">${esc(cct)}</span></div>
+      <div class="ren"><span>La cantidad de $</span><span class="ln" style="flex:0 0 100px">${finN(x).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span><span>Son: (</span><span class="ln" style="font-size:11.5px">${esc(finLetra(x))}</span><span>)</span></div>
+      <div class="ren"><span>Por concepto de:</span><span class="ln">${esc(d.concepto || '')}</span></div>
+      ${(d.lineas || []).map(l => `<div class="ren"><span class="ln">${esc((l.concepto || FIN_PART[l.partida] || '') + ((d.lineas || []).length > 1 ? ' · ' + finM(l.importe) : ''))}</span></div>`).concat(['<div class="ren"><span class="ln"></span></div>', '<div class="ren"><span class="ln"></span></div>']).slice(0, 3).join('')}
+      <div class="ren" style="margin-top:14px"><span>Nombre de quien recibe:</span></div><div class="ren"><span class="ln" style="margin-right:30px">${esc(d.proveedor || '')}</span></div>
+      <div class="ren" style="margin-top:20px"><span>Domicilio:</span><span class="ln" style="margin-right:22px">${esc(d.domProv || '')}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:110px;margin-top:130px;padding:0 24px;text-align:center;font-weight:700;font-size:11.5px"><div style="border-top:1px solid #111;padding-top:12px">FIRMA DE QUIEN RECIBE</div><div><span style="font-weight:400;display:block;margin-top:-18px;margin-bottom:4px">${esc(P.director)}</span><div style="border-top:1px solid #111;padding-top:12px">NOMBRE Y FIRMA DEL &nbsp;DIRECTOR</div></div></div>
+      <div class="c" style="margin-top:100px;font-weight:700;font-size:10.5px">SELLO DEL PLANTEL</div>
+      <div class="nota" style="font-family:'Times New Roman',Times,serif;font-size:9.5px;bottom:70px">*Anexar copia del INE de quien recibe.<br>* Visto Bueno del área de Infraestructura solo en el caso que se trate de &nbsp;construcción o adecuación de espacios educativos<br>*Visto Bueno de la Coordinación Académica Municipal en caso de cursos de capacitación, adiestramiento y formación académica. Anexar documentos de validación de centro de maestros/proNAP y la Coordinación Municipal del PEC</div></div>`;
   }
   if (tipo === 'solicitud') {
-    const d = o.datos, l2 = (pares) => `<div style="display:flex;gap:18px;margin-top:18px">${pares.map(([v, t, f]) => `<div style="flex:${f || 1};text-align:center"><div class="ln" style="display:block;min-height:18px;text-align:center">${esc(v || '')}</div><div style="font-weight:700;font-size:11px;margin-top:3px">${t}</div></div>`).join('')}</div>`;
-    return `<div class="fp">${finEnc('', 'DEPARTAMENTO DE RECURSOS FINANCIEROS<br>SOLICITUD DE RECIBOS DE INGRESOS PROPIOS')}
-      <div style="display:flex;gap:24px;margin-top:18px"><div class="ren" style="flex:1"><b>NIVEL EDUCATIVO:</b><span class="ln">${esc(finMay(d.nivel))}</span></div><div class="ren" style="flex:1.2"><b>FECHA:</b><span class="ln">${esc(finFechaTxt(o.fecha).toUpperCase())}</span></div></div>
-      <div class="caja" style="font-weight:700;margin-top:16px">
-        <div style="display:flex;gap:14px;align-items:flex-end"><span>RECIBÍ LA CANTIDAD DE</span><div style="flex:0 0 130px;text-align:center"><div class="ln" style="display:block">${finM(d.cantidad)}</div><div style="font-size:10.5px">(CON NÚMERO)</div></div><div style="flex:1;text-align:center"><div class="ln" style="display:block;font-size:10.5px">${esc(finLetra(d.cantidad))}</div><div style="font-size:10.5px">(CON LETRA)</div></div></div>
-        <p style="margin:14px 0 0;font-size:11.5px;line-height:1.45">FORMAS AUTORIZADAS PARA EL COBRO Y RECEPCIÓN DE INGRESOS QUE SE CAPTEN EN ESTE PLANTEL EDUCATIVO AUTORIZADOS POR LA DIRECCIÓN DE RECURSOS FINANCIEROS DEL ${ISEP_TXT}.</p></div>
-      <div class="c" style="font-weight:700;margin-top:18px">NÚMERO DE FOLIOS</div>
-      <div class="caja" style="display:flex;gap:16px;font-weight:700"><div class="ren" style="flex:1"><b>INICIAL</b><span class="ln c">${esc(d.inicial)}</span></div><div class="ren" style="flex:1"><b>FINAL</b><span class="ln c">${esc(d.final)}</span></div><div class="ren" style="flex:1.2"><b>TOTAL DE RECIBOS</b><span class="ln c">${esc(String(finTotRec(d)))}</span></div></div>
-      <div class="c" style="font-weight:700;margin-top:6px">DATOS DEL PLANTEL EDUCATIVO</div>
-      <div class="caja" style="padding-bottom:16px">${l2([[finMay(d.nombre), 'NOMBRE', 2.4], [d.zona, 'ZONA', .6], [d.clave, 'CLAVE', 1.2]])}${l2([[finMay(d.calle), 'CALLE', 2], [d.numero, 'NÚMERO', .7], [finMay(d.colonia), 'COLONIA', 1.5]])}${l2([[finMay(d.ciudad), 'CIUDAD', 1.3], [finMay(d.municipio), 'MUNICIPIO O DELEGACIÓN', 2], [d.cp, 'C.P.', .6]])}${l2([[d.telefono, 'TELÉFONO', 1], [d.correo, 'CORREO ELECTRÓNICO', 1.6], ['', '', 1]]).replace('<div class="ln" style="display:block;min-height:18px;text-align:center"></div><div style="font-weight:700;font-size:11px;margin-top:3px"></div>', '')}</div>
-      <div style="display:grid;grid-template-columns:1.3fr .8fr 1.1fr;gap:26px;margin-top:80px;text-align:center;font-weight:700;font-size:11px"><div style="border-top:1px solid #111;padding-top:4px"><span style="font-weight:400;display:block">${esc(finMay(d.director))}</span>NOMBRE Y FIRMA DEL DIRECTOR</div><div style="padding-top:20px">SELLO DEL PLANTEL</div><div style="border-top:1px solid #111;padding-top:20px">ATENDIÓ</div></div>${pie}</div>`;
+    const d = o.datos, l2 = (pares) => `<div style="display:flex;gap:28px;margin-top:22px">${pares.map(([v, t, f]) => `<div style="flex:${f || 1};text-align:center">${t ? `<div class="ln" style="display:block;min-height:18px;text-align:center">${esc(v || '')}</div><div style="font-weight:700;font-size:11.5px;margin-top:8px">${t}</div>` : ''}</div>`).join('')}</div>`;
+    return `<div class="fp" style="font-family:Calibri,Carlito,'Segoe UI',Arial,sans-serif;font-size:12.5px">
+      <img src="${FIN_LOGO.bc}" alt="" style="height:50px;margin:20px 0 0 -4px">
+      <div class="c" style="font-weight:700;font-size:13.5px;line-height:1.35;margin-top:30px">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGOGICOS DE<br>BAJA CALIFORNIA</div>
+      <div class="c" style="font-weight:700;font-size:12px;line-height:1.35;margin-top:22px">DEPARTAMENTO DE RECURSOS FINANCIEROS<br>SOLICITUD DE RECIBOS DE INGRESOS PROPIOS</div>
+      <div style="display:flex;gap:30px;margin-top:22px;font-weight:700"><div class="ren" style="flex:1"><b>NIVEL EDUCATIVO:</b><span class="ln">${esc(finMay(d.nivel))}</span></div><div class="ren" style="flex:1.3"><b>FECHA:</b><span class="ln">${esc(finFechaTxt(o.fecha).toUpperCase())}</span></div></div>
+      <div class="caja" style="font-weight:700;margin-top:14px;padding:18px 12px 20px">
+        <div style="display:flex;gap:14px;align-items:flex-end"><span>RECIBI LA CANTIDAD DE</span><div style="flex:0 0 120px;text-align:center;margin-left:40px"><div class="ln" style="display:block">${finM(d.cantidad)}</div><div>(CON NUMERO)</div></div><div style="flex:1;text-align:center;margin-left:40px"><div class="ln" style="display:block;font-size:10.5px">${esc(finLetra(d.cantidad))}</div><div>(CON &nbsp;LETRA)</div></div></div>
+        <p style="margin:22px 0 0;line-height:1.5">FORMAS AUTORIZADAS PARA EL COBRO Y RECEPCION DE INGRESOS QUE SE CAPTEN EN ESTE PLANTEL EDUCATIVO AUTORIZADOS POR LA DIRECCION DE RECURSOS FINANCIEROS DEL INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGOGICOS DE BAJA CALIFORNIA.</p></div>
+      <div class="c" style="font-weight:700;margin-top:40px">NUMERO DE FOLIOS</div>
+      <div class="caja" style="display:flex;gap:16px;font-weight:700;padding:16px 12px;margin-top:14px"><div class="ren" style="flex:1"><b>INICIAL</b><span class="ln c">${esc(d.inicial)}</span></div><div class="ren" style="flex:1"><b>FINAL</b><span class="ln c">${esc(d.final)}</span></div><div class="ren" style="flex:1.3"><b>TOTAL DE RECIBOS</b><span class="ln c">${esc(String(finTotRec(d)))}</span></div></div>
+      <div class="c" style="font-weight:700;margin-top:4px">DATOS DEL PLANTEL EDUCATIVO</div>
+      <div class="caja" style="padding:6px 0 18px;margin-top:14px">${l2([[finMay(d.nombre), 'NOMBRE', 2.4], [d.zona, 'ZONA', .6], [d.clave, 'CLAVE', 1.3]])}${l2([[finMay(d.calle), 'CALLE', 2], [d.numero, 'NUMERO', .8], [finMay(d.colonia), 'COLONIA', 1.5]])}${l2([[finMay(d.ciudad), 'CIUDAD', 1.4], [finMay(d.municipio), 'MUNICIPIO O DELEGACION', 2.1], [d.cp, 'C.P.', .7]])}${l2([[d.telefono, 'TELEFONO', 1.2], [d.correo, 'CORREO ELECTRONICO', 1.6], ['', '', 1.4]])}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:44px"><div class="ln" style="flex:0 0 270px;text-align:center;font-size:11px">${esc(finMay(d.director))}</div><div class="ln" style="flex:0 0 260px"></div></div>
+      <div style="display:flex;gap:26px;margin-top:14px;font-weight:700;font-size:12px;padding-left:14px"><span>NOMBRE Y FIRMA DEL DIRECTOR</span><span>SELLO DEL PLANTEL</span><span style="margin-left:80px">ATENDIÓ</span></div></div>`;
   }
   if (tipo === 'requisicion') {
-    const d = o.datos, chk = v => `<span style="display:inline-block;width:22px;height:13px;border:1px solid #111;margin-left:8px;vertical-align:middle;text-align:center;line-height:12px;font-size:12px">${v ? '✕' : ''}</span>`;
-    return `<div class="fp" style="font-family:'Times New Roman',Times,serif;font-size:13px">
-      <div style="text-align:right;font-weight:700;font-size:12.5px;line-height:1.3">DIRECCIÓN DE RECURSOS FINANCIEROS<br>COORDINACIÓN DE TESORERÍA<br>DEPARTAMENTO DE INGRESOS</div>
-      ${finEnc('REQUISICIÓN DE COMBUSTIBLE')}
-      <div class="ren" style="justify-content:flex-end"><b>Num.</b><span class="ln" style="flex:0 0 90px;text-align:center">${esc(d.num || '')}</span></div>
-      <div style="height:8px"></div>
-      ${fr('Lugar y fecha', (d.lugar ? d.lugar + ', a ' : '') + finFechaTxt(o.fecha))}${fr('Nombre del plantel', d.plantel)}${fr('Clave del centro de trabajo', d.clave)}${fr('Domicilio', d.domicilio)}
-      <h1 style="font-size:17px;margin:20px 0 8px">DATOS DEL SOLICITANTE</h1>
-      <div style="display:flex;gap:16px">${fr('Nombre', d.solicitante, 'style="flex:1.2"')}${fr('Filiación', d.filiacion, 'style="flex:1"')}</div>
-      <div style="display:flex;gap:16px">${fr('Puesto', d.puesto, 'style="flex:1.2"')}${fr('Adscripción', d.adscripcion, 'style="flex:1"')}</div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;margin:18px 0 10px"><span>TIPO DE REQUISICIÓN</span><span>CONSUMO NORMAL${chk(d.tipo !== 'comision')}</span><span>COMISIÓN${chk(d.tipo === 'comision')}</span></div>
-      <table><tr><td style="width:50%;height:150px"><b style="font-size:11px">MOTIVO COMISIÓN O CONSUMO DE COMBUSTIBLE</b><div style="margin-top:8px">${esc(d.motivo || '')}</div></td>
-        <td style="font-size:11.5px;line-height:2.3;padding-left:10px">CANTIDAD <span class="ln" style="display:inline-block;min-width:150px">${finM(d.cantidad)}</span><br>CON LETRA <span class="ln" style="display:inline-block;min-width:150px;line-height:1.3;font-size:10px">${esc(finLetra(d.cantidad))}</span><br>CANTIDAD EN LITROS <span class="ln" style="display:inline-block;min-width:100px">${esc(d.litros || '')}</span><br>PRECIO VIGENTE X LITRO <span class="ln" style="display:inline-block;min-width:90px">${d.precio ? finM(d.precio) : ''}</span></td></tr></table>
-      <div class="caja" style="min-height:110px;margin-top:18px"><b>OBSERVACIONES:</b><div style="margin-top:6px">${esc(d.obs || '')}</div></div>
-      <table style="margin-top:14px"><tr><td style="height:120px;width:50%;vertical-align:bottom;text-align:center;font-size:11px"><div style="font-size:12px">${esc(finMay(d.autoriza))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE FIRMA DE AUTORIZACIÓN Y SELLO DEL PLANTEL</div></td>
-        <td style="vertical-align:bottom;text-align:center;font-size:11px"><div style="font-size:12px">${esc(finMay(d.recibe))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE Y FIRMA DE QUIEN RECIBE</div></td></tr></table>${pie}</div>`;
+    const d = o.datos, chk = v => `<span style="display:inline-block;width:24px;height:13px;border:1px solid #111;margin-left:10px;vertical-align:middle;text-align:center;line-height:12px;font-size:12px">${v ? '✕' : ''}</span>`;
+    return `<div class="fp" style="font-family:'Times New Roman',Times,serif;font-size:14px;padding-left:96px;padding-right:96px">
+      <div style="text-align:right;font-weight:700;font-size:13.5px;line-height:1.25;margin-top:20px">DIRECCIÓN DE RECURSOS FINANCIEROS<br>COORDINACIÓN DE TESORERIA<br>DEPARTAMENTO DE INGRESOS</div>
+      <div class="c" style="margin-top:12px"><img src="${FIN_LOGO.bc}" alt="" style="height:58px"></div>
+      <h1 style="font-size:19px;margin:16px 0 26px">REQUISICIÓN DE COMBUSTIBLE</h1>
+      <div class="ren" style="justify-content:flex-end;font-weight:400"><span>Num.</span><span class="ln" style="flex:0 0 76px;text-align:center">${esc(d.num || '')}</span></div>
+      <div style="height:18px"></div>
+      ${['Lugar y fecha', 'Nombre del plantel', 'Clave del centro de trabajo', 'Domicilio'].map((t, i) => `<div class="ren" style="margin:1px 0"><span>${t}</span><span class="ln">${esc([(d.lugar ? d.lugar + ', a ' : '') + finFechaTxt(o.fecha), d.plantel, d.clave, d.domicilio][i] || '')}</span></div>`).join('')}
+      <h1 style="font-size:19px;margin:20px 0 16px">DATOS DEL SOLICITANTE</h1>
+      <div style="display:flex;gap:4px;margin-bottom:14px"><div class="ren" style="flex:1.1"><span>Nombre</span><span class="ln">${esc(d.solicitante || '')}</span></div><div class="ren" style="flex:1"><span>Filiación</span><span class="ln">${esc(d.filiacion || '')}</span></div></div>
+      <div style="display:flex;gap:4px"><div class="ren" style="flex:1.1"><span>Puesto</span><span class="ln">${esc(d.puesto || '')}</span></div><div class="ren" style="flex:1"><span>Adscripción</span><span class="ln">${esc(d.adscripcion || '')}</span></div></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin:24px 0 12px"><span>TIPO DE REQUISICIÓN</span><span>CONSUMO NORMAL${chk(d.tipo !== 'comision')}</span><span>COMISION${chk(d.tipo === 'comision')}</span></div>
+      <table><tr><td style="width:50%;height:150px"><b style="font-size:10.5px">MOTIVO COMISION O CONSUMO DE COMBUSTIBLE</b><div style="margin-top:8px;font-size:12px">${esc(d.motivo || '')}</div></td>
+        <td style="font-size:10.5px;line-height:2.5;padding:14px 10px 0">CANTIDAD<span class="ln" style="display:inline-block;min-width:170px;font-size:12px">${finM(d.cantidad)}</span><br>CON LETRA<span class="ln" style="display:inline-block;min-width:162px;line-height:1.25;font-size:9px">${esc(finLetra(d.cantidad))}</span><br>CANTIDAD EN LITROS<span class="ln" style="display:inline-block;min-width:110px;font-size:12px">${esc(d.litros || '')}</span><br>PRECIO VIGENTE X LITRO<span class="ln" style="display:inline-block;min-width:96px;font-size:12px">${d.precio ? finM(d.precio) : ''}</span></td></tr></table>
+      <div class="caja" style="min-height:100px;margin-top:24px;padding:4px 6px"><span>OBSERVACIONES:</span><div style="margin-top:6px;font-size:12.5px">${esc(d.obs || '')}</div></div>
+      <table style="margin-top:20px"><tr><td style="height:118px;width:50%;vertical-align:bottom;text-align:center;font-size:10.5px;padding:0 8px 2px"><div style="font-size:12px;margin-bottom:4px">${esc(finMay(d.autoriza))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE FIRMA DE AUTORIZACIÓN Y SELLO DEL PLANTEL</div></td>
+        <td style="vertical-align:bottom;text-align:center;font-size:10.5px;padding:0 8px 22px"><div style="font-size:12px;margin-bottom:4px">${esc(finMay(d.recibe))}</div><div style="border-top:1px solid #111;padding-top:3px">NOMBRE Y FIRMA DE QUIEN RECIBE</div></td></tr></table></div>`;
   }
   if (tipo === 'reporte') {
     const d = o.datos, c = d.cifras, a = d.apf || {}, dd = deIso(d.del), da = deIso(d.al), ff = deIso(d.fechaFirma || hoy());
-    const f2 = (t, k, sign) => `<tr><td style="border-left:1px solid #111">${t}</td><td class="d">${finM(c.banco[k])}</td><td class="d">${finM(c.caja[k])}</td><td></td><td></td></tr>`;
+    const f2 = (t, k) => `<tr><td>${t}</td><td class="d">${finM(c.banco[k])}</td><td class="d">${finM(c.caja[k])}</td><td></td><td></td></tr>`;
     const g = (k, s) => finN(((a[k] || {})[s]));
     const apfOn = a.banco || a.cuenta || ['ant', 'ing', 'egr'].some(k => g(k, 'b') || g(k, 'c'));
     const fa = (t, b, cj) => `<tr><td>${t}</td><td class="d">${apfOn && b !== '' ? finM(b) : ''}</td><td class="d">${apfOn && cj !== '' ? finM(cj) : ''}</td></tr>`;
-    const revisa = ZONA.estatal ? 'SEE' : 'ISEP';
-    return `<div class="fp" style="padding:34px 46px"><div style="border:2px solid #111;padding:14px 16px 18px;min-height:900px;box-sizing:border-box;position:relative">
-      <div class="enc" style="margin-bottom:4px"><img src="${ZONA.logoInst}" alt="" style="height:70px"><div class="t"><div style="font-family:Impact,'Arial Narrow',sans-serif;font-size:30px;letter-spacing:.01em">REPORTE DEL EJERCICIO</div><div style="font-size:12.5px">Ingresos propios del plantel</div><div style="font-size:14px;font-weight:700">${esc(ZONA.inst === 'ISEP' ? ISEP_TXT : ZONA.inst)}</div></div></div>
-      <div class="c" style="font-weight:700;margin:10px 0 6px">POR EL PERIODO COMPRENDIDO</div>
-      <div class="c">DEL <u>&nbsp;${dd.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[dd.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${dd.getFullYear()}&nbsp;</u> AL <u>&nbsp;${da.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[da.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${da.getFullYear()}&nbsp;</u>.</div>
-      ${fr('NOMBRE DEL PLANTEL:', finMay(P.nombre), 'style="margin-top:12px"')}
-      <div class="ren"><b>CLAVE DEL PLANTEL:</b><span class="ln">${esc(cct)}</span><b>ZONA:</b><span class="ln" style="flex:.3">${esc(P.zona)}</span><b>SECTOR:</b><span class="ln" style="flex:.4">${esc(d.sector || '')}</span></div>
-      <table style="margin-top:12px"><colgroup><col style="width:38%"><col><col><col><col></colgroup>
-        <tr><th style="text-align:left">DATOS DE LA CUENTA BANCARIA</th><th colspan="2">PARA SER LLENADO POR EL PLANTEL</th><th colspan="2">PARA SER LLENADO POR ${revisa}<br>CIFRAS AJUSTADAS</th></tr>
-        <tr><td>NOMBRE DEL BANCO: ${esc(finMay(d.banco))}</td><th rowspan="2" style="vertical-align:bottom">BANCO</th><th rowspan="2" style="vertical-align:bottom">CAJA</th><th rowspan="2" style="vertical-align:bottom">BANCO</th><th rowspan="2" style="vertical-align:bottom">CAJA</th></tr>
-        <tr><td>NO. DE CUENTA: ${esc(d.cuenta)}</td></tr>
-        ${f2('<b>SALDO ANTERIOR</b> $', 'ant')}${f2('MÁS: <b>INGRESOS</b>', 'ing')}${f2('MÁS: INTERESES', 'int')}${f2('MENOS: <b>EGRESOS</b>', 'egr')}${f2('MENOS: CARGOS', 'car')}${f2('<b>SALDO FINAL</b> $', 'fin')}</table>
-      <table style="margin-top:12px;width:72%"><colgroup><col style="width:52%"><col><col></colgroup>
-        <tr><th colspan="3">Datos informativos de la Asociación de Padres de Familia</th></tr>
-        <tr><td>BANCO: ${esc(finMay(a.banco || ''))}</td><th colspan="2">MANEJO DE INGRESOS</th></tr>
-        <tr><td>NO. DE CUENTA: ${esc(a.cuenta || '')}</td><th>BANCO</th><th>CAJA</th></tr>
-        ${fa('SALDO ANTERIOR:', g('ant', 'b'), g('ant', 'c'))}${fa('MÁS: TOTAL DE INGRESOS', g('ing', 'b'), g('ing', 'c'))}${fa('MENOS: TOTAL DE EGRESOS', g('egr', 'b'), g('egr', 'c'))}${fa('SALDO FINAL:', g('ant', 'b') + g('ing', 'b') - g('egr', 'b'), g('ant', 'c') + g('ing', 'c') - g('egr', 'c'))}</table>
-      <div style="border-top:2px solid #111;border-bottom:2px solid #111;margin:12px -16px 0;padding:6px 16px;min-height:70px"><div class="c" style="font-weight:700">OBSERVACIONES DEL ÁREA DE VERIFICACIÓN</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:16px;text-align:center;font-weight:700"><div>ELABORADO POR</div><div>AUTORIZADO POR</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:30px;text-align:center;font-size:11.5px"><div><div>${esc(finMay(d.tesorero))}</div><div style="border-top:1px solid #111;padding-top:3px">TESORERO(A) O CONTRALOR(A)</div></div><div><div>${esc(finMay(d.director))}</div><div style="border-top:1px solid #111;padding-top:3px">DIRECTOR(A) DEL PLANTEL</div></div></div>
-      <div class="c" style="margin-top:20px"><u>&nbsp;${esc(finMay(d.lugar || ''))}&nbsp;</u> B.C. A <u>&nbsp;${ff.getDate()}&nbsp;</u> DE <u>&nbsp;${finMay(MESES[ff.getMonth()])}&nbsp;</u> DEL <u>&nbsp;${ff.getFullYear()}&nbsp;</u>.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:44px;text-align:center;font-weight:700;font-size:12px"><div style="border-top:1px solid #111;padding-top:3px">SELLO DEL PLANTEL</div><div style="border-top:1px solid #111;padding-top:3px">SELLO DE RECIBIDO</div></div>
-      </div>${pie}</div>`;
+    const u = v => '<u>&nbsp;' + esc(v) + '&nbsp;</u>';
+    return `<div class="fp rep" style="padding:34px 50px;font-family:Verdana,Geneva,sans-serif;font-size:11px"><div style="border:2px solid #111;min-height:930px;box-sizing:border-box;position:relative">
+      <div style="display:flex;align-items:flex-start;padding:10px 14px 0">
+        <img src="${FIN_LOGO.gob}" alt="" style="height:88px">
+        <div style="flex:1;text-align:center;padding-top:4px"><div style="font-family:Impact,'Arial Narrow',sans-serif;font-size:31px;line-height:1">REPORTE DEL EJERCICIO</div><div style="font-size:11.5px;margin-top:12px">Para planteles pertenecientes al</div><div style="font-size:14px;font-weight:700">Sistema Educativo Estatal</div></div></div>
+      <div class="c" style="font-weight:700;margin:14px 0 12px">POR EL PERIODO COMPRENDIDO</div>
+      <div class="c">DEL ${u(dd.getDate())} DE ${u(finMay(MESES[dd.getMonth()]))} DEL ${finAnio(dd.getFullYear())} AL ${u(da.getDate())} DE ${u(finMay(MESES[da.getMonth()]))} DEL ${finAnio(da.getFullYear())}.</div>
+      <div class="ren" style="margin:16px 14px 0"><span>NOMBRE DEL PLANTEL:</span><span class="ln">${esc(finMay(P.nombre))}</span></div>
+      <div class="ren" style="margin:12px 14px 12px 40px"><span>CLAVE DEL PLANTEL:</span><span class="ln">${esc(cct)}</span><span>ZONA:</span><span class="ln" style="flex:.3">${esc(P.zona)}</span><span>SECTOR:</span><span class="ln" style="flex:.35">${esc(d.sector || '')}</span></div>
+      <table class="rt" style="border-top:2px solid #111"><colgroup><col style="width:41%"><col><col><col><col></colgroup>
+        <tr><th style="border-right:2px solid #111">DATOS DE LA CUENTA BANCARIA</th><th colspan="2" rowspan="2" style="font-size:9.5px">PARA SER LLENADO POR EL PLANTEL</th><th colspan="2" rowspan="2" style="font-size:9.5px">PARA SER LLENADO POR SEE<br>CIFRAS AJUSTADAS</th></tr>
+        <tr><td style="border-right:2px solid #111">NOMBRE DEL BANCO: ${esc(finMay(d.banco))}</td></tr>
+        <tr><td style="border-right:2px solid #111">NO. DE CUENTA: ${esc(d.cuenta)}</td><th style="font-size:9.5px">BANCO</th><th style="font-size:9.5px">CAJA</th><th style="font-size:9.5px">BANCO</th><th style="font-size:9.5px">CAJA</th></tr>
+        ${f2('<b>SALDO ANTERIOR</b> &nbsp;$', 'ant')}${f2('MAS: <b>INGRESOS</b>', 'ing')}${f2('MAS: &nbsp;INTERESES', 'int')}${f2('MENOS: <b>EGRESOS</b>', 'egr')}${f2('MENOS: CARGOS', 'car')}${f2('<b>SALDO FINAL</b> &nbsp;&nbsp;&nbsp;&nbsp;$', 'fin')}</table>
+      <table class="rt" style="width:71%;margin-top:14px;border-top:2px solid #111;border-right:2px solid #111"><colgroup><col style="width:56%"><col><col></colgroup>
+        <tr><th colspan="3" style="font-size:12px">Datos Informativos de la Asociación de Padres de Familia</th></tr>
+        <tr><td>BANCO: ${esc(finMay(a.banco || ''))}</td><th colspan="2" style="font-size:9.5px">MANEJO DE INGRESOS</th></tr>
+        <tr><td>NO. DE CUENTA: ${esc(a.cuenta || '')}</td><th style="font-size:9.5px">BANCO</th><th style="font-size:9.5px">CAJA</th></tr>
+        ${fa('SALDO ANTERIOR:', g('ant', 'b'), g('ant', 'c'))}${fa('MAS:', '', '')}${fa('TOTAL DE INGRESOS', g('ing', 'b'), g('ing', 'c'))}${fa('MENOS:', '', '')}${fa('TOTAL DE EGRESOS', g('egr', 'b'), g('egr', 'c'))}${fa('SALDO FINAL:', g('ant', 'b') + g('ing', 'b') - g('egr', 'b'), g('ant', 'c') + g('ing', 'c') - g('egr', 'c'))}</table>
+      <div style="border-top:2px solid #111;border-bottom:2px solid #111;margin-top:4px;padding:4px 16px;min-height:88px"><div class="c" style="font-weight:700">OBSERVACIONES DEL ÁREA DE VERIFICACIÓN</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:20px;text-align:center;font-weight:700"><div>ELABORADO POR</div><div>AUTORIZADO POR</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:28px;padding:0 50px;text-align:center"><div><div style="font-size:10px">${esc(finMay(d.tesorero))}</div><div style="border-top:1px solid #111;padding-top:3px">TESORERO(A) O CONTRALOR(A)</div></div><div><div style="font-size:10px">${esc(finMay(d.director))}</div><div style="border-top:1px solid #111;padding-top:3px">DIRECTOR ( A ) DEL PLANTEL</div></div></div>
+      <div class="c" style="margin-top:18px">${u(finMay(d.lugar || ''))} B.C. &nbsp;A ${u(ff.getDate())} DE ${u(finMay(MESES[ff.getMonth()]))} DEL ${finAnio(ff.getFullYear())}.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:74px;padding:0 50px;text-align:center;font-weight:700"><div style="border-top:1px solid #111;padding-top:3px">SELLO DEL PLANTEL</div><div style="border-top:1px solid #111;padding-top:3px">SELLO DE RECIBIDO</div></div>
+      </div></div>`;
   }
   if (tipo === 'libro') {
-    const medio = q.medio, ini = finInicial(cct, ciclo), filas = finLibroFilas(cct, ciclo, medio), POR = 30;
+    const medio = q.medio, ini = finInicial(cct, ciclo), filas = finLibroFilas(cct, ciclo, medio), POR = 29;
     const todas = [{ f: finCicloIni(ciclo), c: 'SALDO INICIAL DEL CICLO', i: '', e: '', s: ini[medio] }].concat(filas.map(f => ({ f: f.m.fecha, c: finMay(f.concepto) + (f.m.datos.poliza ? ' (PÓL. ' + f.m.datos.poliza + ')' : ''), i: f.ing, e: f.egr, s: f.saldo })));
     const hojas = []; for (let i = 0; i < todas.length; i += POR) hojas.push(todas.slice(i, i + POR));
-    const ti = filas.reduce((a, f) => a + f.ing, 0), te = filas.reduce((a, f) => a + f.egr, 0);
-    return hojas.map((h, k) => { const r = h.slice(); if (k === hojas.length - 1) while (r.length < Math.min(POR, Math.max(r.length, 24))) r.push(null);
-      return `<div class="fp">${finEnc(medio === 'banco' ? 'LIBRO DE BANCOS' : 'LIBRO DE CAJA')}
-      ${fr('ESCUELA:', finMay(P.nombre) + ' · ' + cct)}${fr('CICLO ESCOLAR:', ciclo)}${medio === 'banco' && (P.banco || P.cuenta) ? fr('BANCO Y CUENTA:', finMay(P.banco) + (P.cuenta ? ' · ' + P.cuenta : '')) : ''}
-      <table style="margin-top:12px"><colgroup><col style="width:82px"><col><col style="width:90px"><col style="width:90px"><col style="width:96px"></colgroup>
+    return hojas.map((h, k) => { const r = h.slice(); while (r.length < POR) r.push(null);
+      return `<div class="fp" style="font-size:13px">
+      <div style="display:flex;align-items:flex-end;gap:20px;margin-top:6px"><img src="${FIN_LOGO.see}" alt="" style="height:74px"><span style="flex:1"></span></div>
+      <h1 style="text-align:right;margin:-14px 60px 26px 0;font-size:25px">${medio === 'banco' ? 'LIBRO DE BANCOS' : 'LIBRO DE CAJA'}</h1>
+      <div class="ren" style="font-weight:400;font-size:14px;margin-right:130px"><span>ESCUELA:</span><span class="ln">${esc(finMay(P.nombre) + ' · ' + cct)}</span></div>
+      <div class="ren" style="font-weight:400;font-size:14px;margin:12px 130px 30px 0"><span>CICLO ESCOLAR:</span><span class="ln">${esc(ciclo)}</span></div>
+      <table class="lib"><colgroup><col style="width:84px"><col><col style="width:100px"><col style="width:96px"><col style="width:96px"></colgroup>
         <tr><th>FECHA</th><th>CONCEPTO</th><th>INGRESO</th><th>EGRESO</th><th>SALDO</th></tr>
-        ${r.map(x => x ? `<tr style="height:22px"><td class="c">${x.f.split('-').reverse().join('/')}</td><td style="font-size:10.5px">${esc(x.c)}</td><td class="d">${finM0(x.i)}</td><td class="d">${finM0(x.e)}</td><td class="d">${finM(x.s)}</td></tr>` : '<tr style="height:22px"><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
-        ${k === hojas.length - 1 ? `<tr class="sum"><td colspan="2" class="d">TOTALES</td><td class="d">${finM(ti)}</td><td class="d">${finM(te)}</td><td class="d">${finM(todas[todas.length - 1].s)}</td></tr>` : ''}</table>
-      ${hojas.length > 1 ? `<div class="pie" style="right:auto;left:58px">Hoja ${k + 1} de ${hojas.length}</div>` : ''}${pie}</div>`; }).join('');
+        ${r.map(x => x ? `<tr style="height:24px"><td class="c" style="font-size:10.5px">${x.f.split('-').reverse().join('/')}</td><td style="font-size:9.5px">${esc(x.c)}</td><td class="d" style="font-size:10.5px">${finM0(x.i)}</td><td class="d" style="font-size:10.5px">${finM0(x.e)}</td><td class="d" style="font-size:10.5px">${finM(x.s)}</td></tr>` : '<tr style="height:24px"><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</table>
+      ${hojas.length > 1 ? `<div style="position:absolute;right:58px;bottom:20px;font-size:9px">Hoja ${k + 1} de ${hojas.length}</div>` : ''}</div>`; }).join('');
   }
   return '';
 }
