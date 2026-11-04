@@ -865,7 +865,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-04-1300';
+const PUBLICACION = '2026-11-04-1340';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1821,7 +1821,7 @@ let PESO_GENERAL = { acu: 70, evi: 20, sis: 5, eia: 5 };   // nivel general: acu
 function infCifras(cct) {
   const ciclo = cicloActual(), r = { cct };
   // 1. Acuerdos del checklist de reuniones
-  const todosAcu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: x.titulo }, a)));
+  const todosAcu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: reuTitulo(x) }, a)));
   const acu = todosAcu.filter(a => aplicaA(a, cct)).map(a => ({ a, e: estadoDe(a.id, cct) })).filter(o => o.e !== 'no_aplica');
   // na = acuerdos que no le aplican (marcados «no aplica» o dirigidos a otras escuelas): cuentan como cumplidos en el porcentaje
   r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: todosAcu.length - acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
@@ -2683,8 +2683,20 @@ const SEMILLA = [
 ];
 
 /* ---------------- Checklist de acuerdos: consultas ---------------- */
-const TIPOS_REU = { reunion: 'Reunión de directores', ctz: 'Consejo Técnico de Zona', cte: 'Consejo Técnico Escolar', mesa: 'Reunión de Mesa Técnica', otro: 'Otra reunión' };
+const TIPOS_REU = { reunion: 'Reunión de directores', ctz: 'Consejo Técnico de Zona', cte: 'Consejo Técnico Escolar', mesa: 'Reunión de Mesa Técnica', otro: 'Otra reunión',
+  convocatoria: 'Convocatoria', erase: 'Programa «Érase una vez»', saae: 'SAAE', programa: 'Otro programa o solicitud' };
+// Además de los acuerdos de reuniones, se registran aquí convocatorias y programas (Érase una vez, SAAE…) que piden evidencias: funcionan igual
+const REU_GRUPOS = [['acuerdos', 'Acuerdos de reuniones', ['reunion', 'ctz', 'cte', 'mesa', 'otro']], ['convocatoria', 'Convocatorias', ['convocatoria']], ['erase', 'Érase una vez', ['erase']], ['saae', 'SAAE', ['saae']], ['programa', 'Otros programas o solicitudes', ['programa']]];
+const esReunion = t => !t || REU_GRUPOS[0][2].includes(t) || !TIPOS_REU[t];
+const reuEtq = t => esReunion(t)
+  ? { nombre: 'Nombre de la reunión', ph: 'Ej. Segunda Sesión Ordinaria del CTZ', items: 'Acuerdos (cada uno se palomea por escuela)', item: 'acuerdo', mas: 'Agregar acuerdo', ta: 'Acuerdo o acción a implementar', fecha: 'Fecha', desc: 'Propósitos o notas (opcional)' }
+  : { nombre: t === 'convocatoria' ? 'Nombre de la convocatoria' : 'Nombre de la actividad o solicitud', ph: t === 'convocatoria' ? 'Ej. Convocatoria Concurso de Escoltas 2026' : t === 'erase' ? 'Ej. Érase una vez · Actividad de noviembre' : t === 'saae' ? 'Ej. SAAE · Registro de actividades del trimestre' : 'Ej. Programa estatal de lectura',
+    items: 'Lo que se pide a las escuelas (cada punto se palomea por escuela)', item: 'punto', mas: 'Agregar lo que se pide', ta: 'Qué deben hacer o entregar las escuelas', fecha: 'Fecha de publicación o solicitud', desc: 'Descripción, bases o enlace (opcional)' };
+// Cómo se nombra el registro ante las escuelas: los que no son reuniones llevan su tipo adelante
+const reuTitulo = r => esReunion(r.tipo) ? r.titulo : TIPOS_REU[r.tipo] + ' · ' + r.titulo;
 const reuniones = () => (S.reu || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+// Las mismas, con el filtro de tipo de la vista de Acuerdos (solo para esa vista; informes y dirección ven todo)
+const reunionesF = () => (S.reu || []).filter(r => { const g = REU_GRUPOS.find(x => x[0] === vista.acuTipo); return !g || g[2].includes(r.tipo || 'reunion') || (g[0] === 'acuerdos' && esReunion(r.tipo)); }).sort((a, b) => b.fecha.localeCompare(a.fecha));
 const acuerdosReu = id => (S.acu || []).filter(x => x.reunionId === id).sort((a, b) => (+a.orden || 0) - (+b.orden || 0));
 const aplicaA = (x, cct) => !(x.escuelas || []).length || x.escuelas.includes(cct);
 const marcaDe = (acuId, cct) => (S.cum || []).find(m => m.id === acuId + '|' + cct);
@@ -2706,7 +2718,8 @@ function avance(lista, ccts) {
   return r;
 }
 function acuerdosFiltro() {
-  return (S.acu || []).filter(x => !vista.acuReu || x.reunionId === vista.acuReu);
+  const ids = vista.acuTipo ? reunionesF().map(r => r.id) : null;
+  return (S.acu || []).filter(x => (!vista.acuReu || x.reunionId === vista.acuReu) && (!ids || ids.includes(x.reunionId)));
 }
 function anillo(pct, tam = 128, etiqueta = 'cumplido') {
   const r = 52, c = 2 * Math.PI * r, lleno = c * pct / 100;
@@ -2738,17 +2751,19 @@ function vAcuerdos() {
   const total = avance(lista, ccts);
   const faltan = SEMILLA.filter(p => !(S.reu || []).find(r => r.id === p.reunion.id));
   const porEsc = dirs.map(c => ({ c, a: avance(lista, [c.cct]) })).sort((x, y) => y.a.pct - x.a.pct || x.c.escuela.localeCompare(y.c.escuela, 'es'));
-  const reus = reuniones().filter(r => !vista.acuReu || r.id === vista.acuReu);
+  const reus = reunionesF().filter(r => !vista.acuReu || r.id === vista.acuReu);
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Acuerdos y compromisos</h1>
-    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-importar">${ico('i-copiar')}Importar</button><button class="boton terra" id="b-nreu">${ico('i-mas')}Nueva reunión</button>` : ''}</div></div>
+    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-importar">${ico('i-copiar')}Importar</button><button class="boton terra" id="b-nreu">${ico('i-mas')}Nuevo registro</button>` : ''}</div></div>
+  <p class="peq pen-intro">Acuerdos de reuniones, convocatorias y programas (Érase una vez, SAAE…) que piden evidencias. Todos se palomean por escuela y, si requieren evidencia, la dirección la sube desde aquí.</p>
   ${esAdmin() && faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:240px"><b>Acuerdos listos para cargar:</b> ${faltan.map(p => esc(p.reunion.titulo) + ' (' + fechaCorta(p.reunion.fecha) + ')').join(' y ')}. Se agregan también sus fechas clave a la agenda, sin enviar correos.</div>
       <button class="boton" id="b-semilla">Cargar ahora</button></div>` : ''}
-  ${!(S.reu || []).length ? `<div class="tarjeta vacio">Aún no hay reuniones con acuerdos registrados.</div>` : `
+  ${!(S.reu || []).length ? `<div class="tarjeta vacio">Aún no hay reuniones, convocatorias ni programas registrados.</div>` : `
   <div class="filtros">
     ${selAtp()}
-    <select id="f-reu" aria-label="Reunión"><option value="">Todas las reuniones</option>${reuniones().map(r => `<option value="${r.id}" ${vista.acuReu === r.id ? 'selected' : ''}>${fechaCorta(r.fecha)} · ${esc(r.titulo)}</option>`).join('')}</select>
+    ${selTipoReu()}
+    <select id="f-reu" aria-label="Reunión, convocatoria o programa"><option value="">Todos${vista.acuTipo ? ' (' + esc(REU_GRUPOS.find(g => g[0] === vista.acuTipo)[1].toLowerCase()) + ')' : ': reuniones, convocatorias y programas'}</option>${reunionesF().map(r => `<option value="${r.id}" ${vista.acuReu === r.id ? 'selected' : ''}>${fechaCorta(r.fecha)} · ${esc(reuTitulo(r))}</option>`).join('')}</select>
     ${munSelect('f-mun', vista.municipio)}
   </div>
   ${porAtp.length ? `<div class="tarjeta" style="margin-bottom:16px">
@@ -2776,10 +2791,11 @@ function vAcuerdos() {
         <span class="nom">${esc(c.escuela)}${!atpSel && atpDe(c.cct) ? `<br><span class="ayuda" style="font-weight:400">${esc(nombreCorto(atpDe(c.cct).nombre))}</span>` : ''}${a.vencidos ? ` <span class="chip mal" title="Compromisos con fecha vencida">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
     </div>
   </div>
-  ${reus.length > 1 ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Avance por reunión</div>
+  ${reus.length > 1 ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Avance por reunión, convocatoria o programa</div>
     <div class="barras">${reus.map(r => { const a = avance(acuerdosReu(r.id), ccts); return `<a class="fila-av" href="#r-${r.id}"><span class="nom">${esc(r.titulo)}<br><span class="ayuda">${fechaCorta(r.fecha)}</span></span>${barraAv(a, r.titulo)}<span class="pct">${a.pct}%</span></a>`; }).join('')}</div></div>` : ''}
   ${reus.map(r => tarjetaReunion(r, ccts)).join('')}`}`;
   if ($('#f-reu')) $('#f-reu').onchange = e => { vista.acuReu = e.target.value; vAcuerdos(); };
+  if ($('#f-tipo')) $('#f-tipo').onchange = e => { vista.acuTipo = e.target.value; vista.acuReu = ''; vAcuerdos(); };
   if ($('#f-mun')) $('#f-mun').onchange = e => { vista.municipio = e.target.value; vAcuerdos(); };
   if ($('#f-atp')) $('#f-atp').onchange = e => { vista.atp = e.target.value; vAcuerdos(); };
   $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vAcuerdos(); window.scrollTo(0, 0); });
@@ -2792,13 +2808,18 @@ function vAcuerdos() {
   if ($('#b-semilla')) $('#b-semilla').onclick = () => cargarSemilla(faltan);
 }
 
+function selTipoReu(id = 'f-tipo') {
+  const hay = REU_GRUPOS.filter(g => (S.reu || []).some(r => g[0] === 'acuerdos' ? esReunion(r.tipo) : g[2].includes(r.tipo)));
+  if (hay.length < 2 && !vista.acuTipo) return '';
+  return `<select id="${id}" aria-label="Tipo"><option value="">Todo tipo</option>${hay.map(g => `<option value="${g[0]}" ${vista.acuTipo === g[0] ? 'selected' : ''}>${esc(g[1])}</option>`).join('')}</select>`;
+}
 function tarjetaReunion(r, ccts) {
   const acs = acuerdosReu(r.id), a = avance(acs, ccts);
   const secciones = [];
   acs.forEach(x => { let s = secciones.find(y => y[0] === x.seccion); if (!s) secciones.push(s = [x.seccion, []]); s[1].push(x); });
   return `<div class="tarjeta reunion" id="r-${r.id}">
     <div class="reunion-cab">
-      <div style="flex:1;min-width:220px"><span class="chip indigo">${esc(TIPOS_REU[r.tipo] || TIPOS_REU.otro)}</span>
+      <div style="flex:1;min-width:220px"><span class="chip ${esReunion(r.tipo) ? 'indigo' : 'morado'}">${esc(TIPOS_REU[r.tipo] || TIPOS_REU.otro)}</span>
         <h2>${esc(r.titulo)}</h2>
         <div class="peq mudo">${fechaLarga(r.fecha)}${r.horario ? ' · ' + esc(r.horario) : ''}${r.lugar ? ' · ' + esc(r.lugar) : ''}</div></div>
       <div class="reunion-av">${anillo(a.pct, 76, '')}${esAdmin() ? `<button class="boton sec chico" data-ereu="${r.id}">${ico('i-lapiz')}Editar</button>` : ''}</div>
@@ -2812,7 +2833,7 @@ function tarjetaReunion(r, ccts) {
         <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}${(() => { const n = S.evi ? ccts.filter(c => estadoDe(x.id, c) === 'pendiente' && eviAcuerdo(x.id, c)).length : 0; return n ? `<span class="chip ok" title="Escuelas con archivos en Drive y sin palomear">📎 ${n} por revisar</span>` : ''; })()}</div>
         <button class="boton sec chico" data-palomear="${x.id}">${ico('i-seg')}Palomear</button>
       </div>`; }).join('')}`).join('')}
-    ${!acs.length ? '<div class="vacio peq">Esta reunión no tiene acuerdos.</div>' : ''}
+    ${!acs.length ? '<div class="vacio peq">' + (esReunion(r.tipo) ? 'Esta reunión no tiene acuerdos.' : 'No tiene puntos registrados.') + '</div>' : ''}
   </div>`;
 }
 
@@ -2823,7 +2844,7 @@ function palomearAcuerdo(id) {
   const r = S.reu.find(y => y.id === x.reunionId);
   const cuerpo = `
   <p style="margin-top:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}</p>
-  <p class="peq mudo" style="margin-top:-6px">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || 'Sin fecha')}</p>
+  <p class="peq mudo" style="margin-top:-6px">${r ? esc(reuTitulo(r)) + ' · ' : ''}${esc(x.plazo || 'Sin fecha')}</p>
   <div class="rapidos"><button type="button" class="boton sec chico" id="p-todas">Todas cumplieron</button><button type="button" class="boton sec chico" id="p-ninguna">Quitar todas</button></div>
   <div class="checklist" id="p-lista">${dirs.map(c => { const e = estadoDe(x.id, c.cct); return `<div class="chk-fila" data-cct="${c.cct}" data-ini="${e}">
     <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}><span><b>${esc(c.escuela)}</b><br><span class="ayuda">${esc(c.municipio)}${c.multigrado ? ' · multigrado' : ''}</span>${S.evi ? ' ' + chipEvi(x.id, c.cct) : ''}</span></label>
@@ -2847,7 +2868,7 @@ function palomearAcuerdo(id) {
 function vChecklistEscuela(cct) {
   const c = escuelaDe(cct);
   if (!c) { vista.acuEsc = null; return vAcuerdos(); }
-  const reus = reuniones().filter(r => !vista.acuReu || r.id === vista.acuReu);
+  const reus = reunionesF().filter(r => !vista.acuReu || r.id === vista.acuReu);
   const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
   const a = avance(todos, [cct]);
   const dl = filtroEscuelas().some(d => d.cct === cct) ? filtroEscuelas() : directores(), idx = dl.findIndex(d => d.cct === cct);
@@ -2862,12 +2883,12 @@ function vChecklistEscuela(cct) {
       <div class="peq mudo">${c.cct} · ${esc(c.municipio)} · ${esc(c.cargo || 'Director(a)')}: ${esc(c.nombre)}${atpDe(cct) ? ' · ATP: ' + esc(nombreCorto(atpDe(cct).nombre)) : ''}</div>
       <div style="margin-top:4px"><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> compromisos cumplidos</div>
       <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${a.pend} pendiente${a.pend === 1 ? '' : 's'}</span>${a.vencidos ? `<span class="chip mal">${a.vencidos} con fecha vencida</span>` : ''}</div>
-      <div class="barras" style="padding:10px 0 0">${reus.map(r => { const ar = avance(acuerdosReu(r.id), [cct]); return `<div class="fila-av" style="padding:4px 0"><span class="nom peq">${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></div>`; }).join('')}</div>
+      <div class="barras" style="padding:10px 0 0">${reus.map(r => { const ar = avance(acuerdosReu(r.id), [cct]); return `<div class="fila-av" style="padding:4px 0"><span class="nom peq">${esc(reuTitulo(r))}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></div>`; }).join('')}</div>
     </div>
   </div>
   <div class="aviso-caja peq">Toque cada compromiso para palomearlo. Se guarda al momento.</div>
   ${reus.map(r => { const xs = acuerdosReu(r.id).filter(x => aplicaA(x, cct)); return xs.length ? `<div class="tarjeta" style="margin-bottom:14px">
-    <div class="seccion-t">${fechaCorta(r.fecha)} · ${esc(r.titulo)}</div>
+    <div class="seccion-t">${fechaCorta(r.fecha)} · ${esc(reuTitulo(r))}</div>
     <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; const autor = m && usuario(m.marcadoPor); return `<div class="chk-fila ${e}" data-acu="${x.id}">
       <label class="chk"><input type="checkbox" ${e === 'hecho' ? 'checked' : ''} ${e === 'no_aplica' ? 'disabled' : ''}>
         <span><b>${esc(x.numero)}.</b> ${esc(x.texto)}
@@ -2924,13 +2945,13 @@ function vMiEscuela() {
   </div>
   <div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Pendientes de su escuela</div>
     ${pend.length ? `<div class="checklist sin-borde">${pend.map(x => { const r = (S.reu || []).find(y => y.id === x.reunionId); return `<div class="chk-fila pendiente"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
-      ${S.evi && !x.evidencia ? chipEvi(x.id, cct) : ''}<br><span class="ayuda">${r ? esc(r.titulo) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.evidencia ? ' · <b>requiere evidencia</b>' : ''}</span>${eviDelAcuerdo(x, cct)}</span>${chipEstado(x, 'pendiente')}</div>`; }).join('')}</div>` : '<div class="vacio peq">Su escuela no tiene compromisos pendientes. ¡Excelente trabajo!</div>'}
+      ${S.evi && !x.evidencia ? chipEvi(x.id, cct) : ''}<br><span class="ayuda">${r ? esc(reuTitulo(r)) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.evidencia ? ' · <b>requiere evidencia</b>' : ''}</span>${eviDelAcuerdo(x, cct)}</span>${chipEstado(x, 'pendiente')}</div>`; }).join('')}</div>` : '<div class="vacio peq">Su escuela no tiene compromisos pendientes. ¡Excelente trabajo!</div>'}
   </div>
   ${visitas.length ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Acuerdos de las visitas de la Supervisión</div>
     <div class="pad" style="padding-top:4px">${visitas.map(x => `<div class="acuerdo"><div class="tx">${esc(x.texto)}${x.responsable ? `<div class="peq mudo">Responsable: ${esc(x.responsable)}</div>` : ''}</div>
       ${x.revision ? `<span class="chip ${vencido(x) ? 'mal' : 'aviso'}">${vencido(x) ? 'Vencido · ' : 'Revisión '}${fechaCorta(x.revision)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
   ${reus.map(r => { const xs = acuerdosReu(r.id).filter(x => aplicaA(x, cct)); if (!xs.length) return ''; const ar = avance(xs, [cct]); return `<details class="tarjeta" style="margin-bottom:12px">
-    <summary class="seccion-t" style="cursor:pointer;display:flex;gap:10px;align-items:center"><span style="flex:1">${fechaCorta(r.fecha)} · ${esc(r.titulo)}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></summary>
+    <summary class="seccion-t" style="cursor:pointer;display:flex;gap:10px;align-items:center"><span style="flex:1">${fechaCorta(r.fecha)} · ${esc(reuTitulo(r))}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></summary>
     <div class="checklist sin-borde">${xs.map(x => { const m = marcaDe(x.id, cct), e = m ? m.estado : 'pendiente'; return `<div class="chk-fila ${e}"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
       <br><span class="ayuda">${esc(x.plazo || 'Sin fecha')}${e === 'hecho' && m.fecha ? ' · cumplido el ' + fechaCorta(m.fecha) : ''}${m && m.nota ? ' · ' + esc(m.nota) : ''}</span>${e !== 'no_aplica' ? eviDelAcuerdo(x, cct) : ''}</span>${chipEstado(x, e)}</div>`; }).join('')}</div></details>`; }).join('')}
   <p class="peq mudo">La Supervisión y su ATP palomean los compromisos al revisar sus evidencias. Los que piden evidencia traen su botón <b>Subir evidencia</b>, que la guarda directo en la carpeta que corresponde; las demás se suben en la pestaña <b>Evidencias</b>.</p>`;
@@ -2988,14 +3009,14 @@ function formReunion(id, base) {
   const puedeEvi = !!S.evi && (S.version >= 28 || (cfg && cfg.demo));
   const rutasEvi = [...new Map((S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta) && !/^01-expedientes/i.test(e.ruta)).map(e => [normRuta(e.ruta), e.ruta])).values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
   const dentroEvi = rutasEvi.filter(x => !x.includes('/') && /^evidencias/.test(clave(x))).sort((a, b) => b.localeCompare(a, 'es', { numeric: true }))[0] || '';
-  const nomSug = x => ('Acuerdo ' + (x.numero || '') + ' ' + fechaCorta(r.fecha || hoy()).replace(/ \d{4}$/, '') + ' - ' + String(x.texto || '').split(/\s+/).slice(0, 5).join(' ')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const nomSug = x => ((t => esReunion(t) ? 'Acuerdo ' : ({ convocatoria: 'Convocatoria', erase: 'Érase una vez', saae: 'SAAE', programa: 'Programa' }[t] || '') + ' ')(($('#r-tipo') || {}).value || r.tipo) + (x.numero || '') + ' ' + fechaCorta(r.fecha || hoy()).replace(/ \d{4}$/, '') + ' - ' + String(x.texto || '').split(/\s+/).slice(0, 5).join(' ')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
   function filaEvi(x) {
     if (!puedeEvi) return '';
     const v = x.evidencia, on = !!v || x.requiereEvidencia === true;
     const existe = typeof v === 'string' && rutasEvi.find(y => normRuta(y) === normRuta(v));
     const nombreNuevo = typeof v === 'string' && v && !existe ? String(v).split('/').pop() : '';
     return `<div class="acu-evi"><label class="casilla"><input type="checkbox" data-evi-on ${on ? 'checked' : ''}> 📁 Requiere evidencia</label>
-      <select data-evi-sel aria-label="Carpeta de la evidencia" ${on ? '' : 'hidden'}><option value="__nueva" ${existe ? '' : 'selected'}>Carpeta nueva para este acuerdo${dentroEvi ? ' (dentro de ' + esc(sinNum(dentroEvi)) + ')' : ''}</option>${rutasEvi.map(y => `<option value="${esc(y)}" ${existe === y ? 'selected' : ''}>${esc(y.replace(/\//g, ' › '))}</option>`).join('')}</select>
+      <select data-evi-sel aria-label="Carpeta de la evidencia" ${on ? '' : 'hidden'}><option value="__nueva" ${existe ? '' : 'selected'}>Carpeta nueva${dentroEvi ? ' (dentro de ' + esc(sinNum(dentroEvi)) + ')' : ''}</option>${rutasEvi.map(y => `<option value="${esc(y)}" ${existe === y ? 'selected' : ''}>${esc(y.replace(/\//g, ' › '))}</option>`).join('')}</select>
       <input data-evi-nom aria-label="Nombre de la carpeta nueva" placeholder="Nombre de la carpeta" value="${esc(nombreNuevo)}" ${on && !existe ? '' : 'hidden'}></div>`;
   }
   const filaAc = x => `<div class="acu-ed" data-id="${esc(x.id || '')}" data-esc="${esc(JSON.stringify(x.escuelas || []))}">
@@ -3005,22 +3026,22 @@ function formReunion(id, base) {
     <input aria-label="Evidencia u observaciones" placeholder="Evidencia u observaciones (opcional)" value="${esc(x.nota || '')}" data-k="nota">
     ${filaEvi(x)}</div>`;
   const cuerpo = `
-  <div class="campo"><label for="r-tit">Nombre de la reunión</label><input id="r-tit" value="${esc(r.titulo)}" placeholder="Ej. Segunda Sesión Ordinaria del CTZ"></div>
+  <div class="campo"><label for="r-tipo">¿Qué va a registrar?</label><select id="r-tipo">${REU_GRUPOS.map(g => `<optgroup label="${esc(g[1])}">${g[2].map(k => `<option value="${k}" ${r.tipo === k ? 'selected' : ''}>${esc(TIPOS_REU[k])}</option>`).join('')}</optgroup>`).join('')}</select></div>
+  <div class="campo"><label for="r-tit" id="r-tit-l">Nombre de la reunión</label><input id="r-tit" value="${esc(r.titulo)}" placeholder="Ej. Segunda Sesión Ordinaria del CTZ"></div>
   <div class="fila">
-    <div class="campo"><label for="r-tipo">Tipo</label><select id="r-tipo">${Object.entries(TIPOS_REU).map(([k, v]) => `<option value="${k}" ${r.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-    <div class="campo"><label for="r-fecha">Fecha</label><input type="date" id="r-fecha" value="${r.fecha}"></div>
-    <div class="campo"><label for="r-hor">Horario</label><input id="r-hor" value="${esc(r.horario)}" placeholder="9:00 a 12:00 h"></div>
+    <div class="campo"><label for="r-fecha" id="r-fecha-l">Fecha</label><input type="date" id="r-fecha" value="${r.fecha}"></div>
+    <div class="campo" id="r-hor-c"><label for="r-hor">Horario</label><input id="r-hor" value="${esc(r.horario)}" placeholder="9:00 a 12:00 h"></div>
   </div>
-  <div class="campo"><label for="r-lugar">Lugar</label><input id="r-lugar" value="${esc(r.lugar)}"></div>
-  <div class="campo"><label for="r-desc">Propósitos o notas (opcional)</label><textarea id="r-desc">${esc(r.descripcion)}</textarea></div>
-  <div class="campo"><span class="et">Acuerdos (cada uno se palomea por escuela)</span>
+  <div class="campo" id="r-lugar-c"><label for="r-lugar">Lugar</label><input id="r-lugar" value="${esc(r.lugar)}"></div>
+  <div class="campo"><label for="r-desc" id="r-desc-l">Propósitos o notas (opcional)</label><textarea id="r-desc">${esc(r.descripcion)}</textarea></div>
+  <div class="campo"><span class="et" id="r-items-l">Acuerdos (cada uno se palomea por escuela)</span>
     <div id="r-acs">${acs.map(filaAc).join('')}</div>
     <datalist id="l-secc">${[...new Set((S.acu || []).map(x => x.seccion).filter(Boolean))].map(s => `<option value="${esc(s)}">`).join('')}</datalist>
-    <div><button type="button" class="boton sec chico" id="r-mas">${ico('i-mas')}Agregar acuerdo</button></div>
+    <div><button type="button" class="boton sec chico" id="r-mas">${ico('i-mas')}<span id="r-mas-l">Agregar acuerdo</span></button></div>
   </div>
   ${puedeEvi ? '<div class="ayuda">📁 <b>Requiere evidencia</b>: el acuerdo lleva un botón «Subir evidencia» para la dirección, que guarda los archivos en esa carpeta de cada escuela, y la carpeta aparece en Evidencias con su semáforo. La carpeta nueva se crea al guardar.</div>' : S.evi ? '<div class="ayuda">Para marcar qué acuerdos requieren evidencia, actualice el servidor a la versión 28.</div>' : ''}
   ${id ? '<div class="ayuda">Si quita un acuerdo, deja de contar en el avance (sus palomeos se conservan en la hoja de datos).</div>' : ''}`;
-  modal(id ? 'Editar reunión' : 'Nueva reunión', cuerpo, `${id ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar reunión</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
+  modal(id ? 'Editar · ' + esc(TIPOS_REU[r.tipo] || 'reunión') : 'Nuevo registro', cuerpo, `${id ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar reunión</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
   const quitar = () => {
     $$('#r-acs [data-quitar]').forEach(b => b.onclick = () => b.closest('.acu-ed').remove());
     $$('#r-acs .acu-ed').forEach(f => {
@@ -3034,8 +3055,17 @@ function formReunion(id, base) {
     });
   };
   quitar();
+  // Los textos del formulario cambian según lo que se registra (reunión, convocatoria, programa…)
+  const etiquetas = () => {
+    const e = reuEtq($('#r-tipo').value), reu = esReunion($('#r-tipo').value);
+    $('#r-tit-l').textContent = e.nombre; $('#r-tit').placeholder = e.ph; $('#r-fecha-l').textContent = e.fecha; $('#r-desc-l').textContent = e.desc;
+    $('#r-items-l').textContent = e.items; $('#r-mas-l').textContent = e.mas;
+    $('#r-hor-c').hidden = !reu && !$('#r-hor').value; $('#r-lugar-c').hidden = !reu && !$('#r-lugar').value;
+    $$('#r-acs textarea[data-k=texto]').forEach(t => t.placeholder = e.ta);
+  };
+  $('#r-tipo').onchange = etiquetas; etiquetas();
   if (!acs.length) { $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: '1' })); quitar(); }
-  $('#r-mas').onclick = () => { const prev = $$('#r-acs .acu-ed').pop(); $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: String($$('#r-acs .acu-ed').length + 1), seccion: prev ? prev.querySelector('[data-k=seccion]').value : '' })); quitar(); $$('#r-acs textarea').pop().focus(); };
+  $('#r-mas').onclick = () => { const prev = $$('#r-acs .acu-ed').pop(); $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: String($$('#r-acs .acu-ed').length + 1), seccion: prev ? prev.querySelector('[data-k=seccion]').value : '' })); quitar(); etiquetas(); $$('#r-acs textarea').pop().focus(); };
   $('#r-cancelar').onclick = cerrarModal;
   if ($('#r-borrar')) $('#r-borrar').onclick = () => {
     if (!confirm('¿Quitar «' + r.titulo + '» y todos sus acuerdos del checklist? Los datos se conservan en la hoja de cálculo.')) return;
@@ -3059,8 +3089,8 @@ function formReunion(id, base) {
       }).filter(x => x.texto),
       actividades: (base && base.actividades || [])
     };
-    if (!d.reunion.titulo) return aviso('Escriba el nombre de la reunión.', 'mal');
-    if (!d.reunion.fecha) return aviso('Elija la fecha de la reunión.', 'mal');
+    if (!d.reunion.titulo) return aviso('Escriba el nombre ' + (esReunion(d.reunion.tipo) ? 'de la reunión.' : 'de la convocatoria o actividad.'), 'mal');
+    if (!d.reunion.fecha) return aviso('Elija la fecha.', 'mal');
     if (!d.acuerdos.length) return aviso('Agregue al menos un acuerdo.', 'mal');
     const todas = directores();
     d.actividades.forEach(a => { a.escuelas = a.escuelas || todas.map(c => c.cct); a.destinatarios = a.escuelas.map(c => (escuelaDe(c) || {}).id).filter(Boolean); a.responsables = [S.yo.id]; });
@@ -3073,7 +3103,7 @@ function formReunion(id, base) {
       x.evidencia = dentroEvi ? dentroEvi + '/' + x._nueva : x._nueva;
       delete x._nueva;
     }
-    accion('guardarReunion', d, res => { recibirReunion(res); cerrarModal(); vista.acuReu = ''; vista.acuEsc = null; pintar(); setTimeout(() => { const t = document.getElementById('r-' + res.reunion.id); if (t) t.scrollIntoView({ block: 'start' }); }, 50); aviso('Reunión guardada con ' + res.acuerdos.length + ' acuerdos.', 'ok', 3000); });
+    accion('guardarReunion', d, res => { recibirReunion(res); cerrarModal(); vista.acuReu = ''; vista.acuEsc = null; pintar(); setTimeout(() => { const t = document.getElementById('r-' + res.reunion.id); if (t) t.scrollIntoView({ block: 'start' }); }, 50); aviso((esReunion(d.reunion.tipo) ? 'Reunión guardada con ' : 'Registro guardado con ') + res.acuerdos.length + (esReunion(d.reunion.tipo) ? ' acuerdo(s).' : ' punto(s).'), 'ok', 3000); });
   };
 }
 
