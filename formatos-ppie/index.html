@@ -2021,6 +2021,17 @@ async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.
 const LOGO_KEY="logo-escuela";let LOGO_ESC,LOGO_ORIG=null;
 function logoGet(){if(LOGO_ESC===undefined)LOGO_ESC=store.get(LOGO_KEY,null)||store.get("libro-visitas-logo",null);return LOGO_ESC}
 function logoSet(u){LOGO_ESC=u||null;store.del("libro-visitas-logo");if(!u){store.del(LOGO_KEY);return true}try{localStorage.setItem(LOGO_KEY,JSON.stringify(u));return true}catch(e){return false}}
+/* Logos oficiales de las escuelas de la Zona 050 (img/escuelas/<CCT>.png|jpg): al elegir la escuela se carga solo su logo */
+const LOGOS_ESC_050={"02DPR0012Z":"jpg","02DPR0014Y":"png","02DPR0077J":"jpg","02DPR0150B":"png","02DPR0210Z":"jpg","02DPR0378F":"png","02DPR0379E":"jpg","02DPR0382S":"png","02DPR0425Z":"jpg","02DPR0556S":"jpg","02DPR0593W":"png","02DPR0684N":"jpg","02DPR0862Z":"png","02DPR0882N":"png"};
+function logoOficialURL(cct){if(ZONA_TQ||!cct)return null;const x=LOGOS_ESC_050[cct];return x?`img/escuelas/${cct}.${x}`:null}
+async function logoOficialCargar(cct){const u=logoOficialURL(cct);if(!u)return false;try{const b=await(await fetch(u)).blob();
+  const d=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=no;fr.readAsDataURL(b)});
+  LOGO_ORIG=null;logoSet(d);store.set("logo-escuela-cct",cct);if(typeof LOGO_REFRESCAR==="function"&&document.getElementById("lg_pv"))LOGO_REFRESCAR("Se cargó el logo oficial de la escuela.");return true}catch(e){return false}}
+let LOGO_REFRESCAR=null;
+document.addEventListener("change",e=>{const t=e.target;if(!t||!["selEsc","lf_sel","lv_sel","ps_sel","cp_esc"].includes(t.id))return;
+  const v=t.value;if(v===""||v==="otra")return;const es=ESCUELAS_050[+v];if(es)logoOficialCargar(es[1])},true);
+/* Al abrir: si la persona ya tiene su escuela de la zona y no hay logo guardado, se pone el oficial */
+setTimeout(()=>{try{if(perfil&&perfil.cct&&!logoGet())logoOficialCargar(perfil.cct)}catch(e){}},0);
 function imgLoad(src){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>no(new Error("No se pudo leer la imagen. Use un archivo JPG o PNG."));im.src=src})}
 function lienzo(w,h){const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c}
 function tieneAlfa(c){const d=c.getContext("2d").getImageData(0,0,c.width,c.height).data;for(let i=3;i<d.length;i+=16)if(d[i]<245)return true;return false}
@@ -2051,7 +2062,7 @@ async function pdfMembrete(doc,pg,M,W0,y){const inst=await embedInst(doc),sch=aw
   if(sch){const d=sch.scaleToFit(h+8,h);pg.drawImage(sch,{x:M+W0-d.width,y:y-d.height,width:d.width,height:d.height})}
   return y-h-8}
 function logoWidgetHTML(){const L=logoGet();
-  return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Si no sube uno, se usa el logo de la Zona 050.</p>
+  return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Al elegir una escuela de la Zona 050 se carga solo su logo oficial; si no tiene, se usa el logo de la Zona 050.</p>
    <div class="ph"><div class="phf lvlogo" id="lg_pv">${L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lg_file" hidden></label>
      <button type="button" class="btn ghost" id="lg_up" ${L?"":"hidden"}>${EI.spark}Mejorar calidad</button>
@@ -2062,6 +2073,7 @@ function wireLogo(onChange){const g=id=>document.getElementById(id);
   const info=async extra=>{const L=logoGet();if(!L){g("lg_m").innerHTML=extra||"";return}try{const i=logoCalidad(await imgLoad(L));
     g("lg_m").innerHTML=`Tamaño: ${i.w} × ${i.h} px · Calidad <b>${i.cal}</b>${i.cal==="buena"?".":LOGO_ORIG?". Si aún se ve borroso, puede mejorarlo otra vez.":". Toque <b>«Mejorar calidad»</b> para que se vea nítido al imprimir."}${extra?"<br>"+extra:""}`}catch(e){}};
   const show=extra=>{const L=logoGet();g("lg_pv").innerHTML=L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>";g("lg_up").hidden=!L;g("lg_del").hidden=!L;g("lg_undo").hidden=!LOGO_ORIG;OUT=null;info(extra);onChange&&onChange()};
+  LOGO_REFRESCAR=show;
   const guardar=(u,extra)=>{const ok=logoSet(u);show(ok?extra:(extra?extra+" ":"")+"<b>Ojo:</b> el logo es grande y no cupo en la memoria del navegador; se usará mientras no cierre esta página.")};
   g("lg_file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("lg_m").textContent="Procesando…";
     try{LOGO_ORIG=null;guardar(await logoDesdeArchivo(f),"Logo listo.")}catch(err){g("lg_m").textContent=err.message}};
