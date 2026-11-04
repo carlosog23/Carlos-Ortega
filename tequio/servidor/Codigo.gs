@@ -161,13 +161,17 @@ const HOJAS = {
   // Recursos financieros · Ingresos propios. tipo: mov (movimiento del libro de bancos o caja, con su póliza), sol (solicitud de recibos),
   // req (requisición de combustible), rep (reporte del ejercicio) o cta (datos de la cuenta del ciclo). Nada se borra: eliminar lo manda a la papelera.
   fin: ['id', 'cct', 'ciclo', 'tipo', 'fecha', 'datos', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'actualizadoPor', 'historial'],
+  // Actividades recaudatorias de la Supervisión (solo Supervisión y ATP). tipo: act (la actividad: proveedor y productos), compra (lo que entrega el proveedor:
+  // sube lo que se le debe), pago (pago al proveedor: egreso), pedido (lo que se lleva una escuela o persona: sube lo que nos debe), abono (lo que nos paga: ingreso, con folio)
+  // o mov (ingreso o egreso que se captura a mano en la contabilidad: gastos, apoyos, saldo inicial, traspasos). Nada se borra: eliminar lo manda a la papelera.
+  rec: ['id', 'act', 'tipo', 'fecha', 'datos', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'actualizadoPor', 'historial'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios' };
-const VERSION = 33;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias' };
+const VERSION = 34;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1115,6 +1119,62 @@ const ACCIONES = {
     o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'restauro' }]).slice(-40);
     guardar_('fin', o);
     return { fin: o };
+  },
+
+  /* ---- Recursos financieros · Actividades recaudatorias (solo Supervisión y ATP) ---- */
+  recDatos: (yo, d) => {
+    soloMesa_(yo);
+    const l = leer_('rec');
+    return { rec: yo.rol === 'admin' ? l : l.filter(x => x.activo) };
+  },
+  // Crea o edita un registro. Los abonos llevan folio consecutivo de seguimiento (AR-año-0001) que no cambia al editarse.
+  recGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const tipo = String(d.tipo || '');
+    if (['act', 'compra', 'pago', 'pedido', 'abono', 'mov'].indexOf(tipo) < 0) throw new Error('Tipo de registro no válido.');
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_();
+    const datos = d.datos && typeof d.datos === 'object' && !Array.isArray(d.datos) ? d.datos : {};
+    if (JSON.stringify(datos).length > 40000) throw new Error('El registro es demasiado grande.');
+    const todos = leer_('rec');
+    const prev = d.id ? todos.find(x => x.id === String(d.id)) : null;
+    if (d.id && !prev) throw new Error('No se encontró el registro.');
+    if (prev && !prev.activo) throw new Error('Ese registro está eliminado. La Supervisión puede restaurarlo.');
+    if (prev && prev.tipo !== tipo) throw new Error('No se puede cambiar el tipo de un registro.');
+    const id = prev ? prev.id : 'rec-' + Utilities.getUuid().slice(0, 10);
+    let act = tipo === 'act' ? id : String(d.act || '');
+    if (tipo !== 'act' && tipo !== 'mov' && !todos.some(x => x.tipo === 'act' && x.id === act && x.activo)) throw new Error('La actividad no existe o está eliminada.');
+    if (tipo === 'mov' && act && !todos.some(x => x.tipo === 'act' && x.id === act)) act = '';
+    if (tipo === 'abono') {
+      if (prev && (prev.datos || {}).folio) { datos.folio = prev.datos.folio; datos.folioN = prev.datos.folioN; }
+      else {
+        const anio = fecha.slice(0, 4), n = todos.filter(x => x.tipo === 'abono' && String((x.datos || {}).folio || '').indexOf('AR-' + anio + '-') === 0)
+          .reduce((m, x) => Math.max(m, parseInt(x.datos.folioN, 10) || 0), 0) + 1;
+        datos.folioN = String(n); datos.folio = 'AR-' + anio + '-' + ('000' + n).slice(-4);
+      }
+    }
+    const h = (prev && prev.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: prev ? 'edito' : 'creo' }]).slice(-40);
+    const o = { id: id, act: act, tipo: tipo, fecha: fecha, datos: datos, activo: true, creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre,
+      creado: prev ? prev.creado : ahora_(), actualizado: ahora_(), actualizadoPor: yo.id, historial: h };
+    guardar_('rec', o);
+    return { rec: o };
+  },
+  recEliminar: (yo, d) => {
+    soloMesa_(yo);
+    const o = buscar_('rec', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    o.activo = false; o.actualizado = ahora_(); o.actualizadoPor = yo.id;
+    o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'elimino' }]).slice(-40);
+    guardar_('rec', o);
+    return { rec: o };
+  },
+  recRestaurar: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('rec', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el registro.');
+    o.activo = true; o.actualizado = ahora_(); o.actualizadoPor = yo.id;
+    o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'restauro' }]).slice(-40);
+    guardar_('rec', o);
+    return { rec: o };
   },
 
   eliminarReunion: (yo, d) => {

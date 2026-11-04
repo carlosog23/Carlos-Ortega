@@ -865,7 +865,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-03-0645';
+const PUBLICACION = '2026-11-04-1300';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -3949,7 +3949,7 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)']];
 // Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
 const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
 const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
@@ -7849,6 +7849,10 @@ const Demo = (() => {
     finDatos: () => { if (!D.fin) D.fin = finDemo(); return { fin: copia(cfg.dir ? D.fin.filter(x => x.cct === '02DPR0684N' && x.activo !== false) : D.fin) }; },
     finGuardar: d => { if (!D.fin) D.fin = finDemo(); const o = finArmarDemo(D.fin, d, cfg.dir ? { id: 'u-d-02DPR0684N', nombre: 'Dirección (demostración)' } : D.yo); poner(D.fin, o); return { fin: copia(o) }; },
     finEliminar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, a: 'elimino' }]); return { fin: copia(o) }; },
+    recDatos: () => { if (!D.rec) D.rec = recDemo(); return { rec: copia(D.rec) }; },
+    recGuardar: d => { if (!D.rec) D.rec = recDemo(); const o = recArmarDemo(D.rec, d, D.yo); poner(D.rec, o); return { rec: copia(o) }; },
+    recEliminar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'elimino' }]); return { rec: copia(o) }; },
+    recRestaurar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { rec: copia(o) }; },
     finRestaurar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { fin: copia(o) }; },
     datos: () => {
       if (!cfg.dir) return copia(D);
@@ -8097,7 +8101,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos'];
+  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
@@ -8241,6 +8245,7 @@ function finRecibir(o) { if (!S.fin) S.fin = []; poner(S.fin, o); }
 /* ---------- vista principal ---------- */
 async function vFinanzas() {
   finEstilos();
+  if (vista.fin && vista.fin.apart === 'rec' && esMesa()) return vRecaudacion(vista.fin);
   const vieja = !cfg.demo && (S.version || 0) < FIN_VER;
   if (vieja) {
     $('#vista').innerHTML = `<div class="titulo-vista"><h1>Recursos financieros</h1></div>
@@ -8262,18 +8267,20 @@ async function vFinanzas() {
 // Encabezado común: apartados de Recursos financieros, escuela y ciclo
 function finCabecera(v) {
   const escs = directores();
-  const papelera = esAdmin() && v.cct ? (S.fin || []).filter(x => x.cct === v.cct && x.activo === false).length : 0;
+  const rec = v.apart === 'rec' && esMesa();
+  const papelera = esAdmin() && v.cct && !rec ? (S.fin || []).filter(x => x.cct === v.cct && x.activo === false).length : 0;
   return `<div class="titulo-vista"><h1>Recursos financieros</h1>
     <div class="acciones">${papelera ? `<button class="boton sec" id="fin-pap">${ico('i-x')}Eliminados (${papelera})</button>` : ''}<button class="boton sec" id="fin-rec">${ico('i-act')}Actualizar</button></div></div>
-  <div class="seg-op fin-apart" role="group" aria-label="Apartados de Recursos financieros"><button aria-pressed="true">Ingresos propios</button></div>
-  <div class="filtros" style="margin-top:12px">
+  <div class="seg-op fin-apart" role="group" aria-label="Apartados de Recursos financieros"><button data-fap="ip" aria-pressed="${!rec}">Ingresos propios</button>${esMesa() ? `<button data-fap="rec" aria-pressed="${rec}">Actividades recaudatorias</button>` : ''}</div>
+  ${rec ? '<div style="height:12px"></div>' : `<div class="filtros" style="margin-top:12px">
     ${esDirector() ? `<span class="chip indigo" style="align-self:center">${esc(nombreEscuela(v.cct))}</span>` : `<select id="fin-esc" aria-label="Escuela"><option value="">Toda la zona</option>${escs.map(c => `<option value="${c.cct}" ${v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>`}
     <select id="fin-ciclo" aria-label="Ciclo escolar">${finCiclos(v.cct).map(c => `<option value="${c}" ${v.ciclo === c ? 'selected' : ''}>Ciclo ${c}${c === cicloActual() ? '' : ' · historial'}</option>`).join('')}</select>
-  </div>`;
+  </div>`}`;
 }
 function finEnlazarCabecera(v) {
   if ($('#fin-esc')) $('#fin-esc').onchange = e => { v.cct = e.target.value; vFinanzas(); };
-  $('#fin-ciclo').onchange = e => { v.ciclo = e.target.value; vFinanzas(); };
+  if ($('#fin-ciclo')) $('#fin-ciclo').onchange = e => { v.ciclo = e.target.value; vFinanzas(); };
+  $$('[data-fap]').forEach(b => b.onclick = () => { v.apart = b.dataset.fap; vFinanzas(); });
   $('#fin-rec').onclick = async () => { if (await finCargar(true)) { vFinanzas(); aviso('Registros actualizados.', 'ok', 2000); } };
   if ($('#fin-pap')) $('#fin-pap').onclick = () => finPapelera(v.cct);
 }
@@ -8758,7 +8765,9 @@ function finEstilos() {
 .fin-secc{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--borde);margin:4px 0 14px;scrollbar-width:thin}
 .fin-secc button{border:0;background:none;padding:10px 12px;font-weight:600;color:var(--gris);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;font-size:14.5px}
 .fin-secc button[aria-current="true"]{color:var(--indigo);border-bottom-color:var(--indigo)}
-.fin-apart{max-width:420px}
+.fin-apart{max-width:520px}
+.rec-lin3{grid-template-columns:minmax(0,1fr) 110px 110px 36px!important}
+@media (max-width:640px){.rec-lin3{grid-template-columns:minmax(0,1fr) 74px 90px 30px!important}}
 .fin-botones{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .fin-tabla-caja{overflow-x:auto}
 .fin-tabla{width:100%;border-collapse:collapse;font-size:14px}
@@ -8974,6 +8983,616 @@ async function finPdf(tipo, q, nombre) {
       descargarBlob(blob, String(nombre || 'Formato').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf');
     } finally { caja.remove(); }
   });
+}
+
+/* =========================================================
+   Recursos financieros · Actividades recaudatorias (solo Supervisión y ATP)
+   Contabilidad general de la Supervisión (libro de ingresos y egresos, caja y banco) y, por actividad
+   (p. ej. venta de guías): lo que se le debe al proveedor (entregas y pagos) y lo que debe cada escuela
+   (pedidos y abonos). Los abonos y los pagos al proveedor entran solos a la contabilidad; los demás
+   gastos e ingresos se capturan ahí mismo. Cada abono lleva un folio de seguimiento (AR-año-0001).
+   ========================================================= */
+const REC_VER = 34;
+const REC_FORMAS = ['Efectivo', 'Transferencia', 'Depósito', 'Cheque', 'Otro'];
+const REC_CAT = {
+  ingreso: ['Saldo inicial', 'Aportación o donativo', 'Venta directa', 'Interés bancario', 'Otro ingreso'],
+  egreso: ['Flete o envío', 'Copias e impresiones', 'Papelería', 'Combustible y viáticos', 'Alimentos', 'Comisión bancaria', 'Compra para un evento', 'Otro gasto']
+};
+const REC_SECC = [['resumen', 'Resumen'], ['conta', 'Contabilidad'], ['acts', 'Actividades']];
+const REC_SUB = [['resumen', 'Resumen'], ['clientes', 'Escuelas'], ['proveedor', 'Proveedor'], ['gastos', 'Gastos e ingresos'], ['datos', 'Datos y productos']];
+
+const recActivos = () => (S.rec || []).filter(x => x.activo !== false);
+const recActs = () => recActivos().filter(x => x.tipo === 'act').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+const recAct = id => recActivos().find(x => x.tipo === 'act' && x.id === id) || null;
+const recDe = (act, tipo) => recActivos().filter(x => x.act === act && (!tipo || x.tipo === tipo)).sort(finOrden);
+const recTotal = (lineas, k) => Math.round((lineas || []).reduce((s, l) => s + finN(l.cant) * finN(l[k]), 0) * 100) / 100;
+const recCliNom = d => d.cliente && !String(d.cliente).startsWith('p:') ? nombreEscuela(d.cliente) : (d.clienteNombre || String(d.cliente || '').slice(2));
+const recR = x => Math.round(x * 100) / 100;
+function recRecibir(o) { if (!S.rec) S.rec = []; poner(S.rec, o); }
+async function recCargar(forzar) {
+  if (S.rec && !forzar) return true;
+  const r = await conCarga(() => api('recDatos', {}));
+  if (!r) return false;
+  S.rec = r.rec || [];
+  return true;
+}
+
+// Movimiento de dinero de un registro (lo que entra a la contabilidad)
+function recDinero(o) {
+  const d = o.datos || {};
+  if (o.tipo === 'abono') return { clase: 'ingreso', monto: finN(d.monto), medio: d.medio || 'caja', concepto: 'Abono de ' + recCliNom(d), cat: 'Abono de escuela' };
+  if (o.tipo === 'pago') return { clase: 'egreso', monto: finN(d.monto), medio: d.medio || 'caja', concepto: 'Pago al proveedor' + ((recAct(o.act) || {}).datos ? ' · ' + (recAct(o.act).datos.proveedor || '') : ''), cat: 'Pago al proveedor' };
+  if (o.tipo === 'mov') return { clase: d.clase, monto: finN(d.monto), medio: d.medio || 'caja', direccion: d.direccion, concepto: d.concepto || d.cat || '', cat: d.cat || '' };
+  return null;
+}
+function recEfecto(o) {
+  const m = recDinero(o), r = { caja: 0, banco: 0 };
+  if (!m) return r;
+  if (m.clase === 'traspaso') { if (m.direccion === 'retiro') { r.banco -= m.monto; r.caja += m.monto; } else { r.caja -= m.monto; r.banco += m.monto; } }
+  else r[m.medio === 'banco' ? 'banco' : 'caja'] += m.clase === 'ingreso' ? m.monto : -m.monto;
+  return r;
+}
+const recLibro = () => recActivos().filter(x => ['abono', 'pago', 'mov'].includes(x.tipo) && (!x.act || recAct(x.act) || x.tipo === 'mov')).sort(finOrden);
+function recSaldo(hasta) {
+  const r = { caja: 0, banco: 0 };
+  recLibro().filter(o => !hasta || o.fecha <= hasta).forEach(o => { const e = recEfecto(o); r.caja += e.caja; r.banco += e.banco; });
+  return { caja: recR(r.caja), banco: recR(r.banco) };
+}
+
+// Cuentas de una actividad
+function recCuenta(a) {
+  const id = a.id, prods = (a.datos.productos || []);
+  const compras = recDe(id, 'compra'), pagos = recDe(id, 'pago'), pedidos = recDe(id, 'pedido'), abonos = recDe(id, 'abono'), movs = recDe(id, 'mov');
+  const c = { compras: 0, pagos: 0, ventas: 0, cobrado: 0, gastos: 0, otros: 0, cli: {}, inv: {} };
+  prods.forEach(p => c.inv[p.id] = { nombre: p.nombre, comprado: 0, pedido: 0 });
+  compras.forEach(o => { c.compras += recTotal(o.datos.lineas, 'costo'); (o.datos.lineas || []).forEach(l => { if (c.inv[l.prod]) c.inv[l.prod].comprado += finN(l.cant); }); });
+  pagos.forEach(o => c.pagos += finN(o.datos.monto));
+  const cli = k => c.cli[k] || (c.cli[k] = { key: k, cargo: 0, abono: 0, n: 0, ult: '' });
+  pedidos.forEach(o => { const t = recTotal(o.datos.lineas, 'precio'), x = cli(o.datos.cliente); x.nombre = recCliNom(o.datos); x.cargo += t; x.n++; c.ventas += t; (o.datos.lineas || []).forEach(l => { if (c.inv[l.prod]) c.inv[l.prod].pedido += finN(l.cant); }); });
+  abonos.forEach(o => { const x = cli(o.datos.cliente); x.nombre = x.nombre || recCliNom(o.datos); x.abono += finN(o.datos.monto); x.ult = o.fecha > x.ult ? o.fecha : x.ult; c.cobrado += finN(o.datos.monto); });
+  movs.forEach(o => { if (o.datos.clase === 'egreso') c.gastos += finN(o.datos.monto); else if (o.datos.clase === 'ingreso') c.otros += finN(o.datos.monto); });
+  Object.values(c.cli).forEach(x => { x.cargo = recR(x.cargo); x.abono = recR(x.abono); x.saldo = recR(x.cargo - x.abono); });
+  ['compras', 'pagos', 'ventas', 'cobrado', 'gastos', 'otros'].forEach(k => c[k] = recR(c[k]));
+  c.debemos = recR(c.compras - c.pagos);
+  c.nosDeben = recR(Object.values(c.cli).reduce((s, x) => s + Math.max(0, x.saldo), 0));
+  c.utilidad = recR(c.ventas + c.otros - c.compras - c.gastos);
+  c.enMano = recR(c.cobrado + c.otros - c.pagos - c.gastos);
+  return c;
+}
+const recEstado = x => x.cargo <= 0 && x.abono <= 0 ? ['Sin pedido', ''] : x.saldo <= 0 ? [x.saldo < 0 ? 'Saldo a favor' : 'Liquidado', 'ok'] : x.abono > 0 ? ['Con abonos', 'aviso'] : ['Sin abonos', 'mal'];
+
+/* ---------- vista ---------- */
+async function vRecaudacion(v) {
+  const vieja = !cfg.demo && (S.version || 0) < REC_VER;
+  if (vieja) {
+    $('#vista').innerHTML = `${finCabecera(v)}<div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Las actividades recaudatorias necesitan el servidor de Tequio en la versión ${REC_VER}. ${esAdmin() ? 'Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a>.' : 'Avise a la Supervisión para que lo actualice.'}</p></div>`;
+    finEnlazarCabecera(v); return;
+  }
+  if (!S.rec) {
+    $('#vista').innerHTML = '<div class="tarjeta vacio">Cargando la contabilidad de las actividades recaudatorias…</div>';
+    if (!await recCargar()) { $('#vista').innerHTML = '<div class="tarjeta vacio">No se pudieron cargar los registros. <button class="boton sec chico" id="rec-rein">Intentar de nuevo</button></div>'; $('#rec-rein').onclick = vFinanzas; return; }
+    if (vista.tab !== 'finanzas') return;
+  }
+  const r = v.rec || (v.rec = { secc: 'resumen', act: '', sub: 'resumen', medio: '', per: 'todo', fAct: '' });
+  if (r.act && !recAct(r.act)) r.act = '';
+  const pap = esAdmin() ? (S.rec || []).filter(x => x.activo === false).length : 0;
+  $('#vista').innerHTML = `${finCabecera(v)}
+  <nav class="fin-secc" aria-label="Actividades recaudatorias">${REC_SECC.map(([k, t]) => `<button data-rsec="${k}" aria-current="${!r.act && r.secc === k || (r.act && k === 'acts')}">${t}</button>`).join('')}
+    <span style="flex:1"></span>${pap ? `<button data-rpap="1" style="color:var(--gris)">Eliminados (${pap})</button>` : ''}</nav>
+  <div id="rec-cuerpo"></div>`;
+  finEnlazarCabecera(v);
+  $('#fin-rec').onclick = async () => { if (await recCargar(true)) { vFinanzas(); aviso('Registros actualizados.', 'ok', 2000); } };
+  $$('[data-rsec]').forEach(b => b.onclick = () => { r.secc = b.dataset.rsec; r.act = ''; vFinanzas(); });
+  if ($('[data-rpap]')) $('[data-rpap]').onclick = recPapelera;
+  if (r.act) return recVerAct(r);
+  ({ resumen: recResumen, conta: recConta, acts: recLista })[r.secc](r);
+}
+const recRedibujar = () => { cerrarModal(); vFinanzas(); };
+const recCifra = (x, t, cl) => `<div class="tarjeta pen-cifra" style="cursor:default"><b${cl ? ` style="color:var(--${cl})"` : ''}>${finM(x)}</b><span>${t}</span></div>`;
+
+function recResumen(r) {
+  const s = recSaldo(), acts = recActs(), cs = acts.map(a => [a, recCuenta(a)]);
+  const cobrar = cs.reduce((t, [, c]) => t + c.nosDeben, 0), pagar = cs.reduce((t, [, c]) => t + c.debemos, 0);
+  const ult = recLibro().slice(-8).reverse();
+  $('#rec-cuerpo').innerHTML = `
+  <p class="peq pen-intro">Fondos de la Supervisión por actividades recaudatorias. Solo los ven usted y los ATP. Los abonos de las escuelas y los pagos al proveedor entran solos a la contabilidad.</p>
+  <div class="fin-botones">
+    <button class="boton terra" id="rr-act">${ico('i-mas')}Nueva actividad</button>
+    <button class="boton sec" data-rmov="ingreso">Registrar ingreso</button>
+    <button class="boton sec" data-rmov="egreso">Registrar gasto</button></div>
+  <div class="pen-cifras">
+    ${recCifra(s.caja + s.banco, 'saldo disponible (caja ' + finM(s.caja) + ' · banco ' + finM(s.banco) + ')')}
+    ${recCifra(cobrar, 'nos deben las escuelas', cobrar > 0 ? 'terra-d' : '')}
+    ${recCifra(pagar, 'debemos a proveedores', pagar > 0 ? 'terra-d' : '')}
+    ${recCifra(cs.filter(([a]) => a.datos.estado !== 'cerrada').reduce((t, [, c]) => t + c.utilidad, 0), 'utilidad de las actividades abiertas')}</div>
+  <div class="tablero">
+    <div class="tarjeta"><div class="seccion-t">Actividades</div>
+      ${acts.length ? `<div class="checklist sin-borde">${cs.map(([a, c]) => recFilaAct(a, c)).join('')}</div>` : '<div class="vacio peq">Aún no hay actividades. Empiece con «Nueva actividad» (p. ej., venta de guías escolares).</div>'}</div>
+    <div class="tarjeta"><div class="seccion-t">Últimos movimientos de la contabilidad</div>
+      ${ult.length ? `<div class="checklist sin-borde">${ult.map(recFilaMov).join('')}</div><div style="padding:0 14px 12px"><button class="enlace" id="rr-conta">Ver la contabilidad completa →</button></div>` : '<div class="vacio peq">Sin movimientos todavía.</div>'}</div>
+  </div>`;
+  $('#rr-act').onclick = () => recFormAct();
+  if ($('#rr-conta')) $('#rr-conta').onclick = () => { r.secc = 'conta'; vFinanzas(); };
+  $$('[data-rmov]').forEach(b => b.onclick = () => recFormMov(null, { clase: b.dataset.rmov }));
+  recEnlazar(r);
+}
+function recFilaAct(a, c) {
+  return `<button class="chk-fila fin-mov" data-ract="${a.id}"><span style="flex:1;min-width:0;text-align:left"><b>${esc(a.datos.nombre)}</b> ${a.datos.estado === 'cerrada' ? '<span class="chip">Cerrada</span>' : ''}<br>
+    <span class="ayuda">${esc(a.datos.proveedor || 'Sin proveedor')} · nos deben ${finM(c.nosDeben)} · debemos ${finM(c.debemos)}</span></span>
+    <span class="fin-monto ${c.utilidad >= 0 ? 'ent' : 'sal'}" title="Utilidad">${finM(c.utilidad)}</span></button>`;
+}
+function recFilaMov(o) {
+  const m = recDinero(o), e = recEfecto(o), x = e.caja + e.banco;
+  const et = m.clase === 'traspaso' ? (m.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco') : (o.tipo === 'abono' ? 'Abono · folio ' + (o.datos.folio || '') : m.cat || (m.clase === 'ingreso' ? 'Ingreso' : 'Egreso'));
+  const a = o.act ? recAct(o.act) : null;
+  return `<button class="chk-fila fin-mov" data-rdet="${o.id}">
+    <span class="fin-f"><b>${deIso(o.fecha).getDate()}</b>${MESES[deIso(o.fecha).getMonth()].slice(0, 3)}</span>
+    <span style="flex:1;min-width:0;text-align:left"><b>${esc(m.concepto || et)}</b><br><span class="ayuda">${esc(et)}${a ? ' · ' + esc(a.datos.nombre) : ''} · ${m.clase === 'traspaso' ? 'Caja ↔ banco' : m.medio === 'banco' ? 'Banco' : 'Caja'}</span></span>
+    <span class="fin-monto ${m.clase === 'traspaso' ? '' : x >= 0 ? 'ent' : 'sal'}">${m.clase === 'traspaso' ? '' : x >= 0 ? '+' : '−'}${finM(m.monto)}</span></button>`;
+}
+function recEnlazar(r) {
+  $$('[data-ract]').forEach(b => b.onclick = () => { r.act = b.dataset.ract; r.sub = 'resumen'; vFinanzas(); window.scrollTo(0, 0); });
+  $$('[data-rdet]').forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
+}
+
+/* ---------- Contabilidad general ---------- */
+function recPeriodo(r) {
+  const h = hoy(), y = h.slice(0, 4), mes = h.slice(0, 7);
+  if (r.per === 'mes') return [mes + '-01', h.slice(0, 7) + '-31'];
+  if (r.per === 'ciclo') { const c = cicloActual(); return [finCicloIni(c), (+c.slice(5)) + '-07-31']; }
+  if (r.per === 'anio') return [y + '-01-01', y + '-12-31'];
+  if (r.per === 'rango') return [r.del || '0000-01-01', r.al || '9999-12-31'];
+  return ['0000-01-01', '9999-12-31'];
+}
+function recFilasConta(r) {
+  const [del, al] = recPeriodo(r), med = r.medio;
+  const val = o => { const e = recEfecto(o); return med ? e[med] : e.caja + e.banco; };
+  const todos = recLibro().filter(o => !r.fAct || o.act === r.fAct);
+  let saldo = recR(todos.filter(o => o.fecha < del).reduce((s, o) => s + val(o), 0));
+  const ini = saldo;
+  const filas = todos.filter(o => o.fecha >= del && o.fecha <= al).filter(o => !med || val(o) !== 0).map(o => {
+    const x = val(o), m = recDinero(o); saldo = recR(saldo + x);
+    const a = o.act ? recAct(o.act) : null;
+    return { o, m, ing: x > 0 ? x : 0, egr: x < 0 ? -x : 0, saldo, act: a ? a.datos.nombre : '', ref: o.tipo === 'abono' ? o.datos.folio : (o.datos.ref || ''),
+      tipo: o.tipo === 'abono' ? 'Abono' : o.tipo === 'pago' ? 'Pago a proveedor' : m.clase === 'traspaso' ? 'Traspaso' : (m.cat || (m.clase === 'ingreso' ? 'Ingreso' : 'Egreso')) };
+  });
+  return { ini, filas, fin: saldo, del, al };
+}
+function recConta(r) {
+  const t = recFilasConta(r), s = recSaldo(), acts = recActs();
+  const ing = t.filas.reduce((a, f) => a + f.ing, 0), egr = t.filas.reduce((a, f) => a + f.egr, 0);
+  $('#rec-cuerpo').innerHTML = `
+  <div class="fin-botones">
+    <button class="boton terra" data-rmov="ingreso">${ico('i-mas')}Ingreso</button>
+    <button class="boton terra" data-rmov="egreso">${ico('i-mas')}Gasto o egreso</button>
+    <button class="boton sec" data-rmov="traspaso">Depósito o retiro (caja ↔ banco)</button>
+    <span style="flex:1"></span><button class="boton sec" id="rc-xls">Descargar (Excel)</button></div>
+  <div class="pen-cifras">${recCifra(s.caja, 'en caja hoy')}${recCifra(s.banco, 'en banco hoy')}${recCifra(ing, 'ingresos del periodo')}${recCifra(egr, 'egresos del periodo')}</div>
+  <div class="filtros" style="margin-bottom:12px">
+    <select id="rc-per" aria-label="Periodo">${[['todo', 'Todo'], ['mes', 'Este mes'], ['ciclo', 'Ciclo ' + cicloActual()], ['anio', 'Año ' + hoy().slice(0, 4)], ['rango', 'Del… al…']].map(([k, x]) => `<option value="${k}" ${r.per === k ? 'selected' : ''}>${x}</option>`).join('')}</select>
+    ${r.per === 'rango' ? `<input type="date" id="rc-del" value="${r.del || ''}" aria-label="Del"><input type="date" id="rc-al" value="${r.al || ''}" aria-label="Al">` : ''}
+    <select id="rc-med" aria-label="Caja o banco"><option value="">Caja y banco</option><option value="caja" ${r.medio === 'caja' ? 'selected' : ''}>Solo caja</option><option value="banco" ${r.medio === 'banco' ? 'selected' : ''}>Solo banco</option></select>
+    <select id="rc-act" aria-label="Actividad"><option value="">Todas las actividades y gastos generales</option>${acts.map(a => `<option value="${a.id}" ${r.fAct === a.id ? 'selected' : ''}>${esc(a.datos.nombre)}</option>`).join('')}</select></div>
+  <div class="tarjeta"><div class="fin-tabla-caja"><table class="fin-tabla">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Folio / ref.</th><th class="d">Ingreso</th><th class="d">Egreso</th><th class="d">Saldo</th></tr></thead>
+    <tbody><tr class="ini"><td></td><td></td><td>Saldo ${r.per === 'todo' ? 'inicial' : 'anterior al periodo'}</td><td></td><td></td><td></td><td class="d"><b>${finM(t.ini)}</b></td></tr>
+    ${t.filas.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${esc(f.tipo)}</td><td>${esc(f.m.concepto)}${f.act ? `<div class="ayuda">${esc(f.act)}</div>` : ''}</td><td>${esc(f.ref)}</td>
+      <td class="d">${finM0(f.ing)}</td><td class="d">${finM0(f.egr)}</td><td class="d">${finM(f.saldo)}</td></tr>`).join('') || '<tr><td colspan="7" class="mudo" style="text-align:center;padding:18px">No hay movimientos en este periodo.</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="4">Totales del periodo</td><td class="d">${finM(ing)}</td><td class="d">${finM(egr)}</td><td class="d">${finM(t.fin)}</td></tr></tfoot></table></div></div>`;
+  $$('[data-rmov]').forEach(b => b.onclick = () => recFormMov(null, { clase: b.dataset.rmov, act: r.fAct || '' }));
+  $('#rc-per').onchange = e => { r.per = e.target.value; recConta(r); };
+  if ($('#rc-del')) { $('#rc-del').onchange = e => { r.del = e.target.value; recConta(r); }; $('#rc-al').onchange = e => { r.al = e.target.value; recConta(r); }; }
+  $('#rc-med').onchange = e => { r.medio = e.target.value; recConta(r); };
+  $('#rc-act').onchange = e => { r.fAct = e.target.value; recConta(r); };
+  $('#rc-xls').onclick = () => recExcel(r, t);
+  recEnlazar(r);
+}
+async function recExcel(r, t) {
+  await cargarScript('lib/xlsx.full.min.js');
+  const aoa = [['Supervisión Escolar Zona ' + ZONA.numero + ' · Contabilidad de actividades recaudatorias'], ['Generado: ' + fechaCorta(hoy()) + (r.medio ? ' · ' + (r.medio === 'caja' ? 'Caja' : 'Banco') : ' · Caja y banco')], [],
+    ['Fecha', 'Tipo', 'Concepto', 'Actividad', 'Folio / referencia', 'Forma de pago', 'Ingreso', 'Egreso', 'Saldo', 'Registró'], ['', '', 'Saldo anterior', '', '', '', '', '', t.ini, '']];
+  t.filas.forEach(f => aoa.push([f.o.fecha, f.tipo, f.m.concepto, f.act, f.ref, f.o.datos.forma || '', f.ing || '', f.egr || '', f.saldo, f.o.creadoNombre || '']));
+  aoa.push(['', '', 'Totales', '', '', '', recR(t.filas.reduce((a, f) => a + f.ing, 0)), recR(t.filas.reduce((a, f) => a + f.egr, 0)), t.fin, '']);
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [11, 18, 40, 28, 16, 14, 12, 12, 12, 26].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Contabilidad');
+  recActs().forEach((a, i) => {
+    const c = recCuenta(a), h = [[a.datos.nombre], ['Proveedor: ' + (a.datos.proveedor || '')], [], ['Escuela o persona', 'Pedido', 'Abonado', 'Saldo', 'Estado']];
+    Object.values(c.cli).sort((x, y) => y.saldo - x.saldo).forEach(x => h.push([x.nombre, x.cargo, x.abono, x.saldo, recEstado(x)[0]]));
+    h.push([], ['Le debemos al proveedor', c.debemos], ['Nos deben las escuelas', c.nosDeben], ['Utilidad', c.utilidad]);
+    const w = XLSX.utils.aoa_to_sheet(h); w['!cols'] = [40, 14, 14, 14, 16].map(x => ({ wch: x }));
+    XLSX.utils.book_append_sheet(wb, w, (String(i + 1) + ' ' + a.datos.nombre).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31));
+  });
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  descargarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Contabilidad actividades recaudatorias Zona ' + ZONA.numero + ' ' + hoy() + '.xlsx');
+}
+
+/* ---------- Lista de actividades ---------- */
+function recLista(r) {
+  const acts = recActs(), ab = acts.filter(a => a.datos.estado !== 'cerrada'), ce = acts.filter(a => a.datos.estado === 'cerrada');
+  const tabla = l => `<div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Actividad</th><th class="d">Vendido</th><th class="d">Cobrado</th><th class="d">Nos deben</th><th class="d">Debemos</th><th class="d">Utilidad</th></tr></thead>
+    <tbody>${l.map(a => { const c = recCuenta(a); return `<tr class="clic" data-ract="${a.id}"><td><b>${esc(a.datos.nombre)}</b><div class="ayuda">${esc(a.datos.proveedor || 'Sin proveedor')} · desde ${fechaCorta(a.fecha)}</div></td>
+      <td class="d">${finM(c.ventas)}</td><td class="d">${finM(c.cobrado)}</td><td class="d">${finM(c.nosDeben)}</td><td class="d">${finM(c.debemos)}</td><td class="d"><b>${finM(c.utilidad)}</b></td></tr>`; }).join('')}</tbody></table></div>`;
+  $('#rec-cuerpo').innerHTML = `<div class="fin-botones"><button class="boton terra" id="rl-nueva">${ico('i-mas')}Nueva actividad</button></div>
+  <div class="tarjeta"><div class="seccion-t">En curso (${ab.length})</div>${ab.length ? tabla(ab) : '<div class="vacio peq">No hay actividades en curso.</div>'}</div>
+  ${ce.length ? `<div class="tarjeta"><div class="seccion-t">Cerradas · historial (${ce.length})</div>${tabla(ce)}</div>` : ''}`;
+  $('#rl-nueva').onclick = () => recFormAct();
+  recEnlazar(r);
+}
+
+/* ---------- Una actividad ---------- */
+function recVerAct(r) {
+  const a = recAct(r.act), c = recCuenta(a);
+  $('#rec-cuerpo').innerHTML = `
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><button class="enlace" id="ra-volver">← Actividades</button></div>
+  <h2 style="font-size:22px;margin:0 0 2px">${esc(a.datos.nombre)} ${a.datos.estado === 'cerrada' ? '<span class="chip">Cerrada</span>' : ''}</h2>
+  <p class="peq mudo" style="margin:0 0 10px">Proveedor: ${esc(a.datos.proveedor || 'sin capturar')}${a.datos.contacto ? ' · ' + esc(a.datos.contacto) : ''} · desde ${fechaCorta(a.fecha)}</p>
+  <nav class="fin-secc" aria-label="Actividad">${REC_SUB.map(([k, t]) => `<button data-rsub="${k}" aria-current="${r.sub === k}">${t}</button>`).join('')}</nav>
+  <div class="fin-botones">
+    <button class="boton terra" data-rnew="pedido">${ico('i-mas')}Pedido de escuela</button>
+    <button class="boton terra" data-rnew="abono">${ico('i-mas')}Abono de escuela</button>
+    <button class="boton sec" data-rnew="compra">Entrega del proveedor</button>
+    <button class="boton sec" data-rnew="pago">Pago al proveedor</button>
+    <button class="boton sec" data-rnew="gasto">Gasto de la actividad</button></div>
+  <div id="ra-cuerpo"></div>`;
+  $('#ra-volver').onclick = () => { r.act = ''; r.secc = 'acts'; vFinanzas(); };
+  $$('[data-rsub]').forEach(b => b.onclick = () => { r.sub = b.dataset.rsub; recVerAct(r); });
+  $$('[data-rnew]').forEach(b => b.onclick = () => {
+    const t = b.dataset.rnew;
+    if (t === 'gasto') return recFormMov(null, { clase: 'egreso', act: a.id });
+    if ((t === 'pedido' || t === 'compra') && !(a.datos.productos || []).length) { aviso('Primero capture los productos y sus precios en «Datos y productos».', 'mal', 5000); r.sub = 'datos'; return recVerAct(r); }
+    ({ pedido: recFormPedido, abono: recFormAbono, compra: recFormCompra, pago: recFormPago })[t](a, null);
+  });
+  ({ resumen: recActResumen, clientes: recActClientes, proveedor: recActProveedor, gastos: recActGastos, datos: recActDatos })[r.sub](r, a, c);
+}
+function recActResumen(r, a, c) {
+  const inv = Object.values(c.inv);
+  $('#ra-cuerpo').innerHTML = `
+  <div class="pen-cifras">${recCifra(c.ventas, 'vendido a escuelas')}${recCifra(c.cobrado, 'cobrado')}${recCifra(c.nosDeben, 'nos deben las escuelas', c.nosDeben > 0 ? 'terra-d' : '')}${recCifra(c.debemos, 'le debemos al proveedor', c.debemos > 0 ? 'terra-d' : '')}</div>
+  <div class="tablero">
+    <div class="tarjeta"><div class="seccion-t">Cuentas de la actividad</div><div class="fin-tabla-caja"><table class="fin-tabla"><tbody>
+      <tr><td>Vendido a escuelas y personas</td><td class="d">${finM(c.ventas)}</td></tr>
+      ${c.otros ? `<tr><td>Otros ingresos de la actividad</td><td class="d">${finM(c.otros)}</td></tr>` : ''}
+      <tr><td>Costo de lo recibido del proveedor</td><td class="d">−${finM(c.compras)}</td></tr>
+      <tr><td>Gastos de la actividad</td><td class="d">−${finM(c.gastos)}</td></tr></tbody>
+      <tfoot><tr><td>Utilidad${a.datos.estado === 'cerrada' ? '' : ' (al cobrar y pagar todo)'}</td><td class="d">${finM(c.utilidad)}</td></tr>
+      <tr><td style="font-weight:400">Dinero real hoy (cobrado − pagado − gastos)</td><td class="d" style="font-weight:400">${finM(c.enMano)}</td></tr></tfoot></table></div></div>
+    <div class="tarjeta"><div class="seccion-t">Existencias</div>${inv.length ? `<div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Producto</th><th class="d">Recibido</th><th class="d">Pedido</th><th class="d">Quedan</th></tr></thead>
+      <tbody>${inv.map(p => `<tr><td>${esc(p.nombre)}</td><td class="d">${p.comprado}</td><td class="d">${p.pedido}</td><td class="d"><b style="color:var(--${p.comprado - p.pedido < 0 ? 'terra-d' : 'tinta'})">${p.comprado - p.pedido}</b></td></tr>`).join('')}</tbody></table></div>
+      ${inv.some(p => p.comprado - p.pedido < 0) ? '<p class="peq" style="padding:0 14px;color:var(--terra-d)">En rojo: se ha pedido más de lo que ha entregado el proveedor.</p>' : ''}` : '<div class="vacio peq">Capture los productos en «Datos y productos».</div>'}</div>
+  </div>`;
+}
+function recActClientes(r, a, c) {
+  const l = Object.values(c.cli).sort((x, y) => y.saldo - x.saldo || x.nombre.localeCompare(y.nombre, 'es'));
+  const sinPed = directores().filter(e => !c.cli[e.cct]);
+  $('#ra-cuerpo').innerHTML = `<div class="tarjeta"><div class="seccion-t">Lo que debe cada escuela · toque una para ver su estado de cuenta</div>
+    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Pedido</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${x.ult ? `<div class="ayuda">Último abono ${fechaCorta(x.ult)}</div>` : ''}</td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="5" class="mudo" style="text-align:center;padding:18px">Aún no hay pedidos. Use «Pedido de escuela».</td></tr>'}</tbody>
+    ${l.length ? `<tfoot><tr><td>Total</td><td class="d">${finM(c.ventas)}</td><td class="d">${finM(c.cobrado)}</td><td class="d">${finM(c.nosDeben)}</td><td></td></tr></tfoot>` : ''}</table></div>
+    ${sinPed.length && l.length ? `<p class="peq mudo" style="padding:0 14px 10px">Sin pedido: ${sinPed.map(e => esc(e.escuela)).join(', ')}.</p>` : ''}</div>`;
+  $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
+}
+function recActProveedor(r, a, c) {
+  let s = 0;
+  const l = recDe(a.id).filter(o => ['compra', 'pago'].includes(o.tipo)).map(o => { const x = o.tipo === 'compra' ? recTotal(o.datos.lineas, 'costo') : -finN(o.datos.monto); s = recR(s + x); return { o, x, s }; });
+  $('#ra-cuerpo').innerHTML = `<div class="pen-cifras">${recCifra(c.compras, 'recibido del proveedor (costo)')}${recCifra(c.pagos, 'pagado al proveedor')}${recCifra(c.debemos, 'le debemos', c.debemos > 0 ? 'terra-d' : '')}</div>
+  <div class="tarjeta"><div class="seccion-t">Cuenta con ${esc(a.datos.proveedor || 'el proveedor')}</div><div class="fin-tabla-caja"><table class="fin-tabla">
+    <thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Pago</th><th class="d">Le debemos</th></tr></thead>
+    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'compra' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Pago (' + esc(f.o.datos.forma || '') + ')'}${f.o.datos.ref ? `<div class="ayuda">Ref. ${esc(f.o.datos.ref)}</div>` : ''}</td>
+      <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="mudo" style="text-align:center;padding:18px">Registre aquí lo que le entrega el proveedor y cada pago que le hace.</td></tr>'}</tbody></table></div></div>`;
+  recEnlazar(r);
+}
+function recActGastos(r, a) {
+  const l = recDe(a.id, 'mov');
+  $('#ra-cuerpo').innerHTML = `<div class="tarjeta"><div class="seccion-t">Gastos e ingresos propios de esta actividad (también aparecen en la contabilidad)</div>
+    ${l.length ? `<div class="checklist sin-borde">${l.slice().reverse().map(recFilaMov).join('')}</div>` : '<div class="vacio peq">Sin gastos registrados. Use «Gasto de la actividad» para fletes, copias, envíos, etc.</div>'}
+    <div style="padding:0 14px 12px"><button class="enlace" id="rg-ing">+ Registrar un ingreso de esta actividad (no de escuela)</button></div></div>`;
+  $('#rg-ing').onclick = () => recFormMov(null, { clase: 'ingreso', act: a.id });
+  recEnlazar(r);
+}
+function recActDatos(r, a) {
+  const ps = a.datos.productos || [];
+  $('#ra-cuerpo').innerHTML = `<div class="tarjeta pad">
+    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Producto</th><th class="d">Costo (proveedor)</th><th class="d">Precio a escuelas</th><th class="d">Ganancia c/u</th></tr></thead>
+      <tbody>${ps.map(p => `<tr><td>${esc(p.nombre)}</td><td class="d">${finM(p.costo)}</td><td class="d">${finM(p.precio)}</td><td class="d">${finM(finN(p.precio) - finN(p.costo))}</td></tr>`).join('') || '<tr><td colspan="4" class="mudo">Sin productos.</td></tr>'}</tbody></table></div>
+    ${a.datos.obs ? `<p class="peq"><b>Notas:</b> ${esc(a.datos.obs)}</p>` : ''}${finHistorial(a)}
+    <div class="fin-botones" style="margin:14px 0 0"><button class="boton terra" id="rd-ed">${ico('i-lapiz')}Editar actividad y productos</button>
+      <button class="boton sec" id="rd-est">${a.datos.estado === 'cerrada' ? 'Reabrir actividad' : 'Cerrar actividad'}</button>
+      <span style="flex:1"></span><button class="boton peligro" id="rd-del">Eliminar actividad</button></div></div>`;
+  $('#rd-ed').onclick = () => recFormAct(a);
+  $('#rd-est').onclick = () => {
+    const c = recCuenta(a), cerrar = a.datos.estado !== 'cerrada';
+    if (cerrar && (c.nosDeben > 0 || c.debemos > 0) && !confirm('Todavía hay saldos pendientes (nos deben ' + finM(c.nosDeben) + ', debemos ' + finM(c.debemos) + '). ¿Cerrar de todos modos? Podrá reabrirla.')) return;
+    recGuardar({ id: a.id, tipo: 'act', fecha: a.fecha, datos: Object.assign({}, a.datos, { estado: cerrar ? 'cerrada' : 'abierta' }) }, cerrar ? 'Actividad cerrada; queda en el historial.' : 'Actividad reabierta.');
+  };
+  $('#rd-del').onclick = () => recEliminar(a, 'la actividad «' + a.datos.nombre + '» (sus pedidos, abonos y pagos dejan de contar en la contabilidad)', () => { r.act = ''; r.secc = 'acts'; });
+}
+
+/* ---------- Estado de cuenta de una escuela ---------- */
+function recMovsCli(a, key) {
+  let s = 0;
+  return recDe(a.id).filter(o => ['pedido', 'abono'].includes(o.tipo) && o.datos.cliente === key).map(o => {
+    const x = o.tipo === 'pedido' ? recTotal(o.datos.lineas, 'precio') : -finN(o.datos.monto); s = recR(s + x); return { o, x, s };
+  });
+}
+function recEstadoCuenta(a, key) {
+  const l = recMovsCli(a, key), nom = l.length ? recCliNom(l[0].o.datos) : (String(key).startsWith('p:') ? key.slice(2) : nombreEscuela(key)), s = l.length ? l[l.length - 1].s : 0;
+  modal('Estado de cuenta · ' + esc(nom), `
+    <p class="peq mudo" style="margin-top:0">${esc(a.datos.nombre)}</p>
+    <div class="fin-det-monto">${finM(s)}<span class="ayuda">${s > 0 ? 'saldo pendiente' : s < 0 ? 'saldo a favor de la escuela' : 'liquidado'}</span></div>
+    <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
+    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Pedido: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+      <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('')}</tbody></table>`,
+    `<button class="boton sec" id="ec-pdf" style="margin-right:auto">Estado de cuenta (PDF)</button><button class="boton sec" id="ec-ped">Nuevo pedido</button><button class="boton terra" id="ec-ab">${ico('i-mas')}Registrar abono</button>`);
+  $$('[data-rdet]', $('#velo')).forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
+  $('#ec-ab').onclick = () => recFormAbono(a, null, { cliente: key, clienteNombre: nom });
+  $('#ec-ped').onclick = () => recFormPedido(a, null, { cliente: key, clienteNombre: nom });
+  $('#ec-pdf').onclick = () => recPdf(recHtmlEstado(a, key, nom, l), 'Estado de cuenta ' + nom + ' ' + a.datos.nombre);
+}
+
+/* ---------- Detalle de un registro ---------- */
+function recDetalle(id) {
+  const o = (S.rec || []).find(x => x.id === id); if (!o) return;
+  const a = o.act ? recAct(o.act) : null, d = o.datos;
+  const titulo = { pedido: 'Pedido', abono: 'Abono · folio ' + (d.folio || ''), compra: 'Entrega del proveedor', pago: 'Pago al proveedor', mov: d.clase === 'traspaso' ? 'Traspaso caja ↔ banco' : d.clase === 'ingreso' ? 'Ingreso' : 'Gasto o egreso' }[o.tipo];
+  const monto = o.tipo === 'pedido' ? recTotal(d.lineas, 'precio') : o.tipo === 'compra' ? recTotal(d.lineas, 'costo') : finN(d.monto);
+  const lins = (d.lineas || []).filter(l => finN(l.cant));
+  modal(esc(titulo) + ' · ' + fechaCorta(o.fecha), `<div class="fin-det">
+    <div class="fin-det-monto">${finM(monto)}<span class="ayuda">${esc(finLetra(monto))}</span></div>
+    <p style="margin:8px 0">${['pedido', 'abono'].includes(o.tipo) ? '<b>' + esc(recCliNom(d)) + '</b>' : esc(d.concepto || (a ? a.datos.proveedor : '') || '')}</p>
+    <div class="peq mudo">${a ? esc(a.datos.nombre) + ' · ' : ''}${d.cat ? esc(d.cat) + ' · ' : ''}${d.forma ? esc(d.forma) + ' · ' : ''}${d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Del banco a caja' : 'De caja al banco') : d.medio ? (d.medio === 'banco' ? 'Banco' : 'Caja') : ''}${d.ref ? ' · Ref. ' + esc(d.ref) : ''}</div>
+    ${lins.length ? `<table class="fin-tabla" style="margin-top:10px"><tbody>${lins.map(l => `<tr><td>${finN(l.cant)} × ${esc(l.nombre)}</td><td class="d">${finM(l[o.tipo === 'compra' ? 'costo' : 'precio'])}</td><td class="d">${finM(finN(l.cant) * finN(l[o.tipo === 'compra' ? 'costo' : 'precio']))}</td></tr>`).join('')}</tbody></table>` : ''}
+    ${d.obs ? `<p class="peq" style="margin-top:8px"><b>Observaciones:</b> ${esc(d.obs)}</p>` : ''}${finHistorial(o)}</div>`,
+    `<button class="boton peligro" id="rx-del" style="margin-right:auto">Eliminar</button>${o.tipo === 'abono' ? '<button class="boton sec" id="rx-rec">Recibo (PDF)</button>' : ''}<button class="boton terra" id="rx-ed">${ico('i-lapiz')}Editar</button>`);
+  $('#rx-ed').onclick = () => {
+    if (o.tipo === 'mov') return recFormMov(o);
+    if (!a) return aviso('La actividad de este registro está eliminada.', 'mal');
+    ({ pedido: recFormPedido, abono: recFormAbono, compra: recFormCompra, pago: recFormPago })[o.tipo](a, o);
+  };
+  if ($('#rx-rec')) $('#rx-rec').onclick = () => recRecibo(o);
+  $('#rx-del').onclick = () => recEliminar(o, 'este registro de ' + finM(monto));
+}
+
+/* ---------- Guardar, eliminar, papelera ---------- */
+function recGuardar(q, msg, despues) {
+  return accion('recGuardar', q, r => { recRecibir(r.rec); recRedibujar(); aviso(msg || 'Guardado.', 'ok', 2500); if (despues) despues(r.rec); });
+}
+function recEliminar(o, que, antes) {
+  if (!confirm('¿Eliminar ' + que + '? ' + (esAdmin() ? 'Podrá restaurarlo desde «Eliminados».' : 'Si fue un error, la Supervisión puede restaurarlo.'))) return;
+  accion('recEliminar', { id: o.id }, r => { recRecibir(r.rec); if (antes) antes(); recRedibujar(); aviso('Registro eliminado.', 'ok', 2500); });
+}
+function recPapelera() {
+  const l = (S.rec || []).filter(x => x.activo === false).sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  const desc = o => o.tipo === 'act' ? 'Actividad: ' + o.datos.nombre : ({ pedido: 'Pedido de ' + recCliNom(o.datos) + ' · ' + finM(recTotal(o.datos.lineas, 'precio')), abono: 'Abono ' + (o.datos.folio || '') + ' de ' + recCliNom(o.datos) + ' · ' + finM(o.datos.monto),
+    compra: 'Entrega del proveedor · ' + finM(recTotal(o.datos.lineas, 'costo')), pago: 'Pago al proveedor · ' + finM(o.datos.monto), mov: (o.datos.concepto || o.datos.cat || 'Movimiento') + ' · ' + finM(o.datos.monto) })[o.tipo];
+  modal('Registros eliminados · Actividades recaudatorias', l.length ? `<div class="checklist">${l.map(o => { const u = (o.historial || []).slice(-1)[0] || {}; return `<div class="chk-fila" style="align-items:center"><span style="flex:1;min-width:0">${esc(desc(o))}<br><span class="ayuda">${fechaCorta(o.fecha)} · eliminó ${esc(u.nom || '')} ${u.f ? '· ' + fechaHora(u.f) : ''}</span></span><button class="boton sec chico" data-rrest="${o.id}">Restaurar</button></div>`; }).join('')}</div>` : '<div class="vacio">No hay registros eliminados.</div>', '<button class="boton sec" id="rp-cerrar">Cerrar</button>');
+  $('#rp-cerrar').onclick = cerrarModal;
+  $$('[data-rrest]').forEach(b => b.onclick = () => accion('recRestaurar', { id: b.dataset.rrest }, r => { recRecibir(r.rec); vFinanzas(); recPapelera(); aviso('Registro restaurado.', 'ok', 2500); }));
+}
+
+/* ---------- Formularios ---------- */
+const recCampoFecha = (f, id = 'rf-fecha') => `<div class="campo"><label for="${id}">Fecha</label><input type="date" id="${id}" value="${f || hoy()}"></div>`;
+const recCampoMedio = (d, id = 'rf-medio') => `<div class="campo"><label for="${id}">Entra / sale de</label><select id="${id}"><option value="caja" ${d.medio !== 'banco' ? 'selected' : ''}>Caja (efectivo)</option><option value="banco" ${d.medio === 'banco' ? 'selected' : ''}>Banco</option></select></div>`;
+const recCampoForma = (d, id = 'rf-forma') => `<div class="campo"><label for="${id}">Forma de pago</label><select id="${id}">${REC_FORMAS.map(f => `<option ${d.forma === f ? 'selected' : ''}>${f}</option>`).join('')}</select></div>`;
+const recCampoObs = d => `<div class="campo"><label for="rf-obs">Observaciones</label><textarea id="rf-obs" rows="2">${esc(d.obs || '')}</textarea></div>`;
+const recPie = (txt = 'Guardar') => `<button class="boton sec" id="rf-cancel">Cancelar</button><button class="boton terra" id="rf-ok">${txt}</button>`;
+function recPieEnlazar(fn) { $('#rf-cancel').onclick = cerrarModal; $('#rf-ok').onclick = fn; }
+const recVal = id => ($('#' + id) || {}).value || '';
+
+function recFormAct(prev) {
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : { nombre: '', proveedor: '', contacto: '', productos: [{ id: 'p1', nombre: '', costo: '', precio: '' }], estado: 'abierta', obs: '' }));
+  modal(prev ? 'Editar actividad' : 'Nueva actividad recaudatoria', `
+    <div class="campo"><label for="ra-nom">Nombre de la actividad</label><input id="ra-nom" maxlength="140" value="${esc(d.nombre)}" placeholder="Ej. Venta de guías escolares 2026-2027"></div>
+    ${recCampoFecha(prev ? prev.fecha : hoy())}
+    <div class="fila"><div class="campo ancho"><label for="ra-prov">Proveedor</label><input id="ra-prov" value="${esc(d.proveedor)}" placeholder="Ej. Editorial Santillana · distribuidor"></div>
+      <div class="campo ancho"><label for="ra-cont">Contacto del proveedor</label><input id="ra-cont" value="${esc(d.contacto)}" placeholder="Nombre y teléfono"></div></div>
+    <div class="campo"><span class="et">Productos y precios</span><div class="ayuda" style="margin-bottom:6px">Costo: lo que nos cobra el proveedor por pieza. Precio: lo que paga la escuela por pieza.</div>
+      <div class="fin-lin rec-lin3 ayuda" style="margin-bottom:2px"><span>Producto</span><span>Costo</span><span>Precio</span><span></span></div>
+      <div id="ra-prods"></div><button class="enlace" id="ra-mas">+ Agregar producto</button></div>
+    <div class="campo"><label for="rf-obs">Notas</label><textarea id="rf-obs" rows="2">${esc(d.obs || '')}</textarea></div>`, recPie());
+  const pintar = () => {
+    $('#ra-prods').innerHTML = d.productos.map((p, i) => `<div class="fin-lin rec-lin3"><input data-pn="${i}" value="${esc(p.nombre)}" placeholder="Ej. Guía 3.er grado" aria-label="Producto"><input class="d" data-pc="${i}" inputmode="decimal" value="${esc(p.costo)}" placeholder="0.00" aria-label="Costo"><input class="d" data-pp="${i}" inputmode="decimal" value="${esc(p.precio)}" placeholder="0.00" aria-label="Precio"><button class="icono-btn" data-px="${i}" aria-label="Quitar">${ico('i-x')}</button></div>`).join('');
+    $$('[data-pn]').forEach(e => e.oninput = () => d.productos[e.dataset.pn].nombre = e.value);
+    $$('[data-pc]').forEach(e => e.oninput = () => d.productos[e.dataset.pc].costo = e.value);
+    $$('[data-pp]').forEach(e => e.oninput = () => d.productos[e.dataset.pp].precio = e.value);
+    $$('[data-px]').forEach(e => e.onclick = () => {
+      const p = d.productos[e.dataset.px];
+      if (prev && recDe(prev.id).some(o => (o.datos.lineas || []).some(l => l.prod === p.id && finN(l.cant)))) return aviso('Ese producto ya tiene pedidos o entregas; no se puede quitar. Puede cambiarle el nombre o el precio.', 'mal', 6000);
+      d.productos.splice(+e.dataset.px, 1); pintar();
+    });
+  };
+  pintar();
+  $('#ra-mas').onclick = () => { d.productos.push({ id: 'p' + Date.now().toString(36), nombre: '', costo: '', precio: '' }); pintar(); };
+  recPieEnlazar(() => {
+    d.nombre = recVal('ra-nom').trim(); d.proveedor = recVal('ra-prov').trim(); d.contacto = recVal('ra-cont').trim(); d.obs = recVal('rf-obs').trim();
+    d.productos = d.productos.filter(p => p.nombre.trim()).map(p => ({ id: p.id, nombre: p.nombre.trim(), costo: String(finN(p.costo)), precio: String(finN(p.precio)) }));
+    if (!d.nombre) return aviso('Escriba el nombre de la actividad.', 'mal');
+    recGuardar({ id: prev ? prev.id : '', tipo: 'act', fecha: recVal('rf-fecha'), datos: d }, prev ? 'Actividad actualizada.' : 'Actividad creada.', o => { if (!prev) { vista.fin.rec.act = o.id; vista.fin.rec.sub = d.productos.length ? 'resumen' : 'datos'; vFinanzas(); } });
+  });
+}
+// Renglones por producto (pedido: precio; entrega del proveedor: costo)
+function recFormLineas(a, prev, k, titulo, extra, alGuardar) {
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : Object.assign({ lineas: [], obs: '', ref: '' }, extra || {})));
+  const ps = a.datos.productos || [], L = ps.map(p => { const l = (d.lineas || []).find(x => x.prod === p.id); return { prod: p.id, nombre: p.nombre, cant: l ? l.cant : '', [k]: l ? l[k] : p[k] }; });
+  (d.lineas || []).filter(l => !ps.some(p => p.id === l.prod)).forEach(l => L.push(l));
+  const tot = () => recTotal(L, k);
+  modal(titulo, `${typeof extra === 'object' && k === 'precio' ? recCampoCliente(d) : ''}${recCampoFecha(prev ? prev.fecha : hoy())}
+    <div class="campo"><span class="et">${k === 'precio' ? 'Lo que se lleva' : 'Lo que entregó'}</span>
+      <div class="fin-lin rec-lin3 ayuda" style="margin-bottom:2px"><span>Producto</span><span>Cantidad</span><span>${k === 'precio' ? 'Precio' : 'Costo'} c/u</span><span></span></div>
+      ${L.map((l, i) => `<div class="fin-lin rec-lin3"><span style="align-self:center">${esc(l.nombre)}</span><input class="d" data-lc="${i}" inputmode="numeric" value="${esc(l.cant)}" placeholder="0" aria-label="Cantidad de ${esc(l.nombre)}"><input class="d" data-lk="${i}" inputmode="decimal" value="${esc(l[k])}" aria-label="Precio de ${esc(l.nombre)}"><span></span></div>`).join('')}
+      <div style="text-align:right;font-weight:700;margin-top:6px">Total: <span id="rl-tot">${finM(tot())}</span></div></div>
+    ${k === 'costo' ? `<div class="campo"><label for="rf-ref">Nota, factura o remisión</label><input id="rf-ref" value="${esc(d.ref || '')}"></div>` : ''}
+    ${recCampoObs(d)}`, recPie());
+  recClienteEnlazar(d);
+  $$('[data-lc]').forEach(e => e.oninput = () => { L[e.dataset.lc].cant = e.value; $('#rl-tot').textContent = finM(tot()); });
+  $$('[data-lk]').forEach(e => e.oninput = () => { L[e.dataset.lk][k] = e.value; $('#rl-tot').textContent = finM(tot()); });
+  recPieEnlazar(() => {
+    d.lineas = L.filter(l => finN(l.cant) > 0).map(l => ({ prod: l.prod, nombre: l.nombre, cant: String(finN(l.cant)), [k]: String(finN(l[k])) }));
+    d.obs = recVal('rf-obs').trim(); if ($('#rf-ref')) d.ref = recVal('rf-ref').trim();
+    if (!d.lineas.length) return aviso('Ponga la cantidad de al menos un producto.', 'mal');
+    if (k === 'precio' && !recLeerCliente(d)) return;
+    alGuardar(d, recVal('rf-fecha'));
+  });
+}
+function recFormPedido(a, prev, base) {
+  recFormLineas(a, prev, 'precio', prev ? 'Editar pedido' : 'Pedido de escuela', base || {}, (d, f) => recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'pedido', fecha: f, datos: d }, 'Pedido registrado: ' + recCliNom(d) + ' debe ' + finM(recTotal(d.lineas, 'precio')) + ' más.'));
+}
+function recFormCompra(a, prev) {
+  recFormLineas(a, prev, 'costo', prev ? 'Editar entrega del proveedor' : 'Entrega del proveedor', null, (d, f) => recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'compra', fecha: f, datos: d }, 'Entrega registrada. Se suma a lo que le debemos al proveedor.'));
+}
+// Escuela o persona
+function recCampoCliente(d) {
+  const esP = String(d.cliente || '').startsWith('p:');
+  return `<div class="campo"><label for="rf-cli">Escuela</label><select id="rf-cli"><option value="">Elija…</option>${directores().map(e => `<option value="${e.cct}" ${d.cliente === e.cct ? 'selected' : ''}>${esc(e.escuela)}</option>`).join('')}
+    <option value="p:" ${esP ? 'selected' : ''}>Otra persona (maestro, padre de familia…)</option></select></div>
+    <div class="campo" id="rf-percaja" ${esP ? '' : 'hidden'}><label for="rf-per">Nombre de la persona</label><input id="rf-per" value="${esc(esP ? (d.clienteNombre || d.cliente.slice(2)) : '')}"></div>`;
+}
+function recClienteEnlazar() { if ($('#rf-cli')) $('#rf-cli').onchange = e => { $('#rf-percaja').hidden = e.target.value !== 'p:'; }; }
+function recLeerCliente(d) {
+  const v = recVal('rf-cli');
+  if (!v) { aviso('Elija la escuela.', 'mal'); return false; }
+  if (v === 'p:') { const n = recVal('rf-per').trim().replace(/\s+/g, ' '); if (!n) { aviso('Escriba el nombre de la persona.', 'mal'); return false; } d.cliente = 'p:' + n.toUpperCase(); d.clienteNombre = n; }
+  else { d.cliente = v; d.clienteNombre = nombreEscuela(v); }
+  return true;
+}
+function recFormAbono(a, prev, base) {
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : Object.assign({ cliente: '', monto: '', medio: 'caja', forma: 'Efectivo', ref: '', obs: '' }, base || {})));
+  const c = recCuenta(a);
+  modal(prev ? 'Editar abono · folio ' + esc(d.folio || '') : 'Abono de escuela', `${recCampoCliente(d)}<div class="ayuda" id="rf-saldo" style="margin:-6px 0 12px"></div>
+    <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-monto">Monto del abono</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div></div>
+    <div class="fila">${recCampoMedio(d)}${recCampoForma(d)}</div>
+    <div class="campo"><label for="rf-ref">Referencia (núm. de transferencia, depósito…)</label><input id="rf-ref" value="${esc(d.ref || '')}"></div>${recCampoObs(d)}
+    ${prev ? '' : '<div class="ayuda">Al guardar se le asigna un folio de seguimiento y puede descargar el recibo.</div>'}`, recPie(prev ? 'Guardar' : 'Guardar abono'));
+  const saldo = () => { const v = recVal('rf-cli'), x = c.cli[v === 'p:' ? 'p:' + recVal('rf-per').trim().replace(/\s+/g, ' ').toUpperCase() : v]; $('#rf-saldo').textContent = v ? (x ? 'Saldo pendiente: ' + finM(x.saldo + (prev && prev.datos.cliente === x.key ? finN(prev.datos.monto) : 0)) : 'Esta escuela no tiene pedidos en la actividad.') : ''; };
+  recClienteEnlazar(); $('#rf-cli').addEventListener('change', saldo); if ($('#rf-per')) $('#rf-per').addEventListener('input', saldo); saldo();
+  recPieEnlazar(() => {
+    if (!recLeerCliente(d)) return;
+    d.monto = String(finN(recVal('rf-monto'))); d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
+    if (finN(d.monto) <= 0) return aviso('Escriba el monto del abono.', 'mal');
+    recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'abono', fecha: recVal('rf-fecha'), datos: d }, prev ? 'Abono actualizado.' : 'Abono registrado.', o => { if (!prev) recAvisoRecibo(o); });
+  });
+}
+function recAvisoRecibo(o) {
+  modal('Abono registrado · folio ' + esc(o.datos.folio), `<div class="fin-det-monto">${finM(o.datos.monto)}<span class="ayuda">${esc(recCliNom(o.datos))}</span></div><p>Ya entró a la contabilidad como ingreso. ¿Descarga el recibo para entregarlo?</p>`,
+    '<button class="boton sec" id="ra-no">Ahora no</button><button class="boton terra" id="ra-si">Descargar recibo (PDF)</button>');
+  $('#ra-no').onclick = cerrarModal; $('#ra-si').onclick = () => { recRecibo(o); cerrarModal(); };
+}
+function recFormPago(a, prev) {
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : { monto: '', medio: 'caja', forma: 'Efectivo', ref: '', obs: '' })), c = recCuenta(a);
+  modal(prev ? 'Editar pago al proveedor' : 'Pago al proveedor · ' + esc(a.datos.proveedor || ''), `<div class="ayuda" style="margin-bottom:12px">Le debemos actualmente: <b>${finM(c.debemos + (prev ? finN(prev.datos.monto) : 0))}</b></div>
+    <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-monto">Monto pagado</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div></div>
+    <div class="fila">${recCampoMedio(d)}${recCampoForma(d)}</div>
+    <div class="campo"><label for="rf-ref">Referencia o comprobante</label><input id="rf-ref" value="${esc(d.ref || '')}"></div>${recCampoObs(d)}`, recPie());
+  recPieEnlazar(() => {
+    d.monto = String(finN(recVal('rf-monto'))); d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
+    if (finN(d.monto) <= 0) return aviso('Escriba el monto pagado.', 'mal');
+    if (!recAlcanza(d.medio, finN(d.monto), prev)) return;
+    recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'pago', fecha: recVal('rf-fecha'), datos: d }, 'Pago registrado. Salió de la contabilidad como egreso.');
+  });
+}
+// Aviso si un egreso deja la caja o el banco en negativo
+function recAlcanza(medio, monto, prev) {
+  const s = recSaldo(), e = prev ? recEfecto(prev) : { caja: 0, banco: 0 }, queda = recR(s[medio] - e[medio] - monto);
+  return queda >= 0 || confirm('Con este egreso ' + (medio === 'banco' ? 'el banco' : 'la caja') + ' quedaría en ' + finM(queda) + '. ¿Registrarlo de todos modos?');
+}
+// Ingreso, gasto o traspaso de la contabilidad general
+function recFormMov(prev, base) {
+  const d = JSON.parse(JSON.stringify(prev ? prev.datos : Object.assign({ clase: 'egreso', cat: '', concepto: '', monto: '', medio: 'caja', forma: 'Efectivo', direccion: 'deposito', ref: '', obs: '' }, base || {})));
+  const act = prev ? prev.act : (base && base.act) || '';
+  const tit = { ingreso: 'Ingreso', egreso: 'Gasto o egreso', traspaso: 'Depósito o retiro (caja ↔ banco)' };
+  modal((prev ? 'Editar · ' : 'Registrar · ') + tit[d.clase], `
+    ${d.clase === 'traspaso' ? `<div class="campo"><label for="rf-dir">Movimiento</label><select id="rf-dir"><option value="deposito" ${d.direccion !== 'retiro' ? 'selected' : ''}>Depósito: de caja al banco</option><option value="retiro" ${d.direccion === 'retiro' ? 'selected' : ''}>Retiro: del banco a caja</option></select></div>`
+      : `<div class="campo"><label for="rf-cat">Categoría</label><select id="rf-cat">${REC_CAT[d.clase].map(x => `<option ${d.cat === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+         <div class="campo"><label for="rf-con">Concepto</label><input id="rf-con" maxlength="200" value="${esc(d.concepto)}" placeholder="${d.clase === 'egreso' ? 'Ej. Flete de las guías a Camalú' : 'Ej. Saldo con que inicia la contabilidad'}"></div>`}
+    <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-monto">Monto</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div></div>
+    ${d.clase === 'traspaso' ? '' : `<div class="fila">${recCampoMedio(d)}${recCampoForma(d)}</div>
+    <div class="campo"><label for="rf-act">Actividad</label><select id="rf-act"><option value="">General de la Supervisión (no es de una actividad)</option>${recActs().map(a => `<option value="${a.id}" ${act === a.id ? 'selected' : ''}>${esc(a.datos.nombre)}</option>`).join('')}</select></div>`}
+    <div class="campo"><label for="rf-ref">Comprobante o referencia</label><input id="rf-ref" value="${esc(d.ref || '')}" placeholder="Ej. Ticket, nota, factura, núm. de depósito"></div>${recCampoObs(d)}`, recPie());
+  recPieEnlazar(() => {
+    d.monto = String(finN(recVal('rf-monto'))); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
+    if (d.clase === 'traspaso') { d.direccion = recVal('rf-dir'); d.concepto = d.direccion === 'retiro' ? 'Retiro del banco a caja' : 'Depósito de caja al banco'; d.cat = ''; }
+    else { d.cat = recVal('rf-cat'); d.concepto = recVal('rf-con').trim() || d.cat; d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); }
+    if (finN(d.monto) <= 0) return aviso('Escriba el monto.', 'mal');
+    if (d.clase === 'egreso' && !recAlcanza(d.medio, finN(d.monto), prev)) return;
+    if (d.clase === 'traspaso' && !recAlcanza(d.direccion === 'retiro' ? 'banco' : 'caja', finN(d.monto), prev)) return;
+    recGuardar({ id: prev ? prev.id : '', act: d.clase === 'traspaso' ? '' : recVal('rf-act'), tipo: 'mov', fecha: recVal('rf-fecha'), datos: d }, 'Movimiento registrado en la contabilidad.');
+  });
+}
+
+/* ---------- Recibo y estado de cuenta (PDF, sin logos ni firma) ---------- */
+const REC_PDF_CSS = `.rp{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px}.rp h1{font-size:15px;margin:0;letter-spacing:.04em}.rp .sub{font-size:11px;color:#444}
+.rp .rec{border:1.4px solid #222;border-radius:6px;padding:18px 22px;height:440px;box-sizing:border-box;position:relative}.rp .fol{position:absolute;right:22px;top:16px;text-align:right}.rp .fol b{font-size:17px;color:#9b2c1f;display:block}
+.rp table{width:100%;border-collapse:collapse}.rp td,.rp th{padding:6px 8px;border-bottom:1px solid #bbb;text-align:left;vertical-align:top}.rp .d{text-align:right;white-space:nowrap}.rp th{font-size:10.5px;text-transform:uppercase;background:#f1f1f1}
+.rp .cant{font-size:20px;font-weight:700}.rp .corte{border-top:1.4px dashed #777;margin:22px 0;position:relative}.rp .corte span{position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:9.5px;color:#777}
+.rp .tag{position:absolute;left:22px;bottom:12px;font-size:9.5px;color:#666;text-transform:uppercase;letter-spacing:.08em}`;
+function recRecibo(o) {
+  const a = recAct(o.act) || { datos: { nombre: '' } }, d = o.datos, l = recMovsCli(a, d.cliente), i = l.findIndex(f => f.o.id === o.id);
+  const despues = i >= 0 ? l[i].s : 0, antes = recR(despues + finN(d.monto));
+  const uno = tag => `<div class="rec">
+    <div><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Recibo de abono · Actividad recaudatoria</div></div>
+    <div class="fol">Folio<b>${esc(d.folio || '')}</b>${esc(finFechaTxt(o.fecha))}</div>
+    <table style="margin-top:22px"><tbody>
+      <tr><td style="width:150px">Recibimos de</td><td><b>${esc(recCliNom(d))}</b>${!String(d.cliente).startsWith('p:') ? ' · CCT ' + esc(d.cliente) : ''}</td></tr>
+      <tr><td>La cantidad de</td><td><span class="cant">${finM(d.monto)}</span><br>(${esc(finLetra(d.monto))})</td></tr>
+      <tr><td>Por concepto de</td><td>Abono a «${esc(a.datos.nombre)}»</td></tr>
+      <tr><td>Forma de pago</td><td>${esc(d.forma || '')}${d.ref ? ' · Ref. ' + esc(d.ref) : ''}</td></tr></tbody></table>
+    <table style="margin-top:14px;width:60%;margin-left:auto"><tbody><tr><td>Saldo anterior</td><td class="d">${finM(antes)}</td></tr><tr><td>Este abono</td><td class="d">−${finM(d.monto)}</td></tr>
+      <tr><td><b>Saldo pendiente</b></td><td class="d"><b>${finM(despues)}</b></td></tr></tbody></table>
+    ${d.obs ? `<div style="margin-top:8px;font-size:11px">Obs.: ${esc(d.obs)}</div>` : ''}
+    <div style="position:absolute;right:22px;bottom:12px;font-size:10.5px;color:#444">Registró: ${esc(o.creadoNombre || '')}</div><div class="tag">${tag}</div></div>`;
+  recPdf(`<div style="padding:40px 48px">${uno('Original · escuela')}<div class="corte"><span>✂ cortar aquí</span></div>${uno('Copia · Supervisión')}</div>`, 'Recibo ' + (d.folio || '') + ' ' + recCliNom(d));
+}
+function recHtmlEstado(a, key, nom, l) {
+  const s = l.length ? l[l.length - 1].s : 0;
+  return `<div style="padding:44px 52px"><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Estado de cuenta · ${esc(a.datos.nombre)} · al ${esc(finFechaTxt(hoy()))}</div>
+    <p style="margin:18px 0 10px"><b>${esc(nom)}</b>${!String(key).startsWith('p:') ? ' · CCT ' + esc(key) : ''}</p>
+    <table><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
+    <tbody>${l.map(f => `<tr><td>${esc(f.o.fecha.split('-').reverse().join('/'))}</td><td>${f.o.tipo === 'pedido' ? 'Pedido: ' + esc((f.o.datos.lineas || []).map(x => finN(x.cant) + ' × ' + x.nombre + ' a ' + finM(x.precio)).join('; ')) : 'Abono, folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+      <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d">${finM(f.s)}</td></tr>`).join('')}</tbody></table>
+    <p style="text-align:right;font-size:15px;margin-top:16px"><b>${s > 0 ? 'Saldo pendiente' : s < 0 ? 'Saldo a favor' : 'Liquidado'}: ${finM(Math.abs(s))}</b></p></div>`;
+}
+async function recPdf(html, nombre) {
+  await conCarga(async () => {
+    await cargarScript('lib/html2pdf.bundle.min.js');
+    const caja = document.createElement('div');
+    caja.style.cssText = 'position:fixed;left:-12000px;top:0;width:816px;background:#fff';
+    caja.innerHTML = `<style>${REC_PDF_CSS}</style><div class="rp">${html}</div>`;
+    document.body.appendChild(caja);
+    try {
+      const blob = await window.html2pdf().set({ margin: 0, image: { type: 'jpeg', quality: 0.96 }, html2canvas: { scale: 2.2, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'] } }).from(caja.querySelector('.rp')).outputPdf('blob');
+      descargarBlob(blob, String(nombre || 'Recibo').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf');
+    } finally { caja.remove(); }
+  });
+}
+
+/* ---------- Demostración ---------- */
+function recArmarDemo(lista, d, yo) {
+  const prev = d.id ? lista.find(x => x.id === d.id) : null, ah = new Date().toISOString().slice(0, 19), fecha = d.fecha || hoy(), datos = d.datos || {};
+  const id = prev ? prev.id : 'rec-' + Math.random().toString(36).slice(2, 12);
+  if (d.tipo === 'abono') {
+    if (prev && prev.datos.folio) { datos.folio = prev.datos.folio; datos.folioN = prev.datos.folioN; }
+    else { const y = fecha.slice(0, 4), n = lista.filter(x => x.tipo === 'abono' && String(x.datos.folio || '').startsWith('AR-' + y + '-')).reduce((m, x) => Math.max(m, +x.datos.folioN || 0), 0) + 1; datos.folioN = String(n); datos.folio = 'AR-' + y + '-' + String(n).padStart(4, '0'); }
+  }
+  return { id, act: d.tipo === 'act' ? id : (d.act || ''), tipo: d.tipo, fecha, datos, activo: true, creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre,
+    creado: prev ? prev.creado : ah, actualizado: ah, actualizadoPor: yo.id, historial: ((prev && prev.historial) || []).concat([{ f: ah, por: yo.id, nom: yo.nombre, a: prev ? 'edito' : 'creo' }]) };
+}
+function recDemo() {
+  const l = [], yo = { id: 'u-demo', nombre: 'Supervisión (demostración)' };
+  const add = (tipo, act, dia, datos) => { const o = recArmarDemo(l, { tipo, act, fecha: sumarDias(hoy(), +dia - 12), datos }, yo); l.push(o); return o; };
+  const P = [{ id: 'p1', nombre: 'Guía 1.° y 2.°', costo: '120', precio: '150' }, { id: 'p2', nombre: 'Guía 3.° y 4.°', costo: '135', precio: '170' }, { id: 'p3', nombre: 'Guía 5.° y 6.°', costo: '145', precio: '180' }];
+  const a = add('act', '', '01', { nombre: 'Venta de guías escolares ' + cicloActual(), proveedor: 'Distribuidora Educativa del Valle', contacto: 'Lic. Rosa Méndez · 616 000 0000', productos: P, estado: 'abierta', obs: '' });
+  add('mov', '', '01', { clase: 'ingreso', cat: 'Saldo inicial', concepto: 'Saldo con que inicia la contabilidad', monto: '1500', medio: 'caja', forma: 'Efectivo' });
+  add('compra', a.id, '02', { lineas: [{ prod: 'p1', nombre: P[0].nombre, cant: '60', costo: '120' }, { prod: 'p2', nombre: P[1].nombre, cant: '60', costo: '135' }, { prod: 'p3', nombre: P[2].nombre, cant: '50', costo: '145' }], ref: 'Remisión 0457' });
+  const es = directores().slice(0, 4);
+  es.forEach((e, i) => add('pedido', a.id, '0' + (3 + i), { cliente: e.cct, clienteNombre: e.escuela, lineas: P.map((p, j) => ({ prod: p.id, nombre: p.nombre, cant: String(8 + ((i + j) % 3) * 4), precio: p.precio })) }));
+  if (es[0]) add('abono', a.id, '08', { cliente: es[0].cct, clienteNombre: es[0].escuela, monto: '2000', medio: 'caja', forma: 'Efectivo' });
+  if (es[0]) add('abono', a.id, '10', { cliente: es[0].cct, clienteNombre: es[0].escuela, monto: '1500', medio: 'banco', forma: 'Transferencia', ref: '884512' });
+  if (es[1]) add('abono', a.id, '09', { cliente: es[1].cct, clienteNombre: es[1].escuela, monto: '1000', medio: 'caja', forma: 'Efectivo' });
+  add('pago', a.id, '10', { monto: '3000', medio: 'caja', forma: 'Efectivo', ref: 'Recibo del proveedor 112' });
+  add('mov', a.id, '04', { clase: 'egreso', cat: 'Flete o envío', concepto: 'Flete de las guías a Camalú', monto: '350', medio: 'caja', forma: 'Efectivo' });
+  return l;
 }
 
 /* ---------- Demostración: mismo comportamiento que el servidor ---------- */
