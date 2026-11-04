@@ -171,7 +171,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias' };
-const VERSION = 34;
+const VERSION = 35;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1028,8 +1028,9 @@ const ACCIONES = {
 
   // Crea o actualiza una reunión con su lista de acuerdos (y, opcionalmente, actividades para la agenda).
   // No envía ningún correo: las actividades importadas quedan sin avisos automáticos.
+  // La Supervisión y los ATP de zona dan de alta y editan reuniones, convocatorias y programas; quitarlos solo la Supervisión
   guardarReunion: (yo, d) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const r0 = d.reunion || {};
     if (!r0.titulo || !r0.fecha) throw new Error('La reunión necesita nombre y fecha.');
     const previa = r0.id ? buscar_('reu', r0.id) : null;

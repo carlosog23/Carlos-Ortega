@@ -865,7 +865,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-04-1340';
+const PUBLICACION = '2026-11-04-1350';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2687,6 +2687,8 @@ const TIPOS_REU = { reunion: 'Reunión de directores', ctz: 'Consejo Técnico de
   convocatoria: 'Convocatoria', erase: 'Programa «Érase una vez»', saae: 'SAAE', programa: 'Otro programa o solicitud' };
 // Además de los acuerdos de reuniones, se registran aquí convocatorias y programas (Érase una vez, SAAE…) que piden evidencias: funcionan igual
 const REU_GRUPOS = [['acuerdos', 'Acuerdos de reuniones', ['reunion', 'ctz', 'cte', 'mesa', 'otro']], ['convocatoria', 'Convocatorias', ['convocatoria']], ['erase', 'Érase una vez', ['erase']], ['saae', 'SAAE', ['saae']], ['programa', 'Otros programas o solicitudes', ['programa']]];
+// Quién da de alta y edita: la Supervisión y, con el servidor 35 o más, también los ATP de zona
+const puedeAcuerdos = () => esAdmin() || (esMesa() && ((cfg && cfg.demo) || (S.version || 0) >= 35));
 const esReunion = t => !t || REU_GRUPOS[0][2].includes(t) || !TIPOS_REU[t];
 const reuEtq = t => esReunion(t)
   ? { nombre: 'Nombre de la reunión', ph: 'Ej. Segunda Sesión Ordinaria del CTZ', items: 'Acuerdos (cada uno se palomea por escuela)', item: 'acuerdo', mas: 'Agregar acuerdo', ta: 'Acuerdo o acción a implementar', fecha: 'Fecha', desc: 'Propósitos o notas (opcional)' }
@@ -2754,7 +2756,7 @@ function vAcuerdos() {
   const reus = reunionesF().filter(r => !vista.acuReu || r.id === vista.acuReu);
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Acuerdos y compromisos</h1>
-    <div class="acciones">${esAdmin() ? `<button class="boton sec" id="b-importar">${ico('i-copiar')}Importar</button><button class="boton terra" id="b-nreu">${ico('i-mas')}Nuevo registro</button>` : ''}</div></div>
+    <div class="acciones">${puedeAcuerdos() ? `<button class="boton sec" id="b-importar">${ico('i-copiar')}Importar</button><button class="boton terra" id="b-nreu">${ico('i-mas')}Nuevo registro</button>` : ''}</div></div>
   <p class="peq pen-intro">Acuerdos de reuniones, convocatorias y programas (Érase una vez, SAAE…) que piden evidencias. Todos se palomean por escuela y, si requieren evidencia, la dirección la sube desde aquí.</p>
   ${esAdmin() && faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:240px"><b>Acuerdos listos para cargar:</b> ${faltan.map(p => esc(p.reunion.titulo) + ' (' + fechaCorta(p.reunion.fecha) + ')').join(' y ')}. Se agregan también sus fechas clave a la agenda, sin enviar correos.</div>
@@ -2822,7 +2824,7 @@ function tarjetaReunion(r, ccts) {
       <div style="flex:1;min-width:220px"><span class="chip ${esReunion(r.tipo) ? 'indigo' : 'morado'}">${esc(TIPOS_REU[r.tipo] || TIPOS_REU.otro)}</span>
         <h2>${esc(r.titulo)}</h2>
         <div class="peq mudo">${fechaLarga(r.fecha)}${r.horario ? ' · ' + esc(r.horario) : ''}${r.lugar ? ' · ' + esc(r.lugar) : ''}</div></div>
-      <div class="reunion-av">${anillo(a.pct, 76, '')}${esAdmin() ? `<button class="boton sec chico" data-ereu="${r.id}">${ico('i-lapiz')}Editar</button>` : ''}</div>
+      <div class="reunion-av">${anillo(a.pct, 76, '')}${puedeAcuerdos() ? `<button class="boton sec chico" data-ereu="${r.id}">${ico('i-lapiz')}Editar</button>` : ''}</div>
     </div>
     ${r.descripcion ? `<p class="peq" style="margin:0 16px 10px;white-space:pre-line">${esc(r.descripcion)}</p>` : ''}
     ${secciones.map(([sec, xs]) => `${sec ? `<div class="seccion-t">${esc(sec)}</div>` : ''}
@@ -3041,7 +3043,7 @@ function formReunion(id, base) {
   </div>
   ${puedeEvi ? '<div class="ayuda">📁 <b>Requiere evidencia</b>: el acuerdo lleva un botón «Subir evidencia» para la dirección, que guarda los archivos en esa carpeta de cada escuela, y la carpeta aparece en Evidencias con su semáforo. La carpeta nueva se crea al guardar.</div>' : S.evi ? '<div class="ayuda">Para marcar qué acuerdos requieren evidencia, actualice el servidor a la versión 28.</div>' : ''}
   ${id ? '<div class="ayuda">Si quita un acuerdo, deja de contar en el avance (sus palomeos se conservan en la hoja de datos).</div>' : ''}`;
-  modal(id ? 'Editar · ' + esc(TIPOS_REU[r.tipo] || 'reunión') : 'Nuevo registro', cuerpo, `${id ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar reunión</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
+  modal(id ? 'Editar · ' + esc(TIPOS_REU[r.tipo] || 'reunión') : 'Nuevo registro', cuerpo, `${id && esAdmin() ? '<button class="boton peligro" id="r-borrar" style="margin-right:auto">Quitar</button>' : ''}<button class="boton sec" id="r-cancelar">Cancelar</button><button class="boton terra" id="r-guardar">Guardar</button>`);
   const quitar = () => {
     $$('#r-acs [data-quitar]').forEach(b => b.onclick = () => b.closest('.acu-ed').remove());
     $$('#r-acs .acu-ed').forEach(f => {
