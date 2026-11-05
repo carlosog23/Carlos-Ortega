@@ -177,7 +177,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas' };
-const VERSION = 36;
+const VERSION = 37;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -457,7 +457,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['vidEstado', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -1447,6 +1447,26 @@ const ACCIONES = {
     const r = { archivo: { id: archivo.getId(), nombre: nombre, ruta: fila.ruta } };
     if (d.actualizar !== false) r.evi = revisarEscuela_(cct);
     return r;
+  },
+
+  // Pasa los archivos sueltos de la carpeta de un programa (los que no están en la subcarpeta de ninguna actividad)
+  // a la subcarpeta de una actividad, en las escuelas indicadas. Solo mueve archivos, no borra nada.
+  moverSueltos: (yo, d) => {
+    soloMesa_(yo);
+    const ruta = String(d.ruta || ''), destino = String(d.destino || '');
+    if (!ruta || !destino || normRuta_(destino).indexOf(normRuta_(ruta) + '/') !== 0) throw new Error('La carpeta de destino debe estar dentro de la carpeta del programa.');
+    const evi = leer_('evi'), res = [];
+    let total = 0;
+    (d.ccts || []).forEach(cct => {
+      const o = evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(ruta)), dst = evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(destino));
+      if (!o || !dst) return;
+      const carpeta = DriveApp.getFolderById(dst.carpetaId), it = DriveApp.getFolderById(o.carpetaId).getFiles();
+      let n = 0;
+      while (it.hasNext()) { it.next().moveTo(carpeta); n++; }
+      if (n) { total += n; res.push(cct); revisarEscuela_(cct); }
+    });
+    if (total) bitacora_('carpeta', ruta, [], total + ' archivo(s) de ' + ruta + ' → ' + destino, 'movidos por ' + yo.nombre + ' en ' + res.length + ' escuela(s)');
+    return { movidos: total, escuelas: res, evi: leer_('evi') };
   },
 
   // Crea una carpeta con el mismo nombre en varias escuelas, dentro de la ruta indicada ('' = carpeta de la escuela).
@@ -3097,6 +3117,16 @@ function columnasEvi_(evi) {
   const vistas = {};
   return cols.filter(c => { const k = normRuta_(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
 }
+/* Actividades de un programa (Érase una vez, SAAE, convocatorias…): cada punto del programa con evidencia en una subcarpeta
+   directa de la carpeta del rubro es un tramo de ese rubro. Mismo cálculo que la página de Tequio. */
+function segmentosEvi_(D, cct, ruta) {
+  const base = normRuta_(ruta) + '/', prof = String(ruta).split('/').length + 1;
+  return D.acu.filter(a => a.evidencia && normRuta_(a.evidencia).indexOf(base) === 0 && String(a.evidencia).split('/').length === prof && (!(a.escuelas || []).length || a.escuelas.indexOf(cct) >= 0))
+    .map(a => { const e = D.evi.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(a.evidencia)); if (!e) return null;
+      const v = D.eve.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(a.evidencia)), rev = v && v.estado ? v : null;
+      return { ruta: a.evidencia, e: e, rev: rev, ok: rev ? rev.estado === 'cumple' : +e.archivos > 0, nombre: sinNum_(String(a.evidencia).split('/').pop()) }; })
+    .filter(Boolean);
+}
 /* Carpeta «CTEs» de Evidencias: se valida con el apartado CTE, solo con la sesión vigente (la más alta en la que
    la Supervisión ya subió lo que se pedirá, o cuya fecha ya llegó). Mismo cálculo que la página de Tequio. */
 const CTE_FECHAS_ = { '2026-2027': ['', '2026-09-25', '2026-10-30', '2026-11-27', '2027-01-29', '2027-02-26', '2027-04-30', '2027-05-28', '2027-06-25'] };
@@ -3169,10 +3199,19 @@ function cifrasSemanal_(D, c, hoy) {
   r.logrosAcu = acu.filter(o => o.e === 'hecho' && o.f && o.f >= antes && o.f < hoy);
   // evidencias
   // si la Supervisión o el ATP ya revisaron el rubro, manda su semáforo (solo verde cuenta); si no, cuenta que la carpeta tenga archivos
-  const ev = D.cols.map(col => ({ c: col, e: D.evi.find(e => e.cct === cct && normRuta_(e.ruta) === normRuta_(col.ruta)) })).filter(o => o.e)
-    .map(o => { const cc = esColCte_(o.c.ruta) ? cteEvi_(D, cct) : null; if (cc) { o.rev = cc.rev; o.ok = cc.ok; return o; }
-      const v = D.eve.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(o.c.ruta)); o.rev = v && v.estado ? v : null; o.ok = o.rev ? o.rev.estado === 'cumple' : +o.e.archivos > 0; return o; });
-  r.evi = { lista: ev, hecho: ev.filter(o => o.ok).length, total: ev.length, na: D.cols.length - ev.length };
+  // la carpeta de un programa con actividades (Érase una vez, SAAE…) cuenta en tramos: cada actividad pesa lo mismo dentro del rubro
+  const revDe = ruta => { const v = D.eve.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(ruta)); return v && v.estado ? v : null; };
+  const ev = [];
+  let nCols = 0;
+  D.cols.forEach(col => {
+    const e = D.evi.find(x => x.cct === cct && normRuta_(x.ruta) === normRuta_(col.ruta)); if (!e) return; nCols++;
+    const o = { c: col, e: e, w: 1 }, cc = esColCte_(col.ruta) ? cteEvi_(D, cct) : null;
+    if (cc) { o.rev = cc.rev; o.ok = cc.ok; ev.push(o); return; }
+    const sg = segmentosEvi_(D, cct, col.ruta);
+    if (sg.length) { sg.forEach(s => ev.push({ c: { ruta: s.ruta, corto: col.corto + ' · ' + s.nombre }, e: s.e, rev: s.rev, ok: s.ok, w: 1 / sg.length })); return; }
+    o.rev = revDe(col.ruta); o.ok = o.rev ? o.rev.estado === 'cumple' : +e.archivos > 0; ev.push(o);
+  });
+  r.evi = { lista: ev, hecho: Math.round(ev.filter(o => o.ok).reduce((t, o) => t + o.w, 0) * 10) / 10, total: nCols, na: D.cols.length - nCols };
   r.faltaEvi = ev.filter(o => !o.ok).sort((a, b) => (a.rev && a.rev.estado === 'incompleto' ? 0 : 1) - (b.rev && b.rev.estado === 'incompleto' ? 0 : 1));
   // archivos nuevos en la semana anterior (cada archivo una vez, aunque aparezca en sus carpetas «madre»)
   const vistos = {};

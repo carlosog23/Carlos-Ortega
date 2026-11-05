@@ -303,6 +303,14 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .acu-ed{border:1px solid var(--borde);border-radius:10px;padding:8px;margin-bottom:8px;background:var(--crema);display:flex;flex-direction:column;gap:6px}
 .acu-ed input,.acu-ed textarea{border:1px solid var(--borde);border-radius:8px;padding:7px 9px;background:#fff;width:100%;min-height:38px}
 .acu-ed textarea{min-height:56px;resize:vertical}
+.matriz td.seg a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:var(--tinta)}
+.tramos{display:flex;gap:2px;width:100%;max-width:74px;height:10px}
+.tramos i,.seg-pt{flex:1;border-radius:3px;background:var(--arena-2);border:1px solid var(--borde)}
+.t-cumple{background:#7CC59A!important;border-color:#5FAE80!important}.t-incompleto{background:#E8B04A!important;border-color:#D49A2E!important}
+.t-sin{background:#E59A93!important;border-color:#D07A72!important}.t-con{background:var(--ok-f)!important;border-color:#B5D9C2!important}
+.seg-lista{display:flex;flex-direction:column;gap:8px}
+.seg-fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--borde);border-radius:10px;padding:8px 10px;background:var(--papel)}
+.seg-fila .tx{flex:1;min-width:160px}.seg-pt{flex:none;width:14px;height:30px}.seg-acc{display:flex;gap:6px}
 .acu-evi{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;border-top:1px dashed var(--borde);padding-top:6px}
 .acu-evi .casilla{white-space:nowrap;display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:14px}
 .acu-ed .acu-evi .casilla input{width:18px;height:18px;min-height:0;padding:0;flex:none}
@@ -924,7 +932,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-0935';
+const PUBLICACION = '2026-11-05-1215';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2267,9 +2275,13 @@ function infCifras(cct) {
   r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: todosAcu.length - acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
   // 2. Evidencias en Drive
   const colsE = S.evi ? columnasEvi() : [];
-  const ev = colsE.map(c => ({ c, e: eviDe(cct, c.ruta) })).filter(o => o.e);
-  ev.forEach(o => { o.rev = eveDe(cct, o.c.ruta); o.ok = eviCumple(cct, o.c.ruta, o.e); });
-  r.evi = { lista: ev, hecho: ev.filter(o => o.ok).length, total: ev.length, na: colsE.length - ev.length,
+  // la carpeta de un programa con actividades se desglosa: cada actividad pesa lo mismo dentro del rubro
+  const ev = [];
+  let nCols = 0;
+  colsE.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) return; nCols++; const sg = segmentosEvi(cct, c.ruta);
+    if (sg.length) sg.forEach(x => ev.push({ c: { ruta: x.ruta, corto: c.corto + ' · ' + x.nombre }, e: x.e, rev: x.rev, ok: x.ok, w: 1 / sg.length }));
+    else ev.push({ c, e, rev: eveDe(cct, c.ruta), ok: eviCumple(cct, c.ruta, e), w: 1 }); });
+  r.evi = { lista: ev, hecho: Math.round(ev.filter(o => o.ok).reduce((t, o) => t + o.w, 0) * 10) / 10, total: nCols, na: colsE.length - nCols,
     ultimo: ev.map(o => o.e.ultimo || '').sort().pop() || '' };
   // 3 y 4. SisAT (momento más reciente con datos en la zona) y EIA; los grupos esperados son los que la escuela ha cargado en el ciclo
   const sisC = (S.sis || []).filter(x => x.ciclo === ciclo).map(sisNorm).filter(sisCuenta);
@@ -3452,13 +3464,21 @@ function formReunion(id, base) {
   const rutasEvi = [...new Map((S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta) && !/^01-expedientes/i.test(e.ruta)).map(e => [normRuta(e.ruta), e.ruta])).values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
   const dentroEvi = rutasEvi.filter(x => !x.includes('/') && /^evidencias/.test(clave(x))).sort((a, b) => b.localeCompare(a, 'es', { numeric: true }))[0] || '';
   const nomSug = x => ((t => esReunion(t) ? 'Acuerdo ' : ({ convocatoria: 'Convocatoria', erase: 'Érase una vez', saae: 'SAAE', programa: 'Programa' }[t] || '') + ' ')(($('#r-tipo') || {}).value || r.tipo) + (x.numero || '') + ' ' + fechaCorta(r.fecha || hoy()).replace(/ \d{4}$/, '') + ' - ' + String(x.texto || '').split(/\s+/).slice(0, 5).join(' ')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  /* Convocatorias y programas (Érase una vez, SAAE…): cada actividad lleva su subcarpeta dentro de la carpeta del programa,
+     «01-Inauguración de la biblioteca», «02-Altar de muertos»…; en Evidencias el programa se ve en tramos, uno por actividad. */
+  const tipoAct = () => ($('#r-tipo') || {}).value || r.tipo;
+  const progNom = () => { const t = tipoAct(); return esReunion(t) ? '' : String(PROG_CARPETA[t] || ($('#r-tit') || {}).value || r.titulo || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80); };
+  const progRuta = () => { const n = progNom(); if (!n || !dentroEvi) return ''; const ex = rutasEvi.find(y => y.split('/').length === 2 && normRuta(y.split('/')[0]) === normRuta(dentroEvi) && clave(y.split('/')[1]) === clave(n)); return ex || dentroEvi + '/' + n; };
+  const nomAct = x => (pad2(x.numero || '1') + '-' + String(x.texto || 'Actividad').split(/\s+/).slice(0, 8).join(' ')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/[.,;:]+$/, '').replace(/\s+/g, ' ').trim().slice(0, 70);
   function filaEvi(x) {
     if (!puedeEvi) return '';
-    const v = x.evidencia, on = !!v || x.requiereEvidencia === true;
+    const prog = progRuta();
+    // la actividad que todavía apunta a la carpeta del programa (antes no había subcarpetas) se propone como carpeta nueva
+    const v = prog && x.evidencia && normRuta(x.evidencia) === normRuta(prog) ? '' : x.evidencia, on = !!x.evidencia || x.requiereEvidencia === true || (!x.id && !!prog);
     const existe = typeof v === 'string' && rutasEvi.find(y => normRuta(y) === normRuta(v));
     const nombreNuevo = typeof v === 'string' && v && !existe ? String(v).split('/').pop() : '';
     return `<div class="acu-evi"><label class="casilla"><input type="checkbox" data-evi-on ${on ? 'checked' : ''}> 📁 Requiere evidencia</label>
-      <select data-evi-sel aria-label="Carpeta de la evidencia" ${on ? '' : 'hidden'}><option value="__nueva" ${existe ? '' : 'selected'}>Carpeta nueva${dentroEvi ? ' (dentro de ' + esc(sinNum(dentroEvi)) + ')' : ''}</option>${rutasEvi.map(y => `<option value="${esc(y)}" ${existe === y ? 'selected' : ''}>${esc(y.replace(/\//g, ' › '))}</option>`).join('')}</select>
+      <select data-evi-sel aria-label="Carpeta de la evidencia" ${on ? '' : 'hidden'}><option value="__nueva" ${existe ? '' : 'selected'}>Carpeta nueva${prog ? ' (dentro de ' + esc(sinNum(prog.split('/').pop())) + ')' : dentroEvi ? ' (dentro de ' + esc(sinNum(dentroEvi)) + ')' : ''}</option>${rutasEvi.map(y => `<option value="${esc(y)}" ${existe === y ? 'selected' : ''}>${esc(y.replace(/\//g, ' › '))}</option>`).join('')}</select>
       <input data-evi-nom aria-label="Nombre de la carpeta nueva" placeholder="Nombre de la carpeta" value="${esc(nombreNuevo)}" ${on && !existe ? '' : 'hidden'}></div>`;
   }
   const filaAc = x => `<div class="acu-ed" data-id="${esc(x.id || '')}" data-esc="${esc(JSON.stringify(x.escuelas || []))}">
@@ -3491,9 +3511,11 @@ function formReunion(id, base) {
       const sel = f.querySelector('[data-evi-sel]'), nom = f.querySelector('[data-evi-nom]');
       const ajustar = () => {
         sel.hidden = !on.checked; nom.hidden = !on.checked || sel.value !== '__nueva';
-        if (!nom.hidden && !nom.value.trim()) nom.value = nomSug({ numero: f.querySelector('[data-k=numero]').value, texto: f.querySelector('[data-k=texto]').value });
+        const x = { numero: f.querySelector('[data-k=numero]').value, texto: f.querySelector('[data-k=texto]').value };
+        if (!nom.hidden && (!nom.value.trim() || !nom.dataset.tocado) && x.texto.trim()) nom.value = progRuta() ? nomAct(x) : nomSug(x);
       };
-      on.onchange = ajustar; sel.onchange = ajustar; ajustar();
+      on.onchange = () => { on.dataset.tocado = '1'; ajustar(); }; sel.onchange = ajustar; f._ajustar = ajustar; ajustar();
+      nom.oninput = () => { nom.dataset.tocado = '1'; }; f.querySelectorAll('[data-k=texto],[data-k=numero]').forEach(t => t.addEventListener('change', ajustar));
     });
   };
   quitar();
@@ -3504,8 +3526,19 @@ function formReunion(id, base) {
     $('#r-items-l').textContent = e.items; $('#r-mas-l').textContent = e.mas;
     $('#r-hor-c').hidden = !reu && !$('#r-hor').value; $('#r-lugar-c').hidden = !reu && !$('#r-lugar').value;
     $$('#r-acs textarea[data-k=texto]').forEach(t => t.placeholder = e.ta);
+    // al cambiar a convocatoria o programa, las actividades nuevas piden su subcarpeta dentro de la carpeta del programa
+    const prog = progRuta();
+    $$('#r-acs .acu-ed').forEach(f => {
+      const on = f.querySelector('[data-evi-on]'), sel = f.querySelector('[data-evi-sel]'), nom = f.querySelector('[data-evi-nom]'); if (!on) return;
+      sel.options[0].textContent = 'Carpeta nueva' + (prog ? ' (dentro de ' + sinNum(prog.split('/').pop()) + ')' : dentroEvi ? ' (dentro de ' + sinNum(dentroEvi) + ')' : '');
+      if (!f.dataset.id && !on.dataset.tocado) on.checked = !!prog;
+      const x = { numero: f.querySelector('[data-k=numero]').value, texto: f.querySelector('[data-k=texto]').value };
+      if (nom.value === nomSug(x) || nom.value === nomAct(x)) nom.value = '';
+      if (f._ajustar) f._ajustar();
+    });
   };
   $('#r-tipo').onchange = etiquetas; etiquetas();
+  $('#r-tit').addEventListener('change', etiquetas);
   if (!acs.length) { $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: '1' })); quitar(); }
   $('#r-mas').onclick = () => { const prev = $$('#r-acs .acu-ed').pop(); $('#r-acs').insertAdjacentHTML('beforeend', filaAc({ numero: String($$('#r-acs .acu-ed').length + 1), seccion: prev ? prev.querySelector('[data-k=seccion]').value : '' })); quitar(); etiquetas(); $$('#r-acs textarea').pop().focus(); };
   $('#r-cancelar').onclick = cerrarModal;
@@ -3538,11 +3571,19 @@ function formReunion(id, base) {
     d.actividades.forEach(a => { a.escuelas = a.escuelas || todas.map(c => c.cct); a.destinatarios = a.escuelas.map(c => (escuelaDe(c) || {}).id).filter(Boolean); a.responsables = [S.yo.id]; });
     // primero se crean las carpetas nuevas en las escuelas a las que aplica cada acuerdo
     const nuevas = d.acuerdos.filter(x => x._nueva);
+    // en convocatorias y programas, la carpeta del programa se crea primero (si falta) y cada actividad va dentro de ella
+    const prog = nuevas.length && !esReunion(d.reunion.tipo) ? progRuta() : '';
+    if (prog && todas.some(c => !eviDe(c.cct, prog))) {
+      const ok = await accion('crearCarpeta', { nombre: prog.split('/').pop(), dentro: dentroEvi, ccts: todas.map(c => c.cct) }, res => { S.evi = res.evi; });
+      if (!ok) return;
+    }
+    const dentro = prog || dentroEvi;
     for (const x of nuevas) {
       const ccts = todas.map(c => c.cct).filter(c => aplicaA(x, c));
-      const ok = await accion('crearCarpeta', { nombre: x._nueva, dentro: dentroEvi, ccts }, res => { S.evi = res.evi; });
+      if (prog && x._nueva === nomSug(x)) x._nueva = nomAct(x);
+      const ok = await accion('crearCarpeta', { nombre: x._nueva, dentro, ccts }, res => { S.evi = res.evi; });
       if (!ok) return;
-      x.evidencia = dentroEvi ? dentroEvi + '/' + x._nueva : x._nueva;
+      x.evidencia = dentro ? dentro + '/' + x._nueva : x._nueva;
       delete x._nueva;
     }
     accion('guardarReunion', d, res => { recibirReunion(res); cerrarModal(); vista.acuReu = ''; vista.acuEsc = null; pintar(); setTimeout(() => { const t = document.getElementById('r-' + res.reunion.id); if (t) t.scrollIntoView({ block: 'start' }); }, 50); aviso((esReunion(d.reunion.tipo) ? 'Reunión guardada con ' : 'Registro guardado con ') + res.acuerdos.length + (esReunion(d.reunion.tipo) ? ' acuerdo(s).' : ' punto(s).'), 'ok', 3000); });
@@ -3654,13 +3695,31 @@ const eviNuevo = (cct, ruta, e) => { if (cteCol(cct, ruta)) return false; const 
 const chipSem = r => r ? `<span class="chip ${EVI_EST[r.estado].cl}">${EVI_EST[r.estado].e} ${EVI_EST[r.estado].t}</span>` : '';
 const leyendaSem = () => `<div class="sem-ley"><span><b style="background:#7CC59A"></b>Cumple</span><span><b style="background:#E8B04A"></b>Incompleto (con observación)</span><span><b style="background:#E59A93"></b>Sin evidencia</span><span><b style="background:var(--ok-f);border:1px solid var(--borde)"></b>Con archivos, sin revisar</span><span><b style="background:var(--arena-2);border:1px solid var(--borde)"></b>Vacía</span><span><i style="font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--indigo);border-radius:999px;padding:0 6px">nuevo</i>subieron archivos después de la revisión</span></div>`;
 const eviPuedeRevisar = () => !esDirector() && !!S.eve;
+/* Programas con actividades (Érase una vez, SAAE, convocatorias, otros programas): cada actividad tiene su subcarpeta dentro de la
+   carpeta del programa. En Evidencias esa carpeta se ve «en tramos», uno por actividad con su propio semáforo, y en el avance cuenta
+   proporcional (1 de 2 actividades cumplidas = medio rubro). Si la actividad está vacía y ya pasó su fecha límite, el tramo va en rojo. */
+const PROG_CARPETA = { erase: 'Érase una vez', saae: 'SAAE', convocatoria: 'Convocatorias' };
+const pad2 = n => String(n || '').padStart(2, '0');
+const SEG_EST = { cumple: 'Cumple', incompleto: 'Incompleto', sin: 'Sin evidencia', con: 'Con archivos, sin revisar', vacia: 'Vacía' };
+function segmentosEvi(cct, ruta) {
+  if (!S.evi || !ruta || cteCol(cct, ruta)) return [];
+  const base = normRuta(ruta) + '/', prof = String(ruta).split('/').length + 1, reuF = id => (S.reu || []).find(r => r.id === id);
+  return (S.acu || []).filter(x => x.activo !== false && x.evidencia && normRuta(x.evidencia).startsWith(base) && String(x.evidencia).split('/').length === prof && reuF(x.reunionId) && aplicaA(x, cct))
+    .map(x => { const e = eviDe(cct, x.evidencia); if (!e) return null;
+      const rev = eveDe(cct, x.evidencia), n = nArch(e), ok = rev ? rev.estado === 'cumple' : n > 0;
+      return { acu: x, ruta: x.evidencia, e, rev, n, ok, est: rev ? rev.estado : n ? 'con' : (x.limite && x.limite < hoy() ? 'sin' : 'vacia'), nombre: sinNum(String(x.evidencia).split('/').pop()) }; })
+    .filter(Boolean).sort((a, b) => String(reuF(a.acu.reunionId).fecha).localeCompare(String(reuF(b.acu.reunionId).fecha)) || (+a.acu.orden || 0) - (+b.acu.orden || 0));
+}
+// Parte cumplida de un rubro (0 a 1): proporcional si la carpeta tiene actividades
+function eviFrac(cct, ruta, e) { const sg = segmentosEvi(cct, ruta); return sg.length ? sg.filter(s => s.ok).length / sg.length : (eviCumple(cct, ruta, e) ? 1 : 0); }
+const numFrac = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
 
 function avanceEvi(ccts) {
   let con = 0, total = 0, na = 0;
   const cols = columnasEvi();
   // la carpeta que no existe para una escuela es un rubro que no le aplica: cuenta como cumplido
-  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) { na++; return; } total++; if (eviCumple(cct, c.ruta, e)) con++; }));
-  return { hecho: con, total, na, pct: total + na ? Math.round((con + na) * 100 / (total + na)) : 0, pend: total - con, vencidos: 0 };
+  ccts.forEach(cct => cols.forEach(c => { const e = eviDe(cct, c.ruta); if (!e) { na++; return; } total++; con += eviFrac(cct, c.ruta, e); }));
+  return { hecho: Math.round(con * 10) / 10, total, na, pct: total + na ? Math.round((con + na) * 100 / (total + na)) : 0, pend: Math.round((total - con) * 10) / 10, vencidos: 0 };
 }
 
 function vEvidencias() {
@@ -3694,20 +3753,23 @@ function vEvidencias() {
   <div class="tablero">
     <div class="tarjeta pad general">${anillo(tot.pct, 128, 'cumplido')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Rubros de evidencia cumplidos</div>
-        <div><b class="num">${tot.hecho}</b> de <b class="num">${tot.total}</b> carpetas cumplen</div>
+        <div><b class="num">${numFrac(tot.hecho)}</b> de <b class="num">${tot.total}</b> carpetas cumplen</div>
         <div class="peq mudo">En verde, o con archivos si aún no se revisan</div>
         <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${COLS.length} carpetas revisadas</div></div></div>
     <div class="tarjeta"><div class="seccion-t">Avance por ATP</div>
-      <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${a.hecho} de ${a.total} cumplen</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
+      <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${numFrac(a.hecho)} de ${a.total} cumplen</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
   </div>
   <div class="tarjeta" style="margin-bottom:16px">
     <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· ${eviPuedeRevisar() ? 'toque una casilla para revisarla y ponerle su semáforo' : 'toque una casilla para abrir la carpeta'}</span></div>
     ${leyendaSem()}
     <div class="matriz-caja"><table class="matriz">
-      <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => { const sv = esColCte(c.ruta) && cteVigente(); return `<th title="${esc(c.ruta)}${sv ? ' · se valida con el apartado CTE, ' + CTE_ORD[sv].toLowerCase() + ' sesión' : ''}"><span>${esc(c.corto)}${sv ? ' · ' + sv + '.ª' : ''}</span></th>`; }).join('')}<th>Avance</th></tr></thead>
+      <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => { const sv = esColCte(c.ruta) && cteVigente(); return `<th title="${esc(c.ruta)}${sv ? ' · se valida con el apartado CTE, ' + CTE_ORD[sv].toLowerCase() + ' sesión' : ''}"><span>${esc(c.corto)}${sv ? ' · ' + sv + '.ª' : ''}${(() => { const n = Math.max(0, ...dirs.map(d => segmentosEvi(d.cct, c.ruta).length)); return n ? ' · ' + n + ' act.' : ''; })()}</span></th>`; }).join('')}<th>Avance</th></tr></thead>
       <tbody>${dirs.map(d => { const a = avanceEvi([d.cct]); return `<tr><th class="esc-col"><button class="enlace" data-eesc="${d.cct}" style="text-decoration:none;color:var(--tinta);font-size:14px;text-align:left;white-space:normal">${esc(d.escuela)}</button>${atpDe(d.cct) && !vista.atp ? `<div class="ayuda">${esc(nombreCorto(atpDe(d.cct).nombre))}</div>` : ''}</th>
         ${COLS.map(c => { const e = eviDe(d.cct, c.ruta), cc = e ? cteCol(d.cct, c.ruta) : null, n = cc ? cc.n : nArch(e), r = e ? eveDe(d.cct, c.ruta) : null, nuevo = r && eviNuevo(d.cct, c.ruta, e);
           if (!e) return '<td class="sin" title="No existe esta carpeta">—</td>';
+          const sg = cc ? [] : segmentosEvi(d.cct, c.ruta);
+          if (sg.length) { const ok = sg.filter(x => x.ok).length;
+            return `<td class="seg"><a href="#" data-seg="${esc(d.cct)}" data-ruta="${esc(c.ruta)}" title="${esc(d.escuela + ' · ' + c.corto + ': ' + sg.map(x => x.nombre + ' (' + SEG_EST[x.est] + ')').join(' · '))}"><b>${ok}/${sg.length}</b><span class="tramos">${sg.map(x => `<i class="t-${x.est}"></i>`).join('')}</span></a></td>`; }
           if (cc) { const tc = `${d.escuela} · CTE ${CTE_ORD[cc.ses].toLowerCase()} sesión: ${cc.texto}`;
             const dc = r ? `<b>${EVI_EST[r.estado].e} ${n}</b><span class="sem">${EVI_EST[r.estado].t}</span>` : cc.ok ? `<b>✓ ${n}</b><span>sin revisar</span>` : '<span class="falta">vacía</span>';
             return `<td class="${r ? 'e-' + r.estado : cc.ok ? 'con' : 'vacia'}"><a href="#" data-rev="${esc(d.cct)}" data-ruta="${esc(c.ruta)}" title="${esc(tc)}">${dc}</a></td>`; }
@@ -3735,6 +3797,34 @@ function vEvidencias() {
   $$('[data-fatp]').forEach(b => b.onclick = () => { vista.atp = vista.atp === b.dataset.fatp ? '' : b.dataset.fatp; vEvidencias(); });
   $$('[data-eesc]').forEach(b => b.onclick = () => detalleEvidencias(b.dataset.eesc));
   $$('[data-rev]').forEach(b => b.onclick = ev => { ev.preventDefault(); revisarEvi(b.dataset.rev, b.dataset.ruta); });
+  $$('[data-seg]').forEach(b => b.onclick = ev => { ev.preventDefault(); segModal(b.dataset.seg, b.dataset.ruta); });
+}
+
+/* Carpeta de un programa con actividades: el semáforo de cada actividad de una escuela, y pasar los archivos sueltos a su actividad */
+function segModal(cct, ruta) {
+  const sg = segmentosEvi(cct, ruta), c = columnasEvi().find(x => normRuta(x.ruta) === normRuta(ruta)), corto = c ? c.corto : sinNum(String(ruta).split('/').pop());
+  const raiz = eviDe(cct, ruta), sueltos = raiz ? +raiz.directos || 0 : 0, volver = () => segModal(cct, ruta), puedeMover = S.version >= 37 || (cfg && cfg.demo);
+  const ok = sg.filter(x => x.ok).length;
+  modal(esc(nombreEscuela(cct)) + ' · ' + esc(corto), `
+    <p class="peq mudo" style="margin-top:0">Drive › ${esc(String(ruta).replace(/\//g, ' › '))} · <b>${ok} de ${sg.length}</b> actividades cumplidas. Cada actividad tiene su carpeta y su semáforo.</p>
+    <div class="seg-lista">${sg.map((x, i) => `<div class="seg-fila"><span class="seg-pt t-${x.est}" aria-hidden="true"></span>
+      <div class="tx"><b>${esc(x.nombre)}</b><div class="peq mudo">${x.n} archivo${x.n === 1 ? '' : 's'}${x.e.ultimo ? ' · último ' + fechaHora(x.e.ultimo) : ''}${x.acu.limite ? ' · fecha límite ' + fechaCorta(x.acu.limite) : ''}</div>
+        ${x.rev && x.rev.nota && x.rev.estado !== 'cumple' ? `<div class="sem-obs"><b>Observación:</b> ${esc(x.rev.nota)}</div>` : ''}</div>
+      <span class="chip ${x.est === 'cumple' ? 'ok' : x.est === 'incompleto' ? 'aviso' : x.est === 'sin' ? 'mal' : x.est === 'con' ? 'ok' : ''}">${x.rev ? EVI_EST[x.rev.estado].e + ' ' : ''}${SEG_EST[x.est]}</span>
+      <div class="seg-acc"><a class="boton sec chico" target="_blank" rel="noopener" href="${urlCarpeta(x.e.carpetaId)}">Abrir</a>${eviPuedeRevisar() ? `<button class="boton terra chico" data-segrev="${i}">Semáforo</button>` : ''}</div></div>`).join('')}</div>
+    ${sueltos ? `<div class="aviso-caja" style="margin:12px 0 0"><b>${sueltos} archivo${sueltos === 1 ? '' : 's'} suelto${sueltos === 1 ? '' : 's'}</b> en la carpeta «${esc(corto)}», fuera de las actividades.${puedeMover ? `
+      <div class="fila" style="margin-top:8px;align-items:end"><div class="campo" style="margin:0"><label for="sg-dest">Pasarlos a la actividad</label><select id="sg-dest">${sg.map((x, i) => `<option value="${i}">${esc(x.nombre)}</option>`).join('')}</select></div>
+      <button class="boton sec" id="sg-mover">Mover</button></div>
+      ${esAdmin() ? '<label class="casilla" style="margin-top:6px"><input type="checkbox" id="sg-todas"> Hacer lo mismo en todas las escuelas que tengan archivos sueltos aquí</label>' : ''}` : ' Para pasarlos a su actividad desde aquí, actualice el servidor a la versión 37.'}</div>` : ''}`,
+    '<button class="boton sec" id="sg-cerrar">Cerrar</button>');
+  $('#sg-cerrar').onclick = cerrarModal;
+  $$('[data-segrev]').forEach(b => b.onclick = () => revisarEvi(cct, sg[+b.dataset.segrev].ruta, volver));
+  if ($('#sg-mover')) $('#sg-mover').onclick = () => {
+    const x = sg[+$('#sg-dest').value], todas = $('#sg-todas') && $('#sg-todas').checked;
+    const ccts = todas ? directores().map(d => d.cct).filter(k => { const r0 = eviDe(k, ruta); return r0 && +r0.directos && eviDe(k, x.ruta); }) : [cct];
+    if (!confirm('¿Mover ' + (todas ? 'los archivos sueltos de «' + corto + '» de ' + ccts.length + ' escuela(s)' : 'los ' + sueltos + ' archivo(s) sueltos') + ' a la carpeta «' + x.nombre + '»? No se borra nada.')) return;
+    accion('moverSueltos', { ruta, destino: x.ruta, ccts }, r => { S.evi = r.evi; aviso(r.movidos + ' archivo(s) movidos a «' + x.nombre + '».', 'ok', 4000); volver(); pintar(); });
+  };
 }
 
 /* Revisar un rubro de evidencias de una escuela y ponerle su semáforo (Supervisión y Mesa Técnica) */
@@ -8360,6 +8450,9 @@ const Demo = (() => {
         D.evi.push({ id: cct + '|' + ruta, cct, ruta, carpetaId: 'demo-' + cct + '|' + ruta, directos: '0', archivos: '0', ultimo: '', recientes: [] }); creadas.push(cct); });
       return { creadas, existian, sinBase, evi: copia(D.evi) };
     },
+    moverSueltos: d => { let n = 0; d.ccts.forEach(cct => { const o = D.evi.find(x => x.cct === cct && normRuta(x.ruta) === normRuta(d.ruta)), t = D.evi.find(x => x.cct === cct && normRuta(x.ruta) === normRuta(d.destino));
+        if (!o || !t) return; const k = +o.directos || 0; n += k; o.directos = '0'; t.directos = String((+t.directos || 0) + k); t.archivos = String((+t.archivos || 0) + k); if (!t.ultimo) t.ultimo = o.ultimo; });
+      return { movidos: n, escuelas: d.ccts, evi: copia(D.evi) }; },
     prepararDirectores: () => ({ usr: copia(D.usr), cambios: 0 }),
     sisatGuardar: d => {
       const fuera = x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct);
