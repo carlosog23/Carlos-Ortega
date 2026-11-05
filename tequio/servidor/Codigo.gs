@@ -123,7 +123,7 @@ const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
 const HOJAS = {
   act: ['id', 'titulo', 'tipo', 'fecha', 'horaInicio', 'horaFin', 'lugar', 'escuelas', 'destinatarios', 'responsables',
         'proposito', 'confidencial', 'avisos', 'estado', 'enviado', 'calEventId', 'creadoPor', 'creado', 'actualizado'],
-  // origen: '' (seguimiento normal) o 'ate' (visita de atención: solo la ve la Supervisión, no la escuela)
+  // origen: '' (seguimiento normal), 'ate' (visita de atención: solo la ve la Supervisión) o 'vis' (visita de supervisión: la escuela solo ve los acuerdos)
   seg: ['id', 'actividadId', 'cct', 'fecha', 'resumen', 'acuerdos', 'confidencial', 'minutaEnviada', 'creadoPor', 'creado', 'actualizado', 'origen'],
   dir: ['id', 'tipo', 'nombre', 'cargo', 'cct', 'escuela', 'municipio', 'multigrado', 'correo1', 'correo2', 'whatsapp', 'activo', 'localidad', 'domicilio', 'turno'],
   usr: ['id', 'nombre', 'rol', 'contacto', 'correo', 'whatsapp', 'tokenHash', 'activo', 'creado'],
@@ -188,7 +188,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención' };
-const VERSION = 41;
+const VERSION = 42;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1394,7 +1394,7 @@ const ACCIONES = {
       actividadId: d.actividadId || '', cct: d.cct || '', fecha: d.fecha || hoy_(), resumen: d.resumen || '',
       acuerdos: (d.acuerdos || []).map(x => ({ id: x.id || 'ac-' + Utilities.getUuid().slice(0, 6), texto: x.texto || '',
         responsable: x.responsable || '', revision: x.revision || '', estado: x.estado || 'pendiente', avisado: x.avisado || '' })),
-      confidencial: yo.rol === 'admin' && !!d.confidencial, origen: d.origen === 'ate' ? 'ate' : (previo && previo.origen) || ''
+      confidencial: yo.rol === 'admin' && !!d.confidencial, origen: ['ate', 'vis'].indexOf(d.origen) >= 0 ? d.origen : (previo && previo.origen) || ''
     });
     s.id = previo ? previo.id : 'seg-' + Utilities.getUuid().slice(0, 8);
     s.creadoPor = previo ? previo.creadoPor : yo.id;
@@ -2041,7 +2041,7 @@ const ACCIONES = {
     if (d.cerrar) {
       v.cerradaPor = yo.nombre;
       const r = ACCIONES.guardarSeguimiento(yo, { id: v.segId || '', cct: v.cct, fecha: v.fecha, actividadId: d.actividadId || '', resumen: String(d.minuta || v.resumen || '').slice(0, 20000),
-        acuerdos: d.acuerdos || [], enviarMinuta: !!d.enviarMinuta });
+        acuerdos: d.acuerdos || [], enviarMinuta: !!d.enviarMinuta, origen: 'vis' });
       seg = r.seg; avisos = r.avisos || []; v.segId = seg.id;
     }
     guardar_('vis', v);
@@ -2580,7 +2580,8 @@ function datosDirector_(yo) {
     zona: zonaPublica_(),
     yo: Object.assign(publico_(yo), { cct: cct }),
     act: leer_('act').filter(a => !a.confidencial),
-    seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial && s.origen !== 'ate'),
+    seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial && s.origen !== 'ate')
+      .map(s => s.origen === 'vis' ? Object.assign({}, s, { resumen: '' }) : s), // de las visitas de supervisión la escuela solo ve los acuerdos
     dir: dir,
     usr: leer_('usr').filter(u => u.activo && u.rol !== 'director').map(u => ({ id: u.id, nombre: u.nombre, rol: u.rol, contacto: u.contacto, activo: u.activo })),
     reu: leer_('reu').filter(r => r.activo),
@@ -2921,7 +2922,7 @@ function enviarMinuta_(s) {
     '<td style="padding:8px;border-bottom:1px solid #E4D8C3;white-space:nowrap">' + (x.revision ? fechaCorta_(x.revision) : '—') + '</td></tr>').join('');
   const cuerpo = '<p>Compartimos la minuta de seguimiento de la ' + (act ? esc_(act.titulo).toLowerCase() : 'visita') + ' realizada el ' + fechaLarga_(s.fecha) +
     (esc ? ' en la escuela <b>' + esc_(esc.escuela) + '</b> (' + esc.cct + ')' : '') + '.</p>' +
-    (s.resumen ? '<p style="white-space:pre-line">' + esc_(s.resumen) + '</p>' : '') +
+    (s.resumen && s.origen !== 'vis' ? '<p style="white-space:pre-line">' + esc_(s.resumen) + '</p>' : '') +
     (filas ? '<h3 style="font-size:16px;color:#24427A;margin:18px 0 6px">Acuerdos</h3><table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="background:#F1E4CC;text-align:left"><th style="padding:8px">#</th><th style="padding:8px">Acuerdo</th><th style="padding:8px">Responsable</th><th style="padding:8px">Revisión</th></tr>' + filas + '</table>' : '') +
     '<p style="margin-top:16px">Antes de cada fecha de revisión le enviaremos un recordatorio.</p>';
   const r = enviarCorreo_(unicos, 'Minuta de seguimiento · ' + (esc ? esc.escuela : 'Zona ' + Z().numero) + ' · ' + fechaCorta_(s.fecha), plantilla_('Minuta de seguimiento', cuerpo), 'minuta', s.id);

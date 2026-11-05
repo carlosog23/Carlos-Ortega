@@ -966,7 +966,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1530';
+const PUBLICACION = '2026-11-05-1545';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2823,7 +2823,7 @@ function vEditorVisita() {
     <div><div class="ayuda">C.C.T.</div><b>${esc(cct)}</b></div>
     ${mesa ? `<div class="campo" style="margin:0"><label for="v-fecha" class="ayuda">Fecha de la visita</label><input type="date" id="v-fecha" value="${esc(D.fecha)}" ${cerrada ? 'disabled' : ''}></div>` : `<div><div class="ayuda">Fecha</div><b>${v && v.fecha ? fechaLarga(v.fecha) : (n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : 'Por definir')}</b></div>`}
     <div style="margin-left:auto">${visEstadoChip(v)}</div></div>
-  <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó registrada en el seguimiento de la escuela con su minuta.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van a la carpeta de la Supervisión › Visitas a escuelas; la escuela no las ve). La escuela ve esta guía desde antes para prepararse, pero no los resultados. Al terminar pulse «Cerrar visita».')
+  <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó en el seguimiento; la escuela solo ve los acuerdos.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van a la carpeta de la Supervisión › Visitas a escuelas; la escuela no las ve). La escuela ve esta guía desde antes para prepararse, pero no los resultados. Al terminar pulse «Cerrar visita».')
     : (cerrada ? 'Esta visita ya se realizó. Los resultados los registra y conserva la Supervisión.' : 'Esta es la guía de lo que se revisará en la visita. Prepare cada tema: puede subir fotos de evidencia, dejar una nota y marcarlo como listo. Recuerde que los productos del CTE se quedan en la escuela; las fotos solo muestran que están hechos.')}</div>
   ${temas.map(tarjeta).join('') || '<div class="tarjeta vacio">Esta visita aún no tiene temas.</div>'}
   ${mesa && !cerrada ? `<div style="margin:-2px 0 14px"><button class="boton sec" id="v-tema">${ico('i-mas')}Agregar tema</button></div>
@@ -2893,11 +2893,11 @@ function vEditorVisita() {
     const pend = temas.filter(t => ['acomp', 'proceso'].includes((D.items[t.k] || {}).estado));
     const sug = pend.map(t => 'Atender: ' + t.t + ((D.items[t.k] || {}).obs ? ' — ' + D.items[t.k].obs : ''));
     modal('Cerrar la visita', `${sin.length ? `<div class="aviso-caja peq">Quedan ${sin.length} tema${sin.length === 1 ? '' : 's'} sin marcar: ${esc(sin.map(t => t.t).join(', '))}.</div>` : ''}
-      <p class="peq" style="margin-top:0">Se registrará en el seguimiento de la escuela con esta minuta. Los temas «En proceso» y «Requiere acompañamiento» se proponen como acuerdos; corríjalos o agregue otros (uno por renglón).</p>
+      <p class="peq" style="margin-top:0">La minuta queda solo para la Supervisión; la escuela únicamente verá y recibirá los acuerdos. Los temas «En proceso» y «Requiere acompañamiento» se proponen como acuerdos; corríjalos o agregue otros (uno por renglón).</p>
       <div class="campo"><label for="vc-min">Minuta</label><textarea id="vc-min" style="min-height:160px">${esc(minuta)}</textarea></div>
       <div class="fila dos"><div class="campo"><label for="vc-ac">Acuerdos (uno por renglón)</label><textarea id="vc-ac" style="min-height:100px">${esc(sug.join('\n'))}</textarea></div>
         <div class="campo"><label for="vc-rev">Fecha para revisar los acuerdos</label><input type="date" id="vc-rev"><div class="ayuda">Tequio recuerda dos días antes y el mismo día.</div></div></div>
-      <label class="casilla"><input type="checkbox" id="vc-mail" checked> Enviar la minuta por correo a la dirección de la escuela</label>`,
+      <label class="casilla"><input type="checkbox" id="vc-mail" checked> Enviar los acuerdos por correo a la dirección de la escuela</label>`,
       '<button class="boton sec" id="vc-no">Cancelar</button><button class="boton terra" id="vc-si">Cerrar y registrar</button>');
     $('#vc-no').onclick = cerrarModal;
     $('#vc-si').onclick = async () => {
