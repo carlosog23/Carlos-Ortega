@@ -528,6 +528,120 @@ h3{font-family:var(--display);font-weight:700;letter-spacing:0}
 .tlm-regreso{display:block;background:#24427A;color:#FBF6EC!important;text-decoration:none;font-weight:600;font-size:14px;text-align:center;padding:9px 14px;padding-top:max(9px,env(safe-area-inset-top))}
 .tlm-regreso:hover{background:#1F3A6B}
 @media print{.tlm-regreso{display:none!important}}
+/* ===== Tlamatini · capa visual «Pro» (nov 2026): solo apariencia; no cambia funciones ===== */
+:root{--jade:#1E7A64;--jade-soft:#DDF0EA;--ambar:#9A650C;--ambar-soft:#FBEFD6;--ciruela:#6B3F7A;--ciruela-soft:#EFE4F3;
+  --terra-v:#C2603A;--grad-band:radial-gradient(120% 90% at 88% -10%,rgba(232,163,61,.30) 0,rgba(232,163,61,0) 45%),radial-gradient(80% 120% at -10% 110%,rgba(194,96,58,.28) 0,rgba(194,96,58,0) 50%),linear-gradient(160deg,#24427A 0%,#1A3160 55%,#142650 100%);
+  --sombra-1:0 1px 2px rgba(30,42,64,.05),0 2px 8px rgba(30,42,64,.05);--sombra-2:0 2px 4px rgba(30,42,64,.06),0 14px 32px -8px rgba(31,58,107,.22);
+  --greca:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36' viewBox='0 0 72 36'%3E%3Cpath d='M0 30h12V18h12V6h12v12h-6v6h12V6h12v12h12v12' fill='none' stroke='%23FBF6EC' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--jade:#6FCFB2;--jade-soft:#18322B;--ambar:#F0B75A;--ambar-soft:#3A2E17;--ciruela:#D3A8E2;--ciruela-soft:#33243A;
+  --grad-band:radial-gradient(120% 90% at 88% -10%,rgba(232,163,61,.18) 0,rgba(232,163,61,0) 45%),linear-gradient(160deg,#17284A 0%,#111E3A 100%);--sombra-1:none;--sombra-2:0 0 0 1px var(--line)}}
+:root[data-theme="dark"]{--jade:#6FCFB2;--jade-soft:#18322B;--ambar:#F0B75A;--ambar-soft:#3A2E17;--ciruela:#D3A8E2;--ciruela-soft:#33243A;
+  --grad-band:radial-gradient(120% 90% at 88% -10%,rgba(232,163,61,.18) 0,rgba(232,163,61,0) 45%),linear-gradient(160deg,#17284A 0%,#111E3A 100%);--sombra-1:none;--sombra-2:0 0 0 1px var(--line)}
+
+/* Entrada suave de cada pantalla */
+@keyframes tlmEntra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#app>*{animation:tlmEntra .32s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){#app>*{animation:none}}
+
+/* Banda del inicio: añil profundo con luz ámbar y greca */
+.ini-band{position:relative;overflow:hidden;background:var(--grad-band);padding-bottom:76px;isolation:isolate}
+.ini-band::before{content:"";position:absolute;inset:0;background:var(--greca) repeat-x left bottom 18px/72px 36px;opacity:.07;z-index:-1}
+.ini-band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#C2603A,#E8A33D 50%,#C2603A)}
+.ini-top .tlm-m{width:52px;height:52px;padding:6px;border-radius:16px;background:rgba(251,246,236,.08);box-shadow:inset 0 0 0 1px rgba(251,246,236,.16),0 0 28px rgba(232,163,61,.28)}
+.ini-n{letter-spacing:-.01em}
+.ini-fecha{margin:26px 0 0;display:inline-flex;align-items:center;gap:8px;font:700 12px var(--display);letter-spacing:.12em;text-transform:uppercase;color:#F2C9A8}
+.ini-fecha::before{content:"";width:22px;height:2px;border-radius:2px;background:#E8A33D}
+.ini-fecha+.ini-hola{margin-top:8px}
+.ini-hola{font-size:clamp(28px,7.5vw,44px);letter-spacing:-.015em;font-weight:600}
+.ini-esc{display:inline-flex;flex-wrap:wrap;margin-top:12px;padding:6px 14px;border-radius:999px;background:rgba(251,246,236,.09);box-shadow:inset 0 0 0 1px rgba(251,246,236,.16);color:#E4EAF5}
+.ini-links button{background:rgba(251,246,236,.06);border-color:rgba(251,246,236,.22);transition:background .15s,transform .15s}
+.ini-links button:hover{background:rgba(251,246,236,.16);transform:translateY(-1px)}
+.ini-av{background:linear-gradient(140deg,#E8A33D,#C2603A);border:0;color:#fff;font-weight:700;box-shadow:0 4px 14px rgba(194,96,58,.35)}
+
+/* Buscador flotante */
+.ini-busca{margin-top:-34px;border-radius:18px;box-shadow:var(--sombra-2);min-height:62px}
+.ini-busca>svg{color:var(--terra)}
+
+/* Títulos de grupo con acento */
+.gt{display:flex;align-items:center;gap:10px;color:var(--ink);opacity:.78}
+.gt::before{content:"";width:16px;height:3px;border-radius:3px;background:var(--fam,var(--terra))}
+
+/* Próximo evento */
+.ev{box-shadow:var(--sombra-1);border-left:4px solid var(--terra);transition:box-shadow .2s,transform .2s}
+.ev:hover{box-shadow:var(--sombra-2);transform:translateY(-1px)}
+.ev-f{box-shadow:var(--sombra-1)}
+.ev-f i{background:linear-gradient(90deg,#C2603A,#D9793F)}
+
+/* Lo más usado: cada tarjeta con su color */
+.tile{position:relative;overflow:hidden;box-shadow:var(--sombra-1);transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s,border-color .2s;min-height:128px;justify-content:space-between}
+.tile::after{content:"";position:absolute;right:-28px;top:-28px;width:96px;height:96px;border-radius:50%;background:var(--t-soft,var(--accent-soft));opacity:.7;transition:transform .3s}
+.tile .ico{position:relative;z-index:1;width:48px;height:48px;border-radius:14px;background:var(--t,var(--accent));color:var(--t-ink,#fff);box-shadow:0 6px 14px -4px color-mix(in srgb,var(--t,var(--accent)) 60%,transparent)}
+.tile b{position:relative;z-index:1;font-size:15.5px}
+.tile:hover{transform:translateY(-3px);box-shadow:var(--sombra-2)}
+.tile:hover::after{transform:scale(1.25)}
+.tiles .tile:nth-child(4n+1){--t:#24427A;--t-soft:var(--accent-soft)}
+.tiles .tile:nth-child(4n+2){--t:var(--terra-v);--t-soft:var(--terra-soft)}
+.tiles .tile:nth-child(4n+3){--t:var(--jade);--t-soft:var(--jade-soft)}
+.tiles .tile:nth-child(4n+4){--t:var(--ambar);--t-soft:var(--ambar-soft)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tiles .tile:nth-child(4n+3),:root:not([data-theme="light"]) .tiles .tile:nth-child(4n+4){--t-ink:#15120D}}
+:root[data-theme="dark"] .tiles .tile:nth-child(4n+3),:root[data-theme="dark"] .tiles .tile:nth-child(4n+4){--t-ink:#15120D}
+.urg{box-shadow:var(--sombra-1);transition:transform .2s,box-shadow .2s}
+.urg:hover{transform:translateY(-1px);box-shadow:var(--sombra-2)}
+
+/* Familias de secciones: un color por familia */
+.fams>section:nth-child(5n+1){--fam:#24427A;--fam-soft:var(--accent-soft)}
+.fams>section:nth-child(5n+2){--fam:var(--jade);--fam-soft:var(--jade-soft)}
+.fams>section:nth-child(5n+3){--fam:var(--terra-v);--fam-soft:var(--terra-soft)}
+.fams>section:nth-child(5n+4){--fam:var(--ambar);--fam-soft:var(--ambar-soft)}
+.fams>section:nth-child(5n+5){--fam:var(--ciruela);--fam-soft:var(--ciruela-soft)}
+.fams .ico{background:var(--fam-soft);color:var(--fam)}
+.fams .item .cnt{color:var(--fam)}
+.lista{box-shadow:var(--sombra-1)}
+.item{position:relative;transition:background .15s}
+.item::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--fam,var(--accent));transform:scaleY(0);transition:transform .18s}
+.item:hover::before,.item:focus-visible::before{transform:scaleY(1)}
+.item:hover .ico{transform:scale(1.06)}
+.ico{transition:transform .18s}
+.item>svg:last-child{transition:transform .18s}
+.item:hover>svg:last-child{transform:translateX(3px)}
+
+/* Encabezado de cada sección y de cada formato */
+.top{border-bottom:1px solid transparent;border-image:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent) 1}
+.top .back{box-shadow:var(--sombra-1);transition:transform .15s}
+.top .back:hover{transform:translateX(-2px)}
+.top h2{letter-spacing:-.01em}
+.sec-ic{width:60px;height:60px;border-radius:18px;background:var(--grad-band);box-shadow:0 10px 22px -10px rgba(31,58,107,.6),inset 0 0 0 1px rgba(255,255,255,.12)}
+.sec-ic svg{width:30px;height:30px}
+.sec-hero p{font-size:16px}
+
+/* Botones */
+.btn{transition:transform .15s,box-shadow .15s,background .15s,border-color .15s}
+.btn.primary{background:linear-gradient(160deg,#2B4D8C,#1F3A6B);box-shadow:0 6px 16px -6px rgba(31,58,107,.55),inset 0 1px 0 rgba(255,255,255,.14)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(31,58,107,.6),inset 0 1px 0 rgba(255,255,255,.14)}
+.btn.primary:active{transform:none}
+.btn.ghost:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:var(--accent);box-shadow:none}}
+:root[data-theme="dark"] .btn.primary{background:var(--accent);box-shadow:none}
+
+/* Campos y avance de los formatos */
+.progress{height:7px;border-radius:999px;background:var(--line2)}
+.progress i{border-radius:999px;background:linear-gradient(90deg,#C2603A,#E8A33D)!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{transition:border-color .15s,box-shadow .15s}
+input:not([type=checkbox]):not([type=radio]):not([type=search]):focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent)}
+.card{box-shadow:var(--sombra-1)}
+
+/* Barra inferior del celular */
+.ini-nav button.on{position:relative}
+.ini-nav button.on svg{background:var(--accent-soft);border-radius:999px;padding:3px 14px;width:52px;height:30px;box-sizing:border-box}
+.ini-nav button.on span{color:var(--accent)}
+
+/* Pie */
+.ini-sup .seal{box-shadow:var(--sombra-1)}
+.ini-chips a,.ini-chips button{transition:transform .15s,border-color .15s}
+.ini-chips a:hover,.ini-chips button:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--terra) 50%,var(--line))}
+/* Letras de los anexos y formatos dentro de cada sección */
+.top~.lista .ico,.sec-hero~.lista .ico{font-family:var(--brand);font-size:20px;font-weight:600;background:linear-gradient(160deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 60%,var(--card)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent)}
+@media print{.ini-band::before,.ini-band::after{display:none}#app>*{animation:none}}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -1439,7 +1553,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     <div class="ini-top">${TLM("oscuro")}<div style="min-width:0"><span class="ini-n">Tlamatini</span><span class="ini-l">Un camino para la labor docente</span></div>
      <div class="ini-links"><button type="button" id="lkDocs">Mis documentos</button><button type="button" id="lkEsc">Mi escuela</button><button type="button" id="lkResp">Respaldo</button></div>
      <button type="button" class="ini-av" id="avBtn" aria-label="Mi escuela y mis datos">${P.ini?esc(P.ini):ICON.user.replace("<svg",'<svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"')}</button></div>
-    <p class="ini-hola">${iniSaludo()}</p><p class="ini-esc">${iniEscuela()}</p></div></header>
+    <p class="ini-fecha">${new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"})}</p><p class="ini-hola">${iniSaludo()}</p><p class="ini-esc">${iniEscuela()}</p></div></header>
    <div class="ini-busca" role="search">${ICON.search}<label for="buscarQ" class="sr">Buscar un formato o herramienta</label>
     <input type="search" id="buscarQ" placeholder="¿Qué necesita hacer hoy?" autocomplete="off" enterkeyhint="search">
     ${(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button type="button" class="ini-mic" id="buscarMic" aria-label="Dictar lo que busca">${ICON.mic}</button>`:""}</div>
