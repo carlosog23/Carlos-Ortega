@@ -526,9 +526,6 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .prm-tabla th{color:var(--gris);font-weight:600}
 /* Barra con muchas secciones: se compacta en pantallas medianas para que todo quepa */
 .barra .envoltura{max-width:1480px}
-@media (min-width:761px) and (max-width:1500px){.marca small{display:none}.pestanas{margin-left:10px;gap:2px}.pestanas button{padding:8px 8px;font-size:15px;gap:5px}}
-@media (min-width:761px) and (max-width:1300px){.barra .yo span{display:none}.pestanas button{padding:7px 6px;font-size:14px}.pestanas svg{display:none}}
-@media (min-width:761px) and (max-width:1040px){.barra .yo{display:none}.marca div{display:none}.pestanas{margin-left:4px}.pestanas button{padding:6px 5px;font-size:13.5px}}
 .pest-n{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--terra);color:#fff;font-size:11.5px;font-weight:700;line-height:18px;text-align:center}
 @media (max-width:760px){.nav-movil{overflow-x:auto;scrollbar-width:none}.nav-movil::-webkit-scrollbar{display:none}.nav-movil button{flex:1 0 58px}}
 .nav-movil button{position:relative}.nav-movil .pest-n{position:absolute;top:3px;left:calc(50% + 4px)}
@@ -604,6 +601,49 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .ctv-fila:hover{border-color:var(--indigo)}
 .ctv-barra{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:6px 0 30px}
 @media (max-width:760px){.nav-movil{overflow-x:auto}.nav-movil button{min-width:56px}}
+
+/* ---- Menú lateral agrupado ---- */
+.barra .envoltura{max-width:none;padding:0 18px}
+.marco{display:grid;grid-template-columns:240px minmax(0,1fr);align-items:start}
+.lateral{position:sticky;top:66px;height:calc(100vh - 66px);overflow-y:auto;background:var(--papel);border-right:1px solid var(--borde);padding:14px 10px 28px}
+.lat-g{margin-bottom:2px}
+.lat-c{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;padding:9px 10px;border-radius:8px;color:var(--tinta);font:inherit;font-weight:600;font-size:15px;cursor:pointer;text-align:left}
+.lat-c:hover{background:var(--arena-2)}
+.lat-c svg{width:19px;height:19px;flex:none;color:var(--indigo)}
+.lat-c .cv{width:15px;height:15px;margin-left:auto;color:var(--gris);transition:transform .15s}
+.lat-g.abierto .cv{transform:rotate(90deg)}
+.lat-sub{display:none;padding:2px 0 8px 30px}
+.lat-g.abierto .lat-sub{display:block}
+.lat-sub button{display:flex;width:100%;align-items:center;gap:6px;background:none;border:0;border-left:2px solid var(--borde);padding:7px 12px;color:var(--gris);font:inherit;font-size:14.5px;cursor:pointer;text-align:left;border-radius:0 8px 8px 0}
+.lat-sub button:hover{background:var(--arena-2);color:var(--tinta)}
+.lat-sub button[aria-current="true"]{background:var(--arena);color:var(--terra-d);font-weight:600;border-left-color:var(--terra)}
+.lat-c[aria-current="true"]{background:var(--arena);color:var(--terra-d)}
+.lat-c[aria-current="true"] svg{color:var(--terra-d)}
+.lat-sep{height:1px;background:var(--borde);margin:10px 8px}
+.migas-sec{font-size:13.5px;color:var(--gris);margin:0 0 8px;display:flex;gap:6px;align-items:center}
+.migas-sec svg{width:13px;height:13px}
+.migas-sec b{color:var(--tinta);font-weight:600}
+.barra-ico{display:flex;align-items:center;gap:4px;margin-left:12px}
+.barra-ico button{position:relative;background:none;border:0;color:#E9D8BA;width:40px;height:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.barra-ico button:hover,.barra-ico button[aria-current="true"]{background:rgba(255,255,255,.14);color:#fff}
+.barra-ico svg{width:21px;height:21px}
+.barra-ico .pest-n{position:absolute;top:1px;right:-2px;font-size:10.5px;min-width:17px;line-height:17px;padding:0 4px}
+.b-menu{display:none;background:none;border:0;color:#FBF6EC;width:40px;height:40px;border-radius:8px;cursor:pointer;align-items:center;justify-content:center;margin-left:-6px}
+.b-menu svg{width:24px;height:24px}
+.velo-lat{display:none}
+@media (max-width:760px){
+  .marco{grid-template-columns:minmax(0,1fr)}
+  .b-menu{display:flex}
+  .lateral{position:fixed;top:0;left:0;bottom:0;height:auto;width:min(290px,84vw);z-index:60;transform:translateX(-102%);transition:transform .2s ease;box-shadow:0 0 30px rgba(30,42,64,.25);padding-top:18px}
+  .marco.lat-abierta .lateral{transform:none}
+  .marco.lat-abierta .velo-lat{display:block;position:fixed;inset:0;background:rgba(30,42,64,.42);z-index:55}
+  main{padding-bottom:40px}
+  #avisos{bottom:24px}
+  .barra .yo{display:none}
+  .barra-ico{margin-left:auto}
+}
+@media (prefers-reduced-motion:reduce){.lateral,.lat-c .cv{transition:none}}
+@media print{.lateral,.velo-lat,.migas-sec,.barra-ico,.b-menu{display:none!important}.marco{display:block}}
 </style>
 </head>
 <body>
@@ -629,6 +669,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-seg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 9"/><path d="M5 3.5h14a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></symbol>
   <symbol id="i-llave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4.5"/><path d="M11.2 11.8L20 3M16.5 6.5l2.5 2.5M14 9l2 2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
   <symbol id="i-mas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-izq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="i-der" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></symbol>
@@ -760,7 +801,7 @@ const AVISOS = {
 
 let cfg = null;          // { s: url del servidor, k: llave personal } o { demo: true }
 let S = null;            // datos: yo, act, seg, dir, usr, cuota, reu, acu, cum (checklist de acuerdos)
-let vista = { tab: 'agenda', mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null, atp: null };
+let vista = { tab: (() => { try { return localStorage.getItem('tequio.tab') || 'agenda'; } catch (e) { return 'agenda'; } })(), mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null, atp: null };
 
 /* ---------------- Utilidades ---------------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -998,6 +1039,54 @@ function pestanasTodas() {
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
+/* ---------------- Menú lateral ----------------
+   Las secciones se agrupan por para qué sirven. Un grupo con una sola sección
+   se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
+const LAT_GRUPOS = [
+  ['agenda', 'Agenda', 'i-cal', ['agenda']],
+  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'seguimiento', 'visitas']],
+  ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia']],
+  ['documentos', 'Documentos', 'i-lapiz', ['oficios', 'directorio', 'herramientas']],
+  ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
+  ['finanzas', 'Recursos financieros', 'i-pesos', ['finanzas']]
+];
+const LAT_ARRIBA = ['pendientes', 'enlaces'];
+let latAbiertos = new Set((() => { try { return JSON.parse(localStorage.getItem('tequio.lat') || '[]'); } catch (e) { return []; } })());
+function nombreLat(t) {
+  return ({ acuerdos: esDirector() ? t[1] : 'Acuerdos y programas', seguimiento: 'Visitas de supervisión', herramientas: 'Tlamatini', permisos: 'Permisos y facilidades', personal: esDirector() ? t[1] : 'Base del personal' })[t[0]] || t[1];
+}
+function gruposLat(tabs) {
+  const usados = new Set(LAT_ARRIBA), gr = [];
+  LAT_GRUPOS.forEach(([id, nom, ic, ids]) => {
+    const items = ids.map(x => tabs.find(t => t[0] === x)).filter(Boolean);
+    items.forEach(t => usados.add(t[0]));
+    if (items.length) gr.push({ id, nom, ic, items });
+  });
+  tabs.filter(t => !usados.has(t[0])).forEach(t => gr.push({ id: 'g-' + t[0], nom: t[1], ic: t[2], items: [t] }));
+  return gr;
+}
+function lateralHTML(tabs) {
+  return gruposLat(tabs).map(g => {
+    if (g.items.length === 1) {
+      const t = g.items[0], nom = g.id === 'personal' || g.id === 'finanzas' || g.id === 'agenda' ? g.nom : nombreLat(t);
+      return `<div class="lat-g"><button class="lat-c" data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(g.items.length === 1 && g.id.startsWith('g-') ? t[2] : g.ic)}${esc(nom)}</button></div>`;
+    }
+    const activo = g.items.some(t => t[0] === vista.tab), ab = activo || latAbiertos.has(g.id);
+    return `<div class="lat-g${ab ? ' abierto' : ''}"><button class="lat-c" data-grp="${g.id}" aria-expanded="${ab}">${ico(g.ic)}${esc(g.nom)}${ico('i-der', 'cv')}</button>
+      <div class="lat-sub">${g.items.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${esc(nombreLat(t))}</button>`).join('')}</div></div>`;
+  }).join('');
+}
+function barraIconos(tabs) {
+  const tit = { pendientes: 'Tablón', enlaces: 'Enlaces' };
+  const b = LAT_ARRIBA.map(id => tabs.find(t => t[0] === id)).filter(Boolean);
+  return b.length ? `<div class="barra-ico">${b.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}" title="${tit[t[0]] || t[1]}" aria-label="${tit[t[0]] || t[1]}">${ico(t[2])}${insigniaPest(t[0])}</button>`).join('')}</div>` : '';
+}
+function migasSec(tabs) {
+  const g = gruposLat(tabs).find(x => x.items.length > 1 && x.items.some(t => t[0] === vista.tab));
+  if (!g) return '';
+  const t = g.items.find(x => x[0] === vista.tab);
+  return `<nav class="migas-sec" aria-label="Ubicación"><span>${esc(g.nom)}</span>${ico('i-der')}<b>${esc(nombreLat(t))}</b></nav>`;
+}
 function pintar() {
   const tabs = pestanas();
   if (tabs.some(t => t[0] === 'herramientas')) tlmPase();
@@ -1005,16 +1094,23 @@ function pintar() {
   $('#app').innerHTML = `
   ${cfg.invitado ? `<div class="banda-demo">Invitación de consulta · datos de ejemplo · puede explorar todo, pero no modificar nada · disponible hasta ${esc(INVITACIONES[cfg.invitado].texto)}</div>` : cfg.lectura ? '<div class="banda-demo">Modo consulta con datos de ejemplo: puede ver todo, pero no modificar nada.</div>' : cfg.demo ? '<div class="banda-demo">Demostración con datos de ejemplo: nada se envía ni se guarda. <button id="b-salir-demo">Salir</button></div>' : ''}
   <header class="barra"><div class="envoltura">
+    <button class="b-menu" id="b-menu" aria-label="Abrir menú" aria-controls="lateral">${ico('i-menu')}</button>
     <a class="marca" href="#" id="b-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
-    <nav class="pestanas" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${t[1]}${insigniaPest(t[0])}</button>`).join('')}</nav>
     <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : esDirector() ? esc(nombreEscuela(miCct())) : 'Mesa Técnica'}</span></div>
+    ${barraIconos(tabs)}
   </div></header>
   ${ZONA.aviso && ZONA.aviso.texto ? `<div class="aviso-caja" style="max-width:1100px;margin:12px auto 0"><b>Aviso del administrador de Tequio:</b> ${esc(ZONA.aviso.texto)}</div>` : ''}
-  <main><div class="envoltura" id="vista"></div></main>
+  <div class="marco" id="marco">
+  <aside class="lateral" id="lateral" aria-label="Secciones">${lateralHTML(tabs)}</aside>
+  <div class="velo-lat" id="velo-lat"></div>
+  <div><main><div class="envoltura">${migasSec(tabs)}<div id="vista"></div></div></main>
   <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
-  <nav class="nav-movil" aria-label="Secciones">${tabs.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}">${ico(t[2])}${insigniaPest(t[0])}${({ seguimiento: 'Visitas', directorio: 'Contactos', oficios: 'Oficios', herramientas: 'Tlamatini', finanzas: 'Finanzas' })[t[0]] || t[1]}</button>`).join('')}</nav>`;
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
-  $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; vista.escuela = null; pintar(); };
+  </div></div>`;
+  $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
+  $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
+  $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
+  $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
   ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas })[vista.tab]();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
