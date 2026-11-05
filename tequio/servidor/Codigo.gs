@@ -26,6 +26,8 @@
  *    no se envía en vacaciones del calendario oficial.
  *  · Videollamadas de la Mesa Técnica con las direcciones (Google Meet): la Supervisión y los ATP agendan e inician;
  *    las direcciones invitadas ven el botón para conectarse mientras la llamada está activa.
+ *  · Revisión en campo: guías de preguntas para la dirección y los docentes, que la Mesa Técnica contesta en la escuela
+ *    (también sin internet, desde su celular) y sube después; algunas preguntas las contesta el docente con un código.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *
@@ -171,19 +173,23 @@ const HOJAS = {
   // enlace vacío = la sala fija de la Mesa Técnica. conectados: [{ cct, nombre, f }] (las direcciones que pulsaron «Conectarse»).
   vid: ['id', 'titulo', 'tema', 'fecha', 'horaInicio', 'horaFin', 'escuelas', 'enlace', 'estado', 'iniciada', 'iniciadaPor', 'terminada', 'terminadaPor',
         'conectados', 'avisos', 'enviado', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
+  // Revisión en campo. cue: guías de preguntas (preguntas: [{ k, t, tipo: snp|escala|texto|opcion, op: [], para: direccion|docente, quien: revisor|docente, foto: 0|1|2, ayuda }]).
+  // rev: lo que se respondió por guía, escuela, visita y persona (id: cue|cct|visita|persona). respuestas: { k: { v, obs, fotos: [{ id, n }], por, f } }.
+  cue: ['id', 'titulo', 'descripcion', 'visita', 'ciclo', 'preguntas', 'escuelas', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
+  rev: ['id', 'cueId', 'ciclo', 'visita', 'cct', 'persona', 'personaNombre', 'funcion', 'grupo', 'respuestas', 'estado', 'revisor', 'revisorNombre', 'fecha', 'creado', 'actualizado', 'codigo', 'codigoVence', 'docenteEnvio'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas' };
-const VERSION = 37;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas' };
+const VERSION = 38;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados'];
+const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -435,6 +441,11 @@ function doPost(e) {
     }
     const susp = estadoRegistro_();
     if (susp.estado === 'suspendida') return json_({ ok: false, error: 'suspendida', mensaje: 'Tequio está suspendido para esta zona' + (susp.motivo ? ' (' + susp.motivo + ')' : '') + '. Comuníquese con el administrador de Tequio.' });
+    // El docente contesta su parte de una revisión con el código que le da la Mesa Técnica (sin enlace personal)
+    if (REV_PUBLICAS[q.accion]) {
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { return json_(Object.assign({ ok: true }, REV_PUBLICAS[q.accion](q.datos || {}))); } finally { lock.releaseLock(); }
+    }
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -457,13 +468,13 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo'];
 
 const ACCIONES = {
   // El Supervisor elige los módulos que usa su zona
@@ -504,6 +515,8 @@ const ACCIONES = {
     prm: yo.rol === 'admin' ? leer_('prm') : undefined,
     vid: vidLista_(yo),
     vidSala: vidSala_(),
+    cue: leer_('cue').filter(c => c.activo),
+    rev: leer_('rev').filter(r => r.ciclo === cicloVis_()).map(revPublica_),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -1726,6 +1739,75 @@ const ACCIONES = {
     return { prm: o };
   },
 
+  /* ---- Revisión en campo ---- */
+  // Guarda (o corrige) una guía de revisión. La Supervisión y los ATP las arman; quitarlas, solo la Supervisión.
+  cueGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const prev = d.id ? buscar_('cue', String(d.id)) : null;
+    const titulo = String(d.titulo || '').trim().slice(0, 200);
+    if (!titulo) throw new Error('Escriba el nombre de la guía.');
+    const tipos = ['snp', 'escala', 'texto', 'opcion'], vistos = {};
+    const pr = (Array.isArray(d.preguntas) ? d.preguntas : []).filter(x => x && String(x.t || '').trim()).slice(0, 120).map((x, i) => {
+      let k = String(x.k || '').replace(/[^\w-]/g, '').slice(0, 16) || 'p' + Utilities.getUuid().slice(0, 6);
+      while (vistos[k]) k = 'p' + Utilities.getUuid().slice(0, 6);
+      vistos[k] = 1;
+      const tipo = tipos.indexOf(x.tipo) >= 0 ? x.tipo : 'snp';
+      const op = (Array.isArray(x.op) ? x.op : String(x.op || '').split('\n')).map(o => String(o).trim()).filter(Boolean).slice(0, 12).map(o => o.slice(0, 120));
+      if ((tipo === 'opcion' || tipo === 'escala') && op.length < 2) throw new Error('La pregunta ' + (i + 1) + ' necesita al menos dos opciones.');
+      return { k: k, t: String(x.t).trim().slice(0, 600), tipo: tipo, op: tipo === 'opcion' || tipo === 'escala' ? op : [], para: x.para === 'docente' ? 'docente' : x.para === 'ambos' ? 'ambos' : 'direccion',
+        quien: x.quien === 'docente' ? 'docente' : 'revisor', foto: [0, 1, 2].indexOf(+x.foto) >= 0 ? +x.foto : 0, ayuda: String(x.ayuda || '').slice(0, 400), sec: String(x.sec || '').slice(0, 120) };
+    });
+    if (!pr.length) throw new Error('Agregue al menos una pregunta.');
+    const o = { id: prev ? prev.id : 'cue-' + Utilities.getUuid().slice(0, 8), titulo: titulo, descripcion: String(d.descripcion || '').slice(0, 2000),
+      visita: ['1', '2', '3', 'x', ''].indexOf(String(d.visita || '')) >= 0 ? String(d.visita || '') : '', ciclo: cicloVis_(d.ciclo), preguntas: pr,
+      escuelas: (Array.isArray(d.escuelas) ? d.escuelas : []).map(String).slice(0, 60), activo: true,
+      creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre, creado: prev ? prev.creado : ahora_(), actualizado: ahora_() };
+    guardar_('cue', o);
+    return { cue: o };
+  },
+  cueQuitar: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('cue', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la guía.');
+    o.activo = false; o.actualizado = ahora_();
+    guardar_('cue', o);
+    return { ok: true };
+  },
+  // Sube lo capturado en campo (una o varias revisiones). Lo que ya contestó el docente con su código no se pierde.
+  revGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const todas = leer_('rev'), porId = {}; todas.forEach(r => { porId[r.id] = r; });
+    const out = (Array.isArray(d.revs) ? d.revs : []).slice(0, 200).map(x => revMezclar_(porId[revId_(x)], x, yo));
+    guardarVarios_('rev', out);
+    return { rev: out.map(revPublica_) };
+  },
+  // Trae lo que hay en Tequio de una escuela (para corregir desde otro dispositivo o ver lo que contestaron los docentes)
+  revTraer: (yo, d) => {
+    soloMesa_(yo);
+    return { rev: leer_('rev').filter(r => (!d.cct || r.cct === d.cct) && (!d.ciclo || r.ciclo === d.ciclo)).map(revPublica_) };
+  },
+  // Foto de evidencia de una revisión: Drive › Escuela › Visitas de supervisión › Visita N · ciclo › Revisión › Persona
+  revFoto: (yo, d) => {
+    soloMesa_(yo);
+    return revFotoSubir_(String(d.cct || ''), d, yo.nombre);
+  },
+  // Código para que el docente conteste en su celular lo que le toca (vale 3 días)
+  revCodigo: (yo, d) => {
+    soloMesa_(yo);
+    const id = revId_(d), todas = leer_('rev');
+    let r = todas.find(x => x.id === id);
+    if (!r) r = revMezclar_(null, d, yo);
+    const usados = {}; todas.forEach(x => { if (x.codigo) usados[x.codigo] = 1; });
+    let c = r.codigo && r.codigoVence > ahora_() ? r.codigo : '';
+    while (!c || usados[c] && c !== r.codigo) c = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+    r.codigo = c;
+    r.codigoVence = Utilities.formatDate(new Date(Date.now() + 3 * 864e5), TZ, "yyyy-MM-dd'T'HH:mm:ss");
+    r.actualizado = ahora_();
+    guardar_('rev', r);
+    const s = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL') || ScriptApp.getService().getUrl();
+    return { rev: revPublica_(r), codigo: c, vence: r.codigoVence, enlace: PAGINA + '#r=' + c + '&s=' + encodeURIComponent(s) };
+  },
+
   /* ---- Videollamadas de la Mesa Técnica (Google Meet) ----
      La Supervisión y los ATP agendan e inician; las direcciones invitadas solo se conectan.
      Todas usan la sala fija de la Mesa Técnica (un enlace de Meet creado con la cuenta institucional, sin límite de tiempo),
@@ -2892,6 +2974,89 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
   filas.push(fila);
   return { archivos: total, recientes: recientes };
 }
+
+/* ===================== Revisión en campo ===================== */
+
+const revId_ = x => [String(x.cueId || ''), String(x.cct || ''), String(x.visita || ''), String(x.persona || '')].join('|');
+// Lo que va a la página: sin el código de otros (el revisor lo ve; el código solo sirve 3 días)
+function revPublica_(r) { return r; }
+function revMezclar_(prev, x, yo) {
+  const cue = buscar_('cue', String(x.cueId || ''));
+  if (!cue) throw new Error('No se encontró la guía de revisión.');
+  const cct = String(x.cct || '');
+  if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('La escuela no está en el Directorio.');
+  const r = prev || { id: revId_(x), cueId: cue.id, ciclo: cicloVis_(x.ciclo), visita: String(x.visita || ''), cct: cct, persona: String(x.persona || '').slice(0, 80),
+    respuestas: {}, creado: ahora_(), codigo: '', codigoVence: '', docenteEnvio: '' };
+  r.personaNombre = String(x.personaNombre || r.personaNombre || '').slice(0, 160);
+  r.funcion = String(x.funcion || r.funcion || '').slice(0, 80);
+  r.grupo = String(x.grupo || r.grupo || '').slice(0, 40);
+  const nuevas = x.respuestas && typeof x.respuestas === 'object' ? x.respuestas : {}, viejas = r.respuestas || {};
+  const ks = {}; (cue.preguntas || []).forEach(p => { ks[p.k] = p; });
+  const res = Object.assign({}, viejas);
+  Object.keys(nuevas).forEach(k => {
+    if (!ks[k]) return;
+    const n = nuevas[k] || {}, v0 = viejas[k];
+    // lo que contestó el docente en su celular solo se cambia si el revisor lo corrigió en esta captura
+    if (v0 && v0.por === 'docente' && !n.corregido && (n.v === '' || n.v === undefined)) return;
+    res[k] = { v: String(n.v == null ? '' : n.v).slice(0, 4000), obs: String(n.obs || '').slice(0, 3000),
+      fotos: (Array.isArray(n.fotos) ? n.fotos : []).filter(f => f && f.id).slice(0, 12).map(f => ({ id: String(f.id).slice(0, 80), n: String(f.n || '').slice(0, 160) })),
+      por: n.por === 'docente' ? 'docente' : 'revisor', f: n.f || ahora_() };
+  });
+  r.respuestas = res;
+  r.estado = x.estado === 'completa' ? 'completa' : 'borrador';
+  if (yo) { r.revisor = yo.id; r.revisorNombre = yo.nombre; }
+  r.fecha = /^\d{4}-\d{2}-\d{2}$/.test(x.fecha || '') ? x.fecha : (r.fecha || hoy_());
+  r.actualizado = ahora_();
+  return r;
+}
+function revFotoSubir_(cct, d, quien) {
+  const datos = String(d.datos || '');
+  if (!datos) throw new Error('La foto llegó vacía.');
+  if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+  const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+  const vis = String(d.visita || ''), n = +vis, ciclo = cicloVis_(d.ciclo);
+  const nv = n >= 1 && n <= 3 ? 'Visita ' + n : n > 3 ? 'Visita extraordinaria ' + (n - 3) : 'Revisiones';
+  const persona = String(d.personaNombre || d.persona || 'Dirección').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100) || 'Dirección';
+  const carpeta = sub(sub(sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), nv + ' · ' + ciclo), 'Revisión'), persona);
+  const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
+  const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
+  f.setDescription(SUBIDO_POR + quien);
+  return { foto: { id: f.getId(), n: nombre } };
+}
+// Lo que puede hacer el docente con su código: ver sus preguntas, guardar sus respuestas y subir fotos
+function revPorCodigo_(c) {
+  c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (c.length !== 6) throw new Error('El código no es válido.');
+  const r = leer_('rev').find(x => x.codigo === c);
+  if (!r) throw new Error('El código no es válido. Pida uno nuevo a la Mesa Técnica.');
+  if (String(r.codigoVence || '') < ahora_()) throw new Error('El código ya venció. Pida uno nuevo a la Mesa Técnica.');
+  const cue = buscar_('cue', r.cueId);
+  if (!cue || !cue.activo) throw new Error('La guía de revisión ya no está disponible.');
+  const esDir = r.persona === 'direccion';
+  const pr = (cue.preguntas || []).filter(p => p.quien === 'docente' && (p.para === 'ambos' || (esDir ? p.para === 'direccion' : p.para === 'docente')));
+  return { r: r, cue: cue, pr: pr };
+}
+const REV_PUBLICAS = {
+  revPub: d => { const o = revPorCodigo_(d.codigo), esc = leer_('dir').find(c => c.tipo === 'director' && c.cct === o.r.cct) || {};
+    const res = {}; o.pr.forEach(p => { if (o.r.respuestas && o.r.respuestas[p.k]) res[p.k] = o.r.respuestas[p.k]; });
+    return { zona: zonaPublica_(), escuela: esc.escuela || '', cct: o.r.cct, persona: o.r.personaNombre, guia: o.cue.titulo, preguntas: o.pr, respuestas: res, vence: o.r.codigoVence, enviado: o.r.docenteEnvio }; },
+  revPubGuardar: d => { const o = revPorCodigo_(d.codigo), r = o.r, ks = {}; o.pr.forEach(p => { ks[p.k] = 1; });
+    r.respuestas = r.respuestas || {};
+    Object.keys(d.respuestas || {}).forEach(k => { if (!ks[k]) return; const n = d.respuestas[k] || {}, v0 = r.respuestas[k] || {};
+      r.respuestas[k] = { v: String(n.v == null ? '' : n.v).slice(0, 4000), obs: String(n.obs || '').slice(0, 3000), fotos: (v0.fotos || []).slice(0, 12), por: 'docente', f: ahora_() }; });
+    r.docenteEnvio = ahora_(); r.actualizado = ahora_();
+    guardar_('rev', r);
+    return { enviado: r.docenteEnvio }; },
+  revPubFoto: d => { const o = revPorCodigo_(d.codigo), r = o.r;
+    if (!o.pr.some(p => p.k === d.k && p.foto)) throw new Error('Esta pregunta no lleva foto.');
+    const x = revFotoSubir_(r.cct, Object.assign({}, d, { visita: r.visita, ciclo: r.ciclo, personaNombre: r.personaNombre }), r.personaNombre + ' (docente)');
+    r.respuestas = r.respuestas || {}; const it = r.respuestas[d.k] || { v: '', obs: '', fotos: [], por: 'docente' };
+    it.fotos = (it.fotos || []).concat([x.foto]).slice(-12); it.por = 'docente'; it.f = ahora_(); r.respuestas[d.k] = it; r.actualizado = ahora_();
+    guardar_('rev', r);
+    return { foto: x.foto }; }
+};
 
 /* ===================== Videollamadas ===================== */
 

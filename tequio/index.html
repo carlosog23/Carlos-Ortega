@@ -382,6 +382,22 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .giro{width:44px;height:44px;animation:giro 1.4s linear infinite}
 @keyframes giro{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.giro{animation:none}}
+.cmp-estado{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-bottom:12px}.cmp-estado>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cmp-ses{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:10px;cursor:pointer;font:inherit;color:inherit}.cmp-ses svg{width:18px;height:18px;flex:none}
+.cmp-barra{height:6px;border-radius:4px;background:var(--arena-2);margin:6px 0 3px;overflow:hidden;max-width:260px}.cmp-barra i{display:block;height:100%;background:var(--ok)}
+.cmp-q{border-top:1px solid var(--borde);padding:12px 0}.cmp-q:first-of-type{border-top:0}.cmp-q-doc{background:#F3F6FC;margin:0 -10px;padding:12px 10px;border-radius:10px}
+.cmp-sec{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--terra);margin-bottom:4px}
+.cmp-qt{font-weight:700;font-size:16px;margin-bottom:6px;line-height:1.35}
+.cmp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}.cmp-op{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--borde);border-radius:999px;padding:9px 14px;cursor:pointer;background:var(--papel);font-size:15px}
+.cmp-op input{position:absolute;opacity:0;pointer-events:none}.cmp-op.on{border-color:var(--indigo);background:#EAF0FA;color:var(--indigo);font-weight:700}
+.cmp-obs{min-height:56px;margin-top:4px}.cmp-fotos{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.cmp-foto{position:relative;display:inline-flex;align-items:center}.cmp-foto img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)}.cmp-foto a{font-size:26px;text-decoration:none}
+.cmp-foto button{position:absolute;top:-8px;right:-8px;background:#fff;border:1px solid var(--borde);border-radius:50%;width:22px;height:22px;line-height:18px;font-size:16px;padding:0}
+.cmp-codigo{font-size:40px;font-weight:800;letter-spacing:.2em;color:var(--indigo);margin:6px 0}.cmp-qr{display:flex;justify-content:center;margin:6px 0}
+.cmp-ped{border:1px solid var(--borde);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--papel);display:flex;flex-direction:column;gap:6px}
+.cmp-res{padding:6px 0;border-top:1px solid var(--borde)}.cmp-res-b{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cmp-tabla td{min-width:90px}
+.cmp-pie{position:sticky;bottom:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--crema);border-top:1px solid var(--borde);padding:10px 0;margin-top:8px}.cmp-pie .boton{white-space:nowrap}
 .vid-banda{display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:1100px;margin:12px auto 0;padding:12px 16px;border-radius:var(--radio);background:var(--ok-f);border:1.5px solid #9FD0B1;box-shadow:var(--sombra)}
 .vid-banda.prox{background:#EAF0FA;border-color:#BCCBE6;color:var(--indigo)}
 .vid-banda.prox svg{width:24px;height:24px}
@@ -888,6 +904,8 @@ const INVITACIONES = {
 const invitacionVencida = c => { const v = c && c.invitado && INVITACIONES[c.invitado]; return !v || Date.now() >= Date.parse(v.vence); };
 function leerCfg() {
   const h = new URLSearchParams(location.hash.slice(1));
+  // el docente que contesta su parte de una revisión con el código de la Mesa Técnica
+  if (h.get('r') && h.get('s')) return { docente: h.get('r').toUpperCase(), s: h.get('s') };
   if (h.get('invitado') !== null) { const c = { demo: true, lectura: true, invitado: h.get('invitado') }; return invitacionVencida(c) ? { vencido: true } : c; }
   if (h.get('s') && h.get('k')) {
     const c = { s: h.get('s'), k: h.get('k') };
@@ -932,7 +950,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1215';
+const PUBLICACION = '2026-11-05-1330';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -956,13 +974,14 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eve: Array.isArray(r.eve) ? r.eve : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, vid: Array.isArray(r.vid) ? r.vid : null, vidSala: r.vidSala || '', prm: Array.isArray(r.prm) ? r.prm : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, cue: Array.isArray(r.cue) ? r.cue : null, rev: Array.isArray(r.rev) ? r.rev : null, zonaRaw: r.zona || null, vid: Array.isArray(r.vid) ? r.vid : null, vidSala: r.vidSala || '', prm: Array.isArray(r.prm) ? r.prm : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
     // el semáforo de la carpeta CTEs (Evidencias, informes) sale del apartado CTE: se carga en segundo plano
     if (S.evi && pestanas().some(t => t[0] === 'cte') && !S.cteD) cteCargar();
   } catch (e) {
-    if (!S) portada(e.message); else aviso(esc(e.message), 'mal', 9000);
+    // sin conexión: si el dispositivo guardó los datos de la revisión en campo, se abre ahí
+    if (!S) { if (cfg && !cfg.demo && await cmpIntentarSinConexion()) return; portada(e.message); } else aviso(esc(e.message), 'mal', 9000);
   } finally { cargando(false); }
 }
 
@@ -1056,7 +1075,7 @@ function pestanas() {
 }
 function pestanasTodas() {
   if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm']];
-  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['directorio', 'Directorio', 'i-dir']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   l.push(['finanzas', 'Recursos financieros', 'i-pesos']);
@@ -1070,7 +1089,7 @@ function pestanasTodas() {
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas']],
-  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'seguimiento', 'visitas']],
+  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'seguimiento', 'campo', 'visitas']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia']],
   ['documentos', 'Documentos', 'i-lapiz', ['oficios', 'directorio', 'herramientas']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
@@ -1136,10 +1155,10 @@ function pintar() {
   $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
   $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
   $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo })[vista.tab]();
   pintarBandaVid(); vidVigilar();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
@@ -1470,6 +1489,484 @@ function tarjetaVidAgenda() {
       <div class="chips"><span class="chip indigo">Videollamada</span></div></div></${esDirector() ? 'div' : 'button'}>`; }).join('')
       : '<div class="vacio peq">No hay videollamadas agendadas.</div>'}</div>
   </div>`;
+}
+
+/* =========================================================
+   Revisión en campo
+   La Supervisión y los ATP arman guías de preguntas (para la dirección y para cada docente). En la escuela, desde el
+   celular, la tableta o la laptop, se elige a quién se revisa, se contestan las preguntas y se toman fotos. Todo se
+   guarda en el dispositivo (funciona sin internet) y con «Subir a Tequio» se envía al servidor y las fotos al Drive
+   de la escuela (Visitas de supervisión › Visita N › Revisión). Lo subido se puede corregir y volver a subir.
+   Algunas preguntas las contesta el docente: en el mismo dispositivo o en su celular con un código. Servidor versión 38.
+   ========================================================= */
+const CMP_TIPOS = { snp: 'Sí / No / En proceso', escala: 'Escala de nivel', texto: 'Respuesta escrita', opcion: 'Opción múltiple' };
+const CMP_SNP = ['Sí', 'No', 'En proceso'];
+const CMP_ESCALA = ['Requiere acompañamiento', 'En desarrollo', 'Logrado'];
+const CMP_PARA = { direccion: 'Dirección', docente: 'Cada docente', ambos: 'Dirección y docentes' };
+const CMP_FOTO = ['Sin foto', 'Foto opcional', 'Foto obligatoria'];
+const CMP_VER = 38;
+const cmpListo = () => (S && (S.version >= CMP_VER || S.offline)) || (cfg && cfg.demo);
+
+/* --- almacenamiento en el dispositivo (IndexedDB): paquete de datos, revisiones y fotos --- */
+const CDB = (() => {
+  let db = null;
+  const abrir = () => db ? Promise.resolve(db) : new Promise((ok, no) => {
+    const r = indexedDB.open('tequio-campo', 1);
+    r.onupgradeneeded = () => { ['kv', 'rev', 'foto'].forEach(n => { if (!r.result.objectStoreNames.contains(n)) r.result.createObjectStore(n); }); };
+    r.onsuccess = () => { db = r.result; ok(db); }; r.onerror = () => no(r.error);
+  });
+  const tx = (st, modo, fn) => abrir().then(d => new Promise((ok, no) => { const t = d.transaction(st, modo), q = fn(t.objectStore(st)); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }));
+  return {
+    get: (st, k) => tx(st, 'readonly', s => s.get(k)), put: (st, k, v) => tx(st, 'readwrite', s => s.put(v, k)), del: (st, k) => tx(st, 'readwrite', s => s.delete(k)),
+    todos: st => abrir().then(d => new Promise((ok, no) => { const out = [], t = d.transaction(st), c = t.objectStore(st).openCursor();
+      c.onsuccess = () => { const cu = c.result; if (cu) { out.push(cu.value); cu.continue(); } }; t.oncomplete = () => ok(out); t.onerror = () => no(t.error); }))
+  };
+})();
+const cmpDueño = () => (cfg && cfg.demo ? 'demo' : (S && S.yo && S.yo.id) || '');
+let CMP = { revs: [], ses: [], paq: null };   // copia en memoria de lo guardado en el dispositivo
+async function cmpCargarLocal() {
+  try {
+    const u = cmpDueño();
+    CMP.revs = (await CDB.todos('rev')).filter(r => r.dueño === u);
+    CMP.ses = ((await CDB.get('kv', 'ses-' + u)) || []);
+    CMP.paq = (await CDB.get('kv', 'paq-' + u)) || null;
+  } catch (e) { CMP.err = 'Este navegador no permite guardar datos en el dispositivo (¿ventana privada?). La revisión en campo necesita guardar en el dispositivo.'; }
+}
+const cmpGuardarSes = () => CDB.put('kv', 'ses-' + cmpDueño(), CMP.ses);
+const cmpGuardarRev = r => { r.dueño = cmpDueño(); return CDB.put('rev', r.id, r); };
+const cmpRevId = x => [x.cueId, x.cct, x.visita, x.persona].join('|');
+const cmpEnLinea = () => navigator.onLine !== false && !(S && S.offline);
+
+/* --- paquete para trabajar sin internet: escuelas, personal por escuela y guías --- */
+async function cmpPreparar(silencio) {
+  if (!Array.isArray(S.trb)) { try { const r = await api('personal'); S.trb = Array.isArray(r.trb) ? r.trb : []; } catch (e) { if (!silencio) aviso(esc(e.message), 'mal'); return false; } }
+  const trb = (S.trb || []).filter(t => t.estado !== 'baja').flatMap(t => perActivas(t).filter(p => p.cct).map(p => ({ id: t.id, n: perNombre(t), f: p.funcion || '', g: p.grupo || '', cct: p.cct })));
+  const paq = { fecha: ahora(), yo: S.yo, zona: S.zonaRaw || null, dir: S.dir, usr: S.usr.filter(u => u.rol !== 'director'), cue: S.cue || [], trb, vis: (S.vis || []).map(v => ({ cct: v.cct, ciclo: v.ciclo, numero: v.numero, titulo: v.titulo, estado: v.estado })), version: S.version };
+  try { await CDB.put('kv', 'paq-' + cmpDueño(), paq); CMP.paq = paq; if (!silencio) aviso('Listo: Tequio guardó en este dispositivo las ' + directores().length + ' escuelas, su personal y las guías. Ya puede trabajar sin internet.', 'ok', 6000); return true; }
+  catch (e) { if (!silencio) aviso('No se pudo guardar en el dispositivo.', 'mal'); return false; }
+}
+// Sin conexión al abrir Tequio: si el dispositivo tiene el paquete, se abre solo la revisión en campo
+async function cmpIntentarSinConexion() {
+  try {
+    const keys = await CDB.todos('kv');
+    const paq = keys.filter(x => x && x.yo && x.dir).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
+    if (!paq) return false;
+    if (paq.zona) zonaAplicar(paq.zona);
+    S = { yo: paq.yo, dir: paq.dir, usr: paq.usr, act: [], seg: [], cue: paq.cue, rev: [], vis: paq.vis || [], offline: true, version: paq.version || CMP_VER };
+    await cmpCargarLocal();
+    $('#app').innerHTML = `<div class="banda-demo" style="background:#5B6475;color:#fff">Sin conexión · trabajando con lo guardado en este dispositivo (${esc(fechaHora(paq.fecha))}). Al tener internet, recargue la página para subir.</div>
+      <header class="barra"><div class="envoltura"><a class="marca" href="#"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><small>${LEMA}</small></div></a>
+      <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>Revisión en campo</span></div></div></header>
+      <main><div class="envoltura" style="max-width:860px;margin:0 auto;padding:16px"><div id="vista"></div></div></main>`;
+    vista.tab = 'campo'; vista.cmp = { pant: 'inicio' };
+    vCampo();
+    return true;
+  } catch (e) { return false; }
+}
+
+/* --- ayudas --- */
+const cmpPersonal = cct => ((CMP.paq && CMP.paq.trb) || []).filter(t => t.cct === cct && !/^(director|subdirector|intendente|velador|secretari|administrativ|supervisor|atp)/i.test(t.f));
+const cmpDirector = cct => { const c = (S.dir || []).find(x => x.tipo === 'director' && x.cct === cct); return c ? c.nombre : ''; };
+const cmpPreg = (cue, persona) => (cue.preguntas || []).filter(p => p.para === 'ambos' || (persona === 'direccion' ? p.para === 'direccion' : p.para === 'docente'));
+const cmpCue = id => (S.cue || []).find(c => c.id === id) || ((CMP.paq && CMP.paq.cue) || []).find(c => c.id === id);
+const cmpGuiasDe = (cct, visita) => (S.cue || []).filter(c => c.activo !== false && (!(c.escuelas || []).length || c.escuelas.includes(cct)) && (!c.visita || c.visita === String(visita) || (c.visita === 'x' && +visita > 3)));
+const cmpNomVisita = n => +n <= 3 ? 'Visita ' + n + (VIS_GUIAS[+n] ? ' · ' + VIS_GUIAS[+n].titulo : '') : 'Visita extraordinaria ' + (+n - 3);
+function cmpAvance(r, cue) {
+  const pr = cmpPreg(cue, r.persona), res = r.respuestas || {};
+  const hechas = pr.filter(p => { const x = res[p.k]; return x && (String(x.v || '').trim() || (p.tipo === 'texto' && (x.fotos || []).length)); }).length;
+  const faltaFoto = pr.filter(p => p.foto === 2 && !((res[p.k] || {}).fotos || []).length).length;
+  return { total: pr.length, hechas, faltaFoto };
+}
+function cmpRevLocal(ses, cue, per) {
+  const id = cmpRevId({ cueId: cue.id, cct: ses.cct, visita: ses.visita, persona: per.persona });
+  return CMP.revs.find(r => r.id === id) || { id, cueId: cue.id, cct: ses.cct, visita: String(ses.visita), ciclo: cicloVis(), persona: per.persona, personaNombre: per.nombre, funcion: per.funcion || '', grupo: per.grupo || '', respuestas: {}, estado: 'borrador', fecha: hoy(), sucio: false, sesion: ses.id };
+}
+const cmpPendientes = () => CMP.revs.filter(r => r.sucio);
+async function cmpComprimir(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('No se pudo leer la foto.')); i.src = url; });
+    const k = Math.min(1, 1600 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.72));
+  } finally { URL.revokeObjectURL(url); }
+}
+const cmpB64 = blob => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = () => no(fr.error); fr.readAsDataURL(blob); });
+
+/* --- vista principal --- */
+async function vCampo() {
+  if (!cmpListo()) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Revisión en campo</h1></div><div class="tarjeta pad">${esAdmin() ? `<p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> (versión ${CMP_VER}) para usar la revisión en campo.</p><a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a>` : '<p style="margin:0">La revisión en campo estará disponible en cuanto la Supervisión termine de actualizar Tequio.</p>'}</div>`;
+    return;
+  }
+  if (!vista.cmp) vista.cmp = { pant: 'inicio' };
+  if (!CMP.cargado) { await cmpCargarLocal(); CMP.cargado = true; if (!S.offline) cmpPreparar(true).then(() => { if (vista.tab === 'campo' && vista.cmp.pant === 'inicio') cmpInicio(); }); }
+  if (CMP.err) { $('#vista').innerHTML = `<div class="tarjeta pad"><p style="margin:0">${esc(CMP.err)}</p></div>`; return; }
+  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, guias: cmpGuias, resultados: cmpResultados })[vista.cmp.pant || 'inicio']();
+}
+function cmpIr(o) { vista.cmp = Object.assign({}, o); vCampo(); window.scrollTo(0, 0); }
+
+function cmpInicio() {
+  const pend = cmpPendientes().length, paq = CMP.paq;
+  const ses = CMP.ses.slice().sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><h1>Revisión en campo</h1>
+    <div class="acciones">${S.offline ? '' : `<button class="boton sec" data-cg="guias">${ico('i-lapiz')}Guías</button><button class="boton sec" data-cg="resultados">${ico('i-graf')}Resultados</button>`}<button class="boton terra" id="cm-nueva">${ico('i-mas')}Nueva revisión</button></div></div>
+  <div class="tarjeta pad cmp-estado">
+    <div><span class="chip ${cmpEnLinea() ? 'ok' : 'aviso'}">${cmpEnLinea() ? 'En línea' : 'Sin conexión'}</span>
+      <span class="peq mudo">${paq ? 'Datos para trabajar sin internet guardados el ' + esc(fechaHora(paq.fecha)) : 'Aún no se guardan los datos para trabajar sin internet'}</span></div>
+    <div class="acciones">${S.offline ? '' : `<button class="boton sec chico" id="cm-prep">${ico('i-act')}Guardar para trabajar sin internet</button>`}
+      <button class="boton ${pend ? 'terra' : 'sec'} chico" id="cm-subir" ${pend ? '' : 'disabled'}>${ico('i-carpeta')}Subir a Tequio${pend ? ' (' + pend + ')' : ''}</button></div>
+  </div>
+  <p class="peq mudo" style="margin:-4px 0 14px">Antes de salir a una escuela abra esta sección con internet: Tequio guarda en el dispositivo las escuelas, su personal y las guías. En la escuela puede trabajar sin señal; todo se guarda aquí hasta que pulse «Subir a Tequio».</p>
+  <div class="seccion-t">Revisiones en este dispositivo</div>
+  ${ses.length ? ses.map(s => { const revs = CMP.revs.filter(r => r.sesion === s.id), sucias = revs.filter(r => r.sucio).length;
+    return `<button class="tarjeta pad cmp-ses" data-ses="${esc(s.id)}"><div style="flex:1;min-width:0"><b>${esc(nombreEscuela(s.cct))}</b>
+      <div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${esc(fechaCorta(s.fecha))} · ${s.personas.length} persona${s.personas.length === 1 ? '' : 's'} · ${s.cueIds.map(id => esc((cmpCue(id) || {}).titulo || 'Guía')).join(', ')}</div></div>
+      <span class="chip ${sucias ? 'aviso' : revs.length ? 'ok' : ''}">${sucias ? sucias + ' sin subir' : revs.length ? 'Subida' : 'Sin respuestas'}</span>${ico('i-der')}</button>`; }).join('')
+    : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Aún no hay revisiones en este dispositivo. Pulse «Nueva revisión».</div></div>'}`;
+  $$('[data-cg]').forEach(b => b.onclick = () => cmpIr({ pant: b.dataset.cg }));
+  $('#cm-nueva').onclick = cmpNueva;
+  if ($('#cm-prep')) $('#cm-prep').onclick = async () => { cargando(true); await cmpPreparar(false); cargando(false); cmpInicio(); };
+  $('#cm-subir').onclick = () => cmpSubir();
+  $$('[data-ses]').forEach(b => b.onclick = () => cmpIr({ pant: 'sesion', sid: b.dataset.ses }));
+}
+
+/* --- nueva revisión: escuela, visita y guías --- */
+function cmpNueva() {
+  const escs = directores();
+  modal('Nueva revisión', `
+    <div class="campo"><label for="cn-esc">Escuela</label><select id="cn-esc"><option value="">Elija la escuela…</option>${escs.map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select></div>
+    <div class="campo"><label for="cn-vis">Visita</label><select id="cn-vis"></select></div>
+    <div class="campo"><span class="et">Guías que va a aplicar</span><div class="casillas" id="cn-guias"><div class="ayuda">Elija primero la escuela.</div></div></div>`,
+    '<button class="boton sec" id="cn-no">Cancelar</button><button class="boton terra" id="cn-ok">Continuar</button>');
+  const pintaVis = () => {
+    const cct = $('#cn-esc').value, nums = cct ? [1, 2, 3].concat((S.vis || []).filter(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero > 3).map(v => +v.numero)) : [1, 2, 3];
+    const sig = cct ? (nums.find(n => { const v = (S.vis || []).find(x => x.cct === cct && x.ciclo === cicloVis() && +x.numero === n); return !v || v.estado !== 'cerrada'; }) || 1) : 1;
+    $('#cn-vis').innerHTML = nums.map(n => `<option value="${n}" ${n === sig ? 'selected' : ''}>${esc(cmpNomVisita(n))}</option>`).join('');
+    pintaGuias();
+  };
+  const pintaGuias = () => {
+    const cct = $('#cn-esc').value, g = cct ? cmpGuiasDe(cct, $('#cn-vis').value) : [];
+    $('#cn-guias').innerHTML = !cct ? '<div class="ayuda">Elija primero la escuela.</div>' : g.length ? g.map(c => `<label class="casilla"><input type="checkbox" value="${esc(c.id)}" checked><span>${esc(c.titulo)}<br><span class="ayuda">${c.preguntas.length} preguntas</span></span></label>`).join('')
+      : `<div class="ayuda">No hay guías para esta escuela y visita.${S.offline ? '' : ' Créela en «Guías».'}</div>`;
+  };
+  $('#cn-esc').onchange = pintaVis; $('#cn-vis').onchange = pintaGuias; pintaVis();
+  $('#cn-no').onclick = cerrarModal;
+  $('#cn-ok').onclick = async () => {
+    const cct = $('#cn-esc').value, visita = $('#cn-vis').value, cueIds = $$('#cn-guias input:checked').map(i => i.value);
+    if (!cct) return aviso('Elija la escuela.', 'mal');
+    if (!cueIds.length) return aviso('Elija al menos una guía.', 'mal');
+    let s = CMP.ses.find(x => x.cct === cct && String(x.visita) === String(visita));
+    if (s) { cueIds.forEach(id => { if (!s.cueIds.includes(id)) s.cueIds.push(id); }); }
+    else { s = { id: uid('ses'), cct, visita: String(visita), cueIds, personas: [{ persona: 'direccion', nombre: cmpDirector(cct) || 'Dirección', funcion: 'Dirección' }], fecha: hoy(), creado: ahora() }; CMP.ses.push(s); }
+    await cmpGuardarSes(); cerrarModal(); cmpIr({ pant: 'sesion', sid: s.id });
+  };
+}
+
+/* --- la revisión de una escuela: dirección y docentes elegidos --- */
+function cmpSesion() {
+  const s = CMP.ses.find(x => x.id === vista.cmp.sid); if (!s) return cmpIr({ pant: 'inicio' });
+  const cues = s.cueIds.map(cmpCue).filter(Boolean);
+  const tarjeta = per => {
+    const av = cues.map(c => cmpPreg(c, per.persona).length ? cmpAvance(cmpRevLocal(s, c, per), c) : null).filter(Boolean);
+    const tot = av.reduce((a, x) => a + x.total, 0), h = av.reduce((a, x) => a + x.hechas, 0), ff = av.reduce((a, x) => a + x.faltaFoto, 0);
+    const sucia = cues.some(c => { const r = CMP.revs.find(x => x.id === cmpRevId({ cueId: c.id, cct: s.cct, visita: s.visita, persona: per.persona })); return r && r.sucio; });
+    return `<button class="tarjeta pad cmp-ses" data-per="${esc(per.persona)}"><div style="flex:1;min-width:0"><b>${esc(per.nombre)}</b><div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))}</div>
+      <div class="cmp-barra"><i style="width:${tot ? Math.round(h * 100 / tot) : 0}%"></i></div><div class="peq mudo">${tot ? h + ' de ' + tot + ' preguntas' : 'Sin preguntas para esta persona'}${ff ? ' · falta' + (ff === 1 ? '' : 'n') + ' ' + ff + ' foto' + (ff === 1 ? '' : 's') : ''}</div></div>
+      ${sucia ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`;
+  };
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><div><button class="enlace" id="cs-volver">← Revisiones</button><h1 style="margin-top:4px">${esc(nombreEscuela(s.cct))}</h1>
+    <div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${cues.map(c => esc(c.titulo)).join(', ')}</div></div>
+    <div class="acciones">${cmpEnLinea() && !S.offline ? `<button class="boton sec chico" id="cs-traer">${ico('i-act')}Traer de Tequio</button>` : ''}<button class="boton sec chico" id="cs-guias">${ico('i-mas')}Guías</button></div></div>
+  <div class="seccion-t">Dirección</div>${tarjeta(s.personas[0])}
+  <div class="seccion-t" style="display:flex;align-items:center;gap:8px">Docentes<span style="flex:1"></span><button class="boton sec chico" id="cs-docs">${ico('i-mas')}Elegir docentes</button></div>
+  ${s.personas.length > 1 ? s.personas.slice(1).map(tarjeta).join('') : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Pulse «Elegir docentes» para escoger a quiénes va a revisar.</div></div>'}
+  <div class="acciones" style="margin-top:16px;justify-content:flex-end"><button class="boton peligro chico" id="cs-borrar">Quitar del dispositivo</button><button class="boton terra" id="cs-subir" ${cmpPendientes().some(r => r.sesion === s.id) ? '' : 'disabled'}>${ico('i-carpeta')}Subir a Tequio</button></div>`;
+  $('#cs-volver').onclick = () => cmpIr({ pant: 'inicio' });
+  $$('[data-per]').forEach(b => b.onclick = () => cmpIr({ pant: 'persona', sid: s.id, pk: b.dataset.per }));
+  $('#cs-docs').onclick = () => cmpElegirDocentes(s);
+  $('#cs-guias').onclick = () => {
+    const g = cmpGuiasDe(s.cct, s.visita);
+    modal('Guías de esta revisión', `<div class="casillas">${g.map(c => `<label class="casilla"><input type="checkbox" value="${esc(c.id)}" ${s.cueIds.includes(c.id) ? 'checked' : ''}><span>${esc(c.titulo)}</span></label>`).join('') || '<div class="ayuda">No hay guías.</div>'}</div>`,
+      '<button class="boton sec" id="cg-no">Cancelar</button><button class="boton terra" id="cg-ok">Guardar</button>');
+    $('#cg-no').onclick = cerrarModal;
+    $('#cg-ok').onclick = async () => { const l = $$('.modal input:checked').map(i => i.value); if (!l.length) return aviso('Deje al menos una guía.', 'mal'); s.cueIds = l; await cmpGuardarSes(); cerrarModal(); cmpSesion(); };
+  };
+  if ($('#cs-traer')) $('#cs-traer').onclick = () => cmpTraer(s);
+  $('#cs-subir').onclick = () => cmpSubir(s.id);
+  $('#cs-borrar').onclick = async () => {
+    const sin = CMP.revs.filter(r => r.sesion === s.id && r.sucio).length;
+    if (!confirm(sin ? 'Hay ' + sin + ' revisión(es) SIN SUBIR. Si la quita del dispositivo, se pierden. ¿Quitarla de todos modos?' : '¿Quitar esta revisión del dispositivo? Lo que ya se subió queda en Tequio.')) return;
+    for (const r of CMP.revs.filter(r => r.sesion === s.id)) { await CDB.del('rev', r.id); for (const x of Object.values(r.respuestas || {})) for (const f of (x.fotos || [])) if (f.lid) await CDB.del('foto', f.lid); }
+    CMP.revs = CMP.revs.filter(r => r.sesion !== s.id); CMP.ses = CMP.ses.filter(x => x.id !== s.id); await cmpGuardarSes(); cmpIr({ pant: 'inicio' });
+  };
+}
+function cmpElegirDocentes(s) {
+  const l = cmpPersonal(s.cct), ya = new Set(s.personas.map(p => p.persona));
+  modal('Docentes a revisar', `
+    ${l.length ? `<div class="rapidos"><button type="button" class="boton sec chico" id="ed-todos">Todos</button><button type="button" class="boton sec chico" id="ed-nin">Ninguno</button></div>
+      <div class="casillas" id="ed-l">${l.map(t => `<label class="casilla"><input type="checkbox" value="${esc(t.id)}" ${ya.has(t.id) ? 'checked' : ''}><span>${esc(t.n)}<br><span class="ayuda">${esc([t.f, t.g].filter(Boolean).join(' · '))}</span></span></label>`).join('')}</div>`
+      : '<p class="peq mudo">No hay personal de esta escuela en la base de Personal (o no se ha guardado para trabajar sin internet). Agréguelo a mano.</p>'}
+    <div class="fila" style="margin-top:10px;align-items:end"><div class="campo" style="margin:0"><label for="ed-man">Agregar a mano</label><input id="ed-man" placeholder="Nombre del docente"></div><div class="campo" style="margin:0"><label for="ed-gr">Grado y grupo</label><input id="ed-gr" placeholder="3.° A"></div></div>`,
+    '<button class="boton sec" id="ed-no">Cancelar</button><button class="boton terra" id="ed-ok">Guardar</button>');
+  if ($('#ed-todos')) { $('#ed-todos').onclick = () => $$('#ed-l input').forEach(i => i.checked = true); $('#ed-nin').onclick = () => $$('#ed-l input').forEach(i => i.checked = false); }
+  $('#ed-no').onclick = cerrarModal;
+  $('#ed-ok').onclick = async () => {
+    const marcados = $$('#ed-l input:checked').map(i => i.value), man = $('#ed-man').value.trim();
+    const quitar = s.personas.slice(1).filter(p => !p.persona.startsWith('m-') && !marcados.includes(p.persona));
+    if (quitar.some(p => CMP.revs.some(r => r.sesion === s.id && r.persona === p.persona && Object.keys(r.respuestas || {}).length)) && !confirm('Desmarcó docentes que ya tienen respuestas. Se dejarán de ver en esta revisión, pero no se borra lo que ya se subió. ¿Continuar?')) return;
+    const nuevos = marcados.filter(id => !ya.has(id)).map(id => { const t = l.find(x => x.id === id); return { persona: id, nombre: t.n, funcion: t.f, grupo: t.g }; });
+    s.personas = [s.personas[0]].concat(s.personas.slice(1).filter(p => p.persona.startsWith('m-') || marcados.includes(p.persona)), nuevos);
+    if (man) s.personas.push({ persona: 'm-' + man.toLowerCase().normalize('NFD').replace(/[^\w]+/g, '-').slice(0, 40), nombre: man, funcion: 'Docente', grupo: $('#ed-gr').value.trim() });
+    await cmpGuardarSes(); cerrarModal(); cmpSesion();
+  };
+}
+
+/* --- las preguntas de una persona --- */
+function cmpPersona() {
+  const s = CMP.ses.find(x => x.id === vista.cmp.sid); if (!s) return cmpIr({ pant: 'inicio' });
+  const per = s.personas.find(p => p.persona === vista.cmp.pk); if (!per) return cmpIr({ pant: 'sesion', sid: s.id });
+  const cues = s.cueIds.map(cmpCue).filter(Boolean).filter(c => cmpPreg(c, per.persona).length);
+  const modoDoc = !!vista.cmp.docente;
+  const urls = [];
+  const campo = (cue, r, p) => {
+    const x = (r.respuestas || {})[p.k] || {}, nm = 'q-' + cue.id + '-' + p.k, ops = p.tipo === 'snp' ? CMP_SNP : p.op;
+    const fotos = (x.fotos || []).map((f, i) => { let src = ''; if (f.lid && f._url) src = f._url; return `<span class="cmp-foto">${f.id ? `<a href="${urlArchivo(f.id)}" target="_blank" rel="noopener" title="${esc(f.n || 'foto')}">📷</a>` : `<img src="${src}" alt="Foto ${i + 1}">`}<button type="button" class="enlace" data-qf="${esc(cue.id)}|${esc(p.k)}|${i}" aria-label="Quitar foto">×</button></span>`; }).join('');
+    const doc = p.quien === 'docente';
+    return `<div class="cmp-q${doc ? ' cmp-q-doc' : ''}" id="${nm}">
+      ${p.sec ? `<div class="cmp-sec">${esc(p.sec)}</div>` : ''}
+      <div class="cmp-qt">${esc(p.t)}${p.foto === 2 ? ' <span class="chip mal" style="font-size:11px">foto obligatoria</span>' : ''}${doc ? ' <span class="chip indigo" style="font-size:11px">la contesta el docente</span>' : ''}${x.por === 'docente' ? ' <span class="chip ok" style="font-size:11px">contestó el docente</span>' : ''}</div>
+      ${p.ayuda ? `<div class="ayuda">${esc(p.ayuda)}</div>` : ''}
+      ${p.tipo === 'texto' ? `<textarea data-qv="${esc(cue.id)}|${esc(p.k)}" placeholder="Respuesta">${esc(x.v || '')}</textarea>`
+        : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${x.v === o ? ' on' : ''}"><input type="radio" name="${nm}" value="${esc(o)}" data-qv="${esc(cue.id)}|${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>`}
+      ${p.tipo !== 'texto' ? `<textarea class="cmp-obs" data-qo="${esc(cue.id)}|${esc(p.k)}" placeholder="Observación (opcional)">${esc(x.obs || '')}</textarea>` : ''}
+      ${p.foto ? `<div class="cmp-fotos">${fotos}<label class="boton sec chico">${ico('i-cam')}Tomar o elegir foto<input type="file" accept="image/*" capture="environment" hidden data-qp="${esc(cue.id)}|${esc(p.k)}"></label></div>` : ''}
+    </div>`;
+  };
+  const revs = cues.map(c => cmpRevLocal(s, c, per));
+  // las fotos guardadas en el dispositivo se muestran desde ahí
+  Promise.all(revs.flatMap(r => Object.values(r.respuestas || {}).flatMap(x => (x.fotos || []).filter(f => f.lid && !f._url).map(async f => { const b = await CDB.get('foto', f.lid); if (b) { f._url = URL.createObjectURL(b); urls.push(f._url); } })))).then(() => {
+    if (urls.length && vista.cmp && vista.cmp.pant === 'persona') pintar2();
+  });
+  const pintar2 = () => {
+    const hayDoc = cues.some(c => cmpPreg(c, per.persona).some(p => p.quien === 'docente'));
+    $('#vista').innerHTML = `
+    <div class="titulo-vista"><div><button class="enlace" id="cp-volver">← ${esc(nombreEscuela(s.cct))}</button><h1 style="margin-top:4px">${esc(per.nombre)}</h1>
+      <div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))} · ${esc(cmpNomVisita(s.visita))}</div></div></div>
+    ${hayDoc ? `<div class="aviso-caja cmp-docbox"><b>Hay preguntas que contesta ${per.persona === 'direccion' ? 'la dirección' : 'el docente'}.</b> Puede pasarle este dispositivo o darle un código para que conteste en su celular (necesita internet).
+      <div class="acciones" style="margin-top:8px"><label class="casilla"><input type="checkbox" id="cp-mdoc" ${modoDoc ? 'checked' : ''}> Está contestando ${per.persona === 'direccion' ? 'la dirección' : 'el docente'} en este dispositivo</label>${cmpEnLinea() && !S.offline ? `<button class="boton sec chico" id="cp-cod">Código para su celular</button>` : ''}</div></div>` : ''}
+    ${cues.map((c, i) => `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 4px">${esc(c.titulo)}</h2>${c.descripcion ? `<p class="peq mudo" style="margin:0 0 8px">${esc(c.descripcion)}</p>` : ''}
+      ${cmpPreg(c, per.persona).filter(p => !modoDoc || p.quien === 'docente').map(p => campo(c, revs[i], p)).join('')}</div>`).join('')}
+    <div class="cmp-pie"><button class="boton sec" id="cp-volver2">← Volver</button>
+      <div>${(() => { const i = s.personas.findIndex(p => p.persona === per.persona), sig = s.personas[i + 1]; return sig ? `<button class="boton terra" id="cp-sig">Siguiente: ${esc(nombreCorto(sig.nombre))} →</button>` : ''; })()}</div></div>
+    <p class="peq mudo" style="text-align:center">Las respuestas se guardan en este dispositivo al momento. Súbalas con «Subir a Tequio».</p>`;
+    $('#cp-volver').onclick = $('#cp-volver2').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'sesion', sid: s.id }); };
+    if ($('#cp-sig')) $('#cp-sig').onclick = () => { const i = s.personas.findIndex(p => p.persona === per.persona); cmpIr({ pant: 'persona', sid: s.id, pk: s.personas[i + 1].persona }); };
+    if ($('#cp-mdoc')) $('#cp-mdoc').onchange = e => { vista.cmp.docente = e.target.checked; cmpPersona(); };
+    if ($('#cp-cod')) $('#cp-cod').onclick = () => cmpCodigo(s, per, cues);
+    const revDe = cueId => revs[cues.findIndex(c => c.id === cueId)];
+    const guardar = async (r, k, cambio) => { r.respuestas = r.respuestas || {}; const x = r.respuestas[k] || { v: '', obs: '', fotos: [] }; cambio(x); x.por = modoDoc ? 'docente' : (x.por === 'docente' ? 'docente' : 'revisor'); if (x.por === 'docente' && !modoDoc) x.corregido = true; x.f = ahora(); r.respuestas[k] = x; r.sucio = true;
+      if (!CMP.revs.includes(r)) CMP.revs.push(r); await cmpGuardarRev(limpioRev(r)); };
+    $$('[data-qv]').forEach(el => el.addEventListener(el.tagName === 'TEXTAREA' ? 'change' : 'change', () => { const [c, k] = el.dataset.qv.split('|'); guardar(revDe(c), k, x => { x.v = el.value; });
+      if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); }));
+    $$('[data-qo]').forEach(el => el.addEventListener('change', () => { const [c, k] = el.dataset.qo.split('|'); guardar(revDe(c), k, x => { x.obs = el.value; }); }));
+    $$('[data-qp]').forEach(el => el.onchange = async () => { const f = el.files[0]; if (!f) return; const [c, k] = el.dataset.qp.split('|');
+      try { const b = await cmpComprimir(f), lid = uid('f'); await CDB.put('foto', lid, b); await guardar(revDe(c), k, x => { x.fotos = (x.fotos || []).concat([{ lid, n: 'Foto ' + ((x.fotos || []).length + 1) + '.jpg' }]); }); cmpPersona(); }
+      catch (e) { aviso(esc(e.message || 'No se pudo guardar la foto.'), 'mal'); } });
+    $$('[data-qf]').forEach(b => b.onclick = async () => { const [c, k, i] = b.dataset.qf.split('|'); if (!confirm('¿Quitar esta foto?')) return;
+      await guardar(revDe(c), k, x => { const f = x.fotos.splice(+i, 1)[0]; if (f && f.lid) CDB.del('foto', f.lid); }); cmpPersona(); });
+  };
+  pintar2();
+}
+// lo que se guarda en el dispositivo (sin las direcciones temporales de las fotos)
+const limpioRev = r => JSON.parse(JSON.stringify(r, (k, v) => k === '_url' ? undefined : v));
+
+/* --- código para que el docente conteste en su celular --- */
+async function cmpCodigo(s, per, cues) {
+  const conDoc = cues.filter(c => cmpPreg(c, per.persona).some(p => p.quien === 'docente'));
+  const out = [];
+  for (const c of conDoc) { const r = await accion('revCodigo', { cueId: c.id, cct: s.cct, visita: s.visita, ciclo: cicloVis(), persona: per.persona, personaNombre: per.nombre, funcion: per.funcion, grupo: per.grupo }); if (!r) return; out.push({ c, r }); }
+  modal('Código para ' + esc(nombreCorto(per.nombre)), out.map(({ c, r }) => `<div class="tarjeta pad" style="box-shadow:none;margin-bottom:10px;text-align:center">
+      <div class="peq mudo">${esc(c.titulo)}</div><div class="cmp-codigo">${esc(r.codigo)}</div><div id="qr-${esc(r.codigo)}" class="cmp-qr"></div>
+      <div class="peq mudo">Vale hasta el ${esc(fechaHora(r.vence))}. Que escanee el código QR o abra el enlace.</div>
+      <div class="acciones" style="justify-content:center;margin-top:8px"><a class="boton sec chico" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Para contestar su parte de la revisión de la Supervisión (' + c.titulo + '), abra este enlace: ' + r.enlace)}">${ico('i-wa')}Enviar por WhatsApp</a><button class="boton sec chico" data-cpy="${esc(r.enlace)}">${ico('i-copiar')}Copiar enlace</button></div></div>`).join('') +
+    '<p class="peq mudo" style="margin:0">Cuando el docente envíe sus respuestas, pulse «Traer de Tequio» en la escuela para verlas aquí.</p>', '<button class="boton sec" id="cc-ok">Listo</button>');
+  $('#cc-ok').onclick = cerrarModal;
+  $$('[data-cpy]').forEach(b => b.onclick = () => copiar(b.dataset.cpy, 'Enlace copiado'));
+  try { if (!window.QRCode) await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); out.forEach(({ r }) => { const el = document.getElementById('qr-' + r.codigo); if (el) new QRCode(el, { text: r.enlace, width: 180, height: 180 }); }); } catch (e) {}
+}
+
+/* --- subir a Tequio: primero las fotos (al Drive de la escuela), luego las respuestas --- */
+async function cmpSubir(sid) {
+  if (!navigator.onLine) return aviso('No hay internet. Cuando tenga señal, pulse otra vez «Subir a Tequio».', 'mal', 7000);
+  const l = cmpPendientes().filter(r => !sid || r.sesion === sid);
+  if (!l.length) return aviso('No hay nada pendiente de subir.', 'ok');
+  let fotos = 0, errores = 0;
+  cargando(true);
+  try {
+    for (const r of l) {
+      for (const [k, x] of Object.entries(r.respuestas || {})) {
+        for (const f of (x.fotos || [])) {
+          if (!f.lid) continue;
+          const b = await CDB.get('foto', f.lid); if (!b) { f.perdida = true; continue; }
+          try { const res = await api('revFoto', { cct: r.cct, visita: r.visita, ciclo: r.ciclo, persona: r.persona, personaNombre: r.personaNombre, nombre: (r.personaNombre + ' - ' + k + ' - ' + f.n).replace(/[\\/:*?"<>|]+/g, ' '), datos: await cmpB64(b), tipo: 'image/jpeg' });
+            await CDB.del('foto', f.lid); delete f.lid; delete f._url; f.id = res.foto.id; f.n = res.foto.n; fotos++; await cmpGuardarRev(limpioRev(r)); }
+          catch (e) { errores++; }
+        }
+        x.fotos = (x.fotos || []).filter(f => !f.perdida);
+      }
+    }
+    const listos = l.filter(r => !Object.values(r.respuestas || {}).some(x => (x.fotos || []).some(f => f.lid)));
+    for (let i = 0; i < listos.length; i += 20) {
+      const lote = listos.slice(i, i + 20);
+      const res = await api('revGuardar', { revs: lote.map(r => ({ cueId: r.cueId, cct: r.cct, visita: r.visita, ciclo: r.ciclo, persona: r.persona, personaNombre: r.personaNombre, funcion: r.funcion, grupo: r.grupo, respuestas: r.respuestas, estado: r.estado, fecha: r.fecha })) });
+      for (const sv of (res.rev || [])) { const loc = lote.find(r => r.id === sv.id); if (!loc) continue; loc.respuestas = sv.respuestas; loc.sucio = false; loc.subido = ahora(); await cmpGuardarRev(limpioRev(loc)); if (S.rev) poner(S.rev, sv); }
+    }
+    aviso('Se subió a Tequio: ' + listos.length + ' revisión(es)' + (fotos ? ' y ' + fotos + ' foto(s) al Drive de la escuela' : '') + '.' + (errores ? ' ' + errores + ' foto(s) no se pudieron subir; intente de nuevo.' : ''), errores ? 'mal' : 'ok', 7000);
+  } catch (e) { aviso(esc(e.message || 'No se pudo subir. Intente de nuevo.'), 'mal', 8000); }
+  finally { cargando(false); vCampo(); }
+}
+// Trae lo que hay en Tequio de la escuela: lo que contestaron los docentes y lo capturado en otro dispositivo
+async function cmpTraer(s) {
+  const r = await accion('revTraer', { cct: s.cct, ciclo: cicloVis() }); if (!r) return;
+  let n = 0;
+  for (const sv of (r.rev || []).filter(x => String(x.visita) === String(s.visita) && s.cueIds.includes(x.cueId))) {
+    let loc = CMP.revs.find(x => x.id === sv.id);
+    if (!s.personas.some(p => p.persona === sv.persona)) s.personas.push({ persona: sv.persona, nombre: sv.personaNombre, funcion: sv.funcion, grupo: sv.grupo });
+    if (loc && loc.sucio) { Object.entries(sv.respuestas || {}).forEach(([k, x]) => { if (x.por === 'docente' && !(loc.respuestas[k] && String(loc.respuestas[k].v || '').trim())) loc.respuestas[k] = x; }); }
+    else { loc = Object.assign(loc || {}, sv, { sucio: false, sesion: s.id, subido: sv.actualizado }); if (!CMP.revs.includes(loc)) CMP.revs.push(loc); }
+    await cmpGuardarRev(limpioRev(loc)); n++;
+  }
+  await cmpGuardarSes();
+  aviso(n ? 'Se trajeron ' + n + ' revisión(es) de Tequio.' : 'En Tequio no hay nada más de esta escuela y visita.', 'ok', 4000);
+  cmpSesion();
+}
+
+/* --- guías de revisión (con internet) --- */
+function cmpGuias() {
+  const l = (S.cue || []).filter(c => c.activo !== false).sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><div><button class="enlace" id="gu-volver">← Revisión en campo</button><h1 style="margin-top:4px">Guías de revisión</h1></div>
+    <div class="acciones"><button class="boton terra" id="gu-nueva">${ico('i-mas')}Nueva guía</button></div></div>
+  <p class="peq mudo" style="margin-top:-6px">Lo que se va a revisar o solicitar en las escuelas. Cada pregunta dice si es para la dirección o para cada docente, quién la contesta y si pide foto.</p>
+  ${l.length ? l.map(c => { const n = { d: c.preguntas.filter(p => p.para !== 'docente').length, k: c.preguntas.filter(p => p.para !== 'direccion').length, f: c.preguntas.filter(p => p.foto).length };
+    return `<button class="tarjeta pad cmp-ses" data-gu="${esc(c.id)}"><div style="flex:1;min-width:0"><b>${esc(c.titulo)}</b><div class="peq mudo">${c.visita ? esc(c.visita === 'x' ? 'Visitas extraordinarias' : cmpNomVisita(c.visita)) : 'Cualquier visita'} · ${(c.escuelas || []).length ? c.escuelas.length + ' escuela(s)' : 'Todas las escuelas'} · ${n.d} para la dirección · ${n.k} para docentes · ${n.f} con foto</div></div>${ico('i-der')}</button>`; }).join('')
+    : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Aún no hay guías. Pulse «Nueva guía».</div></div>'}`;
+  $('#gu-volver').onclick = () => cmpIr({ pant: 'inicio' });
+  $('#gu-nueva').onclick = () => cmpFormGuia(null);
+  $$('[data-gu]').forEach(b => b.onclick = () => cmpFormGuia(b.dataset.gu));
+}
+function cmpFormGuia(id) {
+  const c = id ? JSON.parse(JSON.stringify((S.cue || []).find(x => x.id === id))) : { titulo: '', descripcion: '', visita: '', escuelas: [], preguntas: [{ k: '', t: '', tipo: 'snp', op: [], para: 'direccion', quien: 'revisor', foto: 0, ayuda: '', sec: '' }] };
+  const filaP = (p, i) => `<div class="cmp-ped" data-i="${i}">
+    <div class="fila" style="grid-template-columns:1fr 36px"><input data-k="sec" placeholder="Apartado (opcional), p. ej. Planeación" value="${esc(p.sec || '')}"><button type="button" class="icono-btn" data-quitar aria-label="Quitar pregunta">${ico('i-x')}</button></div>
+    <textarea data-k="t" placeholder="Pregunta o lo que se va a revisar">${esc(p.t)}</textarea>
+    <div class="fila"><select data-k="tipo" aria-label="Tipo">${Object.entries(CMP_TIPOS).map(([k, v]) => `<option value="${k}" ${p.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <select data-k="para" aria-label="Para quién">${Object.entries(CMP_PARA).map(([k, v]) => `<option value="${k}" ${p.para === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+    <div class="fila"><select data-k="quien" aria-label="Quién contesta"><option value="revisor" ${p.quien !== 'docente' ? 'selected' : ''}>La registra la Mesa Técnica</option><option value="docente" ${p.quien === 'docente' ? 'selected' : ''}>La contesta el docente (o la dirección)</option></select>
+      <select data-k="foto" aria-label="Foto">${CMP_FOTO.map((v, k) => `<option value="${k}" ${+p.foto === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+    <textarea data-k="op" placeholder="Opciones, una por renglón" ${p.tipo === 'opcion' || p.tipo === 'escala' ? '' : 'hidden'}>${esc((p.op && p.op.length ? p.op : p.tipo === 'escala' ? CMP_ESCALA : []).join('\n'))}</textarea>
+    <input data-k="ayuda" placeholder="Indicación para quien revisa (opcional)" value="${esc(p.ayuda || '')}">
+    <input type="hidden" data-k="k" value="${esc(p.k || '')}"></div>`;
+  modal(id ? 'Editar guía' : 'Nueva guía de revisión', `
+    <div class="campo"><label for="g-tit">Nombre de la guía</label><input id="g-tit" value="${esc(c.titulo)}" placeholder="Ej. Revisión de planeación y libro de firmas"></div>
+    <div class="campo"><label for="g-desc">Indicaciones (opcional)</label><textarea id="g-desc" placeholder="Qué se va a revisar y qué debe tener a la mano la escuela">${esc(c.descripcion)}</textarea></div>
+    <div class="fila"><div class="campo"><label for="g-vis">¿En qué visita?</label><select id="g-vis"><option value="" ${!c.visita ? 'selected' : ''}>Cualquier visita</option>${[1, 2, 3].map(n => `<option value="${n}" ${c.visita === String(n) ? 'selected' : ''}>${esc(cmpNomVisita(n))}</option>`).join('')}<option value="x" ${c.visita === 'x' ? 'selected' : ''}>Visitas extraordinarias</option></select></div></div>
+    <div class="campo"><span class="et">Escuelas</span><div class="rapidos"><button type="button" class="boton sec chico" data-gsel="todas">Todas</button><button type="button" class="boton sec chico" data-gsel="ninguna">Ninguna</button><button type="button" class="boton sec chico" data-gsel="mg">Multigrado</button>${munOrden().map(m => `<button type="button" class="boton sec chico" data-gsel="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+      <div class="casillas" id="g-escs">${directores().map(e => `<label class="casilla"><input type="checkbox" value="${e.cct}" data-mun="${esc(e.municipio)}" data-mg="${e.multigrado}" ${!(c.escuelas || []).length || c.escuelas.includes(e.cct) ? 'checked' : ''}><span>${esc(e.escuela)}</span></label>`).join('')}</div></div>
+    <div class="campo"><span class="et">Preguntas</span><div id="g-ps">${c.preguntas.map(filaP).join('')}</div><button type="button" class="boton sec chico" id="g-mas">${ico('i-mas')}Agregar pregunta</button></div>`,
+    `${id && esAdmin() ? '<button class="boton peligro" id="g-quitar" style="margin-right:auto">Quitar</button>' : ''}<button class="boton sec" id="g-no">Cancelar</button><button class="boton terra" id="g-ok">Guardar</button>`);
+  const cablear = () => {
+    $$('#g-ps [data-quitar]').forEach(b => b.onclick = () => { if ($$('#g-ps .cmp-ped').length > 1) b.closest('.cmp-ped').remove(); });
+    $$('#g-ps [data-k=tipo]').forEach(sel => sel.onchange = () => { const f = sel.closest('.cmp-ped'), op = f.querySelector('[data-k=op]'); op.hidden = !['opcion', 'escala'].includes(sel.value); if (sel.value === 'escala' && !op.value.trim()) op.value = CMP_ESCALA.join('\n'); });
+  };
+  cablear();
+  $('#g-mas').onclick = () => { const prev = $$('#g-ps .cmp-ped').pop(); const base = { t: '', tipo: 'snp', op: [], para: prev ? prev.querySelector('[data-k=para]').value : 'direccion', quien: 'revisor', foto: 0, sec: prev ? prev.querySelector('[data-k=sec]').value : '' };
+    $('#g-ps').insertAdjacentHTML('beforeend', filaP(base, Date.now())); cablear(); $$('#g-ps textarea[data-k=t]').pop().focus(); };
+  $$('[data-gsel]').forEach(b => b.onclick = () => { const k = b.dataset.gsel; $$('#g-escs input').forEach(i => { i.checked = k === 'todas' ? true : k === 'ninguna' ? false : k === 'mg' ? i.dataset.mg === 'true' : i.dataset.mun === k; }); });
+  $('#g-no').onclick = cerrarModal;
+  if ($('#g-quitar')) $('#g-quitar').onclick = () => { if (!confirm('¿Quitar la guía «' + c.titulo + '»? Lo que ya se respondió se conserva.')) return;
+    accion('cueQuitar', { id }, () => { S.cue = S.cue.filter(x => x.id !== id); cerrarModal(); cmpGuias(); }); };
+  $('#g-ok').onclick = () => {
+    const todas = $$('#g-escs input'), marc = todas.filter(i => i.checked).map(i => i.value);
+    if (!marc.length) return aviso('Marque al menos una escuela.', 'mal');
+    const d = { id: id || '', titulo: $('#g-tit').value.trim(), descripcion: $('#g-desc').value.trim(), visita: $('#g-vis').value, escuelas: marc.length === todas.length ? [] : marc,
+      preguntas: $$('#g-ps .cmp-ped').map(f => { const o = {}; $$('[data-k]', f).forEach(i => o[i.dataset.k] = i.value.trim()); o.op = o.op.split('\n').map(x => x.trim()).filter(Boolean); o.foto = +o.foto; if (!['opcion', 'escala'].includes(o.tipo)) o.op = []; return o; }).filter(p => p.t) };
+    if (!d.titulo) return aviso('Escriba el nombre de la guía.', 'mal');
+    if (!d.preguntas.length) return aviso('Agregue al menos una pregunta.', 'mal');
+    accion('cueGuardar', d, r => { S.cue = S.cue || []; poner(S.cue, r.cue); cerrarModal(); cmpPreparar(true); cmpGuias(); aviso('Guía guardada. Ya aparece en la revisión en campo.', 'ok'); });
+  };
+}
+
+/* --- resultados: la base de datos de todo lo revisado (con internet) --- */
+function cmpResultados() {
+  const cues = (S.cue || []).filter(c => c.activo !== false);
+  const f = vista.cmpF || (vista.cmpF = { cue: (cues[0] || {}).id || '', cct: '', vis: '' });
+  const c = cues.find(x => x.id === f.cue);
+  const revs = (S.rev || []).filter(r => r.cueId === f.cue && (!f.cct || r.cct === f.cct) && (!f.vis || String(r.visita) === f.vis))
+    .sort((a, b) => nombreEscuela(a.cct).localeCompare(nombreEscuela(b.cct), 'es') || (a.persona === 'direccion' ? -1 : b.persona === 'direccion' ? 1 : String(a.personaNombre).localeCompare(String(b.personaNombre), 'es')));
+  const col = v => /^(sí|logrado)$/i.test(v) ? 'ok' : /^(no|requiere)/i.test(v) ? 'mal' : /proceso|desarrollo/i.test(v) ? 'aviso' : '';
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><div><button class="enlace" id="rs-volver">← Revisión en campo</button><h1 style="margin-top:4px">Resultados de la revisión</h1></div>
+    <div class="acciones"><button class="boton sec" id="rs-act">${ico('i-act')}Actualizar</button></div></div>
+  <div class="filtros"><select id="rs-cue">${cues.map(x => `<option value="${esc(x.id)}" ${x.id === f.cue ? 'selected' : ''}>${esc(x.titulo)}</option>`).join('') || '<option value="">Sin guías</option>'}</select>
+    <select id="rs-esc"><option value="">Todas las escuelas</option>${directores().map(e => `<option value="${e.cct}" ${f.cct === e.cct ? 'selected' : ''}>${esc(e.escuela)}</option>`).join('')}</select>
+    <select id="rs-vis"><option value="">Todas las visitas</option>${[1, 2, 3].map(n => `<option value="${n}" ${f.vis === String(n) ? 'selected' : ''}>Visita ${n}</option>`).join('')}</select></div>
+  ${!c ? '<div class="tarjeta pad vacio">Aún no hay guías.</div>' : !revs.length ? '<div class="tarjeta pad vacio">Aún no se ha subido ninguna revisión con esta guía.</div>' : `
+  <div class="tarjeta pad" style="margin-bottom:16px"><div class="seccion-t" style="padding:0 0 8px">Resumen por pregunta · ${revs.length} persona(s) en ${new Set(revs.map(r => r.cct)).size} escuela(s)</div>
+    ${c.preguntas.filter(p => p.tipo !== 'texto').map(p => { const vals = revs.filter(r => cmpPreg(c, r.persona).some(q => q.k === p.k)).map(r => ((r.respuestas || {})[p.k] || {}).v || '');
+      const ops = (p.tipo === 'snp' ? CMP_SNP : p.op), tot = vals.length || 1;
+      if (!vals.length) return `<div class="cmp-res"><div class="peq"><b>${esc(p.t)}</b></div><div class="peq mudo">Aún nadie la contesta.</div></div>`;
+      return `<div class="cmp-res"><div class="peq"><b>${esc(p.t)}</b></div><div class="cmp-res-b">${ops.map(o => { const n = vals.filter(v => v === o).length; return n ? `<span class="chip ${col(o)}" title="${esc(o)}">${esc(o)}: ${n} (${Math.round(n * 100 / tot)}%)</span>` : ''; }).join('')}${vals.filter(v => !v).length ? `<span class="chip">Sin respuesta: ${vals.filter(v => !v).length}</span>` : ''}</div></div>`; }).join('')}</div>
+  <div class="tarjeta"><div class="matriz-caja"><table class="matriz cmp-tabla"><thead><tr><th class="esc-col">Escuela · persona</th>${c.preguntas.map((p, i) => `<th title="${esc(p.t)}"><span>${i + 1}. ${esc(p.t.slice(0, 40))}${p.t.length > 40 ? '…' : ''}</span></th>`).join('')}</tr></thead>
+    <tbody>${revs.map(r => `<tr><th class="esc-col">${esc(nombreEscuela(r.cct))}<div class="ayuda">${esc(r.personaNombre)}${r.grupo ? ' · ' + esc(r.grupo) : ''} · V${esc(r.visita)}</div></th>${c.preguntas.map(p => { const x = (r.respuestas || {})[p.k];
+      if (!cmpPreg(c, r.persona).some(q => q.k === p.k)) return '<td class="sin">—</td>';
+      return `<td class="peq" title="${esc((x && x.obs) || '')}">${x && x.v ? (p.tipo === 'texto' ? esc(String(x.v).slice(0, 80)) : `<span class="chip ${col(x.v)}">${esc(x.v)}</span>`) : '<span class="mudo">—</span>'}${x && (x.fotos || []).length ? ' ' + x.fotos.map(ft => `<a href="${urlArchivo(ft.id)}" target="_blank" rel="noopener" title="Foto">📷</a>`).join('') : ''}${x && x.por === 'docente' ? '<div class="ayuda">docente</div>' : ''}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div></div>`}`;
+  $('#rs-volver').onclick = () => cmpIr({ pant: 'inicio' });
+  $('#rs-cue').onchange = e => { f.cue = e.target.value; cmpResultados(); };
+  $('#rs-esc').onchange = e => { f.cct = e.target.value; cmpResultados(); };
+  $('#rs-vis').onchange = e => { f.vis = e.target.value; cmpResultados(); };
+  $('#rs-act').onclick = async () => { const r = await accion('revTraer', { ciclo: cicloVis() }); if (r) { S.rev = r.rev || []; cmpResultados(); } };
+}
+
+/* --- página del docente: contesta su parte con el código que le dio la Mesa Técnica --- */
+async function docentePagina() {
+  document.title = 'Tequio · Revisión';
+  $('#app').innerHTML = `<div class="envoltura" style="max-width:640px;margin:0 auto;padding:18px 16px"><div id="vista"><p class="mudo">Cargando…</p></div></div>`;
+  let d;
+  try { d = await api('revPub', { codigo: cfg.docente }); }
+  catch (e) { $('#vista').innerHTML = `<div class="tarjeta pad"><h1 style="font-size:22px">Revisión de la Supervisión</h1><p>${esc(e.message)}</p></div>`; return; }
+  if (d.zona) zonaAplicar(d.zona);
+  const res = d.respuestas || {};
+  const pintarD = () => {
+    $('#vista').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><svg style="width:42px;height:42px" aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><div class="peq mudo">${esc(ZONA.nombreNo || 'Supervisión Escolar')}</div></div></div>
+    <div class="tarjeta pad"><h1 style="font-size:22px;margin:0 0 4px">${esc(d.guia)}</h1><p class="peq mudo" style="margin:0">${esc(d.escuela)} · ${esc(d.persona)}</p>
+      ${d.enviado ? `<div class="aviso-caja" style="margin:10px 0 0">Ya envió sus respuestas el ${esc(fechaHora(d.enviado))}. Puede corregirlas y volver a enviarlas mientras el código esté vigente.</div>` : ''}</div>
+    ${d.preguntas.map(p => { const x = res[p.k] || {}, ops = p.tipo === 'snp' ? CMP_SNP : p.op;
+      return `<div class="tarjeta pad cmp-q" style="margin-top:12px"><div class="cmp-qt">${esc(p.t)}</div>${p.ayuda ? `<div class="ayuda">${esc(p.ayuda)}</div>` : ''}
+        ${p.tipo === 'texto' ? `<textarea data-dv="${esc(p.k)}">${esc(x.v || '')}</textarea>` : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${x.v === o ? ' on' : ''}"><input type="radio" name="d-${esc(p.k)}" value="${esc(o)}" data-dv="${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>
+          <textarea class="cmp-obs" data-do="${esc(p.k)}" placeholder="Comentario (opcional)">${esc(x.obs || '')}</textarea>`}
+        ${p.foto ? `<div class="cmp-fotos">${(x.fotos || []).map(() => '<span class="chip ok">📷 foto enviada</span>').join('')}<label class="boton sec chico">${ico('i-cam')}${p.foto === 2 ? 'Tomar foto (obligatoria)' : 'Tomar o elegir foto'}<input type="file" accept="image/*" capture="environment" hidden data-dp="${esc(p.k)}"></label></div>` : ''}</div>`; }).join('')}
+    <div class="acciones" style="margin-top:14px;justify-content:flex-end"><button class="boton terra" id="dc-env">Enviar mis respuestas</button></div>
+    <p class="peq mudo">Sus respuestas llegan a la Supervisión Escolar. El código vence el ${esc(fechaHora(d.vence))}.</p>`;
+    $$('[data-dv]').forEach(el => el.onchange = () => { (res[el.dataset.dv] = res[el.dataset.dv] || {}).v = el.value; if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); });
+    $$('[data-do]').forEach(el => el.onchange = () => { (res[el.dataset.do] = res[el.dataset.do] || {}).obs = el.value; });
+    $$('[data-dp]').forEach(el => el.onchange = async () => { const f = el.files[0]; if (!f) return; cargando(true);
+      try { const b = await cmpComprimir(f), r = await api('revPubFoto', { codigo: cfg.docente, k: el.dataset.dp, datos: await cmpB64(b), tipo: 'image/jpeg', nombre: d.persona + ' - ' + el.dataset.dp + '.jpg' });
+        const x = res[el.dataset.dp] = res[el.dataset.dp] || {}; x.fotos = (x.fotos || []).concat([r.foto]); aviso('Foto enviada.', 'ok'); pintarD(); }
+      catch (e) { aviso(esc(e.message), 'mal'); } finally { cargando(false); } });
+    $('#dc-env').onclick = async () => {
+      const falta = d.preguntas.filter(p => p.foto === 2 && !((res[p.k] || {}).fotos || []).length);
+      if (falta.length && !confirm('Falta la foto obligatoria en ' + falta.length + ' pregunta(s). ¿Enviar de todos modos?')) return;
+      cargando(true);
+      try { const r = await api('revPubGuardar', { codigo: cfg.docente, respuestas: res }); d.enviado = r.enviado; aviso('¡Listo! Sus respuestas se enviaron a la Supervisión.', 'ok', 6000); pintarD(); window.scrollTo(0, 0); }
+      catch (e) { aviso(esc(e.message), 'mal', 8000); } finally { cargando(false); }
+    };
+  };
+  pintarD();
 }
 
 /* ---------------- Vista: Herramientas (Tlamatini) ----------------
@@ -4511,7 +5008,7 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)']];
 // Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
 const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
 const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
@@ -8229,6 +8726,15 @@ function eiaDemoGuardar(D, d) {
 }
 
 /* ---------------- Demostración ---------------- */
+// Guía de revisión de ejemplo
+function demoCue() {
+  return [{ id: 'cue-ej1', titulo: 'Revisión de planeación y libro de firmas', descripcion: 'Se revisa en la visita con la dirección y con cada docente.', visita: '', escuelas: [], activo: true, actualizado: ahora(), preguntas: [
+    { k: 'lf', sec: 'Dirección', t: '¿El libro de firmas está al día, con las incidencias anotadas?', tipo: 'snp', op: [], para: 'direccion', quien: 'revisor', foto: 2, ayuda: 'Foto de la hoja de la semana más reciente' },
+    { k: 'pa', sec: 'Dirección', t: 'Nivel de apropiación del programa analítico en el colectivo', tipo: 'escala', op: ['Requiere acompañamiento', 'En desarrollo', 'Logrado'], para: 'direccion', quien: 'revisor', foto: 0, ayuda: '' },
+    { k: 'pl', sec: 'Planeación', t: '¿Cuenta con su planeación didáctica vigente?', tipo: 'snp', op: [], para: 'docente', quien: 'revisor', foto: 1, ayuda: 'Foto de la planeación de la semana' },
+    { k: 'rz', sec: 'Planeación', t: '¿Qué estrategia aplica con los alumnos en rezago del SisAT?', tipo: 'texto', op: [], para: 'docente', quien: 'docente', foto: 0, ayuda: 'La contesta el docente' },
+    { k: 'ev', sec: 'Evaluación', t: 'Instrumento de evaluación formativa que más usa', tipo: 'opcion', op: ['Rúbrica', 'Lista de cotejo', 'Portafolio', 'Diario de clase', 'Otro'], para: 'docente', quien: 'docente', foto: 0, ayuda: '' }] }];
+}
 // Videollamadas de ejemplo: una agendada para mañana y una del historial
 function demoVid(ESC, usr) {
   const sala = 'https://meet.google.com/tqo-mesa-zna', atp = usr.find(u => u.rol === 'atp') || usr[0];
@@ -8341,7 +8847,7 @@ const Demo = (() => {
     });
     const sic = [{ id: 'sic-1', ciclo, momento: '1', nivel: 'zona', ref: '', tipo: 'accion', texto: 'Taller de cálculo mental sin apoyo visual para docentes de 3.° a 6.° en la próxima reunión de directores.', autor: 'u-carlos', autorNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: ahora(), actualizado: ahora() }];
     ESC.forEach((e, i) => usr.push({ id: 'u-d-' + e[1], nombre: 'Dirección de ejemplo ' + (i + 1), rol: 'director', contacto: 'd-' + e[1], correo: 'direccion' + (i + 1) + '@ejemplo.mx', whatsapp: '', activo: true, conEnlace: i % 3 === 0 }));
-    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eve: demoEve(evi, ESC, usr), trb: demoPersonal(h), eviRevisado: ahora(), version: 19, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr), prm: demoPermisos(h, atps, dir), vidSala: 'https://meet.google.com/tqo-mesa-zna', vid: demoVid(ESC, usr),
+    D = { yo: usr[0], act, seg, dir: dir.concat(atps), usr, cuota: 96, reu, acu, cum, evi, eve: demoEve(evi, ESC, usr), trb: demoPersonal(h), eviRevisado: ahora(), version: 19, iaDirectorio: true, dep: [], vis: [], inf: [], acl: [], infHtml: {}, pen: demoPendientes(h, usr), prm: demoPermisos(h, atps, dir), cue: demoCue(), rev: [], vidSala: 'https://meet.google.com/tqo-mesa-zna', vid: demoVid(ESC, usr),
       per: [{ id: 'per-1', nombre: 'Lic. Yolanda Sarahi Meza Méndez', cargo: 'Coordinadora de Participación Social y Convivencia Escolar Ensenada', institucion: 'ISEP', correo: '', telefono: '', grupo: 'Autoridades', fuente: 'A mano' }],
       ofi: [{ id: 'ofi-2026-047', numero: 47, anio: 2026, folio: 'SE-050/047/2026', fecha: hoy(), municipio: 'San Quintín', destNombre: 'C. HUMBERTO GARCÍA SOLORIO',
         destCargo: 'JEFE DEL DEPARTAMENTO DE EDUCACIÓN PRIMARIA EN SAN QUINTÍN', destInst: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA', escuelas: [],
@@ -8521,6 +9027,12 @@ const Demo = (() => {
       else o.obs.push({ texto: d.texto, f: ahora(), por: D.yo.nombre });
       o.actualizado = ahora(); return { prm: copia(o) }; },
     anularPermiso: d => { const o = D.prm.find(x => x.id === d.id); o.activo = !d.anular; o.actualizado = ahora(); return { prm: copia(o) }; },
+    cueGuardar: d => { const p = d.id ? D.cue.find(x => x.id === d.id) : null; const o = Object.assign(p || { id: uid('cue'), activo: true, creado: ahora() }, d, { preguntas: d.preguntas.map((x, i) => Object.assign({}, x, { k: x.k || 'p' + Math.random().toString(36).slice(2, 7) })), actualizado: ahora() }); if (!p) D.cue.push(o); return { cue: copia(o) }; },
+    cueQuitar: d => { D.cue = D.cue.filter(x => x.id !== d.id); return {}; },
+    revGuardar: d => ({ rev: d.revs.map(x => { const id = [x.cueId, x.cct, x.visita, x.persona].join('|'); const o = Object.assign(D.rev.find(r => r.id === id) || { id }, x, { actualizado: ahora() }); if (!D.rev.find(r => r.id === id)) D.rev.push(o); return copia(o); }) }),
+    revTraer: d => ({ rev: copia(D.rev.filter(r => !d.cct || r.cct === d.cct)) }),
+    revFoto: () => ({ foto: { id: 'demo-' + Math.random().toString(36).slice(2, 9), n: 'foto.jpg' } }),
+    revCodigo: () => ({ codigo: 'K7M2QX', vence: sumarDias(hoy(), 3) + 'T18:00:00', enlace: location.origin + location.pathname + '#r=K7M2QX&s=demo' }),
     vidEstado: () => ({ vid: copia(D.vid), vidSala: D.vidSala }),
     vidSala: d => { const u = String(d.enlace || '').trim(); if (!/^https:\/\//.test(u)) throw new Error('El enlace no es válido. Debe empezar con https://'); D.vidSala = u; D.vid.forEach(v => { if (!v.propio) v.enlace = u; }); return { vidSala: u }; },
     vidGuardar: d => { const p = d.id ? D.vid.find(x => x.id === d.id) : null;
@@ -8693,7 +9205,7 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'vidEstado', 'vidConectar'];
+  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'vidEstado', 'vidConectar', 'revTraer'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
@@ -12967,7 +13479,8 @@ function invitacionTerminada() {
   </div></div>`;
 }
 cfg = leerCfg();
-if (cfg && cfg.vencido) invitacionTerminada(); else if (cfg) cargar(); else portada('');
+if (cfg && cfg.docente) docentePagina(); else if (cfg && cfg.vencido) invitacionTerminada(); else if (cfg) cargar(); else portada('');
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('hashchange', () => { const c = leerCfg(); if (c && c.vencido) invitacionTerminada(); else if (c) { cfg = c; S = null; cargar(); } });
 // Si la invitación vence mientras la página está abierta, se cierra sola.
 setInterval(() => { if (cfg && cfg.invitado && invitacionVencida(cfg)) invitacionTerminada(); }, 60000);
