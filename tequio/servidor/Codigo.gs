@@ -24,6 +24,8 @@
  *  · Cada lunes a las 7:00 envía a cada escuela su informe semanal (pendientes, porcentajes y actividades agendadas de la semana,
  *    con copia a su ATP) y a la Supervisión el resumen de la zona;
  *    no se envía en vacaciones del calendario oficial.
+ *  · Videollamadas de la Mesa Técnica con las direcciones (Google Meet): la Supervisión y los ATP agendan e inician;
+ *    las direcciones invitadas ven el botón para conectarse mientras la llamada está activa.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *
@@ -165,19 +167,23 @@ const HOJAS = {
   // sube lo que se le debe), pago (pago al proveedor: egreso), pedido (lo que se lleva una escuela o persona: sube lo que nos debe), abono (lo que nos paga: ingreso, con folio)
   // o mov (ingreso o egreso que se captura a mano en la contabilidad: gastos, apoyos, saldo inicial, traspasos). Nada se borra: eliminar lo manda a la papelera.
   rec: ['id', 'act', 'tipo', 'fecha', 'datos', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'actualizadoPor', 'historial'],
+  // Videollamadas de la Mesa Técnica (Google Meet). estado: programada, activa, terminada o cancelada. escuelas vacío = toda la zona.
+  // enlace vacío = la sala fija de la Mesa Técnica. conectados: [{ cct, nombre, f }] (las direcciones que pulsaron «Conectarse»).
+  vid: ['id', 'titulo', 'tema', 'fecha', 'horaInicio', 'horaFin', 'escuelas', 'enlace', 'estado', 'iniciada', 'iniciadaPor', 'terminada', 'terminadaPor',
+        'conectados', 'avisos', 'enviado', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias' };
-const VERSION = 35;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas' };
+const VERSION = 36;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos'];
+const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -393,6 +399,7 @@ function instalarZonaPasos_(d, inv, hecho) {
   props.setProperty('WEBAPP_URL', url);
   if (d.informe && d.informe.dia) props.setProperty('INFORME_CFG', JSON.stringify({ dia: String(d.informe.dia), hora: +d.informe.hora || 7, ccAtp: d.informe.ccAtp !== false, vacaciones: d.informe.vacaciones !== false }));
   if (Array.isArray(d.modulos)) props.setProperty('MODULOS', JSON.stringify(d.modulos.slice(0, 20)));
+  try { vidDiaria_(); } catch (e) { bitacora_('videollamada', '', [], 'Videollamadas del día', 'error: ' + e.message); }
   try { asegurarInformeSemanal_(); } catch (e) {}
 
   const enlace = nuevoEnlace_('u-admin');
@@ -448,15 +455,15 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['vidEstado', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas'];
 
 const ACCIONES = {
   // El Supervisor elige los módulos que usa su zona
@@ -495,6 +502,8 @@ const ACCIONES = {
     acl: leer_('acl'),
     pen: leer_('pen').filter(p => visible_(yo, p)),
     prm: yo.rol === 'admin' ? leer_('prm') : undefined,
+    vid: vidLista_(yo),
+    vidSala: vidSala_(),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -1697,6 +1706,87 @@ const ACCIONES = {
     return { prm: o };
   },
 
+  /* ---- Videollamadas de la Mesa Técnica (Google Meet) ----
+     La Supervisión y los ATP agendan e inician; las direcciones invitadas solo se conectan.
+     Todas usan la sala fija de la Mesa Técnica (un enlace de Meet creado con la cuenta institucional, sin límite de tiempo),
+     salvo que se ponga otro enlace en una llamada. */
+  // Lo que cambia mientras la página está abierta: la página lo pide cada minuto para mostrar u ocultar el botón «Conectarse»
+  vidEstado: (yo) => ({ vid: vidLista_(yo), vidSala: yo.rol === 'director' ? undefined : vidSala_() }),
+  // La Supervisión guarda el enlace de la sala fija
+  vidSala: (yo, d) => {
+    soloAdmin_(yo);
+    const url = enlaceMeet_(d.enlace, true);
+    PropertiesService.getScriptProperties().setProperty('VID_SALA', url);
+    return { vidSala: url };
+  },
+  // Agenda (o corrige) una videollamada
+  vidGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const previo = d.id ? buscar_('vid', String(d.id)) : null;
+    if (previo && ['terminada', 'cancelada'].indexOf(previo.estado) >= 0) throw new Error('La videollamada ya terminó o se canceló.');
+    const o = vidLimpiar_(d, previo, yo);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) throw new Error('Escriba la fecha.');
+    if (!/^\d{2}:\d{2}$/.test(o.horaInicio)) throw new Error('Escriba la hora de inicio.');
+    if (!previo && o.fecha < hoy_()) throw new Error('La fecha ya pasó.');
+    guardar_('vid', o);
+    const res = [];
+    if ((o.avisos || []).indexOf('aviso') >= 0 && d.enviarAviso !== false) res.push(vidAviso_(o, previo ? 'cambio' : 'agenda'));
+    guardar_('vid', o);
+    return { vidItem: vidPublica_(o, yo), resultados: res };
+  },
+  // Inicia una videollamada: una agendada (id) o una nueva al momento (título y escuelas)
+  vidIniciar: (yo, d) => {
+    soloMesa_(yo);
+    let o = d.id ? buscar_('vid', String(d.id)) : null;
+    if (d.id && !o) throw new Error('No se encontró la videollamada.');
+    if (o && ['terminada', 'cancelada'].indexOf(o.estado) >= 0) throw new Error('La videollamada ya terminó o se canceló.');
+    if (!o) {
+      o = vidLimpiar_(Object.assign({}, d, { fecha: hoy_(), horaInicio: Utilities.formatDate(new Date(), TZ, 'HH:mm'), avisos: [] }), null, yo);
+    }
+    if (!o.enlace && !vidSala_()) throw new Error('Primero la Supervisión debe guardar el enlace de la sala de la Mesa Técnica.');
+    if (o.estado !== 'activa') { o.estado = 'activa'; o.iniciada = ahora_(); o.iniciadaPor = yo.nombre; }
+    o.actualizado = ahora_();
+    guardar_('vid', o);
+    const res = [];
+    if (d.avisar) res.push(vidAviso_(o, 'inicio'));
+    guardar_('vid', o);
+    return { vidItem: vidPublica_(o, yo), resultados: res };
+  },
+  vidTerminar: (yo, d) => {
+    soloMesa_(yo);
+    const o = buscar_('vid', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la videollamada.');
+    o.estado = 'terminada'; o.terminada = ahora_(); o.terminadaPor = yo.nombre; o.actualizado = ahora_();
+    if (!o.iniciada) { o.iniciada = o.fecha + 'T' + (o.horaInicio || '00:00') + ':00'; o.iniciadaPor = o.iniciadaPor || ''; }
+    guardar_('vid', o);
+    return { vidItem: vidPublica_(o, yo) };
+  },
+  vidCancelar: (yo, d) => {
+    soloMesa_(yo);
+    const o = buscar_('vid', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la videollamada.');
+    if (o.estado !== 'programada') throw new Error('Solo se puede cancelar una videollamada agendada que no ha empezado.');
+    o.estado = 'cancelada'; o.terminada = ahora_(); o.terminadaPor = yo.nombre; o.actualizado = ahora_();
+    const res = [];
+    if (d.avisar && o.enviado && o.enviado.agenda) res.push(vidAviso_(o, 'cancelada'));
+    guardar_('vid', o);
+    return { vidItem: vidPublica_(o, yo), resultados: res };
+  },
+  // La dirección pulsó «Conectarse»: queda registrado para que la Mesa Técnica sepa quién entró
+  vidConectar: (yo, d) => {
+    const o = buscar_('vid', String(d.id || ''));
+    if (!o || !vidInvitado_(o, yo)) throw new Error('No se encontró la videollamada.');
+    const cct = yo.rol === 'director' ? cctDe_(yo) : '';
+    const l = Array.isArray(o.conectados) ? o.conectados : [];
+    const clave = cct || yo.id;
+    if (!l.find(x => (x.cct || x.uid) === clave)) {
+      l.push({ cct: cct, uid: cct ? '' : yo.id, nombre: yo.nombre, f: ahora_() });
+      o.conectados = l.slice(-80); o.actualizado = ahora_();
+      guardar_('vid', o);
+    }
+    return { ok: true };
+  },
+
   crearPendiente: (yo, d) => {
     soloMesa_(yo);
     const titulo = String(d.titulo || '').trim().slice(0, 160);
@@ -2358,6 +2448,8 @@ function datosDirector_(yo) {
     // los informes de seguimiento que se le enviaron y sus aclaraciones con su ATP
     inf: leer_('inf').filter(x => x.cct === cct).map(sinHtml_),
     acl: leer_('acl').filter(x => x.cct === cct),
+    // las videollamadas de la Mesa Técnica a las que está invitada (solo para conectarse)
+    vid: vidLista_(yo),
     // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
@@ -2779,6 +2871,102 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
     ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes, revisado: ahora };
   filas.push(fila);
   return { archivos: total, recientes: recientes };
+}
+
+/* ===================== Videollamadas ===================== */
+
+const VID_AVISOS = ['aviso', 'dia_antes', 'mismo_dia'];
+function vidSala_() { return PropertiesService.getScriptProperties().getProperty('VID_SALA') || ''; }
+// Acepta un enlace de Meet (meet.google.com/abc-defg-hij) o, si se indica, cualquier enlace https
+function enlaceMeet_(v, obligatorio) {
+  v = String(v || '').trim();
+  if (!v) { if (obligatorio) throw new Error('Pegue el enlace de Meet.'); return ''; }
+  if (/^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(v)) v = 'https://meet.google.com/' + v.toLowerCase();
+  if (/^meet\.google\.com\//i.test(v)) v = 'https://' + v;
+  if (!/^https:\/\/[^\s<>"']+$/i.test(v) || v.length > 300) throw new Error('El enlace no es válido. Debe empezar con https:// (por ejemplo https://meet.google.com/abc-defg-hij).');
+  return v;
+}
+function vidLimpiar_(d, previo, yo) {
+  const cctOk = leer_('dir').filter(c => c.tipo === 'director').map(c => c.cct);
+  const escuelas = (Array.isArray(d.escuelas) ? d.escuelas : []).map(String).filter((c, i, a) => cctOk.indexOf(c) >= 0 && a.indexOf(c) === i);
+  const hora = h => /^\d{2}:\d{2}$/.test(h || '') ? h : '';
+  const titulo = String(d.titulo || '').trim().slice(0, 160);
+  if (!titulo) throw new Error('Escriba el tema de la videollamada.');
+  return {
+    id: previo ? previo.id : 'vid-' + Utilities.getUuid().slice(0, 8), titulo: titulo, tema: String(d.tema || '').trim().slice(0, 2000),
+    fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : '', horaInicio: hora(d.horaInicio), horaFin: hora(d.horaFin),
+    escuelas: escuelas, enlace: enlaceMeet_(d.enlace), estado: previo ? previo.estado : 'programada',
+    iniciada: previo ? previo.iniciada : '', iniciadaPor: previo ? previo.iniciadaPor : '', terminada: previo ? previo.terminada : '', terminadaPor: previo ? previo.terminadaPor : '',
+    conectados: previo ? (previo.conectados || []) : [], avisos: (Array.isArray(d.avisos) ? d.avisos : []).filter(a => VID_AVISOS.indexOf(a) >= 0),
+    enviado: previo ? (previo.enviado || {}) : {}, creadoPor: previo ? previo.creadoPor : yo.id, creadoNombre: previo ? previo.creadoNombre : yo.nombre,
+    creado: previo ? previo.creado : ahora_(), actualizado: ahora_()
+  };
+}
+function vidInvitado_(v, yo) {
+  if (yo.rol !== 'director') return true;
+  const cct = cctDe_(yo);
+  return !(v.escuelas || []).length || (v.escuelas || []).indexOf(cct) >= 0;
+}
+// Lo que se manda a la página: el enlace ya resuelto (el de la llamada o el de la sala fija)
+function vidPublica_(v, yo) {
+  const o = Object.assign({}, v, { enlace: v.enlace || vidSala_(), propio: !!v.enlace });
+  if (yo.rol === 'director') { const cct = cctDe_(yo); o.conectados = (v.conectados || []).filter(x => x.cct === cct); delete o.enviado; }
+  return o;
+}
+// Mesa Técnica: lo agendado y lo de los últimos 120 días. Dirección: solo lo suyo, de ayer en adelante o activo, sin lo cancelado.
+function vidLista_(yo) {
+  const desde = sumarDias_(hoy_(), yo.rol === 'director' ? -1 : -120);
+  return leer_('vid').filter(v => vidInvitado_(v, yo) && (v.estado === 'activa' || v.fecha >= desde) && !(yo.rol === 'director' && v.estado === 'cancelada'))
+    .map(v => vidPublica_(v, yo));
+}
+function vidCorreos_(v) {
+  const dir = leer_('dir'), l = [];
+  dir.filter(c => c.tipo === 'director' && c.activo && (!(v.escuelas || []).length || v.escuelas.indexOf(c.cct) >= 0)).forEach(c => l.push(c.correo1, c.correo2));
+  leer_('usr').filter(u => u.activo && (u.rol === 'atp' || u.rol === 'admin')).forEach(u => l.push.apply(l, String(u.correo || '').split(',')));
+  const vistos = {};
+  return l.map(x => String(x || '').trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x) && !vistos[x] && (vistos[x] = 1));
+}
+function vidFicha_(v) {
+  const enl = v.enlace || vidSala_();
+  const esc = (v.escuelas || []).length ? leer_('dir').filter(c => c.tipo === 'director' && v.escuelas.indexOf(c.cct) >= 0).map(c => c.escuela).join(', ') : 'Todas las escuelas de la zona';
+  return '<table style="border-collapse:collapse;font-size:15px;margin:8px 0 14px">' +
+    '<tr><td style="padding:4px 12px 4px 0;color:#6A5C4C">Tema</td><td style="padding:4px 0"><b>' + esc_(v.titulo) + '</b></td></tr>' +
+    '<tr><td style="padding:4px 12px 4px 0;color:#6A5C4C">Fecha</td><td style="padding:4px 0">' + esc_(fechaCorta_(v.fecha)) + (v.horaInicio ? ', ' + esc_(v.horaInicio) + (v.horaFin ? ' a ' + esc_(v.horaFin) : '') + ' h' : '') + '</td></tr>' +
+    '<tr><td style="padding:4px 12px 4px 0;color:#6A5C4C">Escuelas</td><td style="padding:4px 0">' + esc_(esc) + '</td></tr>' +
+    (v.tema ? '<tr><td style="padding:4px 12px 4px 0;color:#6A5C4C;vertical-align:top">Asuntos</td><td style="padding:4px 0;white-space:pre-line">' + esc_(v.tema) + '</td></tr>' : '') +
+    '</table>' + (enl ? '<p style="font-size:14px;color:#6A5C4C">Enlace de la videollamada (Google Meet): <a href="' + esc_(enl) + '">' + esc_(enl) + '</a></p>' : '');
+}
+function vidAviso_(v, clase) {
+  const tit = { agenda: 'Videollamada agendada', cambio: 'Cambio en videollamada', inicio: 'La videollamada ya comenzó', recordatorio: 'Mañana: videollamada', hoy: 'Hoy: videollamada', cancelada: 'Videollamada cancelada' };
+  const intro = {
+    agenda: 'La Mesa Técnica de la Supervisión agendó la siguiente videollamada. A la hora indicada aparecerá en Tequio el botón <b>«Conectarse a la videollamada»</b>.',
+    cambio: 'La siguiente videollamada tuvo cambios. Por favor tome nota de los datos actualizados.',
+    inicio: 'La Mesa Técnica de la Supervisión <b>ya está en la videollamada</b>. Entre a Tequio y pulse <b>«Conectarse a la videollamada»</b>, o use el enlace de abajo.',
+    recordatorio: 'Le recordamos que <b>mañana</b> hay videollamada con la Mesa Técnica.',
+    hoy: 'Le recordamos que <b>hoy</b> hay videollamada con la Mesa Técnica. El botón para conectarse aparece en Tequio 10 minutos antes.',
+    cancelada: 'Le informamos que la siguiente videollamada <b>fue cancelada</b>.'
+  }[clase];
+  const asunto = tit[clase] + ': ' + v.titulo + (clase === 'inicio' ? '' : ' · ' + fechaCorta_(v.fecha));
+  const html = plantilla_(tit[clase], '<p>' + intro + '</p>' + vidFicha_(v) + (clase === 'cancelada' ? '' : boton_(PAGINA, 'Abrir Tequio')));
+  const r = enviarCorreo_(vidCorreos_(v), asunto, html, 'videollamada', v.id);
+  v.enviado = v.enviado || {};
+  if (r.ok) v.enviado[clase] = ahora_();
+  return r;
+}
+// En la tarea diaria: recordatorios del día anterior y del mismo día, y se cierran las que quedaron abiertas
+function vidDiaria_() {
+  const hoy = hoy_(), manana = sumarDias_(hoy, 1), limite = Utilities.formatDate(new Date(Date.now() - 12 * 3600 * 1000), TZ, "yyyy-MM-dd'T'HH:mm:ss");
+  leer_('vid').forEach(v => {
+    let cambio = false;
+    if (v.estado === 'activa' && String(v.iniciada || '') < limite) { v.estado = 'terminada'; v.terminada = ahora_(); v.terminadaPor = 'Cierre automático'; cambio = true; }
+    if (v.estado === 'programada' && v.fecha < hoy) { v.estado = 'terminada'; v.terminada = ahora_(); v.terminadaPor = 'Cierre automático'; cambio = true; }
+    if (v.estado === 'programada') {
+      const av = v.avisos || [], env = v.enviado || {};
+      if (v.fecha === manana && av.indexOf('dia_antes') >= 0 && !env.recordatorio) { vidAviso_(v, 'recordatorio'); cambio = true; }
+      if (v.fecha === hoy && av.indexOf('mismo_dia') >= 0 && !env.hoy) { vidAviso_(v, 'hoy'); cambio = true; }
+    }
+    if (cambio) { v.actualizado = ahora_(); guardar_('vid', v); }
+  });
 }
 
 /* ===================== Tarea diaria (6:00 a. m.) ===================== */
