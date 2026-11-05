@@ -966,7 +966,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1440';
+const PUBLICACION = '2026-11-05-1530';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2661,7 +2661,7 @@ function minutaWhatsApp(id) {
 
 /* =========================================================
    Visitas de supervisión: 3 visitas por ciclo con guía de temas (y visitas extraordinarias con temas propios).
-   Por tema: estado, observación, fotos de evidencia (van al Drive de la escuela, «Visitas de supervisión») y,
+   Por tema: estado, observación, fotos de evidencia (van a la carpeta de la Supervisión, la escuela no las ve) y,
    del lado del director, una nota y la marca de «listo». Al cerrar la visita se registra el seguimiento con su minuta.
    ========================================================= */
 const VIS_GUIAS = {
@@ -2823,14 +2823,14 @@ function vEditorVisita() {
     <div><div class="ayuda">C.C.T.</div><b>${esc(cct)}</b></div>
     ${mesa ? `<div class="campo" style="margin:0"><label for="v-fecha" class="ayuda">Fecha de la visita</label><input type="date" id="v-fecha" value="${esc(D.fecha)}" ${cerrada ? 'disabled' : ''}></div>` : `<div><div class="ayuda">Fecha</div><b>${v && v.fecha ? fechaLarga(v.fecha) : (n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : 'Por definir')}</b></div>`}
     <div style="margin-left:auto">${visEstadoChip(v)}</div></div>
-  <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó registrada en el seguimiento de la escuela con su minuta.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van al Drive de la escuela, carpeta «Visitas de supervisión»). La escuela ve esta guía desde antes para prepararse. Al terminar pulse «Cerrar visita».')
-    : (cerrada ? 'Esta visita ya se realizó. Aquí puede consultar las observaciones de la Supervisión.' : 'Esta es la guía de lo que se revisará en la visita. Prepare cada tema: puede subir fotos de evidencia, dejar una nota y marcarlo como listo. Recuerde que los productos del CTE se quedan en la escuela; las fotos solo muestran que están hechos.')}</div>
+  <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó registrada en el seguimiento de la escuela con su minuta.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van a la carpeta de la Supervisión › Visitas a escuelas; la escuela no las ve). La escuela ve esta guía desde antes para prepararse, pero no los resultados. Al terminar pulse «Cerrar visita».')
+    : (cerrada ? 'Esta visita ya se realizó. Los resultados los registra y conserva la Supervisión.' : 'Esta es la guía de lo que se revisará en la visita. Prepare cada tema: puede subir fotos de evidencia, dejar una nota y marcarlo como listo. Recuerde que los productos del CTE se quedan en la escuela; las fotos solo muestran que están hechos.')}</div>
   ${temas.map(tarjeta).join('') || '<div class="tarjeta vacio">Esta visita aún no tiene temas.</div>'}
   ${mesa && !cerrada ? `<div style="margin:-2px 0 14px"><button class="boton sec" id="v-tema">${ico('i-mas')}Agregar tema</button></div>
     <div class="tarjeta pad"><div class="campo"><label for="v-res">Comentario general de la visita</label><textarea id="v-res" placeholder="Fortalezas, aspectos a acompañar, acuerdos generales…">${esc(D.resumen)}</textarea></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="boton sec" id="v-guardar">Guardar avance</button><button class="boton terra" id="v-cerrar">${ico('i-chk')}Cerrar visita</button></div></div>`
     : mesa && cerrada ? `<div class="tarjeta pad">${v.resumen ? `<p style="white-space:pre-line;margin-top:0">${esc(v.resumen)}</p>` : ''}<button class="boton sec" id="v-reabrir">Reabrir la visita</button></div>`
-    : v && v.resumen && cerrada ? `<div class="tarjeta pad"><b>Comentario general</b><p style="white-space:pre-line">${esc(v.resumen)}</p></div>` : ''}`;
+    : ''}`;
   $('#v-volver').onclick = volver;
   if ($('#v-esc')) $('#v-esc').onclick = () => { vista.vis = null; vista.visD = null; vista.escuela = cct; vSeguimiento(); window.scrollTo(0, 0); };
   // marcar estados y observaciones (borrador)
@@ -2857,7 +2857,7 @@ function vEditorVisita() {
       }
     });
     vEditorVisita(); window.scrollTo(0, y);
-    if (ok) aviso(ok + ' archivo' + (ok === 1 ? '' : 's') + ' en el Drive de la escuela.', 'ok', 3000);
+    if (ok) aviso(ok + ' archivo' + (ok === 1 ? '' : 's') + (mesa ? ' en la carpeta de la Supervisión.' : ' en el Drive de la escuela.'), 'ok', 3000);
   });
   $$('[data-qf]').forEach(b => b.onclick = async () => {
     const [k, id] = b.dataset.qf.split('|');
@@ -11244,7 +11244,7 @@ function cteEnlazar(n, cct) {
 /* =========================================================
    Visitas de la Mesa Técnica al CTE (solo Supervisor y ATP; las escuelas no las ven)
    Sustituye al formato en papel «Visita a reunión de CTE y taller intensivo»: se captura en la escuela,
-   se guarda como borrador, lleva hasta 3 fotos (Drive de la escuela › Visitas de supervisión › Visitas al CTE)
+   se guarda como borrador, lleva hasta 3 fotos (carpeta de la Supervisión › Visitas a escuelas › Visitas al CTE)
    y se descarga en PDF carta con los logos de la institución y de la zona para recabar firma y sello.
    ========================================================= */
 const CTV_ASP = [
@@ -11385,7 +11385,7 @@ function vCteVisita() {
 
     <section class="tarjeta cte-sec ctv-ancho"><div class="seccion-t">6. Evidencia fotográfica · máximo 3</div><div class="pad" style="padding-top:4px">
       <div class="ctv-fotos" id="ctv-fotos">${ctvFotosHtml(D, puede)}</div>
-      <p class="peq mudo" style="margin:8px 0 0">Las fotos se guardan en el Drive de la escuela, en «Visitas de supervisión › Visitas al CTE». Las escuelas no ven esta visita en Tequio.</p></div></section>
+      <p class="peq mudo" style="margin:8px 0 0">Las fotos se guardan en la carpeta de la Supervisión › Visitas a escuelas › Visitas al CTE. Las escuelas no ven esta visita en Tequio.</p></div></section>
     </div>
     <input type="file" id="ctv-file" accept="image/*" multiple hidden>
     <div class="ctv-barra">

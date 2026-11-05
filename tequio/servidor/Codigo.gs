@@ -188,7 +188,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención' };
-const VERSION = 40;
+const VERSION = 41;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -623,10 +623,9 @@ const ACCIONES = {
     if (!o0) throw new Error('Guarde primero la visita.');
     puedeCtv_(yo, o0);
     if ((o0.fotos || []).length >= 3) throw new Error('La visita ya tiene 3 fotos. Quite una para subir otra.');
-    const raiz = leer_('evi').find(e => e.cct === o0.cct && !e.ruta);
-    if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
     const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
-    const carpeta = sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), 'Visitas al CTE · ' + o0.ciclo);
+    // las fotos de la Mesa Técnica van a la carpeta de la Supervisión (la escuela no las ve)
+    const carpeta = sub(carpetaVisitasSup_(o0.cct), 'Visitas al CTE · ' + o0.ciclo);
     const f = carpeta.createFile(blobCte_({ datos: d.datos, mime: d.mime || 'image/jpeg', nombre: d.nombre || 'foto.jpg' }));
     f.setDescription(SUBIDO_POR + yo.nombre);
     return conLock_(() => {
@@ -2068,7 +2067,7 @@ const ACCIONES = {
     if (v.estado === '' || v.estado === 'programada') v.estado = 'preparacion';
     v.actualizado = ahora_();
     guardar_('vis', v);
-    return { vis: v };
+    return { vis: visDir_(v, yo) };
   },
   // Sube una foto de evidencia de un tema a Drive: carpeta de la zona › Escuela › Visitas de supervisión › Visita N (ciclo)
   visitaFoto: (yo, d) => {
@@ -2077,7 +2076,10 @@ const ACCIONES = {
     if (!datos) throw new Error('La foto llegó vacía.');
     if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
     const n = Math.max(1, Math.min(30, +d.numero || 1)), ciclo = cicloVis_(d.ciclo);
-    let carpetaId = String(d.carpetaId || '');
+    const sub0 = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+    const nomVis = (n <= 3 ? 'Visita ' + n : 'Visita extraordinaria ' + (n - 3)) + ' · ' + ciclo;
+    // las fotos de la Supervisión y la Mesa Técnica van a la carpeta de la Supervisión (la escuela no las ve); las de la escuela, a la suya
+    let carpetaId = yo.rol === 'director' ? String(d.carpetaId || '') : sub0(carpetaVisitasSup_(cct), nomVis).getId();
     if (!carpetaId) {
       const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
       if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
@@ -2091,14 +2093,14 @@ const ACCIONES = {
     lock.waitLock(30000);
     try {
       const v = visitaDe_(yo, { cct: cct, numero: n, ciclo: ciclo });
-      v.carpetaId = carpetaId;
+      if (yo.rol === 'director') v.carpetaId = carpetaId;
       const it = itemVisita_(v, d.k);
       it.fotos = (it.fotos || []).concat([{ id: f.getId(), n: nombre, por: yo.nombre, f: ahora_().slice(0, 16) }]).slice(-30);
       if (v.estado === '' || v.estado === 'programada') v.estado = 'preparacion';
       v.actualizado = ahora_();
       guardar_('vis', v);
       bitacora_('archivo', cct, [], nombre + ' → Visitas de supervisión/Visita ' + n, 'foto de visita subida por ' + yo.nombre);
-      return { vis: v };
+      return { vis: visDir_(v, yo) };
     } finally { lock.releaseLock(); }
   },
   // Quita una foto (la manda a la papelera del Drive, de donde se puede recuperar)
@@ -2114,7 +2116,7 @@ const ACCIONES = {
       it.fotos = it.fotos.filter(x => x.id !== d.id);
       v.actualizado = ahora_();
       guardar_('vis', v);
-      return { vis: v };
+      return { vis: visDir_(v, yo) };
     } finally { lock.releaseLock(); }
   },
 
@@ -2597,7 +2599,7 @@ function datosDirector_(yo) {
     // el directorio de dependencias de la Supervisión (solo lectura) para elegir destinatarios en los oficios de la escuela
     dep: leer_('dep').filter(x => x.activo),
     // las visitas de supervisión a su escuela: ve la guía antes, sube sus fotos y lee el resultado
-    vis: leer_('vis').filter(v => v.cct === cct),
+    vis: leer_('vis').filter(v => v.cct === cct).map(v => visDir_(v, yo)),
     // los informes de seguimiento que se le enviaron y sus aclaraciones con su ATP
     inf: leer_('inf').filter(x => x.cct === cct).map(sinHtml_),
     acl: leer_('acl').filter(x => x.cct === cct),
@@ -2690,6 +2692,13 @@ function visitaDe_(yo, d) {
   const id = 'vis-' + ciclo + '-' + cct + '-' + n;
   return buscar_('vis', id) || { id: id, ciclo: ciclo, cct: cct, numero: String(n), fecha: '', estado: '', items: [], resumen: '', segId: '', carpetaId: '',
     creadoPor: yo.id, creado: ahora_(), actualizado: ahora_(), cerradaPor: '', titulo: '', temas: [] };
+}
+// Lo que ve la escuela de una visita: la guía, sus notas, sus «listo» y sus propias fotos; los resultados (estados, observaciones,
+// comentario general y fotos de la Supervisión) son solo de la Supervisión y la Mesa Técnica
+function visDir_(v, yo) {
+  if (!v || yo.rol !== 'director') return v;
+  return Object.assign({}, v, { resumen: '', segId: '', items: (v.items || []).map(it => ({ k: it.k, nd: it.nd || '', listo: !!it.listo, estado: '', obs: '',
+    fotos: (it.fotos || []).filter(f => f.por === yo.nombre) })) });
 }
 function itemVisita_(v, k) {
   k = String(k || '').slice(0, 20);
