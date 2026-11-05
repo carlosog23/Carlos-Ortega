@@ -924,7 +924,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1000';
+const PUBLICACION = '2026-11-05-0935';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1179,6 +1179,7 @@ function bandaVid() {
   if (act.length) return act.map(v => `<div class="vid-banda" role="region" aria-label="Videollamada en curso">
       <span class="vid-luz" aria-hidden="true"></span>
       <div class="vid-banda-tx"><b>${esDirector() ? 'La Mesa Técnica lo espera en videollamada' : 'Videollamada en curso'}</b><span>${esc(v.titulo)}${v.estado === 'activa' && v.iniciadaPor ? ' · inició ' + esc(nombreCorto(v.iniciadaPor)) : v.horaInicio ? ' · ' + esc(vidHorario(v)) : ''}${esDirector() ? '' : ' · ' + esc(vidEscTexto(v))}</span></div>
+      ${vidPuntos(v).length ? `<button class="boton sec" data-vodb="${esc(v.id)}">${ico('i-chk')}Orden del día</button>` : ''}
       <a class="boton vid-btn" href="${esc(v.enlace)}" target="_blank" rel="noopener" data-vcon="${esc(v.id)}">${ico('i-video')}${esDirector() ? 'Conectarse a la videollamada' : 'Entrar'}</a>
     </div>`).join('');
   if (!esDirector()) return '';
@@ -1191,6 +1192,7 @@ function pintarBandaVid() {
   if (c.dataset.h === h) return;
   c.dataset.h = h; c.innerHTML = h;
   $$('[data-vcon]', c).forEach(a => a.onclick = () => vidConectar(a.dataset.vcon));
+  $$('[data-vodb]', c).forEach(b => b.onclick = () => vidOrdenDia(b.dataset.vodb));
 }
 // La dirección pulsó «Conectarse»: se registra sin detener la apertura de Meet
 function vidConectar(id) { if (esDirector()) api('vidConectar', { id }).catch(() => {}); }
@@ -1228,6 +1230,7 @@ function tarjetaVid(v) {
       ${act ? `<a class="boton vid-btn chico" href="${esc(v.enlace)}" target="_blank" rel="noopener">${ico('i-video')}Entrar a Meet</a>` : ''}
       ${v.estado === 'programada' && !act ? `<button class="boton terra chico" data-vini="${esc(v.id)}">${ico('i-video')}Iniciar ahora</button>` : ''}
       ${v.estado === 'programada' && act ? `<button class="boton sec chico" data-vini="${esc(v.id)}" title="Marca la llamada como iniciada y permite avisar por correo">Avisar que ya inició</button>` : ''}
+      ${['programada', 'activa'].includes(v.estado) ? `<button class="boton sec chico" data-vod="${esc(v.id)}">${ico('i-chk')}Orden del día</button>` : ''}
       ${['programada', 'activa'].includes(v.estado) ? `<a class="boton sec chico" href="${'https://wa.me/?text=' + encodeURIComponent(vidMensajeWa(v))}" target="_blank" rel="noopener">${ico('i-wa')}WhatsApp</a><button class="boton sec chico" data-vcop="${esc(v.id)}">${ico('i-copiar')}Copiar enlace</button>` : ''}
       <span style="flex:1"></span>
       ${v.estado === 'programada' ? `<button class="boton sec chico" data-ved="${esc(v.id)}">${ico('i-lapiz')}Editar</button><button class="boton sec chico" data-vcan="${esc(v.id)}">Cancelar</button>` : ''}
@@ -1268,6 +1271,7 @@ function vVideollamadas() {
   $$('[data-vini]').forEach(b => b.onclick = () => vidIniciarAgendada(b.dataset.vini));
   $$('[data-vfin]').forEach(b => b.onclick = () => vidTerminar(b.dataset.vfin));
   $$('[data-vcan]').forEach(b => b.onclick = () => vidCancelar(b.dataset.vcan));
+  $$('[data-vod]').forEach(b => b.onclick = () => vidOrdenDia(b.dataset.vod));
   $$('[data-vcop]').forEach(b => b.onclick = () => { const v = vidLista().find(x => x.id === b.dataset.vcop); if (v) copiar(v.enlace, 'Enlace copiado'); });
 }
 function vidPoner(o) { if (!o) return; poner(S.vid, o); pintarBandaVid(); if (vista.tab === 'videollamadas') vVideollamadas(); }
@@ -1307,7 +1311,10 @@ function formVid(id) {
   </div>
   <div class="ayuda" style="margin:-8px 0 12px">El botón para conectarse aparece ${VID_ANTES} minutos antes y se quita a la hora de término (si no la pone, 2 horas después).</div>
   <div class="campo"><span class="et">Escuelas invitadas</span>${casillasVid(v.escuelas || [])}</div>
-  <div class="campo"><label for="v-tema">Asuntos a tratar <span class="mudo">(opcional)</span></label><textarea id="v-tema" placeholder="Lo que se va a revisar y lo que deben tener a la mano">${esc(v.tema)}</textarea></div>
+  <div class="campo"><label for="v-tema">Orden del día <span class="mudo">(opcional, un punto por renglón)</span></label><textarea id="v-tema" rows="5" placeholder="1. Bienvenida
+2. Revisión de la guía del CTE
+3. Entrega de evidencias
+4. Asuntos generales">${esc(v.tema)}</textarea><div class="ayuda">Durante la llamada se puede abrir en una ventanita encima de Meet con el botón «Orden del día». Las direcciones también la ven.</div></div>
   <details class="campo"${propio ? ' open' : ''}><summary>Usar otro enlace en esta llamada</summary>
     <input id="v-enl" style="margin-top:8px" value="${esc(propio)}" placeholder="https://meet.google.com/abc-defg-hij">
     <div class="ayuda">Si lo deja vacío se usa la sala de la Mesa Técnica${S.vidSala ? '' : ' (aún no guardada)'}. Un enlace creado con una cuenta de Gmail normal corta a los 60 minutos.</div></details>
@@ -1331,6 +1338,9 @@ function formVidAhora() {
   modal('Iniciar videollamada ahora', `
   <div class="campo"><label for="v-tit">Tema</label><input id="v-tit" maxlength="160" placeholder="Ej. Aviso urgente sobre la entrega de documentación"></div>
   <div class="campo"><span class="et">¿Quiénes se conectan?</span>${casillasVid([])}</div>
+  <div class="campo"><label for="v-tema">Orden del día <span class="mudo">(opcional, un punto por renglón)</span></label><textarea id="v-tema" rows="4" placeholder="1. Aviso de la Jefatura
+2. Fechas de entrega
+3. Dudas"></textarea></div>
   <label class="casilla" style="margin-bottom:8px"><input type="checkbox" id="v-avisar" checked><span>Avisar por correo a las direcciones que la llamada ya comenzó</span></label>
   <div class="ayuda">Al iniciar se abre la sala en Meet y a las direcciones invitadas les aparece de inmediato el botón para conectarse (o en menos de un minuto si ya tenían Tequio abierto). Para avisar por WhatsApp use el botón de la llamada.</div>`,
   `<button class="boton sec" id="v-cancelar">Cancelar</button><button class="boton terra" id="v-ini">${ico('i-video')}Iniciar y abrir Meet</button>`);
@@ -1342,7 +1352,7 @@ function formVidAhora() {
     const titulo = $('#v-tit').value.trim();
     if (!titulo) return aviso('Escriba el tema de la videollamada.', 'mal');
     const ven = window.open('about:blank', '_blank');   // se abre antes de esperar al servidor para que el navegador no la bloquee
-    const r = await accion('vidIniciar', { titulo, escuelas, avisar: $('#v-avisar').checked });
+    const r = await accion('vidIniciar', { titulo, escuelas, tema: $('#v-tema').value.trim(), avisar: $('#v-avisar').checked });
     if (!r) { if (ven) ven.close(); return; }
     if (ven) ven.location.href = r.vidItem.enlace; else aviso(`La llamada inició. <a href="${esc(r.vidItem.enlace)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Abrir Meet</a>`, 'ok', 15000);
     cerrarModal(); vidPoner(r.vidItem); mostrarResultados(r.resultados);
@@ -1396,6 +1406,48 @@ function formVidSala() {
     const r = await accion('vidSala', { enlace: $('#v-sala-url').value.trim() });
     if (r) { S.vidSala = r.vidSala; (S.vid || []).forEach(v => { if (!v.propio) v.enlace = r.vidSala; }); cerrarModal(); vVideollamadas(); pintarBandaVid(); aviso('Sala guardada.', 'ok'); }
   };
+}
+/* --- Orden del día flotante: una ventanita que se queda encima de Meet (Chrome y Edge en computadora; en otros, ventana aparte).
+   Los puntos salen de «Orden del día» de la llamada, uno por renglón. Quien la usa palomea lo ya tratado (se guarda en su dispositivo). --- */
+const vidPuntos = v => String(v.tema || '').split(/\n+/).map(x => x.replace(/^\s*(\d+\s*[.)\-–]|[-•*·])\s*/, '').trim()).filter(Boolean);
+let vidVentana = null;
+async function vidOrdenDia(id) {
+  const v = vidLista().find(x => x.id === id); if (!v) return;
+  const pts = vidPuntos(v), k = 'tequio.od.' + id, edita = !esDirector();
+  let hechos = []; try { hechos = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) {}
+  let w = null;
+  try { if (vidVentana && !vidVentana.closed) vidVentana.close(); } catch (e) {}
+  try {
+    if (window.documentPictureInPicture) w = await documentPictureInPicture.requestWindow({ width: 330, height: Math.min(560, 150 + pts.length * 46) });
+  } catch (e) { w = null; }
+  if (!w) w = window.open('', 'tequioOrden', 'width=340,height=' + Math.min(600, 170 + pts.length * 46));
+  if (!w) { aviso('El navegador bloqueó la ventanita. Permita las ventanas emergentes de Tequio e intente de nuevo.', 'mal', 9000); return; }
+  vidVentana = w;
+  const d = w.document;
+  d.title = 'Orden del día · ' + v.titulo;
+  d.head.innerHTML = `<meta charset="utf-8"><title>Orden del día</title><style>
+    *{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;background:#FBF6EC;color:#1E2A40}
+    header{background:#24427A;color:#fff;padding:10px 14px}header b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+    header h1{margin:2px 0 0;font-size:16px;line-height:1.25}#rel{font-size:12.5px;opacity:.85;margin-top:3px}
+    ol{list-style:none;margin:0;padding:8px}li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:#fff;border:1px solid #E4D8C3}
+    li.ya{opacity:.55}li.ya span{text-decoration:line-through}li.aqui{border:2px solid #2E7D4F;background:#E5F2E9}
+    li i{font-style:normal;font-weight:800;color:#C2603A;min-width:20px}input{width:20px;height:20px;margin:0;accent-color:#2E7D4F;flex:none}
+    .vacio{padding:16px;color:#6A5C4C}footer{padding:4px 14px 12px;font-size:12px;color:#6A5C4C}</style>`;
+  const pintarOD = () => {
+    const actual = pts.findIndex((_, i) => !hechos.includes(i));
+    const ini = v.estado === 'activa' && v.iniciada ? new Date(v.iniciada) : null, min = ini ? Math.max(0, Math.round((Date.now() - ini) / 60000)) : null;
+    d.body.innerHTML = `<header><b>Orden del día</b><h1>${esc(v.titulo)}</h1><div id="rel">${min !== null ? 'En curso · ' + (min < 60 ? min + ' min' : Math.floor(min / 60) + ' h ' + (min % 60) + ' min') : esc(fechaMedia(v.fecha) + (v.horaInicio ? ' · ' + vidHorario(v) : ''))}${pts.length ? ' · ' + hechos.filter(i => i < pts.length).length + ' de ' + pts.length + ' tratados' : ''}</div></header>
+      ${pts.length ? `<ol>${pts.map((p, i) => `<li class="${hechos.includes(i) ? 'ya' : i === actual ? 'aqui' : ''}">${edita ? `<input type="checkbox" data-i="${i}" ${hechos.includes(i) ? 'checked' : ''} aria-label="Tratado">` : ''}<i>${i + 1}.</i><span>${esc(p)}</span></li>`).join('')}</ol>`
+        : `<div class="vacio">Esta videollamada no tiene orden del día. ${edita ? 'Agréguelo en Tequio › Videollamadas › Editar (un punto por renglón).' : ''}</div>`}
+      ${edita && pts.length ? '<footer>Palomee cada punto al tratarlo. El punto en verde es el que sigue.</footer>' : ''}`;
+    d.querySelectorAll('[data-i]').forEach(c => c.onchange = () => {
+      const i = +c.dataset.i; hechos = c.checked ? hechos.concat(i) : hechos.filter(x => x !== i);
+      try { localStorage.setItem(k, JSON.stringify(hechos)); } catch (e) {} pintarOD();
+    });
+  };
+  pintarOD();
+  const t = setInterval(() => { if (w.closed) clearInterval(t); else pintarOD(); }, 60000);
+  w.addEventListener('pagehide', () => clearInterval(t));
 }
 // En la Agenda: las próximas videollamadas (las direcciones ven solo las suyas)
 function tarjetaVidAgenda() {
@@ -8091,7 +8143,7 @@ function eiaDemoGuardar(D, d) {
 function demoVid(ESC, usr) {
   const sala = 'https://meet.google.com/tqo-mesa-zna', atp = usr.find(u => u.rol === 'atp') || usr[0];
   return [
-    { id: 'vid-ej1', titulo: 'Reunión de directores · preparación de la sesión de CTE', tema: 'Revisar la guía de la sesión y los productos que se subirán a Tequio.', fecha: sumarDias(hoy(), 1), horaInicio: '10:00', horaFin: '11:30', escuelas: [], enlace: sala, propio: false, estado: 'programada', avisos: ['aviso', 'mismo_dia'], enviado: { agenda: ahora() }, conectados: [], creadoPor: usr[0].id, creadoNombre: usr[0].nombre, creado: ahora(), actualizado: ahora() },
+    { id: 'vid-ej1', titulo: 'Reunión de directores · preparación de la sesión de CTE', tema: '1. Bienvenida y propósito de la sesión\n2. Revisión de la guía del CTE\n3. Productos que se subirán a Tequio\n4. Fechas de entrega\n5. Asuntos generales', fecha: sumarDias(hoy(), 1), horaInicio: '10:00', horaFin: '11:30', escuelas: [], enlace: sala, propio: false, estado: 'programada', avisos: ['aviso', 'mismo_dia'], enviado: { agenda: ahora() }, conectados: [], creadoPor: usr[0].id, creadoNombre: usr[0].nombre, creado: ahora(), actualizado: ahora() },
     { id: 'vid-ej2', titulo: 'Seguimiento del SisAT con escuelas multigrado', tema: '', fecha: sumarDias(hoy(), -6), horaInicio: '12:00', horaFin: '13:00', escuelas: ESC.slice(0, 4).map(e => e[1]), enlace: sala, propio: false, estado: 'terminada', avisos: [], enviado: {}, iniciada: sumarDias(hoy(), -6) + 'T12:02:00', iniciadaPor: atp.nombre, terminada: sumarDias(hoy(), -6) + 'T13:05:00', terminadaPor: atp.nombre,
       conectados: ESC.slice(0, 3).map((e, i) => ({ cct: e[1], uid: '', nombre: 'Dirección de ejemplo', f: sumarDias(hoy(), -6) + 'T12:0' + (3 + i) + ':00' })), creadoPor: atp.id, creadoNombre: atp.nombre, creado: ahora(), actualizado: ahora() }
   ];
@@ -8384,7 +8436,7 @@ const Demo = (() => {
       if (!p) D.vid.push(o); const res = (o.avisos || []).includes('aviso') ? [{ ok: true, mensaje: 'Demostración: aquí se enviaría el aviso por correo a las direcciones.' }] : [];
       if (res.length) o.enviado.agenda = ahora(); return { vidItem: copia(o), resultados: res }; },
     vidIniciar: d => { let o = d.id ? D.vid.find(x => x.id === d.id) : null;
-      if (!o) { const t = new Date(); o = { id: uid('vid'), titulo: d.titulo, tema: '', fecha: hoy(), horaInicio: pad(t.getHours()) + ':' + pad(t.getMinutes()), horaFin: '', escuelas: d.escuelas || [], enlace: D.vidSala, propio: false, avisos: [], conectados: [], enviado: {}, creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora() }; D.vid.push(o); }
+      if (!o) { const t = new Date(); o = { id: uid('vid'), titulo: d.titulo, tema: d.tema || '', fecha: hoy(), horaInicio: pad(t.getHours()) + ':' + pad(t.getMinutes()), horaFin: '', escuelas: d.escuelas || [], enlace: D.vidSala, propio: false, avisos: [], conectados: [], enviado: {}, creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora() }; D.vid.push(o); }
       o.estado = 'activa'; o.iniciada = ahora(); o.iniciadaPor = D.yo.nombre; o.actualizado = ahora();
       // en la demostración, dos escuelas «se conectan» para ver cómo se muestra
       const inv = o.escuelas.length ? o.escuelas : D.dir.filter(c => c.tipo === 'director').map(c => c.cct);
