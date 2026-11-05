@@ -177,13 +177,17 @@ const HOJAS = {
   // rev: lo que se respondió por guía, escuela, visita y persona (id: cue|cct|visita|persona). respuestas: { k: { v, obs, fotos: [{ id, n }], por, f } }.
   cue: ['id', 'titulo', 'descripcion', 'visita', 'ciclo', 'preguntas', 'escuelas', 'activo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
   rev: ['id', 'cueId', 'ciclo', 'visita', 'cct', 'persona', 'personaNombre', 'funcion', 'grupo', 'respuestas', 'estado', 'revisor', 'revisorNombre', 'fecha', 'creado', 'actualizado', 'codigo', 'codigoVence', 'docenteEnvio'],
+  // Visitas de atención: las que se hacen por un tema puntual (queja o problema, capacitación, apoyo…), fuera de las visitas con guía.
+  // Al cerrarse quedan en el seguimiento de la escuela con sus acuerdos (segId).
+  ate: ['id', 'cct', 'tipo', 'asunto', 'fecha', 'horaIni', 'horaFin', 'atendieron', 'descripcion', 'fotos', 'acuerdos', 'conclusion', 'estado', 'confidencial',
+        'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas' };
-const VERSION = 38;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención' };
+const VERSION = 39;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -468,7 +472,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -517,6 +521,7 @@ const ACCIONES = {
     vidSala: vidSala_(),
     cue: leer_('cue').filter(c => c.activo),
     rev: leer_('rev').filter(r => r.ciclo === cicloVis_()).map(revPublica_),
+    ate: leer_('ate').filter(a => visible_(yo, a)),
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -1737,6 +1742,53 @@ const ACCIONES = {
     o.activo = !d.anular; o.actualizado = ahora_(); o.actualizadoPor = yo.nombre;
     guardar_('prm', o);
     return { prm: o };
+  },
+
+  /* ---- Visitas de atención (queja o problema, capacitación, apoyo…) ---- */
+  ateGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const prev = d.id ? buscar_('ate', String(d.id)) : null;
+    if (prev && !visible_(yo, prev)) throw new Error('Sin permiso para esta visita.');
+    const cct = String(d.cct || '');
+    if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('Elija la escuela.');
+    const asunto = String(d.asunto || '').trim().slice(0, 200);
+    if (!asunto) throw new Error('Escriba el asunto de la visita.');
+    const hora = h => /^\d{1,2}:\d{2}$/.test(h || '') ? h : '';
+    const o = { id: prev ? prev.id : String(d.id || '').slice(0, 40) || 'ate-' + Utilities.getUuid().slice(0, 8), cct: cct, tipo: String(d.tipo || 'otro').slice(0, 40), asunto: asunto,
+      fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(), horaIni: hora(d.horaIni), horaFin: hora(d.horaFin), atendieron: String(d.atendieron || '').slice(0, 1000),
+      descripcion: String(d.descripcion || '').slice(0, 8000), fotos: (Array.isArray(d.fotos) ? d.fotos : []).filter(f => f && f.id).slice(0, 40).map(f => ({ id: String(f.id).slice(0, 80), n: String(f.n || '').slice(0, 160) })),
+      acuerdos: (Array.isArray(d.acuerdos) ? d.acuerdos : []).filter(a => a && String(a.texto || '').trim()).slice(0, 30).map(a => ({ id: a.id || 'ac-' + Utilities.getUuid().slice(0, 6), texto: String(a.texto).trim().slice(0, 1000),
+        responsable: String(a.responsable || '').slice(0, 200), revision: /^\d{4}-\d{2}-\d{2}$/.test(a.revision || '') ? a.revision : '', estado: a.estado === 'cumplido' ? 'cumplido' : 'pendiente' })),
+      conclusion: String(d.conclusion || '').slice(0, 4000), estado: d.estado === 'cerrada' ? 'cerrada' : 'abierta', confidencial: yo.rol === 'admin' && !!d.confidencial,
+      segId: prev ? prev.segId : '', creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre, creado: prev ? prev.creado : ahora_(), actualizado: ahora_(),
+      cerrada: prev ? prev.cerrada : '', cerradaPor: prev ? prev.cerradaPor : '' };
+    let avisos = [];
+    // al cerrar, la visita y sus acuerdos quedan en el seguimiento de la escuela (para darles seguimiento en Agenda y en Mi escuela)
+    if (o.estado === 'cerrada') {
+      if (!o.cerrada) { o.cerrada = ahora_(); o.cerradaPor = yo.nombre; }
+      const tipo = { queja: 'Atención a queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión', otro: 'Visita' }[o.tipo] || 'Visita';
+      const r = ACCIONES.guardarSeguimiento(yo, { id: o.segId || '', cct: cct, fecha: o.fecha, resumen: (tipo + ': ' + asunto + (o.descripcion ? '\n\n' + o.descripcion : '') + (o.conclusion ? '\n\nConclusión: ' + o.conclusion : '')).slice(0, 20000),
+        acuerdos: o.acuerdos, confidencial: o.confidencial, enviarMinuta: !!d.enviarMinuta && !o.confidencial });
+      o.segId = r.seg.id; avisos = r.avisos || [];
+    } else { o.cerrada = ''; o.cerradaPor = ''; }
+    guardar_('ate', o);
+    return { ate: o, avisos: avisos };
+  },
+  // Foto de una visita de atención: Drive › Escuela › Visitas de supervisión › Visitas de atención › fecha · asunto
+  ateFoto: (yo, d) => {
+    soloMesa_(yo);
+    const cct = String(d.cct || ''), datos = String(d.datos || '');
+    if (!datos) throw new Error('La foto llegó vacía.');
+    if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
+    const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+    if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+    const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+    const nom = (String(d.fecha || hoy_()) + ' · ' + String(d.asunto || 'Visita')).replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100);
+    const carpeta = sub(sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), 'Visitas de atención'), nom);
+    const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
+    const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    return { foto: { id: f.getId(), n: nombre } };
   },
 
   /* ---- Revisión en campo ---- */
