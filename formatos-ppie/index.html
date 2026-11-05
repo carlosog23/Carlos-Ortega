@@ -639,6 +639,56 @@ input:not([type=checkbox]):not([type=radio]):not([type=search]):focus,select:foc
 .ini-sup .seal{box-shadow:var(--sombra-1)}
 .ini-chips a,.ini-chips button{transition:transform .15s,border-color .15s}
 .ini-chips a:hover,.ini-chips button:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--terra) 50%,var(--line))}
+
+/* ---- Inicio reorganizado (nov 2026): hoy, accesos rápidos y categorías ---- */
+.ini-band{padding-bottom:70px}
+.ini-hola{font-size:clamp(26px,6.5vw,38px)}
+.ini-fecha{margin-top:22px}
+.ini-band::before{opacity:.05}
+.ini-hoy{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.ini-hoy #iniEvBox[hidden]{display:none}
+.ini-hoy .urg{margin-top:0;height:100%}
+.ini-hoy .ev{height:100%}
+.tiles{gap:10px}
+.tile{flex-direction:row;align-items:center;min-height:0;gap:12px;padding:12px 14px}
+.tile::after{display:none}
+.tile .ico{width:42px;height:42px;border-radius:12px;flex:none}
+.tile b{font-size:14.5px}
+.cats{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.cat{--fam:#24427A;--fam-soft:var(--accent-soft);background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sombra-1);overflow:hidden;display:flex;flex-direction:column}
+.cat-aula{--fam:var(--jade);--fam-soft:var(--jade-soft)}
+.cat-alumnos{--fam:#24427A;--fam-soft:var(--accent-soft)}
+.cat-direccion{--fam:var(--terra-v);--fam-soft:var(--terra-soft)}
+.cat-personal{--fam:var(--ambar);--fam-soft:var(--ambar-soft)}
+.cat-consulta{--fam:var(--ciruela);--fam-soft:var(--ciruela-soft)}
+.cat-h{display:flex;align-items:center;gap:14px;padding:16px 18px 14px;border-bottom:1px solid var(--line2);background:linear-gradient(180deg,color-mix(in srgb,var(--fam-soft) 70%,var(--card)),var(--card))}
+.cat-ic{flex:none;width:46px;height:46px;border-radius:14px;background:var(--fam);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px color-mix(in srgb,var(--fam) 70%,transparent)}
+.cat-ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.cat-h h3{margin:0;font-family:var(--brand);font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-.01em}
+.cat-h p{margin:3px 0 0;font-size:13.5px;color:var(--muted);line-height:1.35}
+.cat .lista{border:0;border-radius:0;box-shadow:none;background:transparent;flex:1}
+.cat .item{padding-top:12px;padding-bottom:12px}
+.cat .item .ico{width:38px;height:38px;border-radius:11px;background:var(--fam-soft);color:var(--fam)}
+.cat .item .ico svg{width:20px;height:20px}
+.cat .item b{font-size:15.5px}
+.cat .item .ds{font-size:13.5px}
+.cat .item .cnt{color:var(--fam)}
+.cat .item::before{background:var(--fam)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cat-personal .cat-ic,:root:not([data-theme="light"]) .cat-aula .cat-ic{color:#15120D}}
+:root[data-theme="dark"] .cat-personal .cat-ic,:root[data-theme="dark"] .cat-aula .cat-ic{color:#15120D}
+@media (min-width:700px){.ini-hoy:has(#iniEvBox:not([hidden])){grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}}
+@media (min-width:900px){
+  .cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .cat.ancho{grid-column:1/-1}
+  .cat.ancho .lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cat.ancho .item:nth-child(2){border-top:0;border-left:1px solid var(--line2)}
+}
+.tile{justify-content:flex-start}
+.demo-rec .demo-pasos{gap:8px}
+.demo-rec .demo-paso{padding:9px 12px}
+.demo-rec .demo-paso b{font-size:14.5px}
+.demo-rec .demo-paso span{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px}
+@media (min-width:900px){.demo-rec .demo-pasos{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* Letras de los anexos y formatos dentro de cada sección */
 .top~.lista .ico,.sec-hero~.lista .ico{font-family:var(--brand);font-size:20px;font-weight:600;background:linear-gradient(160deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 60%,var(--card)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent)}
 @media print{.ini-band::before,.ini-band::after{display:none}#app>*{animation:none}}
@@ -1462,11 +1512,11 @@ function goBack(){if(S.sec)sectionView(S.sec);else home()}
 /* ---------- Inicio (diseño 2): saludo, buscador, próximo en el calendario, continuar, lo más usado y secciones por familia ---------- */
 const CHEV='<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 const FAMILIAS=[
- ["Mi escuela y mis alumnos",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["familias","","Recados, citatorios, avisos y autorizaciones"],["reconocimientos","","Diplomas para sus alumnos: varios diseños o su propio fondo, toda la lista de una vez"]]],
- ["Pedagógico",[["pedagogico","","Lectura de la realidad, PMCE, analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"]]],
- ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]]],
- ["Trámites del personal",[["laboral","","Licencias, datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"],["becas","","Formato Único de Beca de la Secretaría de Educación"]]],
- ["Consulta",[["calendario","","El calendario de Baja California que rige el ciclo"],["normas","Normatividad y libros de texto","Leyes, acuerdos, protocolos y libros de texto"]]]];
+ ["En el aula",[["pedagogico","Planeación y diagnóstico","Lectura de la realidad, PMCE, programa analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"],["familias","","Recados, citatorios, avisos y autorizaciones"],["reconocimientos","","Diplomas para sus alumnos, toda la lista de una vez"]],"book","Lo que usa el docente con su grupo","aula"],
+ ["Alumnos y control escolar",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["becas","","Formato Único de Beca de la Secretaría de Educación"]],"people","Datos de los alumnos, asistencia, estadística y becas","alumnos"],
+ ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]],"school","Documentos de la escuela, protección escolar y consejo","direccion"],
+ ["Trámites del personal",[["laboral","","Licencias, actualización de datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"]],"work","Trámites laborales y declaración patrimonial","personal"],
+ ["Consulta",[["calendario","","El calendario de Baja California que rige el ciclo"],["normas","Normatividad y libros de texto","Leyes, acuerdos, protocolos y libros de texto"]],"law","Calendario oficial, normatividad y libros de texto","consulta"]];
 const FAMILIA_FUERA=["seguro","misdocs","directorio"]; // tienen su propio acceso en el inicio
 const FAVS=[
  {k:"chat",t:"Recados, avisos y citatorios",sec:"familias",go:()=>rcView()},
@@ -1561,13 +1611,15 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
    <div class="ini-main" id="iniMain">
     ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
     ${DEMO?"":respAvisoHTML()}
-    <div id="iniEvBox">${iniEvento()||""}</div>
+    <div class="ini-hoy"><div id="iniEvBox">${iniEvento()||""}</div>
+     <button type="button" class="urg" data-s="seguro"><span class="ico t">${ICON.cross}</span><span class="tx"><b>¿Hubo un accidente?</b><span class="ds">Seguro escolar: teléfonos para reportar, aviso y clínicas</span></span>${CHEV}</button></div>
     <section aria-labelledby="t-cont" id="contSec" ${conts.length?"":"hidden"}><h2 class="gt" id="t-cont">Continuar donde se quedó</h2><div class="conts" id="contStrip">${conts.join("")}</div></section>
-    <section aria-labelledby="t-uso"><h2 class="gt" id="t-uso">Lo más usado</h2>
+    <section aria-labelledby="t-uso"><h2 class="gt" id="t-uso">Accesos rápidos</h2>
      <div class="tiles">${FAVS.map((f,i)=>`<button type="button" class="tile" data-fav="${i}"><span class="ico">${ICON[f.k]}</span><b>${esc(f.t)}</b></button>`).join("")}</div>
-     <button type="button" class="urg" data-s="seguro"><span class="ico t">${ICON.cross}</span><span class="tx"><b>¿Hubo un accidente?</b><span class="ds">Seguro escolar: teléfonos para reportar, aviso y clínicas</span></span>${CHEV}</button></section>
+</section>
     ${DEMO?demoRecorrido():""}
-    <div class="fams">${fams.map((f,i)=>`<section aria-labelledby="fam${i}"><h2 class="gt" id="fam${i}">${esc(f[0])}</h2><div class="lista">${f[1].map(r=>iniFila(r[0],r[1],r[2],drafts)).join("")}</div></section>`).join("")}</div>
+    <section aria-labelledby="t-todo"><h2 class="gt" id="t-todo">Todas las herramientas</h2>
+    <div class="cats">${fams.map((f,i)=>`<section class="cat cat-${f[4]||"otras"}${f[4]==="consulta"||!f[4]?" ancho":""}" aria-labelledby="fam${i}"><header class="cat-h"><span class="cat-ic">${ICON[f[2]]||ICON.folder}</span><div><h3 id="fam${i}">${esc(f[0])}</h3>${f[3]?`<p>${esc(f[3])}</p>`:""}</div></header><div class="lista">${f[1].map(r=>iniFila(r[0],r[1],r[2],drafts)).join("")}</div></section>`).join("")}</div></section>
     <footer class="ini-pie">
      ${(()=>{const z=supZona();return`<div class="ini-sup"><div class="seal"><img src="${z.inst}" alt="${z.instAlt}">${z.logo?`<img src="${esc(z.logo)}" alt="Zona Escolar ${esc(z.num)}">`:""}</div><p><b>Supervisión Escolar Zona No. ${esc(z.num)}</b><br><span>${esc(z.linea)}</span></p></div>
      ${z.sup?`<div class="ini-firma"><b>${esc(z.sup)}</b><i aria-hidden="true"></i><span>${esc(z.cargo)}</span></div>`:""}`})()}
