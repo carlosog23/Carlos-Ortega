@@ -689,6 +689,54 @@ input:not([type=checkbox]):not([type=radio]):not([type=search]):focus,select:foc
 .demo-rec .demo-paso b{font-size:14.5px}
 .demo-rec .demo-paso span{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px}
 @media (min-width:900px){.demo-rec .demo-pasos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---- Pantalla de bienvenida (nov 2026): una decisión principal ---- */
+.wrap:has(.bv){max-width:520px}
+.bv{display:flex;flex-direction:column;gap:0}
+.bv-h{margin:-16px calc(50% - 50vw) 0;padding:34px 22px 30px;text-align:center;color:var(--band-ink);background:var(--grad-band);position:relative;overflow:hidden;isolation:isolate}
+.bv-h::before{content:"";position:absolute;inset:0;background:var(--greca) repeat-x left bottom 10px/72px 36px;opacity:.06;z-index:-1}
+.bv-h::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#C2603A,#E8A33D 50%,#C2603A)}
+.bv-h .tlm-m{width:64px;height:64px;padding:8px;margin:0 auto 12px;display:block;border-radius:20px;background:rgba(251,246,236,.08);box-shadow:inset 0 0 0 1px rgba(251,246,236,.16),0 0 30px rgba(232,163,61,.3)}
+.bv-n{margin:0;font-family:var(--brand);font-weight:600;font-size:40px;line-height:1;letter-spacing:-.01em;color:var(--band-ink)}
+.bv-l{margin:6px 0 0;font-family:var(--brand);font-style:italic;font-size:17px;color:#F2C9A8}
+.bv-p{margin:14px auto 0;max-width:380px;font-size:15px;line-height:1.5;color:#DCE3F0}
+.bv-c{padding:24px 0 8px}
+.bv-q{margin:0;font-family:var(--brand);font-size:23px;font-weight:600;letter-spacing:-.01em}
+.bv-qs{margin:4px 0 14px;font-size:14.5px;color:var(--muted)}
+.bv-op{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;box-shadow:var(--sombra-1);transition:transform .15s,box-shadow .15s,border-color .15s}
+.bv-op:hover{transform:translateY(-1px);box-shadow:var(--sombra-2);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.bv-op:focus-visible,.bv-sb:focus-visible,.bv-ya-op:focus-within,.bv-msg summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bv-op b{display:block;font-size:16.5px}
+.bv-op>span:last-child>span{display:block;font-size:13.5px;color:var(--muted);margin-top:1px}
+.bv-op.p{background:linear-gradient(160deg,#2B4D8C,#1F3A6B);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(31,58,107,.6)}
+.bv-op.p>span:last-child>span{color:#D6DEEE}
+.bv-ic{flex:none;width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent)}
+.bv-op.p .bv-ic{background:rgba(255,255,255,.14);color:#fff}
+.bv-ic svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bv-sec{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.bv-sec:has(>:only-child){grid-template-columns:1fr}
+.bv-sb{display:flex;align-items:center;justify-content:center;gap:8px;font:700 14px var(--body);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:12px;padding:11px 10px;cursor:pointer;transition:background .15s,border-color .15s}
+.bv-sb:hover,.bv-sb[aria-expanded="true"]{background:var(--card);border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.bv-sb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.bv-ya{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--sombra-1)}
+.bv-ya[hidden]{display:none}
+.bv-ya-op{display:block;padding:12px 16px;cursor:pointer;border-top:1px solid var(--line2)}
+.bv-ya-op:first-child{border-top:0}
+.bv-ya-op:hover{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.bv-ya-op b{display:block;font-size:15px;color:var(--accent)}
+.bv-ya-op span{display:block;font-weight:400;font-size:13px;color:var(--muted);margin-top:1px}
+.bv-msg{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sombra-1)}
+.bv-msg summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;font-weight:700;font-size:15px}
+.bv-msg summary::-webkit-details-marker{display:none}
+.bv-msg summary>svg{margin-left:auto;transition:transform .2s}
+.bv-msg[open] summary>svg{transform:rotate(90deg)}
+.bv-msg-ic{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--terra-soft);color:var(--terra)}
+.bv-msg-ic svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bv-msg-tx{padding:2px 18px 18px;font-size:15px;line-height:1.55;border-top:1px solid var(--line2);padding-top:14px}
+.bv-pie{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:18px 0 28px}
+.bv-pie>p:first-child{margin:0;font-size:13px;color:var(--muted)}
+.bv-pie>p:first-child b{color:var(--terra)}
+.bv-pie .signif{width:100%;text-align:left}
 /* Letras de los anexos y formatos dentro de cada sección */
 .top~.lista .ico,.sec-hero~.lista .ico{font-family:var(--brand);font-size:20px;font-weight:600;background:linear-gradient(160deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 60%,var(--card)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 12%,transparent)}
 @media print{.ini-band::before,.ini-band::after{display:none}#app>*{animation:none}}
@@ -5092,27 +5140,35 @@ function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST=""
   const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
 function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
-  app.innerHTML=`
-   <div class="bienv-h">${TLM()}<div><h1 class="tlm-n">Tlamatini</h1><p class="tlm-l">Un camino para la labor docente</p></div></div>
-   <section class="card" style="border-top:3px solid var(--rule)">
+  const zBtn=ZONA_TQ?`<button type="button" class="bv-op p" id="suTq"><span class="bv-ic">${ICON.group}</span><span><b>Zona Escolar No. ${esc(ZONA_NUM)}</b><span>Sus escuelas ya están cargadas</span></span></button>`
+    :`<button type="button" class="bv-op p" id="su050"><span class="bv-ic">${ICON.group}</span><span><b>Zona Escolar No. 050</b><span>Sus escuelas ya están cargadas</span></span></button>`;
+  app.innerHTML=`<div class="bv">
+   <header class="bv-h">${TLM("oscuro")}<h1 class="bv-n">Tlamatini</h1><p class="bv-l">Un camino para la labor docente</p>
+    <p class="bv-p">Formatos oficiales, documentos pedagógicos y trámites que se llenan solos con los datos de su escuela.</p></header>
+   <div class="bv-c">
+    <h2 class="bv-q">¿Dónde trabaja?</h2><p class="bv-qs">Elíjalo una sola vez; después entrará directo.</p>
+    ${zBtn}
+    <button type="button" class="bv-op" id="suOtra"><span class="bv-ic">${ICON.school}</span><span><b>Otra zona o escuela</b><span>Capture los datos de su escuela</span></span></button>
+    <div class="bv-sec">
+     ${DEMO?"":`<button type="button" class="bv-sb" id="suYa" aria-expanded="false" aria-controls="suYaP">${ICON.folder}Ya tengo mis datos</button>`}
+     <button type="button" class="bv-sb" id="suDemo">${ICON.play}Ver demostración</button></div>
+    ${DEMO?"":`<div class="bv-ya" id="suYaP" hidden>
+     <label class="bv-ya-op"><b>Cargar archivo de directorio</b><span>El que le mandó su zona o su dirección por WhatsApp o correo</span><input type="file" accept=".json,application/json" class="dir-carga" hidden></label>
+     <label class="bv-ya-op"><b>Restaurar respaldo</b><span>Si ya usaba Tlamatini en otro teléfono o computadora</span><input type="file" accept=".json,application/json" id="su_rest" hidden></label></div>`}
+    <details class="bv-msg"><summary><span class="bv-msg-ic">${ICON.chat}</span><span>Mensaje de bienvenida de la Supervisión</span>${CHEV}</summary>
+     <div class="bv-msg-tx">
     <p style="margin:0 0 10px">Reciba usted una cordial bienvenida a esta plataforma, concebida como una herramienta de apoyo para <b>facilitar los procesos de la práctica docente y administrativa</b>, así como la <b>consulta de documentos normativos</b>.</p>
     <p style="margin:0 0 10px">Su propósito es simplificar la elaboración y generación de los formatos de uso cotidiano, a fin de contribuir a una gestión escolar más ágil y a una mejor práctica profesional.</p>
     <p style="margin:0 0 10px">Actualmente se encuentra en <b>fase de pilotaje</b>, por lo que el acceso es de carácter <b>provisional</b>; posteriormente se requerirá una <b>validación</b> para continuar con su uso. Toda observación o sugerencia que permita enriquecerla será atendida con gusto a través de los correos ${CONTACTO}.</p>
     <p style="margin:0 0 4px">Agradezco su confianza y disposición.</p>
-    <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><p class="firma-nom">${esc(ZONA_TQ?(ZONA_TQ.supervisor||""):"Mtro. Carlos Gabriel Ortega Gutiérrez")}</p><span class="firma-raya" aria-hidden="true"></span><p class="firma-cargo">${esc(ZONA_TQ?(ZONA_TQ.cargoSupervisor||"Supervisor Escolar")+" · Zona "+ZONA_NUM:"Supervisor Escolar · Zona 050")}</p></div></section>
-   ${TLM_SIGNIF}
-   <a class="btn ghost tour-btn" href="tour.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">▶ Conozca Tlamatini en 2 minutos</a>
-   <a class="btn ghost tour-btn" href="tlami.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">${EI.spark}Conozca a Tlami, su acompañante</a>
-   <section class="card"><h3>Para comenzar</h3>
-    <p class="help">Seleccione la opción que corresponda a su caso.</p>
-    <div class="acts">${ZONA_TQ?`<button class="btn primary act" id="suTq">Zona Escolar No. ${esc(ZONA_NUM)}</button>`:`<button class="btn primary act" id="su050">Zona Escolar No. 050</button>`}<button class="btn ghost act" id="suOtra">Otra zona o escuela</button></div></section>
-   ${DEMO?"":dirCargaCard()}
-   <section class="card demo-inv"><h3>¿Quiere conocerla primero?</h3>
-    <p class="help">Recorra Tlamatini con una escuela de ejemplo ya capturada y vea todo lo que puede hacer. Lo que haga en la demostración no se guarda ni toca sus datos.</p>
-    <button class="btn ghost" id="suDemo">▶ Ver una demostración</button></section>
-   ${DEMO?"":`<section class="card"><h3>¿Ya usaba Tlamatini en otro teléfono?</h3><p class="help">Si descargó un respaldo de sus datos, restáurelo aquí y todo quedará como lo tenía.</p>
-    <label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="su_rest" hidden></label></section>`}
-   <p class="foot"><span class="muted">v2026-10-14.5</span></p>`;
+    <div class="firma-blq"><p style="margin:14px 0 0">Atentamente,</p><p class="firma-nom">${esc(ZONA_TQ?(ZONA_TQ.supervisor||""):"Mtro. Carlos Gabriel Ortega Gutiérrez")}</p><span class="firma-raya" aria-hidden="true"></span><p class="firma-cargo">${esc(ZONA_TQ?(ZONA_TQ.cargoSupervisor||"Supervisor Escolar")+" · Zona "+ZONA_NUM:"Supervisor Escolar · Zona 050")}</p></div></div></details>
+   </div>
+   <footer class="bv-pie"><p><b>Fase de pilotaje</b> · ${esc(ZONA_TQ?"Supervisión Escolar Zona "+ZONA_NUM:"Supervisión Escolar Zona 050")}</p>
+    <div class="ini-chips"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a></div>
+    ${TLM_SIGNIF}
+    <p class="muted" style="font-size:12px;margin:0">v2026-10-14.5</p></footer>
+  </div>`;
+  {const y=document.getElementById("suYa");if(y)y.onclick=()=>{const pn=document.getElementById("suYaP");pn.hidden=!pn.hidden;y.setAttribute("aria-expanded",String(!pn.hidden))}}
   {const r=document.getElementById("su_rest");if(r)r.onchange=e=>{const f=e.target.files[0];if(f)respaldoRestaurar(f);e.target.value=""}}
   if(document.getElementById("suTq"))document.getElementById("suTq").onclick=()=>{if(perfil.escuela&&perfil.minombre)home();else setupOtraView(true)};
   if(document.getElementById("su050"))document.getElementById("su050").onclick=()=>{perfil.modo="050";perfil.zona=perfil.zona||"050";perfil.subsis="ISEP";perfil.nivel=perfil.nivel||"Primaria";perfil.subsistema="Federalizado";perfil.instLogo="img/isep.png";INSTLOGO_DATA=undefined;store.set("ppie-perfil",perfil);if(perfil.escuela&&perfil.minombre)home();else perfilView()};
