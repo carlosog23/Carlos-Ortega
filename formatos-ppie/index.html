@@ -1550,7 +1550,7 @@ const SECCIONES=[
  {id:"estadistica",icon:"chart",title:"Estadística y control escolar",desc:"Lista de asistencia mensual de alumnos y edades al 1 de septiembre para la estadística.",grupos:[],tools:[{id:"asistencia",letra:"A",name:"Lista de asistencia mensual",use:"Suba el PDF de RELweb: se agregan el maestro, el mes, los días hábiles y los días sin clases del calendario oficial.",open:()=>asView()},{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
  {id:"pedagogico",icon:"book",title:"Pedagógico",desc:"Lectura de la realidad, Programa de Mejora Continua, planeación y seguimiento.",grupos:[],tools:[{id:"dx",letra:"L",name:"Lectura de la realidad (NEM)",use:"Antes diagnóstico socioeducativo. De grupo o de escuela, guiada por preguntas; se descarga en Word o PDF.",open:()=>dxView()},{id:"pmce",letra:"M",name:"Programa de Mejora Continua",use:"Arma el PMC a partir de la lectura de la realidad: aspectos priorizados, objetivos, metas y acciones. Word o PDF.",open:()=>pmView()},{id:"pa",letra:"A",name:"Programa Analítico (NEM)",use:"Tres planos: lectura de la realidad, contextualización de contenidos y PDA por campo, y codiseño. Escuela o grupo. Word o PDF.",open:()=>paView()},{id:"plan",letra:"P",name:"Planeación didáctica (NEM)",use:"Desde el programa analítico y la lectura de la realidad: PDA, ejes, metodología, secuencia, evaluación formativa, ajustes y adecuaciones. Word o PDF.",open:()=>plView()}]},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
- {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos y autorizaciones.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()}]},
+ {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos, autorizaciones y permisos de salida a eventos.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()},{id:"salida",letra:"S",name:"Autorización de salida a eventos",use:"Permiso institucional para desfiles, torneos de fútbol, encuentros de atletismo, olimpiadas del conocimiento u otro evento fuera de la escuela: quién lleva y recoge al alumno, datos de salud y firma del tutor. Para un alumno, todo el grupo o en blanco. Word o PDF.",open:()=>slView()}]},
  {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan solos los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
  {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
@@ -1579,12 +1579,13 @@ const TMETA={
  inventario:{grp:"Recursos materiales",tags:["Formato oficial ISEP","PDF"]},
  alumnos:{grp:"Datos de alumnos",tags:["Word"]},
  recado:{tags:["Word","PDF"]},dx:{tags:["Word","PDF"]},salario:{tags:["Desde sus talones en PDF"]},asistencia:{tags:["PDF de RELweb"]}};
-const TICON={salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
+const TICON={salida:"flag",salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
 const AICON={L:"work",P:"user",S:"cross",U:"cap"};
 Object.assign(ICON,{
  pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
  award:'<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M12 6.2l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/><path d="M8.5 14L7 21l5-2.5 5 2.5-1.5-7"/></svg>',
  door:'<svg viewBox="0 0 24 24"><path d="M6 3h9v18H6z"/><path d="M15 5h3v16M12 12h.01"/></svg>',
+ flag:'<svg viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
  ticket:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5M4 15h16M14 18h2"/></svg>',
  minuta:'<svg viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2M8 11h8M8 14h8M8 17h5"/></svg>',
  box:'<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
@@ -4268,6 +4269,204 @@ async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEs
    <p style="text-align:center;margin-top:34px">${firmaImg}______________________________<br><b>${esc(RC.firma)}</b><br><span style="color:#555">${esc(RC.cargo)}</span></p>${bottom}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=rcFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+/* ---------- Autorización de salida a eventos fuera del plantel (desfiles, torneos, encuentros, olimpiadas…) ----------
+   Formato institucional para que el padre, madre o tutor autorice la participación y deje constancia de quién hace los traslados.
+   Para un alumno, para todo el grupo (una hoja por alumno, con los datos de su ficha) o en blanco para fotocopiar. */
+const SL_EVENTOS=["Desfile cívico","Torneo de fútbol","Encuentro de atletismo","Olimpiada del conocimiento","Otro (escribirlo)"];
+const SL_DEPORTE=t=>/fútbol|atletismo|deport|torneo|encuentro|basquet|béisbol|voleibol|juegos/i.test(t||"");
+const SL_ALC=[["individual","Un alumno(a)"],["grupo","Todo el grupo (una hoja por alumno)"],["blanco","En blanco (para fotocopiar)"]];
+let SL=null;
+(function(){const d=store.get("ppie-salida",null);if(d&&d.evento)SL=d})();
+const slSave=()=>store.set("ppie-salida",SL);
+function slNuevo(){return{evento:"Desfile cívico",otro:"",motivo:"",organiza:"",fecha:"",sede:"",ruta:"",puntoEnt:"",horaEnt:"",puntoRec:"",horaRec:"",uniforme:"",responsable:yoFirma()||"",
+  traslado:"familia",transporte:"",alcance:"individual",aluId:"",alumno:"",grado:yoGrado(),grupo:yoGrupo(),tutor:"",parentesco:"",tel:"",fechaDoc:fmtDate(today(),"larga"),
+  firma:yoFirma()||perfil.director||"",cargo:yoDirectivo()?yoFuncion():"Docente del grupo",usarFirma:true}}
+const slEvento=()=>SL.evento.startsWith("Otro")?(SL.otro||"Evento escolar"):SL.evento;
+const slTitulo=()=>[slEvento(),SL.motivo].filter(Boolean).join(" · ");
+function slEscuela(){const nom=String(perfil.escuela||"").replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim();
+  return{nombre:nom,cct:perfil.cct||"",turno:perfil.turno||"",lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),zona:perfil.zona||ZONA_NUM,est:perfil.subsis==="SEBS"}}
+// Compromisos del padre, madre o tutor (cambian según quién hace el traslado y si es deportivo)
+function slCompromisos(){const fam=SL.traslado!=="escuela",l=[];
+  l.push("Mi hijo(a) participa de manera voluntaria y con mi consentimiento.");
+  if(fam){l.push("Me comprometo a llevarlo(a) al punto de reunión a la hora indicada y a recogerlo(a) puntualmente al término del evento, en el lugar y la hora señalados en este documento.");
+    l.push("Los traslados de ida y de regreso son mi responsabilidad. La escuela no proporciona transporte para este evento.");
+    l.push("El personal de la escuela atenderá a mi hijo(a) únicamente desde que lo(a) entrego al docente responsable en el punto de reunión hasta que lo(a) recojo en el punto señalado.")}
+  else{l.push("Me comprometo a llevarlo(a) al punto de salida a la hora indicada y a recogerlo(a) puntualmente a su regreso, en el lugar y la hora señalados en este documento.");
+    l.push(`Estoy enterado(a) de que el traslado se realizará ${SL.transporte?"en "+SL.transporte:"en el medio de transporte que organiza la escuela"}.`);
+    l.push("El personal de la escuela atenderá a mi hijo(a) desde la salida hasta el regreso al punto señalado.")}
+  l.push("Solo podrán recoger a mi hijo(a) yo o la persona autorizada en este documento, quien deberá identificarse.");
+  l.push("Si me retraso, el docente esperará con mi hijo(a) en el punto de recogida y me llamará al teléfono que anoté.");
+  if(SL_DEPORTE(slEvento()))l.push("Mi hijo(a) se encuentra en condiciones de salud para realizar la actividad física que implica el evento.");
+  l.push("Los datos de salud que proporciono son verdaderos. En caso de emergencia, autorizo que se le brinden primeros auxilios y se le traslade al servicio médico más cercano, y que se me avise de inmediato.");
+  l.push("Mi hijo(a) atenderá las indicaciones del personal de la escuela durante todo el evento.");
+  return l}
+function slFilasEvento(){const ln="________________________________";
+  const r=[["Evento",slTitulo()||ln],["Fecha",SL.fecha||ln]];
+  if(SL.organiza)r.push(["Organiza",SL.organiza]);
+  r.push([SL.evento==="Desfile cívico"?"Ruta del desfile":"Lugar o sede",(SL.evento==="Desfile cívico"?SL.ruta:SL.sede)||ln]);
+  r.push([SL.traslado==="escuela"?"Punto y hora de salida":"Punto y hora de entrega al docente",[SL.puntoEnt,SL.horaEnt&&"a las "+SL.horaEnt].filter(Boolean).join(" ")||ln]);
+  r.push([SL.traslado==="escuela"?"Punto y hora de regreso":"Punto y hora de recogida",[SL.puntoRec,SL.horaRec&&"a las "+SL.horaRec].filter(Boolean).join(" ")||ln]);
+  r.push(["Traslado",SL.traslado==="escuela"?"Organizado por la escuela"+(SL.transporte?" ("+SL.transporte+")":""):"Por cuenta del padre, madre o tutor"]);
+  if(SL.uniforme)r.push(["Uniforme o vestimenta",SL.uniforme]);
+  r.push(["Docente responsable",SL.responsable||ln]);
+  return r}
+// Datos de cada hoja: un alumno de la ficha, el escrito a mano, o en blanco
+function slHojas(){const vacio={alumno:"",gg:"",tutor:"",par:"",tel:"",emerg:"",salud:"",medic:""};
+  if(SL.alcance==="blanco")return[vacio];
+  if(SL.alcance==="grupo"){const gl=dirGLabel(SL.grado,SL.grupo);const L=aluLista().filter(a=>dirGLabel(a.grado,a.grupo)===gl);
+    return L.map(a=>{const t1=a.t1nom?[a.t1nom,a.t1par,a.t1tel]:null,t2=a.t2nom?[a.t2nom,a.t2par,a.t2tel]:null;const t=t1||t2||["","",""];
+      return{alumno:a.nombre,gg:gl,tutor:t[0]||"",par:t[1]||"",tel:t[2]||"",emerg:t1&&t2?[t2[0],t2[2]].filter(Boolean).join(" · "):"",salud:a.alergias||"",medic:a.medic||""}})}
+  const a=SL.aluId?aluPorId(SL.aluId):null;
+  return[{alumno:SL.alumno,gg:[SL.grado&&SL.grado+"°",SL.grupo&&"«"+SL.grupo+"»"].filter(Boolean).join(" "),tutor:SL.tutor,par:SL.parentesco,tel:SL.tel,
+    emerg:a&&a.t1nom&&a.t2nom?[a.t2nom,a.t2tel].filter(Boolean).join(" · "):"",salud:a?a.alergias||"":"",medic:a?a.medic||"":""}]}
+const slFile=ext=>`Autorización ${slEvento()} - ${SL.alcance==="grupo"?"grupo "+[SL.grado,SL.grupo].filter(Boolean).join(""):SL.alcance==="blanco"?"en blanco":(SL.alumno||today())}`.replace(/[\\/:*?"<>|«»°]/g,"").trim()+"."+ext;
+
+function slView(){S.view="salida";S.letra=null;setBar("");if(!SL)SL=slNuevo();
+  const g=id=>document.getElementById(id);const v=(id,ph,val)=>`<input type="text" id="${id}" value="${esc(val!==undefined?val:SL[id.slice(3)])}" ${ph?`placeholder="${esc(ph)}"`:""} autocomplete="off">`;
+  const desf=SL.evento==="Desfile cívico",esc_=SL.traslado==="escuela";
+  const gruposDir=[...new Set(aluLista().map(a=>dirGLabel(a.grado,a.grupo)))];
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Comunicación con familias</div><h2>Autorización de salida a eventos</h2></div></div>
+   <p class="muted">Permiso para que el padre, madre o tutor autorice que su hijo(a) participe en un evento fuera de la escuela y deje constancia de quién lleva y recoge al alumno. Sale con los logos y los datos de la escuela, en formato institucional.</p>
+   <section class="card"><h3>Evento</h3>
+    <div class="field"><label>Tipo de evento</label><select id="sl_evento">${SL_EVENTOS.map(t=>`<option ${SL.evento===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div>
+    ${SL.evento.startsWith("Otro")?`<div class="field"><label>Nombre del evento</label>${v("sl_otro","Visita al museo, concurso de escoltas, festival…")}</div>`:""}
+    <div class="field"><label>Motivo o nombre <span class="muted" style="font-weight:400">(opcional)</span></label>${v("sl_motivo",desf?"Conmemorativo del 116 aniversario de la Revolución Mexicana":"Fase de zona, ciclo escolar "+cicloActual())}</div>
+    <div class="row2"><div class="field"><label>Fecha del evento</label>${v("sl_fecha","jueves 20 de noviembre de 2026")}</div>
+     <div class="field"><label>Organiza <span class="muted" style="font-weight:400">(opcional)</span></label>${v("sl_organiza","Supervisión Escolar Zona "+(perfil.zona||ZONA_NUM))}</div></div>
+    <div class="field"><label>${desf?"Ruta del desfile":"Lugar o sede"}</label>${desf?v("sl_ruta","Salida de la plaza cívica, por la avenida principal, hasta…"):v("sl_sede","Unidad deportiva, escuela sede…")}</div></section>
+   <section class="card"><h3>Traslado, entrega y recogida</h3>
+    <div class="field"><label>¿Quién lleva y recoge a los alumnos?</label><select id="sl_traslado"><option value="familia" ${!esc_?"selected":""}>El padre, madre o tutor (la escuela no da transporte)</option><option value="escuela" ${esc_?"selected":""}>La escuela organiza el transporte</option></select></div>
+    ${esc_?`<div class="field"><label>Medio de transporte</label>${v("sl_transporte","autobús contratado por la sociedad de padres, unidad del Ayuntamiento…")}</div>`:""}
+    <div class="row2"><div class="field"><label>${esc_?"Punto de salida":"Punto de reunión (entrega al docente)"}</label>${v("sl_puntoEnt",esc_?"Puerta principal de la escuela":"Esquina de la plaza cívica")}</div>
+     <div class="field"><label>Hora</label>${v("sl_horaEnt","8:00")}</div></div>
+    <div class="row2"><div class="field"><label>${esc_?"Punto de regreso":"Punto de recogida"}</label>${v("sl_puntoRec",esc_?"Puerta principal de la escuela":"Al término de la ruta")}</div>
+     <div class="field"><label>Hora</label>${v("sl_horaRec","11:00")}</div></div>
+    <div class="row2"><div class="field"><label>Uniforme o vestimenta <span class="muted" style="font-weight:400">(opcional)</span></label>${v("sl_uniforme","Uniforme de gala, deportivo…")}</div>
+     <div class="field"><label>Docente responsable</label>${v("sl_responsable")}</div></div></section>
+   <section class="card"><h3>¿Para quién es?</h3>
+    <div class="field"><select id="sl_alcance">${SL_ALC.map(([k,t])=>`<option value="${k}" ${SL.alcance===k?"selected":""}>${t}</option>`).join("")}</select></div>
+    ${SL.alcance==="individual"?`${aluPickHTML("sl_alu",SL.aluId,"Se llenan su nombre, grado, grupo, el tutor, el teléfono y sus datos de salud de la ficha.")}
+     <div class="row2"><div class="field"><label>Nombre del alumno(a)</label>${v("sl_alumno")}</div><div class="field"><label>Padre, madre o tutor</label>${v("sl_tutor")}</div></div>
+     <div class="row2"><div class="field"><label>Grado</label>${v("sl_grado")}</div><div class="field"><label>Grupo</label>${v("sl_grupo")}</div></div>
+     <div class="row2"><div class="field"><label>Parentesco</label>${v("sl_parentesco")}</div><div class="field"><label>Teléfono</label>${v("sl_tel")}</div></div>`
+    :SL.alcance==="grupo"?(gruposDir.length?`<div class="row2"><div class="field"><label>Grado</label>${v("sl_grado")}</div><div class="field"><label>Grupo</label>${v("sl_grupo")}</div></div>
+       <p class="help">${(()=>{const n=slHojas().length;return n?`Se generan <b>${n} hojas</b>, una por alumno de ${esc(dirGLabel(SL.grado,SL.grupo))}, con los datos de su ficha.`:`No hay alumnos de ${esc(dirGLabel(SL.grado,SL.grupo))} en «Mis alumnos». Grupos con alumnos: ${gruposDir.map(esc).join(", ")}.`})()}</p>`
+      :aluPickHTML("sl_alu","",""))
+    :`<p class="help">Sale una hoja con los datos del evento y los del alumno en blanco, para fotocopiar y repartir.</p>`}</section>
+   <section class="card"><h3>Firma de quien emite</h3>
+    <div class="row2"><div class="field"><label>Lugar y fecha del documento</label>${v("sl_fechaDoc","",SL.fechaDoc)}</div><div class="field"></div></div>
+    <div class="row2"><div class="field"><label>Nombre</label>${v("sl_firma")}</div><div class="field"><label>Cargo</label>${v("sl_cargo")}</div></div>
+    ${firmaWidgetHTML()}
+    <label class="opt ${SL.usarFirma?"on":""}" style="display:inline-flex;margin-top:4px"><input type="checkbox" id="sl_usarfirma" ${SL.usarFirma?"checked":""}>Incluir mi firma digital</label></section>
+   <section class="card"><div class="acts">${botonImprimir("slPrint")}<button class="btn ghost act" id="sl_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="sl_word">${EI.down}Descargar para Word</button></div></section>
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const campos=["otro","motivo","fecha","organiza","ruta","sede","transporte","puntoEnt","horaEnt","puntoRec","horaRec","uniforme","responsable","alumno","tutor","grado","grupo","parentesco","tel","fechaDoc","firma","cargo"];
+  const leer=()=>{campos.forEach(k=>{const e=g("sl_"+k);if(e)SL[k]=e.value.trim()});if(SL.aluId){const x=aluPorId(SL.aluId);if(!x||x.nombre!==SL.alumno)SL.aluId=""}SL.usarFirma=g("sl_usarfirma").checked;slSave()};
+  campos.forEach(k=>{const e=g("sl_"+k);if(e)e.addEventListener("change",()=>{leer();if(SL.alcance==="grupo"&&(k==="grado"||k==="grupo"))slView()})});
+  g("sl_evento").onchange=()=>{leer();SL.evento=g("sl_evento").value;slSave();slView()};
+  g("sl_traslado").onchange=()=>{leer();SL.traslado=g("sl_traslado").value;slSave();slView()};
+  g("sl_alcance").onchange=()=>{leer();SL.alcance=g("sl_alcance").value;slSave();slView()};
+  g("sl_usarfirma").onchange=()=>{leer();g("sl_usarfirma").closest(".opt").classList.toggle("on",SL.usarFirma)};
+  if(g("sl_alu"))g("sl_alu").onchange=()=>{const a=aluPorId(g("sl_alu").value);if(!a)return;leer();SL.aluId=a.id;SL.alumno=a.nombre;if(a.grado)SL.grado=a.grado;if(a.grupo)SL.grupo=a.grupo;
+    const t=a.t1nom?[a.t1nom,a.t1par,a.t1tel]:a.t2nom?[a.t2nom,a.t2par,a.t2tel]:null;if(t){SL.tutor=t[0]||"";SL.parentesco=t[1]||"";SL.tel=t[2]||""}slSave();slView()};
+  {const b=app.querySelector("[data-alu-ir]");if(b)b.onclick=()=>{leer();S.sec="misalumnos";S.dirGrupo=undefined;dirView("alumnos")}}
+  wireFirma();
+  g("salir").onclick=()=>{leer();goBack()};
+  const listo=()=>{if(SL.alcance==="grupo"&&!slHojas().length){alert("No hay alumnos de ese grado y grupo en «Mis alumnos». Revise el grado y el grupo, o elija «Un alumno» o «En blanco».");return false}return true};
+  g("sl_pdf").onclick=e=>{leer();if(listo())slPDF(e.currentTarget)};wireImprimir("slPrint",b=>{leer();if(listo())slPDF(b)});
+  g("sl_word").onclick=()=>{leer();if(listo())slWord()};
+  window.scrollTo(0,0)}
+
+/* ---- PDF: hoja carta, con marco, logos de la institución y de la escuela, y una hoja por alumno ---- */
+async function slPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();const{PDFDocument,StandardFonts,rgb}=PDFLib;const doc=await PDFDocument.create();
+    const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold),i:await doc.embedFont(StandardFonts.HelveticaOblique)};
+    const C={g:rgb(.106,.302,.18),gu:rgb(.43,.12,.2),gold:rgb(.69,.55,.24),gray:rgb(.33,.33,.36),ink:rgb(.08,.08,.1),cream:rgb(.965,.95,.92),line:rgb(.80,.76,.66),white:rgb(1,1,1)};
+    const E=slEscuela(),inst=await embedInst(doc),zona=await embedZonaLogo(doc),logo=await embedLogo(doc);
+    const es050=!!zona&&String(E.zona).trim()===ZONA_NUM,escLogo=logo||(es050?zona:null);
+    const F0=SL.usarFirma?firmaGet():null;let firmaIm=null;if(F0){try{firmaIm=F0.startsWith("data:image/png")?await doc.embedPng(F0):await doc.embedJpg(F0)}catch(e){}}
+    const PW=612,PH=792,M=46,W0=PW-M*2,Y=t=>PH-t;
+    const fit=(t,f,s,mw,min=6)=>{while(s>min&&f.widthOfTextAtSize(t,s)>mw)s-=0.25;return s};
+    const ctr=(pg,t,top,s,f,c,mw=W0)=>{t=clean(t);s=fit(t,f,s,mw);pg.drawText(t,{x:PW/2-f.widthOfTextAtSize(t,s)/2,y:Y(top),size:s,font:f,color:c})};
+    const img=(pg,im,x,top,w,h)=>{if(!im)return;const k=Math.min(w/im.width,h/im.height),iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:x+(w-iw)/2,y:Y(top)-h+(h-ih)/2,width:iw,height:ih})};
+    const wrap=(t,f,s,w)=>{const o=[];clean(t).split("\n").forEach(p=>{let ln="";p.split(/\s+/).filter(Boolean).forEach(wd=>{const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te});o.push(ln)});return o};
+    const hojas=slHojas(),comp=slCompromisos(),filas=slFilasEvento();
+    for(const H of hojas){const pg=doc.addPage([PW,PH]);
+      // marco y encabezado institucional
+      pg.drawRectangle({x:20,y:20,width:PW-40,height:PH-40,borderColor:C.g,borderWidth:2.2});pg.drawRectangle({x:24.5,y:24.5,width:PW-49,height:PH-49,borderColor:C.g,borderWidth:0.7});
+      img(pg,inst,M-6,36,82,58);img(pg,escLogo,PW-M-70,34,70,62);
+      ctr(pg,INST_TXT(),48,8.8,F.b,C.g,330);
+      ctr(pg,`Supervisión Escolar Zona No. ${E.zona} · Educación Primaria ${E.est?"Estatal":"Federalizada"}`,61,8,F.b,C.gu,330);
+      ctr(pg,`ESCUELA PRIMARIA «${(E.nombre||"________________").toLocaleUpperCase("es-MX")}»`,76,9.5,F.b,C.ink,330);
+      ctr(pg,[E.cct&&"C.C.T. "+E.cct,E.turno&&"Turno "+E.turno.toLowerCase(),E.lugar].filter(Boolean).join(" · "),88,7.6,F.r,C.gray,340);
+      pg.drawLine({start:{x:M-10,y:Y(104)},end:{x:PW-M+10,y:Y(104)},thickness:1.3,color:C.gold});pg.drawLine({start:{x:M-10,y:Y(106.6)},end:{x:PW-M+10,y:Y(106.6)},thickness:0.5,color:C.gold});
+      ctr(pg,"AUTORIZACIÓN PARA PARTICIPAR EN EVENTO FUERA DEL PLANTEL",128,13.2,F.b,C.g);
+      const et=clean(slEvento().toLocaleUpperCase("es-MX")),ew=F.b.widthOfTextAtSize(et,8.6)+22;pg.drawRectangle({x:PW/2-ew/2,y:Y(146),width:ew,height:15,color:C.gu});pg.drawText(et,{x:PW/2-ew/2+11,y:Y(142),size:8.6,font:F.b,color:C.white});
+      const fd=clean(SL.fechaDoc?[perfil.localidad||"",SL.fechaDoc].filter(Boolean).join(", "):"");if(fd)pg.drawText(fd,{x:PW-M-F.r.widthOfTextAtSize(fd,8.4),y:Y(164),size:8.4,font:F.r,color:C.gray});
+      pg.drawText(clean("Ciclo escolar "+cicloActual()),{x:M,y:Y(164),size:8.4,font:F.r,color:C.gray});
+      let top=174;
+      const banda=t=>{pg.drawRectangle({x:M,y:Y(top+15),width:W0,height:15,color:C.g});pg.drawText(t,{x:M+8,y:Y(top+11),size:8.4,font:F.b,color:C.white});top+=15};
+      // tabla de etiqueta / valor (2 columnas o 4)
+      const tabla=(rows,cols)=>{const lw=cols===2?132:92,cw=W0/(cols/2);
+        for(let i=0;i<rows.length;i+=cols/2){const fila=rows.slice(i,i+cols/2);
+          const alto=Math.max(...fila.map(([lab,val])=>Math.max(wrap(val,F.r,8.6,cw-lw-10).length*10.6,wrap(lab,F.b,7.6,lw-10).length*9.4)))+7;
+          fila.forEach(([lab,val],j)=>{const x=M+j*cw;pg.drawRectangle({x,y:Y(top+alto),width:lw,height:alto,color:C.cream,borderColor:C.line,borderWidth:0.6});
+            pg.drawRectangle({x:x+lw,y:Y(top+alto),width:cw-lw,height:alto,borderColor:C.line,borderWidth:0.6});
+            wrap(lab,F.b,7.6,lw-10).forEach((l,k)=>pg.drawText(l,{x:x+5,y:Y(top+11+k*9.4),size:7.6,font:F.b,color:C.g}));
+            wrap(val,F.r,8.6,cw-lw-10).forEach((l,k)=>pg.drawText(l,{x:x+lw+5,y:Y(top+11+k*10.6),size:8.6,font:F.r,color:C.ink}))});
+          top+=alto}};
+      banda("1. DATOS DEL EVENTO");tabla(filas,2);top+=6;
+      const L=x=>x||"______________________________";
+      banda("2. DATOS DEL ALUMNO(A) Y DEL PADRE, MADRE O TUTOR");
+      tabla([["Alumno(a)",L(H.alumno)],["Grado y grupo",H.gg||"__________"],["Padre, madre o tutor",L(H.tutor)],["Parentesco",H.par||"__________"],
+        ["Teléfono",H.tel||"__________________"],["Otro contacto de emergencia",H.emerg||"__________________"]],4);
+      tabla([["¿Enfermedad, alergia o condición de salud?",H.salud?"Sí: "+H.salud:"(   ) No   (   ) Sí, ¿cuál? __________________________________"],["¿Toma algún medicamento?",H.medic?"Sí: "+H.medic:"(   ) No   (   ) Sí, ¿cuál? __________________________________"],
+        ["Otra persona autorizada para recogerlo(a)","Nombre: ____________________________   Parentesco: ______________"]],2);top+=6;
+      banda("3. AUTORIZACIÓN Y COMPROMISOS DEL PADRE, MADRE O TUTOR");top+=6;
+      const txt=(t,f,s,c,ind=0,lh)=>{lh=lh||s*1.3;wrap(t,f,s,W0-ind).forEach(l=>{pg.drawText(l,{x:M+ind,y:Y(top+s),size:s,font:f,color:c});top+=lh})};
+      txt(`Yo, ${H.tutor||"_______________________________________"}, padre, madre o tutor del alumno(a) ${H.alumno||"_______________________________________"}, marco una opción:`,F.r,8.8,C.ink);top+=3;
+      const casilla=()=>{pg.drawRectangle({x:M+2,y:Y(top+9.5),width:9,height:9,borderColor:C.ink,borderWidth:0.8})};
+      casilla();pg.drawText("SÍ AUTORIZO",{x:M+17,y:Y(top+8.6),size:8.8,font:F.b,color:C.g});pg.drawText(" que mi hijo(a) participe en el evento descrito en este documento, y declaro que:",{x:M+17+F.b.widthOfTextAtSize("SÍ AUTORIZO",8.8),y:Y(top+8.6),size:8.8,font:F.r,color:C.ink});top+=14;
+      comp.forEach((c,i)=>{pg.drawText(`${i+1}.`,{x:M+16,y:Y(top+8),size:8,font:F.b,color:C.gu});const ls=wrap(c,F.r,8,W0-30);ls.forEach((l,k)=>pg.drawText(l,{x:M+30,y:Y(top+8+k*9.7),size:8,font:F.r,color:C.ink}));top+=ls.length*9.7+1});top+=3;
+      casilla();pg.drawText("NO AUTORIZO",{x:M+17,y:Y(top+8.6),size:8.8,font:F.b,color:C.gu});pg.drawText(" que mi hijo(a) participe en el evento.",{x:M+17+F.b.widthOfTextAtSize("NO AUTORIZO",8.8),y:Y(top+8.6),size:8.8,font:F.r,color:C.ink});top+=14;
+      // firmas: padre, madre o tutor · quien emite
+      const fy=Math.min(Math.max(top+40,PH-104),PH-58),cw=(W0-40)/2;
+      if(firmaIm){const d=firmaIm.scaleToFit(150,40);pg.drawImage(firmaIm,{x:M+cw+40+(cw-d.width)/2,y:Y(fy)+2,width:d.width,height:d.height})}
+      [[M,"Nombre y firma del padre, madre o tutor","Fecha: ____________________"],[M+cw+40,SL.firma||"",SL.cargo||""]].forEach(([x,a,b],i)=>{
+        pg.drawLine({start:{x,y:Y(fy)},end:{x:x+cw,y:Y(fy)},thickness:0.8,color:C.ink});
+        const ta=clean(a),tb=clean(b),sa=fit(ta,i?F.b:F.r,i?9:8,cw),sb=fit(tb,F.r,8,cw);
+        pg.drawText(ta,{x:x+cw/2-(i?F.b:F.r).widthOfTextAtSize(ta,sa)/2,y:Y(fy+12),size:sa,font:i?F.b:F.r,color:i?C.ink:C.gray});
+        pg.drawText(tb,{x:x+cw/2-F.r.widthOfTextAtSize(tb,sb)/2,y:Y(fy+23),size:sb,font:F.r,color:C.gray})});}
+    const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});await entregarPDF(blob,slFile("pdf"))}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t0}}
+
+/* ---- Word (una hoja por alumno, separadas por salto de página) ---- */
+async function slWord(){const E=slEscuela(),IL=await instLogoData(),L0=logoGet(),F0=SL.usarFirma?firmaGet():null;
+  const td="border:1px solid #CFC5A8;padding:4px 7px;font-size:11px;vertical-align:top",lb=td+";background:#F6F2EA;color:#1B4D2E;font-weight:bold;width:150px";
+  const banda=t=>`<p style="background:#1B4D2E;color:#fff;font-weight:bold;font-size:11px;padding:3px 8px;margin:12px 0 0">${t}</p>`;
+  const tabla=(rows,cols)=>{let h=`<table style="width:100%;border-collapse:collapse">`;for(let i=0;i<rows.length;i+=cols){h+="<tr>"+rows.slice(i,i+cols).map(([a,b])=>`<td style="${lb}">${esc(a)}</td><td style="${td}">${esc(b)}</td>`).join("")+"</tr>"}return h+"</table>"};
+  const ln="________________________________",comp=slCompromisos(),filas=slFilasEvento();
+  const hoja=H=>`<table style="width:100%;border-bottom:3px double #B08C3D"><tr>${IL?`<td style="width:90px"><img src="${IL}" style="height:58px"></td>`:""}
+    <td style="text-align:center"><div style="font-size:12px;font-weight:bold;color:#1B4D2E">${esc(INST_TXT())}</div><div style="font-size:11px;font-weight:bold;color:#6E1F33">Supervisión Escolar Zona No. ${esc(E.zona)} · Educación Primaria ${E.est?"Estatal":"Federalizada"}</div>
+    <div style="font-size:12px;font-weight:bold">ESCUELA PRIMARIA «${esc((E.nombre||"").toLocaleUpperCase("es-MX"))}»</div><div style="font-size:10px;color:#555">${esc([E.cct&&"C.C.T. "+E.cct,E.turno&&"Turno "+E.turno.toLowerCase(),E.lugar].filter(Boolean).join(" · "))}</div></td>
+    ${L0?`<td style="width:80px;text-align:right"><img src="${L0}" style="height:62px"></td>`:""}</tr></table>
+   <p style="text-align:center;font-size:15px;font-weight:bold;color:#1B4D2E;margin:12px 0 4px">AUTORIZACIÓN PARA PARTICIPAR EN EVENTO FUERA DEL PLANTEL</p>
+   <p style="text-align:center;margin:0 0 8px"><span style="background:#6E1F33;color:#fff;font-weight:bold;font-size:10px;padding:2px 10px">${esc(slEvento().toLocaleUpperCase("es-MX"))}</span></p>
+   <table style="width:100%"><tr><td style="font-size:10px;color:#555">Ciclo escolar ${esc(cicloActual())}</td><td style="font-size:10px;color:#555;text-align:right">${esc([perfil.localidad,SL.fechaDoc].filter(Boolean).join(", "))}</td></tr></table>
+   ${banda("1. DATOS DEL EVENTO")}${tabla(filas,1)}
+   ${banda("2. DATOS DEL ALUMNO(A) Y DEL PADRE, MADRE O TUTOR")}${tabla([["Alumno(a)",H.alumno||ln],["Grado y grupo",H.gg||"__________"],["Padre, madre o tutor",H.tutor||ln],["Parentesco",H.par||"__________"],["Teléfono",H.tel||"__________________"],["Otro contacto de emergencia",H.emerg||"__________________"]],2)}
+   ${tabla([["¿Enfermedad, alergia o condición de salud?",H.salud?"Sí: "+H.salud:"(   ) No   (   ) Sí, ¿cuál? ______________________"],["¿Toma algún medicamento?",H.medic?"Sí: "+H.medic:"(   ) No   (   ) Sí, ¿cuál? ______________________"],["Otra persona autorizada para recogerlo(a)","Nombre: ______________________ Parentesco: __________"]],1)}
+   ${banda("3. AUTORIZACIÓN Y COMPROMISOS DEL PADRE, MADRE O TUTOR")}
+   <p style="font-size:11px">Yo, ${esc(H.tutor||ln)}, padre, madre o tutor del alumno(a) ${esc(H.alumno||ln)}, marco una opción:</p>
+   <p style="font-size:11px">☐ <b style="color:#1B4D2E">SÍ AUTORIZO</b> que mi hijo(a) participe en el evento descrito en este documento, y declaro que:</p>
+   <ol style="font-size:10.5px;margin-top:0">${comp.map(c=>`<li>${esc(c)}</li>`).join("")}</ol>
+   <p style="font-size:11px">☐ <b style="color:#6E1F33">NO AUTORIZO</b> que mi hijo(a) participe en el evento.</p>
+   <table style="width:100%;margin-top:34px"><tr><td style="width:46%;text-align:center;vertical-align:bottom"><br><br>______________________________<br><span style="font-size:10px;color:#555">Nombre y firma del padre, madre o tutor<br>Fecha: ________________</span></td><td></td>
+    <td style="width:46%;text-align:center;vertical-align:bottom">${F0?`<img src="${F0}" style="height:42px"><br>`:"<br><br>"}______________________________<br><b style="font-size:11px">${esc(SL.firma)}</b><br><span style="font-size:10px;color:#555">${esc(SL.cargo)}</span></td></tr></table>`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Autorización</title></head><body style="font-family:Arial,sans-serif;color:#141414">${slHojas().map(hoja).join('<br style="page-break-before:always">')}</body></html>`;
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=slFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+
 /* ---------- Formatos de inventario (ISEP · Dirección de Recursos Materiales y Servicios) ---------- */
 /* La plantilla es el formato oficial tal cual (formatos/inventarios.pdf, una página por trámite); la app solo escribe los datos encima. */
 const INV_T=[
