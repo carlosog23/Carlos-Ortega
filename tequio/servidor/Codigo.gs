@@ -123,7 +123,8 @@ const LEMA = 'Lo que acordamos juntos, lo caminamos juntos';
 const HOJAS = {
   act: ['id', 'titulo', 'tipo', 'fecha', 'horaInicio', 'horaFin', 'lugar', 'escuelas', 'destinatarios', 'responsables',
         'proposito', 'confidencial', 'avisos', 'estado', 'enviado', 'calEventId', 'creadoPor', 'creado', 'actualizado'],
-  seg: ['id', 'actividadId', 'cct', 'fecha', 'resumen', 'acuerdos', 'confidencial', 'minutaEnviada', 'creadoPor', 'creado', 'actualizado'],
+  // origen: '' (seguimiento normal) o 'ate' (visita de atención: solo la ve la Supervisión, no la escuela)
+  seg: ['id', 'actividadId', 'cct', 'fecha', 'resumen', 'acuerdos', 'confidencial', 'minutaEnviada', 'creadoPor', 'creado', 'actualizado', 'origen'],
   dir: ['id', 'tipo', 'nombre', 'cargo', 'cct', 'escuela', 'municipio', 'multigrado', 'correo1', 'correo2', 'whatsapp', 'activo', 'localidad', 'domicilio', 'turno'],
   usr: ['id', 'nombre', 'rol', 'contacto', 'correo', 'whatsapp', 'tokenHash', 'activo', 'creado'],
   log: ['fecha', 'tipo', 'ref', 'destinatarios', 'asunto', 'resultado'],
@@ -187,7 +188,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención' };
-const VERSION = 39;
+const VERSION = 40;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1394,14 +1395,14 @@ const ACCIONES = {
       actividadId: d.actividadId || '', cct: d.cct || '', fecha: d.fecha || hoy_(), resumen: d.resumen || '',
       acuerdos: (d.acuerdos || []).map(x => ({ id: x.id || 'ac-' + Utilities.getUuid().slice(0, 6), texto: x.texto || '',
         responsable: x.responsable || '', revision: x.revision || '', estado: x.estado || 'pendiente', avisado: x.avisado || '' })),
-      confidencial: yo.rol === 'admin' && !!d.confidencial
+      confidencial: yo.rol === 'admin' && !!d.confidencial, origen: d.origen === 'ate' ? 'ate' : (previo && previo.origen) || ''
     });
     s.id = previo ? previo.id : 'seg-' + Utilities.getUuid().slice(0, 8);
     s.creadoPor = previo ? previo.creadoPor : yo.id;
     s.creado = previo ? previo.creado : ahora_();
     s.actualizado = ahora_();
     const aviso = [];
-    if (d.enviarMinuta && !s.confidencial) aviso.push(enviarMinuta_(s));
+    if (d.enviarMinuta && !s.confidencial && s.origen !== 'ate') aviso.push(enviarMinuta_(s));
     guardar_('seg', s);
     return { seg: s, avisos: aviso.filter(Boolean), cuota: MailApp.getRemainingDailyQuota() };
   },
@@ -1768,7 +1769,7 @@ const ACCIONES = {
       if (!o.cerrada) { o.cerrada = ahora_(); o.cerradaPor = yo.nombre; }
       const tipo = { queja: 'Atención a queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión', otro: 'Visita' }[o.tipo] || 'Visita';
       const r = ACCIONES.guardarSeguimiento(yo, { id: o.segId || '', cct: cct, fecha: o.fecha, resumen: (tipo + ': ' + asunto + (o.descripcion ? '\n\n' + o.descripcion : '') + (o.conclusion ? '\n\nConclusión: ' + o.conclusion : '')).slice(0, 20000),
-        acuerdos: o.acuerdos, confidencial: o.confidencial, enviarMinuta: !!d.enviarMinuta && !o.confidencial });
+        acuerdos: o.acuerdos, confidencial: o.confidencial, origen: 'ate', enviarMinuta: false });
       o.segId = r.seg.id; avisos = r.avisos || [];
     } else { o.cerrada = ''; o.cerradaPor = ''; }
     guardar_('ate', o);
@@ -1780,11 +1781,9 @@ const ACCIONES = {
     const cct = String(d.cct || ''), datos = String(d.datos || '');
     if (!datos) throw new Error('La foto llegó vacía.');
     if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
-    const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
-    if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
     const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
     const nom = (String(d.fecha || hoy_()) + ' · ' + String(d.asunto || 'Visita')).replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100);
-    const carpeta = sub(sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), 'Visitas de atención'), nom);
+    const carpeta = sub(sub(carpetaVisitasSup_(cct), 'Visitas de atención'), nom);
     const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
     const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
     f.setDescription(SUBIDO_POR + yo.nombre);
@@ -2579,14 +2578,14 @@ function datosDirector_(yo) {
     zona: zonaPublica_(),
     yo: Object.assign(publico_(yo), { cct: cct }),
     act: leer_('act').filter(a => !a.confidencial),
-    seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial),
+    seg: leer_('seg').filter(s => s.cct === cct && !s.confidencial && s.origen !== 'ate'),
     dir: dir,
     usr: leer_('usr').filter(u => u.activo && u.rol !== 'director').map(u => ({ id: u.id, nombre: u.nombre, rol: u.rol, contacto: u.contacto, activo: u.activo })),
     reu: leer_('reu').filter(r => r.activo),
     acu: leer_('acu').filter(a => a.activo),
     // de las demás escuelas solo va el estado (para el avance de la zona), sin observaciones
     cum: leer_('cum').map(m => m.cct === cct ? m : { id: m.id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado }),
-    evi: leer_('evi').filter(e => e.cct === cct),
+    evi: leer_('evi').filter(e => e.cct === cct && !esCarpetaVisitas_(e.ruta)),
     // la revisión de sus evidencias (estado y observaciones de la Supervisión o su ATP)
     eve: leer_('eve').filter(e => e.cct === cct),
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
@@ -3029,6 +3028,20 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
 
 /* ===================== Revisión en campo ===================== */
 
+/* Carpeta de las visitas de una escuela, dentro de la carpeta de la Supervisión (no en la de la escuela, para que las direcciones no la vean):
+   carpeta de la zona › «…Supervisión» › Visitas a escuelas › <escuela> */
+function carpetaVisitasSup_(cct) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+  const esc = DriveApp.getFolderById(raiz.carpetaId), padres = esc.getParents();
+  if (!padres.hasNext()) throw new Error('No se encontró la carpeta de la zona en el Drive.');
+  const zona = padres.next(), sub = (p, n) => { const it = p.getFoldersByName(n); return it.hasNext() ? it.next() : p.createFolder(n); };
+  let sup = null; const it = zona.getFolders();
+  while (it.hasNext()) { const f = it.next(); if (/supervisi/.test(clave_(f.getName()))) { sup = f; break; } }
+  if (!sup) sup = zona.createFolder('Supervisión');
+  return sub(sub(sup, 'Visitas a escuelas'), esc.getName());
+}
+
 const revId_ = x => [String(x.cueId || ''), String(x.cct || ''), String(x.visita || ''), String(x.persona || '')].join('|');
 // Lo que va a la página: sin el código de otros (el revisor lo ve; el código solo sirve 3 días)
 function revPublica_(r) { return r; }
@@ -3065,13 +3078,11 @@ function revFotoSubir_(cct, d, quien) {
   const datos = String(d.datos || '');
   if (!datos) throw new Error('La foto llegó vacía.');
   if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
-  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
-  if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
   const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
   const vis = String(d.visita || ''), n = +vis, ciclo = cicloVis_(d.ciclo);
   const nv = n >= 1 && n <= 3 ? 'Visita ' + n : n > 3 ? 'Visita extraordinaria ' + (n - 3) : 'Revisiones';
   const persona = String(d.personaNombre || d.persona || 'Dirección').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100) || 'Dirección';
-  const carpeta = sub(sub(sub(sub(DriveApp.getFolderById(raiz.carpetaId), 'Visitas de supervisión'), nv + ' · ' + ciclo), 'Revisión'), persona);
+  const carpeta = sub(sub(sub(carpetaVisitasSup_(cct), nv + ' · ' + ciclo), 'Revisión'), persona);
   const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
   const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
   f.setDescription(SUBIDO_POR + quien);
@@ -3265,7 +3276,10 @@ function tareaDiaria() {
 const PESO_GENERAL = Z().pesos;
 const CALENDARIO_URL = 'https://carlosog23.github.io/Carlos-Ortega/formatos-ppie/formatos/calendario.json';
 const VACACIONES_RESPALDO = [['2026-12-21', '2027-01-05'], ['2027-03-22', '2027-04-02']];   // por si no se puede leer el calendario
-const EVI_IGNORAR = [/^contingencia/, /^oficio/];
+const EVI_IGNORAR = [/^contingencia/, /^oficio/, /^visitas de supervision/];
+// La carpeta de las visitas (fotos de revisiones, visitas de atención y visitas al CTE) es solo de la Supervisión: no es rubro de evidencia
+// y la escuela no la ve en Tequio
+const esCarpetaVisitas_ = ruta => /^visitas de supervision/.test(clave_(String(ruta || '').split('/')[0]));
 const CORTOS_EVI = { 'expedientes de trabajadores': 'Expedientes', 'ejercicios integradores del aprendizaje': 'EIA', 'inscripcion inicial': 'Inscripción', 'niveles conceptuales': 'Niveles conceptuales', 'sisat': 'SisAT' };
 const ASIGNACION_INICIAL = [
   [/oros/i, ['02DPR0425Z', '02DPR0014Y']],
@@ -3456,7 +3470,7 @@ function cifrasSemanal_(D, c, hoy) {
   r.proxima = r.agenda.length ? null : (D.act.filter(a => enEsc(a) && a.fecha > semana).sort(ordAct)[0] || null);
   // acuerdos de las visitas de la Supervisión
   r.visitas = [];
-  D.seg.filter(s => s.cct === cct).forEach(s => (s.acuerdos || []).forEach(x => { if (x.estado === 'pendiente') r.visitas.push(x); }));
+  D.seg.filter(s => s.cct === cct && s.origen !== 'ate').forEach(s => (s.acuerdos || []).forEach(x => { if (x.estado === 'pendiente') r.visitas.push(x); }));
   // porcentajes: lo que no le aplica cuenta como cumplido
   const cumpl = q => { const n = q.na || 0, t = q.total + n; return t ? (q.hecho + n) / t : null; };
   r.pct = {}; const pesos = [];

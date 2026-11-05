@@ -966,7 +966,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1430';
+const PUBLICACION = '2026-11-05-1440';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1530,6 +1530,8 @@ function tarjetaVidAgenda() {
    guarda en el dispositivo (funciona sin internet) y con «Subir a Tequio» se envía al servidor y las fotos al Drive
    de la escuela (Visitas de supervisión › Visita N › Revisión). Lo subido se puede corregir y volver a subir.
    Algunas preguntas las contesta el docente: en el mismo dispositivo o en su celular con un código. Servidor versión 38.
+   Todo esto es solo de la Supervisión y la Mesa Técnica: las direcciones no lo ven en Tequio y las fotos van a la carpeta de la
+   Supervisión en el Drive (Supervisión › Visitas a escuelas › escuela), no a la de la escuela (servidor versión 40).
    ========================================================= */
 const CMP_TIPOS = { snp: 'Sí / No / En proceso', escala: 'Escala de nivel', texto: 'Respuesta escrita', opcion: 'Opción múltiple' };
 const CMP_SNP = ['Sí', 'No', 'En proceso'];
@@ -1908,7 +1910,7 @@ async function cmpSubir(sid) {
       const res = await api('revGuardar', { revs: lote.map(r => ({ cueId: r.cueId, cct: r.cct, visita: r.visita, ciclo: r.ciclo, persona: r.persona, personaNombre: r.personaNombre, funcion: r.funcion, grupo: r.grupo, respuestas: r.respuestas, estado: r.estado, fecha: r.fecha })) });
       for (const sv of (res.rev || [])) { const loc = lote.find(r => r.id === sv.id); if (!loc) continue; loc.respuestas = sv.respuestas; loc.sucio = false; loc.subido = ahora(); await cmpGuardarRev(limpioRev(loc)); if (S.rev) poner(S.rev, sv); }
     }
-    aviso('Se subió a Tequio: ' + listos.length + ' revisión(es)' + (fotos ? ' y ' + fotos + ' foto(s) al Drive de la escuela' : '') + '.' + (errores ? ' ' + errores + ' foto(s) no se pudieron subir; intente de nuevo.' : ''), errores ? 'mal' : 'ok', 7000);
+    aviso('Se subió a Tequio: ' + listos.length + ' revisión(es)' + (fotos ? ' y ' + fotos + ' foto(s) al Drive de la Supervisión' : '') + '.' + (errores ? ' ' + errores + ' foto(s) no se pudieron subir; intente de nuevo.' : ''), errores ? 'mal' : 'ok', 7000);
   } catch (e) { aviso(esc(e.message || 'No se pudo subir. Intente de nuevo.'), 'mal', 8000); }
   finally { cargando(false); vCampo(); }
 }
@@ -2992,7 +2994,8 @@ function infCifras(cct) {
   // Lista de pendientes (lo vencido primero)
   const p = [];
   acu.filter(o => o.e !== 'hecho').forEach(o => p.push({ est: limiteVencido(o.a) ? 'Vencido' : 'Pendiente', t: o.a.texto, d: (o.a.limite ? (limiteVencido(o.a) ? 'Venció el ' : 'Antes del ') + fechaCorta(o.a.limite) + ' · ' : '') + o.a.reuT, tema: 'Acuerdos', f: o.a.limite || '9999' }));
-  acuerdosDe(cct).filter(x => x.estado === 'pendiente').forEach(x => p.push({ est: vencido(x) ? 'Vencido' : 'Pendiente', t: x.texto, d: (x.revision ? 'Revisión: ' + fechaCorta(x.revision) + ' · ' : '') + 'Acuerdo de visita de la Supervisión', tema: 'Visitas', f: x.revision || '9999' }));
+  // los acuerdos de las visitas de atención son solo de la Supervisión: no van en el informe a la escuela
+  acuerdosDe(cct).filter(x => x.estado === 'pendiente' && x.seg.origen !== 'ate').forEach(x => p.push({ est: vencido(x) ? 'Vencido' : 'Pendiente', t: x.texto, d: (x.revision ? 'Revisión: ' + fechaCorta(x.revision) + ' · ' : '') + 'Acuerdo de visita de la Supervisión', tema: 'Visitas', f: x.revision || '9999' }));
   ev.filter(o => !o.ok).forEach(o => p.push(o.rev && o.rev.estado === 'incompleto'
     ? { est: 'Incompleto', t: 'Completar la evidencia de «' + (o.c.corto || o.c.ruta) + '»: ' + o.rev.nota, d: 'Observación de ' + (o.rev.marcadoNombre || 'la Supervisión') + ' · Drive › ' + o.c.ruta, tema: 'Evidencias', f: '9997' }
     : { est: 'Falta', t: 'Subir evidencias a la carpeta «' + (o.c.corto || o.c.ruta) + '»' + (o.rev ? ' (revisada: sin evidencia)' : ''), d: 'Drive de la Supervisión › ' + o.c.ruta, tema: 'Evidencias', f: '9998' }));
@@ -4312,7 +4315,8 @@ const clave = t => sinNum(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').to
 /* Las columnas salen de las carpetas que existen en el Drive: cada carpeta del primer nivel es una columna,
    y las que se llaman «Evidencias…» se abren en sus subcarpetas. Si crea una carpeta nueva, aparece sola. */
 /* Carpetas de situaciones puntuales que no son rubros de evidencia: no cuentan en el porcentaje ni salen como columna */
-const EVI_IGNORAR = [/^contingencia/, /^oficio/];
+// «Visitas de supervisión» es de la Supervisión (fotos de las visitas): no es rubro de evidencia
+const EVI_IGNORAR = [/^contingencia/, /^oficio/, /^visitas de supervision/];
 const eviIgnorada = r => EVI_IGNORAR.some(x => x.test(clave(String(r).split('/')[0])));
 function columnasEvi() {
   const rows = (S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta));
