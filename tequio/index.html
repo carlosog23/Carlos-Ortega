@@ -967,7 +967,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1940';
+const PUBLICACION = '2026-11-05-2010';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -9755,12 +9755,24 @@ function finSaldo(cct, ciclo, hasta, prof = 0) {
   r.banco = Math.round(r.banco * 100) / 100; r.caja = Math.round(r.caja * 100) / 100;
   return r;
 }
-// Cifras del reporte del ejercicio en un periodo
+// Periodos oficiales para rendir los ingresos propios: 1.º del 1 de febrero al 15 de junio; 2.º del 16 de junio al 31 de enero del año siguiente.
+// El 2.º cruza el cambio de ciclo escolar, por eso las cifras se calculan por fechas y no por ciclo.
+function finPeriodos(hasta) {
+  const y = +String(hasta || hoy()).slice(0, 4), l = [];
+  for (let a = y - 2; a <= y + 1; a++) {
+    l.push({ k: a + '-1', n: 1, del: a + '-02-01', al: a + '-06-15', t: '1.er periodo ' + a });
+    l.push({ k: a + '-2', n: 2, del: a + '-06-16', al: (a + 1) + '-01-31', t: '2.º periodo ' + a + '-' + (a + 1) });
+  }
+  return l.sort((p, q) => p.del.localeCompare(q.del));
+}
+const finPeriodoDe = f => finPeriodos(f).find(p => f >= p.del && f <= p.al);
+const finPeriodoTxt = p => p.t + ' (' + fechaCorta(p.del) + ' al ' + fechaCorta(p.al) + ')';
+// Cifras del reporte del ejercicio en un periodo (puede abarcar dos ciclos escolares)
 function finCifras(cct, ciclo, del, al) {
-  const ant = finSaldo(cct, ciclo, sumarDias(del, -1)), z = () => ({ ant: 0, ing: 0, int: 0, egr: 0, car: 0, fin: 0 });
+  const antes = sumarDias(del, -1), ant = finSaldo(cct, finCiclo(antes), antes), z = () => ({ ant: 0, ing: 0, int: 0, egr: 0, car: 0, fin: 0 });
   const c = { banco: z(), caja: z() };
   c.banco.ant = ant.banco; c.caja.ant = ant.caja;
-  finMovs(cct, ciclo).filter(m => m.fecha >= del && m.fecha <= al).forEach(m => {
+  finActivos().filter(x => x.cct === cct && x.tipo === 'mov' && x.fecha >= del && x.fecha <= al).sort(finOrden).forEach(m => {
     const d = m.datos, x = finMonto(m);
     if (d.clase === 'interes') c.banco.int += x;
     else if (d.clase === 'cargo') c.banco.car += x;
@@ -10250,9 +10262,9 @@ function finFormReq(cct, id) {
 function finReportes(v, cct, ciclo) {
   const l = finDe(cct, 'rep', ciclo).sort((a, b) => String(b.datos.al).localeCompare(String(a.datos.al)));
   $('#fin-cuerpo').innerHTML = `
-  <div class="fin-botones"><p class="peq mudo" style="margin:0;flex:1;min-width:220px">Tequio calcula el saldo anterior, los ingresos, intereses, egresos, cargos y el saldo final del periodo con lo registrado en el libro de bancos y la caja.</p>
+  <div class="fin-botones"><p class="peq mudo" style="margin:0;flex:1;min-width:220px">Se rinde en dos periodos: del 1 de febrero al 15 de junio y del 16 de junio al 31 de enero. Tequio calcula el saldo anterior, los ingresos, intereses, egresos, cargos y el saldo final con lo registrado en el libro de bancos y la caja. Si el director se cambia, haga un corte con la fecha en que entrega.</p>
     <button class="boton terra" id="fe-nuevo">${ico('i-mas')}Nuevo reporte</button></div>
-  ${l.length ? `<div class="tarjeta"><div class="checklist sin-borde">${l.map(o => `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>Del ${fechaCorta(o.datos.del)} al ${fechaCorta(o.datos.al)}</b><br><span class="ayuda">Saldo final: banco ${finM(o.datos.cifras.banco.fin)} · caja ${finM(o.datos.cifras.caja.fin)}</span>${finHistorial(o)}</span>
+  ${l.length ? `<div class="tarjeta"><div class="checklist sin-borde">${l.map(o => `<div class="chk-fila" style="align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>${(() => { const p = finPeriodos(o.datos.al).find(x => x.del === o.datos.del && x.al === o.datos.al); return p ? esc(p.t) + ' · ' : (o.datos.corte ? 'Corte por cambio de director · ' : ''); })()}Del ${fechaCorta(o.datos.del)} al ${fechaCorta(o.datos.al)}</b><br><span class="ayuda">Saldo final: banco ${finM(o.datos.cifras.banco.fin)} · caja ${finM(o.datos.cifras.caja.fin)}</span>${finHistorial(o)}</span>
     <button class="boton sec chico" data-fepdf="${o.id}">PDF</button><button class="boton sec chico" data-feed="${o.id}">${ico('i-lapiz')}Editar</button><button class="icono-btn" data-fedel="${o.id}" aria-label="Eliminar">${ico('i-x')}</button></div>`).join('')}</div></div>` : '<div class="tarjeta vacio">No hay reportes del ejercicio en este ciclo.</div>'}`;
   $('#fe-nuevo').onclick = () => finFormRep(cct, null, ciclo);
   $$('[data-feed]').forEach(b => b.onclick = () => finFormRep(cct, b.dataset.feed, ciclo));
@@ -10261,10 +10273,17 @@ function finReportes(v, cct, ciclo) {
 }
 function finFormRep(cct, id, ciclo) {
   const prev = id ? S.fin.find(x => x.id === id) : null, P = finPlantel(cct, ciclo);
-  const ini = finCicloIni(ciclo), fin = String(+ciclo.slice(0, 4) + 1) + '-07-31';
-  const d = prev ? JSON.parse(JSON.stringify(prev.datos)) : { del: ini, al: hoy() < fin ? hoy() : fin, banco: P.banco, cuenta: P.cuenta, apf: { banco: '', cuenta: '', ant: { b: '', c: '' }, ing: { b: '', c: '' }, egr: { b: '', c: '' } }, lugar: P.localidad, fechaFirma: hoy(), tesorero: P.tesorero, director: P.director, sector: P.sector, obs: '' };
+  // Periodo sugerido: el último que ya terminó si no tiene reporte; si ya lo tiene, el que está en curso
+  const pers = finPeriodos(), cur = finPeriodoDe(hoy()), ult = pers.filter(p => p.al < hoy()).pop();
+  const yaHay = p => p && finDe(cct, 'rep').some(x => x.datos.del === p.del && x.datos.al === p.al);
+  const sug = ult && !yaHay(ult) ? ult : cur;
+  const d = prev ? JSON.parse(JSON.stringify(prev.datos)) : { del: sug.del, al: sug.al, banco: P.banco, cuenta: P.cuenta, apf: { banco: '', cuenta: '', ant: { b: '', c: '' }, ing: { b: '', c: '' }, egr: { b: '', c: '' } }, lugar: P.localidad, fechaFirma: hoy(), tesorero: P.tesorero, director: P.director, sector: P.sector, obs: '' };
   const a = d.apf, n = (k, s, t) => `<input data-apf="${k}.${s}" inputmode="decimal" value="${esc((a[k] || {})[s] || '')}" aria-label="${t}">`;
   modal(prev ? 'Editar reporte del ejercicio' : 'Reporte del ejercicio', `
+    <div class="campo"><label for="fe-per">Periodo</label><select id="fe-per">
+      ${pers.filter(p => p.del <= hoy()).reverse().map(p => `<option value="${p.k}">${esc(finPeriodoTxt(p))}${p.k === cur.k ? ' · en curso' : ''}</option>`).join('')}
+      <option value="corte">Corte por cambio de director (fechas a mano)</option><option value="otro">Otras fechas</option></select>
+      <div class="ayuda" id="fe-per-ay"></div></div>
     <div class="fila"><div class="campo"><label for="fe-del">Del</label><input type="date" id="fe-del" value="${d.del}"></div><div class="campo"><label for="fe-al">Al</label><input type="date" id="fe-al" value="${d.al}"></div><div class="campo"><label for="fe-sec">Sector</label><input id="fe-sec" value="${esc(d.sector || '')}"></div></div>
     <div class="fila dos"><div class="campo"><label for="fe-ban">Nombre del banco</label><input id="fe-ban" value="${esc(d.banco || '')}"></div><div class="campo"><label for="fe-cta">No. de cuenta</label><input id="fe-cta" value="${esc(d.cuenta || '')}"></div></div>
     <div class="seccion-t" style="padding:4px 0 8px">Cifras del plantel (calculadas)</div>
@@ -10286,17 +10305,29 @@ function finFormRep(cct, id, ciclo) {
     const fila = (t, k, neg) => `<tr><td>${t}</td><td class="d">${neg && c.banco[k] ? '−' : ''}${finM(c.banco[k])}</td><td class="d">${neg && c.caja[k] ? '−' : ''}${finM(c.caja[k])}</td></tr>`;
     $('#fe-cif').innerHTML = `<table class="fin-tabla" style="margin-bottom:12px"><thead><tr><th></th><th class="d">Banco</th><th class="d">Caja</th></tr></thead><tbody>
       ${fila('<b>Saldo anterior</b>', 'ant')}${fila('Más: ingresos', 'ing')}${fila('Más: intereses', 'int')}${fila('Menos: egresos', 'egr', 1)}${fila('Menos: cargos', 'car', 1)}${fila('<b>Saldo final</b>', 'fin')}</tbody></table>
-      ${finCiclo(del) !== finCiclo(al) ? '<div class="aviso-caja peq">El periodo abarca dos ciclos escolares; conviene hacer un reporte por ciclo.</div>' : ''}`;
+      ${!pers.some(p => p.del === del && p.al === al) && !finPeriodos(al).some(p => p.del === del && p.al === al) && $('#fe-per').value !== 'corte' ? '<div class="aviso-caja peq">Las fechas no coinciden con un periodo oficial (1 feb – 15 jun o 16 jun – 31 ene). Si es por cambio de director, elija «Corte por cambio de director».</div>' : ''}`;
     return c;
   };
+  // Periodo: al elegirlo se ponen sus fechas; las fechas siempre se pueden cambiar a mano
+  const perSel = $('#fe-per'), perAy = () => {
+    $('#fe-per-ay').textContent = perSel.value === 'corte' ? 'Para el director que se cambia: del inicio del periodo hasta el día en que entrega la escuela. Quien llega hace su reporte desde el día siguiente hasta el fin del periodo.' : perSel.value === 'otro' ? 'Escriba las fechas del reporte.' : 'Las fechas se ponen solas; puede cambiarlas si lo necesita.';
+  };
+  const marcar = () => { const del = $('#fe-del').value, al = $('#fe-al').value; const p = finPeriodos(al || del).concat(pers).find(x => x.del === del && x.al === al);
+    perSel.value = p && [...perSel.options].some(o => o.value === p.k) ? p.k : d.corte ? 'corte' : 'otro'; perAy(); };
+  perSel.onchange = () => {
+    const p = pers.find(x => x.k === perSel.value);
+    if (p) { $('#fe-del').value = p.del; $('#fe-al').value = p.al; }
+    else if (perSel.value === 'corte') { const pc = cur; $('#fe-del').value = pc.del; $('#fe-al').value = hoy() < pc.al ? hoy() : pc.al; }
+    perAy(); cif();
+  };
   const apf = () => { const g = k => finN(($(`[data-apf="${k}"]`) || {}).value); $('#fe-afb').textContent = finM(g('ant.b') + g('ing.b') - g('egr.b')); $('#fe-afc').textContent = finM(g('ant.c') + g('ing.c') - g('egr.c')); };
-  $('#fe-del').onchange = $('#fe-al').onchange = cif; $$('[data-apf]').forEach(i => i.oninput = apf); cif(); apf();
+  $('#fe-del').onchange = $('#fe-al').onchange = () => { if (perSel.value !== 'corte') marcar(); cif(); }; $$('[data-apf]').forEach(i => i.oninput = apf); marcar(); cif(); apf();
   $('#fe-cancelar').onclick = cerrarModal;
   const guardar = pdf => {
     const c = cif(); if (!c) return aviso('Revise el periodo del reporte.', 'mal');
     const ap = { banco: $('#fe-abanco').value.trim(), cuenta: $('#fe-acta').value.trim(), ant: {}, ing: {}, egr: {} };
     $$('[data-apf]').forEach(i => { const [k, s] = i.dataset.apf.split('.'); ap[k][s] = i.value.trim(); });
-    const o = { del: $('#fe-del').value, al: $('#fe-al').value, sector: $('#fe-sec').value.trim(), banco: $('#fe-ban').value.trim(), cuenta: $('#fe-cta').value.trim(), cifras: c, apf: ap,
+    const o = { del: $('#fe-del').value, al: $('#fe-al').value, corte: $('#fe-per').value === 'corte', sector: $('#fe-sec').value.trim(), banco: $('#fe-ban').value.trim(), cuenta: $('#fe-cta').value.trim(), cifras: c, apf: ap,
       lugar: $('#fe-lug').value.trim(), fechaFirma: $('#fe-ff').value, tesorero: $('#fe-tes').value.trim(), director: $('#fe-dir').value.trim() };
     accion('finGuardar', { id: prev ? prev.id : '', cct, tipo: 'rep', fecha: o.al, datos: o }, r => {
       finRecibir(r.fin); cerrarModal(); vFinanzas(); aviso('Reporte guardado.', 'ok', 2500);
