@@ -1606,7 +1606,7 @@ const SECCIONES=[
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos, autorizaciones, permisos de salida a eventos y constancias de asistencia.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()},{id:"salida",letra:"S",name:"Autorización de salida a eventos",use:"Permiso institucional para desfiles, torneos de fútbol, encuentros de atletismo, olimpiadas del conocimiento u otro evento fuera de la escuela: quién lleva y recoge al alumno y firma del tutor. Dos por hoja (media carta). Para un alumno, todo el grupo o en blanco. Word o PDF.",open:()=>slView()},{id:"constancia",letra:"C",name:"Constancia de asistencia (justificante)",use:"Para que el padre, madre o tutor justifique en su trabajo que acudió a la escuela: reunión, entrega de boletas, asunto de su hijo(a), CPE, jornada de limpieza, apoyo en la vialidad u otro. Con logos, datos de la escuela, firma de la dirección y el logo de la zona como marca de agua. Word o PDF.",open:()=>caView()}]},
  {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan solos los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, autorización de salida escolar, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"salidaesc",letra:"S",name:"Autorización de salida escolar",use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos: se llenan solos los datos de la escuela, del director(a), del supervisor y del Jefe de Nivel.",open:()=>openAnexo("T")},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, autorización de salida escolar, convenio de expendio de alimentos, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"convenio",letra:"C",name:"Convenio para el expendio de alimentos",use:"Convenio de ISEP con la persona que vende alimentos en la escuela, actualizado a los Lineamientos de 2024, con anexo de productos y precios. Se llenan solos los datos de la escuela.",open:()=>cvView()},{id:"salidaesc",letra:"S",name:"Autorización de salida escolar",use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos: se llenan solos los datos de la escuela, del director(a), del supervisor y del Jefe de Nivel.",open:()=>openAnexo("T")},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Becas:"",Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -1629,11 +1629,12 @@ const TMETA={
  visitas:{grp:"Libros para imprimir",tags:["PDF","Logo de la escuela"]},
  pases:{grp:"Libros para imprimir",tags:["PDF","Por grado y grupo"]},
  cte:{grp:"Reuniones y actas",tags:["PDF","Word","Lista para firmar"]},
+ convenio:{grp:"Trámites oficiales",tags:["PDF","Word","Anexo de precios"]},
  salidaesc:{grp:"Trámites oficiales",tags:["Formato oficial","PDF"]},
  inventario:{grp:"Recursos materiales",tags:["Formato oficial ISEP","PDF"]},
  alumnos:{grp:"Datos de alumnos",tags:["Word"]},
  recado:{tags:["Word","PDF"]},dx:{tags:["Word","PDF"]},salario:{tags:["Desde sus talones en PDF"]},asistencia:{tags:["PDF de RELweb"]}};
-const TICON={salidaesc:"flag",constancia:"ticket",salida:"flag",salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
+const TICON={convenio:"minuta",salidaesc:"flag",constancia:"ticket",salida:"flag",salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
 const AICON={L:"work",P:"user",S:"cross",U:"cap",T:"flag"};
 Object.assign(ICON,{
  pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
@@ -4327,6 +4328,264 @@ async function rcWord(){const e2=t=>esc(t).replace(/\n/g,"<br>");const esc0=rcEs
    Formato institucional para que el padre, madre o tutor autorice la participación y deje constancia de quién hace los traslados.
    Media carta: dos permisos por hoja (o uno por hoja, ampliado). Para un alumno, todo el grupo (uno por alumno) o en blanco. */
 const SL_EVENTOS=["Desfile cívico","Torneo de fútbol","Encuentro de atletismo","Olimpiada del conocimiento","Otro (escribirlo)"];
+/* ---------- Convenio para el expendio de alimentos y bebidas en la escuela (ISEP) ----------
+   Texto del convenio de ISEP actualizado: Lineamientos del DOF del 30 de septiembre de 2024, Consejo de Participación Escolar,
+   forma de pago que elige cada escuela, referencias y ortografía corregidas, y anexo con la propuesta del expendedor
+   (productos, porción y precio). Sin logos, como el original. Lo que no se llena sale en línea para escribir a mano. */
+let CV=null;
+(function(){const d=store.get("ppie-convenio",null);if(d&&d.v===1)CV=d})();
+const cvSave=()=>store.set("ppie-convenio",CV);
+const CV_PAGO=[["semanal","Semanal: se paga el viernes de cada semana"],["quincenal","Quincenal: a más tardar los días 15 y último de cada mes"],["mensual","Mensual: a más tardar el día que se indique de cada mes"]];
+function cvEscuelaDe(i){const c=CENTROS[+i];if(!c||/supervisi/i.test(c.nombre))return null;const e=ESCUELAS_050[+i]||[];
+  return{escuela:c.nombre.replace(/^Escuela Primaria\s+/i,""),cct:c.cct,turno:perfil.cct===c.cct&&perfil.turno?perfil.turno:(BECA_VESP.has(c.cct)?"Vespertino":"Matutino"),
+    director:c.resp||"",cargo:c.cargo||"Director",domEsc:String(c.dir||"").replace(new RegExp(",\\s*"+String(e[3]||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\s*$","i"),""),locEsc:e[3]||"",munEsc:c.mun||""}}
+function cvNuevo(){const i=CENTROS.findIndex(c=>c.cct===perfil.cct&&!/supervisi/i.test(c.nombre));const e=i>=0?cvEscuelaDe(i):null;
+  const base=e||{escuela:String(perfil.escuela||"").replace(/^Escuela Primaria\s*(Federal(izada)?\s*)?/i,"").trim(),cct:perfil.cct||"",turno:perfil.turno||"",director:perfil.director||"",cargo:"Director",
+    domEsc:perfil.domicilio||"",locEsc:perfil.localidad||"",munEsc:perfil.municipio||""};
+  const fin=(CAL&&CAL.fin)||((store.get("cal-cache",null)||{}).fin)||"";
+  return Object.assign({v:1,centro:i>=0?String(i):"",subsistema:perfil.subsis==="SEBS"?"Estatal":"Federalizado",cpe:"",expendedor:"",expDom:"",expLoc:"",
+    vigIni:today(),vigFin:fin&&fin>today()?fin:"",monto:"",pago:"semanal",diaMes:"5",cuenta:"",banco:"",horaIni:"",horaFin:"",fechaFirma:today(),test1:"",test2:"",
+    productos:[{p:"",d:"",precio:""},{p:"",d:"",precio:""},{p:"",d:"",precio:""}]},base,{lugarFirma:base.locEsc||""})}
+// Número con letra (pesos mexicanos)
+function cvLetra(v){const n=Math.round((parseFloat(String(v).replace(/[^\d.]/g,""))||0)*100)/100,ent=Math.floor(n),cen=Math.round((n-ent)*100);
+  const U=["","UN","DOS","TRES","CUATRO","CINCO","SEIS","SIETE","OCHO","NUEVE","DIEZ","ONCE","DOCE","TRECE","CATORCE","QUINCE","DIECISÉIS","DIECISIETE","DIECIOCHO","DIECINUEVE","VEINTE","VEINTIÚN","VEINTIDÓS","VEINTITRÉS","VEINTICUATRO","VEINTICINCO","VEINTISÉIS","VEINTISIETE","VEINTIOCHO","VEINTINUEVE"];
+  const D=["","","","TREINTA","CUARENTA","CINCUENTA","SESENTA","SETENTA","OCHENTA","NOVENTA"],C=["","CIENTO","DOSCIENTOS","TRESCIENTOS","CUATROCIENTOS","QUINIENTOS","SEISCIENTOS","SETECIENTOS","OCHOCIENTOS","NOVECIENTOS"];
+  const m1=x=>{if(x===100)return"CIEN";const c=Math.floor(x/100),r=x%100,p=[];if(c)p.push(C[c]);if(r<30){if(r)p.push(U[r])}else p.push(D[Math.floor(r/10)]+(r%10?" Y "+U[r%10]:""));return p.join(" ")};
+  const tx=x=>{if(x===0)return"CERO";const mi=Math.floor(x/1e6),ml=Math.floor(x%1e6/1000),r=x%1000,p=[];if(mi)p.push(mi===1?"UN MILLÓN":tx(mi)+" MILLONES");if(ml)p.push(ml===1?"MIL":m1(ml)+" MIL");if(r)p.push(m1(r));return p.join(" ")};
+  return tx(ent)+(ent===1?" PESO ":" PESOS ")+String(cen).padStart(2,"0")+"/100"}
+const cvMoneda=v=>{const n=parseFloat(String(v).replace(/[^\d.]/g,""));return isNaN(n)?"":n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2})};
+const cvHora=h=>{if(!h)return"";const[a,b]=h.split(":");return`${+a}:${b}`};
+function cvDuracion(a,b){const p=parseDate(a),q=parseDate(b);if(!p||!q)return"";let m=(q.y-p.y)*12+(q.m-p.m)+(q.d>=p.d?0:-1);const dd=Math.round((new Date(q.y,q.m-1,q.d)-new Date(p.y,p.m-1,p.d))/864e5)+1;
+  if(m<1)return dd+" días naturales";const resto=q.d>=p.d?q.d-p.d:0;return m+(m===1?" mes":" meses")+(resto>=15?" y medio":"")}
+const cvFechaPartes=f=>{const p=parseDate(f);return p?{d:String(p.d),m:MESES[p.m-1],y:String(p.y)}:null};
+
+// Texto del convenio. [[valor|ancho]]: dato (subrayado; si está vacío, línea para llenar a mano). **texto**: negritas.
+function cvTexto(){const D=CV,f=(v,n=18)=>`[[${String(v||"").replace(/[\[\]|]/g,"")}|${n}]]`,may=v=>String(v||"").toLocaleUpperCase("es-MX");
+  const ini=cvFechaPartes(D.vigIni),fin=cvFechaPartes(D.vigFin),ff=cvFechaPartes(D.fechaFirma);
+  const dirTit=may(D.director),cargo=/encargad/i.test(D.cargo)?(/encargada/i.test(D.cargo)?"Encargada de despacho":"Encargado de despacho"):/directora/i.test(D.cargo)?"Directora":"Director";
+  const monto=cvMoneda(D.monto),letra=monto?cvLetra(D.monto)+" M.N.":"";
+  const per={semanal:"por semana",quincenal:"por quincena",mensual:"por mes"}[D.pago];
+  const cuando={semanal:"Se pagará **el viernes de cada semana**",quincenal:"Se pagará por quincena y deberá depositarse **a más tardar los días 15 y último de cada mes**",
+    mensual:`Se pagará por mes y deberá depositarse **a más tardar el día ${f(D.diaMes,3)} de cada mes**`}[D.pago];
+  const LIN="Acuerdo mediante el cual se establecen los Lineamientos generales a los que deberán sujetarse la preparación, la distribución y el expendio de los alimentos y bebidas preparados, procesados y a granel, así como el fomento de los estilos de vida saludables en alimentación, dentro de toda escuela del Sistema Educativo Nacional, publicado en el Diario Oficial de la Federación el 30 de septiembre de 2024";
+  const B=[];const P=(t,o={})=>B.push(Object.assign({t},o));
+  P(`CONVENIO DE ASOCIACIÓN EN PARTICIPACIÓN PARA EL EXPENDIO Y DISTRIBUCIÓN DE ALIMENTOS Y BEBIDAS PREPARADOS, PROCESADOS Y A GRANEL EN LAS ESCUELAS PÚBLICAS DE EDUCACIÓN BÁSICA, QUE CELEBRAN POR UNA PARTE LA INSTITUCIÓN EDUCATIVA ${f(may(D.escuela),30)}, QUE EN LO SUCESIVO SE DENOMINARÁ “LA ESCUELA”, REPRESENTADA POR SU DIRECTOR(A) O ENCARGADO(A) ${f(dirTit,26)}, ASISTIDO(A) POR EL(LA) C. ${f(may(D.cpe),24)} EN REPRESENTACIÓN DEL CONSEJO DE PARTICIPACIÓN ESCOLAR Y/O DE LA ASOCIACIÓN DE PADRES DE FAMILIA; Y POR OTRA PARTE EL(LA) SR.(A) ${f(may(D.expendedor),28)}, QUE EN LO SUCESIVO SE LE DENOMINARÁ “EL EXPENDEDOR DE ALIMENTOS”, A QUIENES ACTUANDO CONJUNTAMENTE SE LES DENOMINARÁ COMO “LAS PARTES”, SUJETÁNDOSE AL TENOR DE LAS SIGUIENTES DECLARACIONES Y CLÁUSULAS:`,{cab:1});
+  P("DECLARACIONES",{h:1,c:1});
+  P("I.- DE “LA ESCUELA”:",{h:1});
+  P(`**I.1.-** Que soy un servidor público adscrito al Subsistema ${f(D.subsistema,14)}, desempeñando el cargo y/o puesto de ${f(cargo,16)}, de la Institución Educativa denominada ${f(D.escuela,26)}, turno ${f(D.turno,10)}, con clave del Centro de Trabajo ${f(D.cct,12)}, con domicilio en ${f(D.domEsc,30)}, ${f(D.locEsc,14)}, del Municipio de ${f(D.munEsc,14)}, en el Estado de Baja California.`);
+  P("**I.2.-** Que, en mi desempeño como servidor público, conozco y entiendo las disposiciones de orden público, interés social y de observancia general en el Estado de Baja California, contempladas en la Constitución Política del Estado Libre y Soberano de Baja California, la Ley de Educación del Estado de Baja California y la propia Ley de Responsabilidades Administrativas del Estado de Baja California.");
+  P(`**I.3.-** Que de conformidad con lo que establece el ${LIN}, y su Anexo Único, corresponde a las autoridades educativas, en su respectivo ámbito de competencia, difundir en las escuelas el contenido de dicho Acuerdo y de su Anexo Único, así como vigilar su cumplimiento.`);
+  P(`**I.4.-** Que, para los efectos del presente Convenio, señala como su domicilio el ubicado en ${f(D.domEsc,30)}, en ${f(D.locEsc,14)}, Municipio de ${f(D.munEsc,14)}, Baja California.`);
+  P("II.- DE “EL EXPENDEDOR DE ALIMENTOS”:",{h:1});
+  P("**II.1.-** Que es una persona física de nacionalidad mexicana, mayor de edad, en pleno uso y goce de sus derechos, que no tiene ningún parentesco consanguíneo en ninguno de sus grados o por afinidad con el Director de la Escuela y/o personal docente y/o de apoyo y/o alguno de los miembros del Consejo de Participación Escolar y/o de la Asociación de Padres de Familia, ni lazos afectivos o de amistad, ni presta sus servicios para el Instituto de Servicios Educativos y Pedagógicos de Baja California ni para la Secretaría de Educación del Estado de Baja California.");
+  P("**II.2.-** Que es su voluntad consentir su entrada a la misma institución educativa para la preparación, expendio y venta de alimentos y bebidas, la cual le será otorgada en forma diaria por “LA ESCUELA”, de acuerdo con lo establecido en la Cláusula Primera del presente Convenio.");
+  P(`**II.3.-** Que para efectos del presente documento señala como su domicilio particular el ubicado en ${f(D.expDom,32)}, en ${f(D.expLoc,16)}, Baja California.`);
+  P("III.- DE “LAS PARTES”:",{h:1});
+  P("**ÚNICA.-** Que manifiestan y reconocen recíprocamente la personalidad con que se ostentan para convenir y obligarse en los términos del presente Convenio, para el expendio, preparación y venta de alimentos y bebidas de conformidad con la normatividad antes señalada; al tenor de las siguientes:");
+  P("CLÁUSULAS",{h:1,c:1});
+  P("**PRIMERA.- OBJETO DEL CONVENIO:**");
+  P(`El objeto de este Convenio consiste en que “LAS PARTES” den cabal cumplimiento a lo establecido en el ${LIN}, permitiendo para ello “LA ESCUELA” el acceso físico diario de “EL EXPENDEDOR DE ALIMENTOS” a sus instalaciones, donde el Director(a) o Encargado(a) de la dirección del plantel educativo es responsable directo de la administración, supervisión y cumplimiento del presente Convenio.`);
+  P("La entrada de “EL EXPENDEDOR DE ALIMENTOS” a “LA ESCUELA” no incluye la asignación de un lugar físico o determinado para el expendio, preparación, distribución y venta de alimentos, sino que se le permitirá en forma diaria ubicarse en un lugar determinado solamente en ese momento, para que no se encuentre deambulando dentro de la institución educativa, percatándose y reconociéndose que el lugar donde se asiente cada día puede o no variar; tales lugares siempre estarán en posesión de “LA ESCUELA” y la ocupación por parte de “EL EXPENDEDOR DE ALIMENTOS” es precaria y solo será por las horas correspondientes del día en que se le permita la entrada. Si por alguna cuestión hubiere mobiliario o equipo en el área que le asigne “LA ESCUELA”, este solo será de apoyo al expendio, preparación, distribución y venta de alimentos y bebidas, y siempre será resguardado por “LA ESCUELA”, por lo que se entiende que es propiedad de la misma o fue prestado para su uso y goce; de ninguna forma se permitirá que quede en “LA ESCUELA” mobiliario o equipo de “EL EXPENDEDOR DE ALIMENTOS”, salvo el que traiga consigo diariamente y se lleve cuando se retire.");
+  P(`**SEGUNDA.-** “EL EXPENDEDOR DE ALIMENTOS” se compromete a cumplir con los Lineamientos generales establecidos en el Acuerdo publicado en el Diario Oficial de la Federación el 30 de septiembre de 2024 y con su Anexo Único, garantizando en “LA ESCUELA” una alimentación que aporte a los alumnos la energía y los nutrimentos necesarios para cada edad. Su propuesta de alimentos, porciones y precios se agrega como Anexo 1 y forma parte integrante del presente Convenio.`);
+  P("**TERCERA.- DE LA VIGENCIA DEL CONVENIO:**");
+  P(`La duración del presente Convenio será de ${f(cvDuracion(D.vigIni,D.vigFin),12)}, contados a partir de la fecha de su firma; iniciará el ${f(ini&&ini.d,3)} de ${f(ini&&ini.m,10)} de ${f(ini&&ini.y,5)} y concluirá el ${f(fin&&fin.d,3)} de ${f(fin&&fin.m,10)} de ${f(fin&&fin.y,5)}, sin que ello obligue a “LA ESCUELA” a renovarlo o prorrogarlo, situación que será resuelta por “LA ESCUELA” y por el Presidente del Consejo de Participación Escolar y/o Presidente de la Asociación de Padres de Familia.`);
+  P("Una vez que concluya la vigencia del presente Convenio, se someterá a valoración el servicio prestado a “LA ESCUELA” para definir la celebración de otro Convenio.");
+  P("**CUARTA.- DE LA APORTACIÓN ECONÓMICA DE “EL EXPENDEDOR DE ALIMENTOS”:**");
+  P(`“EL EXPENDEDOR DE ALIMENTOS” queda obligado a entregar con toda oportunidad a “LA ESCUELA” o al encargado del manejo de los ingresos escolares la aportación económica establecida en este Convenio, que ampara la cantidad de $${f(monto,10)} M.N. (son: ${f(letra,34)}) ${per}, por concepto de habérsele permitido el acceso a “LA ESCUELA” para el expendio, preparación, distribución y venta de alimentos y bebidas. ${cuando}.`);
+  P("(Si por caso fortuito o fuerza mayor ajenos a “EL EXPENDEDOR DE ALIMENTOS” no puede realizar su función, “LAS PARTES” acordarán el ajuste correspondiente por los días en que no prestó el servicio).");
+  P(`La aportación económica deberá depositarse en la cuenta bancaria número ${f(D.cuenta,18)} de la institución financiera ${f(D.banco,16)}; el comprobante correspondiente deberá ser entregado por “EL EXPENDEDOR DE ALIMENTOS”, al día siguiente del depósito, a “LA ESCUELA” o al encargado del manejo de los ingresos escolares, en el domicilio señalado en la Declaración I.1 de este Convenio.`);
+  P("**QUINTA.- NO TRASPASO DEL DERECHO:**");
+  P("“EL EXPENDEDOR DE ALIMENTOS” se obliga, durante la vigencia del presente Convenio, a no traspasar el uso del derecho a ingresar en forma diaria al espacio que para el expendio, preparación, distribución y venta de alimentos y bebidas le asigne “LA ESCUELA”, ni podrá ceder derechos y obligaciones a terceras personas bajo ningún concepto ni circunstancia.");
+  P("El incumplimiento de la presente cláusula tendrá como consecuencia la **rescisión anticipada** del presente Convenio, sin previo aviso a “EL EXPENDEDOR DE ALIMENTOS”.");
+  P("**SEXTA.- OBLIGACIONES DE “EL EXPENDEDOR DE ALIMENTOS”:**");
+  P("**I.- Obligaciones previas a la formalización del Convenio:**");
+  ["Presentar en tiempo y forma la documentación requerida por “LA ESCUELA”.",
+   "Obtener de las autoridades correspondientes los permisos de salud, fiscales, comerciales y de seguridad necesarios para el expendio, preparación y venta de alimentos y bebidas.",
+   "Conocer la Ley General de Salud y la Ley de Salud Pública para el Estado de Baja California vigentes, y demás ordenamientos aplicables al objeto del presente instrumento.",
+   "Conocer los Lineamientos generales publicados en el Diario Oficial de la Federación el 30 de septiembre de 2024 y su Anexo Único."].forEach((t,i)=>P(t,{li:"abcd"[i]+"."}));
+  P("**II.- Obligaciones posteriores a la suscripción del Convenio:**");
+  [`Utilizar el derecho para el expendio, preparación, distribución y venta de alimentos y bebidas que en forma diaria le sea asignado por “LA ESCUELA”, exclusivamente para los fines señalados en la Cláusula Primera del presente Convenio;`,
+   `Expender, preparar, distribuir y vender alimentos y bebidas conforme a la Ley General de Salud, la Ley de Salud Pública para el Estado de Baja California, los Lineamientos generales publicados en el Diario Oficial de la Federación el 30 de septiembre de 2024 y su Anexo Único, así como a las Normas Oficiales Mexicanas aplicables, entre ellas la NOM-043-SSA2-2012, «Servicios básicos de salud. Promoción y educación para la salud en materia alimentaria. Criterios para brindar orientación», y la NOM-251-SSA1-2009, «Prácticas de higiene para el proceso de alimentos, bebidas o suplementos alimenticios», y demás normatividad aplicable;`,
+   `No expender, distribuir ni anunciar dentro de “LA ESCUELA” alimentos ni bebidas que no estén permitidos por los Lineamientos y su Anexo Único, en particular los productos preenvasados que contengan sellos de advertencia o leyendas del sistema de etiquetado frontal;`,
+   `Expender los alimentos de conformidad con la calidad, cantidad y presentación establecidas en su propuesta, que se agrega como Anexo 1 y forma parte integrante del presente Convenio;`,
+   `Ofrecer los alimentos, productos y artículos a los precios establecidos en su propuesta, que deberán ser de menor o igual costo que los del exterior, garantizando su conservación;`,
+   `Exhibir en lugar visible la lista de precios de los productos, con caracteres claramente legibles;`,
+   `No establecer preferencias ni discriminación alguna respecto a alumnos, docentes y personal de apoyo del plantel, ofreciendo un trato amable y cordial por igual a niñas, niños y adultos;`,
+   `Llevar a cabo el expendio, preparación, distribución y venta de alimentos y bebidas de lunes a viernes, en el horario comprendido de las ${f(cvHora(D.horaIni),6)} a las ${f(cvHora(D.horaFin),6)} horas, excepto días inhábiles y vacaciones;`,
+   `Cumplir en tiempo y forma con el pago de las aportaciones económicas establecidas en la Cláusula Cuarta de este Convenio;`,
+   `Brindar las facilidades a las autoridades administrativas y educativas, como son: autoridades de Salud, Bomberos, Protección Civil, Procuraduría Federal del Consumidor, entre otras, para que verifiquen la calidad, higiene y seguridad en la preparación y comercialización de alimentos y bebidas;`,
+   `Cuidar y mantener en todo momento en buen estado y en condiciones de aseo e higiene el espacio físico donde expenda, prepare, distribuya y venda alimentos y bebidas, así como los bienes muebles que pertenezcan al inventario de “LA ESCUELA”, de acuerdo con la **Guía Operativa de Medidas Sanitarias para el Funcionamiento de los Comedores y Cooperativas Escolares de Educación Básica**;`,
+   `Utilizar, “EL EXPENDEDOR DE ALIMENTOS” y sus empleados o dependientes, durante el expendio, preparación, distribución y venta de alimentos y bebidas: mandil, cubrebocas y el cabello cubierto, además de los enseres necesarios para ello;`,
+   `“EL EXPENDEDOR DE ALIMENTOS” proporcionará el nombre completo, con identificación oficial con fotografía y demás datos que se le requieran, de las personas que colaborarán y que quedarán bajo su supervisión y responsabilidad durante el tiempo en que estén en uso del derecho para el expendio, preparación y venta de alimentos y bebidas, personas a las que se les tendrá prohibido interactuar y socializar por cualquier medio con el alumnado de “LA ESCUELA”. “EL EXPENDEDOR DE ALIMENTOS” podrá contratar libremente, bajo su exclusiva responsabilidad, a terceros para el expendio, preparación y venta de alimentos y bebidas, por lo que “LA ESCUELA” no adquiere ninguna responsabilidad laboral, civil, penal o administrativa con los empleados contratados por “EL EXPENDEDOR DE ALIMENTOS”, y por ningún motivo será considerada como intermediario ni patrón sustituto o solidario;`,
+   `“EL EXPENDEDOR DE ALIMENTOS” se obliga a responder del cumplimiento de las obligaciones fiscales, laborales, de seguridad social, de salubridad, de protección a los derechos del consumidor, de seguridad y demás aplicables que como persona física o moral le corresponden respecto de las personas que laboren para él, así como a resarcir los daños y/o perjuicios que se ocasionen en la institución educativa con motivo del expendio, preparación y venta de alimentos y bebidas.`].forEach((t,i)=>P(t,{li:"abcdefghijklmn"[i]+"."}));
+  P("**SÉPTIMA.-** “EL EXPENDEDOR DE ALIMENTOS” **no podrá**, sin justificación previa, incrementar los costos de los alimentos, productos y artículos establecidos en su propuesta; dicha justificación la presentará ante el Consejo de Participación Escolar y/o la Asociación de Padres de Familia, cuyos integrantes, en reunión extraordinaria, analizarán y determinarán el incremento, que deberá ser proporcional al alza de precios de los productos y artículos, cuidando en todo momento no lesionar la economía de los alumnos y padres de familia.");
+  P("**OCTAVA.- OBLIGACIONES DE “LA ESCUELA”:**");
+  ["Entregar invariablemente el Recibo Oficial de Ingresos emitido por la autoridad educativa competente por las aportaciones entregadas por “EL EXPENDEDOR DE ALIMENTOS”;",
+   "Revisar y supervisar que “EL EXPENDEDOR DE ALIMENTOS” cumpla con todas y cada una de las obligaciones establecidas en la Cláusula Sexta del presente Convenio, y",
+   "En caso de que haya suspensión de labores no establecida en el calendario escolar vigente en el periodo que comprende el presente Convenio, eximir a “EL EXPENDEDOR DE ALIMENTOS” del entero de la aportación de ese o esos días, previo cálculo que de ello hagan en forma conjunta “LAS PARTES”."].forEach((t,i)=>P(t,{li:"abc"[i]+"."}));
+  P("**NOVENA.- RESCISIÓN UNILATERAL DEL CONVENIO:**");
+  P("“LA ESCUELA”, a través de los representantes del Consejo de Participación Escolar y/o de la Asociación de Padres de Familia, previo análisis y evaluación de su justificación, podrá dar por terminada la vigencia del presente Convenio de manera unilateral, dentro de los 10 (diez) días hábiles siguientes a que se actualice cualquiera de los siguientes casos:");
+  ["Cuando se compruebe el parentesco consanguíneo o por afinidad, o lazos afectivos o de amistad, entre “EL EXPENDEDOR DE ALIMENTOS” y el director o encargado responsable de “LA ESCUELA”, el personal docente y/o administrativo y/o alguno de los miembros del Consejo de Participación Escolar y/o de la Asociación de Padres de Familia, o que preste sus servicios para el Instituto de Servicios Educativos y Pedagógicos de Baja California y/o la Secretaría de Educación del Estado de Baja California.",
+   "Cuando por notificación de autoridad competente se comunique a “LA ESCUELA” la violación cometida por “EL EXPENDEDOR DE ALIMENTOS” a las disposiciones contempladas en leyes y disposiciones aplicables.",
+   "Cuando a través del buzón escolar de sugerencias, de la valoración del servicio prestado o de cualquier otro medio de carácter oficial, se conozcan por parte de los alumnos, docentes, padres de familia o miembros del Consejo de Participación Escolar y/o de la Asociación de Padres de Familia opiniones negativas de la actividad desarrollada por “EL EXPENDEDOR DE ALIMENTOS” y/o sus empleados.",
+   "Cuando por segunda ocasión “EL EXPENDEDOR DE ALIMENTOS” no cumpla con sus obligaciones o se encuentre hasta por quince (15) días en **mora** respecto al importe que, por concepto de aportación económica, se establece en la Cláusula Cuarta del presente Convenio.",
+   "Cuando “EL EXPENDEDOR DE ALIMENTOS” y/o sus empleados incurran en actos o conductas en agravio de las niñas, niños y adolescentes y/o de cualquier otro miembro de la comunidad escolar, que pongan en riesgo su integridad física, psicológica o moral o que afecten los intereses y objetivos educativos, así como por la violación a lo establecido en la Cláusula Sexta, fracciones I y II, del presente Convenio.",
+   "Cuando “EL EXPENDEDOR DE ALIMENTOS” incite o intervenga en asuntos escolares, laborales y/o sindicales, o afecte de cualquier manera el orden, la disciplina y en general el servicio educativo.",
+   "Cuando “EL EXPENDEDOR DE ALIMENTOS” incumpla con alguna de las obligaciones contempladas en este Convenio."].forEach((t,i)=>P(t,{li:"abcdefg"[i]+"."}));
+  P("**DÉCIMA.- DE LAS CONTROVERSIAS:**");
+  P("Toda controversia que se suscite en lo relativo al cumplimiento del presente Convenio será resuelta en primera instancia por el Consejo de Participación Escolar y/o la Asociación de Padres de Familia de “LA ESCUELA”; de subsistir, será atendida por la Coordinación de Servicios Jurídicos del Instituto de Servicios Educativos y Pedagógicos de Baja California y/o de la Secretaría de Educación, así como por aquellas unidades administrativas que por razón de su competencia tengan que intervenir.");
+  P(`Leído que fue el presente Convenio y enteradas “LAS PARTES” de su contenido y alcance, lo firman sin mediar dolo, error ni mala fe, por triplicado, en ${f(D.lugarFirma,16)}, Baja California, a los ${f(ff&&ff.d,3)} días del mes de ${f(ff&&ff.m,10)} de ${f(ff&&ff.y,5)}.`);
+  return B}
+// Firmas: [titulo, cargo, nombre]
+function cvFirmas(){const D=CV,t=/encargad/i.test(D.cargo)?"ENCARGADO(A) DE LA DIRECCIÓN":"DIRECTOR(A) DE LA ESCUELA";
+  return{escuela:[[t,D.director],["REPRESENTANTE DEL CONSEJO DE PARTICIPACIÓN ESCOLAR Y/O ASOCIACIÓN DE PADRES DE FAMILIA",D.cpe]],exp:["“EL EXPENDEDOR DE ALIMENTOS”",D.expendedor],test:[D.test1,D.test2]}}
+const cvFile=ext=>`Convenio expendio de alimentos - ${CV.escuela||"escuela"}${CV.expendedor?" - "+CV.expendedor:""}`.replace(/[\\/:*?"<>|«»°]/g,"").replace(/\s+/g," ").trim()+"."+ext;
+
+function cvView(){S.view="convenio";S.letra=null;setBar("");if(!CV)CV=cvNuevo();
+  const g=id=>document.getElementById(id);const v=(k,ph,type="text",extra="")=>`<input type="${type}" id="cv_${k}" value="${esc(CV[k]||"")}" ${ph?`placeholder="${esc(ph)}"`:""} ${extra} autocomplete="off">`;
+  const opcional='<span class="muted" style="font-weight:400">(opcional)</span>';
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección · Trámites oficiales</div><h2>Convenio para el expendio de alimentos</h2></div></div>
+   <p class="muted">Convenio de ISEP entre la escuela y la persona que vende alimentos en el plantel (expendedor externo; no aplica a cooperativas de padres o alumnos). Actualizado a los Lineamientos del DOF del 30 de septiembre de 2024. Lo que deje vacío sale con línea para llenarlo a mano.</p>
+   <section class="card"><h3>La escuela</h3>
+    <div class="field"><label>Escuela</label><select id="cv_centro"><option value="">Elija…</option>${CENTROS.map((c,i)=>/supervisi/i.test(c.nombre)?"":`<option value="${i}" ${CV.centro===String(i)?"selected":""}>${esc(c.label)} · ${esc(c.cct)}</option>`).join("")}<option value="otra" ${CV.centro==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select>
+     <p class="help">Al elegirla se llenan sus datos y los del director(a). Todo se puede corregir.</p></div>
+    <div class="field"><label>Nombre de la escuela</label>${v("escuela")}</div>
+    <div class="row2"><div class="field"><label>C.C.T.</label>${v("cct")}</div><div class="field"><label>Turno</label>${v("turno")}</div></div>
+    <div class="row2"><div class="field"><label>Subsistema</label>${v("subsistema")}</div><div class="field"><label>Cargo</label><select id="cv_cargo">${["Director","Directora","Encargado de despacho","Encargada de despacho"].map(o=>`<option ${CV.cargo===o?"selected":""}>${o}</option>`).join("")}</select></div></div>
+    <div class="field"><label>Director(a) o encargado(a)</label>${v("director","Mtro. / Mtra. …")}</div>
+    <div class="field"><label>Domicilio de la escuela</label>${v("domEsc")}</div>
+    <div class="row2"><div class="field"><label>Localidad</label>${v("locEsc")}</div><div class="field"><label>Municipio</label>${v("munEsc")}</div></div>
+    <div class="field"><label>Representante del Consejo de Participación Escolar o de la Asociación de Padres</label>${v("cpe","Nombre completo")}</div></section>
+   <section class="card"><h3>El expendedor de alimentos</h3>
+    <div class="field"><label>Nombre completo</label>${v("expendedor")}</div>
+    <div class="row2"><div class="field"><label>Domicilio particular</label>${v("expDom","Calle, número, colonia")}</div><div class="field"><label>Localidad o ciudad</label>${v("expLoc")}</div></div>
+    <div class="row2"><div class="field"><label>Horario de venta: de</label>${v("horaIni","","time")}</div><div class="field"><label>a</label>${v("horaFin","","time")}</div></div></section>
+   <section class="card"><h3>Vigencia y aportación</h3>
+    <div class="row2"><div class="field"><label>Inicia</label>${v("vigIni","","date")}</div><div class="field"><label>Concluye</label>${v("vigFin","","date")}</div></div>
+    <p class="help" id="cv_dur">${CV.vigIni&&CV.vigFin?"Duración: "+esc(cvDuracion(CV.vigIni,CV.vigFin))+".":"Se sugiere que concluya con el ciclo escolar."}</p>
+    <div class="field"><label>Forma de pago</label><select id="cv_pago">${CV_PAGO.map(([k,t])=>`<option value="${k}" ${CV.pago===k?"selected":""}>${t}</option>`).join("")}</select></div>
+    <div class="row2"><div class="field"><label>Aportación ${{semanal:"por semana",quincenal:"por quincena",mensual:"por mes"}[CV.pago]} ($)</label>${v("monto","0.00","text",'inputmode="decimal"')}</div>
+     ${CV.pago==="mensual"?`<div class="field"><label>Día límite de cada mes</label>${v("diaMes","5","text",'inputmode="numeric"')}</div>`:'<div class="field"></div>'}</div>
+    <p class="help" id="cv_letra">${CV.monto?"Con letra: "+esc(cvLetra(CV.monto))+" M.N.":"La cantidad con letra se escribe sola."}</p>
+    <div class="row2"><div class="field"><label>Cuenta bancaria de la escuela</label>${v("cuenta","Número de cuenta","text",'inputmode="numeric"')}</div><div class="field"><label>Banco</label>${v("banco")}</div></div></section>
+   <section class="card"><h3>Anexo 1 · Propuesta de alimentos y precios</h3>
+    <p class="help">Lo que venderá, la porción o presentación y el precio. Solo alimentos y bebidas permitidos por los Lineamientos: nada con sellos de advertencia. Si lo deja vacío, el anexo sale en blanco para llenarlo a mano.</p>
+    <div id="cv_prods">${CV.productos.map((p,i)=>`<div class="row2" style="grid-template-columns:2fr 2fr 1fr auto;align-items:end">
+      <div class="field"><label>${i?"":"Producto"}</label><input type="text" data-cvp="${i}" data-k="p" value="${esc(p.p)}" placeholder="Torta de frijol con queso"></div>
+      <div class="field"><label>${i?"":"Porción o presentación"}</label><input type="text" data-cvp="${i}" data-k="d" value="${esc(p.d)}" placeholder="1 pieza mediana"></div>
+      <div class="field"><label>${i?"":"Precio ($)"}</label><input type="text" data-cvp="${i}" data-k="precio" value="${esc(p.precio)}" inputmode="decimal"></div>
+      <div class="field"><button type="button" class="btn ghost" data-cvq="${i}" aria-label="Quitar">×</button></div></div>`).join("")}</div>
+    <button type="button" class="btn ghost" id="cv_mas">+ Agregar producto</button></section>
+   <section class="card"><h3>Firma</h3>
+    <div class="row2"><div class="field"><label>Lugar de firma</label>${v("lugarFirma","Localidad")}</div><div class="field"><label>Fecha de firma</label>${v("fechaFirma","","date")}</div></div>
+    <div class="row2"><div class="field"><label>Testigo ${opcional}</label>${v("test1","Nombre")}</div><div class="field"><label>Testigo ${opcional}</label>${v("test2","Nombre")}</div></div>
+    <p class="help">Se firma por triplicado. Si deja vacío un nombre, sale la línea para escribirlo a mano.</p></section>
+   <section class="card"><div class="acts">${botonImprimir("cvPrint")}<button class="btn ghost act" id="cv_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="cv_word">${EI.down}Descargar para Word</button><button class="btn ghost act" id="cv_nuevo">Empezar uno nuevo</button></div></section>
+   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+  const campos=["escuela","cct","turno","subsistema","director","domEsc","locEsc","munEsc","cpe","expendedor","expDom","expLoc","horaIni","horaFin","vigIni","vigFin","monto","diaMes","cuenta","banco","lugarFirma","fechaFirma","test1","test2"];
+  const leer=()=>{campos.forEach(k=>{const e=g("cv_"+k);if(e)CV[k]=e.value.trim()});CV.cargo=g("cv_cargo").value;
+    app.querySelectorAll("[data-cvp]").forEach(e=>{CV.productos[+e.dataset.cvp][e.dataset.k]=e.value.trim()});cvSave()};
+  campos.forEach(k=>{const e=g("cv_"+k);if(e)e.addEventListener("change",()=>{leer();if(k==="monto")g("cv_letra").textContent=CV.monto?"Con letra: "+cvLetra(CV.monto)+" M.N.":"La cantidad con letra se escribe sola.";
+    if(k==="vigIni"||k==="vigFin")g("cv_dur").textContent=CV.vigIni&&CV.vigFin?(CV.vigFin<CV.vigIni?"Revise las fechas: termina antes de iniciar.":"Duración: "+cvDuracion(CV.vigIni,CV.vigFin)+"."):""})});
+  app.querySelectorAll("[data-cvp]").forEach(e=>e.addEventListener("change",leer));
+  g("cv_cargo").onchange=leer;
+  g("cv_centro").onchange=()=>{leer();const val=g("cv_centro").value;CV.centro=val;if(val&&val!=="otra"){const e=cvEscuelaDe(val);if(e){Object.assign(CV,e);CV.lugarFirma=e.locEsc||CV.lugarFirma}}
+    else if(val==="otra")["escuela","cct","turno","director","domEsc","locEsc","munEsc"].forEach(k=>CV[k]="");cvSave();cvView()};
+  g("cv_pago").onchange=()=>{leer();CV.pago=g("cv_pago").value;cvSave();cvView()};
+  g("cv_mas").onclick=()=>{leer();CV.productos.push({p:"",d:"",precio:""});cvSave();cvView()};
+  app.querySelectorAll("[data-cvq]").forEach(b=>b.onclick=()=>{leer();CV.productos.splice(+b.dataset.cvq,1);if(!CV.productos.length)CV.productos.push({p:"",d:"",precio:""});cvSave();cvView()});
+  g("cv_nuevo").onclick=()=>{if(!confirm("¿Empezar un convenio nuevo? Se borran los datos capturados (los de la escuela se vuelven a llenar solos)."))return;CV=cvNuevo();cvSave();cvView()};
+  g("salir").onclick=()=>{leer();goBack()};
+  const listo=()=>{if(CV.vigIni&&CV.vigFin&&CV.vigFin<CV.vigIni){alert("Revise la vigencia: la fecha en que concluye es anterior a la de inicio.");return false}return true};
+  g("cv_pdf").onclick=e=>{leer();if(listo())cvPDF(e.currentTarget)};wireImprimir("cvPrint",b=>{leer();if(listo())cvPDF(b)});
+  g("cv_word").onclick=()=>{leer();if(listo())cvWord()};
+  window.scrollTo(0,0)}
+
+/* ---- PDF: carta, texto justificado, como el original (sin logos), «Hoja X de N» al pie ---- */
+function cvRuns(t){/* convierte el marcado en piezas con estilo: b (negrita) y u (dato subrayado, con ancho mínimo si está vacío) */
+  t=t.replace(/“(LA ESCUELA|EL EXPENDEDOR DE ALIMENTOS|LAS PARTES)”/g,"\u0003“$1”\u0004");
+  const out=[];let bold=false,forz=false;
+  t.split(/(\*\*|\u0003|\u0004|\[\[[^\]]*\]\])/).forEach(s=>{if(!s)return;if(s==="**"){bold=!bold;return}if(s==="\u0003"){forz=true;return}if(s==="\u0004"){forz=false;return}
+    const m=s.match(/^\[\[([^|]*)\|(\d+)\]\]$/);if(m){out.push({t:m[1],u:true,b:bold||forz,w:+m[2]});return}out.push({t:s,b:bold||forz})});
+  return out}
+async function cvPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
+  try{await fonts();const{PDFDocument,StandardFonts,rgb}=PDFLib;const doc=await PDFDocument.create();
+    const F={r:await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold)},K=rgb(0,0,0);
+    const clean=t=>[...String(t??"")].map(ch=>ch==="“"||ch==="”"?ch:window.clean(ch)).join("");
+    const PW=612,PH=792,ML=72,MR=72,MT=64,MB=70,W=PW-ML-MR,S0=10,LH=13.2;
+    let pg=null,y=0;const nueva=()=>{pg=doc.addPage([PW,PH]);y=PH-MT};nueva();
+    const ancho=(t,b,s)=>(b?F.b:F.r).widthOfTextAtSize(clean(t),s);
+    // palabras con estilo; un dato vacío se vuelve una línea de guiones bajos
+    const palabras=runs=>{const tok=[];let pegar=false;const add=p=>{if(pegar&&tok.length)tok[tok.length-1].parts.push(p);else tok.push({parts:[p]});pegar=true};
+      runs.forEach(r=>{if(r.u){const tx=clean(r.t).trim();if(!tx){add({t:"_".repeat(r.w),b:false,u:false});return}tx.split(/\s+/).forEach((w,i)=>{if(i)pegar=false;add({t:w,b:r.b,u:true})});return}
+        clean(r.t).split(/(\s+)/).forEach(x=>{if(!x)return;if(/^\s+$/.test(x)){pegar=false;return}add({t:x,b:r.b,u:false})})});
+      return tok};
+    const parrafo=(runs,o={})=>{const s=o.s||S0,ind=o.ind||0,x0=ML+ind,w=W-ind,tok=palabras(runs);
+      tok.forEach(k=>k.w=k.parts.reduce((a,p)=>a+ancho(p.t,p.b,s),0));
+      const sp=F.r.widthOfTextAtSize(" ",s);const lineas=[];let cur=[],cw=0;
+      tok.forEach(k=>{const nw=cur.length?cw+sp+k.w:k.w;if(nw>w&&cur.length){lineas.push(cur);cur=[k];cw=k.w}else{cur.push(k);cw=nw}});if(cur.length)lineas.push(cur);
+      lineas.forEach((ln,li)=>{if(y-LH<MB){nueva()}
+        const tot=ln.reduce((a,k)=>a+k.w,0),ult=li===lineas.length-1;let gap=sp;
+        if(o.c){let x=ML+(W-(tot+sp*(ln.length-1)))/2;ln.forEach(k=>{k.parts.forEach(p=>{pg.drawText(clean(p.t),{x,y:y-s,size:s,font:p.b?F.b:F.r,color:K});x+=ancho(p.t,p.b,s)});x+=sp})}
+        else{if(!ult&&ln.length>1&&!o.izq)gap=(w-tot)/(ln.length-1);let x=x0;
+          ln.forEach((k,ki)=>{k.parts.forEach(p=>{const pw=ancho(p.t,p.b,s);pg.drawText(clean(p.t),{x,y:y-s,size:s,font:p.b?F.b:F.r,color:K});if(p.u)pg.drawLine({start:{x,y:y-s-1.4},end:{x:x+pw,y:y-s-1.4},thickness:0.5,color:K});x+=pw});
+            const sig=ln[ki+1];if(sig&&k.parts[k.parts.length-1].u&&sig.parts[0].u)pg.drawLine({start:{x,y:y-s-1.4},end:{x:x+gap,y:y-s-1.4},thickness:0.5,color:K});x+=gap})}
+        y-=LH});y-=o.desp==null?6:o.desp};
+    cvTexto().forEach(B=>{const r=cvRuns(B.t);
+      if(B.cab)parrafo(r.map(x=>Object.assign(x,{b:true})),{desp:12});
+      else if(B.h)parrafo(r.map(x=>Object.assign(x,{b:true})),{c:B.c,desp:6});
+      else if(B.li){if(y-LH<MB)nueva();pg.drawText(B.li,{x:ML+14,y:y-S0,size:S0,font:F.r,color:K});parrafo(r,{ind:30,desp:4})}
+      else parrafo(r)});
+    // Firmas
+    const Fi=cvFirmas();const bloque=(tit,nom,cx,top,wd=230)=>{pg.drawLine({start:{x:cx-wd/2,y:top},end:{x:cx+wd/2,y:top},thickness:0.7,color:K});
+      const n=clean(String(nom||"").toLocaleUpperCase("es-MX"));if(n){const s=n.length>34?8.5:9.5;pg.drawText(n,{x:cx-F.b.widthOfTextAtSize(n,s)/2,y:top+4,size:s,font:F.b,color:K})}
+      let yy=top-11;wrapC(tit,F.b,8.6,wd+20).forEach(l=>{pg.drawText(l,{x:cx-F.b.widthOfTextAtSize(l,8.6)/2,y:yy,size:8.6,font:F.b,color:K});yy-=10.5})};
+    const wrapC=(t,f,s,w)=>{const o=[];let l="";clean(t).split(/\s+/).forEach(wd=>{const te=l?l+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&l){o.push(l);l=wd}else l=te});if(l)o.push(l);return o};
+    const tit=(t,top)=>{const s=10;pg.drawText(t,{x:PW/2-F.b.widthOfTextAtSize(t,s)/2,y:top,size:s,font:F.b,color:K})};
+    if(y<MB+430)nueva();else y-=10;
+    tit("POR “LA ESCUELA”",y-10);bloque(Fi.escuela[0][0],Fi.escuela[0][1],PW/2,y-60);bloque(Fi.escuela[1][0],Fi.escuela[1][1],PW/2,y-125,300);
+    tit("POR “EL EXPENDEDOR DE ALIMENTOS”",y-200);bloque("NOMBRE Y FIRMA",Fi.exp[1],PW/2,y-250);
+    tit("TESTIGOS",y-320);bloque("TESTIGO",Fi.test[0],ML+110,y-370,200);bloque("TESTIGO",Fi.test[1],PW-MR-110,y-370,200);
+    // Anexo 1
+    nueva();parrafo(cvRuns("ANEXO 1").map(x=>Object.assign(x,{b:true})),{c:1,desp:2});parrafo(cvRuns("PROPUESTA DE ALIMENTOS, PORCIONES Y PRECIOS DE “EL EXPENDEDOR DE ALIMENTOS”").map(x=>Object.assign(x,{b:true})),{c:1,desp:8});
+    parrafo(cvRuns(`Escuela: [[${CV.escuela||""}|30]]   C.C.T.: [[${CV.cct||""}|12]]   Expendedor: [[${String(CV.expendedor||"").toLocaleUpperCase("es-MX")}|26]]`),{izq:1,desp:4});
+    parrafo(cvRuns(`Horario de venta: de [[${cvHora(CV.horaIni)}|6]] a [[${cvHora(CV.horaFin)}|6]] horas, de lunes a viernes. Los precios deben ser iguales o menores a los del exterior y solo pueden cambiar conforme a la Cláusula Séptima.`),{desp:10});
+    const cols=[{t:"No.",w:30},{t:"PRODUCTO",w:180},{t:"PORCIÓN O PRESENTACIÓN",w:180},{t:"PRECIO",w:W-390}],prods=CV.productos.filter(p=>p.p||p.d||p.precio);
+    const filas=prods.length?prods.concat(Array(Math.max(0,8-prods.length)).fill({})):Array(22).fill({});
+    const rh=20;let x=ML;pg.drawRectangle({x:ML,y:y-rh,width:W,height:rh,color:rgb(.88,.88,.88),borderColor:K,borderWidth:0.6});
+    cols.forEach(c=>{pg.drawText(c.t,{x:x+(c.w-F.b.widthOfTextAtSize(c.t,8.5))/2,y:y-13.5,size:8.5,font:F.b,color:K});if(x>ML)pg.drawLine({start:{x,y},end:{x,y:y-rh},thickness:0.6,color:K});x+=c.w});y-=rh;
+    filas.forEach((p,i)=>{if(y-rh<MB+90){nueva();y-=4}pg.drawRectangle({x:ML,y:y-rh,width:W,height:rh,borderColor:K,borderWidth:0.6});let xx=ML;
+      const vals=[String(i+1),p.p||"",p.d||"",p.precio?"$"+cvMoneda(p.precio):""];
+      cols.forEach((c,ci)=>{if(xx>ML)pg.drawLine({start:{x:xx,y},end:{x:xx,y:y-rh},thickness:0.6,color:K});const fv=fitSingle(vals[ci],c.w-6,9);pg.drawText(fv.text,{x:ci===0||ci===3?xx+(c.w-F.r.widthOfTextAtSize(fv.text,fv.size))/2:xx+4,y:y-13.5,size:fv.size,font:F.r,color:K});xx+=c.w});y-=rh});
+    y-=60;if(y<MB+40){nueva();y-=60}
+    bloque("NOMBRE Y FIRMA DE “EL EXPENDEDOR DE ALIMENTOS”",CV.expendedor,ML+120,y,210);bloque(/encargad/i.test(CV.cargo)?"VO. BO. ENCARGADO(A) DE LA DIRECCIÓN":"VO. BO. DIRECTOR(A) DE LA ESCUELA",CV.director,PW-MR-120,y,210);
+    // pie
+    const ps=doc.getPages();ps.forEach((p,i)=>{const t=`Hoja ${i+1} de ${ps.length}`;p.drawText(t,{x:PW/2-F.r.widthOfTextAtSize(t,8.5)/2,y:36,size:8.5,font:F.r,color:K})});
+    doc.setTitle("Convenio para el expendio de alimentos y bebidas");
+    const bytes=await doc.save();await entregarPDF(new Blob([bytes],{type:"application/pdf"}),cvFile("pdf"))}
+  catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
+  finally{btn.disabled=false;btn.textContent=t0}}
+
+/* ---- Word: el mismo texto, editable ---- */
+function cvWord(){const h=t=>cvRuns(t).map(r=>{let s=esc(r.t);if(r.u)s=r.t.trim()?`<u>${s}</u>`:"_".repeat(r.w);return r.b?`<b>${s}</b>`:s}).join("");
+  const B=cvTexto().map(b=>b.cab?`<p style="text-align:justify;font-weight:bold">${h(b.t)}</p>`:b.h?`<p style="font-weight:bold;${b.c?"text-align:center;":""}margin-top:12px">${h(b.t)}</p>`
+    :b.li?`<p style="text-align:justify;margin-left:36px;text-indent:-18px">${b.li}&nbsp;&nbsp;${h(b.t)}</p>`:`<p style="text-align:justify">${h(b.t)}</p>`).join("");
+  const Fi=cvFirmas(),fir=(tit,nom)=>`<p style="text-align:center;margin-top:46px">${nom?`<b>${esc(String(nom).toLocaleUpperCase("es-MX"))}</b><br>`:""}______________________________________<br><b>${esc(tit)}</b></p>`;
+  const prods=CV.productos.filter(p=>p.p||p.d||p.precio),filas=prods.length?prods.concat(Array(Math.max(0,8-prods.length)).fill({})):Array(22).fill({});
+  const td="border:1px solid #000;padding:4px 6px;font-size:10pt";
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Convenio</title><style>body{font-family:Arial,sans-serif;font-size:10pt}p{margin:0 0 8px}</style></head><body>${B}
+   <p style="text-align:center;font-weight:bold;margin-top:24px">POR “LA ESCUELA”</p>${fir(Fi.escuela[0][0],Fi.escuela[0][1])}${fir(Fi.escuela[1][0],Fi.escuela[1][1])}
+   <p style="text-align:center;font-weight:bold;margin-top:24px">POR “EL EXPENDEDOR DE ALIMENTOS”</p>${fir("NOMBRE Y FIRMA",Fi.exp[1])}
+   <p style="text-align:center;font-weight:bold;margin-top:24px">TESTIGOS</p>
+   <table style="width:100%"><tr><td style="width:50%">${fir("TESTIGO",Fi.test[0])}</td><td>${fir("TESTIGO",Fi.test[1])}</td></tr></table>
+   <br style="page-break-before:always"><p style="text-align:center;font-weight:bold">ANEXO 1<br>PROPUESTA DE ALIMENTOS, PORCIONES Y PRECIOS DE “EL EXPENDEDOR DE ALIMENTOS”</p>
+   <p>Escuela: <u>${esc(CV.escuela||"")}</u> &nbsp; C.C.T.: <u>${esc(CV.cct||"")}</u> &nbsp; Expendedor: <u>${esc(String(CV.expendedor||"").toLocaleUpperCase("es-MX"))}</u></p>
+   <p>Horario de venta: de ${esc(cvHora(CV.horaIni)||"______")} a ${esc(cvHora(CV.horaFin)||"______")} horas, de lunes a viernes. Los precios deben ser iguales o menores a los del exterior y solo pueden cambiar conforme a la Cláusula Séptima.</p>
+   <table style="width:100%;border-collapse:collapse"><tr>${["No.","PRODUCTO","PORCIÓN O PRESENTACIÓN","PRECIO"].map(t=>`<th style="${td};background:#e0e0e0">${t}</th>`).join("")}</tr>
+   ${filas.map((p,i)=>`<tr><td style="${td};text-align:center">${i+1}</td><td style="${td}">${esc(p.p||"")}</td><td style="${td}">${esc(p.d||"")}</td><td style="${td};text-align:center">${p.precio?"$"+cvMoneda(p.precio):""}</td></tr>`).join("")}</table>
+   <table style="width:100%;margin-top:30px"><tr><td style="width:50%">${fir("NOMBRE Y FIRMA DE “EL EXPENDEDOR DE ALIMENTOS”",CV.expendedor)}</td><td>${fir(/encargad/i.test(CV.cargo)?"VO. BO. ENCARGADO(A) DE LA DIRECCIÓN":"VO. BO. DIRECTOR(A) DE LA ESCUELA",CV.director)}</td></tr></table></body></html>`;
+  dirBajar(new Blob(["﻿"+html],{type:"application/msword"}),cvFile("doc"))}
+
 const SL_DEPORTE=t=>/fútbol|atletismo|deport|torneo|encuentro|basquet|béisbol|voleibol|juegos/i.test(t||"");
 const SL_ALC=[["individual","Un alumno(a)"],["grupo","Todo el grupo (uno por alumno)"],["blanco","En blanco (para fotocopiar)"]];
 let SL=null;
@@ -5516,6 +5775,7 @@ function necesitaSetup(){return !perfil.modo}
 const IR_ALIAS={salida:"T",salidas:"T",salidaescolar:"T",beca:"U",becas:"U",licencia:"L",permiso:"L",seguro:"S",datos:"P"};
 function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST="";const L=IR_ALIAS[k.toLowerCase()]||k.toUpperCase();
   if(typeof ANEXOS!=="undefined"&&ANEXOS[L]){home();openAnexo(L);return true}
+  if(/^convenio|cooperativa/i.test(k)){home();S.sec="direccion";cvView();return true}
   const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
 function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
