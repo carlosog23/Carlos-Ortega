@@ -199,7 +199,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión' };
-const VERSION = 44;
+const VERSION = 45;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -516,7 +516,7 @@ const ACCIONES = {
     evi: leer_('evi'),
     eve: leer_('eve'),
     eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') || '',
-    ofi: leer_('ofi').sort((a, b) => String(b.id).localeCompare(String(a.id))),
+    ofi: leer_('ofi').sort((a, b) => String(b.creado || b.id).localeCompare(String(a.creado || a.id))),
     ofiCfg: cfgOficios_(),
     sis: leer_('sis'),
     sic: leer_('sic'),
@@ -2181,15 +2181,28 @@ const ACCIONES = {
       fechaUso: /^\d{4}-\d{2}-\d{2}$/.test(d.fechaUso || '') ? d.fechaUso : '', fechaTipo: ['aplicar', 'usar', 'devolver', 'evidencias'].indexOf(d.fechaTipo) >= 0 ? d.fechaTipo : 'aplicar',
       actualizado: ahora_()
     });
+    if (previo) o.tipo = previo.tipo === 'remision' ? 'remision' : 'oficio';  // un documento guardado no cambia de tipo (ni de numeración)
     if (!o.asunto.trim()) throw new Error('Escriba el asunto del oficio.');
-    if (!previo) {
+    if (!previo && o.tipo === 'remision') {
+      // las remisiones llevan su propia numeración (p. ej. SE-050/REM-001/2026), aparte de los oficios
+      const props = PropertiesService.getScriptProperties();
+      const anio = o.fecha.slice(0, 4);
+      let ultimo = +(props.getProperty('REM_ULTIMO') || 0);
+      if ((props.getProperty('REM_ANIO') || anio) !== anio) ultimo = 0;
+      const usados = leer_('ofi').filter(x => x.tipo === 'remision' && String(x.anio) === anio).map(x => +x.numero);
+      let n = ultimo + 1;
+      while (usados.indexOf(n) >= 0) n++;
+      props.setProperties({ REM_ULTIMO: String(n), REM_ANIO: anio });
+      Object.assign(o, { id: 'rem-' + anio + '-' + ('00' + n).slice(-3), numero: String(n), anio: anio, folio: folioRem_(n, anio),
+        pdfId: '', envios: [], creadoPor: yo.id, creado: ahora_() });
+    } else if (!previo) {
       const props = PropertiesService.getScriptProperties();
       const anio = o.fecha.slice(0, 4);
       const guardado = props.getProperty('OFI_ULTIMO');
       let ultimo = guardado !== null && guardado !== '' ? +guardado : ULTIMO_OFICIO_INICIAL;
       if ((props.getProperty('OFI_ANIO') || '2026') !== anio) ultimo = 0;  // cada año empieza en 001
       // si ese número ya se usó (por ejemplo, después de corregir el conteo), se toma el siguiente libre
-      const usados = leer_('ofi').filter(x => String(x.anio) === anio).map(x => +x.numero);
+      const usados = leer_('ofi').filter(x => x.tipo !== 'remision' && String(x.anio) === anio).map(x => +x.numero);
       let n = ultimo + 1;
       while (usados.indexOf(n) >= 0) n++;
       props.setProperties({ OFI_ULTIMO: String(n), OFI_ANIO: anio });
@@ -2448,6 +2461,7 @@ function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Erro
 function destinosVarios_() { return ['Directores', 'Multigrado'].concat(Z().municipios.map(m => 'Directores ' + m)); }
 function destinosOficio_() { return Z().municipios.concat(['Otro']).concat(destinosVarios_()); }
 function folio_(n, anio) { return Z().folioPrefijo + '/' + ('00' + n).slice(-3) + '/' + anio; }
+function folioRem_(n, anio) { return Z().folioPrefijo + '/REM-' + ('00' + n).slice(-3) + '/' + anio; }
 
 function cfgOficios_() {
   const p = PropertiesService.getScriptProperties();
@@ -2455,7 +2469,8 @@ function cfgOficios_() {
   const g = p.getProperty('OFI_ULTIMO'), ultimo = g !== null && g !== '' ? +g : ULTIMO_OFICIO_INICIAL;
   const anioHoy = hoy_().slice(0, 4);
   const sig = anio === anioHoy ? ultimo + 1 : 1;
-  return { ultimo: ultimo, anio: anio, siguiente: folio_(sig, anioHoy), ia: !!p.getProperty('GEMINI_KEY'), modelo: p.getProperty('GEMINI_MODELO') || '',
+  const remAnio = p.getProperty('REM_ANIO') || anioHoy, remSig = remAnio === anioHoy ? +(p.getProperty('REM_ULTIMO') || 0) + 1 : 1;
+  return { ultimo: ultimo, anio: anio, siguiente: folio_(sig, anioHoy), siguienteRem: folioRem_(remSig, anioHoy), ia: !!p.getProperty('GEMINI_KEY'), modelo: p.getProperty('GEMINI_MODELO') || '',
     firma: !!p.getProperty('FIRMA_ID'), sello: !!p.getProperty('SELLO_ID'), remitentes: [CORREO_SUPERVISION, CORREO_INSTITUCIONAL] };
 }
 
