@@ -1299,7 +1299,58 @@ function becaLlenar(a){const v=S.vals;const w=String(a.nombre||"").trim().split(
   if(a.domicilio){v.acalle=a.domicilio;if(!v.scalle)v.scalle=a.domicilio}
   const tut=a.t1nom||a.t2nom;if(tut&&!v.snom)v.snom=tut;const tel=a.t1tel||a.t2tel;if(tel)v.telc=tel;if(a.correo&&!v.correo)v.correo=a.correo;
   store.set("ppie-draft-U",{vals:v,step:S.step})}
-const ARCHIVO={U:"Formato Unico de Beca",S:"Aviso de accidente - Seguro escolar",P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
+/* ---------- Formato para la autorización de salida escolar (Secretaría de Educación · Departamento de Educación Primaria) ----------
+   Formato oficial idéntico al de la Delegación. Al elegir la escuela se llenan sus datos, el director(a), el supervisor
+   y el Jefe de Nivel y la Delegación según el municipio. Todo es editable. */
+const ASE_SAL_JEFES={"San Quintín":"Profr. Humberto García Solorio","Ensenada":"Profr. Arturo Aguilar Cital"};
+const aseSalSub=()=>ZONA_TQ&&/estatal/i.test(ZONA_TQ.sostenimiento||"")?"SE":"ISEP";
+function aseSalJefe(mun){if(ASE_SAL_JEFES[mun]&&!ZONA_TQ)return ASE_SAL_JEFES[mun];
+  const a=ZONA_TQ&&(ZONA_TQ.autoridades||[]).find(x=>x.municipio===mun);if(a&&a.nombre)return String(a.nombre).toLowerCase().replace(/(^|\s|\.)(\S)/g,(m,p,c)=>p+c.toUpperCase()).replace(/^C\. /,"");return ASE_SAL_JEFES[mun]||""}
+function aseSalEscuela(i){const c=CENTROS[+i];if(!c||c.cct===(CENTROS[CENTROS.length-1]||{}).cct&&/supervisi/i.test(c.nombre))return null;
+  const mio=perfil.cct===c.cct;const dir=String(c.resp||"").replace(/^(Mtr[oa]\.|Profr?a?\.)\s*/i,"");
+  return{nombre:c.nombre.replace(/^Escuela Primaria\s+/i,""),cct:c.cct,turno:mio&&perfil.turno?perfil.turno:(BECA_VESP.has(c.cct)?"Vespertino":"Matutino"),
+    dir,firma:c.resp||"",cel:mio?(perfil.celular||""):"",tel:c.tel||(mio?perfil.telefono||"":""),dom:[c.dir,c.mun].filter(Boolean).join(", "),mun:c.mun}}
+function aseSalAplicar(e){const v=S.vals;v.escuela=e.nombre;v.cct=e.cct;v.turno=e.turno;v.director=e.dir;if(e.cel)v.cel=e.cel;if(e.tel)v.tel=e.tel;v.dom=e.dom;
+  v.firdir=e.firma;v.deleg="Delegación "+e.mun;v.jefe=aseSalJefe(e.mun);if(!v.zona)v.zona=ZONA_NUM;if(!v.sub)v.sub=aseSalSub();if(!v.firsup)v.firsup=SUP_NOMBRE}
+function aseWireSalEsc(g){g("centro").addEventListener("change",()=>{const i=g("centro").value;
+  if(i==="otra"){["escuela","cct","director","cel","tel","dom"].forEach(k=>{g(k).value="";S.vals[k]=""});S.vals.firdir="";return}
+  const e=aseSalEscuela(i);if(!e)return;aseSalAplicar(e);["escuela","cct","turno","director","cel","tel","dom"].forEach(k=>{if(g(k))g(k).value=S.vals[k]||""})})}
+function aseSalPre(k){return p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct);const e=i>=0?aseSalEscuela(i):null;if(e){if(k==="deleg")return"Delegación "+e.mun;if(k==="jefe")return aseSalJefe(e.mun);return e[k]||""}
+  const mun=p.municipio||"";return{nombre:p.escuela,cct:p.cct,turno:p.turno,dir:p.director||"",firma:p.director||"",tel:p.telefono,dom:p.domicilio,deleg:mun?"Delegación "+mun:"",jefe:aseSalJefe(mun)}[k]||""}}
+ANEXOS.T={name:"Formato para la autorización de salida escolar",pref:"Salida escolar",who:"Dirección de la escuela",grupo:"Salidas",
+ use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos (excursiones, visitas, eventos). Se tramita con 15 días de anticipación y se entregan 4 originales.",
+ upper:true,noUpper:["Hora de salida","Hora de llegada"],boxCenter:["Domicilio"],bold:["Delegación","Destino","Dirección del destino","Fecha","Firma: director","Firma: supervisor"],sizes:{"Delegación":11.5},
+ steps:[
+  {title:"Datos del plantel educativo",wire:aseWireSalEsc,fields:[
+    {id:"centro",label:"Escuela",type:"pick",help:"Elija la escuela y se llenan solos sus datos, los del director(a), los suyos como supervisor y el Jefe de Nivel. Todo se puede corregir.",
+      options:BECA_ESC_OPTS.concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
+      preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct&&!/supervisi/i.test(c.nombre));return i>=0?String(i):(p.cct?"otra":"")}},
+    {id:"escuela",label:"Nombre de la escuela",preFn:aseSalPre("nombre"),to:"Escuela"},
+    {id:"zona",label:"Zona",preFn:()=>ZONA_NUM,to:"Zona",half:true},{id:"sub",label:"Sub/sistema",preFn:aseSalSub,to:"Subsistema",half:true},
+    {id:"cct",label:"Clave de C.T.",preFn:aseSalPre("cct"),to:"CCT",half:true},{id:"turno",label:"Turno",type:"select",options:["Matutino","Vespertino","Tiempo completo"],preFn:aseSalPre("turno"),to:"Turno",half:true},
+    {id:"director",label:"Nombre del director(a)",preFn:aseSalPre("dir"),to:"Director"},
+    {id:"cel",label:"Celular del director(a)",type:"tel",opt:true,preFn:aseSalPre("cel"),to:"Celular",half:true},{id:"tel",label:"Teléfono de la escuela",type:"tel",opt:true,preFn:aseSalPre("tel"),to:"Teléfono",half:true},
+    {id:"dom",label:"Dirección de la escuela",preFn:aseSalPre("dom"),type:"box",short:true,to:"Domicilio"}]},
+  {title:"Datos sobre la salida",fields:[
+    {id:"destino",label:"Lugar o destino",help:"Por ejemplo: Bahía de San Quintín, los humedales.",to:"Destino"},
+    {id:"dirdest",label:"Dirección del destino",help:"Por ejemplo: San Quintín, B.C.",to:"Dirección del destino"},
+    {id:"fecha",label:"Fecha de la salida",type:"date",noToday:true,fmt:"corta",to:"Fecha",help:"Recuerde: el formato se tramita con 15 días de anticipación."},
+    {id:"hsal",label:"Hora de salida",type:"time",fmt:"ampm",to:"Hora de salida",half:true},{id:"hlle",label:"Hora de llegada",type:"time",fmt:"ampm",to:"Hora de llegada",half:true},
+    {id:"proposito",label:"Propósito de la salida",type:"box",to:"Propósito",help:"Qué aprenderán o harán los alumnos. Que sea breve: debe caber en el recuadro."},
+    {id:"pmc",label:"¿La actividad se encuentra en el Programa Escolar de Mejora Continua?",type:"choice",options:[{label:"Sí",to:"PMC: sí"},{label:"No",to:"PMC: no"}]}]},
+  {title:"Datos sobre asistentes",fields:[
+    {id:"alumnos",label:"Número de alumnos",type:"number",to:"Alumnos",half:true},{id:"docentes",label:"Número de docentes",type:"number",to:"Docentes",half:true},
+    {id:"otros",label:"Número de otros (padres de familia, apoyo…)",type:"number",opt:true,to:"Otros"},
+    {id:"permiso",label:"¿Cuenta con el permiso y autorización de los padres de familia?",type:"choice",options:[{label:"Sí",to:"Permiso: sí"},{label:"No",to:"Permiso: no"}]}]},
+  {title:"Firmas",fields:[
+    {id:"firdir",label:"Solicitante: director(a) de la escuela",help:"Como aparece en la firma. Firma y sello van a mano.",preFn:aseSalPre("firma"),to:"Firma: director"},
+    {id:"firsup",label:"Vo. Bo.: supervisor(a)",preFn:()=>SUP_NOMBRE,to:"Firma: supervisor"},
+    {id:"jefe",label:"Jefe de Nivel (autoriza)",help:"Se pone solo según el municipio de la escuela.",preFn:aseSalPre("jefe"),to:"Jefe de nivel"},
+    {id:"deleg",label:"Delegación (encabezado del formato)",preFn:aseSalPre("deleg"),to:"Delegación"}]}],
+ validate:v=>{const o=[];if(v.fecha){const p=parseDate(v.fecha);if(p){const d=new Date(p.y,p.m-1,p.d),h=new Date();h.setHours(0,0,0,0);const n=Math.round((d-h)/864e5);
+   if(n<0)o.push("La fecha de la salida ya pasó. Revísela.");else if(n<15)o.push(`Faltan ${n} días para la salida: el formato debe tramitarse con 15 días de anticipación.`)}}
+  if(v.permiso==="No")o.push("Marcó que no cuenta con el permiso de los padres de familia: es requisito para la salida.");return o}};
+const ARCHIVO={T:"Autorizacion de salida escolar",U:"Formato Unico de Beca",S:"Aviso de accidente - Seguro escolar",P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Becas","Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
 const GTIT={Becas:"Becas · Solicitud",Personal:"Laboral · Trámites del personal",Docente:"Protección escolar (PPIE) · Lo llena: Docente",Dirección:"Protección escolar (PPIE) · Lo llena: Dirección",Todos:"Protección escolar (PPIE) · Lo llena: Todos","Jefatura de Nivel":"Protección escolar (PPIE) · Lo llena: Jefatura de Nivel"};
 const PRONTO=[["Pedagógico","Planeación, actas de CTE, seguimiento de alumnos y canalizaciones."],["Comunicación con familias","Recados, citatorios, avisos y autorizaciones."],["Dirección","Oficios, actas administrativas y entrega de documentación."]];
@@ -1350,7 +1401,7 @@ function fmtDate(v,fmt){const p=parseDate(v);if(!p)return fmt.startsWith("partes
   if(fmt==="larga")return`${p.d} de ${mes} de ${p.y}`;
   if(fmt==="diaMes")return`${p.d} de ${mes}`;
   if(fmt==="corta")return`${String(p.d).padStart(2,"0")}/${String(p.m).padStart(2,"0")}/${p.y}`;return v}
-function fmtTime(v,fmt){if(!v)return fmt==="hm"?["",""]:"";const[h,m]=v.split(":");return fmt==="hm"?[h,m]:`${h}:${m} hrs.`}
+function fmtTime(v,fmt){if(!v)return fmt==="hm"?["",""]:"";const[h,m]=v.split(":");if(fmt==="ampm"){const n=+h;return`${n%12||12}:${m} ${n<12?"a.m.":"p.m."}`}return fmt==="hm"?[h,m]:`${h}:${m} hrs.`}
 function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function preValue(f){const y=yoPre(f);if(y)return y;if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date"&&!f.noToday)return today();return""}
 
@@ -1477,6 +1528,7 @@ function plan(L){const A=ANEXOS[L],v=S.vals,out={single:{},lines:[],box:{},check
     else if(f.to)out.single[f.to]=val||""}
   for(const[n,id]of Object.entries(A.derive||{}))out.single[n]=v[id]||"";
   if(A.compute)Object.assign(out.single,A.compute(v));
+  if(A.upper)for(const b of Object.values(out.box))b.text=String(b.text||"").toLocaleUpperCase("es-MX");
   if(A.upper){const no=new Set(A.noUpper||[]);for(const k of Object.keys(out.single))if(!no.has(k)&&typeof out.single[k]==="string")out.single[k]=out.single[k].toLocaleUpperCase("es-MX");for(const k of no)if(out.single[k])out.single[k]=out.single[k].trim().toLowerCase()}
   return out}
 function problems(L,geo){const p=plan(L),issues=[...(p.over||[]),...(ANEXOS[L].validate?ANEXOS[L].validate(S.vals):[])];
@@ -1491,13 +1543,14 @@ async function generar(L){await fonts();const{bytes,geo}=await loadForm(L);const
   const pages=doc.getPages(),ink=ANEXOS[L].tinta?PDFLib.rgb(...ANEXOS[L].tinta):PDFLib.rgb(0,0,0),p=plan(L);
   const BOLD=new Set(ANEXOS[L].bold||[]);
   const put=(n,text,size)=>{const g=geo[n];if(!g||!text)return;const pg=pages[g.page];const ft=BOLD.has(n)?bold:helv;const w=ft.widthOfTextAtSize(text,size);
-    let x=g.x+1.5;if(g.q===1||ANEXOS[L].center)x=g.x+(g.width-w)/2;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:ft,color:ink})};
+    let x=g.x+1.5;if(g.q===1||ANEXOS[L].center)x=g.x+(g.width-w)/2;else if(g.q===2)x=g.x+g.width-w-1.5;pg.drawText(text,{x,y:g.y+(g.height-size*0.72)/2,size,font:ft,color:ink})};
   if(p.photo&&geo.Foto){try{const img=await doc.embedJpg(p.photo);const g=geo.Foto;pages[g.page].drawImage(img,{x:g.x,y:g.y,width:g.width,height:g.height});
     pages[g.page].drawRectangle({x:g.x,y:g.y,width:g.width,height:g.height,borderColor:ink,borderWidth:0.8})}catch(e){console.warn("foto",e)}}
   for(const[n,t]of Object.entries(p.single)){if(!geo[n]||!t)continue;const r=fitSingle(t,geo[n].width,(ANEXOS[L].sizes||{})[n]||10);put(n,r.text,r.size)}
   for(const g of p.lines){if(!g.text)continue;const widths=g.to.map(n=>geo[n].width-3);const r=layoutLines(g.text,widths);r.lines.slice(0,g.to.length).forEach((t,i)=>put(g.to[i],t,r.size))}
   for(const[n,b]of Object.entries(p.box)){if(!b.text)continue;const g=geo[n];const r=layoutBox(b.text,g.width,g.height);const lh=r.size*1.2;
-    r.lines.slice(0,r.cap).forEach((t,i)=>pages[g.page].drawText(t,{x:g.x+3,y:g.y+g.height-2-r.size-(i*lh),size:r.size,font:helv,color:ink}))}
+    const cen=(ANEXOS[L].boxCenter||[]).includes(n),ls=r.lines.slice(0,r.cap),y0=cen?g.y+(g.height+ls.length*lh)/2-r.size:g.y+g.height-2-r.size;
+    ls.forEach((t,i)=>pages[g.page].drawText(t,{x:cen?g.x+(g.width-helv.widthOfTextAtSize(t,r.size))/2:g.x+3,y:y0-(i*lh),size:r.size,font:helv,color:ink}))}
   const CIRC=new Set(ANEXOS[L].circle||[]);
   for(const n of p.checks){const g=geo[n];if(!g)continue;if(CIRC.has(n)){pages[g.page].drawEllipse({x:g.x+g.width/2,y:g.y+g.height/2,xScale:g.width/2+5,yScale:g.height/2+4,borderColor:ink,borderWidth:1.3});continue}const s=Math.min(g.width,g.height)*1.05;const w=bold.widthOfTextAtSize("X",s);
     pages[g.page].drawText("X",{x:g.x+(g.width-w)/2,y:g.y+(g.height-s*0.72)/2,size:s,font:bold,color:ink})}
@@ -1553,7 +1606,7 @@ const SECCIONES=[
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos, autorizaciones, permisos de salida a eventos y constancias de asistencia.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()},{id:"salida",letra:"S",name:"Autorización de salida a eventos",use:"Permiso institucional para desfiles, torneos de fútbol, encuentros de atletismo, olimpiadas del conocimiento u otro evento fuera de la escuela: quién lleva y recoge al alumno y firma del tutor. Dos por hoja (media carta). Para un alumno, todo el grupo o en blanco. Word o PDF.",open:()=>slView()},{id:"constancia",letra:"C",name:"Constancia de asistencia (justificante)",use:"Para que el padre, madre o tutor justifique en su trabajo que acudió a la escuela: reunión, entrega de boletas, asunto de su hijo(a), CPE, jornada de limpieza, apoyo en la vialidad u otro. Con logos, datos de la escuela, firma de la dirección y el logo de la zona como marca de agua. Word o PDF.",open:()=>caView()}]},
  {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan solos los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, autorización de salida escolar, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"salidaesc",letra:"S",name:"Autorización de salida escolar",use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos: se llenan solos los datos de la escuela, del director(a), del supervisor y del Jefe de Nivel.",open:()=>openAnexo("T")},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Becas:"",Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -1576,11 +1629,12 @@ const TMETA={
  visitas:{grp:"Libros para imprimir",tags:["PDF","Logo de la escuela"]},
  pases:{grp:"Libros para imprimir",tags:["PDF","Por grado y grupo"]},
  cte:{grp:"Reuniones y actas",tags:["PDF","Word","Lista para firmar"]},
+ salidaesc:{grp:"Trámites oficiales",tags:["Formato oficial","PDF"]},
  inventario:{grp:"Recursos materiales",tags:["Formato oficial ISEP","PDF"]},
  alumnos:{grp:"Datos de alumnos",tags:["Word"]},
  recado:{tags:["Word","PDF"]},dx:{tags:["Word","PDF"]},salario:{tags:["Desde sus talones en PDF"]},asistencia:{tags:["PDF de RELweb"]}};
-const TICON={constancia:"ticket",salida:"flag",salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
-const AICON={L:"work",P:"user",S:"cross",U:"cap"};
+const TICON={salidaesc:"flag",constancia:"ticket",salida:"flag",salario:"money",asistencia:"listcheck",edades:"cal",dx:"eye",pmce:"stairs",pa:"layers",plan:"calplan",recado:"chat",firmas:"pen",visitas:"door",pases:"ticket",cte:"minuta",inventario:"box",alumnos:"scan"};
+const AICON={L:"work",P:"user",S:"cross",U:"cap",T:"flag"};
 Object.assign(ICON,{
  pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
  award:'<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M12 6.2l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/><path d="M8.5 14L7 21l5-2.5 5 2.5-1.5-7"/></svg>',
@@ -5459,7 +5513,7 @@ function wireZlogo(onChange){const g=id=>document.getElementById(id);if(!g("zl_f
 /* ---- Pantalla inicial: ¿es de la Zona 050? ---- */
 function necesitaSetup(){return !perfil.modo}
 /* Enlace directo: …/formatos-ppie/#ir=beca abre el formato (o la sección) sin pasar por la bienvenida */
-const IR_ALIAS={beca:"U",becas:"U",licencia:"L",permiso:"L",seguro:"S",datos:"P"};
+const IR_ALIAS={salida:"T",salidas:"T",salidaescolar:"T",beca:"U",becas:"U",licencia:"L",permiso:"L",seguro:"S",datos:"P"};
 function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST="";const L=IR_ALIAS[k.toLowerCase()]||k.toUpperCase();
   if(typeof ANEXOS!=="undefined"&&ANEXOS[L]){home();openAnexo(L);return true}
   const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
