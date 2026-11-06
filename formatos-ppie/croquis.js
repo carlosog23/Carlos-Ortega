@@ -106,12 +106,28 @@ function crqLayout(tam) {
 }
 const crqFh = P => Math.round(P.fw / crqLayout(P.tam).asp);
 
+// Hasta qué acercamiento hay foto satelital en ese lugar: más allá, Esri entrega un mosaico gris («Map data not yet available»)
+const CRQ_ZMAX = {};
+function crqMosaicoOk(z, lat, lng) {
+  const [x, y] = crqProy(lat, lng, z).map(v => Math.floor(v / 256));
+  return new Promise(ok => { const im = new Image(); im.crossOrigin = "anonymous"; const t = setTimeout(() => ok(null), 12000);
+    im.onload = () => { clearTimeout(t); try { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"); g.drawImage(im, 0, 0, 64, 64);
+        const d = g.getImageData(0, 0, 64, 64).data; let s = 0, s2 = 0, n = 0; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; n++ }
+        const m = s / n; ok(Math.sqrt(Math.max(0, s2 / n - m * m)) > 9) } catch (e) { ok(null) } };
+    im.onerror = () => { clearTimeout(t); ok(null) };
+    im.src = CRQ_CAPAS.sat.url.replace("{z}", z).replace("{x}", x).replace("{y}", y) }) }
+async function crqZMax(lat, lng) {
+  const k = lat.toFixed(2) + "," + lng.toFixed(2); if (CRQ_ZMAX[k]) return CRQ_ZMAX[k];
+  for (const z of [19, 18, 17, 16]) { const r = await crqMosaicoOk(z, lat, lng); if (r === null) return 19; if (r) return (CRQ_ZMAX[k] = z) }
+  return (CRQ_ZMAX[k] = 15) }
+
 // Fondo del croquis: se arma con los mosaicos del mapa (satélite, calles o en blanco)
 async function crqFondo(P) {
   const fh = crqFh(P), key = [P.lat, P.lng, P.zv, P.fw, fh, P.capa, P.calles].join("|");
   if (CQS.img && CQS.imgKey === key) return CQS.img;
   const capa = CRQ_CAPAS[P.capa] || CRQ_CAPAS.sat;
-  let zc = Math.min(capa.max, P.zv + 1);
+  const zMax = P.capa === "sat" ? await crqZMax(P.lat, P.lng) : capa.max;
+  let zc = Math.min(zMax, P.zv + 1);
   while (zc > P.zv - 2 && P.fw * Math.pow(2, zc - P.zv) > 3000) zc--;
   let f = Math.pow(2, zc - P.zv), W = Math.round(P.fw * f), H = Math.round(fh * f);
   const min = P.tam === "doble" ? 2200 : 1600, up = W < min ? min / W : 1;
@@ -312,11 +328,15 @@ async function crqUbicar() {
   if (CRQ_MAP) { try { CRQ_MAP.remove() } catch (e) {} CRQ_MAP = null }
   const map = CRQ_MAP = Lf.map("crqLf", { zoomControl: true, attributionControl: true, maxZoom: 21 }).setView([P.lat, P.lng], P.zv);
   let base = null, refs = [];
+  let zNat = 19;
   const capas = () => { if (base) map.removeLayer(base); refs.forEach(r => map.removeLayer(r)); refs = [];
     const k = document.getElementById("crqCapa").value, c = CRQ_CAPAS[k === "blanco" ? "sat" : k];
-    base = Lf.tileLayer(c.url, { maxNativeZoom: c.max, maxZoom: 21, attribution: c.atr.replace(/^.*?: /, "") }).addTo(map);
+    base = Lf.tileLayer(c.url, { maxNativeZoom: k === "calle" ? c.max : zNat, maxZoom: 21, attribution: c.atr.replace(/^.*?: /, "") }).addTo(map);
     if (k !== "calle" && document.getElementById("crqCalles").checked) refs = CRQ_REF.map(u => Lf.tileLayer(u, { maxNativeZoom: 19, maxZoom: 21 }).addTo(map)) };
   capas();
+  // en cada lugar se revisa hasta dónde hay foto satelital; más cerca, se amplía la última foto disponible
+  let tZ = null; const revisaZ = () => { clearTimeout(tZ); tZ = setTimeout(async () => { const c = map.getCenter(), z = await crqZMax(c.lat, c.lng); if (z !== zNat) { zNat = z; capas() } }, 500) };
+  map.on("moveend", revisaZ); revisaZ();
   document.getElementById("crqCapa").onchange = capas; document.getElementById("crqCalles").onchange = capas;
   const marco = () => { const m = document.getElementById("crqMapa"), f = document.getElementById("crqMarco"); if (!m || !f) return;
     const asp = crqLayout(P.tam).asp, W = m.clientWidth * 0.9, H = (m.clientHeight - 40) * 0.9; let w = W, h = w / asp; if (h > H) { h = H; w = h * asp }
