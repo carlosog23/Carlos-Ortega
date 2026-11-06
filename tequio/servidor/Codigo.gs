@@ -28,6 +28,9 @@
  *    las direcciones invitadas ven el botón para conectarse mientras la llamada está activa.
  *  · Revisión en campo: guías de preguntas para la dirección y los docentes, que la Mesa Técnica contesta en la escuela
  *    (también sin internet, desde su celular) y sube después; algunas preguntas las contesta el docente con un código.
+ *  · Lee el correo de la Supervisión (cada hora): resume cada mensaje con IA, lo clasifica por urgencia (fechas y tema)
+ *    y detecta las facturas (CFDI). La factura se guarda en el Drive solo cuando el Supervisor elige su clasificación
+ *    (PIMMEE, Ingresos propios, CPE, La Escuela es Nuestra, Caja chica o Personal); «Sin clasificar» queda pendiente.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *
@@ -76,7 +79,8 @@ const ZONA_DEF = {
     { municipio: 'San Quintín', nombre: 'C. HUMBERTO GARCÍA SOLORIO', cargo: 'Jefe del Departamento de Educación Primaria en San Quintín', institucion: 'ISEP' },
     { municipio: 'Ensenada', nombre: 'PROFR. ARTURO AGUILAR CITAL', cargo: 'Jefe del Departamento de Educación Primaria en Ensenada', institucion: 'ISEP' }
   ],
-  pesos: { acu: 70, evi: 20, sis: 5, eia: 5 }
+  pesos: { acu: 70, evi: 20, sis: 5, eia: 5 },
+  rfcFacturas: 'ISE921210MX8'   // RFC al que deben venir las facturas (ISEP); en zonas estatales, el de la Secretaría
 };
 let ZONA_CACHE_ = null;
 /** Perfil de esta instalación, con los datos derivados que usan correos, oficios e informes. */
@@ -105,6 +109,7 @@ function logoZonaBlob_() {
   try { if (z.logoZonaId) return DriveApp.getFileById(z.logoZonaId).getBlob(); if (z.logoZona) return UrlFetchApp.fetch(z.logoZona).getBlob(); } catch (e) {}
   return null;
 }
+function g_rfcPropio_() { try { return !!(JSON.parse(PropertiesService.getScriptProperties().getProperty('ZONA') || '{}') || {}).rfcFacturas; } catch (e) { return false; } }
 function zonaPublica_() {
   const z = Z(), p = PropertiesService.getScriptProperties();
   let logo = z.logoZona;
@@ -114,7 +119,7 @@ function zonaPublica_() {
     telefono: z.telefono, supervisor: z.supervisor, cargoSupervisor: z.cargoSupervisor, correoSupervision: z.correoSupervision, correoInstitucional: z.correoInstitucional,
     lemaZona: z.lemaZona, logoZona: logo, logoInst: z.logoInst, inst: z.inst, instNombre: z.instNombre,
     carpetaEvidencias: z.carpetaEvidencias, nombreCarpeta: z.nombreCarpeta, folioPrefijo: z.folioPrefijo, cctSupervision: z.cctSupervision,
-    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado,
+    autoridades: z.autoridades, municipios: z.municipios, pesos: z.pesos, rfcFacturas: z.estatal && !g_rfcPropio_() ? '' : z.rfcFacturas, codigoPostal: z.codigoPostal, vespertinas: z.vespertinas, sedeMultigrado: z.sedeMultigrado,
     modulos: modulos, modulosEditado: p.getProperty('MODULOS_EDITADO') === '1', modulosVistos: vistos, aviso: avisoAdmin_(), versionVigente: p.getProperty('VERSION_VIGENTE') || '' };
 }
 const REMITENTE = Z().nombre + ' · Tequio';
@@ -182,19 +187,24 @@ const HOJAS = {
   // Al cerrarse quedan en el seguimiento de la escuela con sus acuerdos (segId).
   ate: ['id', 'cct', 'tipo', 'asunto', 'fecha', 'horaIni', 'horaFin', 'atendieron', 'descripcion', 'fotos', 'acuerdos', 'conclusion', 'estado', 'confidencial',
         'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor'],
+  // Correo de la Supervisión (solo la Supervisión). id = id del mensaje de Gmail. urgencia: urgente, pronto, normal o info.
+  // factura: datos del CFDI (emisor, receptor, total, UUID…) o {} si es factura sin XML; vacío si no es factura.
+  // clasif: '' (sin revisar), sin (sin clasificar: pendiente), pimmee, ip, cpe, len, caja o personal. archivos: lo guardado en el Drive.
+  cor: ['id', 'hilo', 'fecha', 'de', 'deNombre', 'asunto', 'resumen', 'urgencia', 'motivo', 'tema', 'limite', 'accion', 'factura', 'adjuntos',
+        'clasif', 'archivos', 'estado', 'clasifPor', 'clasifNombre', 'clasificado', 'actualizado', 'historial', 'extracto', 'ia'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención' };
-const VERSION = 42;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión' };
+const VERSION = 43;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas'];
+const JSON_COLS = ['datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -474,12 +484,12 @@ const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAc
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
-  'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos'];
+  'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos'];
 
 const ACCIONES = {
   // El Supervisor elige los módulos que usa su zona
@@ -1203,6 +1213,30 @@ const ACCIONES = {
     o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'restauro' }]).slice(-40);
     guardar_('rec', o);
     return { rec: o };
+  },
+
+  /* ---- Correo de la Supervisión (solo la Supervisión) ---- */
+  corDatos: (yo) => { soloAdmin_(yo); return { cor: corLista_(), corCfg: corCfg_() }; },
+  // Lee ahora los correos nuevos (tarda según cuántos lleguen)
+  corRevisar: (yo) => { soloAdmin_(yo); const r = revisarCorreos_({ manual: true }); return Object.assign(r, { cor: corLista_(), corCfg: corCfg_() }); },
+  // Guarda la factura en la carpeta de su clasificación (o la regresa a «Sin clasificar»). Nunca se guarda sola.
+  corClasificar: (yo, d) => { soloAdmin_(yo); return { cor: corClasificar_(String(d.id || ''), String(d.clasif || ''), yo) }; },
+  // Marca un correo: visto, atendido o nuevo; cambia su urgencia; o lo marca (o desmarca) como factura
+  corMarcar: (yo, d) => {
+    soloAdmin_(yo);
+    const o = buscar_('cor', String(d.id || ''));
+    if (!o) throw new Error('No se encontró el correo.');
+    const h = [];
+    if (d.estado != null) { if (['nuevo', 'visto', 'atendido'].indexOf(d.estado) < 0) throw new Error('Estado no válido.'); o.estado = d.estado; h.push(d.estado); }
+    if (d.urgencia != null) { if (!COR_URG[d.urgencia]) throw new Error('Urgencia no válida.'); o.urgencia = d.urgencia; o.motivo = 'Puesta a mano por la Supervisión'; h.push('urgencia ' + d.urgencia); }
+    if (d.factura != null) {
+      if (d.factura) { o.factura = Object.assign({}, Array.isArray(o.factura) ? {} : o.factura, { es: true }); if (!o.clasif) o.clasif = ''; h.push('es factura'); }
+      else { if ((o.archivos || []).length && o.clasif !== 'sin') throw new Error('La factura ya está guardada en una carpeta. Primero regrésela a «Sin clasificar».'); o.factura = Object.assign({}, Array.isArray(o.factura) ? {} : o.factura, { es: false }); o.clasif = ''; h.push('no es factura'); }
+    }
+    o.actualizado = ahora_();
+    o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: h.join(', ') }]).slice(-20);
+    guardar_('cor', o);
+    return { cor: o };
   },
 
   eliminarReunion: (yo, d) => {
@@ -3233,6 +3267,7 @@ function tareaDiaria() {
   try { latido_(); CacheService.getScriptCache().remove('estadoRegistro'); } catch (e) {}
   try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
   try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
+  try { asegurarCorreos_(); revisarCorreos_({}); resumenCorreos_(); } catch (e) { bitacora_('correos', '', [], 'Correo de la Supervisión', 'error: ' + e.message); }
   try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
@@ -3274,6 +3309,283 @@ function tareaDiaria() {
     enviarCorreo_(String(u.correo).split(',').map(x => x.trim()).filter(Boolean), 'Su agenda de hoy en Tequio · ' + fechaCorta_(hoy),
       plantilla_('Su agenda de hoy', '<p>Buenos días. Estas son sus actividades de hoy:</p>' + lista + boton_(PAGINA, 'Abrir Tequio')), 'agenda', u.id);
   });
+}
+
+/* ===================== Correo de la Supervisión =====================
+   Cada hora (y cada mañana con la tarea diaria) se leen los correos nuevos de la bandeja de entrada de esta cuenta.
+   De cada uno se guarda un resumen hecho con Gemini, su urgencia (por las fechas y el tema), el tema, la fecha
+   límite y lo que hay que hacer. Las facturas (CFDI en XML, o PDF que dice factura) se detectan y se leen sus datos
+   (emisor, a nombre de quién está, total, UUID), pero NO se guardan solas: el Supervisor elige la clasificación y
+   entonces se copian al Drive («Tequio · Facturas (no compartir)» / clasificación / año). «Sin clasificar» queda pendiente
+   (puede ser una factura que no es de la zona). Los urgentes y las facturas nuevas se avisan al correo de la Supervisión. */
+const COR_CLASIF = { pimmee: 'PIMMEE', ip: 'Ingresos propios', cpe: 'CPE', len: 'La Escuela es Nuestra', caja: 'Caja chica', personal: 'Personal', sin: 'Sin clasificar' };
+const COR_URG = { urgente: 'Urgente', pronto: 'Esta semana', normal: 'Normal', info: 'Informativo' };
+const COR_TEMAS = ['Autoridades y oficinas', 'Escuelas', 'Personal', 'Recursos financieros', 'Factura', 'Programas y convocatorias', 'Capacitación', 'Padres de familia', 'Sindicato', 'Plataformas y sistemas', 'Otro'];
+const COR_DIAS_INICIAL = 10;     // la primera vez se leen los últimos 10 días
+const COR_POR_VUELTA = 40;       // correos por revisión (el resto sigue en la siguiente)
+const COR_CONSERVAR = 120;       // días que se muestran en Tequio (las facturas pendientes siempre)
+
+const corEsFactura_ = o => !!(o && o.factura && o.factura.es);
+function corLista_() {
+  const lim = sumarDias_(hoy_(), -COR_CONSERVAR);
+  return leer_('cor').filter(o => String(o.fecha).slice(0, 10) >= lim || (corEsFactura_(o) && (!o.clasif || o.clasif === 'sin')))
+    .map(o => { const x = Object.assign({}, o); delete x.extracto; return x; })
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+function corCfg_() {
+  const p = PropertiesService.getScriptProperties();
+  return { ultimo: p.getProperty('COR_REVISADO') || '', ia: !!p.getProperty('GEMINI_KEY'), cuenta: Session.getEffectiveUser().getEmail(),
+    carpeta: p.getProperty('COR_CARPETA') || '', automatico: ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'revisarCorreos'), clasif: COR_CLASIF };
+}
+/** Disparador de cada hora. */
+function revisarCorreos() {
+  try { revisarCorreos_({}); } catch (e) { bitacora_('correos', '', [], 'Lectura del correo', 'error: ' + e.message); }
+}
+/** Ejecute esta función UNA vez después de actualizar: deja programada la lectura del correo cada hora y hace la primera. */
+function activarCorreos() {
+  asegurarCorreos_();
+  const r = revisarCorreos_({ manual: true });
+  Logger.log('Listo. Correos nuevos leídos: ' + r.nuevos + (r.facturas ? ' · facturas: ' + r.facturas : '') + (r.urgentes ? ' · urgentes: ' + r.urgentes : '') + (r.faltan ? ' · faltan ' + r.faltan + ' (se leen en la próxima vuelta)' : '') + '. Se revisará cada hora.');
+}
+function asegurarCorreos_() {
+  if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'revisarCorreos')) return;
+  ScriptApp.newTrigger('revisarCorreos').timeBased().everyHours(1).create();
+}
+
+function revisarCorreos_(op) {
+  op = op || {};
+  // Candado propio de la lectura (no el general): así Tequio sigue respondiendo mientras se leen los correos
+  const lock = LockService.getUserLock();
+  if (!lock.tryLock(op.manual ? 20000 : 5000)) return { nuevos: 0, facturas: 0, urgentes: 0, ocupado: true };
+  const p = PropertiesService.getScriptProperties();
+  let res;
+  try {
+    const yoCorreo = String(Session.getEffectiveUser().getEmail()).toLowerCase();
+    const ult = +(p.getProperty('COR_ULTIMO') || 0);
+    const desde = ult ? ult - 2 * 3600000 : Date.now() - COR_DIAS_INICIAL * 86400000;   // 2 h de traslape: lo repetido se ignora
+    const hilos = GmailApp.search('in:inbox after:' + Math.floor(desde / 1000), 0, 100);
+    const ya = {}; leer_('cor').forEach(x => ya[x.id] = 1);
+    let msgs = [];
+    hilos.forEach(h => h.getMessages().forEach(m => {
+      if (ya[m.getId()] || m.getDate().getTime() < desde || m.isInTrash()) return;
+      if (String(m.getFrom()).toLowerCase().indexOf(yoCorreo) >= 0) return;   // lo que envía la propia Supervisión (y los avisos de Tequio)
+      msgs.push(m);
+    }));
+    msgs.sort((a, b) => a.getDate() - b.getDate());
+    const faltan = Math.max(0, msgs.length - COR_POR_VUELTA);
+    msgs = msgs.slice(0, COR_POR_VUELTA);
+    const items = msgs.map(corLeerMensaje_);
+    corResumirIA_(items);
+    const nuevos = items.map(x => x.o);
+    if (nuevos.length) conLock_(() => guardarVarios_('cor', nuevos));
+    // hasta dónde se leyó: si quedaron pendientes, la siguiente vuelta sigue desde el último leído
+    const tope = faltan ? (msgs.length ? msgs[msgs.length - 1].getDate().getTime() + 1 : Date.now()) : Date.now();
+    p.setProperty('COR_ULTIMO', String(Math.max(ult, tope)));
+    p.setProperty('COR_REVISADO', ahora_());
+    const urg = nuevos.filter(o => o.urgencia === 'urgente'), fac = nuevos.filter(corEsFactura_);
+    if (ult && (urg.length || fac.length)) corAvisar_(urg, fac);   // la primera lectura (días atrás) no manda aviso
+    res = { nuevos: nuevos.length, urgentes: urg.length, facturas: fac.length, faltan: faltan };
+  } finally { lock.releaseLock(); }
+  return res;
+}
+
+// Lee un mensaje: remitente, asunto, texto (sin lo citado), adjuntos y, si trae CFDI, los datos de la factura
+function corLeerMensaje_(m) {
+  const de = String(m.getFrom() || ''), mm = de.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);
+  const adj = m.getAttachments({ includeInlineImages: false });
+  const adjuntos = adj.map((a, i) => ({ i: i, n: a.getName(), t: a.getContentType(), kb: Math.round(a.getSize() / 1024) }));
+  let cfdi = null;
+  adj.forEach(a => {
+    if (cfdi || !(/\.xml$/i.test(a.getName() || '') || /xml/i.test(a.getContentType() || ''))) return;
+    try { cfdi = corLeerCfdi_(a.getDataAsString('UTF-8')); } catch (e) {}
+  });
+  let cuerpo = String(m.getPlainBody() || '');
+  const corte = cuerpo.search(/\n\s*(El .{5,120} escribió:|On .{5,120} wrote:|-{2,}\s*Mensaje (original|reenviado)|-{2,}\s*Forwarded message|De:\s.+\n\s*(Enviado|Fecha):)/i);
+  if (corte > 200) cuerpo = cuerpo.slice(0, corte);
+  cuerpo = cuerpo.replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  const asunto = String(m.getSubject() || '(sin asunto)');
+  const pareceFac = !!cfdi || /factura|cfdi|comprobante fiscal|\bxml\b/i.test(asunto + ' ' + adjuntos.map(a => a.n).join(' '));
+  const o = { id: m.getId(), hilo: m.getThread().getId(), fecha: Utilities.formatDate(m.getDate(), TZ, "yyyy-MM-dd'T'HH:mm:ss"),
+    de: mm ? mm[2].trim().toLowerCase() : de.trim().toLowerCase(), deNombre: mm ? mm[1].trim() : '', asunto: asunto.slice(0, 300),
+    resumen: '', urgencia: 'normal', motivo: '', tema: '', limite: '', accion: '', factura: pareceFac ? Object.assign({ es: true }, cfdi || {}) : { es: false },
+    adjuntos: adjuntos, clasif: '', archivos: [], estado: 'nuevo', clasifPor: '', clasifNombre: '', clasificado: '', actualizado: ahora_(), historial: [],
+    extracto: cuerpo.slice(0, 1500), ia: '' };
+  return { o: o, cuerpo: cuerpo.slice(0, 2500) };
+}
+
+// Datos principales de un CFDI 3.3 o 4.0
+function corLeerCfdi_(xml) {
+  if (!/<(cfdi:)?Comprobante\b/i.test(xml)) return null;
+  const at = (tag, a) => { const t = (xml.match(new RegExp('<(?:\\w+:)?' + tag + '\\b[^>]*>', 'i')) || [])[0] || ''; return ((t.match(new RegExp('\\s' + a + '="([^"]*)"', 'i')) || [])[1] || '').trim(); };
+  const conceptos = (xml.match(/<(?:cfdi:)?Concepto\b[^>]*>/gi) || []).map(t => ((t.match(/\sDescripcion="([^"]*)"/i) || [])[1] || '').trim()).filter(Boolean);
+  const des = s => String(s).replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  return { cfdi: true, emisor: des(at('Emisor', 'Nombre')), rfcEmisor: at('Emisor', 'Rfc'), receptor: des(at('Receptor', 'Nombre')), rfcReceptor: at('Receptor', 'Rfc'),
+    usoCfdi: at('Receptor', 'UsoCFDI'), regimenReceptor: at('Receptor', 'RegimenFiscalReceptor'), formaPago: at('Comprobante', 'FormaPago'),
+    version: at('Comprobante', 'Version'), sello8: at('Comprobante', 'Sello').slice(-8), total: at('Comprobante', 'Total'), subtotal: at('Comprobante', 'SubTotal'), moneda: at('Comprobante', 'Moneda'),
+    fechaFac: at('Comprobante', 'Fecha').slice(0, 10), serie: at('Comprobante', 'Serie'), folio: at('Comprobante', 'Folio'), metodo: at('Comprobante', 'MetodoPago'),
+    tipo: at('Comprobante', 'TipoDeComprobante'), uuid: at('TimbreFiscalDigital', 'UUID').toUpperCase(),
+    concepto: des(conceptos.slice(0, 3).join(' · ')).slice(0, 240), nConceptos: conceptos.length };
+}
+
+// Resumen, urgencia, tema y fecha límite con Gemini (de 8 en 8 para cuidar el límite gratuito); si no hay IA, por palabras clave
+function corResumirIA_(items) {
+  const hay = !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  for (let i = 0; i < items.length; i += 8) {
+    const grupo = items.slice(i, i + 8);
+    let r = null;
+    if (hay) {
+      try {
+        const txt = gemini_(corPrompt_(grupo), { json: true, temperatura: 0.2, max: 4096 });
+        r = JSON.parse(txt.replace(/^```(json)?|```$/g, '').trim());
+        if (!Array.isArray(r)) r = r && Array.isArray(r.correos) ? r.correos : null;
+      } catch (e) { r = null; }
+    }
+    grupo.forEach((it, j) => {
+      const x = r && (r.find(y => +y.i === j + 1) || r[j]);
+      if (x) corAplicarIA_(it.o, x); else corHeuristica_(it.o, it.cuerpo);
+    });
+  }
+}
+function corPrompt_(grupo) {
+  const hoy = hoy_();
+  return 'Eres el asistente de la ' + Z().nombreNo + ' (educación ' + Z().nivelSost.toLowerCase() + ', ' + Z().inst + ', ' + Z().lugar + '). ' +
+    'Hoy es ' + fechaLarga_(hoy) + ' (' + hoy + '). Te paso correos que llegaron a la cuenta de la Supervisión. Para cada uno devuelve un objeto con:\n' +
+    '- i: el número del correo.\n- resumen: en español, una o dos oraciones claras: quién escribe, qué informa o qué pide y para cuándo.\n' +
+    '- urgencia: "urgente" (hay que atender hoy o en los próximos 2 días, o el tema es delicado: queja, accidente, seguridad, situación legal, requerimiento de una autoridad con plazo corto), ' +
+    '"pronto" (plazo o evento dentro de los próximos 7 días, o pide respuesta, entrega o confirmación), "normal" (sin plazo cercano) o "info" (solo informativo: boletín, publicidad, notificación automática, acuse).\n' +
+    '- motivo: por qué esa urgencia, en máximo 12 palabras.\n- tema: uno de ' + JSON.stringify(COR_TEMAS) + '.\n' +
+    '- limite: la fecha límite o del evento en formato AAAA-MM-DD si el correo la menciona (resuelve "mañana", "el viernes", etc. con la fecha de hoy); si no hay, "".\n' +
+    '- accion: lo que debe hacer la Supervisión, en máximo 15 palabras; "" si no hay que hacer nada.\n' +
+    '- factura: true si el correo es o trae una factura o CFDI; si no, false.\n' +
+    'Devuelve SOLO un arreglo JSON, sin texto adicional.\n\n' +
+    grupo.map((it, j) => 'CORREO ' + (j + 1) + '\nDe: ' + (it.o.deNombre ? it.o.deNombre + ' <' + it.o.de + '>' : it.o.de) + '\nFecha: ' + it.o.fecha.replace('T', ' ') + '\nAsunto: ' + it.o.asunto +
+      (it.o.adjuntos.length ? '\nAdjuntos: ' + it.o.adjuntos.map(a => a.n).join(', ') : '') + (it.o.factura.cfdi ? '\nCFDI: ' + it.o.factura.emisor + ' → ' + it.o.factura.receptor + ', total ' + it.o.factura.total : '') +
+      '\nTexto:\n' + (it.cuerpo || '(sin texto)')).join('\n\n=====\n\n');
+}
+// Revisión de la factura que sube la urgencia: pagada con tarjeta de crédito (no se acepta)
+const COR_CREDITO = '04';
+function corRevisarFactura_(o) {
+  const f = o.factura || {};
+  if (!f.es || !f.cfdi) return;
+  if (f.formaPago === COR_CREDITO) { o.urgencia = 'urgente'; o.motivo = 'Factura pagada con tarjeta de crédito: no se acepta'; o.accion = 'Revisar con el proveedor o con quien hizo la compra'; }
+}
+function corAplicarIA_(o, x) {
+  o.resumen = String(x.resumen || '').slice(0, 600);
+  o.urgencia = COR_URG[x.urgencia] ? x.urgencia : 'normal';
+  o.motivo = String(x.motivo || '').slice(0, 140);
+  o.tema = COR_TEMAS.indexOf(x.tema) >= 0 ? x.tema : 'Otro';
+  o.limite = /^\d{4}-\d{2}-\d{2}$/.test(x.limite || '') ? x.limite : '';
+  o.accion = String(x.accion || '').slice(0, 200);
+  if (x.factura === true && !o.factura.es) o.factura = { es: true };
+  if (o.factura.es) o.tema = 'Factura';
+  o.ia = 'gemini';
+  corAjustarPorFecha_(o);
+  corRevisarFactura_(o);
+}
+function corHeuristica_(o, cuerpo) {
+  const t = (o.asunto + ' ' + cuerpo).toLowerCase();
+  o.resumen = (o.deNombre || o.de) + ': ' + (cuerpo.replace(/\s+/g, ' ').slice(0, 220) || o.asunto) + (cuerpo.length > 220 ? '…' : '');
+  if (/urgente|inmediat|hoy mismo|a la brevedad|lo antes posible|queja|accidente|demanda/.test(t)) { o.urgencia = 'urgente'; o.motivo = 'Menciona urgencia o un tema delicado'; }
+  else if (/fecha l[ií]mite|a m[aá]s tardar|plazo|favor de (enviar|entregar|remitir|confirmar)|se solicita|requiere|convoca/.test(t)) { o.urgencia = 'pronto'; o.motivo = 'Pide una entrega o respuesta'; }
+  else if (/no-?reply|noreply|newsletter|bolet[ií]n|notificaci[oó]n autom|unsubscribe|darse de baja/.test(t + ' ' + o.de)) { o.urgencia = 'info'; o.motivo = 'Parece informativo o automático'; }
+  else { o.urgencia = 'normal'; o.motivo = ''; }
+  o.tema = o.factura.es ? 'Factura' : 'Otro';
+  o.ia = 'palabras';
+  corAjustarPorFecha_(o);
+  corRevisarFactura_(o);
+}
+// La fecha límite manda: si vence en 2 días o menos es urgente; en 7 o menos, de esta semana
+function corAjustarPorFecha_(o) {
+  if (!o.limite) return;
+  const hoy = hoy_();
+  if (o.limite < hoy) return;
+  if (o.limite <= sumarDias_(hoy, 2)) { if (o.urgencia !== 'urgente') { o.urgencia = 'urgente'; o.motivo = 'Vence el ' + fechaCorta_(o.limite); } }
+  else if (o.limite <= sumarDias_(hoy, 7) && (o.urgencia === 'normal' || o.urgencia === 'info')) { o.urgencia = 'pronto'; o.motivo = 'Vence el ' + fechaCorta_(o.limite); }
+}
+
+// Guarda (o mueve) la factura en la carpeta de su clasificación. Con «Sin clasificar» queda pendiente: no se guarda nada nuevo.
+function corClasificar_(id, clasif, yo) {
+  if (!COR_CLASIF[clasif]) throw new Error('Clasificación no válida.');
+  const o = buscar_('cor', id);
+  if (!o) throw new Error('No se encontró el correo.');
+  if (!corEsFactura_(o)) o.factura = Object.assign({}, Array.isArray(o.factura) ? {} : o.factura, { es: true });
+  const anio = String((o.factura && o.factura.fechaFac) || o.fecha).slice(0, 4);
+  let archivos = (o.archivos || []).filter(a => a && a.id);
+  if (clasif === 'sin') {
+    if (archivos.length) { const c = corCarpeta_('sin', anio); archivos.forEach(a => { try { DriveApp.getFileById(a.id).moveTo(c); } catch (e) {} }); }
+  } else {
+    const c = corCarpeta_(clasif, anio);
+    if (archivos.length) archivos.forEach(a => { try { DriveApp.getFileById(a.id).moveTo(c); } catch (e) {} });
+    else {
+      let m;
+      try { m = GmailApp.getMessageById(o.id); } catch (e) { m = null; }
+      if (!m) throw new Error('El correo ya no está en Gmail (¿se borró?). No se pudo guardar la factura.');
+      const f = o.factura || {}, pref = [String((f.fechaFac || o.fecha)).slice(0, 10), f.emisor || o.deNombre || o.de, f.total ? '$' + f.total : ''].filter(Boolean).join(' · ').replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 120);
+      m.getAttachments({ includeInlineImages: false }).forEach(a => {
+        if (!/pdf|xml|image|zip/i.test(a.getContentType()) && !/\.(pdf|xml|jpe?g|png|zip)$/i.test(a.getName())) return;
+        const x = c.createFile(a.copyBlob().setName(pref + ' · ' + a.getName()));
+        x.setDescription('Factura guardada desde Tequio · ' + o.asunto + ' · ' + o.de);
+        archivos.push({ id: x.getId(), n: x.getName() });
+      });
+      if (!archivos.length) {   // sin adjuntos (la factura viene en el cuerpo o en un enlace): se guarda el correo en PDF
+        const html = '<h3>' + esc_(o.asunto) + '</h3><p>De: ' + esc_(o.deNombre + ' <' + o.de + '>') + '<br>Fecha: ' + esc_(o.fecha.replace('T', ' ')) + '</p><hr>' + m.getBody();
+        const x = c.createFile(Utilities.newBlob(html, 'text/html', 'correo.html').getAs('application/pdf').setName(pref + ' · correo.pdf'));
+        archivos.push({ id: x.getId(), n: x.getName() });
+      }
+    }
+    try { const l = GmailApp.getUserLabelByName('Tequio/Facturas/' + COR_CLASIF[clasif]) || GmailApp.createLabel('Tequio/Facturas/' + COR_CLASIF[clasif]); l.addToThread(GmailApp.getThreadById(o.hilo)); } catch (e) {}
+  }
+  if (o.clasif && o.clasif !== clasif && o.clasif !== 'sin') { try { const l = GmailApp.getUserLabelByName('Tequio/Facturas/' + COR_CLASIF[o.clasif]); if (l) l.removeFromThread(GmailApp.getThreadById(o.hilo)); } catch (e) {} }
+  o.archivos = archivos;
+  o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: (clasif === 'sin' ? 'dejó sin clasificar' : 'guardó en ' + COR_CLASIF[clasif]) }]).slice(-20);
+  o.clasif = clasif; o.clasifPor = yo.id; o.clasifNombre = yo.nombre; o.clasificado = ahora_(); o.actualizado = ahora_();
+  if (o.estado === 'nuevo') o.estado = 'visto';
+  conLock_(() => guardar_('cor', o));
+  const x = Object.assign({}, o); delete x.extracto;
+  return x;
+}
+// Tequio · Facturas (no compartir) / <clasificación> / <año>
+function corCarpeta_(clasif, anio) {
+  const p = PropertiesService.getScriptProperties();
+  let raiz = null;
+  try { if (p.getProperty('COR_CARPETA')) raiz = DriveApp.getFolderById(p.getProperty('COR_CARPETA')); } catch (e) { raiz = null; }
+  if (!raiz || raiz.isTrashed()) { raiz = carpetaPorNombre_(DriveApp.getRootFolder(), 'Tequio · Facturas (no compartir)'); p.setProperty('COR_CARPETA', raiz.getId()); }
+  const orden = Object.keys(COR_CLASIF), n = clasif === 'sin' ? '00 · Sin clasificar' : ('0' + orden.indexOf(clasif) + 1).slice(-2) + ' · ' + COR_CLASIF[clasif];
+  return carpetaPorNombre_(carpetaPorNombre_(raiz, n), anio);
+}
+
+function corFicha_(o) {
+  const f = o.factura || {}, c = { urgente: '#B3261E', pronto: '#A0690C', normal: '#24427A', info: '#6A5C4C' }[o.urgencia] || '#24427A';
+  return '<div style="border:1px solid #E4D8C3;border-left:4px solid ' + c + ';border-radius:8px;padding:10px 14px;margin:10px 0">' +
+    '<div style="font-size:12px;color:' + c + ';font-weight:bold;text-transform:uppercase">' + esc_(corEsFactura_(o) ? 'Factura' : COR_URG[o.urgencia] || '') + (o.limite ? ' · vence ' + fechaCorta_(o.limite) : '') + '</div>' +
+    '<div style="font-size:16px;font-weight:bold;color:#1E2A40;margin:2px 0">' + esc_(o.asunto) + '</div>' +
+    '<div style="font-size:13px;color:#6A5C4C">' + esc_(o.deNombre || o.de) + ' · ' + esc_(fechaCorta_(String(o.fecha).slice(0, 10)) + ' ' + String(o.fecha).slice(11, 16)) + '</div>' +
+    (f.cfdi ? '<div style="font-size:14px;margin-top:6px"><b>' + esc_(f.emisor || f.rfcEmisor) + '</b> · $' + esc_(f.total) + ' · a nombre de ' + esc_(f.receptor || f.rfcReceptor) + (f.formaPago === COR_CREDITO ? ' · <b style="color:#B3261E">pagada con tarjeta de crédito</b>' : '') + '</div>' : '') +
+    '<div style="font-size:14px;margin-top:6px">' + esc_(o.resumen) + '</div>' + (o.accion ? '<div style="font-size:13px;margin-top:4px;color:#24427A">→ ' + esc_(o.accion) + '</div>' : '') + '</div>';
+}
+// Aviso al momento: urgentes y facturas nuevas
+function corAvisar_(urg, fac) {
+  const para = String(Z().correosAdmin).split(',').map(x => x.trim()).filter(Boolean);
+  const partes = [];
+  if (urg.length) partes.push('<p><b>' + (urg.length === 1 ? 'Llegó un correo urgente' : 'Llegaron ' + urg.length + ' correos urgentes') + '</b> a ' + esc_(CORREO_SUPERVISION) + ':</p>' + urg.map(corFicha_).join(''));
+  const facs = fac.filter(o => o.urgencia !== 'urgente');
+  if (facs.length) partes.push('<p><b>' + (facs.length === 1 ? 'Llegó una factura' : 'Llegaron ' + facs.length + ' facturas') + '.</b> Entre a Tequio para clasificarla' + (facs.length === 1 ? '' : 's') + ' (no se guarda' + (facs.length === 1 ? '' : 'n') + ' hasta que usted elija dónde).</p>' + facs.map(corFicha_).join(''));
+  const asunto = urg.length ? 'Correo urgente en la Supervisión' + (urg.length > 1 ? ' (' + urg.length + ')' : '') + ' · ' + urg[0].asunto.slice(0, 60) : 'Factura nueva en el correo de la Supervisión' + (facs.length > 1 ? ' (' + facs.length + ')' : '');
+  enviarCorreo_(para, asunto, plantilla_('Correo de la Supervisión', partes.join('') + boton_(PAGINA, 'Abrir Tequio'), true), 'correos', '');
+}
+// Cada mañana: lo que sigue abierto (urgentes y de esta semana sin atender, facturas sin clasificar)
+function resumenCorreos_() {
+  const l = leer_('cor'), hoy = hoy_();
+  const abiertos = l.filter(o => o.estado !== 'atendido' && !corEsFactura_(o) && (o.urgencia === 'urgente' || o.urgencia === 'pronto') && (!o.limite || o.limite >= hoy) && String(o.fecha).slice(0, 10) >= sumarDias_(hoy, -30))
+    .sort((a, b) => (a.urgencia === 'urgente' ? 0 : 1) - (b.urgencia === 'urgente' ? 0 : 1) || String(a.limite || '9').localeCompare(String(b.limite || '9')));
+  const fac = l.filter(o => corEsFactura_(o) && (!o.clasif || o.clasif === 'sin'));
+  if (!abiertos.length && !fac.length) return;
+  const para = String(Z().correosAdmin).split(',').map(x => x.trim()).filter(Boolean);
+  const cuerpo = '<p>Buenos días. Esto sigue abierto en el correo de la Supervisión:</p>' +
+    (abiertos.length ? '<h3 style="font-size:16px;color:#24427A;margin:14px 0 4px">Por atender (' + abiertos.length + ')</h3>' + abiertos.slice(0, 15).map(corFicha_).join('') + (abiertos.length > 15 ? '<p>… y ' + (abiertos.length - 15) + ' más en Tequio.</p>' : '') : '') +
+    (fac.length ? '<h3 style="font-size:16px;color:#24427A;margin:14px 0 4px">Facturas sin clasificar (' + fac.length + ')</h3><p style="font-size:14px">' + fac.slice(0, 20).map(o => esc_((o.factura.emisor || o.deNombre || o.de) + (o.factura.total ? ' · $' + o.factura.total : '') + ' · ' + fechaCorta_(String(o.fecha).slice(0, 10)))).join('<br>') + '</p>' : '') +
+    boton_(PAGINA, 'Abrir Tequio');
+  enviarCorreo_(para, 'Correo de la Supervisión · lo pendiente al ' + fechaCorta_(hoy), plantilla_('Correo de la Supervisión', cuerpo, true), 'correos', '');
 }
 
 /* ===================== Informe semanal automático (lunes 7:00 a. m.) =====================

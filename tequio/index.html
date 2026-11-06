@@ -782,6 +782,7 @@ const SITIO_TQ = 'https://carlosog23.github.io/Carlos-Ortega/tequio/';
 function zonaArmar(g) {
   const z = Object.assign({}, ZONA_DEF, g || {});
   z.estatal = /estatal/i.test(z.sostenimiento);
+  if (z.rfcFacturas == null) z.rfcFacturas = z.estatal ? '' : 'ISE921210MX8';   // RFC al que deben venir las facturas
   z.nombre = 'Supervisión Escolar Zona ' + z.numero;
   z.nombreNo = 'Supervisión Escolar Zona No. ' + z.numero;
   z.nombreMay = z.nombre.toUpperCase();
@@ -966,7 +967,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-1545';
+const PUBLICACION = '2026-11-05-1940';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1096,6 +1097,7 @@ function pestanasTodas() {
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   l.push(['finanzas', 'Recursos financieros', 'i-pesos']);
   l.push(['herramientas', 'Herramientas', 'i-tlm']);
+  if (esAdmin()) l.push(['correos', 'Correo de la Supervisión', 'i-correo']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -1107,14 +1109,14 @@ const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas']],
   ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'seguimiento', 'campo', 'visitas']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia']],
-  ['documentos', 'Documentos', 'i-lapiz', ['oficios', 'directorio', 'herramientas']],
+  ['documentos', 'Documentos', 'i-lapiz', ['correos', 'oficios', 'directorio', 'herramientas']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
   ['finanzas', 'Recursos financieros', 'i-pesos', ['finanzas']]
 ];
 const LAT_ARRIBA = ['pendientes', 'enlaces'];
 let latAbiertos = new Set((() => { try { return JSON.parse(localStorage.getItem('tequio.lat') || '[]'); } catch (e) { return []; } })());
 function nombreLat(t) {
-  return ({ agenda: 'Agenda de la zona', acuerdos: esDirector() ? t[1] : 'Acuerdos y programas', seguimiento: 'Visitas de supervisión', herramientas: 'Tlamatini', permisos: 'Permisos y facilidades', personal: esDirector() ? t[1] : 'Base del personal' })[t[0]] || t[1];
+  return ({ agenda: 'Agenda de la zona', acuerdos: esDirector() ? t[1] : 'Acuerdos y programas', seguimiento: 'Visitas de supervisión', herramientas: 'Tlamatini', permisos: 'Permisos y facilidades', correos: 'Correo de la Supervisión', personal: esDirector() ? t[1] : 'Base del personal' })[t[0]] || t[1];
 }
 function gruposLat(tabs) {
   const usados = new Set(LAT_ARRIBA), gr = [];
@@ -1190,7 +1192,7 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos })[vista.tab]();
   pintarBandaVid(); vidVigilar();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
@@ -5200,7 +5202,7 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)'], ['correos', 'Correo de la Supervisión (resumen, urgencia y facturas)']];
 // Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
 const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
 const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
@@ -9119,6 +9121,11 @@ const Demo = (() => {
     finGuardar: d => { if (!D.fin) D.fin = finDemo(); const o = finArmarDemo(D.fin, d, cfg.dir ? { id: 'u-d-02DPR0684N', nombre: 'Dirección (demostración)' } : D.yo); poner(D.fin, o); return { fin: copia(o) }; },
     finEliminar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, a: 'elimino' }]); return { fin: copia(o) }; },
     recDatos: () => { if (!D.rec) D.rec = recDemo(); return { rec: copia(D.rec) }; },
+    corDatos: () => { if (!D.cor) D.cor = corDemo(); return { cor: copia(D.cor), corCfg: { ultimo: ahora(), ia: true, automatico: true, cuenta: 'supervision050sep@gmail.com', carpeta: '' } }; },
+    corRevisar: () => { if (!D.cor) D.cor = corDemo(); return { nuevos: 0, urgentes: 0, facturas: 0, cor: copia(D.cor), corCfg: { ultimo: ahora(), ia: true, automatico: true, cuenta: 'supervision050sep@gmail.com', carpeta: '' } }; },
+    corMarcar: d => { const o = D.cor.find(x => x.id === d.id); if (d.estado) o.estado = d.estado; if (d.urgencia) o.urgencia = d.urgencia; if (d.factura != null) { o.factura = Object.assign({}, o.factura, { es: !!d.factura }); if (!d.factura) o.clasif = ''; } return { cor: copia(o) }; },
+    corClasificar: d => { const o = D.cor.find(x => x.id === d.id); o.clasif = d.clasif; o.factura.es = true; o.clasifNombre = D.yo.nombre; o.clasificado = ahora(); if (o.estado === 'nuevo') o.estado = 'visto';
+      if (d.clasif !== 'sin' && !(o.archivos || []).length) o.archivos = (o.adjuntos || []).map((a, i) => ({ id: 'demo' + i, n: a.n })); return { cor: copia(o) }; },
     recGuardar: d => { if (!D.rec) D.rec = recDemo(); const o = recArmarDemo(D.rec, d, D.yo); poner(D.rec, o); return { rec: copia(o) }; },
     recEliminar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'elimino' }]); return { rec: copia(o) }; },
     recRestaurar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { rec: copia(o) }; },
@@ -9400,11 +9407,281 @@ const Demo = (() => {
     }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'vidEstado', 'vidConectar', 'revTraer'];
+  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
 })();
+
+/* =========================================================
+   Correo de la Supervisión (solo la Supervisión)
+   El servidor lee cada hora la bandeja de entrada de la cuenta de la Supervisión: resume cada correo con Gemini,
+   lo clasifica por urgencia (fechas y tema) y detecta las facturas (CFDI). Las facturas no se guardan solas:
+   el Supervisor elige su clasificación y entonces se copian al Drive. «Sin clasificar» queda pendiente.
+   ========================================================= */
+const COR_VER = 43;
+const COR_CLASIF = [['sin', 'Sin clasificar (pendiente)'], ['pimmee', 'PIMMEE'], ['ip', 'Ingresos propios'], ['cpe', 'CPE'], ['len', 'La Escuela es Nuestra'], ['caja', 'Caja chica'], ['personal', 'Personal']];
+const corClasifNom = k => ((COR_CLASIF.find(x => x[0] === k) || [])[1] || '').replace(' (pendiente)', '');
+const COR_URG = { urgente: ['Urgente', 'mal'], pronto: ['Esta semana', 'aviso'], normal: ['Normal', 'indigo'], info: ['Informativo', ''], vencido: ['Ya venció', 'mal'] };
+const corFac = o => !!(o && o.factura && o.factura.es);
+const corPend = o => corFac(o) && (!o.clasif || o.clasif === 'sin');
+const corDias = f => Math.round((deIso(f) - deIso(hoy())) / 86400000);
+// La urgencia se recalcula con la fecha límite: lo que se acerca sube solo
+function corUrg(o) {
+  if (o.estado === 'atendido' || !o.limite) return o.urgencia || 'normal';
+  const d = corDias(o.limite);
+  if (d < 0) return o.urgencia === 'info' ? 'info' : 'vencido';
+  if (d <= 2) return 'urgente';
+  if (d <= 7 && (o.urgencia === 'normal' || o.urgencia === 'info')) return 'pronto';
+  return o.urgencia || 'normal';
+}
+const COR_ORDEN = { vencido: 0, urgente: 1, pronto: 2, normal: 3, info: 4 };
+function corRecibir(o) { if (!S.cor) S.cor = []; poner(S.cor, o); }
+async function corCargar(forzar) {
+  if (S.cor && !forzar) return true;
+  const r = await conCarga(() => api('corDatos', {}));
+  if (!r) return false;
+  S.cor = r.cor || []; S.corCfg = r.corCfg || {};
+  return true;
+}
+const corGmail = o => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent((S.corCfg || {}).cuenta || ZONA.correoSupervision || '') + '#all/' + (o ? o.hilo : '');
+const corPlural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+function corEstilos() {
+  if ($('#cor-css')) return;
+  const s = document.createElement('style'); s.id = 'cor-css';
+  s.textContent = `
+.cor-lista{display:flex;flex-direction:column;gap:10px}
+.cor-it{padding:12px 14px;border-left:4px solid var(--borde)}
+.cor-it.u-urgente,.cor-it.u-vencido{border-left-color:var(--alerta)}.cor-it.u-pronto{border-left-color:#C98A12}.cor-it.u-normal{border-left-color:var(--indigo)}
+.cor-it.atendido{opacity:.72}
+.cor-cab{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.cor-asunto{font-weight:700;font-size:16px;line-height:1.3;margin:2px 0;overflow-wrap:anywhere}
+.cor-de{font-size:13px;color:var(--gris);overflow-wrap:anywhere}
+.cor-res{margin:6px 0 0;font-size:14.5px;line-height:1.5}
+.cor-acc{margin-top:4px;font-size:14px;color:var(--indigo);font-weight:600}
+.cor-adj{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.cor-fac{margin-top:10px;background:var(--arena-2);border-radius:10px;padding:10px 12px;font-size:14px}
+.cor-fac dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:10px 0 0}
+.cor-fac dt{color:var(--gris)}.cor-fac dd{margin:0;overflow-wrap:anywhere}
+.cor-fac .tot{font-family:'Fraunces',serif;font-size:22px;font-variant-numeric:tabular-nums}
+.cor-rev{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.cor-chk{display:flex;gap:8px;align-items:baseline;font-size:14px;font-weight:600}
+.cor-chk b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:12px;flex:none;color:#fff}
+.cor-chk.ok{color:var(--ok)}.cor-chk.ok b{background:var(--ok)}
+.cor-chk.aviso{color:#8A5A0B}.cor-chk.aviso b{background:#C98A12}
+.cor-chk.mal{color:var(--alerta);background:var(--alerta-f);border-radius:8px;padding:6px 8px}.cor-chk.mal b{background:var(--alerta)}
+.cor-datos{background:var(--papel);border:1px solid var(--borde);border-radius:9px}
+.cor-dato{display:grid;grid-template-columns:150px minmax(0,1fr) 38px;gap:8px;align-items:center;padding:6px 6px 6px 10px;border-bottom:1px solid var(--borde)}
+.cor-dato:last-child{border-bottom:0}
+.cor-dato .et{color:var(--gris);font-size:13px}.cor-dato .v{overflow-wrap:anywhere;font-weight:600}
+@media (max-width:640px){.cor-dato{grid-template-columns:minmax(0,1fr) 38px}.cor-dato .et{grid-column:1/-1;margin-bottom:-6px}}
+.cor-guardar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.cor-guardar select{min-width:220px;flex:1;max-width:340px;border:1px solid var(--borde);border-radius:8px;padding:6px 8px;min-height:36px;background:#fff}
+.cor-pie select{border:1px solid var(--borde);border-radius:8px;background:#fff}
+.cor-filtros .seg-op{flex:1 1 100%;max-width:560px}.cor-filtros .seg-op button{white-space:nowrap}
+.cor-filtros select{flex:0 1 240px}.cor-filtros input{flex:1 1 220px}
+.cor-pie{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.cor-estado{font-size:13px;color:var(--gris);margin:-4px 0 12px}
+@media (max-width:640px){.cor-guardar select{min-width:0;max-width:none;width:100%}}`;
+  document.head.appendChild(s);
+}
+
+async function vCorreos() {
+  corEstilos();
+  if (!esAdmin()) { $('#vista').innerHTML = '<div class="tarjeta vacio">Esta sección es solo de la Supervisión.</div>'; return; }
+  if (!cfg.demo && (S.version || 0) < COR_VER) {
+    $('#vista').innerHTML = `<div class="titulo-vista"><h1>Correo de la Supervisión</h1></div>
+      <div class="tarjeta pad"><h2 style="font-size:20px;margin-bottom:8px">Falta actualizar el servidor</h2>
+      <p style="margin-top:0">Para leer el correo de la Supervisión, el servidor de Tequio necesita la versión ${COR_VER}. Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> y al final ejecute <b>activarCorreos</b>.</p></div>`;
+    return;
+  }
+  if (!S.cor) {
+    $('#vista').innerHTML = '<div class="tarjeta vacio">Cargando el correo de la Supervisión…</div>';
+    if (!await corCargar()) { $('#vista').innerHTML = '<div class="tarjeta vacio">No se pudo cargar el correo. <button class="boton sec chico" id="cor-rein">Intentar de nuevo</button></div>'; $('#cor-rein').onclick = vCorreos; return; }
+    if (vista.tab !== 'correos') return;
+  }
+  const v = vista.cor || (vista.cor = { f: 'atender', q: '', tema: '' });
+  const c = S.corCfg || {}, l = S.cor || [];
+  const abiertos = l.filter(o => !corFac(o) && o.estado !== 'atendido');
+  const n = { urg: abiertos.filter(o => ['urgente', 'vencido'].includes(corUrg(o))).length, sem: abiertos.filter(o => corUrg(o) === 'pronto').length,
+    fac: l.filter(corPend).length, nuevos: l.filter(o => o.estado === 'nuevo').length };
+  const temas = [...new Set(l.map(o => o.tema).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const q = v.q.trim().toLowerCase();
+  let lista = l.filter(o => {
+    if (v.f === 'atender' && (corFac(o) || o.estado === 'atendido' || corUrg(o) === 'info')) return false;
+    if (v.f === 'urg' && (corFac(o) || o.estado === 'atendido' || !['urgente', 'vencido'].includes(corUrg(o)))) return false;
+    if (v.f === 'fac' && !corFac(o)) return false;
+    if (v.f === 'facp' && !corPend(o)) return false;
+    if (v.f === 'sem' && (corFac(o) || o.estado === 'atendido' || corUrg(o) !== 'pronto')) return false;
+    if (v.f === 'nuevos' && o.estado !== 'nuevo') return false;
+    if (v.f === 'atendidos' && o.estado !== 'atendido') return false;
+    if (v.tema && o.tema !== v.tema) return false;
+    if (q && ![o.asunto, o.de, o.deNombre, o.resumen, o.accion, (o.factura || {}).emisor, (o.factura || {}).receptor, (o.factura || {}).rfcEmisor, (o.factura || {}).uuid].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (['atender', 'urg', 'sem'].includes(v.f)) lista.sort((a, b) => COR_ORDEN[corUrg(a)] - COR_ORDEN[corUrg(b)] || String(a.limite || '9').localeCompare(String(b.limite || '9')) || String(b.fecha).localeCompare(String(a.fecha)));
+  else if (v.f === 'facp') lista.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+  const cifra = (k, x, t, cl) => `<button class="tarjeta pen-cifra${v.f === k ? ' sel' : ''}" data-cf="${k}"><b class="${x ? cl : ''}">${x}</b><span>${t}</span></button>`;
+  $('#vista').innerHTML = `<div class="titulo-vista"><h1>Correo de la Supervisión</h1>
+    <div class="acciones"><a class="boton sec" href="${corGmail()}" target="_blank" rel="noopener">${ico('i-correo')}Abrir Gmail</a>${c.carpeta ? `<a class="boton sec" href="https://drive.google.com/drive/folders/${esc(c.carpeta)}" target="_blank" rel="noopener">${ico('i-carpeta')}Facturas en Drive</a>` : ''}<button class="boton" id="cor-rev">${ico('i-act')}Revisar ahora</button></div></div>
+  <p class="cor-estado">${esc(c.cuenta || ZONA.correoSupervision || '')} · ${c.ultimo ? 'última revisión ' + esc(fechaHora(c.ultimo)) : 'todavía no se ha revisado'} · ${c.automatico ? 'se revisa sola cada hora' : '<b>la revisión automática está apagada</b> (ejecute «activarCorreos» en el servidor)'}${c.ia ? '' : ' · <b>sin IA</b>: los resúmenes se hacen por palabras clave (active Gemini en Oficios → Configuración)'}</p>
+  <div class="pen-cifras">${cifra('urg', n.urg, 'urgentes por atender', 'mal')}${cifra('sem', n.sem, 'de esta semana', 'aviso')}${cifra('facp', n.fac, 'facturas por clasificar', 'terra')}${cifra('nuevos', n.nuevos, 'sin ver', 'indigo')}</div>
+  <div class="filtros cor-filtros">
+    <div class="seg-op" role="group" aria-label="Mostrar">${[['atender', 'Por atender'], ['fac', 'Facturas'], ['todos', 'Todos'], ['atendidos', 'Atendidos']].map(([k, t]) => `<button data-cf="${k}" aria-pressed="${v.f === k || (k === 'fac' && v.f === 'facp') || (k === 'atender' && ['urg', 'sem'].includes(v.f))}">${t}</button>`).join('')}</div>
+    <select id="cor-tema" aria-label="Tema"><option value="">Todos los temas</option>${temas.map(t => `<option ${v.tema === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+    <input id="cor-q" type="search" placeholder="Buscar remitente, asunto, RFC…" value="${esc(v.q)}">
+  </div>
+  ${v.f === 'facp' ? '<p class="peq pen-intro">Facturas que todavía no tienen clasificación. Elija en cada una dónde va y pulse «Guardar»; se copia al Drive en su carpeta. Si no es de la zona o no sabe de quién es, déjela en «Sin clasificar».</p>' : ''}
+  ${n.nuevos && v.f !== 'atendidos' ? `<div style="text-align:right;margin:-4px 0 8px"><button class="boton sec chico" id="cor-vistos">Marcar ${corPlural(n.nuevos, 'nuevo', 'nuevos')} como visto${n.nuevos === 1 ? '' : 's'}</button></div>` : ''}
+  <div class="cor-lista">${lista.length ? lista.slice(0, v.max || 60).map(corTarjeta).join('') : `<div class="tarjeta vacio">${l.length ? 'No hay correos con este filtro.' : 'Todavía no hay correos leídos. Pulse «Revisar ahora».'}</div>`}</div>
+  ${lista.length > (v.max || 60) ? `<div style="text-align:center;margin-top:12px"><button class="boton sec" id="cor-mas">Ver más (${lista.length - (v.max || 60)})</button></div>` : ''}`;
+  $$('[data-cf]').forEach(b => b.onclick = () => { v.f = b.dataset.cf === v.f && ['urg', 'sem', 'facp', 'nuevos'].includes(v.f) ? 'atender' : b.dataset.cf; v.max = 0; vCorreos(); });
+  $('#cor-tema').onchange = e => { v.tema = e.target.value; vCorreos(); };
+  $('#cor-q').oninput = e => { v.q = e.target.value; clearTimeout(corEnlazar.t); corEnlazar.t = setTimeout(() => { vCorreos(); const i = $('#cor-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 350); };
+  if ($('#cor-mas')) $('#cor-mas').onclick = () => { v.max = (v.max || 60) + 60; vCorreos(); };
+  $('#cor-rev').onclick = async () => {
+    aviso('Leyendo el correo… puede tardar uno o dos minutos si llegaron muchos.', '', 4000);
+    const r = await accion('corRevisar', {});
+    if (!r) return;
+    S.cor = r.cor || []; S.corCfg = r.corCfg || {};
+    vCorreos();
+    aviso(r.ocupado ? 'Ya se estaba revisando el correo; en un momento aparecen los nuevos.' : r.nuevos ? corPlural(r.nuevos, 'correo nuevo', 'correos nuevos') + (r.urgentes ? ' · ' + corPlural(r.urgentes, 'urgente', 'urgentes') : '') + (r.facturas ? ' · ' + corPlural(r.facturas, 'factura', 'facturas') : '') + (r.faltan ? ' · faltan ' + r.faltan + ' (pulse otra vez)' : '') : 'No hay correos nuevos.', 'ok', 6000);
+  };
+  if ($('#cor-vistos')) $('#cor-vistos').onclick = async () => {
+    const ids = l.filter(o => o.estado === 'nuevo').map(o => o.id);
+    cargando(true);
+    try { for (const id of ids) { const r = await api('corMarcar', { id, estado: 'visto' }); corRecibir(r.cor); } } catch (e) { aviso(esc(e.message), 'mal', 8000); } finally { cargando(false); }
+    vCorreos();
+  };
+  corEnlazar();
+}
+
+// Catálogos del SAT que se muestran en la revisión de la factura
+const SAT_FORMA = { '01': 'Efectivo', '02': 'Cheque nominativo', '03': 'Transferencia electrónica', '04': 'Tarjeta de crédito', '05': 'Monedero electrónico', '06': 'Dinero electrónico', '08': 'Vales de despensa',
+  '12': 'Dación en pago', '13': 'Pago por subrogación', '14': 'Pago por consignación', '15': 'Condonación', '17': 'Compensación', '23': 'Novación', '24': 'Confusión', '25': 'Remisión de deuda',
+  '26': 'Prescripción o caducidad', '27': 'A satisfacción del acreedor', '28': 'Tarjeta de débito', '29': 'Tarjeta de servicios', '30': 'Aplicación de anticipos', '31': 'Intermediario de pagos', '99': 'Por definir' };
+const SAT_USO = { G01: 'Adquisición de mercancías', G02: 'Devoluciones, descuentos o bonificaciones', G03: 'Gastos en general', I01: 'Construcciones', I02: 'Mobiliario y equipo de oficina por inversiones',
+  I04: 'Equipo de cómputo y accesorios', I08: 'Otra maquinaria y equipo', S01: 'Sin efectos fiscales', CP01: 'Pagos' };
+const SAT_TIPO = { I: 'Ingreso', E: 'Egreso (nota de crédito)', P: 'Pago (complemento)', T: 'Traslado', N: 'Nómina' };
+const SAT_VERIFICA = 'https://verificacfdi.facturaelectronica.sat.gob.mx/';
+const corSat = (dic, k) => k ? k + ' · ' + (dic[k] || 'clave del SAT') : '';
+const corTotal = f => Number(f.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Enlace al verificador del SAT con los datos de la factura ya puestos (el mismo que trae el código QR); solo falta el código de la imagen
+function corLigaSat(f) {
+  if (!f.uuid || !f.rfcEmisor || !f.rfcReceptor) return SAT_VERIFICA;
+  return SAT_VERIFICA + 'default.aspx?id=' + encodeURIComponent(f.uuid) + '&re=' + encodeURIComponent(f.rfcEmisor) + '&rr=' + encodeURIComponent(f.rfcReceptor) +
+    '&tt=' + encodeURIComponent(f.total || '0') + (f.sello8 ? '&fe=' + encodeURIComponent(f.sello8) : '');
+}
+// Revisión: [nivel ('ok' | 'aviso' | 'mal'), texto]
+function corAlertas(f) {
+  const r = [];
+  if (!f || !f.cfdi) return r;
+  if (f.formaPago === '04') r.push(['mal', 'Pagada con tarjeta de crédito: no se acepta']);
+  else if (f.formaPago === '99') r.push(['aviso', 'Forma de pago «por definir»: falta el complemento de pago']);
+  else if (f.formaPago) r.push(['ok', 'Forma de pago: ' + (SAT_FORMA[f.formaPago] || f.formaPago)]);
+  else r.push(['aviso', 'No trae la forma de pago']);
+  const rfc = String(ZONA.rfcFacturas || '').toUpperCase();
+  if (rfc) r.push(String(f.rfcReceptor || '').toUpperCase() === rfc ? ['ok', 'A nombre de ' + ZONA.inst + ' (' + rfc + ')'] : ['aviso', 'No está a nombre de ' + ZONA.inst + ' (' + rfc + '): revise de quién es']);
+  r.push(f.uuid ? ['ok', 'Timbrada por el SAT (tiene folio fiscal)'] : ['mal', 'No trae folio fiscal (UUID): no está timbrada']);
+  if (f.metodo === 'PPD') r.push(['aviso', 'Método PPD: pago en parcialidades o diferido']);
+  if (f.tipo && f.tipo !== 'I') r.push(['aviso', 'Tipo de comprobante: ' + (SAT_TIPO[f.tipo] || f.tipo)]);
+  if (f.moneda && f.moneda !== 'MXN') r.push(['aviso', 'Moneda: ' + f.moneda]);
+  return r;
+}
+function corFacDetalle(o) {
+  const f = o.factura || {}, id = esc(o.id);
+  if (!f.cfdi) return `<div class="ayuda">No trae el XML de la factura (CFDI), así que no se pudo revisar ni leer sus datos. Revise el PDF o el correo y verifíquela en el SAT.</div>
+    <div class="cor-pie" style="margin-top:8px"><a class="boton sec chico" href="${SAT_VERIFICA}" target="_blank" rel="noopener">Verificar en el SAT</a></div>`;
+  const al = corAlertas(f), sim = { ok: '✓', aviso: '!', mal: '✕' };
+  const fila = (k, et, v, grande) => v ? `<div class="cor-dato"><span class="et">${et}</span><span class="v${grande ? ' tot' : ''}">${esc(v)}</span><button class="icono-btn" data-ccop="${k}" data-id="${id}" title="Copiar ${esc(et.toLowerCase())}" aria-label="Copiar ${esc(et.toLowerCase())}">${ico('i-copiar')}</button></div>` : '';
+  return `<div class="cor-rev">${al.map(([n, t]) => `<div class="cor-chk ${n}"><b>${sim[n]}</b>${esc(t)}</div>`).join('')}</div>
+    <div class="cor-datos">
+      ${fila('emisor', 'Proveedor', f.emisor)}${fila('rfcEmisor', 'RFC del proveedor', f.rfcEmisor)}${fila('concepto', 'Concepto', f.concepto + (f.nConceptos > 3 ? ' (y ' + (f.nConceptos - 3) + ' más)' : ''))}
+      ${fila('uuid', 'Folio fiscal (UUID)', f.uuid)}${fila('total', 'Total', '$' + corTotal(f) + (f.moneda && f.moneda !== 'MXN' ? ' ' + f.moneda : ''), true)}
+    </div>
+    <dl class="cor-otros">
+      <dt>A nombre de</dt><dd>${esc(f.receptor || '—')}${f.rfcReceptor ? ' · ' + esc(f.rfcReceptor) : ''}</dd>
+      <dt>Forma de pago</dt><dd>${esc(corSat(SAT_FORMA, f.formaPago) || '—')}${f.metodo ? ' · ' + esc(f.metodo === 'PUE' ? 'PUE (una sola exhibición)' : f.metodo === 'PPD' ? 'PPD (parcialidades o diferido)' : f.metodo) : ''}</dd>
+      ${f.usoCfdi ? `<dt>Uso</dt><dd>${esc(corSat(SAT_USO, f.usoCfdi))}</dd>` : ''}
+      <dt>Fecha</dt><dd>${esc(fechaCorta(f.fechaFac))}${f.serie || f.folio ? ' · Folio interno ' + esc((f.serie || '') + (f.folio || '')) : ''}${f.version ? ' · CFDI ' + esc(f.version) : ''}</dd>
+    </dl>
+    <div class="cor-pie" style="margin-top:8px">
+      <a class="boton chico" href="${esc(corLigaSat(f))}" target="_blank" rel="noopener">${ico('i-chk')}Verificar en el SAT</a>
+      <button class="boton sec chico" data-ccop="todo" data-id="${id}">${ico('i-copiar')}Copiar todos los datos</button>
+      <span class="ayuda">En el SAT los datos ya van puestos; solo escriba el código de la imagen.</span>
+    </div>`;
+}
+function corTarjeta(o) {
+  const u = corUrg(o), f = o.factura || {}, ue = COR_URG[u] || COR_URG.normal, fac = corFac(o);
+  const lim = o.limite ? (corDias(o.limite) === 0 ? 'vence hoy' : corDias(o.limite) === 1 ? 'vence mañana' : corDias(o.limite) < 0 ? 'venció el ' + fechaCorta(o.limite) : 'vence el ' + fechaCorta(o.limite)) : '';
+  const guardada = fac && o.clasif && o.clasif !== 'sin';
+  return `<article class="tarjeta cor-it u-${fac ? 'normal' : u}${o.estado === 'atendido' ? ' atendido' : ''}" data-cor="${esc(o.id)}">
+    <div class="cor-cab">${fac ? `<span class="chip terra">${ico('i-pesos')}Factura</span>${corAlertas(f).some(a => a[0] === 'mal') ? `<span class="chip mal">${esc(corAlertas(f).find(a => a[0] === 'mal')[1])}</span>` : ''}${guardada ? `<span class="chip ok">Guardada en ${esc(corClasifNom(o.clasif))}</span>` : '<span class="chip aviso">Por clasificar</span>'}` : `<span class="chip ${ue[1]}">${ue[0]}</span>`}
+      ${o.estado === 'nuevo' ? '<span class="chip indigo">Nuevo</span>' : ''}${o.estado === 'atendido' ? '<span class="chip ok">Atendido</span>' : ''}${o.tema && !fac ? `<span class="chip">${esc(o.tema)}</span>` : ''}${lim && !fac ? `<span class="chip ${corDias(o.limite) <= 2 && o.estado !== 'atendido' ? 'mal' : ''}">${esc(lim)}</span>` : ''}</div>
+    <div class="cor-asunto">${esc(o.asunto)}</div>
+    <div class="cor-de">${esc(o.deNombre ? o.deNombre + ' · ' + o.de : o.de)} · ${esc(fechaHora(o.fecha))}</div>
+    ${o.resumen ? `<p class="cor-res">${esc(o.resumen)}</p>` : ''}
+    ${o.accion && !fac && o.estado !== 'atendido' ? `<div class="cor-acc">→ ${esc(o.accion)}</div>` : ''}
+    ${o.motivo && !fac && u !== 'normal' && u !== 'info' ? `<div class="ayuda" style="margin-top:2px">${esc(o.motivo)}</div>` : ''}
+    ${(o.adjuntos || []).length ? `<div class="cor-adj">${o.adjuntos.map(a => `<span class="chip" title="${esc(a.t)}">📎 ${esc(a.n)}${a.kb ? ' · ' + a.kb + ' KB' : ''}</span>`).join('')}</div>` : ''}
+    ${fac ? `<div class="cor-fac">${corFacDetalle(o)}
+      <div class="cor-guardar"><select data-cclas="${esc(o.id)}" aria-label="Clasificación de la factura">${COR_CLASIF.map(([k, t]) => `<option value="${k}" ${(o.clasif || 'sin') === k ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+        <button class="boton terra chico" data-cguar="${esc(o.id)}">${guardada ? 'Cambiar' : 'Guardar'}</button></div>
+      ${(o.archivos || []).length ? `<div class="cor-adj">${o.archivos.map(a => `<a class="chip ok" href="https://drive.google.com/file/d/${esc(a.id)}/view" target="_blank" rel="noopener">${ico('i-carpeta')}${esc(a.n)}</a>`).join('')}</div>` : ''}
+      ${o.clasificado ? `<div class="ayuda" style="margin-top:6px">${o.clasif === 'sin' ? 'Dejada sin clasificar' : 'Guardada'} por ${esc(o.clasifNombre || '')} · ${esc(fechaHora(o.clasificado))}</div>` : ''}
+    </div>` : ''}
+    <div class="cor-pie">
+      <a class="boton sec chico" href="${corGmail(o)}" target="_blank" rel="noopener">${ico('i-correo')}Abrir en Gmail</a>
+      ${fac ? '' : o.estado === 'atendido' ? `<button class="boton sec chico" data-cest="nuevo" data-id="${esc(o.id)}">Reabrir</button>` : `<button class="boton chico" data-cest="atendido" data-id="${esc(o.id)}">${ico('i-chk')}Atendido</button>`}
+      ${o.estado === 'nuevo' ? `<button class="boton sec chico" data-cest="visto" data-id="${esc(o.id)}">Visto</button>` : ''}
+      <span style="flex:1"></span>
+      ${fac ? '' : `<select class="chico" data-curg="${esc(o.id)}" aria-label="Cambiar urgencia" style="min-height:32px;font-size:13.5px;padding:3px 8px">${Object.entries(COR_URG).filter(([k]) => k !== 'vencido').map(([k, x]) => `<option value="${k}" ${o.urgencia === k ? 'selected' : ''}>${x[0]}</option>`).join('')}</select>`}
+      <button class="boton sec chico" data-cfac="${fac ? 0 : 1}" data-id="${esc(o.id)}" title="${fac ? 'Quitar de facturas' : 'Tratar como factura'}">${fac ? 'No es factura' : 'Es factura'}</button>
+    </div>
+  </article>`;
+}
+function corEnlazar() {
+  const marcar = async (id, datos, ok) => { const r = await accion('corMarcar', Object.assign({ id }, datos)); if (r) { corRecibir(r.cor); vCorreos(); if (ok) aviso(ok, 'ok', 2500); } };
+  $$('[data-cest]').forEach(b => b.onclick = () => marcar(b.dataset.id, { estado: b.dataset.cest }, b.dataset.cest === 'atendido' ? 'Marcado como atendido.' : ''));
+  $$('[data-curg]').forEach(s => s.onchange = () => marcar(s.dataset.curg, { urgencia: s.value }, 'Urgencia cambiada.'));
+  $$('[data-cfac]').forEach(b => b.onclick = () => marcar(b.dataset.id, { factura: b.dataset.cfac === '1' }, b.dataset.cfac === '1' ? 'Ahora aparece en Facturas.' : 'Ya no aparece en Facturas.'));
+  $$('[data-ccop]').forEach(b => b.onclick = () => {
+    const o = S.cor.find(x => x.id === b.dataset.id), f = (o && o.factura) || {}, k = b.dataset.ccop;
+    const nom = { emisor: 'Proveedor', rfcEmisor: 'RFC', concepto: 'Concepto', uuid: 'Folio fiscal', total: 'Total' };
+    if (k === 'todo') return copiar(['Proveedor: ' + (f.emisor || ''), 'RFC: ' + (f.rfcEmisor || ''), 'Concepto: ' + (f.concepto || ''), 'Folio fiscal: ' + (f.uuid || ''), 'Total: $' + corTotal(f),
+      'Forma de pago: ' + (SAT_FORMA[f.formaPago] || f.formaPago || ''), 'Fecha: ' + (f.fechaFac || '')].join('\n'), 'Datos de la factura copiados');
+    copiar(k === 'total' ? Number(f.total || 0).toFixed(2) : String(f[k] || ''), (nom[k] || 'Dato') + ' copiado');
+  });
+  $$('[data-cguar]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.cguar, o = S.cor.find(x => x.id === id), k = $(`[data-cclas="${CSS.escape(id)}"]`).value;
+    if (!o) return;
+    if (k === (o.clasif || 'sin') && !(k !== 'sin' && !(o.archivos || []).length)) return aviso(k === 'sin' ? 'Sigue sin clasificar (pendiente).' : 'Ya está guardada en ' + corClasifNom(k) + '.', '', 3000);
+    const anio = String((o.factura || {}).fechaFac || o.fecha).slice(0, 4);
+    const txt = k === 'sin'
+      ? ((o.archivos || []).length ? '¿Regresar esta factura a «Sin clasificar»? Sus archivos se mueven a la carpeta «Sin clasificar» del Drive.' : '¿Dejar esta factura pendiente, sin clasificar?')
+      : '¿Guardar esta factura en ' + corClasifNom(k) + '?\n\nSe ' + ((o.archivos || []).length ? 'moverá' : 'copiará') + ' a: Tequio · Facturas / ' + corClasifNom(k) + ' / ' + anio + ((o.factura || {}).receptor ? '\n\nEstá a nombre de: ' + o.factura.receptor : '');
+    if (!confirm(txt)) return;
+    const r = await accion('corClasificar', { id, clasif: k });
+    if (r) { corRecibir(r.cor); if (!S.corCfg.carpeta && !cfg.demo) corCargar(true).then(() => { if (vista.tab === 'correos') vCorreos(); }); vCorreos(); aviso(k === 'sin' ? 'Factura pendiente, sin clasificar.' : 'Factura guardada en ' + esc(corClasifNom(k)) + '.', 'ok', 3500); }
+  });
+}
+// Demostración: correos de ejemplo
+function corDemo() {
+  const h = hoy(), d = n => sumarDias(h, n), t = (n, hh) => d(n) + 'T' + hh + ':00';
+  const b = o => Object.assign({ hilo: 'demo', deNombre: '', resumen: '', urgencia: 'normal', motivo: '', tema: 'Otro', limite: '', accion: '', factura: { es: false }, adjuntos: [], clasif: '', archivos: [], estado: 'nuevo', clasifPor: '', clasifNombre: '', clasificado: '', historial: [], ia: 'gemini' }, o);
+  return [
+    b({ id: 'cor-1', fecha: t(0, '08:12'), de: 'estadistica.primaria@isep.gob.mx', deNombre: 'Estadística · Depto. de Primaria', asunto: 'URGENTE: corrección de la estadística 911 inicio de ciclo', resumen: 'El Departamento de Primaria pide enviar la estadística 911 corregida de dos escuelas de la zona, firmada por la Supervisión.', urgencia: 'urgente', motivo: 'Requerimiento de autoridad con plazo corto', tema: 'Autoridades y oficinas', limite: d(1), accion: 'Revisar la 911 de las dos escuelas y enviar el oficio firmado', adjuntos: [{ n: 'Escuelas con observaciones.xlsx', t: 'application/vnd.ms-excel', kb: 34 }] }),
+    b({ id: 'cor-2', fecha: t(-1, '13:40'), de: 'convocatorias@mejoredu.gob.mx', deNombre: 'Mejoredu', asunto: 'Convocatoria: Taller de lectura y escritura para docentes', resumen: 'Mejoredu invita a los docentes al taller en línea de lectura y escritura; el registro cierra en 5 días.', urgencia: 'pronto', motivo: 'Registro con fecha límite cercana', tema: 'Capacitación', limite: d(5), accion: 'Difundir la convocatoria con las direcciones', estado: 'visto' }),
+    b({ id: 'cor-3', fecha: t(-1, '10:05'), de: 'facturacion@papeleriasq.mx', deNombre: 'Papelería San Quintín', asunto: 'Factura A-1287', resumen: 'Factura de papelería (hojas, tóner y engrapadoras) a nombre de la Supervisión.', tema: 'Factura',
+      factura: { es: true, cfdi: true, emisor: 'PAPELERIA SAN QUINTIN SA DE CV', rfcEmisor: 'PSQ090212AB3', receptor: 'INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGOGICOS DE BAJA CALIFORNIA', rfcReceptor: 'ISE921210MX8', total: '2436.00', moneda: 'MXN', fechaFac: d(-1), serie: 'A', folio: '1287', tipo: 'I', uuid: '6F1A2B3C-0D4E-4F50-8A61-7B8C9D0E1F23', concepto: 'Hojas blancas carta · Tóner HP 85A · Engrapadora', nConceptos: 3, formaPago: '28', metodo: 'PUE', usoCfdi: 'G03', version: '4.0', sello8: 'Qk3x9A==' },
+      adjuntos: [{ n: 'A-1287.pdf', t: 'application/pdf', kb: 88 }, { n: 'A-1287.xml', t: 'text/xml', kb: 6 }] }),
+    b({ id: 'cor-4', fecha: t(-2, '17:22'), de: 'facturas@gasolinerabajamar.com', deNombre: 'Gasolinera Bajamar', asunto: 'Envío de CFDI', resumen: 'Factura de combustible a nombre de otra persona, pagada con tarjeta de crédito.', urgencia: 'urgente', motivo: 'Factura pagada con tarjeta de crédito: no se acepta', tema: 'Factura',
+      factura: { es: true, cfdi: true, emisor: 'SERVICIO BAJAMAR SA DE CV', rfcEmisor: 'SBA101010QW1', receptor: 'JUAN PEREZ LOPEZ', rfcReceptor: 'PELJ800101AB1', total: '850.00', moneda: 'MXN', fechaFac: d(-2), folio: '55410', tipo: 'I', uuid: '1A2B3C4D-5E6F-4071-8293-A4B5C6D7E8F9', concepto: 'Gasolina regular', nConceptos: 1, formaPago: '04', metodo: 'PUE', usoCfdi: 'G03', version: '4.0', sello8: 'P0o9Lm==' },
+      adjuntos: [{ n: 'CFDI_55410.xml', t: 'text/xml', kb: 5 }], estado: 'visto', clasif: 'sin', clasifNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', clasificado: t(-1, '09:00') }),
+    b({ id: 'cor-5', fecha: t(-3, '09:30'), de: 'direccion.zapata@bcedu.mx', deNombre: 'Dirección Esc. Emiliano Zapata', asunto: 'Invitación al festival de fin de año', resumen: 'La dirección invita a la Supervisión a su festival navideño.', tema: 'Escuelas', limite: d(30), accion: 'Confirmar asistencia', estado: 'visto' }),
+    b({ id: 'cor-6', fecha: t(-4, '07:00'), de: 'noreply@bcedu.mx', deNombre: 'Plataforma educativa BC', asunto: 'Boletín semanal', resumen: 'Boletín informativo de la plataforma con avisos generales.', urgencia: 'info', motivo: 'Notificación automática', tema: 'Plataformas y sistemas', estado: 'atendido' })
+  ];
+}
 
 /* =========================================================
    Recursos financieros · Ingresos propios
@@ -9570,7 +9847,7 @@ function finCabecera(v) {
   const papelera = esAdmin() && v.cct && !rec ? (S.fin || []).filter(x => x.cct === v.cct && x.activo === false).length : 0;
   return `<div class="titulo-vista"><h1>Recursos financieros</h1>
     <div class="acciones">${papelera ? `<button class="boton sec" id="fin-pap">${ico('i-x')}Eliminados (${papelera})</button>` : ''}<button class="boton sec" id="fin-rec">${ico('i-act')}Actualizar</button></div></div>
-  <div class="seg-op fin-apart" role="group" aria-label="Apartados de Recursos financieros"><button data-fap="ip" aria-pressed="${!rec}">Ingresos propios</button>${esMesa() ? `<button data-fap="rec" aria-pressed="${rec}">Actividades recaudatorias</button>` : ''}</div>
+  <div class="seg-op fin-apart" role="group" aria-label="Apartados de Recursos financieros"><button data-fap="ip" aria-pressed="${!rec}">Ingresos propios</button>${esMesa() ? `<button data-fap="rec" aria-pressed="${rec}">Actividades recaudatorias</button>` : ''}${esAdmin() && pestanas().some(t => t[0] === 'correos') ? `<button data-fap="fac" aria-pressed="false">Facturas del correo</button>` : ''}</div>
   ${rec ? '<div style="height:12px"></div>' : `<div class="filtros" style="margin-top:12px">
     ${esDirector() ? `<span class="chip indigo" style="align-self:center">${esc(nombreEscuela(v.cct))}</span>` : `<select id="fin-esc" aria-label="Escuela"><option value="">Toda la zona</option>${escs.map(c => `<option value="${c.cct}" ${v.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>`}
     <select id="fin-ciclo" aria-label="Ciclo escolar">${finCiclos(v.cct).map(c => `<option value="${c}" ${v.ciclo === c ? 'selected' : ''}>Ciclo ${c}${c === cicloActual() ? '' : ' · historial'}</option>`).join('')}</select>
@@ -9579,7 +9856,9 @@ function finCabecera(v) {
 function finEnlazarCabecera(v) {
   if ($('#fin-esc')) $('#fin-esc').onchange = e => { v.cct = e.target.value; vFinanzas(); };
   if ($('#fin-ciclo')) $('#fin-ciclo').onchange = e => { v.ciclo = e.target.value; vFinanzas(); };
-  $$('[data-fap]').forEach(b => b.onclick = () => { v.apart = b.dataset.fap; vFinanzas(); });
+  $$('[data-fap]').forEach(b => b.onclick = () => {
+    if (b.dataset.fap === 'fac') { vista.tab = 'correos'; vista.cor = { f: 'facp', q: '', tema: '' }; pintar(); window.scrollTo(0, 0); return; }
+    v.apart = b.dataset.fap; vFinanzas(); });
   $('#fin-rec').onclick = async () => { if (await finCargar(true)) { vFinanzas(); aviso('Registros actualizados.', 'ok', 2000); } };
   if ($('#fin-pap')) $('#fin-pap').onclick = () => finPapelera(v.cct);
 }
