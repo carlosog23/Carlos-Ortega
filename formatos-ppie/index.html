@@ -1598,6 +1598,7 @@ const SECCIONES=[
  {id:"misdocs",icon:"folder",title:"Mis documentos",desc:"Todo lo que ha generado en Tlamatini: véalo, imprímalo o envíelo de nuevo, o bórrelo cuando ya no lo necesite.",grupos:[],view:()=>docsView(),count:()=>1,cntLabel:()=>docsCntLabel()},
  {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
+ {id:"croquis",icon:"shield",title:"Croquis de evacuación y riesgos",desc:"Ubique la escuela en el mapa satelital y arme el croquis interno (evacuación) y el externo (riesgos del entorno) con la señalética de protección civil, para el atlas de riesgo. PDF carta o doble carta.",grupos:[],view:()=>crqAbrir(),count:()=>1,cntLabel:()=>{const n=(store.get("crq-proyectos",[])||[]).length;return n?`${n} croquis guardado${n>1?"s":""}`:"Mapa satelital · NOM-003-SEGOB-2011"}},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
  {id:"normas",icon:"law",title:"Normatividad",desc:"Leyes, reglamentos, acuerdos, protocolos y libros de texto que nos aplican.",grupos:[],view:()=>normasView(),count:()=>1,cntLabel:()=>"Consulta y libros de texto"},
  {id:"estadistica",icon:"chart",title:"Estadística y control escolar",desc:"Lista de asistencia mensual de alumnos y edades al 1 de septiembre para la estadística.",grupos:[],tools:[{id:"asistencia",letra:"A",name:"Lista de asistencia mensual",use:"Suba el PDF de RELweb: se agregan el maestro, el mes, los días hábiles y los días sin clases del calendario oficial.",open:()=>asView()},{id:"edades",letra:"E",name:"Edades de los alumnos (estadística de inicio)",use:"Suba los PDF de inscripción de cada grupo y obtenga el concentrado y el Excel de estadística."}]},
@@ -1615,7 +1616,7 @@ const CHEV='<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9
 const FAMILIAS=[
  ["En el aula",[["pedagogico","Planeación y diagnóstico","Lectura de la realidad, PMCE, programa analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"],["familias","","Recados, citatorios, avisos y autorizaciones"],["reconocimientos","","Diplomas para sus alumnos, toda la lista de una vez"]],"book","Lo que usa el docente con su grupo","aula"],
  ["Alumnos y control escolar",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["becas","","Formato Único de Beca de la Secretaría de Educación"]],"people","Datos de los alumnos, asistencia, estadística y becas","alumnos"],
- ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]],"school","Documentos de la escuela, protección escolar y consejo","direccion"],
+ ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["croquis","Croquis de evacuación y riesgos","Atlas de riesgo: mapa satelital, rutas y señalética"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]],"school","Documentos de la escuela, protección escolar y consejo","direccion"],
  ["Trámites del personal",[["laboral","","Licencias, actualización de datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"]],"work","Trámites laborales y declaración patrimonial","personal"],
  ["Consulta",[["calendario","","El calendario de Baja California que rige el ciclo"],["normas","Normatividad y libros de texto","Leyes, acuerdos, protocolos y libros de texto"]],"law","Calendario oficial, normatividad y libros de texto","consulta"]];
 const FAMILIA_FUERA=["seguro","misdocs","directorio"]; // tienen su propio acceso en el inicio
@@ -2174,6 +2175,12 @@ const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
 /* Reconocimientos y diplomas: el módulo se carga solo al entrar */
 const RK_JS="reconocimientos.js?v=2026-10-27a";
+const CRQ_JS="croquis.js?v=2026-11-06a";
+async function crqAbrir(){S.view="crqcarga";S.sec="croquis";setBar("");
+  if(typeof crqView!=="function"){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Seguridad escolar · Atlas de riesgo</div><h2>Croquis de evacuación y riesgos</h2></div></div><p class="muted">Cargando…</p>`;
+    document.getElementById("salir").onclick=()=>{S.sec=null;home()};
+    try{await loadScript(CRQ_JS)}catch(e){app.querySelector("p.muted").innerHTML=`<b>No se pudo abrir.</b> Revise su conexión e intente de nuevo.`;return}}
+  if(S.view==="crqcarga")crqView()}
 async function rkAbrir(){S.view="rkcarga";S.sec="reconocimientos";setBar("");
   if(typeof rkView!=="function"){app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Mi escuela y mis alumnos</div><h2>Reconocimientos y diplomas</h2></div></div><p class="muted">Cargando…</p>`;
     document.getElementById("salir").onclick=()=>{S.sec=null;home()};
@@ -5904,6 +5911,7 @@ const IR_ALIAS={salida:"T",salidas:"T",salidaescolar:"T",beca:"U",becas:"U",lice
 function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST="";const L=IR_ALIAS[k.toLowerCase()]||k.toUpperCase();
   if(typeof ANEXOS!=="undefined"&&ANEXOS[L]){home();openAnexo(L);return true}
   if(/^convenio|cooperativa/i.test(k)){home();S.sec="direccion";cvView();return true}
+  if(/^croquis|^atlas/i.test(k)){home();crqAbrir();return true}
   if(/^privacidad|^fotos|^datospersonales/i.test(k)){home();S.sec="familias";apView();return true}
   const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
 function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
