@@ -4704,7 +4704,7 @@ function detalleEvidencias(cct) {
    (dos escuelas o dos turnos) es «doble plaza» y se resalta en morado. La Supervisión y la Mesa Técnica ven y
    modifican a todo el personal; cada dirección consulta solo al de su escuela. Los datos se piden al abrir la pestaña. */
 let SUP_CENTRO = { cct: '02FIZ0094X', escuela: 'Supervisión Escolar Zona 050', municipio: 'San Quintín', multigrado: false };
-const PER_FUNCIONES = ['Supervisor(a)', 'ATP', 'Director(a)', 'Director(a) con grupo', 'Subdirector(a)', 'Docente frente a grupo', 'Docente de educación física', 'Docente de inglés', 'Docente de USAER', 'Promotor(a) de lectura', 'Secretario(a)', 'Intendente', 'Velador', 'Administrativo', 'Otra'];
+const PER_FUNCIONES = ['Supervisor(a)', 'ATP', 'Director(a)', 'Director(a) con grupo', 'Encargado(a) de despacho', 'Subdirector(a)', 'Docente frente a grupo', 'Docente de educación física', 'Docente de inglés', 'Docente de USAER', 'Promotor(a) de lectura', 'Secretario(a)', 'Intendente', 'Velador', 'Administrativo', 'Otra'];
 const PER_NOMB = { definitiva: 'Base (definitiva)', interino: 'Interino (temporal)', provisional: 'Provisional' };
 const PER_ESTUDIOS = ['Normal básica', 'Licenciatura', 'Especialidad', 'Maestría', 'Doctorado', 'Otro'];
 const perCentros = () => [Object.assign({ turno: 'Matutino', sup: true }, SUP_CENTRO)].concat(directores().map(c => ({ cct: c.cct, escuela: c.escuela, municipio: c.municipio, multigrado: !!c.multigrado, turno: sisTurno(c.cct) })));
@@ -5123,7 +5123,7 @@ function perInformeInc() {
         });
         (faltan[c.cct] || []).forEach(x => filas.push([x.n, (x.p.funcion || '') + (x.p.grupo ? ' ' + x.p.grupo : '') + ' · ' + (x.p.turno || ''), x.p.clave, '• Está en la plantilla oficial y no en Tequio: falta darle de alta']));
         const dir = l.some(t => perActivas(t).some(p => p.cct === c.cct && /director|encargad/i.test(p.funcion || '')));
-        const dirPlant = (faltan[c.cct] || []).some(x => /director/i.test(x.p.funcion || ''));
+        const dirPlant = (faltan[c.cct] || []).some(x => /director|encargad/i.test(x.p.funcion || ''));
         resumen.push([c.escuela, c.cct, String(l.length), String(l.filter(t => perObservaciones(t).concat(extra[t.id] || []).length).length), String((faltan[c.cct] || []).length), c.sup ? '—' : dir ? 'Sí' : 'No']);
         if (!filas.length && dir) return;
         B.push({ t: 'h', x: c.escuela + ' · ' + c.cct });
@@ -11926,7 +11926,7 @@ async function ctvDescargarPdf(D) {
    ========================================================= */
 const CTE_INTENSIVA = { '2026-2027': ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28'] };
 const LA_APOYO = /intendent|velador|secretari|administrativ|conserje|apoyo/i;
-const LA_ABREV = [[/^director/i, 'DIR.'], [/^subdirector/i, 'SUBDIR.'], [/frente a grupo|^docente$/i, 'DOC.'], [/f[ií]sica/i, 'ED. FÍS.'], [/ingl[eé]s/i, 'INGLÉS'], [/usaer/i, 'USAER'],
+const LA_ABREV = [[/^director/i, 'DIR.'], [/^encargad/i, 'ENC. DESP.'], [/^subdirector/i, 'SUBDIR.'], [/frente a grupo|^docente$/i, 'DOC.'], [/f[ií]sica/i, 'ED. FÍS.'], [/ingl[eé]s/i, 'INGLÉS'], [/usaer/i, 'USAER'],
   [/promotor/i, 'PROM. LECT.'], [/secretari/i, 'SECRE.'], [/intendent/i, 'INT.'], [/velador/i, 'VEL.'], [/administrativ/i, 'ADMVO.'], [/^atp/i, 'ATP']];
 const LA_FUNC_OPC = ['DOC.', 'SUBDIR.', 'ED. FÍS.', 'INGLÉS', 'USAER', 'PROM. LECT.', 'ATP', 'SECRE.', 'INT.', 'VEL.', 'ADMVO.'];
 const LA_POR_HOJA = 24;   // renglones que caben en una hoja con letra legible
@@ -11956,7 +11956,7 @@ function laPersonal(cct, apoyo) {
   const e = escDatos(cct), dir = e ? laNorm(e[4]) : '';
   const rango = f => /^subdirector/i.test(f) ? 0 : /frente a grupo/i.test(f) ? 1 : LA_APOYO.test(f) ? 3 : 2;
   return (S.trb || []).filter(t => t.estado !== 'baja').map(t => ({ t, p: perActivas(t).find(p => p.cct === cct) })).filter(x => x.p)
-    .filter(x => !/^director/i.test(x.p.funcion || '') && !(dir && laNorm(perNombre(x.t)) === dir))
+    .filter(x => !/^(director|encargad)/i.test(x.p.funcion || '') && !(dir && laNorm(perNombre(x.t)) === dir))
     .filter(x => apoyo || !LA_APOYO.test(x.p.funcion || ''))
     .sort((a, b) => rango(a.p.funcion || '') - rango(b.p.funcion || '') || perNombre(a.t).localeCompare(perNombre(b.t), 'es'))
     .map(({ t, p }) => ({ rfc: laMay(t.rfc), paterno: laMay(t.paterno), materno: laMay(t.materno), nombre: laMay(t.nombre), sexo: t.sexo === 'H' || t.sexo === 'M' ? t.sexo : '', funcion: laAbrev(p.funcion), curp: laMay(t.curp) }));
@@ -11966,7 +11966,7 @@ const LA_MULTI = 'multi';
 let LA_MULTI_SEDE = '02DPR0378F';
 // Las multigrado de turno vespertino (Luis Donaldo Colosio Murrieta) no entran a la sesión conjunta: sesionan solas
 const laMultis = () => directores().filter(c => c.multigrado && sisTurno(c.cct) !== 'Vespertino').sort((a, b) => (a.cct === LA_MULTI_SEDE ? -1 : b.cct === LA_MULTI_SEDE ? 1 : a.escuela.localeCompare(b.escuela, 'es')));
-const laAbrevMulti = f => /^director/i.test(f || '') ? 'ENC. DESP.' : laAbrev(f);
+const laAbrevMulti = f => /^(director|encargad)/i.test(f || '') ? 'ENC. DESP.' : laAbrev(f);
 // Todo el personal de las escuelas multigrado; los encargados de despacho firman en la tabla, salvo quien dirige los trabajos (firma abajo)
 function laPersonalMulti(apoyo) {
   const lider = laNorm((escDatos(LA_MULTI_SEDE) || [])[4]), vistos = new Set(), l = [];
