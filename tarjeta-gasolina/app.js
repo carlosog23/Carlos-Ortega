@@ -100,7 +100,7 @@ function backendFirebase(cfg){
       guardarPerfil:p=>F.setDoc(uRef,{nombre:p.nombre,cargo:p.cargo,municipio:p.municipio,zona:p.zona,whatsapp:p.whatsapp||'',actualizado:Date.now()},{merge:true}),
       escuchar(cb,errCb){
         const q=F.query(F.collection(db,'alertas'),F.where('creadoMs','>=',Date.now()-2*VENTANA),F.orderBy('creadoMs','desc'),F.limit(150));
-        return F.onSnapshot(q,s=>cb(s.docs.map(d=>Object.assign({id:d.id,_pend:d.metadata.hasPendingWrites},d.data()))),errCb);
+        return F.onSnapshot(q,{includeMetadataChanges:true},s=>cb(s.docs.map(d=>Object.assign({id:d.id,_pend:d.metadata.hasPendingWrites},d.data()))),errCb);
       },
       crear:a=>{const r=F.doc(F.collection(db,'alertas'));const w=F.setDoc(r,Object.assign({},a,{uid,estado:'activa',creadoMs:Date.now(),creado:F.serverTimestamp(),confirman:[]}));return {id:r.id,escrito:w}},
       resolver:(id,quien)=>F.updateDoc(F.doc(db,'alertas',id),{estado:'resuelta',resueltaPor:Object.assign({uid},quien),resueltaEn:Date.now()}),
