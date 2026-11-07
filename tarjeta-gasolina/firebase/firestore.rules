@@ -1,0 +1,38 @@
+rules_version = '2';
+// Reglas de la app "Combustible · Supervisión escolar"
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil de cada usuario: solo él puede leerlo y escribirlo (incluye sus tokens de notificación)
+    match /usuarios/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre','cargo','municipio','zona','whatsapp','actualizado','avisos','tokens'])
+        && (!('nombre' in request.resource.data) || (request.resource.data.nombre is string && request.resource.data.nombre.size() <= 120))
+        && (!('tokens' in request.resource.data) || (request.resource.data.tokens is list && request.resource.data.tokens.size() <= 10));
+      allow delete: if false;
+    }
+
+    // Alertas de "no hay sistema": todos los registrados las ven
+    match /alertas/{id} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.estado == 'activa'
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() <= 120
+        && request.resource.data.gasolinera is string && request.resource.data.gasolinera.size() <= 120
+        && (!('comentario' in request.resource.data) || request.resource.data.comentario.size() <= 300)
+        && request.resource.data.creadoMs is int
+        && request.resource.data.confirman.size() == 0;
+
+      // Cualquiera puede marcar "ya hay sistema" o confirmar que sigue la falla; nada más
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado','resueltaPor','resueltaEn','confirman'])
+        && request.resource.data.estado in ['activa','resuelta']
+        && request.resource.data.confirman.size() <= 50;
+
+      allow delete: if false;
+    }
+  }
+}
