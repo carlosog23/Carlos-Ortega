@@ -42,7 +42,7 @@ $('#fReg').addEventListener('submit',e=>{
   guardarPerfil(p);pintarPerfil();
   $('#registro').hidden=true;$('#app').hidden=false;
   backend.ready.then(b=>b.guardarPerfil(perfil)).catch(()=>{});
-  if(nuevo){irA('despacho');toast('¡Bienvenido(a), '+p.nombre.split(' ')[0]+'!')}else{irA('perfil');toast('Datos actualizados')}
+  if(nuevo){irA('despacho');setTimeout(mostrarBienvenida,400)}else{irA('perfil');toast('Datos actualizados')}
 });
 function pintarPerfil(){
   if(!perfil)return;
@@ -65,6 +65,9 @@ function irA(t){
   if(t==='despacho')setTimeout(()=>{if(mapa)mapa.invalidateSize();else pintarMapa()},30);
 }
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>irA(b.dataset.go));
+
+const primerNombre=()=>perfil?(perfil.nombre.split(' ').filter(w=>!/^(mtr[oa]|profr?a?|lic|dr[a]?|ing|arq)\.?$/i.test(w))[0]||''):'';
+const plataforma=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?'iPhone':/Android/.test(navigator.userAgent)?'Android':'Computadora';
 
 /* ================= Notificaciones del teléfono ================= */
 let swReg=null;
@@ -97,7 +100,9 @@ function backendFirebase(cfg){
     const uRef=F.doc(db,'usuarios',uid);
     return {
       uid,modo:'firebase',
-      guardarPerfil:p=>F.setDoc(uRef,{nombre:p.nombre,cargo:p.cargo,municipio:p.municipio,zona:p.zona,whatsapp:p.whatsapp||'',actualizado:Date.now()},{merge:true}),
+      guardarPerfil:p=>F.setDoc(uRef,{nombre:p.nombre,cargo:p.cargo,municipio:p.municipio,zona:p.zona,whatsapp:p.whatsapp||'',registrado:p.registrado||Date.now(),visto:Date.now(),plataforma:plataforma(),instalada:instalada(),actualizado:Date.now()},{merge:true}),
+      anuncios(cb){return F.onSnapshot(F.query(F.collection(db,'anuncios'),F.orderBy('creadoMs','desc'),F.limit(5)),s=>cb(s.docs.map(d=>Object.assign({id:d.id},d.data()))),()=>{})},
+      async bienvenida(){try{const d=await F.getDoc(F.doc(db,'config','bienvenida'));return d.exists()?d.data():null}catch(e){return null}},
       escuchar(cb,errCb){
         const q=F.query(F.collection(db,'alertas'),F.where('creadoMs','>=',Date.now()-2*VENTANA),F.orderBy('creadoMs','desc'),F.limit(150));
         return F.onSnapshot(q,{includeMetadataChanges:true},s=>cb(s.docs.map(d=>Object.assign({id:d.id,_pend:d.metadata.hasPendingWrites},d.data()))),errCb);
@@ -125,6 +130,8 @@ function backendDemo(){
   const uid='yo';
   return {ready:Promise.resolve({uid,modo:'demo',
     guardarPerfil:()=>Promise.resolve(),
+    anuncios(cb){setTimeout(()=>cb([{id:'a1',titulo:'Bienvenidos',texto:'Este es un aviso de prueba de la supervisión.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-20*6e4}]),300);return()=>{}},
+    bienvenida:()=>Promise.resolve(null),
     escuchar(cb){subs.push(cb);setTimeout(()=>cb(datos.slice().sort((a,b)=>b.creadoMs-a.creadoMs)),250);return()=>{}},
     crear(a){const id='d'+Date.now();datos.push(Object.assign({},a,{id,uid,estado:'activa',creadoMs:Date.now(),confirman:[]}));const escrito=new Promise(r=>setTimeout(r,500));escrito.then(guardar);return {id,escrito}},
     resolver(id,quien){const a=datos.find(x=>x.id===id);if(a){a.estado='resuelta';a.resueltaPor=quien;a.resueltaEn=Date.now()}guardar();return Promise.resolve()},
@@ -390,7 +397,7 @@ function pintarAvisos(){
 async function activar(){
   if(esIOS&&!instalada()){irA('perfil');setTimeout(()=>$('#iosCard').scrollIntoView({behavior:'smooth',block:'center'}),80);return}
   if('Notification'in window&&Notification.permission==='denied'){toast('Actívalas en los ajustes del navegador (candado junto a la dirección)');return}
-  try{const be=await backend.ready;toast('Activando avisos…');await be.activarAvisos();localStorage.setItem(LSA,'1');toast('¡Avisos activados!')}
+  try{const be=await backend.ready;toast('Activando avisos…');await be.activarAvisos();localStorage.setItem(LSA,'1');toast('¡Avisos activados!');setTimeout(()=>notificarSistema('🔔 Prueba de avisos','¡Listo'+(primerNombre()?', '+primerNombre():'')+'! Así te llegarán las alertas de gasolineras sin sistema.','prueba'),1200);if(!$('#sheetBg').hidden&&sh.paso==='bienvenida')cerrarHoja()}
   catch(e){const c=e&&e.code||'';toast(c==='denegado'?'No diste permiso para notificaciones':c==='nosoporte'?'Este navegador no permite notificaciones':c==='sinconfig'?'El servicio de alertas aún no está activado':'No se pudieron activar los avisos. Intenta de nuevo.')}
   pintarAvisos();
 }
@@ -414,6 +421,30 @@ function pintarInstalar(){
 }
 $('#instBtn').onclick=async()=>{if(!instEvt)return;instEvt.prompt();try{await instEvt.userChoice}catch(e){}instEvt=null;pintarInstalar()};
 
+/* ================= Avisos de la supervisión y bienvenida ================= */
+const LSV='tarjetaGasolina.anunciosVistos';
+let anuncios=[],vistos=[];try{vistos=JSON.parse(localStorage.getItem(LSV)||'[]')}catch(e){}
+function pintarAnuncios(){
+  const cont=$('#anuncios');const pend=anuncios.filter(a=>!vistos.includes(a.id)&&Date.now()-a.creadoMs<14*24*H&&(!perfil||!perfil.registrado||a.creadoMs>perfil.registrado-7*24*H));
+  if(!pend.length){cont.innerHTML='';return}
+  cont.innerHTML=pend.slice(0,3).map(a=>'<article class="card anuncio"><div class="an-top"><span class="an-ic">'+ic('bell')+'</span><div><small>Aviso de la supervisión · '+esc(hace(a.creadoMs))+'</small><h3>'+esc(a.titulo||'Aviso')+'</h3></div><button class="an-x" data-vis="'+esc(a.id)+'" aria-label="Marcar como leído">✕</button></div><p>'+esc(a.texto||'').replace(/\n/g,'<br>')+'</p><div class="an-de">— '+esc(a.autor||'Supervisión')+'</div></article>').join('');
+}
+$('#anuncios').addEventListener('click',e=>{const b=e.target.closest('[data-vis]');if(!b)return;vistos.push(b.dataset.vis);vistos=vistos.slice(-50);try{localStorage.setItem(LSV,JSON.stringify(vistos))}catch(e){}pintarAnuncios()});
+const BIENVENIDA_DEF={titulo:'¡Bienvenido(a)!',texto:'Gracias por registrarte. Aquí llevas el control de tu tarjeta de combustible y, entre todos, nos avisamos cuando una gasolinera no tenga sistema de despacho, para no perder el viaje.\n\nSi llegas a una gasolinera sin sistema, toca el botón rojo “No hay sistema aquí”. Cuando regrese, márcalo como “Ya hay sistema”.\n\nActiva los avisos para enterarte al momento. Cualquier sugerencia, con gusto la recibo.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez'};
+async function mostrarBienvenida(){
+  let b=null;try{b=await conTiempo((await backend.ready).bienvenida(),4000)}catch(e){}
+  b=Object.assign({},BIENVENIDA_DEF,b||{});
+  const nom=primerNombre();
+  sh.paso='bienvenida';$('#sheetBg').hidden=false;document.body.style.overflow='hidden';
+  const puede='Notification'in window&&!(esIOS&&!instalada())&&Notification.permission!=='denied'&&!avisosActivos();
+  $('#sheet').innerHTML='<div class="grab"></div><div class="listo"><div class="logo" style="width:64px;height:64px;border-radius:20px"><svg style="width:36px;height:36px"><use href="#i-fuel"/></svg></div><h2 id="shT">'+esc(b.titulo.replace('(a)',''))+(nom?' '+esc(nom):'')+'</h2></div>'+
+    '<div class="bienv">'+esc(b.texto).replace(/\n/g,'<br>')+'<div class="an-de">— '+esc(b.autor)+'</div></div>'+
+    (puede?'<button class="enviar" id="bvAvisos" style="background:linear-gradient(135deg,#1f4f86,#0b1e36);box-shadow:none">Activar avisos y mandar prueba</button>':'')+
+    (esIOS&&!instalada()?'<div class="ya"><b>En iPhone</b>Para recibir avisos, agrega la app a tu pantalla de inicio desde Safari (Compartir › Agregar a pantalla de inicio).</div>':'')+
+    '<button class="cancelar" data-x>Entendido</button>';
+  const bt=$('#bvAvisos');if(bt)bt.onclick=()=>activar();
+}
+
 /* ================= Arranque ================= */
 let miUid=null,alertasPrevias=[];
 function repintar(){pintarEstado();pintarAlertas();pintarAvisos();if(tabActual==='despacho')pintarMapa()}
@@ -423,6 +454,12 @@ function iniciar(){
   backend.ready.then(be=>{
     miUid=be.uid;
     if(perfil)be.guardarPerfil(perfil).catch(()=>{});
+    let primeraA=true;
+    be.anuncios(lista=>{
+      const ids=new Set(anuncios.map(a=>a.id));anuncios=lista;pintarAnuncios();
+      if(!primeraA){const n=lista.find(a=>!ids.has(a.id));if(n){const t='📢 '+(n.titulo||'Aviso de la supervisión'),b=n.texto||'';if(document.hidden&&avisosActivos())notificarSistema(t,b,'anuncio-'+n.id);else avisoEnPantalla({title:t,body:b})}}
+      primeraA=false;
+    });
     if(avisosActivos())registrarSW();
     be.escuchar(lista=>{
       const previas=new Set(alertas.map(a=>a.id));const primera=!conectado;

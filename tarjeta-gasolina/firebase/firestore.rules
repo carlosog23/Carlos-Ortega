@@ -3,14 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Perfil de cada usuario: solo él puede leerlo y escribirlo (incluye sus tokens de notificación)
+    // Administrador: solo la cuenta de Google del Mtro. Carlos Ortega
+    function esAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'carlosog23@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // Perfil de cada usuario: solo él (y el administrador) puede leerlo
     match /usuarios/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if (request.auth != null && request.auth.uid == uid) || esAdmin();
       allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['nombre','cargo','municipio','zona','whatsapp','actualizado','avisos','tokens'])
+        && request.resource.data.keys().hasOnly(['nombre','cargo','municipio','zona','whatsapp','actualizado','avisos','tokens','registrado','visto','plataforma','instalada'])
         && (!('nombre' in request.resource.data) || (request.resource.data.nombre is string && request.resource.data.nombre.size() <= 120))
         && (!('tokens' in request.resource.data) || (request.resource.data.tokens is list && request.resource.data.tokens.size() <= 10));
-      allow delete: if false;
+      allow delete: if esAdmin();
     }
 
     // Alertas de "no hay sistema": todos los registrados las ven
@@ -32,7 +39,19 @@ service cloud.firestore {
         && request.resource.data.estado in ['activa','resuelta']
         && request.resource.data.confirman.size() <= 50;
 
-      allow delete: if false;
+      allow delete: if esAdmin();
+    }
+
+    // Avisos de la supervisión para todos
+    match /anuncios/{id} {
+      allow read: if request.auth != null;
+      allow write: if esAdmin();
+    }
+
+    // Configuración (mensaje de bienvenida)
+    match /config/{id} {
+      allow read: if request.auth != null;
+      allow write: if esAdmin();
     }
   }
 }
