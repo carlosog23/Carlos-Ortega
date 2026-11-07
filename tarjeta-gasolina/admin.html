@@ -143,6 +143,7 @@ let subs=[];
 U.onAuthStateChanged(auth,u=>{
   subs.forEach(f=>f());subs=[];
   const ok=u&&u.email===ADMIN;
+  try{if(ok)localStorage.setItem('tarjetaGasolina.esAdmin','1')}catch(e){}
   $('#login').hidden=ok;$('#panel').hidden=!ok;$('#salir').hidden=!u;
   $('#loginTxt').textContent=u&&!ok?'La cuenta '+u.email+' no tiene permiso de administrador. Sal y entra con '+ADMIN+'.':'Entra con tu cuenta de Google autorizada para ver quién usa la app y mandar avisos.';
   if(ok)iniciar();

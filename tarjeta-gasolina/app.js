@@ -46,6 +46,7 @@ $('#fReg').addEventListener('submit',e=>{
 });
 function pintarPerfil(){
   if(!perfil)return;
+  try{$('#adminCard').hidden=localStorage.getItem('tarjetaGasolina.esAdmin')!=='1'}catch(e){}
   const ini=iniciales(perfil.nombre);
   $('#avTop').textContent=ini;$('#pAv').textContent=ini;
   $('#pNom').textContent=perfil.nombre;$('#pCargo').textContent=perfil.cargo;
