@@ -250,23 +250,17 @@ function ubicar(){
 }
 async function fetchJSON(url,opt,ms){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms||12000);try{const r=await fetch(url,Object.assign({signal:c.signal},opt));if(!r.ok)throw new Error('http '+r.status);return await r.json()}finally{clearTimeout(t)}}
 async function gasolinerasCerca(lat,lon){
-  for(const r of [800,5000]){
-    const q='[out:json][timeout:12];(node(around:'+r+','+lat+','+lon+')[amenity=fuel];way(around:'+r+','+lat+','+lon+')[amenity=fuel];);out center tags 20;';
-    let j=null;
-    for(const srv of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
-      try{j=await fetchJSON(srv,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}},12000);break}catch(e){}
-    }
-    if(!j)throw new Error('overpass');
-    const vistos=new Set();
-    const l=(j.elements||[]).map(e=>{
-      const la=e.lat!=null?e.lat:e.center&&e.center.lat,lo=e.lon!=null?e.lon:e.center&&e.center.lon,t=e.tags||{};
-      const marca=(t.brand||t.operator||'').trim();let nom=(t.name||'').trim();
-      if(!nom)nom=marca||'Gasolinera';else if(marca&&!nom.toLowerCase().includes(marca.toLowerCase()))nom=marca+' · '+nom;
-      return {nombre:nom,lat:la,lon:lo,d:la!=null?dist(lat,lon,la,lo):1e9,osm:e.type[0]+e.id,calle:t['addr:street']||''};
-    }).filter(x=>x.lat!=null&&!vistos.has(x.osm)&&vistos.add(x.osm)).sort((a,b)=>a.d-b.d);
-    if(l.length)return l.slice(0,6);
-  }
-  return [];
+  const q='[out:json][timeout:10];(node(around:4000,'+lat+','+lon+')[amenity=fuel];way(around:4000,'+lat+','+lon+')[amenity=fuel];);out center tags 30;';
+  const srv=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  /* consulta los dos servidores a la vez y usa el primero que responda */
+  const j=await Promise.any(srv.map(u=>fetchJSON(u,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}},11000)));
+  const vistos=new Set();
+  return (j.elements||[]).map(e=>{
+    const la=e.lat!=null?e.lat:e.center&&e.center.lat,lo=e.lon!=null?e.lon:e.center&&e.center.lon,t=e.tags||{};
+    const marca=(t.brand||t.operator||'').trim();let nom=(t.name||'').trim();
+    if(!nom)nom=marca||'Gasolinera';else if(marca&&!nom.toLowerCase().includes(marca.toLowerCase()))nom=marca+' · '+nom;
+    return {nombre:nom,lat:la,lon:lo,d:la!=null?dist(lat,lon,la,lo):1e9,osm:e.type[0]+e.id,calle:t['addr:street']||''};
+  }).filter(x=>x.lat!=null&&!vistos.has(x.osm)&&vistos.add(x.osm)).sort((a,b)=>a.d-b.d).slice(0,6);
 }
 async function lugarDe(lat,lon){
   try{const j=await fetchJSON('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=es&lat='+lat+'&lon='+lon,{},9000);
