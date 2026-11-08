@@ -3469,13 +3469,23 @@ function tqiGrupoDef(D){const L=D.grupos||[],g=yoGrado(),p=yoGrupo();return L.fi
 /* Tarjeta que aparece en Lectura de la realidad, PMC y Programa analítico. donde: dx | pm | pa; nivel: escuela | grupo */
 let TQI_OK="";
 function tqiCardHTML(){return`<section class="card tqi" id="tqiBox"><p class="help" style="margin:0">Buscando los insumos de su escuela en Tequio…</p></section>`}
-async function tqiPintar(donde,nivel,alCargar){const box=document.getElementById("tqiBox");if(!box)return;const cct=perfil.cct||"";
+/* Escuelas de la zona para elegir (la Supervisión y los ATP no tienen escuela propia en su perfil) */
+function tqiEscuelas(){if(ZONA_TQ)return(ZONA_TQ.escuelas||[]).map(e=>[e.nombre,e.cct]);return typeof ESCUELAS_050!=="undefined"?ESCUELAS_050.map(e=>[e[0],e[1]]):[]}
+function tqiEsMesa(){const p=store.get("tequio-pase",null);return!!(store.get("gh-token","")||(p&&["admin","atp"].includes(p.rol)))}
+async function tqiPintar(donde,nivel,alCargar){const box=document.getElementById("tqiBox");if(!box)return;
+  const propia=tqiEscuelaZona(perfil.cct||"")?perfil.cct:"";const elegida=store.get("tqi-cct","");
+  const cct=(tqiEsMesa()||!propia)&&tqiEscuelaZona(elegida)?elegida:propia;
   const ocultar=()=>{box.remove()};
-  if(DEMO||!tqiEscuelaZona(cct)||(!tqiServidor()&&!tqiCache(cct)))return ocultar();
+  if(DEMO)return ocultar();
+  const selEsc=(tqiEsMesa()||!propia)&&tqiServidor()&&tqiServidor().k?`<div class="field" style="margin:8px 0 0"><label for="tqiE">Escuela</label><select id="tqiE"><option value="">Elija la escuela…</option>${tqiEscuelas().map(([n,c])=>`<option value="${esc(c)}" ${c===cct?"selected":""}>${esc(n)} · ${esc(c)}</option>`).join("")}</select></div>`:"";
+  const wireE=()=>{const se=document.getElementById("tqiE");if(se)se.onchange=()=>{store.set("tqi-cct",se.value);box.innerHTML=`<p class="help" style="margin:0">Buscando…</p>`;tqiPintar(donde,nivel,alCargar)}};
+  if(!tqiServidor()&&!tqiCache(cct)){
+    box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3><p class="help" style="margin:0">${tqiEsMesa()?"Este dispositivo aún no tiene la conexión con Tequio. Abra Tequio en este mismo navegador con su enlace y vuelva aquí; para los docentes, vincule en «Soy Supervisión» → Control de acceso → «Vincular con Tequio».":"Esta opción aún no está activa para su enlace. Pida a la Supervisión que la active."}</p>`;return}
+  if(!cct){if(!selEsc)return ocultar();box.innerHTML=`<h3>Insumos de una escuela (Tequio)</h3><p class="help" style="margin:0">Elija la escuela para cargar su lectura de la realidad, su PMC y la base del programa analítico.</p>${selEsc}`;wireE();return}
   let D;try{D=await tqiCargar(cct)}catch(e){if(!document.body.contains(box))return;
-    box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3><p class="help" style="margin:0">No se pudieron traer ahora${e.message&&e.message!=="sin-servidor"?": "+esc(e.message):""}. Revise su conexión e intente más tarde.</p>`;return}
+    box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3><p class="help" style="margin:0">No se pudieron traer ahora${e.message&&e.message!=="sin-servidor"?": <b>"+esc(e.message)+"</b>":""}.${/desconocida/i.test(e.message||"")?" Falta actualizar el servidor de Tequio a la versión 47.":" Revise su conexión e intente más tarde."}</p>${selEsc}`;wireE();return}
   if(!document.body.contains(box))return;
-  if(!tqiHay(D)){box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3><p class="help" style="margin:0">La Supervisión aún no publica los insumos de ${esc(D.escuela||"su escuela")}. Cuando lo haga, aquí podrá cargarlos.</p>`;return}
+  if(!tqiHay(D)){box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3><p class="help" style="margin:0">La Supervisión aún no publica los insumos de ${esc(D.escuela||"su escuela")}.${tqiEsMesa()?" En Tequio, en Resultados → Insumos para Tlamatini, lea el PMC y pulse «Publicar».":" Cuando lo haga, aquí podrá cargarlos."}</p>${selEsc}<button type="button" class="btn link" id="tqiAct">Actualizar desde Tequio</button>`;wireE();document.getElementById("tqiAct").onclick=async()=>{box.innerHTML=`<p class="help" style="margin:0">Actualizando…</p>`;try{await tqiCargar(cct,true)}catch(e){}tqiPintar(donde,nivel,alCargar)};return}
   const E=D.escuelaIns&&D.escuelaIns.datos,P=D.pmc&&D.pmc.datos,gs=D.grupos||[],g0=tqiGrupoDef(D);
   const fuentes=[P?`<li><b>Programa de Mejora Continua</b> de la escuela${D.pmc.archivo?` <span class="muted">(${esc(D.pmc.archivo)})</span>`:""}${D.pmc.estado==="revisado"?" · revisado por la Supervisión":""}</li>`:"",
     E&&!E.sinResultados?`<li><b>${[E.fuentes&&E.fuentes.sisat?"SisAT Momento "+E.fuentes.sisat:"",E.fuentes&&E.fuentes.eia?"EIA":""].filter(Boolean).join(" y ")}</b> de la escuela${gs.length?` y de ${gs.length} grupos`:""}</li>`:""].join("");
@@ -3486,11 +3496,11 @@ async function tqiPintar(donde,nivel,alCargar){const box=document.getElementById
   const ok=TQI_OK;TQI_OK="";
   box.innerHTML=`<h3>Insumos de su escuela (Tequio)</h3>${ok?`<div class="soon" style="color:var(--ink);margin-bottom:8px"><b>✓ ${esc(ok)}</b></div>`:""}
    <p class="help" style="margin-top:0">La Supervisión reunió los datos reales de ${esc(D.escuela)} (ciclo ${esc(D.ciclo)}). Cárguelos como base: se agregan a lo que usted ya escribió, y puede corregir, borrar y completar todo.</p>
-   <ul style="margin:6px 0 0;padding-left:20px;font-size:15px">${fuentes}</ul>${donde==="pa"?paSub:""}${donde==="pm"?"":selG}
+   ${selEsc}<ul style="margin:6px 0 0;padding-left:20px;font-size:15px">${fuentes}</ul>${donde==="pa"?paSub:""}${donde==="pm"?"":selG}
    ${nivel==="grupo"&&!gs.length&&donde!=="pm"?`<p class="help">Aún no hay resultados por grupo: se cargará lo de la escuela.</p>`:""}
    <div class="acts" style="margin-top:10px"><button type="button" class="btn primary act" id="tqiOk" ${deshab?"disabled":""}>↓ ${esc(txt)}</button><button type="button" class="btn link" id="tqiAct">Actualizar desde Tequio</button></div>
    <p class="help" style="margin:6px 0 0">De los alumnos solo se incluyen cantidades; los nombres no salen de Tequio.</p>`;
-  document.getElementById("tqiAct").onclick=async()=>{box.innerHTML=`<p class="help" style="margin:0">Actualizando…</p>`;try{await tqiCargar(cct,true)}catch(e){}tqiPintar(donde,nivel,alCargar)};
+  wireE();document.getElementById("tqiAct").onclick=async()=>{box.innerHTML=`<p class="help" style="margin:0">Actualizando…</p>`;try{await tqiCargar(cct,true)}catch(e){}tqiPintar(donde,nivel,alCargar)};
   document.getElementById("tqiOk").onclick=()=>{let G=null;const sl=document.getElementById("tqiG");if(sl){const[gr,gp]=sl.value.split("|");G=gs.find(x=>x.grado===gr&&x.grupo===gp)||null}else if(nivel==="grupo")G=g0;alCargar(D,G)}}
 /* Texto: agrega un bloque a una respuesta sin repetir lo que ya tiene */
 function tqiAgregar(actual,nuevo,fuente){nuevo=String(nuevo||"").trim();if(!nuevo)return actual||"";const a=String(actual||"").trim();
@@ -3498,7 +3508,7 @@ function tqiAgregar(actual,nuevo,fuente){nuevo=String(nuevo||"").trim();if(!nuev
 const tqiLista=(l,f)=>(l||[]).map((x,i)=>`${i+1}. ${f?f(x):x}`).join("\n");
 function tqiCtx(P,k){return P&&P.contexto?P.contexto[k]||"":""}
 /* Lectura de la realidad: cada dato va a la sección que le corresponde de la plantilla */
-function dxDesdeTequio(D,G){const C=dxCur(),nivel=DX.nivel,P=D.pmc&&D.pmc.datos,E=D.escuelaIns&&D.escuelaIns.datos,X=(nivel==="grupo"&&G&&G.datos&&!G.datos.sinResultados)?G.datos:(E&&!E.sinResultados?E:null);
+function dxDesdeTequio(D,G){if(D.cct&&dxCur().datos.cct!==D.cct)Object.assign(dxCur().datos,{escuela:"Escuela Primaria "+D.escuela,cct:D.cct});const C=dxCur(),nivel=DX.nivel,P=D.pmc&&D.pmc.datos,E=D.escuelaIns&&D.escuelaIns.datos,X=(nivel==="grupo"&&G&&G.datos&&!G.datos.sinResultados)?G.datos:(E&&!E.sinResultados?E:null);
   const fPMC="PMC "+D.ciclo+" de la escuela",fT=(X&&X.fuentes?[X.fuentes.sisat?"SisAT Momento "+X.fuentes.sisat:"",X.fuentes.eia?"EIA":""].filter(Boolean).join(" y "):"")+(nivel==="grupo"&&X===(G&&G.datos)?" del grupo "+tqiGrupoNom(G):" de la escuela")+", Tequio";
   const sec=re=>C.secs.find(s=>re.test(s.t));
   const pon=(re,i,txt,f)=>{const s=sec(re);if(!s||!String(txt||"").trim())return;while(s.items.length<=i)s.items.push({q:"",a:""});s.items[i].a=tqiAgregar(s.items[i].a,txt,f)};
@@ -3541,7 +3551,7 @@ function tqiAspecto(amb){const a=tqiNorm(amb);if(!a)return"";const m=PM_ASPECTOS
   if(/aprovech|academ/.test(a))return"Aprovechamiento académico";if(/asisten/.test(a))return"Asistencia de los educandos";if(/practica/.test(a))return"Prácticas docentes y directivas";if(/formaci/.test(a))return"Formación docente";
   if(/planes|programa/.test(a))return"Avance de los planes y programas educativos";if(/comunidad|familia|padres/.test(a))return"Participación de la comunidad";if(/autoridad|direct/.test(a))return"Desempeño de la autoridad escolar";
   if(/infraest/.test(a))return/equipa/.test(a)?"Infraestructura":"Infraestructura";if(/equipa/.test(a))return"Equipamiento";if(/carga|administ/.test(a))return"Carga administrativa";return amb}
-function pmDesdeTequio(D){const P=D.pmc&&D.pmc.datos;if(!P)return;const E=D.escuelaIns&&D.escuelaIns.datos;
+function pmDesdeTequio(D){const P=D.pmc&&D.pmc.datos;if(!P)return;if(D.cct&&PM.cct!==D.cct){PM.escuela="Escuela Primaria "+D.escuela;PM.cct=D.cct}const E=D.escuelaIns&&D.escuelaIns.datos;
   const ctx=[["Contexto",["regional","comunitario","familias"].map(k=>tqiCtx(P,k)).filter(Boolean).join(" ")],["La escuela",tqiCtx(P,"escolar")],["El aula y el alumnado",[tqiCtx(P,"aula"),tqiCtx(P,"alumnado")].filter(Boolean).join(" ")],["Resultados",P.resultados],["Análisis",P.analisis]].filter(x=>x[1]).map(x=>x[0].toUpperCase()+"\n"+x[1]).join("\n\n");
   PM.lectura=tqiAgregar(PM.lectura,ctx+(E&&!E.sinResultados&&E.redaccion?"\n\nRESULTADOS SISAT Y EIA (Tequio)\n"+E.redaccion:""),"PMC "+D.ciclo+" de la escuela");
   const tok=t=>paTok(t),sim=(a,b)=>{const A=tok(a);let n=0;tok(b).forEach(w=>{if(A.has(w))n++});return n};
@@ -3562,7 +3572,7 @@ const TQI_EJE={"Lenguajes":"Apropiación de las culturas a través de la lectura
 const TQI_MET=c=>PA_METODOS[{"Lenguajes":0,"Saberes y Pensamiento Científico":2,"Ética, Naturaleza y Sociedades":1,"De lo Humano y lo Comunitario":3}[c]||0];
 const TQI_PROY={"Lenguajes":"Leemos y escribimos sobre nuestra comunidad","Saberes y Pensamiento Científico":"Las matemáticas que usamos en casa y en el campo","Ética, Naturaleza y Sociedades":"Cuidamos nuestro entorno y nuestros derechos","De lo Humano y lo Comunitario":"Convivimos, nos cuidamos y participamos"};
 function tqiCampoDe(t){const s=tqiNorm(t);return/lengua|lectura|escritura/.test(s)?"Lenguajes":/matem|saberes|calculo/.test(s)?"Saberes y Pensamiento Científico":/etica|naturaleza/.test(s)?"Ética, Naturaleza y Sociedades":/humano|comunitario|convivencia/.test(s)?"De lo Humano y lo Comunitario":""}
-async function paDesdeTequio(D,G){await cargarBanco();const C=paCur(),P=D.pmc&&D.pmc.datos,E=D.escuelaIns&&D.escuelaIns.datos;
+async function paDesdeTequio(D,G){await cargarBanco();if(D.cct&&paCur().datos.cct!==D.cct)Object.assign(paCur().datos,{escuela:"Escuela Primaria "+D.escuela,cct:D.cct});const C=paCur(),P=D.pmc&&D.pmc.datos,E=D.escuelaIns&&D.escuelaIns.datos;
   const grupo=PA.nivel==="grupo"&&G&&G.datos&&!G.datos.sinResultados;const X=grupo?G.datos:(E&&!E.sinResultados?E:null);
   if(PA.nivel==="grupo"&&G){C.grado=G.grado;C.fase=faseDeGrado(+G.grado)}
   const fase=C.fase,grados=(BANCO&&BANCO.fases[fase])?BANCO.fases[fase].grados.map(String):[];
