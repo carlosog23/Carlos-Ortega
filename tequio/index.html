@@ -711,6 +711,11 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 }
 @media (prefers-reduced-motion:reduce){.lateral,.lat-c .cv{transition:none}}
 @media print{.lateral,.velo-lat,.migas-sec,.barra-ico,.b-menu{display:none!important}.marco{display:block}}
+.tla-intro p{line-height:1.55}.tla-pasos{margin:10px 0 0;padding-left:22px;line-height:1.6}
+.tla-tabla td{vertical-align:top;font-size:14px}.tla-tabla td a{word-break:break-word}.tla-acc{white-space:nowrap}.tla-acc .boton{margin:0 4px 4px 0}
+.tla-ok{color:#2E7D4F;font-weight:600}.tla-med{color:#A0601A;font-weight:600}.tla-no{color:#9B2C2C}
+.tla-rev label{display:block;margin:0 0 10px}.tla-rev textarea{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--borde);border-radius:8px;margin-top:4px}
+.tla-prev h3{font-size:16px;margin:14px 0 4px}.tla-prev ul{margin:4px 0;padding-left:20px}
 </style>
 </head>
 <body>
@@ -977,7 +982,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-05-2010';
+const PUBLICACION = '2026-11-07-2200';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1097,12 +1102,13 @@ function portada(mensaje) {
 function pestanas() {
   const on = ZONA.modulos;
   return pestanasTodas().filter(t => !Array.isArray(on) || ['agenda', 'directorio', 'enlaces'].includes(t[0]) || on.includes(t[0]) || moduloNuevo(t[0])
+      || (t[0] === 'insumos' && (on.includes('sisat') || on.includes('eia')))
       || (t[0] === 'herramientas' && String(ZONA.numero) === '050' && !ZONA.modulosEditado))
     .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
   if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm']];
-  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['insumos', 'Insumos para Tlamatini', 'i-tlm'], ['cte', 'CTE', 'i-cte'], ['seguimiento', 'Seguimiento', 'i-seg'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   l.push(['finanzas', 'Recursos financieros', 'i-pesos']);
@@ -1118,7 +1124,7 @@ function pestanasTodas() {
 const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas']],
   ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'seguimiento', 'campo', 'visitas']],
-  ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia']],
+  ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
   ['documentos', 'Documentos', 'i-lapiz', ['correos', 'oficios', 'directorio', 'herramientas']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
   ['finanzas', 'Recursos financieros', 'i-pesos', ['finanzas']]
@@ -1202,7 +1208,7 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos })[vista.tab]();
   pintarBandaVid(); vidVigilar();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
@@ -8890,6 +8896,235 @@ function insDescargar(v, tipoInf) {
   $('#in-imp').onclick = () => hacer('imp'); $('#in-pdf').onclick = () => hacer('pdf'); $('#in-word').onclick = () => hacer('word');
 }
 
+/* ==== Insumos para Tlamatini ====
+   Junta lo que cada escuela tiene (SisAT, EIA y su PMC) y lo publica para Tlamatini: al elegir su escuela o su grupo,
+   docentes y directivos encuentran ya su lectura de la realidad y una base para el programa analítico.
+   Lo de los alumnos se publica solo en cantidades: los nombres no salen de Tequio. Requiere el servidor versión 47. */
+const TLA = { ciclo: null, pmc: null, tla: null, arch: {}, cargando: false, error: '' };
+const tlaTxt = h => { const d = document.createElement('div'); d.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/gi, '\n'); return (d.textContent || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim(); };
+// Nombre completo del campo formativo (como lo usa Tlamatini) a partir del corto o de la clave
+const TLA_CAMPOS = { LEN: 'Lenguajes', SAB: 'Saberes y Pensamiento Científico', ETI: 'Ética, Naturaleza y Sociedades', HUM: 'De lo Humano y lo Comunitario' };
+function tlaCampo(t) {
+  const s = String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  if (/^len/.test(s)) return TLA_CAMPOS.LEN; if (/^sab/.test(s)) return TLA_CAMPOS.SAB; if (/^etic/.test(s)) return TLA_CAMPOS.ETI; if (/humano/.test(s)) return TLA_CAMPOS.HUM;
+  return TLA_CAMPOS[t] || '';
+}
+// Bloques de un informe → secciones de texto para Tlamatini, sin gráficas ni tablas con nombres de alumnos
+function tlaSecciones(B) {
+  const out = []; let cur = null;
+  const nueva = t => { cur = { t: t, b: [] }; out.push(cur); };
+  B.forEach(b => {
+    if (b.t === 'h') return nueva(tlaTxt(b.x).replace(/^\d+\.\s*/, ''));
+    if (!cur) nueva('Introducción');
+    if (b.t === 'p') cur.b.push({ p: tlaTxt(b.x) });
+    else if (b.t === 'sub') cur.b.push({ s: tlaTxt(b.x) });
+    else if (b.t === 'lista') cur.b.push({ l: (b.l || []).map(tlaTxt) });
+    else if (b.t === 'nota') { if (!/nombres de (los )?alumnos/i.test(tlaTxt(b.x))) cur.b.push({ n: tlaTxt(b.x) }); }
+    else if (b.t === 'tabla') {
+      const cab = (b.cab || []).map(tlaTxt);
+      if (cab.some(c => /^alumno$/i.test(c))) return;   // los nombres no salen de Tequio
+      cur.b.push({ tabla: { cab: cab, filas: (b.filas || []).map(f => f.map(tlaTxt)) } });
+    }
+  });
+  return out.filter(s => s.b.length);
+}
+const tlaSec = (S0, re) => S0.find(s => re.test(s.t));
+// Lo que Tlamatini necesita de la lectura de la realidad de un nivel (escuela o grupo)
+async function tlaPaquete(w) {
+  let I = null, J = null;
+  try { I = await insInforme(w); } catch (e) { return { nivel: w.nivel, grado: w.grado, grupo: w.grupo, datos: { v: 1, sinResultados: true, nombre: sisTitulo(w) } }; }
+  try { J = await intInforme(w); } catch (e) {}
+  const A = tlaSecciones(I.B), Bi = J ? tlaSecciones(J.B) : [];
+  const F = insFuentes(w);
+  const d = { v: 1, nombre: sisTitulo(w), sub: I.sub, generado: hoy(), fuentes: { sisat: F.m || null, eia: !!F.eia.length } };
+  // Resultados (tablas de «Lo que muestran los resultados» en texto)
+  const res = tlaSec(A, /^Lo que muestran/);
+  d.resultados = res ? res.b.map(x => x.s ? x.s + ':' : x.tabla ? x.tabla.filas.map(f => '• ' + f[0] + ': ' + x.tabla.cab.slice(1).map((c, i) => c + ' ' + f[i + 1]).join('; ')).join('\n') : x.p || '').filter(Boolean).join('\n') : '';
+  // Problemáticas, de la más urgente a la menos
+  const pr = tlaSec(A, /^Problemáticas/);
+  d.problematicas = [];
+  if (pr) pr.b.filter(x => x.l).forEach(x => x.l.forEach(t => {
+    const m = t.match(/^\d+\.\s*([\s\S]*?)\s*\(([^()]*)\)\s*$/); if (!m) return;
+    const et = m[2].split('·').map(z => z.trim());
+    d.problematicas.push({ txt: m[1], campo: et.length > 1 ? tlaCampo(et[0]) : '', fuente: et[et.length - 1] });
+  }));
+  // Contenidos y PDA a priorizar
+  const ct = tlaSec(A, /^Contenidos y PDA/);
+  d.contenidos = [];
+  if (ct) ct.b.filter(x => x.tabla).forEach(x => { const conG = x.tabla.cab[0] === 'Grado';
+    x.tabla.filas.forEach(f => { const o = conG ? { grado: f[0].replace(/\D/g, ''), campo: tlaCampo(f[1]), cont: f[2], pda: f[3], dato: f[4] } : { grado: w.grado, campo: tlaCampo(f[0]), cont: f[1], pda: f[2], dato: f[3] };
+      o.pda = o.pda.replace(/^(PDA|Qué trabajar):\s*/i, m => /PDA/i.test(m) ? '' : 'Qué trabajar: '); d.contenidos.push(o); }); });
+  const at = tlaSec(A, /^Alumnos que requieren/) || tlaSec(Bi, /^Atención diferenciada/);
+  d.atencion = at ? at.b.filter(x => x.p).map(x => x.p).join(' ') : '';
+  const rd = tlaSec(A, /^Redacción sugerida/);
+  d.redaccion = rd ? rd.b.filter(x => x.p).map(x => x.p).join('\n\n') : '';
+  const pq = tlaSec(A, /^Preguntas/);
+  d.preguntas = pq ? [].concat(...pq.b.filter(x => x.l).map(x => x.l)) : [];
+  // Del informe integrado: fortalezas y líneas de trabajo para el docente
+  const fz = tlaSec(Bi, /^Fortalezas/);
+  d.fortalezas = fz ? [].concat(...fz.b.filter(x => x.l).map(x => x.l)) : [];
+  const ln = tlaSec(Bi, /^Líneas de trabajo/);
+  d.lineas = [];
+  if (ln) { let L = null; ln.b.forEach(x => {
+    if (x.s) { L = { titulo: x.s.replace(/^Línea \d+ · /, ''), por: '', que: [], act: [], avance: [], libros: '' }; d.lineas.push(L); return; }
+    if (!L) return;
+    if (x.p && /^Por qué:/.test(x.p)) L.por = x.p.replace(/^Por qué:\s*/, '');
+    else if (x.p && /^Libros de texto:/.test(x.p)) L.libros = x.p.replace(/^Libros de texto:\s*/, '');
+    else if (x.p) L._k = /^Qué trabajar/.test(x.p) ? 'que' : /^Actividades/.test(x.p) ? 'act' : /^Cómo saber/.test(x.p) ? 'avance' : '';
+    else if (x.l && L._k) L[L._k] = L[L._k].concat(x.l);
+  }); d.lineas.forEach(L => delete L._k); }
+  const ru = tlaSec(Bi, /^Rutina semanal/);
+  d.rutina = ru ? [].concat(...ru.b.filter(x => x.tabla).map(x => x.tabla.filas)) : [];
+  // Una celda de la hoja guarda hasta 50 000 caracteres: si no cabe, se recorta lo menos necesario
+  const tam = () => JSON.stringify(d).length;
+  if (tam() > 45000) { d.preguntas = []; d.rutina = []; }
+  if (tam() > 45000) { d.lineas = d.lineas.slice(0, 3).map(L => Object.assign(L, { que: L.que.slice(0, 3), act: L.act.slice(0, 3) })); d.contenidos = d.contenidos.slice(0, 24); }
+  if (tam() > 45000) { d.resultados = d.resultados.slice(0, 6000); d.redaccion = d.redaccion.slice(0, 6000); d.contenidos = d.contenidos.slice(0, 12); }
+  return { nivel: w.nivel, grado: w.grado || '', grupo: w.grupo || '', datos: d };
+}
+async function tlaPublicarEscuela(cct, silencio) {
+  const ciclo = TLA.ciclo, base = { ciclo, m: 'auto', con1: false };
+  const paq = [await tlaPaquete(Object.assign({}, base, { nivel: 'escuela', cct, grado: '', grupo: '' }))];
+  for (const g of insGrupos(ciclo, cct)) paq.push(await tlaPaquete(Object.assign({}, base, { nivel: 'grupo', cct, grado: g.grado, grupo: g.grupo })));
+  const r = await api('tlaPublicar', { ciclo, cct, paquetes: paq });
+  TLA.tla = r.tla || TLA.tla;
+  if (!silencio) aviso('Se publicó en Tlamatini la lectura de la realidad de ' + esc(nombreEscuela(cct)) + ' (escuela y ' + (paq.length - 1) + ' grupos).', 'ok', 7000);
+  return paq.length;
+}
+async function tlaCargar(forzar) {
+  const ciclo = TLA.ciclo || (TLA.ciclo = insCiclos()[0] || cicloActual());
+  if (TLA.pmc && !forzar) return;
+  TLA.cargando = true; TLA.error = '';
+  try { const r = await api('tlaDatos', { ciclo }); TLA.pmc = r.pmc || []; TLA.tla = r.tla || []; }
+  catch (e) { TLA.error = e.message; TLA.pmc = null; }
+  finally { TLA.cargando = false; }
+}
+// ¿Lo publicado ya quedó atrás de lo que se cargó después (SisAT, EIA o PMC)?
+function tlaDesfasada(cct) {
+  const pub = (TLA.tla || []).filter(x => x.cct === cct).map(x => x.actualizado).sort().pop() || '';
+  if (!pub) return false;
+  const ult = [].concat((S.sis || []).filter(r => r.cct === cct && r.ciclo === TLA.ciclo).map(r => r.actualizado), (S.eig || []).filter(r => r.cct === cct && r.ciclo === TLA.ciclo).map(r => r.actualizado),
+    (TLA.pmc || []).filter(r => r.cct === cct).map(r => r.actualizado)).filter(Boolean).sort().pop() || '';
+  return ult > pub;
+}
+function vInsumos() {
+  if (!S.sis && !S.eig) { $('#vista').innerHTML = `<div class="titulo-vista"><h1>Insumos para Tlamatini</h1></div><div class="tarjeta pad"><p>Primero actualice el servidor de Tequio.</p></div>`; return; }
+  if (!TLA.pmc && !TLA.cargando && !TLA.error) { tlaCargar().then(() => { if (vista.tab === 'insumos') vInsumos(); }); }
+  const ciclo = TLA.ciclo || insCiclos()[0] || cicloActual();
+  const cab = `<div class="titulo-vista"><h1>Insumos para Tlamatini</h1>
+    <div class="acciones"><button class="boton sec" id="tl-buscar">${ico('i-carpeta')}Buscar PMC y programas analíticos en el Drive</button><button class="boton terra" id="tl-todas">${ico('i-tlm')}Publicar todas las escuelas</button></div></div>
+    <div class="filtros"><select id="tl-ciclo" aria-label="Ciclo escolar">${insCiclos().map(c => `<option ${c === ciclo ? 'selected' : ''}>${c}</option>`).join('')}</select>${selAtp()}</div>
+    <div class="tarjeta pad tla-intro"><p style="margin:0">Aquí se junta lo que tiene cada escuela —<b>SisAT</b>, <b>EIA</b> y su <b>Programa de Mejora Continua</b>— para que en <b>Tlamatini</b>, al elegir su escuela o su grupo, el director y los docentes encuentren ya su <b>lectura de la realidad</b> y una <b>base para el programa analítico</b>, que luego completan y ajustan.
+    De los alumnos solo se publican cantidades: <b>los nombres no salen de Tequio</b>.</p>
+    <ol class="tla-pasos"><li><b>Buscar</b> el PMC y el programa analítico que subió cada escuela a su carpeta.</li><li><b>Leer el PMC</b> con la IA (Gemini) y <b>revisarlo</b>: corrija lo que haga falta.</li><li><b>Publicar</b>: se arma la lectura de la realidad de la escuela y de cada grupo con el SisAT, los EIA y el PMC.</li></ol></div>`;
+  if (TLA.cargando || (!TLA.pmc && !TLA.error)) { $('#vista').innerHTML = cab + '<div class="tarjeta pad">Cargando…</div>'; tlaEnlazar(); return; }
+  if (TLA.error) { $('#vista').innerHTML = cab + `<div class="tarjeta pad"><b>No se pudo cargar.</b> ${esc(TLA.error)}${/desconocida/i.test(TLA.error) ? ' Actualice el servidor de Tequio a la versión 47.' : ''}</div>`; tlaEnlazar(); return; }
+  const escs = filtroEscuelas();
+  const fila = c => {
+    const p = (TLA.pmc || []).find(x => x.cct === c.cct), a = TLA.arch[c.cct];
+    const sisM = [3, 2, 1].find(m => (S.sis || []).some(r => r.cct === c.cct && r.ciclo === ciclo && +r.momento === m));
+    const eia = (S.eig || []).some(r => r.cct === c.cct && r.ciclo === ciclo);
+    const pub = (TLA.tla || []).filter(x => x.cct === c.cct), pubF = pub.map(x => x.actualizado).sort().pop();
+    const arch = p && p.archivo ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.archivo)}</a>` : a && a.pmc && a.pmc[0] ? `<a href="${esc(a.pmc[0].url)}" target="_blank" rel="noopener">${esc(a.pmc[0].nombre)}</a>` : a ? '<span class="tla-no">No lo encontré en su carpeta</span>' : '<span class="peq">—</span>';
+    const est = p && p.estado === 'revisado' ? '<span class="tla-ok">Revisado</span>' : p && p.estado === 'leido' ? '<span class="tla-med">Leído con IA · por revisar</span>' : '<span class="peq">Sin leer</span>';
+    const pa = (p && p.pa && p.pa.length) ? p.pa : (a && a.pa) || [];
+    return `<tr><td><b>${esc(c.escuela)}</b><br><span class="peq">${esc(c.cct)}</span></td>
+      <td>${arch}<br>${est}${p && p.fechaArchivo ? ` <span class="peq">· archivo del ${esc(fechaCorta(p.fechaArchivo.slice(0, 10)))}</span>` : ''}</td>
+      <td>${pa.length ? pa.slice(0, 2).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nombre)}</a>`).join('<br>') : '<span class="peq">No subido: Tlamatini propone una base</span>'}</td>
+      <td>${sisM ? 'SisAT M' + sisM : '<span class="peq">Sin SisAT</span>'}<br>${eia ? 'EIA' : '<span class="peq">Sin EIA</span>'}</td>
+      <td>${pubF ? `<span class="tla-ok">Publicado</span> <span class="peq">${esc(fechaHora(pubF))}</span><br><span class="peq">Escuela y ${pub.filter(x => x.nivel === 'grupo').length} grupos</span>${tlaDesfasada(c.cct) ? '<br><span class="tla-med">Hay datos nuevos: vuelva a publicar</span>' : ''}` : '<span class="peq">Sin publicar</span>'}</td>
+      <td class="tla-acc"><button class="boton sec chico" data-tlleer="${c.cct}">${p && p.estado !== 'sin' && p.archivo ? 'Volver a leer' : 'Leer PMC'}</button>${p && p.datos && p.estado !== 'sin' ? `<button class="boton sec chico" data-tlrev="${c.cct}">Revisar PMC</button>` : ''}<button class="boton terra chico" data-tlpub="${c.cct}">Publicar</button>${pubF ? `<button class="boton sec chico" data-tlver="${c.cct}">Ver</button>` : ''}</td></tr>`;
+  };
+  $('#vista').innerHTML = cab + `<div class="tarjeta"><div class="matriz-caja"><table class="prm-tabla tla-tabla"><thead><tr><th>Escuela</th><th>PMC</th><th>Programa analítico</th><th>Resultados</th><th>En Tlamatini</th><th></th></tr></thead><tbody>${escs.map(fila).join('')}</tbody></table></div></div>
+    <p class="peq">En Tlamatini, la lectura de la realidad, el PMC y el programa analítico de cada escuela se cargan desde aquí. Lo que el docente escriba ahí se queda en su dispositivo.</p>`;
+  tlaEnlazar();
+}
+function tlaEnlazar() {
+  if ($('#tl-ciclo')) $('#tl-ciclo').onchange = async () => { TLA.ciclo = $('#tl-ciclo').value; TLA.pmc = null; TLA.arch = {}; vInsumos(); };
+  if ($('#f-atp')) $('#f-atp').onchange = () => { vista.atp = $('#f-atp').value; vInsumos(); };
+  if ($('#tl-buscar')) $('#tl-buscar').onclick = async () => {
+    const r = await conCarga(() => api('pmcBuscar', { ciclo: TLA.ciclo }));
+    if (!r) return;
+    (r.archivos || []).forEach(x => TLA.arch[x.cct] = x); TLA.pmc = r.pmc || TLA.pmc;
+    const sin = (r.archivos || []).filter(x => !x.pendiente && !(x.pmc || []).length).length, pend = (r.archivos || []).filter(x => x.pendiente).length;
+    aviso('Listo. ' + ((r.archivos || []).length - sin - pend) + ' escuelas con PMC en su carpeta' + (sin ? '; ' + sin + ' sin PMC' : '') + (pend ? '; ' + pend + ' quedaron pendientes por tiempo: vuelva a buscar' : '') + '.', 'ok', 8000);
+    vInsumos();
+  };
+  $$('[data-tlleer]').forEach(b => b.onclick = async () => {
+    const cct = b.dataset.tlleer, a = TLA.arch[cct];
+    let archivoId = '';
+    if (a && a.pmc && a.pmc.length > 1) {
+      const elegido = await tlaElegirArchivo(cct, a.pmc); if (elegido === null) return; archivoId = elegido;
+    }
+    aviso('Leyendo el PMC de ' + esc(nombreEscuela(cct)) + ' con la IA… puede tardar un minuto.', 'ok', 6000);
+    const r = await conCarga(() => api('pmcLeer', { ciclo: TLA.ciclo, cct, archivoId }));
+    if (!r) return;
+    poner(TLA.pmc, r.pmcFila); vInsumos(); tlaRevisar(cct);
+  });
+  $$('[data-tlrev]').forEach(b => b.onclick = () => tlaRevisar(b.dataset.tlrev));
+  $$('[data-tlpub]').forEach(b => b.onclick = async () => { await conCarga(() => tlaPublicarEscuela(b.dataset.tlpub)); vInsumos(); });
+  $$('[data-tlver]').forEach(b => b.onclick = () => tlaVer(b.dataset.tlver));
+  if ($('#tl-todas')) $('#tl-todas').onclick = async () => {
+    const escs = filtroEscuelas(); let n = 0;
+    await conCarga(async () => { for (const c of escs) { await tlaPublicarEscuela(c.cct, true); n++; } });
+    aviso('Se publicaron ' + n + ' escuelas en Tlamatini.', 'ok', 7000); vInsumos();
+  };
+}
+function tlaElegirArchivo(cct, l) {
+  return new Promise(ok => {
+    modal('¿Cuál es el PMC de ' + esc(nombreEscuela(cct)) + '?', `<p style="margin-top:0">En su carpeta hay varios archivos que parecen PMC. Elija el que corresponde al ciclo ${esc(TLA.ciclo)}:</p>` +
+      l.map((x, i) => `<label class="sis-dop"><input type="radio" name="tl-arch" value="${esc(x.id)}" ${i ? '' : 'checked'}> <span>${esc(x.nombre)} <span class="peq">· ${esc(x.ruta || 'carpeta principal')} · ${esc(fechaHora(x.fecha))}</span></span></label>`).join(''),
+      '<button class="boton sec" id="tl-ano">Cancelar</button><button class="boton terra" id="tl-asi">Leer este</button>');
+    $('#tl-ano').onclick = () => { cerrarModal(); ok(null); };
+    $('#tl-asi').onclick = () => { const v = ($('[name="tl-arch"]:checked') || {}).value || ''; cerrarModal(); ok(v); };
+  });
+}
+// La Mesa Técnica revisa y corrige lo que la IA leyó del PMC
+const TLA_CTX = [['regional', 'Contexto regional, nacional e internacional'], ['comunitario', 'Ámbito comunitario'], ['familias', 'Las familias'], ['escolar', 'Ámbito escolar'], ['aula', 'Ámbito de aula'], ['alumnado', 'El alumnado']];
+function tlaRevisar(cct) {
+  const p = (TLA.pmc || []).find(x => x.cct === cct); if (!p) return;
+  const D = p.datos || {}, C = D.contexto || {};
+  const ta = (id, v, r) => `<textarea id="${id}" rows="${r || 3}" style="width:100%">${esc(v || '')}</textarea>`;
+  const cuerpo = `<p class="peq" style="margin-top:0">Leído de <a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.archivo || 'el PMC')}</a>. Revise que diga lo mismo que el documento; lo que corrija aquí es lo que verán en Tlamatini. Una idea por renglón en las listas.</p>
+    <div class="tla-rev">${TLA_CTX.map(([k, t]) => `<label><b>${t}</b>${ta('tr-c-' + k, C[k])}</label>`).join('')}
+    <label><b>Resultados que reporta</b>${ta('tr-res', D.resultados, 4)}</label>
+    <label><b>Análisis: causas que reconoce</b>${ta('tr-ana', D.analisis)}</label>
+    <label><b>Problemáticas priorizadas</b> <span class="peq">(una por renglón; puede iniciar con el ámbito y dos puntos)</span>${ta('tr-pro', (D.problematicas || []).map(x => (x.ambito ? x.ambito + ': ' : '') + x.texto).join('\n'), 4)}</label>
+    <label><b>Estrategias del colectivo</b>${ta('tr-est', D.estrategias)}</label>
+    <label><b>Objetivos</b>${ta('tr-obj', (D.objetivos || []).join('\n'))}</label>
+    <label><b>Metas</b>${ta('tr-met', (D.metas || []).join('\n'), 4)}</label>
+    <label><b>Acciones</b> <span class="peq">(un ámbito por bloque: «Ámbito:» en el primer renglón y cada acción abajo; deje un renglón en blanco entre ámbitos)</span>${ta('tr-acc', (D.acciones || []).map(a => (a.ambito || 'Acciones') + ':\n' + a.acciones.join('\n') + (a.responsables ? '\nResponsables: ' + a.responsables : '') + (a.periodo ? '\nPeriodo: ' + a.periodo : '') + (a.recursos ? '\nRecursos: ' + a.recursos : '') + (a.seguimiento ? '\nSeguimiento: ' + a.seguimiento : '')).join('\n\n'), 8)}</label>
+    <label><b>Seguimiento y evaluación</b>${ta('tr-eva', D.evaluacion)}</label>
+    <label><b>Conclusión</b>${ta('tr-con', D.conclusion)}</label></div>`;
+  modal('PMC · ' + esc(nombreEscuela(cct)), cuerpo, '<button class="boton sec" id="tr-no">Cancelar</button><button class="boton terra" id="tr-si">Guardar revisión</button>');
+  $('#tr-no').onclick = cerrarModal;
+  $('#tr-si').onclick = async () => {
+    const v = id => $('#' + id).value.trim(), lin = id => v(id).split('\n').map(x => x.trim()).filter(Boolean);
+    const datos = { contexto: {}, resultados: v('tr-res'), analisis: v('tr-ana'), estrategias: v('tr-est'), objetivos: lin('tr-obj'), metas: lin('tr-met'), evaluacion: v('tr-eva'), conclusion: v('tr-con'),
+      problematicas: lin('tr-pro').map(t => { const m = t.match(/^([^:]{3,60}):\s*(.+)$/); return m && /aprovech|asistencia|pr[aá]cticas|formaci[oó]n|avance|participaci[oó]n|desempe|infraestructura|equipamiento|carga/i.test(m[1]) ? { ambito: m[1], texto: m[2] } : { ambito: '', texto: t }; }),
+      acciones: v('tr-acc').split(/\n\s*\n/).map(bl => { const L = bl.split('\n').map(x => x.trim()).filter(Boolean); if (!L.length) return null;
+        const a = { ambito: L[0].replace(/:$/, ''), acciones: [], responsables: '', periodo: '', recursos: '', seguimiento: '' };
+        L.slice(1).forEach(x => { const m = x.match(/^(Responsables|Periodo|Recursos|Seguimiento):\s*(.*)$/i); if (m) a[m[1].toLowerCase()] = m[2]; else a.acciones.push(x.replace(/^[-•]\s*/, '')); }); return a; }).filter(Boolean) };
+    TLA_CTX.forEach(([k]) => datos.contexto[k] = v('tr-c-' + k));
+    const r = await conCarga(() => api('pmcGuardar', { ciclo: TLA.ciclo, cct, datos }));
+    if (!r) return;
+    poner(TLA.pmc, r.pmcFila); cerrarModal(); aviso('Revisión guardada. Publique la escuela para que llegue a Tlamatini.', 'ok', 7000); vInsumos();
+  };
+}
+// Vista previa: lo mismo que verá Tlamatini
+async function tlaVer(cct) {
+  const r = await conCarga(() => api('tlaInsumos', { cct, ciclo: TLA.ciclo }));
+  if (!r) return;
+  const e = r.escuelaIns && r.escuelaIns.datos, P = r.pmc && r.pmc.datos;
+  const lista = l => l && l.length ? '<ul>' + l.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '';
+  modal('Lo que verá Tlamatini · ' + esc(r.escuela), `<div class="tla-prev">
+    ${P ? `<h3>Del PMC</h3>${lista((P.problematicas || []).map(x => x.texto))}${P.objetivos && P.objetivos.length ? '<p><b>Objetivos:</b></p>' + lista(P.objetivos) : ''}` : '<p class="peq">Sin PMC leído.</p>'}
+    ${e && !e.sinResultados ? `<h3>SisAT y EIA de la escuela</h3><p style="white-space:pre-wrap">${esc(e.resultados)}</p><p><b>Problemáticas:</b></p>${lista((e.problematicas || []).map(x => x.txt))}<p style="white-space:pre-wrap">${esc(e.redaccion)}</p>` : '<p class="peq">Sin resultados del SisAT ni de los EIA.</p>'}
+    <h3>Grupos</h3><p>${(r.grupos || []).map(g => esc(g.grado + '° ' + g.grupo) + (g.datos && g.datos.problematicas ? ` <span class="peq">(${g.datos.problematicas.length} problemáticas, ${(g.datos.contenidos || []).length} contenidos)</span>` : '')).join('<br>') || 'Ninguno'}</p></div>`,
+    '<button class="boton terra" id="tv-ok">Cerrar</button>');
+  $('#tv-ok').onclick = cerrarModal;
+}
+
 /* ---- Datos de ejemplo para la demostración ---- */
 function eiaDemoDatos(ESC, ciclo) {
   const eig = [], eia = [];
@@ -9414,10 +9649,34 @@ const Demo = (() => {
         const o = { id, acuerdoId: m.acuerdoId, cct: m.cct, estado: m.estado, fecha: m.estado === 'hecho' ? ((p && p.estado === 'hecho' && p.fecha) || hoy()) : '', nota: m.nota != null ? m.nota : (p ? p.nota : ''), marcadoPor: D.yo.id };
         poner(D.cum, o); return o; });
       return { cum: copia(r) };
-    }
+    },
+    // Insumos para Tlamatini (PMC de ejemplo, inventado)
+    tlaDatos: d => { D.pmc = D.pmc || []; D.tla = D.tla || []; return { pmc: copia(D.pmc.filter(x => x.ciclo === d.ciclo)), tla: copia(D.tla.filter(x => x.ciclo === d.ciclo).map(x => Object.assign({}, x, { datos: undefined }))) }; },
+    pmcBuscar: d => { D.pmc = D.pmc || [];
+      const archivos = ESC.map((e, i) => ({ cct: e[1], pmc: i % 5 === 4 ? [] : [{ id: 'f-pmc-' + e[1], nombre: 'PMC ' + d.ciclo + ' ' + e[0].toUpperCase() + '.docx', url: '#', ruta: 'PMC/', fecha: d.ciclo.slice(0, 4) + '-10-20T10:00' }], pa: i % 3 ? [] : [{ id: 'f-pa-' + e[1], nombre: 'Programa analítico ' + e[0] + '.pdf', url: '#', fecha: d.ciclo.slice(0, 4) + '-10-02T09:00' }] }));
+      archivos.forEach(a => { const id = d.ciclo + '|' + a.cct, o = D.pmc.find(x => x.id === id); if (o) o.pa = a.pa; else if (a.pa.length) D.pmc.push({ id, ciclo: d.ciclo, cct: a.cct, archivoId: '', archivo: '', url: '', fechaArchivo: '', datos: {}, pa: a.pa, estado: 'sin', leidoPor: '', actualizado: ahora() }); });
+      return { archivos, pmc: copia(D.pmc.filter(x => x.ciclo === d.ciclo)) }; },
+    pmcLeer: d => { D.pmc = D.pmc || []; const e = ESC.find(x => x[1] === d.cct) || ESC[0], id = d.ciclo + '|' + d.cct, prev = D.pmc.find(x => x.id === id) || {};
+      const o = { id, ciclo: d.ciclo, cct: d.cct, archivoId: 'f-pmc-' + d.cct, archivo: 'PMC ' + d.ciclo + ' ' + e[0].toUpperCase() + '.docx', url: '#', fechaArchivo: d.ciclo.slice(0, 4) + '-10-20T10:00', pa: prev.pa || [], estado: 'leido', leidoPor: D.yo.nombre, actualizado: ahora(),
+        datos: { contexto: { regional: 'Comunidad agrícola del valle con población jornalera migrante de otros estados.', comunitario: 'La localidad cuenta con servicios básicos; se pierden tradiciones locales. El 60 % de las familias participa en las actividades de la escuela.', familias: '40 % de las familias con nivel socioeconómico bajo; escolaridad predominante: secundaria; papá y mamá trabajan en el campo y los alumnos quedan a cargo de otras personas.', escolar: 'Escuela de organización completa; 12 aulas, biblioteca y comedor. Mobiliario en mal estado en algunas aulas. El colectivo pide capacitación en el programa analítico.', aula: 'Se requiere fortalecer el trabajo por proyectos y las estrategias de educación emocional y manejo de conflictos.', alumnado: 'Hay alumnos con necesidades específicas en todos los grados sin apoyo de USAER; 22 alumnos de 3.° a 6.° no consolidan la lectoescritura.' },
+          resultados: 'SisAT 1.er momento: en lectura 34 % requiere apoyo; en escritura 39 %; en cálculo mental 38 %.', analisis: 'Rezago acumulado en lectoescritura desde los primeros grados; poca participación de las familias y falta de materiales en casa.',
+          problematicas: [{ texto: 'Bajo nivel de comprensión lectora y producción de textos.', ambito: 'Aprovechamiento académico' }, { texto: 'Dificultad para resolver problemas que implican operaciones básicas y cálculo mental.', ambito: 'Aprovechamiento académico' }, { texto: 'Poca participación de las familias en el aprendizaje de sus hijos.', ambito: 'Participación de la comunidad' }],
+          estrategias: 'Trabajar temas de interés de los alumnos, partir del contexto y del diagnóstico, monitorear el progreso y establecer una alianza con las familias.',
+          objetivos: ['Implementar proyectos que favorezcan la comprensión lectora y la escritura.', 'Conformar una comunidad de aprendizaje docente.'], metas: ['Que el 75 % de los alumnos desarrolle sus competencias de lectura en dos ciclos escolares.', 'Que el 70 % de las familias participe en al menos una estrategia de acompañamiento durante el ciclo.'],
+          acciones: [{ ambito: 'Aprovechamiento académico', acciones: ['Actividades de lectura contextualizadas a los PDA de cada grado.', 'Fomentar la lectura en la biblioteca escolar.'], responsables: 'Docentes y ATP', periodo: 'Todo el ciclo', recursos: 'Biblioteca escolar, material concreto', seguimiento: 'Listas de cotejo, gráficas trimestrales' }, { ambito: 'Participación de la comunidad', acciones: ['Reuniones trimestrales para informar el avance de los alumnos.'], responsables: 'Dirección', periodo: 'Septiembre, noviembre, marzo y junio', recursos: 'Citatorios', seguimiento: 'Listas de asistencia' }],
+          evaluacion: 'Listas de cotejo, rúbricas de comprensión lectora y portafolio de evidencias, revisados en el CTE.', conclusion: 'El PMC atiende de manera integral la comprensión lectora y el razonamiento matemático.' } };
+      D.pmc = D.pmc.filter(x => x.id !== id).concat([o]); return { pmcFila: copia(o) }; },
+    pmcGuardar: d => { D.pmc = D.pmc || []; const id = d.ciclo + '|' + d.cct, o = Object.assign({ id, ciclo: d.ciclo, cct: d.cct, pa: [] }, D.pmc.find(x => x.id === id) || {}, { datos: d.datos, estado: 'revisado', leidoPor: D.yo.nombre, actualizado: ahora() });
+      D.pmc = D.pmc.filter(x => x.id !== id).concat([o]); return { pmcFila: copia(o) }; },
+    tlaPublicar: d => { D.tla = (D.tla || []).filter(x => !(x.ciclo === d.ciclo && x.cct === d.cct)).concat(d.paquetes.map(p => ({ id: [d.ciclo, d.cct, p.nivel, p.grado, p.grupo].join('|'), ciclo: d.ciclo, cct: d.cct, nivel: p.nivel, grado: p.grado, grupo: p.grupo, datos: p.datos, publicadoPor: D.yo.nombre, actualizado: ahora() })));
+      if (JSON.stringify(d.paquetes).indexOf('"Alumno"') >= 0) throw new Error('Los insumos para Tlamatini no deben llevar nombres de alumnos.');
+      return { tla: copia(D.tla.filter(x => x.ciclo === d.ciclo).map(x => Object.assign({}, x, { datos: undefined }))) }; },
+    tlaInsumos: d => { const e = ESC.find(x => x[1] === d.cct) || ESC[0], p = (D.pmc || []).find(x => x.cct === d.cct && x.ciclo === d.ciclo), t = (D.tla || []).filter(x => x.cct === d.cct && x.ciclo === d.ciclo), t0 = t.find(x => x.nivel === 'escuela');
+      return { cct: d.cct, escuela: e[0], ciclo: d.ciclo, pmc: p && p.estado !== 'sin' ? { datos: p.datos, archivo: p.archivo, fechaArchivo: p.fechaArchivo, estado: p.estado } : null, pa: p ? p.pa : [],
+        escuelaIns: t0 ? { datos: t0.datos, actualizado: t0.actualizado } : null, grupos: t.filter(x => x.nivel === 'grupo').map(x => ({ grado: x.grado, grupo: x.grupo, datos: x.datos, actualizado: x.actualizado })) }; }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer'];
+  const LECTURA = ['tlaDatos', 'tlaInsumos', 'personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer'];
   return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
     : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };

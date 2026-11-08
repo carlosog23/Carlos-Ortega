@@ -193,19 +193,24 @@ const HOJAS = {
   // clasif: '' (sin revisar), sin (sin clasificar: pendiente), pimmee, ip, cpe, len, caja o personal. archivos: lo guardado en el Drive.
   cor: ['id', 'hilo', 'fecha', 'de', 'deNombre', 'asunto', 'resumen', 'urgencia', 'motivo', 'tema', 'limite', 'accion', 'factura', 'adjuntos',
         'clasif', 'archivos', 'estado', 'clasifPor', 'clasifNombre', 'clasificado', 'actualizado', 'historial', 'extracto', 'ia'],
+  // Lo que dice el PMC que cada escuela subió al Drive (leído con Gemini y revisable por la Mesa Técnica). datos: JSON con contexto,
+  // resultados, problemáticas, objetivos, metas y acciones. pa: programas analíticos que la escuela subió (nombre, enlace, fecha).
+  pmc: ['id', 'ciclo', 'cct', 'archivoId', 'archivo', 'url', 'fechaArchivo', 'datos', 'pa', 'estado', 'leidoPor', 'actualizado'],
+  // Insumos que la Mesa Técnica publica para Tlamatini: la lectura de la realidad de la escuela y de cada grupo (SisAT + EIA, sin nombres de alumnos)
+  tla: ['id', 'ciclo', 'cct', 'nivel', 'grado', 'grupo', 'datos', 'publicadoPor', 'actualizado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión' };
-const VERSION = 46;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados' };
+const VERSION = 47;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos'];
+const JSON_COLS = ['anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -462,6 +467,8 @@ function doPost(e) {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try { return json_(Object.assign({ ok: true }, REV_PUBLICAS[q.accion](q.datos || {}))); } finally { lock.releaseLock(); }
     }
+    // Tlamatini pide los insumos de una escuela: con el enlace de Tequio (k) o con el enlace de acceso de Tlamatini (tok)
+    if (q.accion === 'tlaInsumos') return json_(Object.assign({ ok: true }, tlaInsumos_(q)));
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -482,10 +489,10 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
-  'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar'];
+  'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
 
@@ -2364,8 +2371,242 @@ const ACCIONES = {
       if (id) { try { r[k] = Utilities.base64Encode(DriveApp.getFileById(id).getBlob().getBytes()); } catch (e) {} }
     });
     return r;
+  },
+
+  /* ---- Insumos para Tlamatini: PMC de cada escuela y lectura de la realidad (SisAT + EIA) ---- */
+  // Lo que hay de cada escuela: el PMC leído y qué se publicó para Tlamatini (sin el contenido, que es pesado)
+  tlaDatos: (yo, d) => {
+    const ciclo = cicloValido_(d.ciclo);
+    const mia = yo.rol === 'director' ? cctDe_(yo) : '';
+    if (!mia) soloMesa_(yo);
+    const pmc = leer_('pmc').filter(x => x.ciclo === ciclo && (!mia || x.cct === mia));
+    const tla = leer_('tla').filter(x => x.ciclo === ciclo && (!mia || x.cct === mia)).map(x => ({ id: x.id, cct: x.cct, nivel: x.nivel, grado: x.grado, grupo: x.grupo, publicadoPor: x.publicadoPor, actualizado: x.actualizado }));
+    return { pmc: pmc, tla: tla };
+  },
+  // Busca en el Drive de evidencias el PMC y el programa analítico de una escuela (o de todas)
+  pmcBuscar: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo);
+    const escs = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false && c.cct && (!d.cct || c.cct === d.cct));
+    const fin = Date.now() + 4.5 * 60 * 1000, out = [];
+    escs.forEach(c => {
+      if (Date.now() > fin) { out.push({ cct: c.cct, pendiente: true }); return; }
+      const r = archivosPmc_(c.cct);
+      out.push({ cct: c.cct, pmc: r.pmc, pa: r.pa, mensaje: r.mensaje || '' });
+      // el programa analítico subido se recuerda junto al PMC
+      conLock_(() => {
+        const id = ciclo + '|' + c.cct, o = buscar_('pmc', id);
+        if (o) { o.pa = r.pa; guardar_('pmc', o); }
+        else if (r.pa.length) guardar_('pmc', { id: id, ciclo: ciclo, cct: c.cct, archivoId: '', archivo: '', url: '', fechaArchivo: '', datos: {}, pa: r.pa, estado: 'sin', leidoPor: '', actualizado: ahora_() });
+      });
+    });
+    return { archivos: out, pmc: leer_('pmc').filter(x => x.ciclo === ciclo) };
+  },
+  // Lee con Gemini el PMC de una escuela y guarda lo que dice (contexto, problemáticas, objetivos, metas y acciones)
+  pmcLeer: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    let archivoId = String(d.archivoId || ''), pa = null;
+    if (!archivoId) {
+      const r = archivosPmc_(cct);
+      if (!r.pmc.length) throw new Error(r.mensaje || 'No se encontró el PMC de la escuela en su carpeta del Drive.');
+      archivoId = r.pmc[0].id; pa = r.pa;
+    }
+    const f = DriveApp.getFileById(archivoId);
+    const datos = leerPmcIA_(f, nombreEscuelaDir_(cct), ciclo);
+    return conLock_(() => {
+      const id = ciclo + '|' + cct, prev = buscar_('pmc', id) || {};
+      const o = { id: id, ciclo: ciclo, cct: cct, archivoId: f.getId(), archivo: f.getName(), url: f.getUrl(),
+        fechaArchivo: Utilities.formatDate(f.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), datos: datos, pa: pa || prev.pa || [],
+        estado: 'leido', leidoPor: yo.nombre, actualizado: ahora_() };
+      guardar_('pmc', o);
+      bitacora_('pmc', cct, [], 'PMC ' + ciclo, 'Leído con IA por ' + yo.nombre + ': ' + f.getName());
+      return { pmcFila: o };
+    });
+  },
+  // La Mesa Técnica corrige o completa lo que se leyó del PMC
+  pmcGuardar: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    const id = ciclo + '|' + cct, o = buscar_('pmc', id) || { id: id, ciclo: ciclo, cct: cct, archivoId: '', archivo: '', url: '', fechaArchivo: '', pa: [] };
+    o.datos = limpiarPmc_(d.datos || {});
+    o.estado = 'revisado'; o.leidoPor = yo.nombre; o.actualizado = ahora_();
+    guardar_('pmc', o);
+    return { pmcFila: o };
+  },
+  // Publica para Tlamatini la lectura de la realidad de la escuela y de sus grupos (la arma la página con el SisAT y los EIA)
+  tlaPublicar: (yo, d) => {
+    soloMesa_(yo);
+    const ciclo = cicloValido_(d.ciclo), cct = cctPermitido_(yo, d.cct);
+    const vistos = {};
+    const nuevos = (Array.isArray(d.paquetes) ? d.paquetes : []).slice(0, 40).map(p => {
+      const nivel = p.nivel === 'grupo' ? 'grupo' : 'escuela';
+      const grado = nivel === 'grupo' ? String(p.grado || '').replace(/\D/g, '').slice(0, 1) : '';
+      const grupo = nivel === 'grupo' ? String(p.grupo || '').trim().toUpperCase().slice(0, 12) : '';
+      if (nivel === 'grupo' && !/^[1-6]$/.test(grado)) throw new Error('Grado no válido en uno de los grupos.');
+      const id = [ciclo, cct, nivel, grado, grupo].join('|');
+      if (vistos[id]) return null; vistos[id] = 1;
+      const txt = JSON.stringify(p.datos || {});
+      if (txt.length > 48000) throw new Error('La lectura de ' + (nivel === 'grupo' ? grado + '° ' + grupo : 'la escuela') + ' es demasiado larga para guardarse.');
+      if (/"Alumno"/.test(txt)) throw new Error('Los insumos para Tlamatini no deben llevar nombres de alumnos.');
+      return { id: id, ciclo: ciclo, cct: cct, nivel: nivel, grado: grado, grupo: grupo, datos: p.datos || {}, publicadoPor: yo.nombre, actualizado: ahora_() };
+    }).filter(Boolean);
+    if (!nuevos.length) throw new Error('No hay nada que publicar.');
+    // (doPost ya tiene el candado del servidor mientras se guarda)
+    reemplazarTodo_('tla', leer_('tla').filter(x => !(x.ciclo === ciclo && x.cct === cct)).concat(nuevos));
+    bitacora_('tlamatini', cct, [], 'Insumos para Tlamatini ' + ciclo, nuevos.length + ' lecturas publicadas por ' + yo.nombre);
+    return { tla: leer_('tla').filter(x => x.ciclo === ciclo).map(x => ({ id: x.id, cct: x.cct, nivel: x.nivel, grado: x.grado, grupo: x.grupo, publicadoPor: x.publicadoPor, actualizado: x.actualizado })) };
   }
 };
+
+/* ===================== Insumos para Tlamatini ===================== */
+// Dirección de la lista de enlaces de acceso de Tlamatini (la publica la Supervisión en GitHub)
+const TLM_ACCESO_URL = 'https://raw.githubusercontent.com/carlosog23/carlos-ortega/main/formatos-ppie/formatos/acceso.json';
+const sinAcentos_ = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+function nombreEscuelaDir_(cct) { const c = leer_('dir').find(x => x.tipo === 'director' && x.cct === cct); return c ? c.escuela : cct; }
+
+// PMC y programa analítico que la escuela subió a su carpeta del Drive de evidencias (hasta 3 niveles), del más reciente al más viejo
+function archivosPmc_(cct) {
+  const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
+  if (!raiz) return { pmc: [], pa: [], mensaje: 'No se encontró la carpeta de la escuela en el Drive de evidencias.' };
+  const reP = /(^|[^a-z])(pmc|pemc|pmce)([^a-z]|$)|mejora\s+continua/, reA = /anal[ií]tico/;
+  const tipos = [MimeType.GOOGLE_DOCS, MimeType.PDF, MimeType.MICROSOFT_WORD, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const pmc = [], pa = [];
+  const recorrer = (carpeta, ruta, prof, enPmc) => {
+    const it = carpeta.getFiles();
+    while (it.hasNext()) {
+      const a = it.next(), n = a.getName(), sn = sinAcentos_(n), t = a.getMimeType();
+      if (/^~\$/.test(n) || tipos.indexOf(t) < 0) continue;
+      const o = { id: a.getId(), nombre: n, url: a.getUrl(), ruta: ruta, tipo: t, fecha: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm") };
+      if (reA.test(sn)) pa.push(o);
+      else if (reP.test(sn) || enPmc) pmc.push(Object.assign(o, { porNombre: reP.test(sn) }));
+    }
+    if (prof >= 3) return;
+    const sub = carpeta.getFolders();
+    while (sub.hasNext()) { const f = sub.next(), sf = sinAcentos_(f.getName()); recorrer(f, ruta + f.getName() + '/', prof + 1, enPmc || reP.test(sf)); }
+  };
+  recorrer(DriveApp.getFolderById(raiz.carpetaId), '', 0, false);
+  // primero los que dicen PMC en su nombre; luego, los más recientes
+  const orden = (x, y) => (y.porNombre ? 1 : 0) - (x.porNombre ? 1 : 0) || String(y.fecha).localeCompare(String(x.fecha));
+  pmc.sort(orden); pa.sort((x, y) => String(y.fecha).localeCompare(String(x.fecha)));
+  return { pmc: pmc.slice(0, 10), pa: pa.slice(0, 5), mensaje: pmc.length ? '' : 'La escuela no tiene su PMC en la carpeta del Drive.' };
+}
+
+// Texto de un documento de Word o de Google. El PDF se manda tal cual a Gemini.
+function textoDocumento_(f) {
+  const t = f.getMimeType(), hdr = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  const exportar = id => {
+    const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '/export?mimeType=text%2Fplain', { headers: hdr, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) throw new Error('No se pudo leer el documento (' + r.getResponseCode() + ').');
+    return r.getContentText('UTF-8');
+  };
+  if (t === MimeType.GOOGLE_DOCS) return exportar(f.getId());
+  if (t === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    try {
+      const partes = Utilities.unzip(f.getBlob().setContentType('application/zip'));
+      const doc = partes.find(b => b.getName() === 'word/document.xml');
+      if (doc) {
+        const x = doc.getDataAsString('UTF-8')
+          .replace(/<w:tab\/>/g, ' ').replace(/<w:br[^>]*\/>/g, '\n')
+          .replace(/<\/w:p>/g, '\n').replace(/<\/w:tc>/g, ' | ').replace(/<\/w:tr>/g, '\n')
+          .replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+        const limpio = x.replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+        if (limpio.length > 80) return limpio;
+      }
+    } catch (e) {}
+  }
+  // Word antiguo (.doc) o .docx que no se pudo abrir: copia temporal convertida a documento de Google
+  const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.getId() + '/copy?supportsAllDrives=true', {
+    method: 'post', contentType: 'application/json', headers: hdr, muteHttpExceptions: true,
+    payload: JSON.stringify({ name: 'Tequio temporal · ' + f.getName(), mimeType: MimeType.GOOGLE_DOCS }) });
+  if (r.getResponseCode() !== 200) throw new Error('No se pudo convertir el documento de Word (' + r.getResponseCode() + ').');
+  const id = JSON.parse(r.getContentText()).id;
+  try { return exportar(id); } finally { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} }
+}
+
+function leerPmcIA_(f, escuela, ciclo) {
+  const esPdf = f.getMimeType() === MimeType.PDF;
+  let texto = '';
+  if (!esPdf) { texto = textoDocumento_(f); if (texto.length < 80) throw new Error('El documento casi no tiene texto.'); }
+  const prompt = [
+    'Eres asesor técnico pedagógico de educación primaria en México (Nueva Escuela Mexicana). Te doy el Programa de Mejora Continua (PMC) que la escuela «' + escuela + '» elaboró para el ciclo ' + ciclo + '.',
+    'Extrae lo que dice el documento y acomódalo en el JSON de abajo. Reglas:',
+    '- Usa SOLO lo que dice el documento; no inventes datos, cifras ni problemáticas. Si un apartado no aparece, déjalo vacío ("" o []).',
+    '- Conserva las cifras y el sentido original; puedes resumir párrafos largos, en español formal y en tercera persona («la escuela», «el colectivo»).',
+    '- No incluyas nombres de alumnos ni de padres de familia.',
+    '- contexto: reparte la información por ámbito: regional (situación social, económica, migración, inseguridad), comunitario (localidad, servicios, tradiciones, participación de la comunidad), familias (nivel socioeconómico, escolaridad, ocupación, acompañamiento en casa), escolar (matrícula, plantilla, infraestructura, organización, formación docente), aula (prácticas docentes, convivencia, metodologías) y alumnado (necesidades, BAP, intereses, conducta).',
+    '- resultados: los datos de aprovechamiento que reporta (SisAT, evaluación diagnóstica, promedios, lectoescritura), con sus cifras.',
+    '- analisis: las causas que el documento reconoce (por qué se llegó a esos resultados).',
+    '- problematicas: las problemáticas o necesidades que se priorizan, de la más importante a la menos; ambito: uno de «Aprovechamiento académico», «Asistencia de los educandos», «Prácticas docentes y directivas», «Formación docente», «Avance de los planes y programas educativos», «Participación de la comunidad», «Desempeño de la autoridad escolar», «Infraestructura», «Equipamiento», «Carga administrativa».',
+    '- estrategias: lo que el colectivo propone para salir adelante (estrategias generales).',
+    '- acciones: una fila por ámbito o aspecto de la tabla de acciones, con cada acción como elemento de la lista.',
+    'Responde solo con este JSON:',
+    '{"contexto":{"regional":"","comunitario":"","familias":"","escolar":"","aula":"","alumnado":""},"resultados":"","analisis":"","problematicas":[{"texto":"","ambito":""}],"estrategias":"","objetivos":[""],"metas":[""],"acciones":[{"ambito":"","acciones":[""],"responsables":"","periodo":"","recursos":"","seguimiento":""}],"evaluacion":"","conclusion":""}',
+    esPdf ? '' : '\nDOCUMENTO:\n' + texto.slice(0, 60000)
+  ].join('\n');
+  const op = { json: true, temperatura: 0.2, max: 16384 };
+  if (esPdf) { op.archivo = Utilities.base64Encode(f.getBlob().getBytes()); op.tipo = 'application/pdf'; }
+  const r = gemini_(prompt, op);
+  let j;
+  try { j = JSON.parse(r.replace(/^```(json)?|```$/g, '').trim()); } catch (e) { throw new Error('Gemini no devolvió el formato esperado. Intente de nuevo.'); }
+  return limpiarPmc_(j);
+}
+
+function limpiarPmc_(j) {
+  const t = (v, n) => String(v == null ? '' : v).replace(/\r/g, '').trim().slice(0, n || 4000);
+  const lista = (v, n, m) => (Array.isArray(v) ? v : v ? [v] : []).map(x => t(x, m || 800)).filter(Boolean).slice(0, n || 20);
+  const c = j.contexto || {};
+  return {
+    contexto: { regional: t(c.regional), comunitario: t(c.comunitario), familias: t(c.familias), escolar: t(c.escolar), aula: t(c.aula), alumnado: t(c.alumnado) },
+    resultados: t(j.resultados), analisis: t(j.analisis), estrategias: t(j.estrategias),
+    problematicas: (Array.isArray(j.problematicas) ? j.problematicas : []).map(p => typeof p === 'string' ? { texto: t(p, 800), ambito: '' } : { texto: t(p.texto, 800), ambito: t(p.ambito, 80) }).filter(p => p.texto).slice(0, 12),
+    objetivos: lista(j.objetivos, 12), metas: lista(j.metas, 15),
+    acciones: (Array.isArray(j.acciones) ? j.acciones : []).map(a => ({ ambito: t(a.ambito, 120), acciones: lista(a.acciones, 15, 400), responsables: t(a.responsables, 300),
+      periodo: t(a.periodo, 300), recursos: t(a.recursos, 400), seguimiento: t(a.seguimiento, 400) })).filter(a => a.ambito || a.acciones.length).slice(0, 15),
+    evaluacion: t(j.evaluacion, 1500), conclusion: t(j.conclusion, 1500)
+  };
+}
+
+// ¿El enlace de acceso de Tlamatini es vigente y es de esta escuela?
+function tlmTokenValido_(tok, esc) {
+  tok = String(tok || '');
+  if (tok.length < 10) return false;
+  const cache = CacheService.getScriptCache();
+  let txt = cache.get('tlm-acceso');
+  if (!txt) {
+    const r = UrlFetchApp.fetch(TLM_ACCESO_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return false;
+    txt = r.getContentText('UTF-8');
+    try { if (txt.length < 90000) cache.put('tlm-acceso', txt, 300); } catch (e) {}
+  }
+  let acc; try { acc = JSON.parse(txt); } catch (e) { return false; }
+  const e = (acc.enlaces || []).find(x => x.h === sha_(tok));
+  if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return false;
+  const norm = n => sinAcentos_(n).replace(/^(escuela\s+)?(primaria\s+)?/, '').replace(/[^a-z0-9 ]/g, '').replace(/\b(pte|pdte|presidente|lic|gral)\b/g, '').replace(/\s+/g, ' ').trim();
+  // Los enlaces de Tlamatini guardan la escuela como «Nombre · CCT»
+  if (String(e.escuela || '').toUpperCase().indexOf(esc.cct) >= 0) return true;
+  const a = norm(String(e.escuela || '').replace(/·.*$/, '')), b = norm(esc.escuela);
+  return !!(a && b && (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0));
+}
+
+function tlaInsumos_(q) {
+  const d = q.datos || {}, cct = String(d.cct || '').trim().toUpperCase();
+  const esc = leer_('dir').find(c => c.tipo === 'director' && c.cct === cct);
+  if (!esc) throw new Error('La escuela no está en el directorio de la zona.');
+  const yo = usuario_(q.k);
+  if (yo) { if (yo.rol === 'director' && cctDe_(yo) !== cct) throw new Error('Su enlace es de otra escuela.'); }
+  else if (!tlmTokenValido_(d.tok, esc)) throw new Error('Su enlace de Tlamatini no es de esta escuela o ya no está vigente.');
+  const pmcs = leer_('pmc').filter(x => x.cct === cct), tlas = leer_('tla').filter(x => x.cct === cct);
+  const ciclos = pmcs.map(x => x.ciclo).concat(tlas.map(x => x.ciclo)).sort().reverse();
+  const ciclo = /^20\d\d-20\d\d$/.test(String(d.ciclo || '')) && ciclos.indexOf(d.ciclo) >= 0 ? d.ciclo : (ciclos[0] || '');
+  const pmc = pmcs.find(x => x.ciclo === ciclo), tla = tlas.filter(x => x.ciclo === ciclo);
+  const esc0 = tla.find(x => x.nivel === 'escuela');
+  return { cct: cct, escuela: esc.escuela, ciclo: ciclo,
+    pmc: pmc && pmc.datos && pmc.estado !== 'sin' ? { datos: pmc.datos, archivo: pmc.archivo, fechaArchivo: pmc.fechaArchivo, estado: pmc.estado, actualizado: pmc.actualizado } : null,
+    pa: pmc ? (pmc.pa || []).map(x => ({ nombre: x.nombre, url: x.url, fecha: x.fecha })) : [],
+    escuelaIns: esc0 ? { datos: esc0.datos, actualizado: esc0.actualizado } : null,
+    grupos: tla.filter(x => x.nivel === 'grupo').sort((x, y) => (x.grado + x.grupo).localeCompare(y.grado + y.grupo)).map(x => ({ grado: x.grado, grupo: x.grupo, datos: x.datos, actualizado: x.actualizado })) };
+}
 
 /* ===================== Oficios ===================== */
 
