@@ -13,6 +13,10 @@ function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}.blanco{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#FBF6EC;border:1px dashed #C2603A;border-radius:14px;padding:10px 14px;margin:0 0 14px;font-size:15px}.blanco .btn{flex:none}
 .pick{background:#EEF2FA;border:1px solid #C9D4EA;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:15px}.pick select{width:100%;margin-top:6px}.pick .btn.link{padding:0;display:inline}.resp-fondo{position:fixed;inset:0;z-index:9000;background:rgba(10,12,16,.45);display:flex;align-items:flex-end;justify-content:center}.resp-hoja{background:var(--card,#fff);color:var(--ink,#1b1d22);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.2)}@media(min-width:700px){.resp-fondo{align-items:center}.resp-hoja{border-radius:20px}}.resp-cab{display:flex;align-items:center;justify-content:space-between;gap:10px}.resp-cab h2{margin:0;font-size:20px}.resp-x{border:0;background:none;font-size:20px;width:44px;height:44px;border-radius:50%;cursor:pointer;color:var(--muted,#555)}.resp-b{display:flex!important;flex-direction:column;align-items:center;justify-content:center;width:100%;margin-top:10px;cursor:pointer;gap:2px}.resp-b small{font-weight:400;font-size:13px;opacity:.85}.resp-aviso{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink,#1b1d22);background:var(--warn-soft,#FBEFE5);border:1px solid var(--warn,#A4541A);border-radius:16px;padding:12px 14px;margin:0 0 14px;cursor:pointer}.resp-aviso .ico svg{width:26px;height:26px;fill:none;stroke:var(--warn,#A4541A);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.resp-aviso .tx{flex:1;display:flex;flex-direction:column;gap:2px}.resp-aviso .ds{font-size:14px;color:var(--muted,#555)}.resp-aviso>svg{width:18px;height:18px}.pick{background:var(--accent-soft,#EEF2FA);border-color:var(--line,#C9D4EA)}.pick .ok{margin:6px 0 0;font-size:14px;color:var(--ok,#1E7A46)}.pick-in{margin:0 0 6px}.pick-in select{margin-top:4px}.yo-mas{margin-top:6px;border-top:1px solid var(--line,#ddd);padding-top:10px}.yo-mas>summary{cursor:pointer;font-weight:700;padding:6px 0;list-style-position:outside}.yo-mas[open]>summary{margin-bottom:6px}
+.tqi-doc h3{font-size:17px;color:#1e3a5f;margin:18px 0 6px}.tqi-doc h4{font-size:15.5px;margin:14px 0 4px}.tqi-doc p{margin:0 0 8px;line-height:1.55;text-align:justify}
+.tqi-tb{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0 10px}.tqi-tb th,.tqi-tb td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}.tqi-tb th{width:30%;background:rgba(0,0,0,.03)}
+.tqi-acc th{width:auto}.tqi-pda{padding-left:22px;margin:4px 0 10px}.tqi-pda li{margin:0 0 8px;line-height:1.5}.tqi-q{color:var(--muted,#6b6157);font-size:14px}.tqi-g{font-weight:600}
+.tqi-fil{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}.tqi-sel{display:flex;gap:6px;align-items:center;font-size:14px}.tqi-sel select{min-height:36px}
 </style></head><body>
 <title>Tlamatini · Un camino para la labor docente</title>
 <meta name="theme-color" content="#1F3A6B">
@@ -3472,7 +3476,7 @@ function tqiCardHTML(){return`<section class="card tqi" id="tqiBox"><p class="he
 /* Escuelas de la zona para elegir (la Supervisión y los ATP no tienen escuela propia en su perfil) */
 function tqiEscuelas(){if(ZONA_TQ)return(ZONA_TQ.escuelas||[]).map(e=>[e.nombre,e.cct]);return typeof ESCUELAS_050!=="undefined"?ESCUELAS_050.map(e=>[e[0],e[1]]):[]}
 function tqiEsMesa(){const p=store.get("tequio-pase",null);return!!(store.get("gh-token","")||(p&&["admin","atp"].includes(p.rol)))}
-async function tqiPintar(donde,nivel,alCargar){const box=document.getElementById("tqiBox");if(!box)return;
+async function tqiPintar(donde,nivel,alCargar){const box=document.getElementById("tqiBox");if(!box)return;{const ob=tqiObj(donde);if(ob&&ob.tequio)return box.remove()}
   const propia=tqiEscuelaZona(perfil.cct||"")?perfil.cct:"";const elegida=store.get("tqi-cct","");
   const cct=(tqiEsMesa()||!propia)&&tqiEscuelaZona(elegida)?elegida:propia;
   const ocultar=()=>{box.remove()};
@@ -3598,6 +3602,163 @@ async function paDesdeTequio(D,G){await cargarBanco();if(D.cct&&paCur().datos.cc
     C.codiseno.push({titulo:tit,metodologia:TQI_MET(c),campos:[c].concat(c!=="Lenguajes"?["Lenguajes"]:[]),periodo:"Por definir (sugerido: 3 a 4 semanas)",
       descripcion:[`Problemática que atiende: ${L.titulo}${L.por?" — "+L.por:""}`,(L.que||[]).length?"Qué trabajar: "+L.que.slice(0,3).join("; "):"",(L.act||[]).length?"Actividades sugeridas: "+L.act.slice(0,3).join("; "):"",(L.avance||[]).length?"Cómo saber si avanza: "+L.avance.slice(0,2).join(" "):"","Vincúlelo con una situación real de la comunidad y ajústelo con el colectivo (codiseño)."].filter(Boolean).join("\n")})});
   C.tequio={ciclo:D.ciclo,fecha:today(),grupo:G?tqiGrupoNom(G):""};paSave()}
+/* ---------- Documentos listos con los datos de Tequio ----------
+   Al entrar a Lectura de la realidad, PMC, Programa analítico o Planeación, si la escuela tiene insumos en Tequio,
+   Tlamatini arma el documento terminado (redactado, no preguntas) y lo muestra listo para usar, descargar o imprimir.
+   El docente puede editarlo, agregar lo que quiera o usar su propio archivo, solo si lo desea. */
+S.tqiEd=S.tqiEd||{};S.tqiAuto=S.tqiAuto||{};
+const TQI_TOOL={dx:{t:"Lectura de la realidad"},pm:{t:"Programa de Mejora Continua"},pa:{t:"Programa Analítico"},pl:{t:"Planeación didáctica"}};
+function tqiCctActual(){const propia=tqiEscuelaZona(perfil.cct||"")?perfil.cct:"";const el=store.get("tqi-cct","");return(tqiEsMesa()||!propia)&&tqiEscuelaZona(el)?el:propia}
+const tqiPar=t=>String(t||"").trim();
+const tqiJunta=(...l)=>l.map(tqiPar).filter(Boolean).join("\n\n");
+const tqiPunto=t=>{t=tqiPar(t);return t&&!/[.:;!?)]$/.test(t)?t+".":t};
+function tqiX(D,G,nivel){const E=D.escuelaIns&&D.escuelaIns.datos;if(nivel==="grupo"&&G&&G.datos&&!G.datos.sinResultados)return G.datos;return E&&!E.sinResultados?E:null}
+function tqiGrupoElegido(D){const k=store.get("tqi-grupo-"+D.cct,"");const L=D.grupos||[];return L.find(x=>x.grado+"|"+x.grupo===k)||tqiGrupoDef(D)}
+/* Lectura de la realidad redactada (sin preguntas): cada sección es un texto continuo */
+function tqiLectura(D,G,nivel){const P=D.pmc&&D.pmc.datos,X=tqiX(D,G,nivel),C=(P&&P.contexto)||{};const esG=nivel==="grupo"&&G;
+  const nomG=esG?tqiGrupoNom(G):"";const quien=esG?`el grupo ${nomG} de la escuela ${D.escuela}`:`la escuela ${D.escuela}`;
+  const probs=X?(X.problematicas||[]).slice(0,esG?4:5):[];const camposDif=[...new Set(probs.map(p=>p.campo).filter(Boolean))];
+  const L=X?(X.lineas||[]):[];const S2=[];const sec=(t,...txt)=>{const a=tqiJunta(...txt);if(a)S2.push({t,items:[{q:"",a}]})};
+  sec(esG?"Contexto del grupo y de su comunidad":"Contexto de la escuela y de la comunidad",
+    esG?`El grupo ${nomG} forma parte de la escuela ${D.escuela}, ciclo escolar ${D.ciclo}. Lo que la escuela describe de su comunidad en su Programa de Mejora Continua también es el contexto en el que viven las niñas y los niños del grupo.`:"",
+    C.regional,C.comunitario,C.familias);
+  sec(esG?"La escuela y el ambiente del aula":"La escuela y las aulas",C.escolar,C.aula,C.alumnado);
+  if(X)sec(esG?"Lo que muestran los resultados del grupo":"Lo que muestran los resultados",X.redaccion,X.resultados?"Concentrado de resultados:\n"+X.resultados:"",X.atencion?tqiPunto(X.atencion)+" Requieren seguimiento cercano y ajustes en la planeación.":"");
+  if(P&&P.resultados&&!esG)sec("Otros datos que reporta la escuela",P.resultados);
+  if(X&&(X.fortalezas||[]).length)sec("Fortalezas en las que podemos apoyarnos",X.fortalezas.map(x=>"• "+tqiPunto(x)).join("\n"));
+  sec("Análisis crítico: ¿cómo llegamos a estos resultados?",P&&P.analisis?(esG?"El colectivo reconoce en su PMC que "+P.analisis.charAt(0).toLowerCase()+P.analisis.slice(1):P.analisis):"",
+    camposDif.length?`Los datos del SisAT y de los Ejercicios Integradores muestran que las mayores dificultades de ${quien} se concentran en ${camposDif.join(", ").replace(/, ([^,]*)$/," y $1")}. No se trata solo de cifras: indican qué aprendizajes básicos no se han consolidado y dónde conviene poner la atención en las próximas semanas.`:"");
+  const pl=[];(P&&!esG?P.problematicas||[]:[]).forEach(p=>pl.push(tqiPunto(p.texto)));probs.forEach(p=>pl.push(tqiPunto(p.txt)));
+  if(esG&&P&&(P.problematicas||[]).length)pl.push("A nivel escuela, el PMC prioriza: "+P.problematicas.slice(0,3).map(p=>p.texto.replace(/\.$/,"").toLowerCase()).join("; ")+".");
+  sec(esG?"Problemática priorizada del grupo":"Problemáticas priorizadas",pl.map((t,i)=>`${i+1}. ${t}`).join("\n"));
+  sec("¿Cómo saldremos adelante?",P&&P.estrategias&&!esG?P.estrategias:"",
+    L.length?"Líneas de trabajo:\n"+L.map((l,i)=>`${i+1}. ${l.titulo}. ${l.que&&l.que.length?"Qué trabajar: "+l.que.slice(0,2).join("; ")+".":""}${l.act&&l.act.length?" Actividades: "+l.act.slice(0,2).join("; ")+".":""}`).join("\n"):"",
+    X&&X.rutina&&X.rutina.length&&esG?"Rutina semanal: "+X.rutina.map(r=>`${r[0]} (${r[1].toLowerCase()})`).join("; ")+".":"",
+    !esG&&P&&(P.objetivos||[]).length?"Objetivos del PMC:\n"+P.objetivos.map(o=>"• "+tqiPunto(o)).join("\n"):"",!esG&&P&&(P.metas||[]).length?"Metas:\n"+P.metas.map(o=>"• "+tqiPunto(o)).join("\n"):"");
+  const cont=X?(X.contenidos||[]).slice(0,esG?8:12):[];
+  sec("Vínculo con el programa analítico y la planeación",cont.length?`Con base en esta lectura, se priorizan los siguientes contenidos y procesos de desarrollo de aprendizaje (PDA) en el programa analítico y en la planeación${esG?" del grupo":""}:\n`+cont.map(c=>`• ${!esG&&c.grado?c.grado+".°: ":""}${c.cont} (${c.campo||"—"}).`).join("\n"):"",
+    "Esta lectura de la realidad se elaboró con los datos que la escuela tiene en Tequio (SisAT, Ejercicios Integradores del Aprendizaje y Programa de Mejora Continua). El colectivo la completa con lo que conoce de sus alumnos y de su comunidad.");
+  const t=DX_PLANTILLA[esG?"grupo":"escuela"];const datos={};t.datos.forEach(([k])=>datos[k]=perfilDX(k));
+  Object.assign(datos,{escuela:"Escuela Primaria "+D.escuela,cct:D.cct,ciclo:D.ciclo,fecha:fmtDate(today(),"larga")});if(esG)datos.grupo=nomG;
+  return{nivel:esG?"grupo":"escuela",titulo:t.titulo,datos,secs:S2,tequio:{cct:D.cct,grupo:esG?G.grado+"|"+G.grupo:"",act:tqiFirma(D),fecha:today()}}}
+const tqiFirma=D=>[D.ciclo,D.pmc&&D.pmc.actualizado,D.escuelaIns&&D.escuelaIns.actualizado,(D.grupos||[]).map(g=>g.actualizado).sort().pop()].join("|");
+const tqiTextoLectura=L=>L.secs.map(s=>s.t.toUpperCase()+"\n"+s.items.map(i=>i.a).join("\n")).join("\n\n");
+/* Programa analítico completo: Plano 1 redactado, PDA priorizados por campo y proyectos */
+async function tqiAnalitico(D,G,nivel){const prev=PA;PA={nivel};PA[nivel]=paNuevo(nivel);const C=PA[nivel];C.lectura="";
+  await paDesdeTequio(D,nivel==="grupo"?G:null);
+  C.lectura=tqiTextoLectura(tqiLectura(D,G,nivel));
+  // completa cada campo: si aún no tiene contenidos, los del banco que más se relacionan con lo detectado
+  const X=tqiX(D,G,nivel),P=D.pmc&&D.pmc.datos,ref=paTok([C.lectura,(X&&X.lineas||[]).map(l=>l.que.join(" ")).join(" ")].join(" "));
+  PA_CAMPOS.forEach(camp=>{const cc=C.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][C.fase])||[];
+    const sc=it=>{let n=0;paTok(it.c+" "+Object.values(it.pda).join(" ")).forEach(w=>{if(ref.has(w))n++});return n};
+    const faltan=cc.orden.length+cc.propios.length?0:2;
+    items.filter(it=>!cc.orden.includes(it.c)).map(it=>({it,s:sc(it)})).sort((a,b)=>b.s-a.s).slice(0,faltan).forEach(({it})=>{cc.orden.push(it.c);cc.sel[it.c]=true;cc.notas[it.c]=cc.notas[it.c]||"Sugerido por su relación con las problemáticas de la lectura de la realidad."});
+    if(!cc.notas.__campo)cc.notas.__campo=`Se trabaja a partir de lo detectado en la lectura de la realidad de ${nivel==="grupo"&&G?"el grupo "+tqiGrupoNom(G):"la escuela"}${P&&P.contexto&&P.contexto.comunitario?", vinculándolo con la vida de la comunidad":""}.`;
+    if(!cc.ejes.length)cc.ejes.push(TQI_EJE[camp])});
+  C.tequio={cct:D.cct,grupo:nivel==="grupo"&&G?G.grado+"|"+G.grupo:"",act:tqiFirma(D),fecha:today()};
+  const res=PA;PA=prev;return res}
+function tqiPMC(D){const prev=PM;PM=pmNuevo();PM.lectura="";pmDesdeTequio(D);PM.tequio={cct:D.cct,act:tqiFirma(D),fecha:today()};const r=PM;PM=prev;return r}
+/* Planeación sugerida a partir del primer proyecto del programa analítico */
+const TQI_PROD={"Lenguajes":"Una antología o periódico mural con textos escritos por los alumnos sobre su comunidad","Saberes y Pensamiento Científico":"Un folleto o cartel con problemas de la comunidad resueltos y explicados por los alumnos","Ética, Naturaleza y Sociedades":"Una campaña con carteles y mensajes para cuidar el entorno y nuestros derechos","De lo Humano y lo Comunitario":"Un acuerdo de convivencia del grupo y una acción de servicio para la comunidad"};
+const TQI_PLMET=m=>/STEAM|Indagaci/i.test(m)?"Aprendizaje Basado en Indagación (STEAM)":/Problemas/i.test(m)?"Aprendizaje Basado en Problemas (ABP)":/Servicio/i.test(m)?"Aprendizaje Servicio (AS)":"Aprendizaje Basado en Proyectos Comunitarios (ABPC)";
+function tqiFasesTexto(met,p){const cs=p.cont.slice(0,2).join(" y ")||"los contenidos priorizados",act=p.act.length?p.act:["lectura y escritura con propósito real","resolución de problemas del contexto"];
+  const M={
+   "Aprendizaje Basado en Proyectos Comunitarios (ABPC)":[`Plantear al grupo la situación: ${p.problema} Preguntar qué saben y qué han visto en su casa y su comunidad; registrar sus ideas en un papelógrafo.`,`Recuperar saberes previos sobre ${cs} con preguntas, una actividad breve diagnóstica y la observación del trabajo de cada alumno.`,`Acordar con el grupo qué se va a hacer, cómo y en cuánto tiempo; definir el producto: ${p.producto.toLowerCase()}. Formar equipos y repartir tareas.`,`Investigar en la comunidad y en los libros de texto (entrevistas, observación, lectura). ${act[0]}.`,`Trabajar los contenidos: ${cs}. ${act[1]||act[0]}. Avanzar en el producto con revisión entre pares.`,`Revisar avances y dificultades con el grupo; dar retroalimentación con la lista de cotejo y ajustar lo necesario.`,`Presentar el producto a la comunidad escolar o a las familias y reflexionar sobre lo aprendido (autoevaluación y coevaluación).`],
+   "Aprendizaje Basado en Indagación (STEAM)":[`Presentar una pregunta o fenómeno del entorno relacionado con: ${p.problema} Recuperar lo que saben los alumnos.`,`Plantear preguntas de indagación y una hipótesis; decidir cómo se van a obtener los datos (observar, medir, contar, preguntar).`,`Realizar la experiencia o la investigación: ${act[0]}. Registrar datos en tablas y dibujos. Trabajar ${cs}.`,`Analizar los resultados: comparar, calcular y explicar lo que encontraron; contrastar con la hipótesis.`,`Comunicar los hallazgos con ${p.producto.toLowerCase()} y reflexionar sobre lo aprendido.`],
+   "Aprendizaje Basado en Problemas (ABP)":[`Presentar una situación problemática real: ${p.problema}`,`Recolectar información y saberes previos del grupo y de las familias.`,`Formular con los alumnos el problema a resolver y lo que necesitan aprender (${cs}).`,`Organizar equipos, tareas y tiempos; preparar materiales.`,`Vivir la experiencia: ${act[0]}. ${act[1]||""} Proponer soluciones.`,`Analizar los resultados, presentar ${p.producto.toLowerCase()} y evaluar el proceso.`],
+   "Aprendizaje Servicio (AS)":[`Identificar con el grupo una necesidad de la escuela o la comunidad: ${p.problema}`,`Recuperar lo que saben y lo que quieren saber; investigar y registrar.`,`Organizar las actividades del servicio: qué, quiénes, cuándo y con qué recursos. Trabajar ${cs}.`,`Realizar el servicio y las actividades: ${act[0]}. Elaborar ${p.producto.toLowerCase()}.`,`Compartir con la comunidad lo realizado y evaluar lo aprendido y el servicio prestado.`]};
+  return(PL_FASES[met]||[]).map((t,i)=>({t,a:(M[met]||[])[i]||""}))}
+function tqiPlaneacion(PAobj,D,G){const nivel=PAobj.nivel,C=PAobj[nivel];const X=tqiX(D,G,nivel);const pr=C.codiseno[0]||{titulo:"Proyecto",campos:["Lenguajes"],metodologia:PA_METODOS[0],descripcion:""};
+  const camp=(pr.campos||[])[0]||"Lenguajes";const met=TQI_PLMET(pr.metodologia);const grados=nivel==="grupo"?[String(C.grado)]:((BANCO&&BANCO.fases[C.fase])?BANCO.fases[C.fase].grados.map(String):[]);
+  const conts=[];(pr.campos||[camp]).forEach(cp=>{const cc=C.campos[cp];if(!cc)return;const items=(BANCO&&BANCO.campos[cp]&&BANCO.campos[cp][C.fase])||[];
+    cc.orden.slice(0,cp===camp?3:1).forEach(k=>{const it=items.find(x=>x.c===k);const ov=(cc.pda&&cc.pda[k])||{};conts.push({campo:cp,c:k,pda:grados.map(g=>{const t=ov[g]!=null?ov[g]:(it?it.pda[g]:"");return t?(grados.length>1?g+"°: ":"")+t:""}).filter(Boolean).join("  |  "),on:true})});
+    cc.propios.slice(0,cp===camp?2:0).forEach(p=>conts.push({campo:cp,c:p.c,pda:p.pda,on:true}))});
+  const L=(X&&X.lineas||[]).find(l=>tqiCampoDe(l.titulo)===camp)||(X&&X.lineas||[])[0]||{act:[],avance:[],libros:""};
+  const prob=X&&(X.problematicas||[]).find(p=>p.campo===camp)||(X&&(X.problematicas||[])[0]);const problema=tqiPunto((prob?prob.txt:"").replace(/^[1-6]\.°(\s*y\s*[1-6]\.°)?:\s*/,"")||(prob?prob.txt:(D.pmc&&D.pmc.datos&&(D.pmc.datos.problematicas||[])[0]||{}).texto||"Problemática detectada en la lectura de la realidad"));
+  const producto=TQI_PROD[camp]||"Un producto que se comparte con la comunidad escolar";
+  const act=(L.act||[]).map(a=>a.replace(/\s*\([^)]*\):/,":"));
+  const pl=plNuevo();Object.assign(pl.datos,{escuela:"Escuela Primaria "+D.escuela,cct:D.cct,ciclo:D.ciclo,grado:nivel==="grupo"?C.grado+"°":pl.datos.grado,grupo:nivel==="grupo"&&G?G.grupo:pl.datos.grupo,periodo:"Dos semanas (ajústelo a su calendario)",sesiones:"10"});
+  pl.proyecto={nombre:pr.titulo,problema,proposito:`Que las alumnas y los alumnos avancen en ${conts.slice(0,2).map(c=>c.c.replace(/\.$/,"").toLowerCase()).join(" y ")||"los aprendizajes priorizados"} a partir de una situación real de su comunidad, y lo muestren en un producto que compartan con otros.`,producto};
+  pl.campos=[...new Set(conts.map(c=>c.campo))];pl.ejes=[...new Set([].concat(...pl.campos.map(cp=>C.campos[cp].ejes||[])))];pl.metodologia=met;pl.contenidos=conts;
+  pl.formato="fases";pl.fases=tqiFasesTexto(met,{problema,cont:conts.map(c=>c.c.replace(/\.$/,"").toLowerCase()),act,producto});
+  pl.recursos=["Libros de texto gratuitos (Proyectos de aula, escolares y comunitarios; Nuestros saberes; Múltiples lenguajes)",L.libros,"Materiales del entorno, papelógrafos, cuadernos y biblioteca de aula"].filter(Boolean).join(". ")+".";
+  pl.evaluacion={instrumentos:["Lista de cotejo","Rúbrica","Portafolio de evidencias","Autoevaluación","Coevaluación"],
+    criterios:"Se valorará que la alumna o el alumno: "+conts.slice(0,4).map(c=>(c.pda||c.c).replace(/^\d°:\s*/,"").replace(/^Qué trabajar:\s*/i,"").split(/(?<=\.)\s/)[0]).join(" ")+(L.avance&&L.avance.length?"\nReferente de avance: "+L.avance.slice(0,2).join(" "):""),
+    momentos:"Inicial: lo que saben al plantear la situación. De proceso: registro en la lista de cotejo en cada fase y retroalimentación. Final: presentación del producto, autoevaluación y coevaluación."+(X&&X.fuentes&&X.fuentes.sisat&&X.fuentes.sisat<3?` Comparar después con el Momento ${X.fuentes.sisat+1} del SisAT.`:""),notas:""};
+  pl.ajustes=X&&X.atencion?tqiPunto(X.atencion)+" Para ellos: consignas breves y una a la vez, apoyo visual y material concreto, tutoría entre pares, más tiempo y revisión cercana de su avance.":"";
+  pl.tequio={cct:D.cct,act:tqiFirma(D),fecha:today()};return pl}
+/* La planeación es de un grupo: si hay grupos, sale del programa analítico de ese grupo */
+async function tqiPlanDe(D,G){await cargarBanco();const pa=(D.grupos||[]).length&&G?(PA&&PA.nivel==="grupo"&&PA.grupo&&PA.grupo.tequio&&PA.grupo.tequio.grupo===G.grado+"|"+G.grupo?PA:await tqiAnalitico(D,G,"grupo")):PA;return tqiPlaneacion(pa,D,G)}
+/* Genera lo que falte. Devuelve true si hay insumos de Tequio para la escuela */
+async function tqiPreparar(tool,forzar){const cct=tqiCctActual();if(DEMO||!cct||(!tqiServidor()&&!tqiCache(cct)))return false;
+  let D;try{D=await tqiCargar(cct)}catch(e){return false}if(!tqiHay(D))return false;S.tqiD=D;
+  const G=tqiGrupoElegido(D);const nivelDef=(yoGrado()||store.get("tqi-grupo-"+cct,""))&&(D.grupos||[]).length?"grupo":"escuela";
+  if(tool==="dx"){const niv=(DX&&DX.nivel)||nivelDef;const cur=DX&&DX[niv];
+    if(forzar||!cur||!cur.secs||!cur.secs.some(s=>s.items.some(i=>i.a&&i.a.trim()))||(cur.tequio&&!cur.tequio.editado&&(cur.tequio.cct!==cct||(niv==="grupo"&&G&&cur.tequio.grupo!==G.grado+"|"+G.grupo)))){
+      DX=DX||{nivel:niv};DX.nivel=niv;DX[niv]=tqiLectura(D,G,niv);dxSave()}}
+  if(tool==="pm"&&D.pmc){if(forzar||!PM||(PM.tequio&&!PM.tequio.editado&&PM.tequio.cct!==cct)||(!PM.tequio&&!(PM.aspectos||[]).some(a=>a.problematica||a.objetivo))){PM=tqiPMC(D);pmSave()}}
+  if(tool==="pa"||tool==="pl"){await cargarBanco();const niv=(PA&&PA.nivel)||nivelDef;const cur=PA&&PA[niv];
+    if(forzar&&tool==="pa"||!cur||(cur.tequio&&!cur.tequio.editado&&(cur.tequio.cct!==cct||(niv==="grupo"&&G&&cur.tequio.grupo!==G.grado+"|"+G.grupo)))||(!cur.tequio&&!PA_CAMPOS.some(c=>cur.campos[c].orden.length||cur.campos[c].propios.length))){
+      const n=await tqiAnalitico(D,G,niv);PA=PA||{nivel:niv};PA.nivel=niv;PA[niv]=n[niv];paSave()}}
+  if(tool==="pl"){if(forzar||!PL||(PL.tequio&&!PL.tequio.editado&&PL.tequio.cct!==cct)||(!PL.tequio&&!PL.proyecto.nombre&&!PL.contenidos.length)){PL=await tqiPlanDe(D,G);plSave()}}
+  return true}
+const tqiObj=tool=>tool==="dx"?(DX&&DX[DX.nivel]):tool==="pm"?PM:tool==="pa"?(PA&&PA[PA.nivel]):PL;
+/* Entrada de cada herramienta: la primera vez prepara el documento; si viene de Tequio y no se está editando, lo muestra terminado */
+function tqiEntrada(tool,vista){if(S.tqiEd[tool])return false;
+  if(!S.tqiAuto[tool]&&!DEMO&&tqiCctActual()&&(tqiServidor()||tqiCache(tqiCctActual()))){S.tqiAuto[tool]=true;
+    app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>${TQI_TOOL[tool].t}</h2></div></div><section class="card"><p style="margin:0">Preparando su ${TQI_TOOL[tool].t.toLowerCase()} con los datos de su escuela…</p></section>`;
+    document.getElementById("salir").onclick=goBack;tqiPreparar(tool).then(()=>vista()).catch(()=>vista());return true}
+  const o=tqiObj(tool);if(o&&o.tequio){tqiDocVista(tool,vista);return true}return false}
+/* ---- Vista de documento terminado ---- */
+const tqiH=t=>esc(t).replace(/\n/g,"<br>");
+function tqiDocHTML(tool){const o=tqiObj(tool);if(!o)return"";
+  const tabla=(rows)=>`<table class="tqi-tb">${rows.filter(r=>r[1]).map(([a,b])=>`<tr><th>${esc(a)}</th><td>${tqiH(b)}</td></tr>`).join("")}</table>`;
+  if(tool==="dx")return tabla(DX_PLANTILLA[o.nivel].datos.map(([k,l])=>[l,o.datos[k]]))+o.secs.map(s=>{const its=s.items.filter(i=>i.a&&i.a.trim());return its.length?`<h3>${esc(s.t)}</h3>${its.map(i=>`${i.q?`<p class="tqi-q">${esc(i.q)}</p>`:""}<p>${tqiH(i.a)}</p>`).join("")}`:""}).join("");
+  if(tool==="pm")return tabla([["Escuela",o.escuela],["C.C.T.",o.cct],["Ciclo escolar",o.ciclo],["Dirección",o.director]])+(o.lectura?`<h3>Lectura de la realidad</h3><p>${tqiH(o.lectura)}</p>`:"")+
+    o.aspectos.map((a,i)=>`<h3>${i+1}. ${esc(a.aspecto||"Aspecto")}</h3>${tabla([["Problemática",a.problematica],["Objetivo",a.objetivo],["Meta",a.meta]])}${(a.acciones||[]).some(x=>x.accion)?`<table class="tqi-tb tqi-acc"><tr><th>Acción</th><th>Responsables</th><th>Periodo</th><th>Seguimiento</th></tr>${a.acciones.filter(x=>x.accion).map(x=>`<tr><td>${tqiH(x.accion)}</td><td>${tqiH(x.responsable)}</td><td>${tqiH(x.periodo)}</td><td>${tqiH(x.evidencias)}</td></tr>`).join("")}</table>`:""}`).join("");
+  if(tool==="pa"){const gr=PA.nivel==="grupo"?[String(o.grado)]:((BANCO&&BANCO.fases[o.fase])?BANCO.fases[o.fase].grados.map(String):[]);
+    return tabla([["Escuela",o.datos.escuela],["C.C.T.",o.datos.cct],["Ciclo escolar",o.datos.ciclo],[PA.nivel==="grupo"?"Grado":"Fase",PA.nivel==="grupo"?o.grado+"°":(BANCO?BANCO.fases[o.fase].nombre:o.fase)]])+
+    `<h3>Plano 1 · Lectura de la realidad</h3><p>${tqiH(o.lectura)}</p><h3>Plano 2 · Contenidos y PDA priorizados por campo formativo</h3>`+
+    PA_CAMPOS.map(camp=>{const cc=o.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][o.fase])||[];if(!cc.orden.length&&!cc.propios.length)return"";
+      return`<h4>${esc(camp)}</h4>${cc.ejes.length?`<p class="tqi-q">Ejes articuladores: ${esc(cc.ejes.join(", "))}</p>`:""}${cc.notas.__campo?`<p>${tqiH(cc.notas.__campo)}</p>`:""}<ol class="tqi-pda">${cc.orden.map(k=>{const it=items.find(x=>x.c===k);const ov=(cc.pda&&cc.pda[k])||{};
+        return`<li><b>${esc(k)}</b>${gr.map(g=>{const t=ov[g]!=null?ov[g]:(it?it.pda[g]:"");return t?`<br><span class="tqi-g">PDA ${g}°:</span> ${esc(t)}`:""}).join("")}${cc.notas[k]?`<br><i>${esc(cc.notas[k])}</i>`:""}</li>`}).join("")}${cc.propios.map(p=>`<li><b>${esc(p.c)}</b>${p.pda?`<br>${esc(p.pda)}`:""}${p.nota?`<br><i>${esc(p.nota)}</i>`:""}</li>`).join("")}</ol>`}).join("")+
+    `<h3>Plano 3 · Codiseño: proyectos sugeridos</h3>`+o.codiseno.map(p=>`<h4>${esc(p.titulo)}</h4>${tabla([["Metodología",p.metodologia],["Campos",(p.campos||[]).join(", ")],["Periodo",p.periodo]])}<p>${tqiH(p.descripcion)}</p>`).join("")}
+  if(tool==="pl")return tabla([["Escuela",o.datos.escuela],["Grado y grupo",[o.datos.grado,o.datos.grupo].filter(Boolean).join(" ")],["Periodo",o.datos.periodo],["Proyecto",o.proyecto.nombre],["Problema del contexto",o.proyecto.problema],["Propósito",o.proyecto.proposito],["Producto",o.proyecto.producto],["Campos formativos",o.campos.join(", ")],["Ejes articuladores",o.ejes.join(", ")],["Metodología",o.metodologia]])+
+    `<h3>Contenidos y PDA</h3><ol class="tqi-pda">${o.contenidos.filter(c=>c.on).map(c=>`<li><b>${esc(c.c)}</b> <span class="tqi-q">· ${esc(c.campo)}</span>${c.pda?`<br>${esc(c.pda)}`:""}</li>`).join("")}</ol>`+
+    `<h3>Secuencia didáctica (${o.formato==="fases"?"por fases":o.formato})</h3>${plSecModel.call(null).map(([t,a])=>`<p><b>${esc(t)}.</b> ${tqiH(a)}</p>`).join("")}<h3>Evaluación formativa</h3>${tabla([["Instrumentos",o.evaluacion.instrumentos.join(", ")],["Criterios",o.evaluacion.criterios],["Momentos",o.evaluacion.momentos]])}${o.ajustes?`<h3>Ajustes razonables</h3><p>${tqiH(o.ajustes)}</p>`:""}${o.recursos?`<h3>Recursos</h3><p>${tqiH(o.recursos)}</p>`:""}`;
+  return""}
+async function tqiDocVista(tool,vista){S.view={dx:"dx",pm:"pmce",pa:"pa",pl:"plan"}[tool];S.letra=null;setBar("");if(tool==="pa"||tool==="pl")await cargarBanco();
+  const D=S.tqiD||tqiCache(tqiCctActual())&&tqiCache(tqiCctActual()).d,o=tqiObj(tool);const gs=(D&&D.grupos)||[];
+  const conNivel=tool==="dx"||tool==="pa";const niv=tool==="dx"?DX.nivel:tool==="pa"?PA.nivel:"";
+  const Gsel=D?tqiGrupoElegido(D):null;const nuevo=D&&o.tequio&&o.tequio.act&&tqiFirma(D)!==o.tequio.act;
+  const selEsc=tqiEsMesa()?`<label class="tqi-sel">Escuela <select id="tqdE">${tqiEscuelas().map(([n,c])=>`<option value="${esc(c)}" ${c===tqiCctActual()?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:"";
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>${TQI_TOOL[tool].t}</h2></div></div>
+   <section class="card tqi-barra"><p style="margin:0 0 8px"><b>✓ Listo con los datos de ${esc(D?D.escuela:"su escuela")}</b> <span class="muted">(SisAT, EIA y PMC desde Tequio)</span>. Puede usarlo tal cual, descargarlo o imprimirlo. Si lo desea, edítelo o agregue lo suyo.</p>
+    <div class="tqi-fil">${selEsc}${conNivel?`<span class="chips"><button type="button" class="chip tqniv ${niv==="escuela"?"sel":""}" data-n="escuela">De la escuela</button>${gs.length?`<button type="button" class="chip tqniv ${niv==="grupo"?"sel":""}" data-n="grupo">De un grupo</button>`:""}</span>`:""}
+     ${(niv==="grupo"||tool==="pl")&&gs.length?`<label class="tqi-sel">Grupo <select id="tqdG">${gs.map(g=>`<option value="${esc(g.grado+"|"+g.grupo)}" ${Gsel===g?"selected":""}>${esc(tqiGrupoNom(g))}</option>`).join("")}</select></label>`:""}</div>
+    ${nuevo?`<div class="soon" style="margin-top:8px;color:var(--ink)">La Supervisión actualizó los datos de la escuela. <button type="button" class="btn link" id="tqdNuevo" style="padding:0">Actualizar el documento</button></div>`:""}
+    <div class="acts" style="margin-top:10px"><button class="btn primary act" id="tqdWord">${EI.down}Word (editable)</button>${botonImprimir("tqdPrint")}<button class="btn ghost act" id="tqdPDF">${EI.down}PDF</button><button class="btn ghost act" id="tqdEdit">✎ Editar o agregar</button></div>
+    ${tool==="pa"?`<button class="btn primary" id="tqdPlan" style="margin-top:8px;width:100%">→ Hacer mi planeación con este programa analítico</button>`:""}
+    ${tool==="dx"?`<button class="btn ghost" id="tqdPA" style="margin-top:8px;width:100%">→ Ver el programa analítico que sale de esta lectura</button>`:""}</section>
+   <article class="card tqi-doc">${tqiDocHTML(tool)}</article>
+   ${tool==="dx"||tool==="pa"?`<details class="card"><summary><b>¿Ya tiene su propio documento? Agréguelo</b></summary>${insUploaderHTML(tool==="dx"?"lectura":"analitico")}</details>`:""}
+   <section class="card"><button class="btn link" id="tqdRe">Volver a generar con los datos de Tequio</button><p class="help" style="margin:4px 0 0">Se reemplaza lo que haya cambiado en este documento.</p></section>
+   <p class="foot">Se guarda solo en este dispositivo. De los alumnos solo se usan cantidades; los nombres no salen de Tequio.</p>`;
+  const g=id=>document.getElementById(id);g("salir").onclick=goBack;
+  const W={dx:[dxWord,dxPDF],pm:[pmWord,pmPDF],pa:[paWord,paPDF],pl:[plWord,plPDF]}[tool];
+  g("tqdWord").onclick=()=>W[0]();g("tqdPDF").onclick=e=>W[1](e.currentTarget);wireImprimir("tqdPrint",b=>W[1](b));
+  g("tqdEdit").onclick=()=>{S.tqiEd[tool]=true;const ob=tqiObj(tool);if(ob&&ob.tequio)ob.tequio.editado=true;({dx:dxSave,pm:pmSave,pa:paSave,pl:plSave})[tool]();vista()};
+  const rehacer=async()=>{app.querySelector(".tqi-doc").innerHTML=`<p>Preparando…</p>`;try{await tqiCargar(tqiCctActual(),true)}catch(e){}await tqiPreparar(tool,true);tqiDocVista(tool,vista)};
+  g("tqdRe").onclick=()=>{if(confirm("¿Volver a generar el documento con los datos de Tequio? Se reemplazará este documento."))rehacer()};if(g("tqdNuevo"))g("tqdNuevo").onclick=rehacer;
+  if(g("tqdE"))g("tqdE").onchange=async()=>{store.set("tqi-cct",g("tqdE").value);S.tqiD=null;await tqiPreparar(tool,true);if(tool==="pl")await tqiPreparar("pl",true);tqiDocVista(tool,vista)};
+  if(g("tqdG"))g("tqdG").onchange=async()=>{store.set("tqi-grupo-"+D.cct,g("tqdG").value);if(tool==="pl"){await tqiPreparar("pa",true)}await tqiPreparar(tool,true);tqiDocVista(tool,vista)};
+  app.querySelectorAll(".tqniv").forEach(b=>b.onclick=async()=>{if(tool==="dx")DX.nivel=b.dataset.n;else PA.nivel=b.dataset.n;await tqiPreparar(tool,!tqiObj(tool)||!!(tqiObj(tool).tequio&&!tqiObj(tool).tequio.editado));tqiDocVista(tool,vista)});
+  if(g("tqdPlan"))g("tqdPlan").onclick=async()=>{PL=await tqiPlanDe(D,Gsel);plSave();S.tqiEd.pl=false;S.tqiAuto.pl=true;plView()};
+  if(g("tqdPA"))g("tqdPA").onclick=()=>{S.tqiEd.pa=false;paView()};
+  wireIns(tool==="dx"?"lectura":"analitico",()=>tqiDocVista(tool,vista));window.scrollTo(0,0)}
+/* En la edición: botón para volver a ver el documento terminado */
+function tqiVolverDocHTML(tool){const o=tqiObj(tool);return o&&o.tequio?`<section class="card"><button type="button" class="btn ghost" id="tqVolver" style="width:100%">← Ver como documento terminado</button></section>`:""}
+function tqiVolverDocWire(tool,vista,leer){const b=document.getElementById("tqVolver");if(b)b.onclick=()=>{if(leer)leer();S.tqiEd[tool]=false;vista()}}
 /* ---------- Diagnóstico socioeducativo (Nueva Escuela Mexicana), nivel grupo o escuela ----------
    Guiado por preguntas; el docente edita, agrega puntos y secciones; se guarda en este dispositivo. */
 let DX=null;
@@ -3642,7 +3803,7 @@ function aluMatricula(miGrupo){const L=aluLista().filter(a=>!miGrupo||!yoGrado()
 function dxNuevo(nivel){const t=DX_PLANTILLA[nivel];const datos={};t.datos.forEach(([k])=>datos[k]=perfilDX(k));
   return{nivel,titulo:t.titulo,datos,secs:t.secs.map(([tit,qs])=>({t:tit,items:qs.map(q=>({q,a:""}))}))}}
 function dxCur(){if(!DX)return null;if(!DX[DX.nivel])DX[DX.nivel]=dxNuevo(DX.nivel);return DX[DX.nivel]}
-function dxView(){S.view="dx";S.letra=null;setBar("");
+function dxView(){S.view="dx";S.letra=null;setBar("");if(tqiEntrada("dx",dxView))return;
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Lectura de la realidad</h2></div></div>`;
   if(!DX||!DX.nivel){app.innerHTML=top+`
     <p class="muted">Elabore la <b>lectura de la realidad</b> (antes diagnóstico socioeducativo) conforme a la Nueva Escuela Mexicana: la descripción del contexto más el análisis crítico de cómo se llegó a esos resultados y cómo se puede salir adelante. La app lo guía con preguntas; usted responde, agrega datos, su análisis y las secciones que necesite.</p>
@@ -3660,7 +3821,7 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
   app.innerHTML=top+`
    <section class="card"><div class="field"><span class="lbl">Nivel del diagnóstico</span><p class="help">Puede cambiar en cualquier momento; cada nivel guarda sus propias respuestas.</p>
     <div class="chips"><button type="button" class="chip dxniv ${DX.nivel==="grupo"?"sel":""}" data-niv="grupo">De un grupo</button><button type="button" class="chip dxniv ${DX.nivel==="escuela"?"sel":""}" data-niv="escuela">De la escuela</button></div></div></section>
-   ${tqiCardHTML()}
+   ${tqiVolverDocHTML("dx")}${tqiCardHTML()}
    <p class="muted">Responda las preguntas de cada apartado. Puede dejar en blanco lo que no aplique, agregar puntos o secciones, y guardar para continuar después. Todo se guarda en este dispositivo.</p>
    <section class="card"><h3>Datos generales</h3>
     ${datosDef.map(([k,lab])=>`<div class="field"><label>${esc(lab)}</label><input type="text" class="dx_d" data-k="${k}" value="${esc(C.datos[k]||perfilDX(k))}" autocomplete="off"></div>`).join("")}</section>
@@ -3688,7 +3849,7 @@ function dxView(){S.view="dx";S.letra=null;setBar("");
   g("salir").onclick=()=>{leer();goBack()};
   g("dxWord").onclick=()=>{leer();dxWord()};
   g("dxPDF").onclick=e=>{leer();dxPDF(e.currentTarget)};wireImprimir("dxPrint",b=>{leer();dxPDF(b)});
-  tqiPintar("dx",DX.nivel,(D,G)=>{leer();dxDesdeTequio(D,G);TQI_OK="Se cargaron los insumos"+(DX.nivel==="grupo"&&G?" del grupo "+tqiGrupoNom(G):" de la escuela")+" en las secciones. Revíselos y complételos.";dxView()});
+  tqiVolverDocWire("dx",dxView,leer);tqiPintar("dx",DX.nivel,(D,G)=>{leer();dxDesdeTequio(D,G);TQI_OK="Se cargaron los insumos"+(DX.nivel==="grupo"&&G?" del grupo "+tqiGrupoNom(G):" de la escuela")+" en las secciones. Revíselos y complételos.";dxView()});
   window.scrollTo(0,0)}
 function dxHeaderHTML(){const C=dxCur(),d=C.datos,def=DX_PLANTILLA[C.nivel].datos;
   return`<h1 style="text-align:center;font-size:18pt;margin:0 0 4pt">${esc(C.titulo)}</h1>
@@ -3737,7 +3898,7 @@ function dxResumen(){const d=store.get("ppie-dx",null);const cur=d?(d.secs?d:(d.
     const g=out.join("\n").trim();if(g)return g}
   return (typeof insText==="function")?insText("lectura"):""}
 function pmNuevo(){return{ciclo:cicloActual(),lugar:[perfil.localidad,perfil.municipio,"Baja California"].filter(Boolean).join(", "),escuela:perfil.escuela||"",cct:perfil.cct||"",director:perfil.director||"",fecha:fmtDate(today(),"larga"),lectura:dxResumen(),aspectos:[pmAspecto()]}}
-function pmView(){S.view="pmce";S.letra=null;setBar("");
+function pmView(){S.view="pmce";S.letra=null;setBar("");if(tqiEntrada("pm",pmView))return;
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa de Mejora Continua</h2></div></div>`;
   if(!PM){app.innerHTML=top+`
     <p class="muted">Elabore el <b>Programa de Mejora Continua</b> (PMC) de la escuela. Se apoya en la <b>lectura de la realidad</b> y organiza los aspectos a atender, por orden de prioridad, con sus objetivos, metas y acciones. La app lo guía con preguntas; usted completa y lo descarga en Word o PDF.</p>
@@ -3747,7 +3908,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   const dd=[["ciclo","Ciclo escolar"],["escuela","Escuela"],["cct","C.C.T."],["director","Dirección"],["lugar","Lugar"],["fecha","Fecha de elaboración"]];
   app.innerHTML=top+`
    <p class="muted">Complete los apartados. Puede agregar los aspectos y las acciones que necesite, guardar y continuar después. Todo se guarda en este dispositivo.</p>
-   ${tqiCardHTML()}
+   ${tqiVolverDocHTML("pm")}${tqiCardHTML()}
    <section class="card"><h3>Datos generales</h3>${dd.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pm_d" data-k="${k}" value="${esc(PM[k]||pmDef(k))}" autocomplete="off"></div>`).join("")}</section>
    <section class="card"><h3>Lectura de la realidad</h3><p class="help">Es la base del diagnóstico del PMC. Si ya la hizo en la herramienta «Lectura de la realidad», impórtela aquí; también puede escribir o ajustar el texto.</p>
     ${dxResumen()?`<button type="button" class="btn ghost" id="pmImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad» y luego vuelva para importarla.</p>`}
@@ -3794,7 +3955,7 @@ function pmView(){S.view="pmce";S.letra=null;setBar("");
   g("pmAddA").onclick=()=>{leer();PM.aspectos.push(pmAspecto());pmSave();pmView()};
   g("pmNuevo").onclick=()=>{if(!confirm("¿Empezar un PMC nuevo? Se borrará el actual."))return;PM=null;store.del("ppie-pmce");pmView()};
   if(g("pmImport"))g("pmImport").onclick=()=>{const r=dxResumen();if(!r)return;if(PM.lectura&&PM.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();PM.lectura=r;pmSave();pmView()};
-  tqiPintar("pm","escuela",D=>{leer();pmDesdeTequio(D);TQI_OK="Se cargó el PMC que subió la escuela: lectura de la realidad, aspectos, objetivos, metas y acciones.";pmView()});
+  tqiVolverDocWire("pm",pmView,leer);tqiPintar("pm","escuela",D=>{leer();pmDesdeTequio(D);TQI_OK="Se cargó el PMC que subió la escuela: lectura de la realidad, aspectos, objetivos, metas y acciones.";pmView()});
   g("salir").onclick=()=>{leer();goBack()};
   g("pmWord").onclick=()=>{leer();pmWord()};
   g("pmPDF").onclick=e=>{leer();pmPDF(e.currentTarget)};wireImprimir("pmPrint",b=>{leer();pmPDF(b)});
@@ -3866,7 +4027,7 @@ function paTok(t){return new Set(String(t||"").toLowerCase().normalize("NFD").re
 function paSugerir(camp){const C=paCur(),cc=C.campos[camp];const items=(BANCO&&BANCO.campos[camp]&&BANCO.campos[camp][C.fase])||[];
   const prob=paTok(C.lectura);const sc=k=>{const it=items.find(x=>x.c===k);const txt=k+" "+(it?Object.values(it.pda).join(" "):"");let n=0;paTok(txt).forEach(w=>{if(prob.has(w))n++});return n};
   cc.orden=[...cc.orden].map((k,i)=>({k,i,s:sc(k)})).sort((a,b)=>b.s-a.s||a.i-b.i).map(o=>o.k);paSave()}
-async function paView(){S.view="pa";S.letra=null;setBar("");
+async function paView(){S.view="pa";S.letra=null;setBar("");if(tqiEntrada("pa",paView))return;
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Programa Analítico</h2></div></div>`;
   if(!PA||!PA.nivel){app.innerHTML=top+`
     <p class="muted">Elabore el <b>Programa Analítico</b> conforme a la Nueva Escuela Mexicana. Parte de la <b>lectura de la realidad</b> (Plano 1), contextualiza los <b>contenidos y PDA</b> por campo formativo y eje articulador (Plano 2) y concreta el <b>codiseño</b> en proyectos y metodologías (Plano 3). La app lo guía y usted lo descarga en Word o PDF.</p>
@@ -3910,7 +4071,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
     <div class="chips"><button type="button" class="chip paniv ${PA.nivel==="escuela"?"sel":""}" data-niv="escuela">De la escuela</button><button type="button" class="chip paniv ${PA.nivel==="grupo"?"sel":""}" data-niv="grupo">De un grupo</button></div></div>
     ${PA.nivel==="grupo"?`<div class="field"><label>Grado</label><select id="pa_grado">${[1,2,3,4,5,6].map(g=>`<option value="${g}" ${String(C.grado)===String(g)?"selected":""}>${g}°</option>`).join("")}</select><p class="help">Se cargan los contenidos y PDA de la fase que corresponde a este grado.</p></div>`
       :`<div class="field"><label>Fase a trabajar</label><select id="pa_fase">${Object.keys(BANCO?BANCO.fases:{3:0,4:0,5:0}).map(f=>`<option value="${f}" ${C.fase===f?"selected":""}>${BANCO?BANCO.fases[f].nombre:f}</option>`).join("")}</select></div>`}</section>
-   ${tqiCardHTML()}
+   ${tqiVolverDocHTML("pa")}${tqiCardHTML()}
    <section class="card"><h3>Datos generales</h3>${datosDef.map(([k,l])=>`<div class="field"><label>${esc(l)}</label><input type="text" class="pa_d" data-k="${k}" value="${esc(C.datos[k]||"")}" autocomplete="off"></div>`).join("")}</section>
    <section class="card"><h3>Plano 1 · Lectura de la realidad</h3><p class="help">Base del Programa Analítico. Impórtela de la herramienta «Lectura de la realidad» o escríbala.</p>
     ${dxResumen()?`<button type="button" class="btn ghost" id="paImport">↓ Importar la lectura de la realidad</button>`:`<p class="help"><b>Aún no hay una lectura de la realidad guardada.</b> Hágala primero en Pedagógico → «Lectura de la realidad».</p>`}
@@ -3959,7 +4120,7 @@ async function paView(){S.view="pa";S.letra=null;setBar("");
   g("paAddCod").onclick=()=>{leer();paCur().codiseno.push({titulo:"",metodologia:PA_METODOS[0],campos:[],periodo:"",descripcion:""});paSave();paView()};
   app.querySelectorAll(".pcoddel").forEach(b=>b.onclick=()=>{leer();paCur().codiseno.splice(+b.dataset.pi,1);paSave();paView()});
   if(g("paImport"))g("paImport").onclick=()=>{const r=dxResumen();if(!r)return;const C=paCur();if(C.lectura&&C.lectura.trim()&&!confirm("¿Reemplazar el texto actual con la lectura de la realidad guardada?"))return;leer();C.lectura=r;paSave();paView()};
-  tqiPintar("pa",PA.nivel,async(D,G)=>{leer();await paDesdeTequio(D,G);TQI_OK="Se generó la base: Plano 1 con la lectura de la realidad, contenidos prioritarios en el Plano 2 y proyectos sugeridos en el Plano 3. Revísela con el colectivo.";paOpen=[...PA_CAMPOS];paView()});
+  tqiVolverDocWire("pa",paView,leer);tqiPintar("pa",PA.nivel,async(D,G)=>{leer();await paDesdeTequio(D,G);TQI_OK="Se generó la base: Plano 1 con la lectura de la realidad, contenidos prioritarios en el Plano 2 y proyectos sugeridos en el Plano 3. Revísela con el colectivo.";paOpen=[...PA_CAMPOS];paView()});
   g("paNuevo").onclick=()=>{if(!confirm("¿Empezar de nuevo? Se borrará el programa analítico de escuela y de grupo."))return;PA=null;store.del("ppie-pa");paView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("paWord").onclick=()=>{leer();paWord()};
@@ -4077,7 +4238,7 @@ function plDurHTML(){const D=PL.duracion||{};const c=plDurCalc();const marcados=
      ${c.n?`<div class="pl-dur-sug"><b>Alcance sugerido:</b> hasta <b>${c.max} contenidos con sus PDA</b> y ${esc(c.sug)}.${marcados>c.max?`<br><span class="pl-dur-av">Tiene ${marcados} contenidos marcados: para ${c.n} ${c.n===1?"sesión":"sesiones"} conviene dejar ${c.max} o menos, o ampliar la duración.</span>`:marcados?`<br><span class="eq-ok">✓ ${marcados} contenido${marcados===1?"":"s"} marcado${marcados===1?"":"s"}: alcanza bien en este tiempo.</span>`:""}</div>
       <button type="button" class="btn ghost" id="plDistrib">Organizar la secuencia en ${c.n} ${c.n===1?"sesión":"sesiones"} con fechas</button>`:`<div class="alert">En ese periodo no hay días de clase según el calendario oficial. Elija otra fecha de inicio.</div>`}`
    :D.tipo&&D.tipo==="otro"?`<p class="help">Elija la fecha de término.</p>`:""}</section>`}
-async function plView(){S.view="plan";S.letra=null;setBar("");
+async function plView(){S.view="plan";S.letra=null;setBar("");if(tqiEntrada("pl",plView))return;
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Pedagógico</div><h2>Planeación didáctica</h2></div></div>`;
   if(!PL){app.innerHTML=top+`
     <p class="muted">Cree su <b>planeación didáctica</b> conforme a la Nueva Escuela Mexicana. Se alimenta de su <b>Programa Analítico</b> y su <b>lectura de la realidad</b>: elija los contenidos y PDA a trabajar, la metodología, la secuencia, la evaluación formativa y los ajustes. Todo editable y referenciado a sus insumos.</p>
@@ -4089,6 +4250,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
   const fases=PL_FASES[PL.metodologia]||null;
   if(PL.formato==="fases"&&fases&&(!PL.fases||!PL.fases.length))PL.fases=fases.map(f=>({t:f,a:""}));
   app.innerHTML=top+`
+   ${tqiVolverDocHTML("pl")}
    <section class="card"><h3>Insumos</h3><p class="help">Traiga de su Programa Analítico los contenidos, PDA y ejes, y de la lectura de la realidad el problema del contexto.</p>
     <button type="button" class="btn ghost" id="plImpPA">↓ Importar del Programa Analítico</button>
     ${dxResumen()?`<button type="button" class="btn ghost" id="plImpLec">↓ Importar problema del contexto (lectura de la realidad)</button>`:""}
@@ -4168,6 +4330,7 @@ async function plView(){S.view="plan";S.letra=null;setBar("");
   app.querySelectorAll(".plcontdel").forEach(b=>b.onclick=()=>{leer();PL.contenidos.splice(+b.dataset.i,1);plSave();plView()});
   if(g("plAddSes"))g("plAddSes").onclick=()=>{leer();PL.sesiones.push({t:"Sesión "+(PL.sesiones.length+1),a:""});plSave();plView()};
   app.querySelectorAll(".plsesdel").forEach(b=>b.onclick=()=>{leer();PL.sesiones.splice(+b.dataset.i,1);plSave();plView()});
+  tqiVolverDocWire("pl",plView,leer);
   g("plNuevo").onclick=()=>{if(!confirm("¿Empezar una planeación nueva? Se borrará la actual."))return;PL=null;store.del("ppie-plan");plView()};
   g("salir").onclick=()=>{leer();goBack()};
   g("plWord").onclick=()=>{leer();plWord()};
