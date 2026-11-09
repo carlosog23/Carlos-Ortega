@@ -49,6 +49,7 @@ input,select,textarea{font:inherit;font-size:16px;padding:11px 13px;border-radiu
 .wa{font-weight:800;font-size:13px;color:var(--ok);text-decoration:none;white-space:nowrap}
 .form{padding:16px;display:grid;gap:12px}
 .form label{display:grid;gap:5px;font-size:13px;color:var(--muted);font-weight:700}
+.form label.chk{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink)}.form label.chk input{width:20px;height:20px}
 textarea{min-height:120px;resize:vertical;line-height:1.45}
 .btn{border:0;cursor:pointer;font-weight:800;font-size:16px;padding:13px 16px;border-radius:14px;background:var(--navy);color:#fff}
 .btn.rojo{background:var(--danger)}
@@ -74,7 +75,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.45}
   <div id="panel" hidden style="display:grid;gap:16px">
     <nav class="tabs" role="tablist">
       <button role="tab" data-t="usuarios" aria-selected="true">Usuarios</button>
-      <button role="tab" data-t="avisos" aria-selected="false">Mandar aviso</button>
+      <button role="tab" data-t="avisos" aria-selected="false">Comunicados</button>
       <button role="tab" data-t="bienvenida" aria-selected="false">Bienvenida</button>
       <button role="tab" data-t="alertas" aria-selected="false">Alertas</button>
     </nav>
@@ -92,9 +93,15 @@ textarea{min-height:120px;resize:vertical;line-height:1.45}
 
     <section data-p="avisos" hidden style="display:grid;gap:14px">
       <form class="card form" id="fAviso">
-        <label>Título<input id="aTit" maxlength="80" placeholder="Ej. Mensaje de prueba" required></label>
-        <label>Mensaje<textarea id="aTxt" maxlength="600" placeholder="Escribe el aviso para todos los usuarios…" required></textarea></label>
-        <p class="ayuda">Lo verán todos en la pantalla de Despacho. A quien tenga la app abierta o en segundo plano y los avisos activados, también le sonará como notificación.</p>
+        <label>Tipo de comunicado<select id="aTipo">
+          <option value="actualizacion">🆕 Actualización de la app (novedades, mejoras)</option>
+          <option value="aviso" selected>📢 Aviso general</option>
+          <option value="importante">⚠️ Importante (resaltado en rojo)</option>
+        </select></label>
+        <label>Título<input id="aTit" maxlength="80" placeholder="Ej. Nuevo: gasolineras de la tarjeta" required></label>
+        <label>Mensaje<textarea id="aTxt" maxlength="1500" placeholder="Escribe el comunicado para todos los usuarios…" required></textarea></label>
+        <label class="chk"><input type="checkbox" id="aFij"> Fijarlo arriba en Comunicados (para que no se pierda)</label>
+        <p class="ayuda">Aparece en la pestaña Comunicados (con su historial) y, mientras no lo lean, también arriba en Despacho. A quien tenga la app abierta o en segundo plano y los avisos activados, le sonará como notificación.</p>
         <button class="btn" id="aBtn">Enviar a todos</button>
       </form>
       <div class="lista" id="enviados"></div>
@@ -155,7 +162,7 @@ document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{document.querySe
 let usuarios=[];
 function iniciar(){
   subs.push(F.onSnapshot(F.collection(db,'usuarios'),s=>{usuarios=s.docs.map(d=>Object.assign({id:d.id},d.data())).filter(u=>u.nombre);pintarUsuarios()},e=>{$('#usuarios').innerHTML='<div class="card vacio">No se pudo leer la lista ('+esc(e.code)+').</div>'}));
-  subs.push(F.onSnapshot(F.query(F.collection(db,'anuncios'),F.orderBy('creadoMs','desc'),F.limit(20)),s=>pintarEnviados(s.docs.map(d=>Object.assign({id:d.id},d.data())))));
+  subs.push(F.onSnapshot(F.query(F.collection(db,'anuncios'),F.orderBy('creadoMs','desc'),F.limit(40)),s=>pintarEnviados(s.docs.map(d=>Object.assign({id:d.id},d.data())))));
   subs.push(F.onSnapshot(F.query(F.collection(db,'alertas'),F.where('creadoMs','>=',Date.now()-7*864e5),F.orderBy('creadoMs','desc')),s=>pintarAlertas(s.docs.map(d=>Object.assign({id:d.id},d.data())))));
   F.getDoc(F.doc(db,'config','bienvenida')).then(d=>{const b=d.exists()?d.data():{};
     $('#bTit').value=b.titulo||'¡Bienvenido(a)!';
@@ -194,14 +201,16 @@ $('#fAviso').onsubmit=async e=>{
   e.preventDefault();const t=$('#aTit').value.trim(),x=$('#aTxt').value.trim();if(!t||!x)return;
   const b=$('#aBtn');if(!b.dataset.c){b.dataset.c=1;b.textContent='¿Enviar a '+usuarios.length+' usuarios? Toca otra vez';b.classList.add('rojo');setTimeout(()=>{delete b.dataset.c;b.textContent='Enviar a todos';b.classList.remove('rojo')},5000);return}
   b.disabled=true;
-  try{await F.addDoc(F.collection(db,'anuncios'),{titulo:t,texto:x,autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()});$('#aTit').value='';$('#aTxt').value='';toast('Aviso enviado')}
+  try{await F.addDoc(F.collection(db,'anuncios'),{tipo:$('#aTipo').value,fijado:$('#aFij').checked,titulo:t,texto:x,autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()});$('#aTit').value='';$('#aTxt').value='';$('#aFij').checked=false;toast('Comunicado enviado')}
   catch(err){toast('No se pudo enviar: '+(err.code||''))}
   b.disabled=false;delete b.dataset.c;b.textContent='Enviar a todos';b.classList.remove('rojo');
 };
 function pintarEnviados(l){
-  $('#enviados').innerHTML=l.length?'<p class="ayuda" style="margin:4px 2px">Avisos enviados</p>'+l.map(a=>'<article class="card item"><div class="fila"><h3>'+esc(a.titulo)+'</h3><button class="btn2 rojo" data-borra-a="'+esc(a.id)+'">Borrar</button></div><p>'+esc(a.texto).replace(/\n/g,'<br>')+'</p><small>'+fecha(a.creadoMs)+'</small></article>').join(''):'';
+  const TT={actualizacion:'🆕 Actualización',aviso:'📢 Aviso',importante:'⚠️ Importante'};
+  $('#enviados').innerHTML=l.length?'<p class="ayuda" style="margin:4px 2px">Comunicados enviados</p>'+l.map(a=>'<article class="card item"><div class="fila"><h3>'+esc(a.titulo)+'</h3><span style="display:flex;gap:6px"><button class="btn2" data-fija="'+esc(a.id)+'" data-v="'+(a.fijado?1:0)+'">'+(a.fijado?'Desfijar':'Fijar')+'</button><button class="btn2 rojo" data-borra-a="'+esc(a.id)+'">Borrar</button></span></div><small><b>'+(TT[a.tipo]||TT.aviso)+'</b>'+(a.fijado?' · 📌 Fijado':'')+'</small><p>'+esc(a.texto).replace(/\n/g,'<br>')+'</p><small>'+fecha(a.creadoMs)+'</small></article>').join(''):'';
 }
-$('#enviados').onclick=async e=>{const b=e.target.closest('[data-borra-a]');if(!b)return;if(!b.dataset.c){b.dataset.c=1;b.textContent='¿Seguro?';return}try{await F.deleteDoc(F.doc(db,'anuncios',b.dataset.borraA));toast('Aviso borrado')}catch(err){toast('No se pudo borrar')}};
+$('#enviados').onclick=async e=>{const fj=e.target.closest('[data-fija]');if(fj){try{await F.updateDoc(F.doc(db,'anuncios',fj.dataset.fija),{fijado:fj.dataset.v!=='1'});toast(fj.dataset.v==='1'?'Desfijado':'Fijado arriba')}catch(err){toast('No se pudo cambiar')}return}
+  const b=e.target.closest('[data-borra-a]');if(!b)return;if(!b.dataset.c){b.dataset.c=1;b.textContent='¿Seguro?';return}try{await F.deleteDoc(F.doc(db,'anuncios',b.dataset.borraA));toast('Aviso borrado')}catch(err){toast('No se pudo borrar')}};
 
 /* Bienvenida */
 $('#fBien').onsubmit=async e=>{e.preventDefault();try{await F.setDoc(F.doc(db,'config','bienvenida'),{titulo:$('#bTit').value.trim()||'¡Bienvenido(a)!',texto:$('#bTxt').value.trim(),autor:$('#bAut').value.trim(),actualizado:Date.now()});toast('Bienvenida guardada')}catch(err){toast('No se pudo guardar: '+(err.code||''))}};

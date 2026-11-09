@@ -64,6 +64,7 @@ function irA(t){
   document.querySelectorAll('[data-go]').forEach(b=>b.setAttribute('aria-selected',b.dataset.go===t));
   window.scrollTo({top:0});
   if(t==='despacho')setTimeout(()=>{if(mapa)mapa.invalidateSize();else pintarMapa()},30);
+  if(t==='comunicados')abrirComunicados();
 }
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>irA(b.dataset.go));
 
@@ -102,7 +103,7 @@ function backendFirebase(cfg){
     return {
       uid,modo:'firebase',
       guardarPerfil:p=>F.setDoc(uRef,{nombre:p.nombre,cargo:p.cargo,municipio:p.municipio,zona:p.zona,whatsapp:p.whatsapp||'',registrado:p.registrado||Date.now(),visto:Date.now(),plataforma:plataforma(),instalada:instalada(),actualizado:Date.now()},{merge:true}),
-      anuncios(cb){return F.onSnapshot(F.query(F.collection(db,'anuncios'),F.orderBy('creadoMs','desc'),F.limit(5)),s=>cb(s.docs.map(d=>Object.assign({id:d.id},d.data()))),()=>{})},
+      anuncios(cb){return F.onSnapshot(F.query(F.collection(db,'anuncios'),F.orderBy('creadoMs','desc'),F.limit(40)),s=>cb(s.docs.map(d=>Object.assign({id:d.id},d.data()))),()=>{})},
       async bienvenida(){try{const d=await F.getDoc(F.doc(db,'config','bienvenida'));return d.exists()?d.data():null}catch(e){return null}},
       escuchar(cb,errCb){
         const q=F.query(F.collection(db,'alertas'),F.where('creadoMs','>=',Date.now()-2*VENTANA),F.orderBy('creadoMs','desc'),F.limit(150));
@@ -131,7 +132,7 @@ function backendDemo(){
   const uid='yo';
   return {ready:Promise.resolve({uid,modo:'demo',
     guardarPerfil:()=>Promise.resolve(),
-    anuncios(cb){setTimeout(()=>cb([{id:'a1',titulo:'Bienvenidos',texto:'Este es un aviso de prueba de la supervisión.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-20*6e4}]),300);return()=>{}},
+    anuncios(cb){setTimeout(()=>cb([{id:'a2',tipo:'actualizacion',titulo:'Nuevo: gasolineras de la tarjeta',texto:'Ya puedes ver las gasolineras que aceptan la tarjeta y cuál te queda más cerca.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-5*6e4},{id:'a1',tipo:'aviso',fijado:true,titulo:'Bienvenidos',texto:'Este es un aviso de prueba de la supervisión.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-20*6e4}]),300);return()=>{}},
     bienvenida:()=>Promise.resolve(null),
     escuchar(cb){subs.push(cb);setTimeout(()=>cb(datos.slice().sort((a,b)=>b.creadoMs-a.creadoMs)),250);return()=>{}},
     crear(a){const id='d'+Date.now();datos.push(Object.assign({},a,{id,uid,estado:'activa',creadoMs:Date.now(),confirman:[]}));const escrito=new Promise(r=>setTimeout(r,500));escrito.then(guardar);return {id,escrito}},
@@ -245,6 +246,8 @@ async function pintarMapa(){
       .bindPopup('<b>'+esc(a.gasolinera)+'</b><br>'+esc(a.lugar||'')+'<br>'+(e==='activa'?'Sin sistema':e==='resuelta'?'Restablecido':'Sin confirmar')+' · '+esc(hace(a.creadoMs)));
     pts.push([a.lat,a.lon]);
   }
+  for(const e of ESTS){L.circleMarker([e.la,e.lo],{radius:4,color:'#fff',weight:1.5,fillColor:'#2f6fb0',fillOpacity:.9}).addTo(capa)
+    .bindPopup('<b>'+esc(e.n)+'</b><br>E.S. '+esc(e.p)+' · '+esc(e.m)+'<br>'+esc(e.d)+'<br>'+esc(e.h)+' · '+esc(e.c)+'<br><a href="'+rutaA(e)+'" target="_blank" rel="noopener">Cómo llegar</a>')}
   if(miUbic){L.circleMarker([miUbic.lat,miUbic.lon],{radius:6,color:'#fff',weight:2,fillColor:'#2f7de1',fillOpacity:1}).addTo(capa).bindPopup('Tú');pts.push([miUbic.lat,miUbic.lon])}
   setTimeout(()=>{mapa.invalidateSize();if(pts.length===1)mapa.setView(pts[0],12);else if(pts.length)mapa.fitBounds(pts,{padding:[30,30],maxZoom:12})},50);
 }
@@ -260,16 +263,65 @@ async function fetchJSON(url,opt,ms){const c=new AbortController();const t=setTi
 async function gasolinerasCerca(lat,lon){
   const q='[out:json][timeout:10];(node(around:4000,'+lat+','+lon+')[amenity=fuel];way(around:4000,'+lat+','+lon+')[amenity=fuel];);out center tags 30;';
   const srv=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  /* Primero las gasolineras oficiales de la tarjeta (lista del Gobierno, sin internet) */
+  const ofi=estacionesCerca(lat,lon,5000,4).map(e=>({nombre:nombreEst(e),lat:e.la,lon:e.lo,d:e.dm,osm:'of'+e.p,calle:e.d,oficial:true}));
   /* consulta los dos servidores a la vez y usa el primero que responda */
-  const j=await Promise.any(srv.map(u=>fetchJSON(u,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}},11000)));
+  let j=null;
+  try{j=await Promise.any(srv.map(u=>fetchJSON(u,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}},11000)))}catch(e){if(!ofi.length)throw e}
   const vistos=new Set();
-  return (j.elements||[]).map(e=>{
+  const osm=((j&&j.elements)||[]).map(e=>{
     const la=e.lat!=null?e.lat:e.center&&e.center.lat,lo=e.lon!=null?e.lon:e.center&&e.center.lon,t=e.tags||{};
     const marca=(t.brand||t.operator||'').trim();let nom=(t.name||'').trim();
     if(!nom)nom=marca||'Gasolinera';else if(marca&&!nom.toLowerCase().includes(marca.toLowerCase()))nom=marca+' · '+nom;
     return {nombre:nom,lat:la,lon:lo,d:la!=null?dist(lat,lon,la,lo):1e9,osm:e.type[0]+e.id,calle:t['addr:street']||''};
-  }).filter(x=>x.lat!=null&&!vistos.has(x.osm)&&vistos.add(x.osm)).sort((a,b)=>a.d-b.d).slice(0,6);
+  }).filter(x=>x.lat!=null&&!vistos.has(x.osm)&&vistos.add(x.osm)&&!ofi.some(o=>dist(o.lat,o.lon,x.lat,x.lon)<150));
+  return ofi.concat(osm).sort((a,b)=>a.d-b.d).slice(0,6);
 }
+
+/* ================= Gasolineras de la tarjeta (lista oficial) ================= */
+const ESTS=self.ESTACIONES||[];
+const nombreEst=e=>'E.S. '+e.p+' · '+e.n;
+function estacionesCerca(lat,lon,maxM,n){
+  return ESTS.map(e=>Object.assign({dm:dist(lat,lon,e.la,e.lo)},e)).filter(e=>!maxM||e.dm<=maxM).sort((a,b)=>a.dm-b.dm).slice(0,n||5);
+}
+const rutaA=e=>'https://www.google.com/maps/dir/?api=1&destination='+e.la+','+e.lo;
+/* ¿Hay un reporte activo de falla en esta gasolinera? (a menos de 250 m) */
+const fallaEn=e=>alertas.find(a=>a.lat&&estadoDe(a)==='activa'&&dist(a.lat,a.lon,e.la,e.lo)<250);
+const gs={modo:'cerca',mun:'',buscando:false,err:''};
+function tarjetaEst(e){
+  const f=fallaEn(e);
+  return '<article class="card est'+(f?' falla':'')+'"><div class="est-top"><span class="est-ic">'+ic('fuel')+'</span><div><h3>'+esc(e.n)+'</h3><small>E.S. '+esc(e.p)+' · '+esc(e.m)+(e.dm!=null?' · <b>a '+fdist(e.dm)+'</b>':'')+'</small></div></div>'+
+    '<p>'+esc(e.d)+'</p><div class="est-tags"><span>'+esc(e.h)+'</span><span>'+esc(e.c)+'</span>'+(f?'<span class="mal">Sin sistema · '+esc(hace(f.creadoMs))+'</span>':'')+'</div>'+
+    '<a class="btn2" href="'+rutaA(e)+'" target="_blank" rel="noopener">'+ic('nav')+'Cómo llegar</a></article>';
+}
+function pintarGasolineras(){
+  const el=$('#gasLista');if(!el)return;
+  document.querySelectorAll('[data-gm]').forEach(b=>b.setAttribute('aria-selected',b.dataset.gm===gs.modo));
+  $('#gasMun').hidden=gs.modo!=='mun';
+  if(gs.modo==='cerca'){
+    if(gs.buscando){el.innerHTML='<div class="card vacio"><div class="spin" style="margin:0 auto 8px"></div>Buscando las más cercanas…</div>';return}
+    if(!miUbic){el.innerHTML='<div class="card vacio">'+(gs.err?esc(gs.err)+'<br>':'')+'<button class="pill" type="button" id="gasUbic" style="margin-top:8px">Usar mi ubicación</button></div>';return}
+    const l=estacionesCerca(miUbic.lat,miUbic.lon,0,5);
+    el.innerHTML=(l.length&&l[0].dm>30000?'<div class="ya"><b>Lejos de las gasolineras de la tarjeta</b>La más cercana está a '+fdist(l[0].dm)+'. Calcula tu combustible antes de salir.</div>':'')+l.map(tarjetaEst).join('');
+  }else{
+    const m=gs.mun||(perfil&&perfil.municipio)||'';$('#gasMun').value=m;
+    const l=ESTS.filter(e=>e.m===m).map(e=>Object.assign({dm:miUbic?dist(miUbic.lat,miUbic.lon,e.la,e.lo):null},e)).sort((a,b)=>a.dm!=null?a.dm-b.dm:a.n.localeCompare(b.n));
+    el.innerHTML=m?(l.length?l.map(tarjetaEst).join(''):'<div class="card vacio">No hay gasolineras de la tarjeta registradas en '+esc(m)+'.</div>'):'<div class="card vacio">Elige un municipio.</div>';
+  }
+}
+async function buscarCercanas(){
+  gs.buscando=true;gs.err='';pintarGasolineras();
+  try{miUbic=await ubicar()}catch(err){gs.err=err&&err.code===1?'No diste permiso de ubicación. Actívalo en el navegador o busca por municipio.':'No se pudo obtener tu ubicación.'}
+  gs.buscando=false;pintarGasolineras();if(tabActual==='despacho')pintarMapa();
+}
+(function(){
+  const sel=$('#gasMun');if(!sel)return;
+  [...new Set(ESTS.map(e=>e.m))].sort().forEach(m=>{const o=document.createElement('option');o.textContent=m;sel.append(o)});
+  sel.onchange=()=>{gs.mun=sel.value;pintarGasolineras()};
+  document.querySelectorAll('[data-gm]').forEach(b=>b.onclick=()=>{gs.modo=b.dataset.gm;pintarGasolineras()});
+  $('#gasLista').addEventListener('click',e=>{if(e.target.closest('#gasUbic'))buscarCercanas()});
+  $('#gasCuenta').textContent=ESTS.length+' en el estado';
+})();
 async function lugarDe(lat,lon){
   try{const j=await fetchJSON('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=es&lat='+lat+'&lon='+lon,{},9000);
     const a=j.address||{};
@@ -315,7 +367,7 @@ function pintarHoja(){
     if(sh.pos)h+='<div class="ubic">'+ic('pin')+'<div><b>'+esc(sh.lugar&&sh.lugar.lugar||'Ubicación obtenida')+'</b><br>Precisión ±'+fdist(sh.pos.prec)+'</div></div>';
     if(sh.err)h+='<div class="ya"><b>Aviso</b>'+esc(sh.err)+'</div>';
     h+='<div class="opciones" role="radiogroup">';
-    sh.opciones.forEach((o,i)=>{h+='<button class="op" role="radio" aria-checked="'+(sh.sel===i)+'" data-op="'+i+'"><span class="rd"></span><div><b>'+esc(o.nombre)+'</b><span>a '+fdist(o.d)+(o.calle?' · '+esc(o.calle):'')+'</span></div></button>'});
+    sh.opciones.forEach((o,i)=>{h+='<button class="op" role="radio" aria-checked="'+(sh.sel===i)+'" data-op="'+i+'"><span class="rd"></span><div><b>'+esc(o.nombre)+'</b><span>a '+fdist(o.d)+(o.calle?' · '+esc(o.calle):'')+'</span>'+(o.oficial?'<em class="tj">Acepta la tarjeta</em>':'')+'</div></button>'});
     h+='<button class="op" role="radio" aria-checked="'+(sh.sel==='otro')+'" data-op="otro"><span class="rd"></span><div><b>'+(sh.opciones.length?'Otra gasolinera':'Escribir el nombre')+'</b><span>'+(sh.opciones.length?'No aparece en la lista':'No la encontramos en el mapa')+'</span></div></button></div>';
     if(sh.sel==='otro')h+='<label>Nombre de la gasolinera<input id="shOtro" value="'+esc(sh.otro)+'" placeholder="Ej. Pemex de la entrada a Camalú"></label>';
     if(sh.existente){const a=sh.existente;h+='<div class="ya"><b>Ya hay un reporte activo aquí</b>Lo mandó '+esc(a.nombre)+' '+esc(hace(a.creadoMs))+'. Puedes confirmar que sigue sin sistema para que todos lo sepan.<br><button class="btn2" style="margin-top:8px" data-nueva>Es otra gasolinera: mandar alerta nueva</button></div>'}
@@ -425,12 +477,42 @@ $('#instBtn').onclick=async()=>{if(!instEvt)return;instEvt.prompt();try{await in
 /* ================= Avisos de la supervisión y bienvenida ================= */
 const LSV='tarjetaGasolina.anunciosVistos';
 let anuncios=[],vistos=[];try{vistos=JSON.parse(localStorage.getItem(LSV)||'[]')}catch(e){}
-function pintarAnuncios(){
-  const cont=$('#anuncios');const pend=anuncios.filter(a=>!vistos.includes(a.id)&&Date.now()-a.creadoMs<14*24*H&&(!perfil||!perfil.registrado||a.creadoMs>perfil.registrado-7*24*H));
-  if(!pend.length){cont.innerHTML='';return}
-  cont.innerHTML=pend.slice(0,3).map(a=>'<article class="card anuncio"><div class="an-top"><span class="an-ic">'+ic('bell')+'</span><div><small>Aviso de la supervisión · '+esc(hace(a.creadoMs))+'</small><h3>'+esc(a.titulo||'Aviso')+'</h3></div><button class="an-x" data-vis="'+esc(a.id)+'" aria-label="Marcar como leído">✕</button></div><p>'+esc(a.texto||'').replace(/\n/g,'<br>')+'</p><div class="an-de">— '+esc(a.autor||'Supervisión')+'</div></article>').join('');
+const TIPOS={actualizacion:{t:'Actualización',ic:'spark',e:'🆕'},aviso:{t:'Aviso',ic:'mega',e:'📢'},importante:{t:'Importante',ic:'alert',e:'⚠️'}};
+const tipoDe=a=>TIPOS[a.tipo]?a.tipo:'aviso';
+const leido=a=>vistos.includes(a.id);
+const cf={filtro:'',nuevos:new Set()};
+function marcarLeidos(ids){let c=false;ids.forEach(id=>{if(!vistos.includes(id)){vistos.push(id);c=true}});if(!c)return;vistos=vistos.slice(-200);try{localStorage.setItem(LSV,JSON.stringify(vistos))}catch(e){}}
+/* Solo cuentan como "no leídos" los recientes (y no los de mucho antes de que la persona se registrara) */
+const pendiente=a=>!leido(a)&&Date.now()-a.creadoMs<30*24*H&&(!perfil||!perfil.registrado||a.creadoMs>perfil.registrado-7*24*H);
+function tarjetaCom(a,corta){
+  const k=tipoDe(a),T=TIPOS[k],nuevo=corta||cf.nuevos.has(a.id);
+  return '<article class="card anuncio t-'+k+(a.fijado?' fij':'')+'"><div class="an-top"><span class="an-ic">'+ic(T.ic)+'</span><div><small><span class="an-tipo">'+T.t+'</span>'+(a.fijado?' · Fijado':'')+' · '+esc(hace(a.creadoMs))+(nuevo&&!corta?' <span class="an-nuevo">Nuevo</span>':'')+'</small><h3>'+esc(a.titulo||'Comunicado')+'</h3></div>'+(corta?'<button class="an-x" data-vis="'+esc(a.id)+'" aria-label="Marcar como leído">✕</button>':'')+'</div>'+
+    '<p>'+esc(a.texto||'').replace(/\n/g,'<br>')+'</p>'+
+    (k==='actualizacion'&&!corta?'<button class="btn2" type="button" data-recargar>'+ic('down')+'Cargar la versión nueva</button>':'')+
+    '<div class="an-de">— '+esc(a.autor||'Supervisión')+'</div></article>';
 }
-$('#anuncios').addEventListener('click',e=>{const b=e.target.closest('[data-vis]');if(!b)return;vistos.push(b.dataset.vis);vistos=vistos.slice(-50);try{localStorage.setItem(LSV,JSON.stringify(vistos))}catch(e){}pintarAnuncios()});
+function pintarAnuncios(){
+  const pend=anuncios.filter(pendiente);
+  /* En Despacho: los no leídos, máximo 2, con acceso a todos */
+  const cont=$('#anuncios');
+  cont.innerHTML=pend.length?pend.slice(0,2).map(a=>tarjetaCom(a,true)).join('')+'<button class="ver-com" type="button" data-go2="comunicados">Ver todos los comunicados'+(pend.length>2?' ('+pend.length+' sin leer)':'')+' ›</button>':'';
+  const bd=$('#badgeCom');bd.hidden=!pend.length;bd.textContent=pend.length>9?'9+':pend.length;
+  /* Pestaña Comunicados */
+  document.querySelectorAll('[data-cf]').forEach(b=>b.setAttribute('aria-selected',b.dataset.cf===cf.filtro));
+  const l=anuncios.filter(a=>!cf.filtro||tipoDe(a)===cf.filtro).sort((a,b)=>(!!b.fijado-!!a.fijado)||(b.creadoMs-a.creadoMs));
+  $('#comLista').innerHTML=l.length?l.map(a=>tarjetaCom(a,false)).join(''):'<div class="card vacio">'+ic('mega')+'<br>'+(anuncios.length?'No hay comunicados de este tipo.':'Aún no hay comunicados. Aquí aparecerán las actualizaciones de la app y los avisos para todos.')+'</div>';
+  $('#comCuenta').textContent=anuncios.length?anuncios.length+(anuncios.length===1?' comunicado':' comunicados'):'';
+}
+function abrirComunicados(){
+  cf.nuevos=new Set(anuncios.filter(pendiente).map(a=>a.id));
+  marcarLeidos([...cf.nuevos]);pintarAnuncios();
+}
+document.addEventListener('click',e=>{
+  const v=e.target.closest('[data-vis]');if(v){marcarLeidos([v.dataset.vis]);pintarAnuncios();return}
+  const g=e.target.closest('[data-go2]');if(g){irA(g.dataset.go2);return}
+  const f=e.target.closest('[data-cf]');if(f){cf.filtro=f.dataset.cf;pintarAnuncios();return}
+  if(e.target.closest('[data-recargar]')){toast('Cargando la versión más reciente…');setTimeout(()=>location.reload(),600)}
+});
 const BIENVENIDA_DEF={titulo:'¡Bienvenido(a)!',texto:'Gracias por registrarte. Aquí llevas el control de tu tarjeta de combustible y, entre todos, nos avisamos cuando una gasolinera no tenga sistema de despacho, para no perder el viaje.\n\nSi llegas a una gasolinera sin sistema, toca el botón rojo “No hay sistema aquí”. Cuando regrese, márcalo como “Ya hay sistema”.\n\nActiva los avisos para enterarte al momento. Cualquier sugerencia, con gusto la recibo.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez'};
 async function mostrarBienvenida(){
   let b=null;try{b=await conTiempo((await backend.ready).bienvenida(),4000)}catch(e){}
@@ -448,7 +530,7 @@ async function mostrarBienvenida(){
 
 /* ================= Arranque ================= */
 let miUid=null,alertasPrevias=[];
-function repintar(){pintarEstado();pintarAlertas();pintarAvisos();if(tabActual==='despacho')pintarMapa()}
+function repintar(){pintarEstado();pintarAlertas();pintarAvisos();pintarGasolineras();if(tabActual==='despacho')pintarMapa()}
 function iniciar(){
   if(!perfil){mostrarRegistro(false)}else{$('#app').hidden=false;pintarPerfil()}
   pintarInstalar();repintar();
@@ -457,8 +539,8 @@ function iniciar(){
     if(perfil)be.guardarPerfil(perfil).catch(()=>{});
     let primeraA=true;
     be.anuncios(lista=>{
-      const ids=new Set(anuncios.map(a=>a.id));anuncios=lista;pintarAnuncios();
-      if(!primeraA){const n=lista.find(a=>!ids.has(a.id));if(n){const t='📢 '+(n.titulo||'Aviso de la supervisión'),b=n.texto||'';if(document.hidden&&avisosActivos())notificarSistema(t,b,'anuncio-'+n.id);else avisoEnPantalla({title:t,body:b})}}
+      const ids=new Set(anuncios.map(a=>a.id));anuncios=lista;if(tabActual==='comunicados'&&!document.hidden){lista.filter(a=>!ids.has(a.id)&&pendiente(a)).forEach(a=>cf.nuevos.add(a.id));marcarLeidos([...cf.nuevos])}pintarAnuncios();
+      if(!primeraA){const n=lista.find(a=>!ids.has(a.id));if(n){const T=TIPOS[tipoDe(n)],t=T.e+' '+(tipoDe(n)==='aviso'?'':T.t+': ')+(n.titulo||'Comunicado de la supervisión'),b=n.texto||'';if(document.hidden&&avisosActivos())notificarSistema(t,b,'anuncio-'+n.id);else avisoEnPantalla({title:t,body:b})}}
       primeraA=false;
     });
     if(avisosActivos())registrarSW();
