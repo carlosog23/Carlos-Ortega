@@ -1,12 +1,19 @@
-name: Precios de gasolina (prueba)
+name: Precios de gasolina
+# Cada día trae los precios de la CRE para las gasolineras de la tarjeta (tarjeta-gasolina/precios.json)
 on:
+  schedule:
+    - cron: '17 14 * * *'   # 6:17 a. m. en Baja California
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
-  probar:
+  precios:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - run: python3 tarjeta-gasolina/precios/actualizar.py
       - run: |
-          for u in https://publicacionexterna.azurewebsites.net/publicaciones/prices https://publicacionexterna.azurewebsites.net/publicaciones/places; do
-            echo "== $u"; curl -sSL -m 120 -o f.xml -w "HTTP %{http_code} %{size_download} bytes\n" "$u" || true
-            head -c 700 f.xml; echo; grep -o "<place " f.xml | wc -l
-          done
+          git config user.name "Precios automáticos"
+          git config user.email "actions@users.noreply.github.com"
+          git add tarjeta-gasolina/precios.json
+          git diff --cached --quiet || (git commit -m "Precios de gasolina $(date +%F)" && git push)
