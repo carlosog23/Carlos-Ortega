@@ -287,26 +287,52 @@ function estacionesCerca(lat,lon,maxM,n){
 const rutaA=e=>'https://www.google.com/maps/dir/?api=1&destination='+e.la+','+e.lo;
 /* ¿Hay un reporte activo de falla en esta gasolinera? (a menos de 250 m) */
 const fallaEn=e=>alertas.find(a=>a.lat&&estadoDe(a)==='activa'&&dist(a.lat,a.lon,e.la,e.lo)<250);
-const gs={modo:'cerca',mun:'',buscando:false,err:''};
-function tarjetaEst(e){
-  const f=fallaEn(e);
+const gs={modo:'cerca',mun:'',buscando:false,err:'',comb:(()=>{try{return localStorage.getItem('tarjetaGasolina.comb')||'magna'}catch(e){return 'magna'}})()};
+/* Precios por estación (CRE), los actualiza GitHub cada mañana en precios.json */
+let PRECIOS=null;
+const COMB={magna:'Magna',premium:'Premium',diesel:'Diésel'};
+const precioDe=(e,c)=>{const p=PRECIOS&&PRECIOS.p[e.p];return p&&p[c||gs.comb]||null};
+const pesos=v=>'$'+v.toFixed(2);
+const fechaPrec=s=>{const [y,m,d]=String(s).split('-');return +d+' de '+['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][+m-1]+' de '+y};
+fetchJSON('precios.json?d='+new Date().toISOString().slice(0,10),{},15000).then(j=>{PRECIOS=j;pintarGasolineras()}).catch(()=>{});
+function tarjetaEst(e,mejor,ahorro){
+  const f=fallaEn(e),pr=PRECIOS&&PRECIOS.p[e.p];
+  const precios=pr?'<div class="est-prec">'+Object.keys(COMB).map(k=>'<div class="'+(k===gs.comb?'sel':'')+(pr[k]?'':' na')+'"><small>'+COMB[k]+'</small><b>'+(pr[k]?pesos(pr[k]):'—')+'</b></div>').join('')+'</div>':'';
   return '<article class="card est'+(f?' falla':'')+'"><div class="est-top"><span class="est-ic">'+ic('fuel')+'</span><div><h3>'+esc(e.n)+'</h3><small>E.S. '+esc(e.p)+' · '+esc(e.m)+(e.dm!=null?' · <b>a '+fdist(e.dm)+'</b>':'')+'</small></div></div>'+
-    '<p>'+esc(e.d)+'</p><div class="est-tags"><span>'+esc(e.h)+'</span><span>'+esc(e.c)+'</span>'+(f?'<span class="mal">Sin sistema · '+esc(hace(f.creadoMs))+'</span>':'')+'</div>'+
+    '<p>'+esc(e.d)+'</p>'+precios+'<div class="est-tags">'+(mejor?'<span class="bien">Mejor precio de '+COMB[gs.comb]+'</span>':'')+(ahorro?'<span class="'+(mejor?'ahorro':'')+'">'+esc(ahorro)+'</span>':'')+'<span>'+esc(e.h)+'</span><span>'+esc(e.c)+'</span>'+(f?'<span class="mal">Sin sistema · '+esc(hace(f.creadoMs))+'</span>':'')+'</div>'+
     '<a class="btn2" href="'+rutaA(e)+'" target="_blank" rel="noopener">'+ic('nav')+'Cómo llegar</a></article>';
+}
+/* Pinta una lista marcando la más barata del combustible elegido y cuánto ahorra frente a la más cara de la lista */
+function listaEst(l){
+  const con=l.map(e=>precioDe(e)).filter(Boolean),min=con.length>1?Math.min(...con):null,max=con.length?Math.max(...con):null;
+  return l.map(e=>{const p=precioDe(e);const mejor=min!=null&&p===min&&max>min;
+    return tarjetaEst(e,mejor,mejor?'Ahorras '+pesos(max-min)+' por litro':(p&&min!=null&&p>min?pesos(p-min)+' más por litro':''))}).join('');
 }
 function pintarGasolineras(){
   const el=$('#gasLista');if(!el)return;
   document.querySelectorAll('[data-gm]').forEach(b=>b.setAttribute('aria-selected',b.dataset.gm===gs.modo));
-  $('#gasMun').hidden=gs.modo!=='mun';
-  if(gs.modo==='cerca'){
+  $('#gasMun').hidden=gs.modo!=='mun';$('#gasComb').value=gs.comb;
+  const fu=$('#precFuente');fu.hidden=!PRECIOS;if(PRECIOS)fu.textContent='Precios publicados por la CRE para cada gasolinera · actualizados el '+fechaPrec(PRECIOS.actualizado)+'. Pueden variar en la bomba.';
+  if(gs.modo==='cerca'||gs.modo==='barato'){
     if(gs.buscando){el.innerHTML='<div class="card vacio"><div class="spin" style="margin:0 auto 8px"></div>Buscando las más cercanas…</div>';return}
     if(!miUbic){el.innerHTML='<div class="card vacio">'+(gs.err?esc(gs.err)+'<br>':'')+'<button class="pill" type="button" id="gasUbic" style="margin-top:8px">Usar mi ubicación</button></div>';return}
+    if(gs.modo==='barato'){
+      if(!PRECIOS){el.innerHTML='<div class="card vacio">Cargando precios…</div>';return}
+      // las que tienen precio a 30 km o menos (si no hay, las 8 más cercanas), de la más barata a la más cara
+      let km=30,l=estacionesCerca(miUbic.lat,miUbic.lon,30000,40).filter(e=>precioDe(e));
+      if(l.length<2){km=80;l=estacionesCerca(miUbic.lat,miUbic.lon,80000,40).filter(e=>precioDe(e))}
+      l=l.sort((a,b)=>precioDe(a)-precioDe(b)||a.dm-b.dm).slice(0,8);
+      const cab=l.length>1?'<div class="ya"><b>Más baratas cerca de ti</b>'+COMB[gs.comb]+', a '+km+' km o menos. Toma en cuenta la distancia: ir lejos por unos centavos no siempre conviene.</div>'
+        :'<div class="ya"><b>Solo hay una gasolinera de la tarjeta cerca</b>A '+km+' km o menos no hay otra con precio de '+COMB[gs.comb]+' para comparar.</div>';
+      el.innerHTML=l.length?cab+listaEst(l):'<div class="card vacio">No hay gasolineras de la tarjeta con precio de '+COMB[gs.comb]+' a '+km+' km o menos. Busca por municipio para ver las demás.</div>';
+      return;
+    }
     const l=estacionesCerca(miUbic.lat,miUbic.lon,0,5);
-    el.innerHTML=(l.length&&l[0].dm>30000?'<div class="ya"><b>Lejos de las gasolineras de la tarjeta</b>La más cercana está a '+fdist(l[0].dm)+'. Calcula tu combustible antes de salir.</div>':'')+l.map(tarjetaEst).join('');
+    el.innerHTML=(l.length&&l[0].dm>30000?'<div class="ya"><b>Lejos de las gasolineras de la tarjeta</b>La más cercana está a '+fdist(l[0].dm)+'. Calcula tu combustible antes de salir.</div>':'')+listaEst(l);
   }else{
     const m=gs.mun||(perfil&&perfil.municipio)||'';$('#gasMun').value=m;
     const l=ESTS.filter(e=>e.m===m).map(e=>Object.assign({dm:miUbic?dist(miUbic.lat,miUbic.lon,e.la,e.lo):null},e)).sort((a,b)=>a.dm!=null?a.dm-b.dm:a.n.localeCompare(b.n));
-    el.innerHTML=m?(l.length?l.map(tarjetaEst).join(''):'<div class="card vacio">No hay gasolineras de la tarjeta registradas en '+esc(m)+'.</div>'):'<div class="card vacio">Elige un municipio.</div>';
+    el.innerHTML=m?(l.length?listaEst(l):'<div class="card vacio">No hay gasolineras de la tarjeta registradas en '+esc(m)+'.</div>'):'<div class="card vacio">Elige un municipio.</div>';
   }
 }
 async function buscarCercanas(){
@@ -318,7 +344,8 @@ async function buscarCercanas(){
   const sel=$('#gasMun');if(!sel)return;
   [...new Set(ESTS.map(e=>e.m))].sort().forEach(m=>{const o=document.createElement('option');o.textContent=m;sel.append(o)});
   sel.onchange=()=>{gs.mun=sel.value;pintarGasolineras()};
-  document.querySelectorAll('[data-gm]').forEach(b=>b.onclick=()=>{gs.modo=b.dataset.gm;pintarGasolineras()});
+  $('#gasComb').onchange=e=>{gs.comb=e.target.value;try{localStorage.setItem('tarjetaGasolina.comb',gs.comb)}catch(er){}pintarGasolineras()};
+  document.querySelectorAll('[data-gm]').forEach(b=>b.onclick=()=>{gs.modo=b.dataset.gm;if(gs.modo==='barato'&&!miUbic&&!gs.buscando)buscarCercanas();else pintarGasolineras()});
   $('#gasLista').addEventListener('click',e=>{if(e.target.closest('#gasUbic'))buscarCercanas()});
   $('#gasCuenta').textContent=ESTS.length+' en el estado';
 })();

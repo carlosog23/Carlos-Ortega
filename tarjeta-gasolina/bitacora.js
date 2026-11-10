@@ -260,7 +260,7 @@ function render(){
     const el=document.createElement('div');el.className='item';el.dataset.t=it.tipo;el.tabIndex=0;
     const titulo=it.tipo==='carga'?'Carga de combustible':it.tipo==='abono'?'Abono a la tarjeta':'Saldo nuevo';
     const det=[fdate(it.fecha)];
-    if(it.litros)det.push((+it.litros).toLocaleString('es-MX')+' L');
+    if(it.litros)det.push((+it.litros).toLocaleString('es-MX')+' L'+(it.tipo==='carga'&&it.monto&&+it.litros>0?' a $'+(it.monto/it.litros).toFixed(2)+'/L':''));
     if(it.km)det.push((+it.km).toLocaleString('es-MX')+' km');
     if(it.nota)det.push(it.nota);
     const signo=it.tipo==='carga'?'−':it.tipo==='abono'?'+':'=';
