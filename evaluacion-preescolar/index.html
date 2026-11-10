@@ -421,7 +421,8 @@ async function redactar(objetivos){
     gen.done+=job.lote.length; progreso();
   };
   const q=jobs.slice(); const worker=async()=>{ while(q.length&&!gen.ctl.signal.aborted&&!gen.err) await run(q.shift()); };
-  await Promise.all([worker(),worker()]);
+  /* Con el servicio gratuito (AI===IAservidor) se envía una solicitud a la vez para no rebasar su límite por minuto */
+  await Promise.all(AI===IAservidor?[worker()]:[worker(),worker()]);
   const err=gen.err, stop=gen.ctl.signal.aborted; gen=null; render();
   toast(err?errAI(err):stop?"Redacción detenida. Lo ya escrito se conservó.":"Redacción terminada. Lee y ajusta cada texto antes de copiarlo.");
 }
@@ -633,8 +634,18 @@ async function reducir(blob){
 }
 function leerJson(t){ t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim(); try{ return JSON.parse(t); }catch(e){}
   const a=Math.min(...["{","["].map(c=>t.indexOf(c)).filter(i=>i>=0)), b=Math.max(t.lastIndexOf("}"),t.lastIndexOf("]")); if(isFinite(a)&&b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch(e){} } throw {code:"invalid_json"}; }
+const esperar=(ms,signal)=>new Promise((ok,no)=>{ if(signal&&signal.aborted) return no({code:"cancelled"}); const t=setTimeout(ok,ms); if(signal) signal.addEventListener("abort",()=>{clearTimeout(t);no({code:"cancelled"});},{once:true}); });
 const IAservidor = { async json(prompt,o={}){
   const imagenes=[]; for(const b of (o.images||[])) imagenes.push(await reducir(b));
+  /* El servicio gratuito admite pocas solicitudes por minuto: si avisa que está ocupado, se espera y se reintenta sola */
+  const pausas=[20,35,50,65];
+  for(let n=0;;n++){
+    try{ return await this.una(prompt,imagenes,o); }
+    catch(e){ if(!(e&&e.ocupado)||n>=pausas.length) throw e;
+      toast(`El servicio de redacción está ocupado. Se reintenta en ${pausas[n]} segundos…`); await esperar(pausas[n]*1000,o.signal); }
+  }
+},
+async una(prompt,imagenes,o){
   /* Tope de espera: si el servicio no contesta en 2 minutos, se avisa en lugar de dejar la app esperando */
   const ctl=new AbortController(); let venc=false; const tm=setTimeout(()=>{venc=true;ctl.abort();},120000);
   if(o.signal){ if(o.signal.aborted) ctl.abort(); else o.signal.addEventListener("abort",()=>ctl.abort(),{once:true}); }
@@ -642,7 +653,7 @@ const IAservidor = { async json(prompt,o={}){
   catch(e){ if(venc) throw new Error("El servicio de redacción tardó demasiado en responder. Intenta de nuevo en unos minutos."); if(o.signal&&o.signal.aborted) throw {code:"cancelled"}; throw new Error("No hay conexión con el servicio de redacción. Revisa tu internet e intenta de nuevo."); }
   finally{ clearTimeout(tm); }
   let j; try{ j=await r.json(); }catch(e){ throw new Error("El servicio de redacción no respondió bien. Intenta de nuevo."); }
-  if(!j.ok) throw new Error(j.error||"El servicio de redacción no pudo responder. Intenta de nuevo.");
+  if(!j.ok){ const er=new Error(j.error||"El servicio de redacción no pudo responder. Intenta de nuevo."); er.ocupado=/l[ií]mite gratuito|saturad|ocupad/i.test(er.message); throw er; }
   return leerJson(j.texto);
 } };
 
