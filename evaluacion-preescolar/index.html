@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Evaluación cualitativa de preescolar por campo formativo, a partir de listas de cotejo. Plan de Estudio 2022, Fase 2.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23fff'/%3E%3Crect x='5' y='5' width='10' height='10' rx='2' fill='%23C9470D'/%3E%3Crect x='17' y='5' width='10' height='10' rx='2' fill='%230B7285'/%3E%3Crect x='5' y='17' width='10' height='10' rx='2' fill='%232B7A3B'/%3E%3Crect x='17' y='17' width='10' height='10' rx='2' fill='%23A61E4D'/%3E%3C/svg%3E">
+<title>Evaluación Cualitativa Preescolar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
+<style>
+/* Idea: una "boleta" de trabajo. Cuatro colores fijos, uno por campo formativo, guían toda la app. */
+:root{
+  --bg:#F2F5FA; --surface:#FFFFFF; --surface2:#F7F9FC; --ink:#18223B; --muted:#5A6580; --line:#D8DFEB;
+  --accent:#2F4BD8; --accent-ink:#FFFFFF; --accent-soft:#E6EAFC;
+  --cL:#C9470D; --cS:#0B7285; --cE:#2B7A3B; --cH:#A61E4D;
+  --si:#2B7A3B; --oc:#A86A00; --no:#C2332F;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px; --shadow:0 1px 2px rgba(24,34,59,.06),0 6px 20px rgba(24,34,59,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F141E; --surface:#182030; --surface2:#1E2738; --ink:#E9EDF6; --muted:#9BA7C0; --line:#2C374B;
+    --accent:#8FA3FF; --accent-ink:#0F141E; --accent-soft:#232E52;
+    --cL:#FF9A62; --cS:#5CC8DB; --cE:#7ED08E; --cH:#F283AC;
+    --si:#7ED08E; --oc:#F0BC55; --no:#FF8A84; --shadow:0 1px 2px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F141E; --surface:#182030; --surface2:#1E2738; --ink:#E9EDF6; --muted:#9BA7C0; --line:#2C374B;
+  --accent:#8FA3FF; --accent-ink:#0F141E; --accent-soft:#232E52;
+  --cL:#FF9A62; --cS:#5CC8DB; --cE:#7ED08E; --cH:#F283AC;
+  --si:#7ED08E; --oc:#F0BC55; --no:#FF8A84; --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px 80px}
+
+/* Encabezado */
+.top{background:var(--surface);border-bottom:1px solid var(--line);position:relative}
+.top::before{content:"";display:block;height:6px;background:linear-gradient(90deg,var(--cL) 0 25%,var(--cS) 25% 50%,var(--cE) 50% 75%,var(--cH) 75% 100%)}
+.top-in{max-width:1120px;margin:0 auto;padding:14px 16px 12px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.top h1{font-size:clamp(22px,4vw,30px);font-weight:700}
+.top .sub{color:var(--muted);font-size:14.5px;margin-top:2px}
+.tri{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface2)}
+.tri button{border:0;background:transparent;padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted);white-space:nowrap}
+.tri button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+/* Pasos */
+.steps{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.steps-in{max-width:1120px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+.steps button{flex:0 0 auto;border:1px solid transparent;background:transparent;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:700;font-size:14.5px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.steps button .n{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;font-variant-numeric:tabular-nums}
+.steps button[aria-current="page"]{background:var(--surface);border-color:var(--line);color:var(--ink);box-shadow:var(--shadow)}
+.steps button[aria-current="page"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+main{padding-top:20px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card h2{font-size:20px;margin-bottom:4px}
+.card h3{font-size:16px}
+.hint{color:var(--muted);font-size:14.5px;margin:0 0 12px;max-width:68ch}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13.5px;font-weight:700;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;color:var(--ink);font-weight:400;font-size:16px}
+textarea{resize:vertical;min-height:70px;line-height:1.5}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:5px 10px;min-height:32px;font-size:13.5px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.danger{color:var(--no)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:700;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--si);border-color:color-mix(in srgb,var(--si) 40%,transparent)}
+.pill.warn{color:var(--oc);border-color:color-mix(in srgb,var(--oc) 40%,transparent)}
+.dot{width:9px;height:9px;border-radius:50%;background:currentColor;display:inline-block}
+[data-c="L"]{--c:var(--cL)}[data-c="S"]{--c:var(--cS)}[data-c="E"]{--c:var(--cE)}[data-c="H"]{--c:var(--cH)}[data-c=""]{--c:var(--muted)}
+.campo-h{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;color:var(--c);font-size:15.5px}
+.campo-h::before{content:"";width:12px;height:12px;border-radius:3px;background:var(--c)}
+.campo-box{border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 6%,var(--surface));border-radius:0 10px 10px 0;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+
+/* Membrete */
+.membrete{border:1.5px solid var(--ink);border-radius:10px;padding:14px 16px;display:grid;gap:6px;background:var(--surface)}
+.membrete .esc{font-family:var(--display);font-weight:700;font-size:20px;text-align:center}
+.membrete .tit{text-align:center;font-weight:700;color:var(--muted);font-size:14px;letter-spacing:.04em;text-transform:uppercase}
+.membrete .dat{display:flex;flex-wrap:wrap;gap:6px 22px;justify-content:center;font-size:14.5px;border-top:1px solid var(--line);padding-top:8px}
+.membrete b{font-weight:700}
+
+/* Listas */
+.al{display:grid;grid-template-columns:28px minmax(0,2fr) minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.al .num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px;text-align:right}
+@media (max-width:560px){.al{grid-template-columns:24px 1fr auto}.al .pila{grid-column:2/3}}
+.asp{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:start}
+.cs{display:flex;gap:4px}
+.cs button{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--c);background:transparent;color:var(--c);font-weight:700;cursor:pointer;font-size:13px}
+.cs button[aria-pressed="true"]{background:var(--c);color:var(--surface)}
+@media (max-width:560px){.asp{grid-template-columns:1fr auto}.asp .cs{grid-column:1/2}}
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:14px;background:var(--surface2);display:flex;flex-direction:column;gap:10px}
+
+/* Valoración */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table.val{border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:100%}
+table.val th,table.val td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px;vertical-align:middle}
+table.val thead th{background:var(--surface2);vertical-align:bottom;min-width:118px;max-width:150px;font-weight:600;text-align:left;border-top:4px solid var(--c);line-height:1.3}
+table.val th.nom{position:sticky;left:0;background:var(--surface);z-index:2;min-width:150px;max-width:190px;text-align:left;font-weight:600;border-top:0}
+table.val thead th.nom{background:var(--surface2);z-index:3}
+.vb{width:100%;min-height:36px;border-radius:8px;border:1.5px solid var(--line);background:transparent;cursor:pointer;font-weight:700;font-size:12.5px;color:var(--muted)}
+.vb[data-v="S"]{background:color-mix(in srgb,var(--si) 16%,transparent);border-color:var(--si);color:var(--si)}
+.vb[data-v="O"]{background:color-mix(in srgb,var(--oc) 16%,transparent);border-color:var(--oc);color:var(--oc)}
+.vb[data-v="N"]{background:color-mix(in srgb,var(--no) 14%,transparent);border-color:var(--no);color:var(--no)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg .vb{min-height:42px;font-size:14px}
+.seg .vb[aria-pressed="false"]{background:transparent;border-color:var(--line);color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+
+/* Redacción */
+.stu{display:flex;flex-direction:column;gap:10px}
+.stu-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.stu-h h3{font-size:18px}
+.txt{min-height:92px;background:var(--surface)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.cnt{font-variant-numeric:tabular-nums}
+.cnt.over{color:var(--no);font-weight:700}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.chk input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.hist{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.hist .col{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface2)}
+.hist p{margin:0;font-size:14.5px}
+.empty{color:var(--muted);font-style:italic;font-size:14.5px}
+.foot{color:var(--muted);font-size:13px;max-width:75ch}
+.pie{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13.5px}
+.pie-m{width:26px;height:26px;border-radius:6px;flex:0 0 auto;background:conic-gradient(var(--cS) 0 25%,var(--cH) 0 50%,var(--cE) 0 75%,var(--cL) 0)}
+.pie-t{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.pie-n{font-family:var(--display);font-weight:700;color:var(--ink);font-size:15.5px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14.5px;max-width:min(92vw,520px);z-index:60;display:none;text-align:center}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:20px;max-width:min(92vw,440px)}
+dialog::backdrop{background:rgba(10,14,24,.5)}
+.busy{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 80%,transparent);z-index:50;display:none;place-items:center;padding:16px}
+.busy .card{max-width:380px;text-align:center}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div>
+      <div class="eyebrow">Educación preescolar · Fase 2 · Plan de Estudio 2022</div>
+      <h1>Evaluación cualitativa por campo formativo</h1>
+      <div class="sub" id="subhead"></div>
+    </div>
+    <div class="tri" role="group" aria-label="Periodo de evaluación" id="trisel"></div>
+  </div>
+</header>
+<nav class="steps" aria-label="Secciones"><div class="steps-in" id="steps"></div></nav>
+<div class="wrap"><main id="view"></main>
+<footer class="pie"><span class="pie-m" aria-hidden="true"></span><div><div class="pie-t">Desarrollo</div><div class="pie-n">Mtro. Carlos Gabriel Ortega Gutiérrez</div><div class="pie-s">Baja California, México · 2026</div></div></footer></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="busy" id="busy"><div class="card"><div class="spin"></div><div id="busymsg">Trabajando…</div></div></div>
+<dialog id="dlg"><p id="dlgmsg" style="margin-top:0"></p><div class="row" style="justify-content:flex-end"><button class="btn" id="dlgno">Cancelar</button><button class="btn pri" id="dlgsi">Aceptar</button></div></dialog>
+<input type="file" id="file" hidden>
+
+<script>
+"use strict";
+/* ============ Referentes curriculares ============ */
+const CAMPOS = {
+  L:{n:"Lenguajes", fin:"Que niñas y niños expresen e interpreten ideas, emociones y saberes mediante la oralidad, los primeros acercamientos a la lectura y la escritura, y los lenguajes artísticos, valorando la diversidad lingüística y cultural.",
+     con:["Comunicación oral de necesidades, emociones, gustos, ideas y saberes","Narración de historias mediante diversos lenguajes","Recursos y juegos del lenguaje","Reconocimiento y aprecio de la diversidad lingüística","Representación gráfica de ideas y descubrimientos","Expresión de emociones y experiencias con recursos gráficos y artísticos","Producciones gráficas para distintos destinatarios","Ideas y emociones en manifestaciones culturales y artísticas","Expresiones creativas con los lenguajes artísticos"]},
+  S:{n:"Saberes y Pensamiento Científico", fin:"Que niñas y niños exploren, indaguen y expliquen fenómenos de su entorno natural y social, y usen saberes numéricos, de forma, espacio y medida para resolver situaciones cotidianas.",
+     con:["Exploración de la diversidad natural","Saberes familiares y comunitarios","Seres vivos, procesos y fenómenos naturales","Los saberes numéricos como herramienta (conteo, cantidad)","Dominio del espacio y reconocimiento de formas","Magnitudes de longitud, peso, capacidad y tiempo","Clasificación y experimentación con objetos y materiales","Características de objetos y comportamiento de los materiales","Objetos y artefactos tecnológicos"]},
+  E:{n:"Ética, Naturaleza y Sociedades", fin:"Que niñas y niños construyan sentido de pertenencia, reconozcan sus derechos y los de las demás personas, participen en acuerdos para la convivencia pacífica y cuiden la naturaleza y su comunidad.",
+     con:["Interacción, cuidado y conservación de la naturaleza","Transformación responsable del entorno","Identidad y pertenencia a una comunidad y país","Cambios en lugares, objetos y costumbres con el paso del tiempo","Labores y servicios que contribuyen al bien común","Derechos de niñas y niños; reglas y acuerdos para la convivencia pacífica","Diversidad de personas y familias","Cultura de paz"]},
+  H:{n:"De lo Humano y lo Comunitario", fin:"Que niñas y niños construyan su identidad personal, reconozcan y expresen emociones, desarrollen sus posibilidades de movimiento, se relacionen con otras personas y cuiden su salud y su seguridad.",
+     con:["Construcción de la identidad personal","Posibilidades de movimiento en diferentes espacios","Precisión y coordinación de movimientos","Las emociones en la interacción con personas y situaciones","Interacción con personas de diversos contextos","Cuidado de la salud personal y colectiva; hábitos de higiene","Alimentación saludable","Prevención de accidentes y situaciones de riesgo"]}
+};
+const CK = ["L","S","E","H"];
+const TRI = {1:"Primer trimestre",2:"Segundo trimestre",3:"Tercer trimestre"};
+const VL = {S:"Sí",O:"En ocasiones",N:"No"};
+const GR = {1:"Primero",2:"Segundo",3:"Tercero"};
+const APERTURAS = [
+ "inicia con el nombre seguido de su avance más notorio",
+ "inicia con «Durante este periodo» y después el nombre",
+ "inicia describiendo cómo participa en las actividades, y nombra a la niña o al niño a mitad de la oración",
+ "inicia con «A lo largo del trimestre»",
+ "inicia con el nombre y una actitud o disposición observada",
+ "inicia con un complemento como «En el trabajo diario» o «En las actividades del aula»",
+ "inicia con «Se observa que» seguido del nombre",
+ "inicia destacando una fortaleza y menciona el nombre después",
+ "inicia con «Al participar en» y una situación propia del campo",
+ "inicia con el nombre y un verbo de proceso (muestra, logra, comienza a, avanza en)",
+ "inicia con «En este campo formativo»",
+ "inicia con una frase sobre su proceso («Su proceso de aprendizaje refleja…») y nombra después"
+];
+const EJ_ASPECTOS = {
+ 1:[["Comunica sus necesidades, ideas, gustos o emociones de forma verbal.","L"],["Escucha la lectura de un cuento y mantiene la atención.","L"],["Cuenta de manera oral en secuencia al menos del uno al cinco.","S"],["Sigue reglas o acuerdos básicos de convivencia en el aula.","E"],["Interactúa y juega con sus compañeros de manera respetuosa.","H"],["Dice su nombre o responde cuando se le llama.","H"]],
+ x:[["Su rango de conteo muestra ser más amplio, por lo menos del 1 al 10.","S"],["Observa cómo se organizan los materiales en los espacios del salón y ayuda a acomodarlos.","E"],["Menciona conductas adecuadas e incorrectas dentro de la escuela.","E"],["Reconoce zonas seguras e inseguras donde puede ponerse en riesgo.","H"],["Identifica hábitos de higiene y los practica en la escuela.","H"],["Interactúa y juega con sus compañeros de manera respetuosa.","H"]]
+};
+const EJ_ALUMNOS = ["ACOSTA RIVERA VALERIA","BELTRAN SOTO MATEO","CAMPOS DE LA CRUZ REGINA","DOMINGUEZ PEÑA EMILIANO","ESPINOZA LUNA XIMENA","FLORES MEDINA SANTIAGO"];
+
+/* ============ Estado ============ */
+/* Dirección del servidor de IA (Google Apps Script). Vacía = solo redacción básica fuera de Claude. */
+const SERVIDOR = "";
+const LS = "evalcual-preescolar-v1";
+const nt = () => ({aspectos:[],val:{},notas:{},textos:{}});
+const base = () => ({v:1,escuela:'Jardín de Niños "Justo Sierra"',docente:"Perla Aceves",grado:"2",grupo:"B",ciclo:"2026-2027",tri:1,
+  alumnos:[],tris:{1:nt(),2:nt(),3:nt()},op:{largo:"media",limite:400,familia:true,docente:false,comparar:true},ts:0});
+let S = base();
+let view = "datos", modoVal = (window.innerWidth<760?"alumno":"tabla"), alSel = null, histSel = null;
+let AI = null, AIimg = false, DL = null, DB = null, UID = null, dbOff = false, nube = false;
+let gen = null;
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,9);
+const T = () => S.tris[S.tri];
+const norm = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const cap = w => w ? w.charAt(0).toUpperCase()+w.slice(1).toLowerCase() : "";
+function pila(full){
+  const w = String(full).trim().split(/\s+/); if(w.length<3) return cap(w[0]||"");
+  const P = new Set(["DE","DEL","LA","LAS","LOS","Y","SAN","SANTA","VAN","VON","DA","DI"]);
+  let i=0,u=0; while(i<w.length&&u<2){ while(i<w.length-1&&P.has(w[i].toUpperCase())) i++; i++; u++; }
+  return cap(w[i]||w[w.length-1]);
+}
+/* Alumnos visibles en un trimestre: dados de alta en o antes de él y sin baja anterior */
+const enTri = (a,t) => (a.altaTri||1) <= t && (!a.baja || t < (a.bajaTri||1));
+const activos = (t=S.tri) => S.alumnos.filter(a=>enTri(a,t));
+
+function load(){ try{ const j = JSON.parse(localStorage.getItem(LS)||"null"); if(j&&j.v===1) S = Object.assign(base(),j); }catch(e){} for(const t of [1,2,3]) S.tris[t] = Object.assign(nt(),S.tris[t]||{}); }
+let dbTimer=null, dbLast={}, dbChain=Promise.resolve();
+function save(){
+  S.ts = Date.now();
+  try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){}
+  if(DB&&UID&&!dbOff){ clearTimeout(dbTimer); dbTimer=setTimeout(pushDb,2500); }
+}
+function parts(){ const {tris,...cfg} = S; return {cfg:JSON.stringify(cfg),t1:JSON.stringify(tris[1]),t2:JSON.stringify(tris[2]),t3:JSON.stringify(tris[3])}; }
+function pushDb(){
+  const p = parts(), col = DB.collection("data/users/"+UID);
+  for(const k of Object.keys(p)){ if(dbLast[k]===p[k]) continue; const body=p[k]; dbLast[k]=body;
+    dbChain = dbChain.then(()=>dbOff?null:col.doc(k).set({json:body,ts:S.ts})).then(()=>{ if(!dbOff&&!nube){nube=true;head();} }).catch(()=>{dbOff=true;nube=false;head();}); }
+}
+async function pullDb(){
+  try{
+    const col = DB.collection("data/users/"+UID);
+    const snaps = await Promise.all(["cfg","t1","t2","t3"].map(k=>col.doc(k).get()));
+    if(!snaps[0].exists){ if(S.alumnos.length) pushDb(); return; }
+    const cfg = snaps[0].data(); nube = true;
+    if((cfg.ts||0) > (S.ts||0)){
+      const n = Object.assign(base(),JSON.parse(cfg.json)); n.tris={};
+      [1,2,3].forEach((t,i)=>{ n.tris[t] = snaps[i+1].exists ? Object.assign(nt(),JSON.parse(snaps[i+1].data().json)) : nt(); });
+      S = n; try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){}
+      dbLast = parts(); render(); toast("Se cargó tu trabajo guardado.");
+    } else head();
+  }catch(e){ dbOff = true; }
+}
+
+/* ============ Utilidades de interfaz ============ */
+let tt; function toast(m){ const t=$("#toast"); t.textContent=m; t.style.display="block"; clearTimeout(tt); tt=setTimeout(()=>t.style.display="none",4200); }
+function busy(m){ $("#busy").style.display = m?"grid":"none"; if(m) $("#busymsg").textContent=m; }
+function confirmar(msg,cb,si="Aceptar"){ const d=$("#dlg"); $("#dlgmsg").textContent=msg; $("#dlgsi").textContent=si; $("#dlgsi").onclick=()=>{d.close();cb();}; $("#dlgno").onclick=()=>d.close(); d.showModal(); }
+function pick(accept,cb){ const f=$("#file"); f.value=""; f.accept=accept; f.onchange=()=>{ if(f.files[0]) cb(f.files[0]); }; f.click(); }
+const libs = {};
+function lib(src){ return libs[src] || (libs[src] = new Promise((ok,no)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>{delete libs[src];no(new Error("No se pudo cargar un componente. Revisa tu conexión."));}; document.head.append(s); })); }
+const errAI = e => ({not_granted:"No se autorizó el uso de la IA en esta página.",rate_limited:"Se alcanzó el límite de uso de la IA por ahora. Intenta de nuevo en unos minutos.",session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",sampling_disabled:"La IA no está disponible para esta cuenta.",refused:"La IA no pudo procesar este contenido.",invalid_json:"La respuesta llegó incompleta. Intenta de nuevo.",image_rejected:"No se pudo leer la imagen. Prueba con otra foto más clara.",images_unavailable:"Aquí no es posible enviar imágenes."}[e&&e.code] || (e&&e.message&&!e.code?e.message:"Ocurrió un problema de conexión. Intenta de nuevo."));
+
+/* ============ Lectura de archivos ============ */
+async function leer(file){
+  const n = file.name.toLowerCase();
+  if(file.type.startsWith("image/")) return {text:"",images:[file]};
+  if(n.endsWith(".pdf")){
+    await lib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js");
+    await lib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    const pdf = await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    let text=""; const np=Math.min(pdf.numPages,8);
+    for(let i=1;i<=np;i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); let y=null,line="";
+      for(const it of tc.items){ const yy=Math.round(it.transform[5]); if(y!==null&&Math.abs(yy-y)>3){text+=line.trim()+"\n";line="";} y=yy; line+=it.str+" "; } text+=line.trim()+"\n"; }
+    if(text.replace(/\s/g,"").length>40) return {text,images:[]};
+    const images=[];
+    for(let i=1;i<=Math.min(pdf.numPages,3);i++){ const pg=await pdf.getPage(i); const vp=pg.getViewport({scale:1.6}); const c=document.createElement("canvas"); c.width=vp.width;c.height=vp.height;
+      await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise; images.push(await new Promise(r=>c.toBlob(r,"image/jpeg",.88))); }
+    return {text:"",images};
+  }
+  if(n.endsWith(".docx")){ await lib("https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"); const r=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,images:[]}; }
+  if(n.endsWith(".doc")) throw new Error("Los archivos .doc antiguos no se pueden leer. Guárdalo como .docx o PDF, o toma una foto.");
+  return {text:await file.text(),images:[]};
+}
+const GUIA_CAMPOS = "Campos formativos (clave): L = Lenguajes (comunicación oral, escucha, narración, lectura y escritura iniciales, expresión artística); S = Saberes y Pensamiento Científico (conteo y número, formas, espacio, medida, clasificación, exploración de la naturaleza, experimentación); E = Ética, Naturaleza y Sociedades (reglas y acuerdos de convivencia, derechos, cuidado de la naturaleza y del entorno, pertenencia a la comunidad, cultura de paz); H = De lo Humano y lo Comunitario (identidad personal, emociones, interacción y juego con otras personas, movimiento y coordinación, hábitos de higiene y salud, prevención de riesgos).";
+async function pedir(prompt,src,tier){
+  const o = {modelTier:tier||"default"};
+  if(src&&src.images&&src.images.length){ if(!AIimg) throw new Error("La lectura de fotos y documentos escaneados no está disponible por ahora. Puedes capturar los datos a mano."); o.images=src.images.slice(0,3); }
+  return AI.json(prompt + (src&&src.text ? "\n\nTEXTO DEL DOCUMENTO:\n"+src.text.slice(0,30000) : ""), o);
+}
+function lineasNombres(text){ return text.split(/\n/).map(l=>l.replace(/^[\s\d.\-)°º#]+/,"").replace(/\s+/g," ").trim()).filter(l=>/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .]+$/.test(l)&&l.split(" ").length>=2&&l.length<60&&!/^(nombre|lista|grado|grupo|docente|escuela|ciclo|jard[ií]n|n[uú]m)/i.test(l)); }
+
+function addAlumnos(list){
+  let n=0; const ya=new Set(S.alumnos.map(a=>norm(a.nombre)));
+  /* Si ya hay trabajo en trimestres anteriores, quien llega ahora es un alta de este trimestre */
+  const previo = [1,2,3].some(t=>t<S.tri&&(Object.keys(S.tris[t].val).length||Object.keys(S.tris[t].textos).length));
+  for(const it of list){ const nombre=String(typeof it==="string"?it:it.nombre||"").replace(/\s+/g," ").trim(); if(!nombre||ya.has(norm(nombre))) continue;
+    ya.add(norm(nombre)); S.alumnos.push({id:uid(),nombre,pila:cap((it&&it.pila)||"")||pila(nombre),altaTri:previo?S.tri:1,baja:false}); n++; }
+  return n;
+}
+function addAspectos(list){
+  let n=0; const t=T(); const ya=new Map(t.aspectos.map(a=>[norm(a.texto),a])); const ids=[];
+  for(const it of list){ const texto=String(typeof it==="string"?it:it.texto||"").replace(/^\s*\d+[.)-]?\s*/,"").replace(/\s+/g," ").trim(); if(texto.length<4){ids.push(null);continue;}
+    let a=ya.get(norm(texto)); if(!a){ a={id:uid(),texto,campo:CK.includes(it&&it.campo)?it.campo:""}; t.aspectos.push(a); ya.set(norm(texto),a); n++; } ids.push(a.id); }
+  return {n,ids};
+}
+async function importarAlumnos(file){
+  try{ busy("Leyendo la lista de alumnos…"); const src=await leer(file); let list;
+    if(AI){ list = await pedir('Extrae de esta lista escolar de preescolar los nombres completos de las niñas y los niños, en el mismo orden. Ignora encabezados, números, firmas y nombres de docentes. Responde solo con un arreglo JSON de objetos {"nombre": nombre completo tal como aparece, "pila": primer nombre de pila con mayúscula inicial}. Ejemplo: [{"nombre":"LOPEZ DE LA CRUZ ANA SOFIA","pila":"Ana"}]',src,src.images.length?"default":"quick"); }
+    else if(src.text) list = lineasNombres(src.text);
+    else throw new Error("La lectura de fotos no está disponible por ahora. Puedes pegar o escribir la lista.");
+    if(!Array.isArray(list)) throw new Error("No se encontraron nombres en el archivo.");
+    const n=addAlumnos(list); save(); render(); toast(n?`Se agregaron ${n} alumnos. Revisa los nombres.`:"No se encontraron alumnos nuevos.");
+  }catch(e){ toast(errAI(e)); } finally{ busy(); }
+}
+async function importarAspectos(file){
+  try{ busy("Leyendo los aspectos a evaluar…"); const src=await leer(file); let list;
+    if(AI){ list = await pedir('Extrae de este documento de preescolar los aspectos, indicadores o criterios a evaluar (los enunciados de una lista de cotejo o rúbrica). No incluyas nombres de alumnos ni encabezados. Clasifica cada uno en el campo formativo que mejor corresponda; si el documento ya indica el campo, respétalo. '+GUIA_CAMPOS+' Responde solo con un arreglo JSON de objetos {"texto": enunciado completo, "campo": "L"|"S"|"E"|"H"}.',src); }
+    else if(src.text) list = src.text.split(/\n/).map(l=>l.trim()).filter(l=>l.length>12);
+    else throw new Error("La lectura de fotos no está disponible por ahora. Puedes escribir los aspectos.");
+    const {n}=addAspectos(Array.isArray(list)?list:[]); save(); render(); toast(n?`Se agregaron ${n} aspectos. Revisa el campo formativo asignado.`:"No se encontraron aspectos nuevos.");
+  }catch(e){ toast(errAI(e)); } finally{ busy(); }
+}
+async function importarEvaluada(file){
+  try{ if(!AI) throw new Error("La lectura de listas ya evaluadas no está disponible por ahora. Registra las valoraciones en la app.");
+    busy("Leyendo la lista de cotejo evaluada… puede tardar hasta un minuto."); const src=await leer(file);
+    const r = await pedir('Este documento es una lista de cotejo de preescolar ya evaluada: filas de alumnos, columnas de aspectos, cada aspecto con subcolumnas «Sí» y «No». Lee con mucho cuidado cada fila, siguiendo la línea de cada alumno. Reglas de lectura: palomita en la subcolumna Sí = "S"; palomita en la subcolumna No = "N"; anotación manuscrita «En ocasiones» = "O"; otra anotación negativa (por ejemplo «No interactúa») = "N"; sin marca = "". '+GUIA_CAMPOS+' Responde solo con un objeto JSON: {"alumnos":[{"nombre": nombre completo, "pila": primer nombre de pila con mayúscula inicial}], "aspectos":[{"texto": enunciado completo, "campo":"L"|"S"|"E"|"H"}], "valores":[[...]]} donde "valores" tiene una fila por alumno, en el mismo orden, y cada fila un valor por aspecto, en el mismo orden.',src);
+    if(!r||!Array.isArray(r.alumnos)||!Array.isArray(r.aspectos)) throw {code:"invalid_json"};
+    addAlumnos(r.alumnos); const {ids}=addAspectos(r.aspectos); const t=T(); let m=0;
+    r.alumnos.forEach((ra,i)=>{ const a=S.alumnos.find(x=>norm(x.nombre)===norm(ra.nombre)); if(!a) return; const row=(r.valores||[])[i]||[]; t.val[a.id]=t.val[a.id]||{};
+      ids.forEach((id,j)=>{ if(id&&["S","O","N"].includes(row[j])){ t.val[a.id][id]=row[j]; m++; } }); });
+    save(); view="valorar"; modoVal = window.innerWidth<760?"alumno":"tabla"; render(); toast(`Se cargaron ${m} valoraciones. Compara con tu lista y corrige lo necesario.`);
+  }catch(e){ toast(errAI(e)); } finally{ busy(); }
+}
+async function clasificar(){
+  const t=T(), pend=t.aspectos.filter(a=>!a.campo); if(!pend.length) return toast("Todos los aspectos ya tienen campo formativo.");
+  if(!AI) return toast("Elige el campo de cada aspecto con los botones L, S, E, H.");
+  try{ busy("Clasificando aspectos por campo formativo…");
+    const r = await AI.json("Clasifica cada aspecto de evaluación de preescolar (Fase 2, Plan de Estudio 2022) en el campo formativo que mejor corresponda. "+GUIA_CAMPOS+' Responde solo con un objeto JSON {id: clave}. Aspectos:\n'+pend.map(a=>a.id+": "+a.texto).join("\n"),{modelTier:"quick"});
+    pend.forEach(a=>{ if(CK.includes(r[a.id])) a.campo=r[a.id]; }); save(); render(); toast("Aspectos clasificados. Puedes cambiar el campo si lo consideras.");
+  }catch(e){ toast(errAI(e)); } finally{ busy(); }
+}
+
+/* ============ Redacción ============ */
+function resumenVal(al,campo,tri){ const t=S.tris[tri]; return t.aspectos.filter(a=>a.campo===campo).map(a=>({a,v:(t.val[al.id]||{})[a.id]})).filter(x=>x.v); }
+function largoTxt(){ const o=S.op; return o.largo==="breve"?"2 a 3 oraciones (entre 250 y 350 caracteres)":o.largo==="amplia"?"6 a 8 oraciones (entre 750 y 1000 caracteres)":o.largo==="limite"?`como máximo ${Math.max(120,+o.limite||400)} caracteres contando espacios; es un límite estricto de la plataforma donde se pegará, no lo rebases y aprovecha casi todo el espacio`:"4 a 5 oraciones (entre 450 y 600 caracteres)"; }
+function promptCampo(campo,lote,tri,evitar){
+  const C=CAMPOS[campo], t=S.tris[tri], asp=t.aspectos.filter(a=>a.campo===campo), o=S.op;
+  const momento = {1:"Primer periodo: describe el punto de partida y los primeros avances observados.",2:"Segundo periodo: describe los avances y lo que continúa en proceso a mitad del ciclo.",3:"Tercer periodo: describe los logros alcanzados al cierre del ciclo escolar y lo que conviene seguir fortaleciendo."}[tri];
+  const datos = lote.map(al=>{ const i=S.alumnos.indexOf(al); const d={id:al.id,nombre_de_pila:al.pila,nombre_completo:al.nombre,apertura:APERTURAS[(i*5+CK.indexOf(campo)*3)%APERTURAS.length],valoraciones:Object.fromEntries(resumenVal(al,campo,tri).map(x=>[x.a.id,VL[x.v]]))};
+    if(t.notas[al.id]) d.nota_de_la_docente=t.notas[al.id];
+    if(o.comparar&&tri>1){ const p=(S.tris[tri-1].textos[al.id]||{})[campo]; if(p) d.observacion_del_periodo_anterior=p; }
+    return d; });
+  return `Eres una educadora mexicana de preescolar con amplio dominio del Plan de Estudio 2022 de la Nueva Escuela Mexicana, del Programa Sintético de la Fase 2 y de la evaluación formativa. Redacta las observaciones cualitativas del campo formativo «${C.n}» para la boleta de evaluación de cada niña o niño. En preescolar no hay calificaciones numéricas: se registran observaciones y sugerencias por campo formativo.
+
+CONTEXTO
+Grado: ${GR[S.grado]} de preescolar. ${TRI[tri]} del ciclo ${S.ciclo}. ${momento}
+Finalidad del campo: ${C.fin}
+Contenidos del Programa Sintético de la Fase 2 en este campo: ${C.con.join("; ")}.
+
+ASPECTOS OBSERVADOS CON LISTA DE COTEJO (id: enunciado)
+${asp.map(a=>a.id+": "+a.texto).join("\n")}
+
+SIGNIFICADO DE LAS VALORACIONES
+«Sí»: lo manifiesta de forma consistente. «En ocasiones»: está en proceso, lo logra algunas veces o con apoyo. «No»: todavía no se observa; se expresa como un proceso que requiere acompañamiento. Un aspecto sin valoración no se menciona.
+
+NIÑAS Y NIÑOS
+${JSON.stringify(datos)}
+
+REGLAS DE REDACCIÓN
+1. Un solo párrafo por niña o niño, de ${largoTxt()}. Sin saltos de línea, sin viñetas, sin comillas, sin markdown.
+2. Tercera persona, español de México, tono cálido, respetuoso y profesional, comprensible para las familias. Usa el nombre de pila una vez (dos como máximo) y cuida la concordancia de género; si el nombre no deja claro el género, evita adjetivos con marca de género.
+3. Enfoque formativo: describe procesos y avances, lo que la niña o el niño hace, dice, explora y logra, y con qué apoyos. Comienza por las fortalezas. Las áreas de oportunidad se expresan en positivo (está en proceso de, comienza a, con acompañamiento logra, se continuará favoreciendo). Nunca uses «no puede», «no sabe», «le falta», «deficiente» ni etiquetas; no compares con otros niños; no uses números, porcentajes ni calificaciones; no menciones diagnósticos.
+4. No copies los enunciados de la lista: intégralos y parafraséalos con lenguaje propio del campo formativo y coherente con sus contenidos. No inventes anécdotas, actividades ni hechos que no se desprendan de las valoraciones o de la nota de la docente.
+5. Fidelidad: el texto debe reflejar exactamente las valoraciones de cada quien. Si todo es «Sí», no inventes dificultades; si predomina «No», reconoce primero su disposición o lo que sí se observa sin exagerar logros.
+6. Variedad obligatoria: cada observación debe leerse como única. Sigue la indicación «apertura» de cada niña o niño; no repitas entre observaciones las mismas tres primeras palabras, ni la misma estructura, ni los mismos verbos y conectores, ni la misma frase de cierre. Evita muletillas como «es importante mencionar» o «cabe destacar».
+${o.familia?"7. Incluye al final una sugerencia breve y concreta para la familia, relacionada con lo que está en proceso (o para seguir fortaleciendo lo logrado), distinta para cada quien.\n":""}${o.docente?"8. Incluye una mención breve de cómo se le acompañará en el aula durante el siguiente periodo.\n":""}${o.comparar&&tri>1?"9. Cuando exista «observacion_del_periodo_anterior», señala brevemente el avance o la continuidad respecto a ese periodo, sin repetir su redacción.\n":""}${evitar&&evitar.length?"10. Estos inicios ya se usaron con otros compañeros del grupo; no los repitas: "+evitar.slice(-14).map(x=>"«"+x+"»").join(", ")+".\n":""}
+FORMATO DE RESPUESTA
+Responde solo con un objeto JSON cuyas claves son los id de las niñas y los niños y cuyos valores son las observaciones. Ejemplo de forma: {"abc123":"Texto…","def456":"Texto…"}`;
+}
+function basico(al,campo,tri){
+  const r=resumenVal(al,campo,tri), i=S.alumnos.indexOf(al), low=s=>{s=s.replace(/[.\s]+$/,"");return s.charAt(0).toLowerCase()+s.slice(1);};
+  const g=v=>r.filter(x=>x.v===v).map(x=>low(x.a.texto)); const si=g("S"),oc=g("O"),no=g("N"); const out=[];
+  const ini=[`${al.pila}`,`Durante este periodo, ${al.pila}`,`En este campo formativo, ${al.pila}`,`A lo largo del trimestre, ${al.pila}`][(i+CK.indexOf(campo))%4];
+  if(si.length) out.push(`${ini} ${si.join("; además, ")}.`); else out.push(`${ini} participa en las actividades del campo y avanza a su propio ritmo.`);
+  if(oc.length) out.push(`En ocasiones ${oc.join(" y ")}, por lo que se continuará favoreciendo este proceso.`);
+  if(no.length) out.push(`Con acompañamiento se buscará que avance en lo siguiente: ${no.join("; ")}.`);
+  if(S.op.familia) out.push("Se sugiere a la familia conversar en casa sobre lo que vive en la escuela y reconocer sus avances.");
+  return out.join(" ");
+}
+function pendientes(alumnos,campos){ const out=[]; for(const al of alumnos) for(const c of campos) if(resumenVal(al,c,S.tri).length) out.push({al,c}); return out; }
+async function redactar(objetivos){
+  if(gen) return; if(!objetivos.length) return toast("No hay valoraciones registradas para redactar. Completa el paso 4.");
+  const tri=S.tri, t=S.tris[tri];
+  if(!AI){ for(const {al,c} of objetivos){ (t.textos[al.id]=t.textos[al.id]||{})[c]=basico(al,c,tri); } save(); render(); return toast("Se generó una redacción básica, porque la redacción con IA no está disponible por ahora."); }
+  const jobs=[]; for(const c of CK){ const als=objetivos.filter(o=>o.c===c).map(o=>o.al); for(let i=0;i<als.length;i+=6) jobs.push({c,lote:als.slice(i,i+6)}); }
+  gen={total:objetivos.length,done:0,ctl:new AbortController(),err:null}; const usados={L:[],S:[],E:[],H:[]}; progreso();
+  const run = async job => {
+    if(gen.ctl.signal.aborted||gen.err) return;
+    try{ const r = await AI.json(promptCampo(job.c,job.lote,tri,usados[job.c]),{cache:false,signal:gen.ctl.signal});
+      for(const al of job.lote){ let x=r&&r[al.id]; if(typeof x!=="string"||!x.trim()) continue; x=x.replace(/\s*\n+\s*/g," ").replace(/\*\*/g,"").trim();
+        (t.textos[al.id]=t.textos[al.id]||{})[job.c]=x; usados[job.c].push(x.split(/\s+/).slice(0,4).join(" ")); pintar(al.id,job.c,x); }
+      save();
+    }catch(e){ if(e&&e.code!=="cancelled") gen.err=e; }
+    gen.done+=job.lote.length; progreso();
+  };
+  const q=jobs.slice(); const worker=async()=>{ while(q.length&&!gen.ctl.signal.aborted&&!gen.err) await run(q.shift()); };
+  await Promise.all([worker(),worker()]);
+  const err=gen.err, stop=gen.ctl.signal.aborted; gen=null; render();
+  toast(err?errAI(err):stop?"Redacción detenida. Lo ya escrito se conservó.":"Redacción terminada. Lee y ajusta cada texto antes de copiarlo.");
+}
+function progreso(){ const p=$("#prog"); if(!p||!gen) return render(); p.querySelector("i").style.width=Math.round(gen.done/gen.total*100)+"%"; $("#progtxt").textContent=`Redactando… ${Math.min(gen.done,gen.total)} de ${gen.total} textos`; }
+function pintar(alId,c,x){ const ta=document.getElementById("tx-"+alId+"-"+c); if(ta){ ta.value=x; auto(ta); cuenta(ta); } }
+function auto(ta){ ta.style.height="auto"; ta.style.height=(ta.scrollHeight+4)+"px"; }
+function cuenta(ta){ const c=ta.parentElement.querySelector(".cnt"); if(!c) return; const n=ta.value.length; c.textContent=n+" caracteres"; c.classList.toggle("over",S.op.largo==="limite"&&n>(+S.op.limite||400)); }
+async function copiar(txt){ try{ await navigator.clipboard.writeText(txt); toast("Copiado. Ya puedes pegarlo en la plataforma."); }catch(e){ const ta=document.createElement("textarea"); ta.value=txt; document.body.append(ta); ta.select(); let ok=false; try{ok=document.execCommand("copy");}catch(_){} ta.remove(); toast(ok?"Copiado.":"No se pudo copiar. Selecciona el texto y cópialo manualmente."); } }
+
+/* ============ Exportar ============ */
+async function guardarArchivo(filename,blob){
+  if(DL){ try{ await DL.save({filename,data:blob}); toast("Archivo guardado."); }catch(e){ if(e&&e.code!=="declined") toast("No se pudo guardar el archivo aquí."); } return; }
+  try{ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.append(a); a.click(); a.remove(); }catch(e){ toast("Las descargas no están disponibles en esta vista."); }
+}
+function datosExport(){ const t=T(); return activos().map(al=>({al,cs:CK.map(c=>({c,x:((t.textos[al.id]||{})[c]||"").trim()})).filter(k=>k.x)})).filter(r=>r.cs.length); }
+const nombreArch = ext => `Evaluacion cualitativa ${GR[S.grado]} ${S.grupo} ${TRI[S.tri]}.${ext}`.replace(/[\\/:*?"<>|]/g,"");
+async function expWord(){
+  const data=datosExport(); if(!data.length) return toast("Aún no hay textos redactados en este trimestre.");
+  try{ busy("Preparando el documento de Word…"); await lib("https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js");
+    const {Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle}=docx; const F="Arial"; const ch=[];
+    ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:60},children:[new TextRun({text:S.escuela,bold:true,size:30,font:F})]}));
+    ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:60},children:[new TextRun({text:"Evaluación cualitativa por campo formativo · "+TRI[S.tri],size:22,font:F})]}));
+    ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:240},border:{bottom:{style:BorderStyle.SINGLE,size:8,color:"444444",space:6}},children:[new TextRun({text:`Grado y grupo: ${GR[S.grado]} ${S.grupo}     Docente: ${S.docente}     Ciclo escolar: ${S.ciclo}`,size:20,font:F})]}));
+    data.forEach((r,i)=>{ ch.push(new Paragraph({spacing:{before:260,after:100},keepNext:true,children:[new TextRun({text:`${i+1}. ${r.al.nombre}`,bold:true,size:24,font:F})]}));
+      r.cs.forEach(k=>{ ch.push(new Paragraph({spacing:{after:40},keepNext:true,children:[new TextRun({text:CAMPOS[k.c].n,bold:true,size:21,font:F})]}));
+        ch.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:140},children:[new TextRun({text:k.x,size:21,font:F})]})); }); });
+    const doc=new Document({sections:[{properties:{page:{margin:{top:1000,bottom:1000,left:1100,right:1100}}},children:ch}]});
+    const blob=await Packer.toBlob(doc); busy(); await guardarArchivo(nombreArch("docx"),blob);
+  }catch(e){ busy(); toast(e.message||"No se pudo crear el documento."); }
+}
+async function expPdf(){
+  const data=datosExport(); if(!data.length) return toast("Aún no hay textos redactados en este trimestre.");
+  try{ busy("Preparando el PDF…"); await lib("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+    const d=new jspdf.jsPDF({unit:"pt",format:"letter"}); const W=612,H=792,M=56,CW=W-2*M; let y=M;
+    const need=h=>{ if(y+h>H-M){ d.addPage(); y=M; } };
+    d.setFont("helvetica","bold"); d.setFontSize(15); d.text(S.escuela,W/2,y,{align:"center"}); y+=18;
+    d.setFont("helvetica","normal"); d.setFontSize(11); d.text("Evaluación cualitativa por campo formativo · "+TRI[S.tri],W/2,y,{align:"center"}); y+=15;
+    d.setFontSize(10); d.text(`Grado y grupo: ${GR[S.grado]} ${S.grupo}     Docente: ${S.docente}     Ciclo escolar: ${S.ciclo}`,W/2,y,{align:"center"}); y+=8; d.setLineWidth(.8); d.line(M,y,W-M,y); y+=20;
+    data.forEach((r,i)=>{ need(60); d.setFont("helvetica","bold"); d.setFontSize(12); d.text(`${i+1}. ${r.al.nombre}`,M,y); y+=16;
+      r.cs.forEach(k=>{ d.setFont("helvetica","normal"); d.setFontSize(10.5); const lines=d.splitTextToSize(k.x,CW); need(16+Math.min(lines.length,3)*13.5);
+        d.setFont("helvetica","bold"); d.text(CAMPOS[k.c].n,M,y); y+=14; d.setFont("helvetica","normal");
+        for(const ln of lines){ need(13.5); d.text(ln,M,y); y+=13.5; } y+=8; }); y+=8; });
+    const n=d.getNumberOfPages(); for(let i=1;i<=n;i++){ d.setPage(i); d.setFontSize(9); d.setTextColor(110); d.text(`${i} de ${n}`,W-M,H-30,{align:"right"}); }
+    const blob=d.output("blob"); busy(); await guardarArchivo(nombreArch("pdf"),blob);
+  }catch(e){ busy(); toast(e.message||"No se pudo crear el PDF."); }
+}
+
+/* ============ Vistas ============ */
+const PASOS=[["datos","Datos"],["alumnos","Alumnos"],["aspectos","Aspectos"],["valorar","Valoración"],["redaccion","Redacción"],["historial","Historial"]];
+function head(){
+  $("#subhead").innerHTML = `${esc(S.escuela)} · ${GR[S.grado]} ${esc(S.grupo)} · ${esc(S.docente)} <span class="pill ${AI?"ok":"warn"}" style="margin-left:6px"><span class="dot"></span>${AI?"Redacción con IA":"Redacción básica"}</span> <span class="pill"><span class="dot"></span>${nube?"Guardado en tu cuenta":"Guardado en este dispositivo"}</span>`;
+  $("#trisel").innerHTML = [1,2,3].map(t=>`<button data-act="tri" data-t="${t}" aria-pressed="${S.tri===t}">${t}.º trimestre</button>`).join("");
+  $("#steps").innerHTML = PASOS.map(([k,n],i)=>`<button data-act="ir" data-v="${k}" ${view===k?'aria-current="page"':""}><span class="n">${i+1}</span>${n}</button>`).join("");
+}
+function membrete(){ return `<div class="membrete"><div class="esc">${esc(S.escuela)}</div><div class="tit">Evaluación cualitativa · ${TRI[S.tri]}</div><div class="dat"><span><b>Grado y grupo:</b> ${GR[S.grado]} ${esc(S.grupo)}</span><span><b>Docente:</b> ${esc(S.docente)}</span><span><b>Ciclo escolar:</b> ${esc(S.ciclo)}</span></div></div>`; }
+const V = {};
+V.datos = () => `
+<section class="card"><h2>Datos de la escuela y del grupo</h2><p class="hint">Estos datos forman el encabezado de los documentos que se generan. Todo se guarda automáticamente.</p>
+ <div class="grid2">
+  <label class="f">Nombre de la escuela<input type="text" id="f-escuela" data-b="escuela" value="${esc(S.escuela)}"></label>
+  <label class="f">Docente<input type="text" id="f-docente" data-b="docente" value="${esc(S.docente)}"></label>
+  <label class="f">Grado<select id="f-grado" data-b="grado">${[1,2,3].map(g=>`<option value="${g}" ${S.grado==g?"selected":""}>${GR[g]}</option>`).join("")}</select></label>
+  <label class="f">Grupo<input type="text" id="f-grupo" data-b="grupo" value="${esc(S.grupo)}"></label>
+  <label class="f">Ciclo escolar<input type="text" id="f-ciclo" data-b="ciclo" value="${esc(S.ciclo)}"></label>
+ </div>
+ <div style="margin-top:14px" id="memb">${membrete()}</div>
+ <div class="row" style="margin-top:14px"><button class="btn pri" data-act="ir" data-v="alumnos">Continuar con los alumnos</button></div>
+</section>
+<section class="card"><h2>Cómo funciona</h2>
+ <p class="hint">1. Carga tu lista de alumnos. 2. Registra los aspectos de tu lista de cotejo y su campo formativo. 3. Valora cada aspecto con Sí, En ocasiones o No, o sube la lista ya evaluada. 4. Genera la observación de cada niña y niño por campo formativo, revísala y cópiala a la plataforma, o descárgala en Word o PDF. El trabajo de los tres trimestres queda guardado en el historial.</p>
+ <p class="foot">Referentes: Plan de Estudio para la educación preescolar, primaria y secundaria 2022; Programa Sintético de la Fase 2; Acuerdo 10/09/23, que establece para preescolar observaciones y sugerencias por campo formativo en tres periodos, sin valores numéricos. La redacción es un apoyo: la valoración y la última palabra son de la docente. Tu trabajo se guarda en este dispositivo; para redactar y leer fotos, los nombres y las valoraciones se envían al servicio de inteligencia artificial.</p>
+</section>
+<section class="card"><h2>Respaldo</h2><p class="hint">Descarga una copia de todo tu trabajo o recupérala en otro dispositivo.</p>
+ <div class="row"><button class="btn" data-act="respaldar">Descargar respaldo</button><button class="btn" data-act="restaurar">Cargar respaldo</button><button class="btn ghost danger" data-act="borrar">Borrar todo y empezar de nuevo</button></div>
+</section>`;
+V.alumnos = () => { const act=activos(), bajas=S.alumnos.filter(a=>a.baja), fut=S.alumnos.filter(a=>!a.baja&&(a.altaTri||1)>S.tri); return `
+<section class="card"><h2>Alumnos del grupo</h2><p class="hint">La lista se guarda una sola vez y sirve para los tres trimestres. Sube un PDF, un Word o una foto, o pega los nombres.</p>
+ <div class="drop">
+  <div class="row"><button class="btn pri" data-act="subirAl">Subir lista (PDF, Word o foto)</button><span class="hint" style="margin:0">o pega los nombres, uno por renglón:</span></div>
+  <textarea id="pegar" placeholder="APELLIDO APELLIDO NOMBRE&#10;APELLIDO APELLIDO NOMBRE"></textarea>
+  <div class="row"><button class="btn" data-act="pegarAl">Dar de alta estos alumnos</button>${S.alumnos.length?"":'<button class="btn ghost" data-act="ejemplo">Cargar un grupo de ejemplo</button>'}</div>
+ </div>
+</section>
+<section class="card"><div class="stu-h"><h2>Activos en el ${TRI[S.tri].toLowerCase()} <span class="pill">${act.length}</span></h2></div>
+ <p class="hint">«Nombre en la redacción» es el nombre de pila que aparecerá en los textos. Al dar de baja, la niña o el niño deja de aparecer desde este trimestre y su historial se conserva.</p>
+ ${act.length?act.map((a,i)=>`<div class="al"><span class="num">${i+1}</span><input type="text" id="an-${a.id}" data-al="${a.id}" data-k="nombre" value="${esc(a.nombre)}" aria-label="Nombre completo"><input class="pila" type="text" id="ap-${a.id}" data-al="${a.id}" data-k="pila" value="${esc(a.pila)}" aria-label="Nombre en la redacción" placeholder="Nombre en la redacción"><button class="btn sm" data-act="baja" data-id="${a.id}">Dar de baja</button></div>`).join(""):'<p class="empty">Todavía no hay alumnos.</p>'}
+ ${act.length?'<div class="row" style="margin-top:14px"><button class="btn pri" data-act="ir" data-v="aspectos">Continuar con los aspectos</button></div>':""}
+</section>
+${fut.length?`<section class="card"><h3>Altas posteriores a este trimestre</h3>${fut.map(a=>`<div class="al"><span></span><span>${esc(a.nombre)}</span><span class="pill">Alta en el ${a.altaTri}.º trimestre</span><span></span></div>`).join("")}</section>`:""}
+${bajas.length?`<section class="card"><h3>Bajas</h3><p class="hint">Sus evaluaciones anteriores siguen en el historial.</p>${bajas.map(a=>`<div class="al"><span></span><span>${esc(a.nombre)}</span><span class="pill warn">Baja en el ${a.bajaTri}.º trimestre</span><span class="row"><button class="btn sm" data-act="alta" data-id="${a.id}">Dar de alta otra vez</button><button class="btn sm ghost danger" data-act="elimAl" data-id="${a.id}">Eliminar</button></span></div>`).join("")}</section>`:""}`; };
+V.aspectos = () => { const t=T(); const sin=t.aspectos.filter(a=>!a.campo); const prev=S.tri>1&&S.tris[S.tri-1].aspectos.length;
+ const fila=a=>`<div class="asp" data-c="${a.campo}"><textarea id="as-${a.id}" data-asp="${a.id}" rows="2" aria-label="Aspecto">${esc(a.texto)}</textarea><div class="cs" role="group" aria-label="Campo formativo">${CK.map(c=>`<button data-c="${c}" data-act="campo" data-id="${a.id}" aria-pressed="${a.campo===c}" title="${CAMPOS[c].n}">${c}</button>`).join("")}</div><button class="btn sm ghost danger" data-act="elimAsp" data-id="${a.id}" aria-label="Quitar aspecto">Quitar</button></div>`;
+ return `
+<section class="card"><h2>Aspectos a evaluar · ${TRI[S.tri]}</h2><p class="hint">Son los enunciados de tu lista de cotejo. Cada uno pertenece a un campo formativo: <b>L</b> Lenguajes, <b>S</b> Saberes y Pensamiento Científico, <b>E</b> Ética, Naturaleza y Sociedades, <b>H</b> De lo Humano y lo Comunitario. Si subes un documento, la app propone el campo y tú lo confirmas.</p>
+ <div class="drop">
+  <div class="row"><button class="btn pri" data-act="subirEval">Subir lista de cotejo ya evaluada</button><button class="btn" data-act="subirAsp">Subir solo los aspectos</button></div>
+  <p class="hint" style="margin:0">La lista ya evaluada (foto o PDF) carga alumnos, aspectos y marcas de una vez. También puedes escribir un aspecto:</p>
+  <div class="row"><input type="text" id="nuevoAsp" placeholder="Ejemplo: Comunica sus ideas y emociones de forma verbal." style="flex:1 1 260px"><select id="nuevoCampo" style="flex:0 1 240px" aria-label="Campo formativo"><option value="">Campo: que lo proponga la app</option>${CK.map(c=>`<option value="${c}">${CAMPOS[c].n}</option>`).join("")}</select><button class="btn" data-act="addAsp">Agregar</button></div>
+  <div class="row">${prev&&!t.aspectos.length?'<button class="btn" data-act="copiarAsp">Usar los aspectos del trimestre anterior</button>':""}${t.aspectos.length?"":'<button class="btn ghost" data-act="ejAsp">Cargar aspectos de ejemplo</button>'}</div>
+ </div>
+</section>
+${sin.length?`<section class="card" data-c=""><div class="stu-h"><h3>Sin campo formativo <span class="pill warn">${sin.length}</span></h3><button class="btn sm pri" data-act="clasificar">Proponer campo</button></div><div style="display:grid;gap:10px;margin-top:10px">${sin.map(fila).join("")}</div></section>`:""}
+${CK.map(c=>{ const l=t.aspectos.filter(a=>a.campo===c); return `<section class="card" data-c="${c}"><div class="campo-h">${CAMPOS[c].n} <span class="pill">${l.length}</span></div><div style="display:grid;gap:10px;margin-top:10px">${l.length?l.map(fila).join(""):'<p class="empty" style="margin:0">Sin aspectos en este campo. No se redactará observación de este campo en el trimestre.</p>'}</div></section>`; }).join("")}
+${t.aspectos.length?'<div class="row"><button class="btn pri" data-act="ir" data-v="valorar">Continuar con la valoración</button></div>':""}`; };
+function ordenAsp(){ const t=T(); return CK.flatMap(c=>t.aspectos.filter(a=>a.campo===c)).concat(t.aspectos.filter(a=>!a.campo)); }
+V.valorar = () => { const t=T(), als=activos(), asp=ordenAsp();
+ if(!als.length||!asp.length) return `<section class="card"><h2>Valoración</h2><p class="empty">Primero registra ${!als.length?"los alumnos":"los aspectos a evaluar"}.</p><button class="btn pri" data-act="ir" data-v="${!als.length?"alumnos":"aspectos"}">Ir a ${!als.length?"Alumnos":"Aspectos"}</button></section>`;
+ let hechas=0; als.forEach(a=>asp.forEach(p=>{ if((t.val[a.id]||{})[p.id]) hechas++; })); const tot=als.length*asp.length;
+ const cab=`<section class="card"><div class="stu-h"><h2>Valoración · ${TRI[S.tri]}</h2><div class="chips" role="group" aria-label="Forma de captura"><button data-act="modo" data-m="alumno" aria-pressed="${modoVal==="alumno"}">Por alumno</button><button data-act="modo" data-m="tabla" aria-pressed="${modoVal==="tabla"}">Tabla del grupo</button></div></div>
+  <p class="hint">${modoVal==="tabla"?"Toca una casilla para cambiar entre Sí, En ocasiones, No y vacío.":"Elige la valoración de cada aspecto. Puedes escribir una nota para que la redacción la tome en cuenta."}</p>
+  <div class="bar" aria-hidden="true"><i style="width:${Math.round(hechas/tot*100)}%"></i></div><div class="meta" style="margin-top:6px"><span>${hechas} de ${tot} valoraciones</span><button class="btn sm ghost" data-act="subirEval">Subir lista ya evaluada</button></div></section>`;
+ if(modoVal==="tabla") return cab+`<div class="tablewrap"><table class="val"><thead><tr><th class="nom">Alumno</th>${asp.map((p,i)=>`<th data-c="${p.campo}" title="${esc(p.texto)}"><span style="color:var(--c);font-weight:700">${p.campo||"?"}${i+1}</span> ${esc(p.texto)}</th>`).join("")}</tr></thead><tbody>${als.map(a=>`<tr><th class="nom">${esc(a.nombre)}</th>${asp.map(p=>{ const v=(t.val[a.id]||{})[p.id]||""; return `<td><button class="vb" data-act="ciclo" data-al="${a.id}" data-asp="${p.id}" data-v="${v}" aria-label="${esc(a.pila)}: ${esc(p.texto)}">${v?VL[v]:"·"}</button></td>`; }).join("")}</tr>`).join("")}</tbody></table></div><div class="row"><button class="btn pri" data-act="ir" data-v="redaccion">Continuar con la redacción</button></div>`;
+ if(!als.find(a=>a.id===alSel)) alSel=als[0].id; const a=als.find(x=>x.id===alSel), i=als.indexOf(a);
+ return cab+`<section class="card"><div class="row" style="justify-content:space-between"><button class="btn sm" data-act="alPrev" ${i?"":"disabled"}>Anterior</button><select id="alSel" data-act-change="alSel" style="flex:1 1 110px;min-width:0;font-weight:700">${als.map((x,j)=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${j+1}. ${esc(x.nombre)}</option>`).join("")}</select><button class="btn sm" data-act="alNext" ${i<als.length-1?"":"disabled"}>Siguiente</button></div>
+  <div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="todoSi" data-id="${a.id}">Marcar todo «Sí»</button><button class="btn sm ghost" data-act="limpiar" data-id="${a.id}">Limpiar</button></div>
+  <div style="display:grid;gap:12px;margin-top:10px">${CK.concat([""]).map(c=>{ const l=asp.filter(p=>p.campo===c); if(!l.length) return ""; return `<div class="campo-box" data-c="${c}"><div class="campo-h">${c?CAMPOS[c].n:"Sin campo formativo"}</div>${l.map(p=>{ const v=(t.val[a.id]||{})[p.id]||""; return `<div><div style="font-size:15px;margin-bottom:6px">${esc(p.texto)}</div><div class="seg">${["S","O","N"].map(k=>`<button class="vb" data-act="poner" data-al="${a.id}" data-asp="${p.id}" data-k="${k}" data-v="${k}" aria-pressed="${v===k}">${VL[k]}</button>`).join("")}</div></div>`; }).join("")}</div>`; }).join("")}</div>
+  <label class="f" style="margin-top:12px">Nota de la docente sobre ${esc(a.pila)} (opcional)<textarea id="nota-${a.id}" data-nota="${a.id}" placeholder="Ejemplo: se integró al grupo en octubre; disfruta mucho los cuentos.">${esc(t.notas[a.id]||"")}</textarea></label>
+ </section><div class="row"><button class="btn pri" data-act="ir" data-v="redaccion">Continuar con la redacción</button></div>`; };
+V.redaccion = () => { const t=T(), als=activos(), o=S.op; const pend=pendientes(als,CK); const hechos=pend.filter(p=>(t.textos[p.al.id]||{})[p.c]).length;
+ return `
+<section class="card"><h2>Redacción · ${TRI[S.tri]}</h2><p class="hint">Se escribe una observación por niña o niño en cada campo formativo que tenga aspectos valorados. Cada texto se puede editar, volver a redactar y copiar para pegarlo en la plataforma.</p>
+ <div class="opts">
+  <div><div class="f" style="margin-bottom:6px">Extensión de cada texto</div><div class="chips" role="group">${[["breve","Breve"],["media","Media"],["amplia","Amplia"],["limite","Límite de caracteres"]].map(([k,n])=>`<button data-act="largo" data-k="${k}" aria-pressed="${o.largo===k}">${n}</button>`).join("")}</div>
+   ${o.largo==="limite"?`<label class="f" style="margin-top:8px;max-width:220px">Máximo de caracteres<input type="number" id="limite" min="120" max="2000" step="10" data-op="limite" value="${esc(o.limite)}"></label>`:""}</div>
+  <div style="display:grid;gap:6px;align-content:start"><div class="f">Qué incluir</div>
+   <label class="chk"><input type="checkbox" id="o-fam" data-opc="familia" ${o.familia?"checked":""}>Sugerencia para la familia</label>
+   <label class="chk"><input type="checkbox" id="o-doc" data-opc="docente" ${o.docente?"checked":""}>Acompañamiento que dará la docente</label>
+   <label class="chk"><input type="checkbox" id="o-com" data-opc="comparar" ${o.comparar?"checked":""}>Avance respecto al trimestre anterior (2.º y 3.º)</label></div>
+ </div>
+ <div class="row" style="margin-top:14px">${gen?'<button class="btn" data-act="detener">Detener</button>':`${hechos&&hechos===pend.length?"":`<button class="btn pri" data-act="genTodo" ${pend.length?"":"disabled"}>${hechos?"Redactar los que faltan":"Redactar todo el grupo"}</button>`}${hechos?'<button class="btn" data-act="genRehacer">Volver a redactar todo</button>':""}`}
+  <button class="btn" data-act="word">Descargar Word</button><button class="btn" data-act="pdf">Descargar PDF</button></div>
+ ${gen?`<div id="prog" style="margin-top:12px"><div class="bar"><i style="width:${Math.round(gen.done/gen.total*100)}%"></i></div><div class="meta" style="margin-top:6px"><span id="progtxt">Redactando… ${gen.done} de ${gen.total} textos</span></div></div>`:`<div class="meta" style="margin-top:10px"><span>${hechos} de ${pend.length} textos redactados</span></div>`}
+ ${AI?"":'<p class="foot" style="margin-top:10px">La redacción con IA no está disponible por ahora, así que los textos se arman de forma básica con tus valoraciones.</p>'}
+</section>
+${als.length?als.map((a,i)=>{ const cs=CK.filter(c=>resumenVal(a,c,S.tri).length); return `<section class="card stu"><div class="stu-h"><h3>${i+1}. ${esc(a.nombre)}</h3><div class="row"><button class="btn sm" data-act="genAl" data-id="${a.id}" ${cs.length&&!gen?"":"disabled"}>Redactar</button><button class="btn sm" data-act="copAl" data-id="${a.id}">Copiar todo</button></div></div>
+ ${cs.length?cs.map(c=>{ const x=(t.textos[a.id]||{})[c]||""; const r=resumenVal(a,c,S.tri); return `<div class="campo-box" data-c="${c}"><div class="meta"><span class="campo-h">${CAMPOS[c].n}</span><span>${["S","O","N"].map(k=>{const n=r.filter(q=>q.v===k).length;return n?`${n} ${VL[k]}`:"";}).filter(Boolean).join(" · ")}</span></div>
+  <textarea class="txt" id="tx-${a.id}-${c}" data-tx="${a.id}" data-c="${c}" placeholder="Aún sin redactar.">${esc(x)}</textarea>
+  <div class="meta"><span class="cnt">${x.length} caracteres</span><span class="row"><button class="btn sm ghost" data-act="genUno" data-id="${a.id}" data-c="${c}" ${gen?"disabled":""}>Volver a redactar</button><button class="btn sm pri" data-act="copUno" data-id="${a.id}" data-c="${c}">Copiar</button></span></div></div>`; }).join(""):'<p class="empty" style="margin:0">Sin valoraciones en este trimestre.</p>'}</section>`; }).join(""):'<section class="card"><p class="empty">Primero registra alumnos, aspectos y valoraciones.</p></section>'}`; };
+V.historial = () => { const todos=S.alumnos; if(!todos.length) return '<section class="card"><h2>Historial</h2><p class="empty">Aún no hay alumnos registrados.</p></section>';
+ if(!todos.find(a=>a.id===histSel)) histSel=todos[0].id; const a=todos.find(x=>x.id===histSel);
+ const res=[1,2,3].map(t=>{ const n=S.alumnos.filter(x=>enTri(x,t)); const k=n.filter(x=>Object.values(S.tris[t].textos[x.id]||{}).some(v=>v)).length; return `<span class="pill ${k&&k===n.length?"ok":""}">${t}.º: ${k} de ${n.length} con observaciones</span>`; }).join(" ");
+ return `<section class="card"><h2>Historial del ciclo escolar</h2><p class="hint">Aquí se conserva lo valorado y redactado en cada trimestre, también de quienes fueron dados de baja.</p><div class="row">${res}</div>
+  <label class="f" style="margin-top:12px;max-width:420px">Alumno<select id="histSel" data-act-change="histSel">${todos.map(x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${esc(x.nombre)}${x.baja?" (baja)":""}</option>`).join("")}</select></label>
+  ${a.baja?`<p class="pill warn" style="margin-top:10px">Baja en el ${a.bajaTri}.º trimestre</p>`:""}${(a.altaTri||1)>1?`<p class="pill" style="margin-top:10px">Alta en el ${a.altaTri}.º trimestre</p>`:""}
+  <div class="hist" style="margin-top:12px">${[1,2,3].map(t=>{ const tx=S.tris[t].textos[a.id]||{}; const hay=CK.filter(c=>tx[c]); return `<div class="col"><h3>${TRI[t]}</h3>${hay.length?hay.map(c=>`<div data-c="${c}"><div class="campo-h" style="font-size:14px">${CAMPOS[c].n}</div><p>${esc(tx[c])}</p></div>`).join(""):`<p class="empty">${enTri(a,t)?"Sin observaciones redactadas.":"No formaba parte del grupo."}</p>`}</div>`; }).join("")}</div></section>`; };
+
+function render(){ head(); $("#view").innerHTML = V[view](); document.querySelectorAll("textarea.txt,textarea[data-asp]").forEach(auto); if(view==="redaccion") document.querySelectorAll("textarea.txt").forEach(cuenta); }
+
+/* ============ Acciones ============ */
+const ACC = {
+ ir:el=>{ view=el.dataset.v; render(); window.scrollTo({top:0}); },
+ tri:el=>{ if(gen) return toast("Espera a que termine la redacción."); S.tri=+el.dataset.t; save(); render(); },
+ subirAl:()=>pick(".pdf,.docx,.txt,image/*",importarAlumnos),
+ pegarAl:()=>{ const v=$("#pegar").value; const n=addAlumnos(v.split(/\n/).map(l=>l.replace(/^[\s\d.\-)]+/,"").trim()).filter(Boolean)); save(); render(); toast(n?`Se dieron de alta ${n} alumnos.`:"Escribe al menos un nombre nuevo."); },
+ ejemplo:()=>{ addAlumnos(EJ_ALUMNOS); save(); render(); toast("Grupo de ejemplo con nombres ficticios. Puedes borrarlo en Datos."); },
+ baja:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id); confirmar(`¿Dar de baja a ${a.nombre} a partir del ${TRI[S.tri].toLowerCase()}? Su historial anterior se conserva.`,()=>{ a.baja=true; a.bajaTri=S.tri; save(); render(); },"Dar de baja"); },
+ alta:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id); a.baja=false; delete a.bajaTri; save(); render(); toast(a.nombre+" está de alta otra vez."); },
+ elimAl:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id); confirmar(`¿Eliminar definitivamente a ${a.nombre}? Se borrará también su historial de los tres trimestres.`,()=>{ S.alumnos=S.alumnos.filter(x=>x!==a); for(const t of [1,2,3]){ delete S.tris[t].val[a.id]; delete S.tris[t].textos[a.id]; delete S.tris[t].notas[a.id]; } save(); render(); },"Eliminar"); },
+ subirAsp:()=>pick(".pdf,.docx,.txt,image/*",importarAspectos),
+ subirEval:()=>pick(".pdf,image/*",importarEvaluada),
+ addAsp:async()=>{ const x=$("#nuevoAsp").value.trim(); if(x.length<4) return toast("Escribe el aspecto a evaluar."); const c=$("#nuevoCampo").value; addAspectos([{texto:x,campo:c}]); save(); render(); if(!c&&AI) clasificar(); },
+ ejAsp:()=>{ addAspectos((EJ_ASPECTOS[S.tri]||EJ_ASPECTOS.x).map(([texto,campo])=>({texto,campo}))); save(); render(); },
+ copiarAsp:()=>{ addAspectos(S.tris[S.tri-1].aspectos.map(a=>({texto:a.texto,campo:a.campo}))); save(); render(); },
+ clasificar,
+ campo:el=>{ const a=T().aspectos.find(x=>x.id===el.dataset.id); a.campo=el.dataset.c; save(); render(); },
+ elimAsp:el=>{ const t=T(); t.aspectos=t.aspectos.filter(x=>x.id!==el.dataset.id); save(); render(); },
+ modo:el=>{ modoVal=el.dataset.m; render(); },
+ ciclo:el=>{ const t=T(), o=["","S","O","N"]; const v=o[(o.indexOf(el.dataset.v)+1)%4]; t.val[el.dataset.al]=t.val[el.dataset.al]||{}; if(v) t.val[el.dataset.al][el.dataset.asp]=v; else delete t.val[el.dataset.al][el.dataset.asp]; el.dataset.v=v; el.textContent=v?VL[v]:"·"; save(); },
+ poner:el=>{ const t=T(); const m=t.val[el.dataset.al]=t.val[el.dataset.al]||{}; if(m[el.dataset.asp]===el.dataset.k) delete m[el.dataset.asp]; else m[el.dataset.asp]=el.dataset.k; save(); el.parentElement.querySelectorAll(".vb").forEach(b=>b.setAttribute("aria-pressed",m[el.dataset.asp]===b.dataset.k)); },
+ alPrev:()=>{ const l=activos(); alSel=l[Math.max(0,l.findIndex(a=>a.id===alSel)-1)].id; render(); },
+ alNext:()=>{ const l=activos(); alSel=l[Math.min(l.length-1,l.findIndex(a=>a.id===alSel)+1)].id; render(); window.scrollTo({top:0}); },
+ todoSi:el=>{ const t=T(); t.val[el.dataset.id]=Object.fromEntries(t.aspectos.map(a=>[a.id,"S"])); save(); render(); },
+ limpiar:el=>{ delete T().val[el.dataset.id]; save(); render(); },
+ largo:el=>{ S.op.largo=el.dataset.k; save(); render(); },
+ genTodo:()=>{ const t=T(); redactar(pendientes(activos(),CK).filter(p=>!(t.textos[p.al.id]||{})[p.c])).then(()=>{}); if(gen) render(); },
+ genRehacer:()=>confirmar("¿Volver a redactar todos los textos del trimestre? Se reemplazarán los actuales, incluso los que hayas editado.",()=>{ redactar(pendientes(activos(),CK)); if(gen) render(); },"Volver a redactar"),
+ genAl:el=>{ redactar(pendientes(S.alumnos.filter(a=>a.id===el.dataset.id),CK)); if(gen) render(); },
+ genUno:el=>{ redactar(pendientes(S.alumnos.filter(a=>a.id===el.dataset.id),[el.dataset.c])); if(gen) render(); },
+ detener:()=>{ if(gen) gen.ctl.abort(); },
+ copUno:el=>{ const x=document.getElementById("tx-"+el.dataset.id+"-"+el.dataset.c).value.trim(); x?copiar(x):toast("Este texto aún no se ha redactado."); },
+ copAl:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id), tx=T().textos[a.id]||{}; const s=CK.filter(c=>tx[c]).map(c=>CAMPOS[c].n+":\n"+tx[c]).join("\n\n"); s?copiar(a.nombre+"\n\n"+s):toast("Aún no hay textos de este alumno."); },
+ word:expWord, pdf:expPdf,
+ respaldar:()=>guardarArchivo(`Respaldo evaluacion ${GR[S.grado]} ${S.grupo}.json`.replace(/[\\/:*?"<>|]/g,""),new Blob([JSON.stringify(S)],{type:"application/json"})),
+ restaurar:()=>pick(".json,application/json",async f=>{ try{ const j=JSON.parse(await f.text()); if(!j||j.v!==1||!j.tris) throw 0; S=Object.assign(base(),j); save(); render(); toast("Respaldo cargado."); }catch(e){ toast("Ese archivo no es un respaldo válido de esta app."); } }),
+ borrar:()=>confirmar("¿Borrar alumnos, aspectos, valoraciones y textos de los tres trimestres? Esta acción no se puede deshacer.",()=>{ const k=base(); S=k; save(); view="datos"; render(); },"Borrar todo")
+};
+document.addEventListener("click",e=>{ const el=e.target.closest("[data-act]"); if(el&&!el.disabled&&ACC[el.dataset.act]) ACC[el.dataset.act](el); });
+document.addEventListener("input",e=>{ const el=e.target, d=el.dataset;
+  if(d.b){ S[d.b]=el.value; save(); head(); const m=$("#memb"); if(m) m.innerHTML=membrete(); }
+  else if(d.al&&d.k){ const a=S.alumnos.find(x=>x.id===d.al); a[d.k]=el.value; save(); }
+  else if(d.asp&&el.tagName==="TEXTAREA"){ const a=T().aspectos.find(x=>x.id===d.asp); a.texto=el.value; auto(el); save(); }
+  else if(d.nota){ T().notas[d.nota]=el.value; save(); }
+  else if(d.tx){ const t=T(); (t.textos[d.tx]=t.textos[d.tx]||{})[d.c]=el.value; auto(el); cuenta(el); save(); }
+  else if(d.op){ S.op[d.op]=+el.value||0; save(); }
+});
+document.addEventListener("change",e=>{ const el=e.target, d=el.dataset;
+  if(d.opc){ S.op[d.opc]=el.checked; save(); }
+  else if(d.actChange==="alSel"){ alSel=el.value; render(); }
+  else if(d.actChange==="histSel"){ histSel=el.value; render(); }
+  else if(d.b&&el.tagName==="SELECT"){ S[d.b]=el.value; save(); render(); }
+});
+
+/* ============ IA por servidor (fuera de Claude) ============ */
+function aB64(blob){ return new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.onerror=no; r.readAsDataURL(blob); }); }
+async function reducir(blob){
+  try{ const bmp=await createImageBitmap(blob); const k=Math.min(1,1900/Math.max(bmp.width,bmp.height)); const c=document.createElement("canvas"); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height); const out=await new Promise(r=>c.toBlob(r,"image/jpeg",.86)); return {tipo:"image/jpeg",datos:await aB64(out)}; }
+  catch(e){ return {tipo:blob.type||"image/jpeg",datos:await aB64(blob)}; }
+}
+function leerJson(t){ t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim(); try{ return JSON.parse(t); }catch(e){}
+  const a=Math.min(...["{","["].map(c=>t.indexOf(c)).filter(i=>i>=0)), b=Math.max(t.lastIndexOf("}"),t.lastIndexOf("]")); if(isFinite(a)&&b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch(e){} } throw {code:"invalid_json"}; }
+const IAservidor = { async json(prompt,o={}){
+  const imagenes=[]; for(const b of (o.images||[])) imagenes.push(await reducir(b));
+  let r; try{ r=await fetch(SERVIDOR,{method:"POST",body:JSON.stringify({accion:"ia",prompt,imagenes}),signal:o.signal}); }
+  catch(e){ if(o.signal&&o.signal.aborted) throw {code:"cancelled"}; throw new Error("No hay conexión con el servicio de redacción. Revisa tu internet e intenta de nuevo."); }
+  let j; try{ j=await r.json(); }catch(e){ throw new Error("El servicio de redacción no respondió bien. Intenta de nuevo."); }
+  if(!j.ok) throw new Error(j.error||"El servicio de redacción no pudo responder. Intenta de nuevo.");
+  return leerJson(j.texto);
+} };
+
+/* ============ Arranque ============ */
+load(); render();
+(async()=>{ const use = window.claude&&window.claude.use ? n=>window.claude.use(n).catch(()=>null) : ()=>Promise.resolve(null);
+  use("sample").then(async s=>{ if(!s){ if(SERVIDOR){ AI=IAservidor; AIimg=true; head(); if(view==="redaccion"&&!gen) render(); } return; } AI=s; try{ const l=await s.limits(); AIimg=!!(l&&l.images); }catch(e){} head(); if(view==="redaccion"&&!gen) render(); });
+  use("downloads").then(d=>{ DL=d; });
+  const [db,user]=await Promise.all([use("db"),use("user")]); if(!db||!user) return;
+  try{ UID=await user.id(); }catch(e){} if(!UID) return; DB=db; pullDb();
+})();
+</script>
+</body>
+</html>
