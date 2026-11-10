@@ -186,8 +186,9 @@ const HOJAS = {
   rev: ['id', 'cueId', 'ciclo', 'visita', 'cct', 'persona', 'personaNombre', 'funcion', 'grupo', 'respuestas', 'estado', 'revisor', 'revisorNombre', 'fecha', 'creado', 'actualizado', 'codigo', 'codigoVence', 'docenteEnvio'],
   // Visitas de atención: las que se hacen por un tema puntual (queja o problema, capacitación, apoyo…), fuera de las visitas con guía.
   // Al cerrarse quedan en el seguimiento de la escuela con sus acuerdos (segId).
+  // Si no fue en una escuela (capacitación, congreso, reunión fuera…), cct va vacío y el lugar se escribe en «lugar».
   ate: ['id', 'cct', 'tipo', 'asunto', 'fecha', 'horaIni', 'horaFin', 'atendieron', 'descripcion', 'fotos', 'acuerdos', 'conclusion', 'estado', 'confidencial',
-        'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor'],
+        'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor', 'lugar'],
   // Correo de la Supervisión (solo la Supervisión). id = id del mensaje de Gmail. urgencia: urgente, pronto, normal o info.
   // factura: datos del CFDI (emisor, receptor, total, UUID…) o {} si es factura sin XML; vacío si no es factura.
   // clasif: '' (sin revisar), sin (sin clasificar: pendiente), pimmee, ip, cpe, len, caja o personal. archivos: lo guardado en el Drive.
@@ -204,7 +205,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados' };
-const VERSION = 47;
+const VERSION = 48;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1791,12 +1792,13 @@ const ACCIONES = {
     soloMesa_(yo);
     const prev = d.id ? buscar_('ate', String(d.id)) : null;
     if (prev && !visible_(yo, prev)) throw new Error('Sin permiso para esta visita.');
-    const cct = String(d.cct || '');
-    if (!leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('Elija la escuela.');
+    const cct = String(d.cct || ''), lugar = cct ? '' : String(d.lugar || '').trim().slice(0, 200);
+    if (cct && !leer_('dir').find(c => c.tipo === 'director' && c.cct === cct)) throw new Error('Elija la escuela.');
+    if (!cct && !lugar) throw new Error('Elija la escuela o escriba el lugar.');
     const asunto = String(d.asunto || '').trim().slice(0, 200);
     if (!asunto) throw new Error('Escriba el asunto de la visita.');
     const hora = h => /^\d{1,2}:\d{2}$/.test(h || '') ? h : '';
-    const o = { id: prev ? prev.id : String(d.id || '').slice(0, 40) || 'ate-' + Utilities.getUuid().slice(0, 8), cct: cct, tipo: String(d.tipo || 'otro').slice(0, 40), asunto: asunto,
+    const o = { id: prev ? prev.id : String(d.id || '').slice(0, 40) || 'ate-' + Utilities.getUuid().slice(0, 8), cct: cct, lugar: lugar, tipo: String(d.tipo || 'otro').slice(0, 40), asunto: asunto,
       fecha: /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || '') ? d.fecha : hoy_(), horaIni: hora(d.horaIni), horaFin: hora(d.horaFin), atendieron: String(d.atendieron || '').slice(0, 1000),
       descripcion: String(d.descripcion || '').slice(0, 8000), fotos: (Array.isArray(d.fotos) ? d.fotos : []).filter(f => f && f.id).slice(0, 40).map(f => ({ id: String(f.id).slice(0, 80), n: String(f.n || '').slice(0, 160) })),
       acuerdos: (Array.isArray(d.acuerdos) ? d.acuerdos : []).filter(a => a && String(a.texto || '').trim()).slice(0, 30).map(a => ({ id: a.id || 'ac-' + Utilities.getUuid().slice(0, 6), texto: String(a.texto).trim().slice(0, 1000),
@@ -1806,17 +1808,21 @@ const ACCIONES = {
       cerrada: prev ? prev.cerrada : '', cerradaPor: prev ? prev.cerradaPor : '' };
     let avisos = [];
     // al cerrar, la visita y sus acuerdos quedan en el seguimiento de la escuela (para darles seguimiento en Agenda y en Mi escuela)
+    // (solo si fue en una escuela; las de otro lugar quedan en el registro de visitas de la Supervisión)
     if (o.estado === 'cerrada') {
       if (!o.cerrada) { o.cerrada = ahora_(); o.cerradaPor = yo.nombre; }
-      const tipo = { queja: 'Atención a queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión', otro: 'Visita' }[o.tipo] || 'Visita';
+    }
+    if (o.estado === 'cerrada' && cct) {
+      const tipo = { queja: 'Atención a queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión', evento: 'Capacitación, congreso o evento', otro: 'Visita' }[o.tipo] || 'Visita';
       const r = ACCIONES.guardarSeguimiento(yo, { id: o.segId || '', cct: cct, fecha: o.fecha, resumen: (tipo + ': ' + asunto + (o.descripcion ? '\n\n' + o.descripcion : '') + (o.conclusion ? '\n\nConclusión: ' + o.conclusion : '')).slice(0, 20000),
         acuerdos: o.acuerdos, confidencial: o.confidencial, origen: 'ate', enviarMinuta: false });
       o.segId = r.seg.id; avisos = r.avisos || [];
-    } else { o.cerrada = ''; o.cerradaPor = ''; }
+    } else if (o.estado !== 'cerrada') { o.cerrada = ''; o.cerradaPor = ''; }
     guardar_('ate', o);
     return { ate: o, avisos: avisos };
   },
-  // Foto de una visita de atención: Drive › Escuela › Visitas de supervisión › Visitas de atención › fecha · asunto
+  // Foto de una visita de atención: Drive › Supervisión › Visitas a escuelas › Escuela › Visitas de atención › fecha · asunto
+  // (si no fue en una escuela: Supervisión › Visitas a otros lugares › fecha · asunto)
   ateFoto: (yo, d) => {
     soloMesa_(yo);
     const cct = String(d.cct || ''), datos = String(d.datos || '');
@@ -1824,7 +1830,7 @@ const ACCIONES = {
     if (datos.length * 0.75 > MAX_MB * 1024 * 1024) throw new Error('La foto pesa más de ' + MAX_MB + ' MB.');
     const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
     const nom = (String(d.fecha || hoy_()) + ' · ' + String(d.asunto || 'Visita')).replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100);
-    const carpeta = sub(sub(carpetaVisitasSup_(cct), 'Visitas de atención'), nom);
+    const carpeta = cct ? sub(sub(carpetaVisitasSup_(cct), 'Visitas de atención'), nom) : sub(sub(carpetaSupervision_(), 'Visitas a otros lugares'), nom);
     const nombre = String(d.nombre || 'foto.jpg').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 160) || 'foto.jpg';
     const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
     f.setDescription(SUBIDO_POR + yo.nombre);
@@ -3322,13 +3328,23 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
 function carpetaVisitasSup_(cct) {
   const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
   if (!raiz) throw new Error('No se encontró la carpeta de la escuela en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
-  const esc = DriveApp.getFolderById(raiz.carpetaId), padres = esc.getParents();
+  const esc = DriveApp.getFolderById(raiz.carpetaId);
+  const sub = (p, n) => { const it = p.getFoldersByName(n); return it.hasNext() ? it.next() : p.createFolder(n); };
+  return sub(sub(carpetaSupervision_(esc), 'Visitas a escuelas'), esc.getName());
+}
+// Carpeta «Supervisión» dentro de la carpeta de la zona (junto a las de las escuelas); la crea si no existe
+function carpetaSupervision_(esc) {
+  if (!esc) {
+    const raiz = leer_('evi').find(e => e.cct && !e.ruta && e.carpetaId);
+    if (!raiz) throw new Error('No se encontró la carpeta de la zona en el Drive. Pulse «Revisar ahora» en Evidencias e intente de nuevo.');
+    esc = DriveApp.getFolderById(raiz.carpetaId);
+  }
+  const padres = esc.getParents();
   if (!padres.hasNext()) throw new Error('No se encontró la carpeta de la zona en el Drive.');
-  const zona = padres.next(), sub = (p, n) => { const it = p.getFoldersByName(n); return it.hasNext() ? it.next() : p.createFolder(n); };
+  const zona = padres.next();
   let sup = null; const it = zona.getFolders();
   while (it.hasNext()) { const f = it.next(); if (/supervisi/.test(clave_(f.getName()))) { sup = f; break; } }
-  if (!sup) sup = zona.createFolder('Supervisión');
-  return sub(sub(sup, 'Visitas a escuelas'), esc.getName());
+  return sup || zona.createFolder('Supervisión');
 }
 
 const revId_ = x => [String(x.cueId || ''), String(x.cct || ''), String(x.visita || ''), String(x.persona || '')].join('|');

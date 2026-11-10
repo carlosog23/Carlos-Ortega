@@ -1685,7 +1685,7 @@ function cmpInicio() {
   <div class="seccion-t">Visitas de atención en este dispositivo</div>
   <p class="peq mudo" style="margin:-4px 0 8px">Por un tema puntual: una queja o problema, una capacitación, un apoyo. Se registran el motivo, lo que se hizo, fotos y acuerdos, y se cierran al concluir.</p>
   ${ates.length ? ates.map(a => `<button class="tarjeta pad cmp-ses" data-ate="${esc(a.id)}"><div style="flex:1;min-width:0"><b>${esc(a.asunto || 'Sin asunto')}</b>
-      <div class="peq mudo">${esc(nombreEscuela(a.cct))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(fechaCorta(a.fecha))}${(a.fotos || []).length ? ' · ' + a.fotos.length + ' foto(s)' : ''}${(a.acuerdos || []).length ? ' · ' + a.acuerdos.length + ' acuerdo(s)' : ''}</div></div>
+      <div class="peq mudo">${esc(ateLugar(a))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(fechaCorta(a.fecha))}${(a.fotos || []).length ? ' · ' + a.fotos.length + ' foto(s)' : ''}${(a.acuerdos || []).length ? ' · ' + a.acuerdos.length + ' acuerdo(s)' : ''}</div></div>
       <span class="chip ${a.estado === 'cerrada' ? 'ok' : 'aviso'}">${a.estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</span>${a.sucio ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`).join('')
     : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Aún no hay visitas de atención en este dispositivo.</div></div>'}`;
   $$('[data-cg]').forEach(b => b.onclick = () => cmpIr({ pant: b.dataset.cg }));
@@ -1711,7 +1711,7 @@ function cmpInicioApp() {
     ${S.offline ? '' : `<button class="app-tile t4" id="ap-prep">${ico('i-act')}<b>Preparar para salir</b><span>Guardar escuelas, personal y guías en este celular</span></button>`}
   </div>
   ${ses.length ? `<div class="seccion-t">Revisiones recientes</div>${ses.map(s => { const sucias = CMP.revs.filter(r => r.sesion === s.id && r.sucio).length; return `<button class="tarjeta pad cmp-ses" data-ses="${esc(s.id)}"><div style="flex:1;min-width:0"><b>${esc(nombreEscuela(s.cct))}</b><div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${esc(fechaCorta(s.fecha))} · ${s.personas.length} persona(s)</div></div>${sucias ? `<span class="chip aviso">${sucias} sin subir</span>` : ''}${ico('i-der')}</button>`; }).join('')}` : ''}
-  ${ates.length ? `<div class="seccion-t">Visitas de atención recientes</div>${ates.map(a => `<button class="tarjeta pad cmp-ses" data-ate="${esc(a.id)}"><div style="flex:1;min-width:0"><b>${esc(a.asunto || 'Sin asunto')}</b><div class="peq mudo">${esc(nombreEscuela(a.cct))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(fechaCorta(a.fecha))}</div></div><span class="chip ${a.estado === 'cerrada' ? 'ok' : 'aviso'}">${a.estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</span>${a.sucio ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`).join('')}` : ''}
+  ${ates.length ? `<div class="seccion-t">Visitas de atención recientes</div>${ates.map(a => `<button class="tarjeta pad cmp-ses" data-ate="${esc(a.id)}"><div style="flex:1;min-width:0"><b>${esc(a.asunto || 'Sin asunto')}</b><div class="peq mudo">${esc(ateLugar(a))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(fechaCorta(a.fecha))}</div></div><span class="chip ${a.estado === 'cerrada' ? 'ok' : 'aviso'}">${a.estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</span>${a.sucio ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`).join('')}` : ''}
   ${S.offline ? '' : `<div class="app-links"><button class="enlace" data-cg="guias">Guías de revisión</button> · <button class="enlace" data-cg="resultados">Resultados</button> · <button class="enlace" data-cg="registro">Registro de visitas</button> · <a href="./">Abrir Tequio completo</a></div>`}
   ${cmpInstalarHTML()}`;
   $('#ap-rev').onclick = cmpNueva; $('#ap-ate').onclick = () => cmpNuevaAte(); $('#ap-subir').onclick = () => cmpSubir();
@@ -2041,11 +2041,13 @@ function cmpResultados() {
    Escuela, motivo, lo que se hizo, quiénes atendieron, fotos y acuerdos; al concluir se cierra y queda en el seguimiento
    de la escuela con sus acuerdos. También funcionan sin internet (se guardan en el dispositivo hasta subirlas).
    ========================================================= */
-const CMP_ATE = { queja: 'Queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión con la escuela', otro: 'Otro' };
-const CMP_ATE_VER = 39;
+const CMP_ATE = { queja: 'Queja o problema', capacitacion: 'Capacitación', apoyo: 'Apoyo y acompañamiento', reunion: 'Reunión con la escuela', evento: 'Capacitación, congreso o evento', otro: 'Otro' };
+const CMP_ATE_VER = 39, CMP_ATE_LUGAR_VER = 48;
+// Lugar de la visita: la escuela o, si fue fuera (capacitación, congreso, reunión…), el lugar que se escribió
+const ateLugar = a => a.cct ? nombreEscuela(a.cct) : (a.lugar ? '📍 ' + a.lugar : 'Sin lugar');
 function cmpNuevaAte() {
   if (!(S.version >= CMP_ATE_VER || S.offline || (cfg && cfg.demo))) return aviso('Para las visitas de atención, actualice el servidor de Tequio a la versión ' + CMP_ATE_VER + '.', 'mal', 7000);
-  const a = { id: uid('ate'), cct: '', tipo: 'apoyo', asunto: '', fecha: hoy(), horaIni: (() => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); })(), horaFin: '', atendieron: '', descripcion: '', fotos: [], acuerdos: [], conclusion: '', estado: 'abierta', confidencial: false, creado: ahora(), sucio: true };
+  const a = { id: uid('ate'), cct: '', lugar: '', otroLugar: false, tipo: 'apoyo', asunto: '', fecha: hoy(), horaIni: (() => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); })(), horaFin: '', atendieron: '', descripcion: '', fotos: [], acuerdos: [], conclusion: '', estado: 'abierta', confidencial: false, creado: ahora(), sucio: true };
   CMP.ate.push(a); cmpGuardarAte(); cmpIr({ pant: 'atencion', aid: a.id });
 }
 function cmpAtencion() {
@@ -2056,7 +2058,8 @@ function cmpAtencion() {
     <div class="titulo-vista"><div><button class="enlace" id="ca-volver">← Revisión en campo</button><h1 style="margin-top:4px">Visita de atención</h1>
       <div class="peq mudo">${cerrada ? 'Cerrada el ' + esc(fechaHora(a.cerrada || '')) + (a.cerradaPor ? ' por ' + esc(nombreCorto(a.cerradaPor)) : '') : 'Abierta'}${a.sucio ? ' · sin subir' : a.subido ? ' · subida' : ''}</div></div></div>
     <div class="tarjeta pad">
-      <div class="campo"><label for="ca-esc">Escuela</label><select id="ca-esc" data-a="cct"><option value="">Elija la escuela…</option>${directores().map(c => `<option value="${c.cct}" ${a.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
+      <div class="campo"><label for="ca-esc">Escuela o lugar</label><select id="ca-esc"><option value="">Elija la escuela…</option>${directores().map(c => `<option value="${c.cct}" ${a.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}<option value="__otro" ${!a.cct && (a.otroLugar || a.lugar) ? 'selected' : ''}>📍 Otro lugar (capacitación, congreso, reunión…)</option></select></div>
+      ${!a.cct && (a.otroLugar || a.lugar) ? `<div class="campo"><label for="ca-lug">¿Dónde fue?</label><input id="ca-lug" data-a="lugar" value="${esc(a.lugar || '')}" placeholder="Ej. Auditorio de ISEP Ensenada · Centro de Maestros San Quintín · Hotel sede del congreso"><div class="ayuda">Queda en el registro de visitas de la Supervisión; no se agrega al seguimiento de ninguna escuela.</div></div>` : ''}
       <div class="campo"><span class="et">Motivo</span><div class="cmp-ops">${Object.entries(CMP_ATE).map(([k, t]) => `<label class="cmp-op${a.tipo === k ? ' on' : ''}"><input type="radio" name="ca-tipo" value="${k}" data-a="tipo" ${a.tipo === k ? 'checked' : ''}>${esc(t)}</label>`).join('')}</div></div>
       <div class="campo"><label for="ca-asu">Asunto</label><input id="ca-asu" data-a="asunto" value="${esc(a.asunto)}" placeholder="Ej. Queja de padres por el horario de salida · Capacitación en Tequio"></div>
       <div class="fila"><div class="campo"><label for="ca-f">Fecha</label><input type="date" id="ca-f" data-a="fecha" value="${esc(a.fecha)}"></div>
@@ -2068,7 +2071,7 @@ function cmpAtencion() {
         <label class="boton sec chico">${ico('i-cam')}Tomar o elegir foto<input type="file" accept="image/*" capture="environment" hidden id="ca-foto"></label></div></div>
       <div class="campo"><span class="et">Acuerdos</span><div id="ca-acs">${(a.acuerdos || []).map((x, i) => `<div class="cmp-ped" data-ai="${i}"><div class="fila" style="grid-template-columns:1fr 36px"><textarea data-ak="texto" placeholder="Acuerdo">${esc(x.texto)}</textarea><button type="button" class="icono-btn" data-aq="${i}" aria-label="Quitar acuerdo">${ico('i-x')}</button></div>
         <div class="fila"><input data-ak="responsable" placeholder="Responsable" value="${esc(x.responsable || '')}"><input type="date" data-ak="revision" value="${esc(x.revision || '')}" aria-label="Fecha para revisarlo"></div></div>`).join('')}</div>
-        <button type="button" class="boton sec chico" id="ca-mas">${ico('i-mas')}Agregar acuerdo</button><div class="ayuda">Al cerrar la visita, los acuerdos quedan en el seguimiento de la escuela, con su fecha de revisión.</div></div>
+        <button type="button" class="boton sec chico" id="ca-mas">${ico('i-mas')}Agregar acuerdo</button><div class="ayuda">${a.cct || !(a.otroLugar || a.lugar) ? 'Al cerrar la visita, los acuerdos quedan en el seguimiento de la escuela, con su fecha de revisión.' : 'Los acuerdos quedan en el registro de esta visita.'}</div></div>
       ${esAdmin() ? `<label class="casilla" style="margin-bottom:10px"><input type="checkbox" data-a="confidencial" ${a.confidencial ? 'checked' : ''}><span><b>Confidencial.</b> Solo la Supervisión la ve (por ejemplo, una queja delicada).</span></label>` : ''}
       <div class="campo"><label for="ca-con">Conclusión ${cerrada ? '' : '<span class="mudo" style="font-weight:400">(al cerrar la visita)</span>'}</label><textarea id="ca-con" data-a="conclusion" placeholder="Cómo quedó el asunto">${esc(a.conclusion)}</textarea></div>
     </div>
@@ -2077,6 +2080,10 @@ function cmpAtencion() {
     <p class="peq mudo" style="text-align:center">Se guarda en este dispositivo al momento. Súbala con «Subir a Tequio».</p>`;
     const marcar = () => { a.sucio = true; cmpGuardarAte(); };
     $('#ca-volver').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'inicio' }); };
+    $('#ca-esc').onchange = e => { const v = e.target.value;
+      if (v === '__otro' && !(S.version >= CMP_ATE_LUGAR_VER || S.offline || (cfg && cfg.demo))) { e.target.value = a.cct; return aviso('Para registrar visitas en otro lugar, actualice el servidor de Tequio a la versión ' + CMP_ATE_LUGAR_VER + '.', 'mal', 7000); }
+      if (v === '__otro') { a.cct = ''; a.otroLugar = true; } else { a.cct = v; a.otroLugar = false; a.lugar = ''; }
+      marcar(); pintarA(); if (v === '__otro') $('#ca-lug').focus(); };
     $$('[data-a]').forEach(el => el.onchange = () => { if (el.type === 'radio' && !el.checked) return; a[el.dataset.a] = el.type === 'checkbox' ? el.checked : el.value; if (el.type === 'radio') $$('[name=ca-tipo]').forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); marcar(); });
     $$('[data-ak]').forEach(el => el.onchange = () => { const i = +el.closest('[data-ai]').dataset.ai; a.acuerdos[i][el.dataset.ak] = el.value; marcar(); });
     $$('[data-aq]').forEach(b => b.onclick = () => { a.acuerdos.splice(+b.dataset.aq, 1); marcar(); pintarA(); });
@@ -2086,9 +2093,9 @@ function cmpAtencion() {
       catch (er) { aviso('No se pudo guardar la foto.', 'mal'); } };
     $$('[data-af]').forEach(b => b.onclick = () => { if (!confirm('¿Quitar esta foto?')) return; const f = a.fotos.splice(+b.dataset.af, 1)[0]; if (f && f.lid) CDB.del('foto', f.lid); marcar(); pintarA(); });
     if ($('#ca-cerrar')) $('#ca-cerrar').onclick = () => {
-      if (!a.cct) return aviso('Elija la escuela.', 'mal'); if (!String(a.asunto).trim()) return aviso('Escriba el asunto.', 'mal');
+      if (!a.cct && !String(a.lugar || '').trim()) return aviso(a.otroLugar ? 'Escriba dónde fue la visita.' : 'Elija la escuela o el lugar.', 'mal'); if (!String(a.asunto).trim()) return aviso('Escriba el asunto.', 'mal');
       if (!String(a.conclusion).trim()) { aviso('Escriba la conclusión: cómo quedó el asunto.', 'mal'); $('#ca-con').focus(); return; }
-      a.estado = 'cerrada'; if (!a.horaFin) { const d = new Date(); a.horaFin = pad(d.getHours()) + ':' + pad(d.getMinutes()); } marcar(); pintarA(); aviso('Visita cerrada. Súbala con «Subir a Tequio»; sus acuerdos quedarán en el seguimiento de la escuela.', 'ok', 6000); };
+      a.estado = 'cerrada'; if (!a.horaFin) { const d = new Date(); a.horaFin = pad(d.getHours()) + ':' + pad(d.getMinutes()); } marcar(); pintarA(); aviso(a.cct ? 'Visita cerrada. Súbala con «Subir a Tequio»; sus acuerdos quedarán en el seguimiento de la escuela.' : 'Visita cerrada. Súbala con «Subir a Tequio»; quedará en el registro de visitas.', 'ok', 6000); };
     if ($('#ca-reabrir')) $('#ca-reabrir').onclick = () => { a.estado = 'abierta'; marcar(); pintarA(); };
     $('#ca-borrar').onclick = async () => { if (!confirm(a.sucio ? 'Esta visita tiene cambios SIN SUBIR. Si la quita del dispositivo se pierden. ¿Quitarla?' : '¿Quitar del dispositivo? Lo que ya se subió queda en Tequio.')) return;
       for (const f of a.fotos) if (f.lid) await CDB.del('foto', f.lid); CMP.ate = CMP.ate.filter(x => x !== a); await cmpGuardarAte(); cmpIr({ pant: 'inicio' }); };
@@ -2100,12 +2107,12 @@ async function cmpSubirAte(la) {
   cargando(true); let n = 0;
   try {
     for (const a of la) {
-      if (!a.cct || !String(a.asunto).trim()) { aviso('La visita «' + esc(a.asunto || 'sin asunto') + '» no tiene escuela o asunto; complétela para subirla.', 'mal', 7000); continue; }
+      if ((!a.cct && !String(a.lugar || '').trim()) || !String(a.asunto).trim()) { aviso('La visita «' + esc(a.asunto || 'sin asunto') + '» no tiene escuela o lugar, o asunto; complétela para subirla.', 'mal', 7000); continue; }
       for (const f of a.fotos) { if (!f.lid) continue; const b = await CDB.get('foto', f.lid); if (!b) { f.perdida = true; continue; }
         const r = await api('ateFoto', { cct: a.cct, fecha: a.fecha, asunto: a.asunto, nombre: f.n, datos: await cmpB64(b), tipo: 'image/jpeg' });
         await CDB.del('foto', f.lid); delete f.lid; delete f._url; f.id = r.foto.id; f.n = r.foto.n; await cmpGuardarAte(); }
       a.fotos = a.fotos.filter(f => !f.perdida);
-      const r = await api('ateGuardar', Object.assign({}, a, { fotos: a.fotos.map(f => ({ id: f.id, n: f.n })), acuerdos: a.acuerdos.filter(x => String(x.texto || '').trim()) }));
+      const r = await api('ateGuardar', Object.assign({}, a, { lugar: a.cct ? '' : String(a.lugar || '').trim(), fotos: a.fotos.map(f => ({ id: f.id, n: f.n })), acuerdos: a.acuerdos.filter(x => String(x.texto || '').trim()) }));
       Object.assign(a, r.ate, { sucio: false, subido: ahora() }); if (S.ate) poner(S.ate, r.ate); await cmpGuardarAte(); n++;
     }
     if (n) aviso(n + ' visita(s) de atención subida(s) a Tequio.', 'ok', 5000);
@@ -2116,18 +2123,18 @@ async function cmpSubirAte(la) {
 // Registro de todas las visitas de atención de la Supervisión (con internet)
 function cmpRegistro() {
   const f = vista.ateF || (vista.ateF = { cct: '', tipo: '', est: '', quien: '' });
-  const l = (S.ate || []).filter(a => (!f.cct || a.cct === f.cct) && (!f.tipo || a.tipo === f.tipo) && (!f.est || a.estado === f.est) && (!f.quien || a.creadoPor === f.quien))
+  const l = (S.ate || []).filter(a => (!f.cct || (f.cct === '__otro' ? !a.cct : a.cct === f.cct)) && (!f.tipo || a.tipo === f.tipo) && (!f.est || a.estado === f.est) && (!f.quien || a.creadoPor === f.quien))
     .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.creado).localeCompare(String(a.creado)));
   const quienes = [...new Set((S.ate || []).map(a => a.creadoPor))].map(id => usuario(id)).filter(Boolean);
   $('#vista').innerHTML = `
   <div class="titulo-vista"><div><button class="enlace" id="rg-volver">← Revisión en campo</button><h1 style="margin-top:4px">Registro de visitas de atención</h1></div></div>
-  <div class="filtros"><select id="rg-esc"><option value="">Todas las escuelas</option>${directores().map(e => `<option value="${e.cct}" ${f.cct === e.cct ? 'selected' : ''}>${esc(e.escuela)}</option>`).join('')}</select>
+  <div class="filtros"><select id="rg-esc"><option value="">Todas las escuelas y lugares</option>${directores().map(e => `<option value="${e.cct}" ${f.cct === e.cct ? 'selected' : ''}>${esc(e.escuela)}</option>`).join('')}<option value="__otro" ${f.cct === '__otro' ? 'selected' : ''}>📍 Otros lugares</option></select>
     <select id="rg-tipo"><option value="">Todos los motivos</option>${Object.entries(CMP_ATE).map(([k, t]) => `<option value="${k}" ${f.tipo === k ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
     <select id="rg-est"><option value="">Abiertas y cerradas</option><option value="abierta" ${f.est === 'abierta' ? 'selected' : ''}>Abiertas</option><option value="cerrada" ${f.est === 'cerrada' ? 'selected' : ''}>Cerradas</option></select>
     <select id="rg-quien"><option value="">Toda la Mesa Técnica</option>${quienes.map(u => `<option value="${u.id}" ${f.quien === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select></div>
   <div class="peq mudo" style="margin-bottom:8px">${l.length} visita(s)${Object.keys(CMP_ATE).map(k => { const n = l.filter(a => a.tipo === k).length; return n ? ' · ' + CMP_ATE[k] + ': ' + n : ''; }).join('')}</div>
   ${l.length ? l.map(a => `<button class="tarjeta pad cmp-ses" data-rga="${esc(a.id)}"><div style="flex:1;min-width:0"><b>${esc(a.asunto)}</b>
-      <div class="peq mudo">${esc(fechaCorta(a.fecha))}${a.horaIni ? ' · ' + esc(a.horaIni) + (a.horaFin ? '–' + esc(a.horaFin) : '') : ''} · ${esc(nombreEscuela(a.cct))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(nombreCorto(a.creadoNombre || ''))}</div>
+      <div class="peq mudo">${esc(fechaCorta(a.fecha))}${a.horaIni ? ' · ' + esc(a.horaIni) + (a.horaFin ? '–' + esc(a.horaFin) : '') : ''} · ${esc(ateLugar(a))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(nombreCorto(a.creadoNombre || ''))}</div>
       <div class="peq mudo">${(a.fotos || []).length} foto(s) · ${(a.acuerdos || []).length} acuerdo(s)${a.confidencial ? ' · confidencial' : ''}</div></div>
       <span class="chip ${a.estado === 'cerrada' ? 'ok' : 'aviso'}">${a.estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</span>${ico('i-der')}</button>`).join('')
     : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">No hay visitas de atención con estos filtros.</div></div>'}`;
