@@ -635,8 +635,12 @@ function leerJson(t){ t=String(t||"").trim().replace(/^```(?:json)?/i,"").replac
   const a=Math.min(...["{","["].map(c=>t.indexOf(c)).filter(i=>i>=0)), b=Math.max(t.lastIndexOf("}"),t.lastIndexOf("]")); if(isFinite(a)&&b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch(e){} } throw {code:"invalid_json"}; }
 const IAservidor = { async json(prompt,o={}){
   const imagenes=[]; for(const b of (o.images||[])) imagenes.push(await reducir(b));
-  let r; try{ r=await fetch(SERVIDOR,{method:"POST",body:JSON.stringify({accion:"ia",prompt,imagenes}),signal:o.signal}); }
-  catch(e){ if(o.signal&&o.signal.aborted) throw {code:"cancelled"}; throw new Error("No hay conexión con el servicio de redacción. Revisa tu internet e intenta de nuevo."); }
+  /* Tope de espera: si el servicio no contesta en 2 minutos, se avisa en lugar de dejar la app esperando */
+  const ctl=new AbortController(); let venc=false; const tm=setTimeout(()=>{venc=true;ctl.abort();},120000);
+  if(o.signal){ if(o.signal.aborted) ctl.abort(); else o.signal.addEventListener("abort",()=>ctl.abort(),{once:true}); }
+  let r; try{ r=await fetch(SERVIDOR,{method:"POST",body:JSON.stringify({accion:"ia",prompt,imagenes}),signal:ctl.signal}); }
+  catch(e){ if(venc) throw new Error("El servicio de redacción tardó demasiado en responder. Intenta de nuevo en unos minutos."); if(o.signal&&o.signal.aborted) throw {code:"cancelled"}; throw new Error("No hay conexión con el servicio de redacción. Revisa tu internet e intenta de nuevo."); }
+  finally{ clearTimeout(tm); }
   let j; try{ j=await r.json(); }catch(e){ throw new Error("El servicio de redacción no respondió bien. Intenta de nuevo."); }
   if(!j.ok) throw new Error(j.error||"El servicio de redacción no pudo responder. Intenta de nuevo.");
   return leerJson(j.texto);
