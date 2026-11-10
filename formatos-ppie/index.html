@@ -1351,8 +1351,10 @@ ANEXOS.T={name:"Formato para la autorización de salida escolar",pref:"Salida es
     {id:"firsup",label:"Vo. Bo.: supervisor(a)",preFn:()=>SUP_NOMBRE,to:"Firma: supervisor"},
     {id:"jefe",label:"Jefe de Nivel (autoriza)",help:"Se pone solo según el municipio de la escuela.",preFn:aseSalPre("jefe"),to:"Jefe de nivel"},
     {id:"deleg",label:"Delegación (encabezado del formato)",preFn:aseSalPre("deleg"),to:"Delegación"}]}],
- validate:v=>{const o=[];if(v.fecha){const p=parseDate(v.fecha);if(p){const d=new Date(p.y,p.m-1,p.d),h=new Date();h.setHours(0,0,0,0);const n=Math.round((d-h)/864e5);
-   if(n<0)o.push("La fecha de la salida ya pasó. Revísela.");else if(n<15)o.push(`Faltan ${n} días para la salida: el formato debe tramitarse con 15 días de anticipación.`)}}
+ // avisos de la fecha: se muestran, pero no impiden imprimir (a veces el evento se avisa con poco tiempo)
+ warn:v=>{const o=[];if(v.fecha){const p=parseDate(v.fecha);if(p){const d=new Date(p.y,p.m-1,p.d),h=new Date();h.setHours(0,0,0,0);const n=Math.round((d-h)/864e5);
+   if(n<0)o.push("La fecha de la salida ya pasó. Revísela.");else if(n<15)o.push(`Faltan ${n} día${n===1?"":"s"} para la salida: lo normal es tramitar el formato con 15 días de anticipación.`)}}return o},
+ validate:v=>{const o=[];
   if(v.permiso==="No")o.push("Marcó que no cuenta con el permiso de los padres de familia: es requisito para la salida.");return o}};
 const ARCHIVO={T:"Autorizacion de salida escolar",U:"Formato Unico de Beca",S:"Aviso de accidente - Seguro escolar",P:"Actualizacion de datos personales",L:"Licencia economica con goce de sueldo (permiso economico)",A:"Anexo A - Acuse de conocimiento",B:"Anexo B - Acta de hechos",C:"Anexo C - Bitacora de atencion y seguimiento",D:"Anexo D - Registro de incidencias",E:"Anexo E - Informe de incidencia",F:"Anexo F - Canalizacion atencion psicologica",G:"Anexo G - Ficha de canalizacion a DANNARD",H:"Anexo H - Referencia a IPEBC y CECOSAMA",I:"Anexo I - Reporte a la PPNNA"};
 const GRUPOS=["Becas","Personal","Docente","Dirección","Todos","Jefatura de Nivel"];
@@ -1909,6 +1911,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">${A.pref||"Anexo "+S.letra} · Revisión</div><h2>${esc(A.name)}</h2></div></div>
    <div class="progress" aria-hidden="true"><i style="width:100%"></i></div>
    ${issues.length?`<div class="alert"><b>Corrija antes de descargar:</b><br>${issues.map(esc).join("<br>")}</div>`:""}
+   ${(A.warn?A.warn(S.vals):[]).length?`<div class="alert"><b>Tome en cuenta:</b><br>${A.warn(S.vals).map(esc).join("<br>")}<br>Puede imprimirlo así.</div>`:""}
    ${missing.length?`<div class="alert"><b>Sin llenar:</b> ${missing.map(esc).join(", ")}.<br>Puede descargar así y llenarlo a mano después.</div>`:""}
    ${A.steps.map((st,i)=>`<section class="card"><div class="top" style="justify-content:space-between"><h3>${esc(st.title)}</h3><button class="btn link" data-step="${i}">Editar</button></div>
      <div class="review">${st.fields.map(f=>{const t=showVal(f);return`<div class="rv"><span>${esc(f.label)}</span><span${t?"":' class="empty"'}>${t?esc(t):"Sin llenar"}</span></div>`}).join("")}</div></section>`).join("")}
@@ -1918,6 +1921,7 @@ async function reviewView(){S.view="review";const A=ANEXOS[S.letra];const{geo}=a
      <button class="btn primary act" data-act="share" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
      <button class="btn ghost act" data-act="save" ${issues.length?"disabled":""}><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button>
     </div>
+    ${issues.length?`<p class="muted" style="font-size:14px;margin:8px 0 0">Los botones se activan cuando corrija lo que se indica al principio de esta página.</p>`:""}
     <div id="msg"></div>
     <button class="btn link" id="blancoR">${EI.print}Imprimir el formato oficial en blanco (para llenar a mano)</button><button class="btn link" id="blancoRD">${EI.down}Descargar el formato oficial en blanco</button>
     <button class="btn link" id="nuevo">Borrar las respuestas y empezar otro formato</button></section>`;
