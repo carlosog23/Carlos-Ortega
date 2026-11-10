@@ -1,0 +1,12 @@
+name: Precios de gasolina (prueba)
+on:
+  workflow_dispatch:
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://publicacionexterna.azurewebsites.net/publicaciones/prices https://publicacionexterna.azurewebsites.net/publicaciones/places; do
+            echo "== $u"; curl -sSL -m 120 -o f.xml -w "HTTP %{http_code} %{size_download} bytes\n" "$u" || true
+            head -c 700 f.xml; echo; grep -o "<place " f.xml | wc -l
+          done
