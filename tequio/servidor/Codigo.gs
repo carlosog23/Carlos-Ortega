@@ -1809,6 +1809,14 @@ const ACCIONES = {
     let avisos = [];
     // al cerrar, la visita y sus acuerdos quedan en el seguimiento de la escuela (para darles seguimiento en Agenda y en Mi escuela)
     // (solo si fue en una escuela; las de otro lugar quedan en el registro de visitas de la Supervisión)
+    // Si se capturó en una escuela y luego se corrigió a otro lugar, se quita del seguimiento de esa escuela
+    if (!cct && o.segId) {
+      const sh = hoja_('seg'), n = sh.getLastRow();
+      const ids = n > 1 ? sh.getRange(2, 1, n - 1, 1).getValues().map(r => String(r[0])) : [];
+      const i = ids.indexOf(String(o.segId));
+      if (i >= 0) sh.deleteRow(i + 2);
+      o.segId = '';
+    }
     if (o.estado === 'cerrada') {
       if (!o.cerrada) { o.cerrada = ahora_(); o.cerradaPor = yo.nombre; }
     }

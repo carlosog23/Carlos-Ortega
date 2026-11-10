@@ -2081,7 +2081,6 @@ function cmpAtencion() {
     const marcar = () => { a.sucio = true; cmpGuardarAte(); };
     $('#ca-volver').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'inicio' }); };
     $('#ca-esc').onchange = e => { const v = e.target.value;
-      if (v === '__otro' && !(S.version >= CMP_ATE_LUGAR_VER || S.offline || (cfg && cfg.demo))) { e.target.value = a.cct; return aviso('Para registrar visitas en otro lugar, actualice el servidor de Tequio a la versión ' + CMP_ATE_LUGAR_VER + '.', 'mal', 7000); }
       if (v === '__otro') { a.cct = ''; a.otroLugar = true; } else { a.cct = v; a.otroLugar = false; a.lugar = ''; }
       marcar(); pintarA(); if (v === '__otro') $('#ca-lug').focus(); };
     $$('[data-a]').forEach(el => el.onchange = () => { if (el.type === 'radio' && !el.checked) return; a[el.dataset.a] = el.type === 'checkbox' ? el.checked : el.value; if (el.type === 'radio') $$('[name=ca-tipo]').forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); marcar(); });
@@ -2107,6 +2106,8 @@ async function cmpSubirAte(la) {
   cargando(true); let n = 0;
   try {
     for (const a of la) {
+      // las de otro lugar se quedan guardadas en el dispositivo hasta que el servidor tenga la versión que las acepta
+      if (!a.cct && S.version && S.version < CMP_ATE_LUGAR_VER) { aviso('La visita «' + esc(a.asunto || 'sin asunto') + '» (otro lugar) queda guardada en este dispositivo; se podrá subir cuando el servidor de Tequio esté en la versión ' + CMP_ATE_LUGAR_VER + '.', 'aviso', 8000); continue; }
       if ((!a.cct && !String(a.lugar || '').trim()) || !String(a.asunto).trim()) { aviso('La visita «' + esc(a.asunto || 'sin asunto') + '» no tiene escuela o lugar, o asunto; complétela para subirla.', 'mal', 7000); continue; }
       for (const f of a.fotos) { if (!f.lid) continue; const b = await CDB.get('foto', f.lid); if (!b) { f.perdida = true; continue; }
         const r = await api('ateFoto', { cct: a.cct, fecha: a.fecha, asunto: a.asunto, nombre: f.n, datos: await cmpB64(b), tipo: 'image/jpeg' });
