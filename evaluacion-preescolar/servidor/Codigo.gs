@@ -7,10 +7,13 @@
  * Instalación (una sola vez):
  *  1. En script.google.com cree un proyecto nuevo y pegue este archivo completo.
  *  2. Configuración del proyecto → Propiedades de la secuencia de comandos → agregue
- *     GEMINI_KEY con su clave de Google AI Studio (puede ser la misma de Tequio).
+ *     GEMINI_KEY con una clave de Google AI Studio propia de esta app.
  *  3. Ejecute una vez la función «autorizar» y acepte los permisos.
  *  4. Implementar → Nueva implementación → Aplicación web → Ejecutar como: Yo →
  *     Quién tiene acceso: Cualquier usuario. Copie la dirección que termina en /exec.
+ *
+ * Para actualizar este código más adelante: pegue el archivo nuevo, guarde y vaya a Implementar →
+ * Administrar implementaciones → lápiz → Versión: Nueva versión → Implementar (la dirección no cambia).
  *
  * Opcional: propiedad LIMITE_DIARIO (número de solicitudes por día; 1500 si no se indica).
  */
@@ -32,7 +35,9 @@ function doPost(e) {
     const imagenes = (Array.isArray(d.imagenes) ? d.imagenes : []).slice(0, MAX_IMAGENES)
       .filter(function (i) { return i && /^image\/(jpeg|png|webp)$/.test(String(i.tipo)) && typeof i.datos === 'string' && i.datos.length <= MAX_IMAGEN_B64; });
     contarUso_();
-    return salida_({ ok: true, texto: gemini_(prompt, imagenes) });
+    const t0 = Date.now();
+    const texto = gemini_(prompt, imagenes);
+    return salida_({ ok: true, texto: texto, modelo: ULTIMO_MODELO, ms: Date.now() - t0 });
   } catch (err) {
     return salida_({ ok: false, error: String((err && err.message) || err) });
   }
@@ -56,6 +61,21 @@ function contarUso_() {
   } finally { lock.releaseLock(); }
 }
 
+let ULTIMO_MODELO = '';
+
+/* Los modelos Gemini «razonan» antes de responder y eso puede tardar minutos. Para redactar no hace falta:
+   se pide el nivel de razonamiento más bajo que admite cada modelo. */
+function configuracion_(modelo, conImagenes, sinRazonamiento) {
+  const g = { maxOutputTokens: 16384, responseMimeType: 'application/json' };
+  const ver = parseFloat((modelo.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+  if (ver < 3) g.temperature = conImagenes ? 0.1 : 0.8;
+  if (!sinRazonamiento) {
+    if (ver >= 3) g.thinkingConfig = { thinkingLevel: /lite/.test(modelo) ? 'minimal' : 'low' };
+    else if (ver >= 2.5) g.thinkingConfig = { thinkingBudget: 0 };
+  }
+  return g;
+}
+
 /* Gemini (Google AI Studio). Si el modelo principal está saturado, intenta con el ligero. */
 function gemini_(prompt, imagenes) {
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
@@ -63,27 +83,30 @@ function gemini_(prompt, imagenes) {
   const partes = imagenes.map(function (i) { return { inline_data: { mime_type: i.tipo, data: i.datos } }; }).concat([{ text: prompt }]);
   let modelos = modelosGemini_(key, false);
   let ultimo = '';
-  for (let intento = 0; intento < 3 && intento < modelos.length + 1; intento++) {
-    const modelo = modelos[Math.min(intento, modelos.length - 1)];
+  let sinRazonamiento = false, turno = 0;
+  for (let intento = 0; intento < 4; intento++) {
+    const modelo = modelos[Math.min(turno, modelos.length - 1)];
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-      payload: JSON.stringify({ contents: [{ role: 'user', parts: partes }],
-        generationConfig: { temperature: imagenes.length ? 0.1 : 0.8, maxOutputTokens: 16384, responseMimeType: 'application/json' } })
+      payload: JSON.stringify({ contents: [{ role: 'user', parts: partes }], generationConfig: configuracion_(modelo, imagenes.length > 0, sinRazonamiento) })
     });
     const c = r.getResponseCode();
     let j = {};
     try { j = JSON.parse(r.getContentText()); } catch (e) {}
     if (c === 200) {
       const ps = (((j.candidates || [])[0] || {}).content || {}).parts || [];
-      const texto = ps.map(function (x) { return x.text || ''; }).join('').trim();
-      if (texto) return texto;
+      const texto = ps.filter(function (x) { return !x.thought; }).map(function (x) { return x.text || ''; }).join('').trim();
+      if (texto) { ULTIMO_MODELO = modelo; return texto; }
       ultimo = 'La IA no devolvió texto. Intenta de nuevo.';
-      continue;
+      turno++; continue;
     }
     if (c === 404) { modelos = modelosGemini_(key, true); ultimo = 'El modelo de IA cambió. Intenta de nuevo.'; continue; }
-    if (c === 429 || c === 503) { ultimo = 'Se alcanzó el límite gratuito de la IA por ahora. Espera un minuto e intenta de nuevo.'; continue; }
+    if (c === 429 || c === 503) { ultimo = 'Se alcanzó el límite gratuito de la IA por ahora. Espera un minuto e intenta de nuevo.'; turno++; continue; }
+    /* Si un modelo no acepta el ajuste de razonamiento, se repite la solicitud sin ese ajuste */
+    if (c === 400 && !sinRazonamiento && /think/i.test((j.error && j.error.message) || '')) { sinRazonamiento = true; continue; }
     if (c === 400 || c === 403) throw new Error('La IA rechazó la solicitud o la clave. ' + ((j.error && j.error.message) || ''));
     ultimo = 'La IA no respondió (' + c + '). Intenta de nuevo.';
+    turno++;
   }
   throw new Error(ultimo || 'La IA no respondió. Intenta de nuevo.');
 }
@@ -115,6 +138,7 @@ function modelosGemini_(key, forzar) {
 
 /** Ejecute esta función UNA vez después de pegar el código: da permiso para conectarse a Gemini y prueba la clave. */
 function autorizar() {
+  const t0 = Date.now();
   const texto = gemini_('Responde solo con este JSON: {"estado":"listo"}', []);
-  Logger.log('Respuesta de prueba: ' + texto + ' · Modelos: ' + PropertiesService.getScriptProperties().getProperty('GEMINI_MODELOS'));
+  Logger.log('Respuesta de prueba: ' + texto + ' · Respondió ' + ULTIMO_MODELO + ' en ' + (Date.now() - t0) + ' ms · Modelos: ' + PropertiesService.getScriptProperties().getProperty('GEMINI_MODELOS'));
 }
