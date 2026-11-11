@@ -982,7 +982,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-07-2200';
+const PUBLICACION = '2026-11-11-1100';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -13278,9 +13278,11 @@ function vOficiosEsc() {
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Oficios de la escuela</h1>
     <div class="acciones"><button class="boton sec" id="b-eo-dir">${ico('i-dir')}Directorio</button><button class="boton sec" id="b-eo-dep">${ico('i-dir')}Dependencias</button><button class="boton sec" id="b-eo-cfg">${ico('i-llave')}Membrete y firma</button><button class="boton sec" id="b-eo-resp">${ico('i-carpeta')}Respaldo</button><button class="boton terra" id="b-eo-nuevo">${ico('i-mas')}Nuevo oficio</button></div></div>
-  <div class="aviso-caja peq">Estos son los oficios de <b>${esc(c.escuela || 'su escuela')}</b>. Se guardan <b>solo en este dispositivo</b>: no se envían a la Supervisión ni se mezclan con sus oficios. El siguiente número es <b>${esc(eoNum(eoSiguiente(anio), anio))}</b>. Para pasarlos a otro teléfono o computadora use «Respaldo».</div>
+  <div class="aviso-caja peq">Estos son los oficios de <b>${esc(c.escuela || 'su escuela')}</b>. Se guardan <b>solo en este dispositivo</b>: no se envían a la Supervisión ni se mezclan con sus oficios. Para pasarlos a otro teléfono o computadora use «Respaldo».</div>
+  <div class="aviso-caja peq" style="display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap"><span>El siguiente número de oficio es <b style="font-size:1.15em">${esc(eoNum(eoSiguiente(anio), anio))}</b></span><button type="button" class="boton sec chico" id="b-eo-num">${ico('i-lapiz')}Cambiar el número</button></div>
   ${!c.logo ? `<div class="aviso-caja conf peq">Aún no hay logo de la escuela. Súbalo en «Membrete y firma» para que aparezca junto al de ISEP. <button class="boton sec chico" id="b-eo-logo" style="margin-left:4px">Subir logo</button></div>` : ''}
   <div class="filtros"><input type="search" id="eo-q" placeholder="Buscar por número, asunto o destinatario" value="${esc(vista.eoQ || '')}" style="flex:1;min-width:220px"></div>
+  <div class="seccion-t" style="padding:6px 0 8px">Oficios guardados (${EO.ofi.length})${EO.ofi.length ? ' <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· toque uno para abrirlo, corregirlo, descargarlo o cambiarle el número</span>' : ''}</div>
   ${lista.length ? `<div class="tarjeta"><div class="lista-act">${lista.map(o => `<button class="act" data-eo="${esc(o.id)}">
       <div class="fecha"><b>${+o.numero || ''}</b><span>${esc(String(o.anio || ''))}</span></div>
       <div class="cuerpo"><div class="t">${esc(o.asunto || '(sin asunto)')}</div>
@@ -13288,6 +13290,7 @@ function vOficiosEsc() {
     : `<div class="tarjeta vacio">${q ? 'No hay oficios que coincidan con la búsqueda.' : 'Aún no hay oficios de la escuela en este dispositivo. Pulse «Nuevo oficio».'}</div>`}`;
   $('#b-eo-nuevo').onclick = () => { vista.eoEdit = 'nuevo'; vista.eoBorrador = null; vOficiosEsc(); window.scrollTo(0, 0); };
   $('#b-eo-cfg').onclick = formMembreteEsc;
+  $('#b-eo-num').onclick = formNumeroEsc;
   $('#b-eo-dir').onclick = () => gestorDirectorio(dirEscuela());
   $('#b-eo-dep').onclick = () => gestorDependencias();
   if ($('#b-eo-logo')) $('#b-eo-logo').onclick = formMembreteEsc;
@@ -13303,13 +13306,17 @@ function vEditorOficioEsc() {
   if (!vista.eoBorrador) vista.eoBorrador = guardado ? JSON.parse(JSON.stringify(guardado)) :
     Object.assign({ fecha: hoy(), tipo: 'sup', referencia: '', asunto: '', cuerpo: '', firmante: c.firmante, cargo: c.cargo, firma: !!c.firma, sello: !!c.sello }, D0.sup);
   const o = vista.eoBorrador, vuelta = ++EO_VUELTA;
+  if (guardado && o.numTxt == null) o.numTxt = String(guardado.numero);
+  // Número del oficio: el que escribió la escuela o, si no lo ha tocado, el que sigue
+  const numDe = () => { const n = Math.floor(+o.numTxt); return (guardado || o.numManual) && n >= 1 ? n : (guardado ? +guardado.numero : eoSiguiente(eoAnio(o.fecha))); };
+  const anioDe = () => guardado ? guardado.anio : eoAnio(o.fecha);
   const usados = [], vistos = {};
   EO.ofi.slice().reverse().forEach(x => { const k = (x.destNombre + '|' + x.destCargo).toUpperCase(); if (x.destNombre && !vistos[k]) { vistos[k] = 1; usados.push(x); } });
   const anio = eoAnio(o.fecha);
   $('#vista').innerHTML = `
   <div class="migas"><button id="b-volver">Oficios de la escuela</button> › <span>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</span></div>
   <div class="titulo-vista"><h1>${guardado ? esc(guardado.folio) : 'Nuevo oficio'}</h1>
-    <div class="acciones"><span class="chip ${guardado ? 'ok' : 'aviso'}" id="o-estado">${guardado ? 'Guardado' : 'Número al guardar: ' + esc(eoNum(eoSiguiente(anio), anio))}</span></div></div>
+    <div class="acciones"><span class="chip ${guardado ? 'ok' : 'aviso'}" id="o-estado">${guardado ? 'Guardado' : 'Número al guardar: ' + esc(eoNum(numDe(), anio))}</span></div></div>
   <div class="ofi-ed">
     <div class="tarjeta pad ofi-form">
       <div class="campo"><span class="et">¿A quién va dirigido?</span>
@@ -13321,9 +13328,11 @@ function vEditorOficioEsc() {
       <div class="campo"><label for="o-di">Dependencia o institución</label><input id="o-di" value="${esc(o.destInst)}"></div>
       <label class="casilla" style="margin:-4px 0 12px"><input type="checkbox" id="o-pl" ${o.plural ? 'checked' : ''}> Va dirigido a varias personas (P R E S E N T E S)</label>
       <div class="fila">
+        <div class="campo"><label for="o-nu">Número de oficio</label><input type="number" id="o-nu" min="1" max="99999" inputmode="numeric" value="${numDe()}"></div>
         <div class="campo"><label for="o-fe">Fecha</label><input type="date" id="o-fe" value="${o.fecha}"></div>
         <div class="campo ancho"><label for="o-re">Referencia <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="o-re" value="${esc(o.referencia)}" placeholder="Ej. Oficio ${esc(ZONA.folioPrefijo)}/044/2026"></div>
       </div>
+      <div class="ayuda" style="margin:-6px 0 12px">Tequio propone el número que sigue. Si este oficio lleva otro número, cámbielo aquí${guardado ? ' y pulse «Guardar cambios»' : ''}.</div>
       <div class="campo"><label for="o-as">Asunto</label><input id="o-as" maxlength="400" value="${esc(o.asunto)}" placeholder="Ej. Solicitud de mantenimiento de sanitarios"></div>
       <div class="campo"><label for="o-cu">Texto del oficio</label><textarea id="o-cu" style="min-height:260px" placeholder="Por medio del presente, ...&#10;&#10;Deje una línea en blanco entre párrafos. Para una lista, inicie cada renglón con «• ».">${esc(o.cuerpo)}</textarea></div>
       <div class="campo"><label for="o-cc">Con copia para (C.c.p.) <span class="mudo" style="font-weight:400">· uno por renglón</span></label><textarea id="o-cc" style="min-height:60px">${esc(o.ccp)}</textarea></div>
@@ -13343,7 +13352,7 @@ function vEditorOficioEsc() {
         <button class="boton sec" id="o-pdf" ${guardado ? '' : 'disabled'}>PDF</button>
         <button class="boton wa" id="o-wa" ${guardado ? '' : 'disabled'}>${ico('i-wa')}Compartir</button>
       </div>
-      ${guardado ? `<div class="ofi-botones" style="margin-top:10px"><button class="boton sec chico" id="o-dup">${ico('i-copiar')}Usar como base para uno nuevo</button><button class="boton peligro chico" id="o-borrar">Borrar</button></div>` : ''}
+      ${guardado ? `<div class="ofi-botones" style="margin-top:10px"><button class="boton sec chico" id="o-ver">${ico('i-carpeta')}Ver oficios guardados</button><button class="boton sec chico" id="o-dup">${ico('i-copiar')}Usar como base para uno nuevo</button><button class="boton peligro chico" id="o-borrar">Borrar</button></div>` : ''}
     </div>
     <div class="ofi-prev"><div class="seccion-t" style="padding:0 0 8px">Vista previa <span class="mudo" id="o-escala" style="text-transform:none;letter-spacing:0;font-weight:400"></span></div><div class="prev-marco" id="o-prev"></div></div>
   </div>`;
@@ -13352,23 +13361,25 @@ function vEditorOficioEsc() {
     if (vuelta !== EO_VUELTA || !$('#o-dn')) return;
     Object.assign(o, { destNombre: $('#o-dn').value, destCargo: $('#o-dc').value, destInst: $('#o-di').value, plural: $('#o-pl').checked, fecha: $('#o-fe').value || hoy(),
       referencia: $('#o-re').value, asunto: $('#o-as').value, cuerpo: $('#o-cu').value, ccp: $('#o-cc').value, firmante: $('#o-fn').value, cargo: $('#o-fc').value,
-      firma: $('#o-fi').checked, sello: $('#o-se').checked });
+      firma: $('#o-fi').checked, sello: $('#o-se').checked, numTxt: $('#o-nu').value });
   };
   let tPrev = null;
   const pintarPrev = () => {
     if (vuelta !== EO_VUELTA || !$('#o-prev')) return;
     leerForm();
-    const vo = Object.assign({}, o, { folio: guardado ? guardado.folio : '' }), dis = eoDisp(vo);
+    if (!guardado && !o.numManual && $('#o-nu') && document.activeElement !== $('#o-nu')) $('#o-nu').value = numDe();
+    const vo = Object.assign({}, o, { folio: guardado && numDe() === +guardado.numero ? guardado.folio : eoNum(numDe(), anioDe()) }), dis = eoDisp(vo);
     const marco = $('#o-prev'), w = marco.clientWidth || 600, k = Math.min(1, w / 816);
     marco.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:816px">${htmlOficioEsc(vo, dis.s, {}, dis.t, dis.unaHoja)}</div>`;
     marco.style.height = (marco.querySelector('.hoja').offsetHeight * k) + 'px';
     const de = $('#o-escala'); if (de) de.textContent = dis.s < 1 ? '· ajustado a una hoja (' + Math.round(dis.s * 100) + ' %)' : dis.unaHoja ? '' : '· ocupa dos hojas';
     const est = $('#o-estado');
-    if (est && guardado) { const cambio = CAMPOS.some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')); est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
-    else if (est) est.textContent = 'Número al guardar: ' + eoNum(eoSiguiente(eoAnio(o.fecha)), eoAnio(o.fecha));
+    if (est && guardado) { const cambio = CAMPOS.some(k2 => String(o[k2] ?? '') !== String(guardado[k2] ?? '')) || String(o.numTxt ?? '').trim() !== String(guardado.numero); est.textContent = cambio ? 'Cambios sin guardar' : 'Guardado'; est.className = 'chip ' + (cambio ? 'aviso' : 'ok'); }
+    else if (est) est.textContent = 'Número al guardar: ' + eoNum(numDe(), anioDe());
   };
   const programar = () => { clearTimeout(tPrev); tPrev = setTimeout(pintarPrev, 250); };
   $$('.ofi-form input, .ofi-form textarea').forEach(el => { el.addEventListener('input', programar); el.addEventListener('change', programar); });
+  $('#o-nu').addEventListener('input', () => { o.numManual = true; });
   $$('[data-dt]').forEach(b => b.onclick = () => {
     leerForm();
     const ant = D0[o.tipo] || {}, nue = D0[b.dataset.dt];
@@ -13383,13 +13394,21 @@ function vEditorOficioEsc() {
     if (!o.destNombre.trim()) return aviso('Escriba a quién va dirigido.', 'mal');
     if (!o.asunto.trim()) return aviso('Escriba el asunto.', 'mal');
     if (!o.cuerpo.trim()) return aviso('Escriba el texto del oficio.', 'mal');
+    const nTxt = Math.floor(+String(o.numTxt ?? '').trim());
+    if ((guardado || o.numManual) && !(nTxt >= 1 && nTxt <= 99999)) return aviso('Escriba un número de oficio válido (solo el número, sin el año).', 'mal');
+    const a = anioDe(), n = numDe();
+    const repetido = EO.ofi.find(x => x.id !== (guardado ? guardado.id : '') && String(x.anio) === String(a) && +x.numero === n);
+    if (repetido) return aviso('Ya hay un oficio guardado con el número ' + esc(repetido.folio) + ' («' + esc(repetido.asunto || 'sin asunto') + '»). Escriba otro número.', 'mal', 7000);
+    const limpio = () => { const x = JSON.parse(JSON.stringify(o)); delete x.numTxt; delete x.numManual; return x; };
     let r;
-    if (guardado) { r = Object.assign(guardado, JSON.parse(JSON.stringify(o)), { id: guardado.id, folio: guardado.folio, numero: guardado.numero, anio: guardado.anio, actualizado: ahora() }); }
-    else {
-      const a = eoAnio(o.fecha), n = eoSiguiente(a);
+    if (guardado) {
+      const nuevoFolio = n === +guardado.numero ? guardado.folio : eoNum(n, a);
+      if (nuevoFolio !== guardado.folio && !confirm('El oficio ' + guardado.folio + ' cambiará su número a ' + nuevoFolio + '. ¿Continuar?')) return;
+      r = Object.assign(guardado, limpio(), { id: guardado.id, folio: nuevoFolio, numero: n, anio: guardado.anio, actualizado: ahora() });
+    } else {
       if (!confirm('Se asignará el número ' + eoNum(n, a) + ' a este oficio. ¿Continuar?')) return;
-      r = Object.assign(JSON.parse(JSON.stringify(o)), { id: 'eo-' + Date.now().toString(36), numero: n, anio: a, folio: eoNum(n, a), creado: ahora() });
-      EO.ofi.push(r); EO.cfg.ultimos = Object.assign({}, EO.cfg.ultimos, { [a]: n });
+      r = Object.assign(limpio(), { id: 'eo-' + Date.now().toString(36), numero: n, anio: a, folio: eoNum(n, a), creado: ahora() });
+      EO.ofi.push(r); EO.cfg.ultimos = Object.assign({}, EO.cfg.ultimos, { [a]: Math.max(+(EO.cfg.ultimos || {})[a] || 0, n) });
     }
     if (!eoGuardar()) return;
     vista.eoEdit = r.id; vista.eoBorrador = JSON.parse(JSON.stringify(r));
@@ -13400,8 +13419,9 @@ function vEditorOficioEsc() {
   $('#o-word').onclick = () => { const g = listo(); if (g) conCarga(async () => descargarBlob(await wordOficioEsc(g), eoArchivo(g) + '.docx')); };
   $('#o-pdf').onclick = () => { const g = listo(); if (g) conCarga(async () => descargarBlob(await pdfOficioEsc(g), eoArchivo(g) + '.pdf')); };
   $('#o-wa').onclick = () => { const g = listo(); if (g) compartirOficioEsc(g); };
+  if ($('#o-ver')) $('#o-ver').onclick = () => $('#b-volver').onclick();
   if ($('#o-dup')) $('#o-dup').onclick = () => {
-    const b = JSON.parse(JSON.stringify(guardado)); ['id', 'folio', 'numero', 'anio', 'creado', 'actualizado'].forEach(k => delete b[k]);
+    const b = JSON.parse(JSON.stringify(guardado)); ['id', 'folio', 'numero', 'anio', 'creado', 'actualizado', 'numTxt', 'numManual'].forEach(k => delete b[k]);
     b.fecha = hoy(); vista.eoEdit = 'nuevo'; vista.eoBorrador = b; vEditorOficioEsc(); window.scrollTo(0, 0);
     aviso('Copia lista para editar. Tendrá un número nuevo al guardarla.', 'ok', 3500);
   };
@@ -13412,6 +13432,32 @@ function vEditorOficioEsc() {
   };
   pintarPrev();
   fuentesOficio().then(() => { if ($('#o-prev')) pintarPrev(); });
+}
+
+/* ---- Cambiar el número de oficio que sigue (a la vista, sin entrar a «Membrete y firma») ---- */
+function formNumeroEsc() {
+  const c = EO.cfg, anio = hoy().slice(0, 4);
+  const max = Math.max(0, ...EO.ofi.filter(x => String(x.anio) === anio).map(x => +x.numero || 0));
+  modal('Cambiar el número de oficio', `
+    <p class="peq" style="margin-top:0">Escriba el número que debe llevar <b>el siguiente oficio</b> de ${anio}. Sirve, por ejemplo, si ya llevaba oficios hechos a mano y quiere continuar con esa numeración.</p>
+    <div class="fila dos">
+      <div class="campo"><label for="n-sig">El siguiente oficio será el número</label><input id="n-sig" type="number" min="1" max="99999" inputmode="numeric" value="${eoSiguiente(anio)}"></div>
+      <div class="campo"><label for="n-pr">Prefijo <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="n-pr" value="${esc(c.prefijo)}" placeholder="Ej. DIR/"></div>
+    </div>
+    <div class="ayuda" id="n-ej"></div>
+    <p class="ayuda">Para cambiar el número de un oficio que ya guardó, ábralo en «Oficios guardados» y corrija ahí su número.</p>`,
+    '<button class="boton sec" id="n-no">Cancelar</button><button class="boton terra" id="n-si">Guardar</button>');
+  const ej = () => { const n = Math.floor(+$('#n-sig').value || 0); $('#n-ej').textContent = n >= 1 ? 'Se verá así: ' + ($('#n-pr').value.trim() || '') + String(n).padStart(3, '0') + '/' + anio : ''; };
+  $('#n-sig').oninput = ej; $('#n-pr').oninput = ej; ej();
+  $('#n-no').onclick = cerrarModal;
+  $('#n-si').onclick = () => {
+    const n = Math.floor(+$('#n-sig').value || 0);
+    if (!(n >= 1 && n <= 99999)) return aviso('Escriba un número válido.', 'mal');
+    if (n <= max) return aviso('En ' + anio + ' ya hay un oficio guardado con el número ' + max + ', así que el siguiente debe ser mayor. Si ese número está mal, abra ese oficio y corríjalo.', 'mal', 8000);
+    c.prefijo = $('#n-pr').value.trim(); c.ultimos = Object.assign({}, c.ultimos, { [anio]: n - 1 });
+    if (!eoGuardar()) return;
+    cerrarModal(); vista.eoBorrador = null; vOficiosEsc(); aviso('Listo: el siguiente oficio será el ' + esc(eoNum(n, anio)) + '.', 'ok', 3500);
+  };
 }
 
 /* ---- Membrete, firma y numeración de la escuela ---- */
