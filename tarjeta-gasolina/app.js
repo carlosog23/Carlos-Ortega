@@ -109,6 +109,8 @@ function backendFirebase(cfg){
         const q=F.query(F.collection(db,'alertas'),F.where('creadoMs','>=',Date.now()-2*VENTANA),F.orderBy('creadoMs','desc'),F.limit(150));
         return F.onSnapshot(q,{includeMetadataChanges:true},s=>cb(s.docs.map(d=>Object.assign({id:d.id,_pend:d.metadata.hasPendingWrites},d.data()))),errCb);
       },
+      // Gasolineras que no aceptaron la tarjeta (se guardan en la misma colección, con tipo 'noacepta')
+      escucharNoAcepta(cb){return F.onSnapshot(F.query(F.collection(db,'alertas'),F.where('tipo','==','noacepta'),F.limit(400)),s=>cb(s.docs.map(d=>Object.assign({id:d.id},d.data()))),()=>{})},
       crear:a=>{const r=F.doc(F.collection(db,'alertas'));const w=F.setDoc(r,Object.assign({},a,{uid,estado:'activa',creadoMs:Date.now(),creado:F.serverTimestamp(),confirman:[]}));return {id:r.id,escrito:w}},
       resolver:(id,quien)=>F.updateDoc(F.doc(db,'alertas',id),{estado:'resuelta',resueltaPor:Object.assign({uid},quien),resueltaEn:Date.now()}),
       confirmar:(id,quien)=>F.updateDoc(F.doc(db,'alertas',id),{confirman:F.arrayUnion(Object.assign({en:Date.now(),uid},quien))}),
@@ -135,6 +137,7 @@ function backendDemo(){
     anuncios(cb){setTimeout(()=>cb([{id:'a2',tipo:'actualizacion',titulo:'Nuevo: gasolineras de la tarjeta',texto:'Ya puedes ver las gasolineras que aceptan la tarjeta y cuál te queda más cerca.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-5*6e4},{id:'a1',tipo:'aviso',fijado:true,titulo:'Bienvenidos',texto:'Este es un aviso de prueba de la supervisión.',autor:'Mtro. Carlos Gabriel Ortega Gutiérrez',creadoMs:Date.now()-20*6e4}]),300);return()=>{}},
     bienvenida:()=>Promise.resolve(null),
     escuchar(cb){subs.push(cb);setTimeout(()=>cb(datos.slice().sort((a,b)=>b.creadoMs-a.creadoMs)),250);return()=>{}},
+    escucharNoAcepta(cb){const f=l=>cb(l.filter(a=>a.tipo==='noacepta'));subs.push(f);setTimeout(()=>f(datos),250);return()=>{}},
     crear(a){const id='d'+Date.now();datos.push(Object.assign({},a,{id,uid,estado:'activa',creadoMs:Date.now(),confirman:[]}));const escrito=new Promise(r=>setTimeout(r,500));escrito.then(guardar);return {id,escrito}},
     resolver(id,quien){const a=datos.find(x=>x.id===id);if(a){a.estado='resuelta';a.resueltaPor=quien;a.resueltaEn=Date.now()}guardar();return Promise.resolve()},
     confirmar(id,quien){const a=datos.find(x=>x.id===id);if(a)a.confirman.push(Object.assign({en:Date.now(),uid},quien));guardar();return Promise.resolve()},
@@ -284,9 +287,37 @@ const nombreEst=e=>'E.S. '+e.p+' · '+e.n;
 function estacionesCerca(lat,lon,maxM,n){
   return ESTS.map(e=>Object.assign({dm:dist(lat,lon,e.la,e.lo)},e)).filter(e=>!maxM||e.dm<=maxM).sort((a,b)=>a.dm-b.dm).slice(0,n||5);
 }
+async function clicNoAcepta(ev){
+  const b=ev.target.closest('[data-na],[data-na-conf],[data-na-ok]');if(!b)return;
+  if(!perfil){toast('Primero regístrate para poder reportar');return}
+  const k=b.dataset.na?'e'+b.dataset.na:b.dataset.naConf||'ok'+b.dataset.naOk;
+  if(!naConf[k]){naConf[k]=1;pintarGasolineras();setTimeout(()=>{if(naConf[k]){delete naConf[k];pintarGasolineras()}},6000);return}
+  delete naConf[k];
+  let be;try{be=await backend.ready}catch(er){toast('El servicio de reportes no está disponible');return}
+  try{
+    if(b.dataset.na){const e=ESTS.find(x=>x.p===b.dataset.na);if(!e)return;
+      const r=be.crear(Object.assign(yo(),{tipo:'noacepta',estacion:e.p,gasolinera:(e.n+' · E.S. '+e.p).slice(0,120),lugar:(e.d||e.m||'').slice(0,160),lat:e.la,lon:e.lo}));
+      noAcep=noAcep.concat([Object.assign(yo(),{id:r.id,tipo:'noacepta',estacion:e.p,gasolinera:e.n,estado:'activa',creadoMs:Date.now(),confirman:[],uid:miUid})]);pintarGasolineras();
+      await r.escrito;toast('Gracias. Ya les aparece a todos que esa gasolinera no aceptó la tarjeta.');
+    }else if(b.dataset.naConf){const r=noAcep.find(x=>x.id===b.dataset.naConf);if(r&&(r.uid===miUid||(r.confirman||[]).some(c=>c.uid===miUid))){toast('Ya habías reportado esta gasolinera');pintarGasolineras();return}
+      await be.confirmar(b.dataset.naConf,yo());toast('Gracias, se sumó tu reporte.');
+    }else{await be.resolver(b.dataset.naOk,yo());noAcep=noAcep.map(x=>x.id===b.dataset.naOk?Object.assign({},x,{estado:'resuelta'}):x);toast('Listo. Se quitó el aviso de esa gasolinera.')}
+  }catch(er){toast('No se pudo guardar. Revisa tu señal e intenta de nuevo.')}
+  pintarGasolineras();
+}
 const rutaA=e=>'https://www.google.com/maps/dir/?api=1&destination='+e.la+','+e.lo;
 /* ¿Hay un reporte activo de falla en esta gasolinera? (a menos de 250 m) */
 const fallaEn=e=>alertas.find(a=>a.lat&&estadoDe(a)==='activa'&&dist(a.lat,a.lon,e.la,e.lo)<250);
+/* Reportes de "no aceptó la tarjeta SiGGo": siguen vigentes hasta que alguien avise que ya la aceptan (máx. 120 días) */
+let noAcep=[];const NA_VIG=120*24*H,naConf={};
+const noAceptaEn=e=>noAcep.filter(r=>r.estacion===e.p&&r.estado!=='resuelta'&&Date.now()-r.creadoMs<NA_VIG).sort((a,b)=>b.creadoMs-a.creadoMs)[0]||null;
+function bloqueNoAcepta(e){
+  const r=noAceptaEn(e);
+  if(r){const n=1+(r.confirman||[]).length;
+    return '<div class="na-rep"><b>'+ic('alert')+'No acepta la tarjeta SiGGo</b><span>Reportó '+esc(r.nombre||'un compañero')+' · '+esc(hace(r.creadoMs))+(n>1?' · '+n+' reportes':'')+'</span>'+(r.comentario?'<span>“'+esc(r.comentario)+'”</span>':'')+
+      '<div class="na-bt"><button type="button" class="btn2" data-na-conf="'+esc(r.id)+'">'+(naConf[r.id]?'¿Confirmas? Toca otra vez':'A mí tampoco me la aceptó')+'</button><button type="button" class="btn2" data-na-ok="'+esc(r.id)+'">'+(naConf['ok'+r.id]?'¿Seguro? Toca otra vez':'Ya la aceptan')+'</button></div></div>'}
+  return '<button type="button" class="btn2 na-btn" data-na="'+esc(e.p)+'">'+(naConf['e'+e.p]?'¿Seguro que no la aceptó? Toca otra vez':'No me aceptó la tarjeta')+'</button>';
+}
 const gs={modo:'cerca',mun:'',buscando:false,err:'',comb:(()=>{try{return localStorage.getItem('tarjetaGasolina.comb')||'magna'}catch(e){return 'magna'}})()};
 /* Precios por estación (CRE), los actualiza GitHub cada mañana en precios.json */
 let PRECIOS=null;
@@ -298,14 +329,16 @@ fetchJSON('precios.json?d='+new Date().toISOString().slice(0,10),{},15000).then(
 function tarjetaEst(e,mejor,ahorro){
   const f=fallaEn(e),pr=PRECIOS&&PRECIOS.p[e.p];
   const precios=pr?'<div class="est-prec">'+Object.keys(COMB).map(k=>'<div class="'+(k===gs.comb?'sel':'')+(pr[k]?'':' na')+'"><small>'+COMB[k]+'</small><b>'+(pr[k]?pesos(pr[k]):'—')+'</b></div>').join('')+'</div>':'';
-  return '<article class="card est'+(f?' falla':'')+'"><div class="est-top"><span class="est-ic">'+ic('fuel')+'</span><div><h3>'+esc(e.n)+'</h3><small>E.S. '+esc(e.p)+' · '+esc(e.m)+(e.dm!=null?' · <b>a '+fdist(e.dm)+'</b>':'')+'</small></div></div>'+
-    '<p>'+esc(e.d)+'</p>'+precios+'<div class="est-tags">'+(mejor?'<span class="bien">Mejor precio de '+COMB[gs.comb]+'</span>':'')+(ahorro?'<span class="'+(mejor?'ahorro':'')+'">'+esc(ahorro)+'</span>':'')+'<span>'+esc(e.h)+'</span><span>'+esc(e.c)+'</span>'+(f?'<span class="mal">Sin sistema · '+esc(hace(f.creadoMs))+'</span>':'')+'</div>'+
-    '<a class="btn2" href="'+rutaA(e)+'" target="_blank" rel="noopener">'+ic('nav')+'Cómo llegar</a></article>';
+  const na=noAceptaEn(e);
+  return '<article class="card est'+(f||na?' falla':'')+'"><div class="est-top"><span class="est-ic">'+ic('fuel')+'</span><div><h3>'+esc(e.n)+'</h3><small>E.S. '+esc(e.p)+' · '+esc(e.m)+(e.dm!=null?' · <b>a '+fdist(e.dm)+'</b>':'')+'</small></div></div>'+
+    '<p>'+esc(e.d)+'</p>'+precios+'<div class="est-tags">'+(mejor?'<span class="bien">Mejor precio de '+COMB[gs.comb]+'</span>':'')+(ahorro?'<span class="'+(mejor?'ahorro':'')+'">'+esc(ahorro)+'</span>':'')+'<span>'+esc(e.h)+'</span><span>'+esc(e.c)+'</span>'+(f?'<span class="mal">Sin sistema · '+esc(hace(f.creadoMs))+'</span>':'')+(na?'<span class="mal">No acepta la tarjeta</span>':'')+'</div>'+
+    bloqueNoAcepta(e)+'<a class="btn2" href="'+rutaA(e)+'" target="_blank" rel="noopener">'+ic('nav')+'Cómo llegar</a></article>';
 }
 /* Pinta una lista marcando la más barata del combustible elegido y cuánto ahorra frente a la más cara de la lista */
 function listaEst(l){
-  const con=l.map(e=>precioDe(e)).filter(Boolean),min=con.length>1?Math.min(...con):null,max=con.length?Math.max(...con):null;
-  return l.map(e=>{const p=precioDe(e);const mejor=min!=null&&p===min&&max>min;
+  l=l.filter(e=>!noAceptaEn(e)).concat(l.filter(e=>noAceptaEn(e)));
+  const con=l.filter(e=>!noAceptaEn(e)).map(e=>precioDe(e)).filter(Boolean),min=con.length>1?Math.min(...con):null,max=con.length?Math.max(...con):null;
+  return l.map(e=>{const p=noAceptaEn(e)?null:precioDe(e);const mejor=min!=null&&p===min&&max>min;
     return tarjetaEst(e,mejor,mejor?'Ahorras '+pesos(max-min)+' por litro':(p&&min!=null&&p>min?pesos(p-min)+' más por litro':''))}).join('');
 }
 function pintarGasolineras(){
@@ -346,7 +379,7 @@ async function buscarCercanas(){
   sel.onchange=()=>{gs.mun=sel.value;pintarGasolineras()};
   $('#gasComb').onchange=e=>{gs.comb=e.target.value;try{localStorage.setItem('tarjetaGasolina.comb',gs.comb)}catch(er){}pintarGasolineras()};
   document.querySelectorAll('[data-gm]').forEach(b=>b.onclick=()=>{gs.modo=b.dataset.gm;if(gs.modo==='barato'&&!miUbic&&!gs.buscando)buscarCercanas();else pintarGasolineras()});
-  $('#gasLista').addEventListener('click',e=>{if(e.target.closest('#gasUbic'))buscarCercanas()});
+  $('#gasLista').addEventListener('click',e=>{if(e.target.closest('#gasUbic'))buscarCercanas();clicNoAcepta(e)});
   $('#gasCuenta').textContent=ESTS.length+' en el estado';
 })();
 async function lugarDe(lat,lon){
@@ -571,7 +604,9 @@ function iniciar(){
       primeraA=false;
     });
     if(avisosActivos())registrarSW();
+    if(be.escucharNoAcepta)be.escucharNoAcepta(l=>{noAcep=l;pintarGasolineras()});
     be.escuchar(lista=>{
+      lista=lista.filter(a=>a.tipo!=='noacepta');
       const previas=new Set(alertas.map(a=>a.id));const primera=!conectado;
       alertas=lista;conectado=true;errorConexion=null;repintar();
       if(primera)alertasPrevias=lista.map(a=>({id:a.id,estado:a.estado}));

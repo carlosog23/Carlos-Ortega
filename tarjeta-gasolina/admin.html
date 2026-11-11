@@ -217,7 +217,7 @@ $('#fBien').onsubmit=async e=>{e.preventDefault();try{await F.setDoc(F.doc(db,'c
 
 /* Alertas */
 function pintarAlertas(l){
-  $('#alertasL').innerHTML=l.length?l.map(a=>'<article class="card item"><div class="fila"><h3>'+esc(a.gasolinera)+'</h3><button class="btn2 rojo" data-borra="'+esc(a.id)+'">Borrar</button></div><p>'+esc(a.lugar||a.municipio||'')+' · '+(a.estado==='resuelta'?'Restablecido':'Sin sistema')+'</p><small>'+esc(a.nombre)+' · Zona '+esc(a.zona)+' · '+fecha(a.creadoMs)+(a.comentario?' · “'+esc(a.comentario)+'”':'')+'</small></article>').join(''):'<div class="card vacio">No hay alertas en los últimos 7 días.</div>';
+  $('#alertasL').innerHTML=l.length?l.map(a=>'<article class="card item"><div class="fila"><h3>'+(a.tipo==='noacepta'?'🚫 No acepta la tarjeta · ':'')+esc(a.gasolinera)+'</h3><button class="btn2 rojo" data-borra="'+esc(a.id)+'">Borrar</button></div><p>'+esc(a.lugar||a.municipio||'')+' · '+(a.estado==='resuelta'?'Restablecido':'Sin sistema')+'</p><small>'+esc(a.nombre)+' · Zona '+esc(a.zona)+' · '+fecha(a.creadoMs)+(a.comentario?' · “'+esc(a.comentario)+'”':'')+'</small></article>').join(''):'<div class="card vacio">No hay alertas en los últimos 7 días.</div>';
 }
 $('#alertasL').onclick=async e=>{const b=e.target.closest('[data-borra]');if(!b)return;if(!b.dataset.c){b.dataset.c=1;b.textContent='¿Seguro? Toca otra vez';return}try{await F.deleteDoc(F.doc(db,'alertas',b.dataset.borra));toast('Alerta borrada')}catch(err){toast('No se pudo borrar')}};
 </script>
