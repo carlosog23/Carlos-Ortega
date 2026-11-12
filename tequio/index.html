@@ -995,7 +995,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-1030';
+const PUBLICACION = '2026-11-12-1045';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -4551,10 +4551,12 @@ const SEG_EST = { cumple: 'Cumple', incompleto: 'Incompleto', sin: 'Sin evidenci
 function segmentosEvi(cct, ruta) {
   if (!S.evi || !ruta || cteCol(cct, ruta)) return [];
   const base = normRuta(ruta) + '/', prof = String(ruta).split('/').length + 1, reuF = id => (S.reu || []).find(r => r.id === id);
-  return (S.acu || []).filter(x => x.activo !== false && x.evidencia && normRuta(x.evidencia).startsWith(base) && String(x.evidencia).split('/').length === prof && reuF(x.reunionId) && aplicaA(x, cct))
+  // la actividad puede estar en una subcarpeta directa o más adentro (p. ej. «10-Evaluaciones › Primer Trimestre › 01-…»)
+  return (S.acu || []).filter(x => x.activo !== false && x.evidencia && normRuta(x.evidencia).startsWith(base) && String(x.evidencia).split('/').length >= prof && reuF(x.reunionId) && aplicaA(x, cct))
     .map(x => { const e = eviDe(cct, x.evidencia); if (!e) return null;
       const rev = eveDe(cct, x.evidencia), n = nArch(e), ok = rev ? rev.estado === 'cumple' : n > 0;
-      return { acu: x, ruta: x.evidencia, e, rev, n, ok, est: rev ? rev.estado : n ? 'con' : (x.limite && x.limite < hoy() ? 'sin' : 'vacia'), nombre: sinNum(String(x.evidencia).split('/').pop()) }; })
+      const partes = String(x.evidencia).split('/').slice(prof - 1);
+      return { acu: x, ruta: x.evidencia, e, rev, n, ok, est: rev ? rev.estado : n ? 'con' : (x.limite && x.limite < hoy() ? 'sin' : 'vacia'), nombre: partes.length > 1 ? partes.slice(0, -1).map(sinNum).join(' › ') + ' › ' + sinNum(partes.pop()) : sinNum(partes[0]) }; })
     .filter(Boolean).sort((a, b) => String(reuF(a.acu.reunionId).fecha).localeCompare(String(reuF(b.acu.reunionId).fecha)) || (+a.acu.orden || 0) - (+b.acu.orden || 0));
 }
 // Parte cumplida de un rubro (0 a 1): proporcional si la carpeta tiene actividades
