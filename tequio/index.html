@@ -995,7 +995,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-0840';
+const PUBLICACION = '2026-11-12-1000';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -4619,7 +4619,8 @@ function vEvidencias() {
   </div>`}`;
   $('#b-revisar').onclick = async () => {
     aviso('Revisando las carpetas del Drive. Puede tardar uno o dos minutos…', '', 6000);
-    await accion('revisarEvidencias', {}, r => { S.evi = r.evi; S.eviRevisado = r.eviRevisado; vEvidencias(); aviso('Revisión terminada: ' + r.escuelas + ' escuelas.', 'ok', 3500); });
+    await accion('revisarEvidencias', {}, r => { S.evi = r.evi; S.eviRevisado = r.eviRevisado; vEvidencias();
+      aviso(r.completa === false ? 'Se revisaron ' + r.escuelas + ' escuelas; las ' + r.faltan + ' que faltan se siguen revisando solas en unos minutos. Recargue después para verlas.' : 'Revisión terminada: ' + r.escuelas + ' escuelas.', 'ok', r.completa === false ? 9000 : 3500); });
   };
   $('#b-carpeta').onclick = formCarpeta;
   $('#b-subir').onclick = () => formSubir(vista.atp && escuelasDeAtp(usuario(vista.atp))[0] || '');

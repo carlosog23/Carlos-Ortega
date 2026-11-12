@@ -227,7 +227,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 52;
+const VERSION = 53;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -670,6 +670,15 @@ const ACCIONES = {
      Lo de cada escuela (asistencia, evidencias, productos, su presentación): «<escuela>/02-Evidencias…/CTEs/0N-CTE … sesión/<apartado>». */
   cteDatos: (yo, d) => {
     const ciclo = String(d.ciclo || '');
+    // antes de leer, se registra lo que las escuelas subieron directo al Drive (como mucho cada 5 minutos, o cuando se pide)
+    try {
+      const cache = CacheService.getScriptCache(), clave = 'cteSinc|' + ciclo;
+      if (d.sincronizar || !cache.get(clave)) {
+        const ses = Array.isArray(d.sincronizar) ? d.sincronizar : cteSesionesARevisar_(ciclo, false);
+        cteSincronizar_(ciclo, ses);
+        cache.put(clave, '1', 300);
+      }
+    } catch (e) { bitacora_('cte', '', [], 'Revisar el Drive del CTE', 'error: ' + e.message); }
     const cte = leer_('cte').filter(x => x.ciclo === ciclo);
     let cta = leer_('cta').filter(x => x.ciclo === ciclo && x.activo !== false);
     let ctr = leer_('ctr').filter(x => x.ciclo === ciclo);
@@ -1332,9 +1341,9 @@ const ACCIONES = {
     return { id: reu.id };
   },
 
-  // Revisa ahora las carpetas del Drive (tarda uno o dos minutos)
+  // Revisa ahora las carpetas del Drive. Si no alcanza en una tanda, lo que falta se sigue revisando solo, un minuto después.
   revisarEvidencias: (yo) => {
-    const r = revisarEvidencias_();
+    const r = revisarEvidencias_({ desdeCero: true, limite: 200000 });
     return Object.assign(r, { evi: leer_('evi'), eviRevisado: PropertiesService.getScriptProperties().getProperty('EVI_REVISADO') });
   },
 
@@ -3325,6 +3334,81 @@ function subcarpetaCte_(padre, re, nombre) {
   while (it.hasNext()) { const f = it.next(); if (re.test(sinAcCte_(f.getName()))) return f; }
   return padre.createFolder(nombre);
 }
+/* Lo que las escuelas suben directo a su carpeta del Drive («02-Evidencias…/CTEs/0N-CTE … sesión/…»), sin pasar por el apartado CTE,
+   también cuenta: se registra en «cta» con el apartado que dice su subcarpeta (Lista de asistencia, Evidencias, Productos,
+   Presentación de la escuela); lo que está suelto en la carpeta de la sesión se clasifica por su nombre. Si un archivo ya no está
+   en el Drive (lo borraron o lo movieron), deja de contar. */
+function cteTipoCarpeta_(nombre) {
+  const n = sinAcCte_(nombre);
+  if (/asistencia|^lista/.test(n)) return 'asistencia';
+  if (/producto/.test(n)) return 'producto';
+  if (/presentacion/.test(n)) return 'presentacion';
+  if (/evidencia|foto|jornada/.test(n)) return 'evidencia';
+  return '';
+}
+function cteSincronizar_(ciclo, sesiones) {
+  sesiones = (sesiones || []).map(Number).filter(n => n >= 1 && n <= 8);
+  if (!/^\d{4}-\d{4}$/.test(ciclo) || !sesiones.length) return { nuevos: 0, quitados: 0 };
+  const evi = leer_('evi'), dir = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false);
+  const cta = leer_('cta').filter(x => x.ciclo === ciclo);
+  const cte = leer_('cte').filter(x => x.ciclo === ciclo);
+  const conocidos = {}; cta.forEach(x => { if (x.archivoId) conocidos[x.archivoId] = x; });
+  const nuevos = [], vistos = {}, revisadas = {};
+  const reEv = /^0?2\s*-\s*evidencias/;
+  dir.forEach(c => {
+    const raiz = evi.find(e => e.cct === c.cct && !e.ruta);
+    if (!raiz) return;
+    let ctes = null;
+    try {
+      const it = DriveApp.getFolderById(raiz.carpetaId).getFolders();
+      let ev = null;
+      while (it.hasNext()) { const f = it.next(), n = sinAcCte_(f.getName()); if (reEv.test(n) && n.indexOf(ciclo) >= 0) { ev = f; break; } if (reEv.test(n) && !ev) ev = f; }
+      if (!ev) return;
+      const it2 = ev.getFolders();
+      while (it2.hasNext()) { const f = it2.next(); if (/^ctes?$/.test(sinAcCte_(f.getName()))) { ctes = f; break; } }
+    } catch (e) { return; }
+    if (!ctes) return;
+    const its = ctes.getFolders();
+    while (its.hasNext()) {
+      const sf = its.next(), m = sinAcCte_(sf.getName()).match(/^0?(\d)\s*-/);
+      if (!m || sesiones.indexOf(+m[1]) < 0) continue;
+      const ses = +m[1], s = cte.find(x => +x.sesion === ses) || {};
+      revisadas[c.cct + '|' + ses] = true;
+      const soloJornada = !(s.evid || []).length;
+      const anotar = (a, tipo) => {
+        const id = a.getId();
+        vistos[id] = true;
+        if (conocidos[id] || !tipo) return;
+        let por = '';
+        try { const ds = a.getDescription() || ''; if (ds.indexOf(SUBIDO_POR) === 0) por = ds.slice(SUBIDO_POR.length); } catch (e) {}
+        if (!por) { try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {} }
+        const fila = { id: 'ct-' + id, ciclo: ciclo, sesion: String(ses), cct: c.cct, tipo: tipo, item: tipo === 'evidencia' && soloJornada ? 'jornada' : '', etiqueta: '',
+          nombre: a.getName(), archivoId: id, url: a.getUrl(), mime: a.getMimeType(), subidoPor: (por || 'el Drive') + ' (directo al Drive)',
+          fecha: Utilities.formatDate(a.getDateCreated(), TZ, "yyyy-MM-dd'T'HH:mm:ss"), activo: true };
+        conocidos[id] = fila; nuevos.push(fila);
+      };
+      const sueltos = sf.getFiles();
+      while (sueltos.hasNext()) { const a = sueltos.next(); anotar(a, cteTipoCarpeta_(a.getName()) || 'evidencia'); }
+      const subs = sf.getFolders();
+      while (subs.hasNext()) {
+        const sub = subs.next(), tipo = cteTipoCarpeta_(sub.getName()) || 'evidencia';
+        const fs = sub.getFiles();
+        while (fs.hasNext()) anotar(fs.next(), tipo);
+      }
+    }
+  });
+  // lo que estaba registrado pero ya no está en la carpeta de la sesión (borrado o movido) deja de contar
+  const quitados = cta.filter(x => x.activo !== false && x.archivoId && revisadas[x.cct + '|' + x.sesion] && !vistos[x.archivoId])
+    .map(x => Object.assign(x, { activo: false }));
+  if (nuevos.length || quitados.length) conLock_(() => guardarVarios_('cta', nuevos.concat(quitados)));
+  return { nuevos: nuevos.length, quitados: quitados.length };
+}
+// Sesiones cuyo Drive conviene revisar: las que ya pasaron o están por llegar (en la revisión diaria, todas las del ciclo hasta hoy)
+function cteSesionesARevisar_(ciclo, todas) {
+  const h = hoy_(), lim = sumarDias_(h, 7), desde = sumarDias_(h, -75), l = [];
+  for (let n = 1; n <= 8; n++) { const f = (CTE_FECHAS_[ciclo] || [])[n] || ''; if (f && f <= lim && (todas || f >= desde)) l.push(n); }
+  return l;
+}
 function nombreSesionCte_(ses) { return ('0' + ses).slice(-2) + '-CTE ' + CTE_ORD[ses] + ' sesión'; }
 function carpetaCteEscuela_(cct, ciclo, ses, sub) {
   const raiz = leer_('evi').find(e => e.cct === cct && !e.ruta);
@@ -3510,28 +3594,57 @@ function autorizarDrive() {
   Logger.log('Listo: ' + r.escuelas + ' escuelas y ' + r.carpetas + ' carpetas revisadas. Ya puede ver la pestaña Evidencias en Tequio.');
 }
 
-function revisarEvidencias_() {
+/* Revisa las carpetas del Drive de evidencias, escuela por escuela. Google corta cualquier proceso a los 6 minutos, así que
+   trabaja por tandas: guarda lo de las escuelas que alcanzó a revisar y, si faltan, se programa solo para seguir un minuto después
+   (desde la escuela donde se quedó). La fecha de «última revisión» cambia cuando termina la vuelta completa. */
+function revisarEvidencias_(op) {
+  op = op || {};
+  const t0 = Date.now(), limite = op.limite || 240000;
   const sinAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/^\s*\d+\s*-\s*/, '')
     .replace(/\b(pte|pdte|presidente)\.?\s*/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const escuelas = leer_('dir').filter(c => c.tipo === 'director');
-  const ahora = ahora_(), filas = [];
+  const ahora = ahora_(), p = PropertiesService.getScriptProperties();
   const raiz = DriveApp.getFolderById(CARPETA_EVIDENCIAS);
-  const sub = raiz.getFolders();
-  let n = 0;
+  const sub = raiz.getFolders(), lista = [];
   while (sub.hasNext()) {
     const f = sub.next(), nom = sinAcento(f.getName());
     const esc = escuelas.find(e => sinAcento(e.escuela) === nom) || escuelas.find(e => nom && (sinAcento(e.escuela).indexOf(nom) >= 0 || nom.indexOf(sinAcento(e.escuela)) >= 0));
-    if (!esc) continue;
-    n++;
-    recorrer_(f, '', esc.cct, filas, ahora);
+    if (esc && !lista.some(x => x.cct === esc.cct)) lista.push({ cct: esc.cct, f: f });
   }
+  lista.sort((a, b) => a.cct.localeCompare(b.cct));
+  // si una vuelta anterior quedó a medias, se sigue desde donde se quedó
+  let desde = op.desdeCero ? 0 : Math.min(+(p.getProperty('EVI_SIGUE') || 0) || 0, lista.length);
+  const inicio = desde, filas = [], hechas = [];
+  for (let i = desde; i < lista.length; i++) {
+    if (hechas.length && Date.now() - t0 > limite) break;   // al menos una escuela por tanda
+    recorrer_(lista[i].f, '', lista[i].cct, filas, ahora);
+    hechas.push(lista[i].cct);
+    desde = i + 1;
+  }
+  const completa = desde >= lista.length;
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    reemplazarTodo_('evi', filas);  // la hoja de evidencias siempre refleja la última revisión completa
-    PropertiesService.getScriptProperties().setProperty('EVI_REVISADO', ahora);
+    // las escuelas revisadas se reemplazan; las demás conservan lo de su última revisión
+    // (al terminar una vuelta completa que empezó desde cero, se quitan las carpetas de escuelas que ya no están)
+    const previas = inicio === 0 && completa ? [] : leer_('evi').filter(e => hechas.indexOf(e.cct) < 0);
+    reemplazarTodo_('evi', previas.concat(filas));
+    if (completa) { p.deleteProperty('EVI_SIGUE'); p.setProperty('EVI_REVISADO', ahora); }
+    else p.setProperty('EVI_SIGUE', String(desde));
   } finally { lock.releaseLock(); }
-  return { escuelas: n, carpetas: filas.length };
+  programarContinuacion_(!completa);
+  return { escuelas: hechas.length, carpetas: filas.length, completa: completa, faltan: lista.length - desde, total: lista.length };
+}
+// Si la revisión del Drive quedó a medias, la sigue un minuto después (y se quita sola al terminar)
+function programarContinuacion_(si) {
+  try {
+    ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'continuarEvidencias') ScriptApp.deleteTrigger(t); });
+    if (si) ScriptApp.newTrigger('continuarEvidencias').timeBased().after(60 * 1000).create();
+  } catch (e) { bitacora_('evidencias', '', [], 'Programar la continuación de la revisión', 'error: ' + e.message); }
+}
+function continuarEvidencias() {
+  try { revisarEvidencias_({ limite: 300000 }); }
+  catch (e) { bitacora_('evidencias', '', [], 'Revisión del Drive (continuación)', 'error: ' + e.message); programarContinuacion_(true); }
 }
 
 // Vuelve a revisar solo la carpeta de una escuela (después de subir archivos) y devuelve sus filas
@@ -3549,6 +3662,18 @@ function revisarEscuela_(cct) {
 }
 
 const SUBIDO_POR = 'Subido desde Tequio por ';
+// Quién subió un archivo: lo que anotó Tequio al subirlo o, si se subió directo al Drive, el correo del dueño (se averigua una sola vez)
+function autorArchivo_(x) {
+  if (x.p !== undefined) return x;
+  let por = '';
+  const a = x._a;
+  if (a) {
+    try { const ds = a.getDescription() || ''; if (ds.indexOf(SUBIDO_POR) === 0) por = ds.slice(SUBIDO_POR.length); } catch (e) {}
+    if (!por) { try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {} }
+  }
+  x.p = por;
+  return x;
+}
 function normRuta_(r) { return String(r || '').normalize('NFC').toLowerCase().trim(); }
 
 // Devuelve { archivos, ultimo, ultimoPor, recientes } de la carpeta y todo lo que tiene dentro
@@ -3559,10 +3684,8 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
   while (it.hasNext()) {
     const a = it.next();
     directos++;
-    let por = '';
-    try { const ds = a.getDescription() || ''; if (ds.indexOf(SUBIDO_POR) === 0) por = ds.slice(SUBIDO_POR.length); } catch (e) {}
-    if (!por) { try { const o = a.getOwner(); por = o ? o.getEmail() : ''; } catch (e) {} }
-    recientes.push({ f: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), n: privada ? '' : a.getName(), p: por, id: privada ? '' : a.getId() });
+    // quién lo subió se averigua después, solo para los más recientes (preguntarlo de cada archivo hacía que la revisión pasara de 6 minutos)
+    recientes.push({ f: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), n: privada ? '' : a.getName(), id: privada ? '' : a.getId(), _a: a });
   }
   let total = directos;
   const subs = carpeta.getFolders();
@@ -3574,8 +3697,9 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
   }
   recientes.sort((x, y) => y.f.localeCompare(x.f));
   recientes = recientes.slice(0, 6);
+  recientes.forEach(autorArchivo_);
   const fila = { id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: carpeta.getId(), directos: String(directos), archivos: String(total),
-    ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes, revisado: ahora };
+    ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes.map(x => ({ f: x.f, n: x.n, p: x.p, id: x.id })), revisado: ahora };
   filas.push(fila);
   return { archivos: total, recientes: recientes };
 }
@@ -3785,7 +3909,8 @@ function vidDiaria_() {
 
 function tareaDiaria() {
   try { latido_(); CacheService.getScriptCache().remove('estadoRegistro'); } catch (e) {}
-  try { revisarEvidencias_(); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
+  try { revisarEvidencias_({ desdeCero: true, limite: 150000 }); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
+  try { const c = cicloActual_(); cteSincronizar_(c, cteSesionesARevisar_(c, true)); } catch (e) { bitacora_('cte', '', [], 'Revisar el Drive del CTE', 'error: ' + e.message); }
   try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
   try { asegurarCorreos_(); revisarCorreos_({}); resumenCorreos_(); } catch (e) { bitacora_('correos', '', [], 'Correo de la Supervisión', 'error: ' + e.message); }
   try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
