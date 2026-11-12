@@ -160,7 +160,7 @@ const num=v=>{const n=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isFi
 
 function defaults(){
   const sv=(n,p,d)=>({id:uid(),nombre:n,precios:p,dur:d||60});
-  const hor={};for(let i=0;i<7;i++)hor[i]={on:i!==0,ini:'10:00',fin:'19:00'};
+  const hor={};for(let i=0;i<7;i++)hor[i]={on:i!==0,ini:'08:00',fin:'19:00'};
   return {v:1,folio:0,
     cfg:{negocio:'Cherry Nails',duena:'Melissa López',lada:'52',slot:30,horario:hor,
       tConf:'Hola {nombre} 🍒 Tu cita en {negocio} quedó agendada para el {fecha} a las {hora}.\nServicio: {servicios}\nTotal: {total}\nAnticipo: {anticipo}\nResta: {resta}\n¡Te espero!',
@@ -179,6 +179,7 @@ function load(){
   let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){mem=true}
   const d=defaults();
   if(raw){try{const o=JSON.parse(raw);S=Object.assign(d,o);S.cfg=Object.assign(defaults().cfg,o.cfg||{})}catch(e){S=d}}else S=d;
+  if(!S.cfg.abre8){for(let i=0;i<7;i++){const h=S.cfg.horario[i];if(h&&h.ini==='10:00')h.ini='08:00'}S.cfg.abre8=1;if(raw)try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){mem=true}try{recAlGuardar()}catch(e){}}
 
@@ -264,7 +265,7 @@ function citaRow(c,conFecha){const k=cli(c.clientaId);
 let F=null;
 function nuevaCita(f,h,clientaId,editId){
   if(editId){const c=S.citas.find(x=>x.id===editId);F=JSON.parse(JSON.stringify(c));F.edit=true;F.durAuto=false}
-  else F={id:uid(),clientaId:clientaId||'',fecha:f||sel,hora:h||(libresDur(f||sel,60)[0]||'10:00'),dur:60,durAuto:true,items:[],extra:0,extraDesc:'',pagos:[],estado:'agendada',notas:'',ant:0,antMet:'Efectivo',q:'',nueva:null};
+  else F={id:uid(),clientaId:clientaId||'',fecha:f||sel,hora:h||(libresDur(f||sel,60)[0]||'08:00'),dur:60,durAuto:true,items:[],extra:0,extraDesc:'',pagos:[],estado:'agendada',notas:'',ant:0,antMet:'Efectivo',q:'',nueva:null};
   sheet(F.edit?'Editar cita':'Nueva cita',formHtml());updForm()}
 function formHtml(){
   let o='<div class="col"><h3>Clienta</h3><div id="fCli"></div></div>';
