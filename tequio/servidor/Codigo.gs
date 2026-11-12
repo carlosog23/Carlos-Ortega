@@ -38,6 +38,9 @@
  *    apartado le sirve y, si lo que pide todavía no existe, guarda la solicitud para que la Supervisión la desarrolle.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
+ *  · Guarda las claves de la RELweb de cada escuela (usuario = clave del centro de trabajo; la contraseña cambia cada ciclo).
+ *    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas. Las direcciones no las ven.
+ *    La contraseña se guarda cifrada en la hoja de cálculo.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
  */
@@ -214,13 +217,16 @@ const HOJAS = {
   // Solicitudes que el personal le deja a Tlami cuando Tlamatini todavía no tiene lo que necesita (solo las ve la Supervisión).
   // estado: nueva | desarrollo | hecha | descartada
   sol: ['id', 'fecha', 'nombre', 'escuela', 'cct', 'cargo', 'texto', 'resumen', 'estado', 'nota', 'actualizado'],
+  // Claves de la RELweb por escuela (id = CCT). usuario: la clave del centro de trabajo; clave: la contraseña, cifrada (relCifrar_);
+  // ciclo: ciclo escolar al que corresponde (cambia cada ciclo). La Supervisión ve todas; cada ATP, solo las de sus escuelas.
+  rel: ['id', 'cct', 'usuario', 'clave', 'ciclo', 'nota', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 51;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
+const VERSION = 52;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -525,7 +531,7 @@ const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAn
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb'];
 
 const ACCIONES = {
   // Solicitudes que el personal le dejó a Tlami: solo la Supervisión las ve y las atiende
@@ -558,6 +564,24 @@ const ACCIONES = {
     // los módulos que existían al guardar: los que se agreguen después aparecen encendidos hasta que el Supervisor decida
     p.setProperty('MODULOS_VISTOS', JSON.stringify(MODULOS_VALIDOS));
     return { modulos: lista, modulosEditado: true, modulosVistos: MODULOS_VALIDOS };
+  },
+  /* ---- Claves de la RELweb: la Supervisión ve todas; cada ATP, solo las de sus escuelas ---- */
+  relDatos: (yo) => {
+    const mias = relEscuelas_(yo);
+    return { ciclo: cicloActual_(), escuelas: mias, rel: leer_('rel').filter(x => mias.indexOf(x.cct) >= 0).map(relPublica_) };
+  },
+  // Captura o actualiza la contraseña de una escuela (cada ciclo cambia). El usuario siempre es la clave del centro de trabajo.
+  relGuardar: (yo, d) => {
+    const cct = String(d.cct || '').trim().toUpperCase();
+    if (relEscuelas_(yo).indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'La escuela no está en el Directorio.' : 'Solo puede capturar las claves de las escuelas que tiene a su cargo.');
+    const clave = String(d.clave == null ? '' : d.clave).trim();
+    if (!clave) throw new Error('Escriba la contraseña de la RELweb.');
+    if (clave.length > 80) throw new Error('La contraseña es demasiado larga (máximo 80 caracteres).');
+    const ciclo = /^\d{4}-\d{4}$/.test(String(d.ciclo || '')) ? String(d.ciclo) : cicloActual_();
+    const o = { id: cct, cct: cct, usuario: cct, clave: relCifrar_(clave), ciclo: ciclo, nota: String(d.nota || '').trim().slice(0, 300),
+      actualizado: ahora_(), actualizadoPor: yo.id, actualizadoNombre: yo.nombre };
+    guardar_('rel', o);
+    return { rel: relPublica_(o) };
   },
   datos: (yo) => (contarEntrada_(), yo.rol === 'director' ? datosDirector_(yo) : ({
     zona: zonaPublica_(),
@@ -2882,6 +2906,47 @@ function expedientes_(persona, anio, sin) {
 }
 // La visita la modifica quien la registró o el Supervisor
 function puedeCtv_(yo, o) { if (yo.rol !== 'admin' && o.visitoPor !== yo.id) throw new Error('Solo quien registró la visita o el Supervisor puede modificarla.'); }
+/* ---- Claves de la RELweb ---- */
+// Escuelas que cada ATP tiene a su cargo (las mismas que usa el informe semanal)
+function escuelasDeAtp_(u) {
+  const c = leer_('dir').find(x => x.tipo === 'atp' && x.id === u.contacto);
+  if (c && c.cct) return c.cct === '-' ? [] : String(c.cct).split(',').map(x => x.trim()).filter(Boolean);
+  const f = Z().numero === '050' && ASIGNACION_INICIAL.find(a => a[0].test(u.nombre));
+  return f ? f[1].slice() : [];
+}
+// Escuelas cuyas claves puede ver y capturar: la Supervisión, todas; el ATP, las suyas; las direcciones, ninguna
+function relEscuelas_(yo) {
+  soloMesa_(yo);
+  const todas = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false).map(c => c.cct);
+  if (yo.rol === 'admin') return todas;
+  const mias = escuelasDeAtp_(yo);
+  return todas.filter(c => mias.indexOf(c) >= 0);
+}
+function relPublica_(x) { return { cct: x.cct, usuario: x.usuario || x.cct, clave: relDescifrar_(x.clave), ciclo: x.ciclo, nota: x.nota, actualizado: x.actualizado, actualizadoNombre: x.actualizadoNombre }; }
+// La contraseña no se guarda a la vista en la hoja: se cifra con una llave que solo vive en las propiedades de este programa
+function relLlave_() {
+  const p = PropertiesService.getScriptProperties();
+  let k = p.getProperty('REL_LLAVE');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); p.setProperty('REL_LLAVE', k); }
+  return k;
+}
+function relFlujo_(sal, n) {
+  const llave = relLlave_(); let b = [];
+  for (let i = 0; b.length < n; i++) b = b.concat(Utilities.computeHmacSha256Signature(sal + ':' + i, llave));
+  return b.slice(0, n);
+}
+function relCifrar_(t) {
+  const b = Utilities.newBlob(String(t)).getBytes(), sal = Utilities.getUuid().replace(/-/g, '').slice(0, 12), f = relFlujo_(sal, b.length);
+  return 'c1:' + sal + ':' + Utilities.base64Encode(b.map((x, i) => x ^ f[i]));
+}
+function relDescifrar_(v) {
+  v = String(v || '');
+  if (v.indexOf('c1:') !== 0) return v;
+  try {
+    const p = v.split(':'), b = Utilities.base64Decode(p[2]), f = relFlujo_(p[1], b.length);
+    return Utilities.newBlob(b.map((x, i) => x ^ f[i])).getDataAsString();
+  } catch (e) { return ''; }
+}
 function soloMesa_(u) { if (u.rol !== 'admin' && u.rol !== 'atp') throw new Error('Solo la Supervisión y la Mesa Técnica pueden hacer esto.'); }
 // Destinos válidos de un oficio: autoridad de cada municipio, otro, o varios directores a la vez
 function destinosVarios_() { return ['Directores', 'Multigrado'].concat(Z().municipios.map(m => 'Directores ' + m)); }
