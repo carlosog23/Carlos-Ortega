@@ -1400,7 +1400,7 @@ const S={view:"home",letra:null,step:0,vals:{},sec:null};
 const app=document.getElementById("app"),bar=document.getElementById("bar"),barIn=document.getElementById("barIn");
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function parseDate(v){if(!v)return null;const[y,m,d]=v.split("-").map(Number);return{y,m,d}}
-function fmtDate(v,fmt){const p=parseDate(v);if(!p)return fmt.startsWith("partes")?["","",""]:"";
+function fmtDate(v,fmt){const p=parseDate(v);if(!p)return String(fmt||"").startsWith("partes")?["","",""]:"";
   const mes=MESES[p.m-1];
   if(fmt==="partes1")return[String(p.d),mes,String(p.y).slice(-1)];
   if(fmt==="partesAnio")return[String(p.d),mes,String(p.y)];
