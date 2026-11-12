@@ -995,7 +995,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-1000';
+const PUBLICACION = '2026-11-12-1015';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -4473,8 +4473,24 @@ function columnasEvi() {
   });
   // la misma carpeta escrita distinto en dos escuelas cuenta como una sola columna
   const vistas = {};
-  return cols.filter(c => { const k = normRuta(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
+  const unicas = cols.filter(c => { const k = normRuta(c.ruta); if (vistas[k]) return false; vistas[k] = 1; return true; });
+  /* Orden: primero lo que se pidió más recientemente. La fecha de cada carpeta es la del registro de Acuerdos que la pide
+     (o la de la sesión vigente, en CTEs); si no la pide ninguno, la fecha en que se creó la carpeta en el Drive.
+     Las carpetas fijas sin fecha (Expedientes, CPE, SisAT…) van al final, en su orden. */
+  unicas.forEach((c, i) => { c.i = i; c.fecha = fechaColEvi(c.ruta, rows); });
+  return unicas.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || a.i - b.i);
 }
+function fechaColEvi(ruta, rows) {
+  const k = normRuta(ruta), reuF = id => ((S.reu || []).find(r => r.id === id) || {}).fecha || '';
+  const fs = (S.acu || []).filter(x => x.activo !== false && x.evidencia && (normRuta(x.evidencia) === k || normRuta(x.evidencia).startsWith(k + '/'))).map(x => reuF(x.reunionId)).filter(Boolean);
+  if (esColCte(ruta)) { const n = cteVigente(); if (n && cteFecha(n)) fs.push(cteFecha(n)); }
+  if (fs.length) return fs.sort().pop();
+  const cr = rows.filter(e => normRuta(e.ruta) === k && e.creada).map(e => String(e.creada).slice(0, 10)).sort();
+  return cr[0] || '';
+}
+// Columnas que ya cumplen todas las escuelas de la lista (se pueden ocultar en la tabla para ver solo lo que falta)
+const colCompleta = (c, ccts) => ccts.every(cct => { const e = eviDe(cct, c.ruta); return !e || eviFrac(cct, c.ruta, e) >= 1; });
+let eviVerCompletas = (() => { try { return localStorage.getItem('tequio.eviCompletas') === '1'; } catch (e) { return false; } })();
 const normRuta = r => String(r || '').normalize('NFC').toLowerCase().trim();
 const eviDe = (cct, ruta) => (S.evi || []).find(e => e.cct === cct && normRuta(e.ruta) === normRuta(ruta));
 const nArch = e => e ? (+e.archivos || 0) : 0;
@@ -4562,7 +4578,9 @@ function vEvidencias() {
   }
   if (esDirector()) return vEviDirector();
   const dirs = filtroEscuelas(), ccts = dirs.map(c => c.cct);
-  const COLS = columnasEvi();
+  const TODAS = columnasEvi(), completas = TODAS.filter(c => colCompleta(c, ccts));
+  // en la tabla: de lo más nuevo a lo más viejo, y sin las carpetas que ya cumplieron todas (salvo que se pida verlas)
+  const COLS = eviVerCompletas ? TODAS : TODAS.filter(c => !completas.includes(c));
   const tot = avanceEvi(ccts);
   const revisado = S.eviRevisado;
   const vistos = {}, nov = [];
@@ -4586,12 +4604,13 @@ function vEvidencias() {
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Rubros de evidencia cumplidos</div>
         <div><b class="num">${numFrac(tot.hecho)}</b> de <b class="num">${tot.total}</b> carpetas cumplen</div>
         <div class="peq mudo">En verde, o con archivos si aún no se revisan</div>
-        <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${COLS.length} carpetas revisadas</div></div></div>
+        <div class="peq mudo">${dirs.length} escuela${dirs.length === 1 ? '' : 's'} × ${TODAS.length} carpetas revisadas</div></div></div>
     <div class="tarjeta"><div class="seccion-t">Avance por ATP</div>
       <div class="barras">${porAtp.map(({ u, n, a }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}"><span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${numFrac(a.hecho)} de ${a.total} cumplen</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div></div>
   </div>
   <div class="tarjeta" style="margin-bottom:16px">
-    <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· ${eviPuedeRevisar() ? 'toque una casilla para revisarla y ponerle su semáforo' : 'toque una casilla para abrir la carpeta'}</span></div>
+    <div class="seccion-t">Escuela por carpeta <span class="mudo" style="text-transform:none;letter-spacing:0;font-weight:400">· de lo más reciente a lo más antiguo · ${eviPuedeRevisar() ? 'toque una casilla para revisarla y ponerle su semáforo' : 'toque una casilla para abrir la carpeta'}</span></div>
+    ${completas.length ? `<div class="peq" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px"><span class="chip ok">✓ ${completas.length} carpeta${completas.length === 1 ? '' : 's'} ya completa${completas.length === 1 ? '' : 's'} en ${dirs.length === 1 ? 'esta escuela' : 'todas las escuelas'}</span>${eviVerCompletas ? '' : `<span class="mudo">${esc(completas.map(c => c.corto).join(', '))}</span>`}<button class="boton sec chico" id="b-evi-comp">${eviVerCompletas ? 'Ocultarlas' : 'Mostrarlas'}</button></div>` : ''}
     ${leyendaSem()}
     <div class="matriz-caja"><table class="matriz">
       <thead><tr><th class="esc-col">Escuela</th>${COLS.map(c => { const sv = esColCte(c.ruta) && cteVigente(); return `<th title="${esc(c.ruta)}${sv ? ' · se valida con el apartado CTE, ' + CTE_ORD[sv].toLowerCase() + ' sesión' : ''}"><span>${esc(c.corto)}${sv ? ' · ' + sv + '.ª' : ''}${(() => { const n = Math.max(0, ...dirs.map(d => segmentosEvi(d.cct, c.ruta).length)); return n ? ' · ' + n + ' act.' : ''; })()}</span></th>`; }).join('')}<th>Avance</th></tr></thead>
@@ -4622,6 +4641,7 @@ function vEvidencias() {
     await accion('revisarEvidencias', {}, r => { S.evi = r.evi; S.eviRevisado = r.eviRevisado; vEvidencias();
       aviso(r.completa === false ? 'Se revisaron ' + r.escuelas + ' escuelas; las ' + r.faltan + ' que faltan se siguen revisando solas en unos minutos. Recargue después para verlas.' : 'Revisión terminada: ' + r.escuelas + ' escuelas.', 'ok', r.completa === false ? 9000 : 3500); });
   };
+  if ($('#b-evi-comp')) $('#b-evi-comp').onclick = () => { eviVerCompletas = !eviVerCompletas; try { localStorage.setItem('tequio.eviCompletas', eviVerCompletas ? '1' : '0'); } catch (e) {} vEvidencias(); };
   $('#b-carpeta').onclick = formCarpeta;
   $('#b-subir').onclick = () => formSubir(vista.atp && escuelasDeAtp(usuario(vista.atp))[0] || '');
   $('#f-mun').onchange = e => { vista.municipio = e.target.value; vEvidencias(); };

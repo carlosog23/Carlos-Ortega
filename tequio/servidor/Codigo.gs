@@ -145,7 +145,8 @@ const HOJAS = {
   reu: ['id', 'titulo', 'tipo', 'fecha', 'horario', 'lugar', 'descripcion', 'activo', 'creadoPor', 'creado', 'actualizado'],
   acu: ['id', 'reunionId', 'seccion', 'numero', 'texto', 'responsable', 'limite', 'plazo', 'nota', 'escuelas', 'orden', 'activo', 'actualizado', 'evidencia'],
   cum: ['id', 'acuerdoId', 'cct', 'estado', 'fecha', 'nota', 'marcadoPor', 'actualizado'],
-  evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado'],
+  // creada: fecha en que se creó la carpeta (para mostrar primero lo que se pidió más recientemente)
+  evi: ['id', 'cct', 'ruta', 'carpetaId', 'directos', 'archivos', 'ultimo', 'ultimoPor', 'recientes', 'revisado', 'creada'],
   // Revisión de cada rubro de evidencias por la Supervisión o el ATP: cumple (verde), incompleto (amarillo, con observación) o sin (rojo)
   eve: ['id', 'cct', 'ruta', 'estado', 'nota', 'marcadoPor', 'marcadoNombre', 'actualizado'],
   // Personal de la zona: datos del expediente y sus plazas (una o más; dos plazas activas = doble plaza)
@@ -227,7 +228,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 53;
+const VERSION = 54;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1627,7 +1628,7 @@ const ACCIONES = {
       if (ya.hasNext()) { existian.push(cct); return; }
       const f = padre.createFolder(nombre);
       const ruta = dentro ? dentro + '/' + nombre : nombre;
-      nuevas.push({ id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: f.getId(), directos: '0', archivos: '0', ultimo: '', ultimoPor: '', recientes: [], revisado: ahora_() });
+      nuevas.push({ id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: f.getId(), directos: '0', archivos: '0', ultimo: '', ultimoPor: '', recientes: [], revisado: ahora_(), creada: hoy_() });
     });
     const lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -3699,7 +3700,8 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
   recientes = recientes.slice(0, 6);
   recientes.forEach(autorArchivo_);
   const fila = { id: cct + '|' + ruta, cct: cct, ruta: ruta, carpetaId: carpeta.getId(), directos: String(directos), archivos: String(total),
-    ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes.map(x => ({ f: x.f, n: x.n, p: x.p, id: x.id })), revisado: ahora };
+    ultimo: recientes[0] ? recientes[0].f : '', ultimoPor: recientes[0] ? recientes[0].p : '', recientes: recientes.map(x => ({ f: x.f, n: x.n, p: x.p, id: x.id })), revisado: ahora,
+    creada: (() => { try { return Utilities.formatDate(carpeta.getDateCreated(), TZ, 'yyyy-MM-dd'); } catch (e) { return ''; } })() };
   filas.push(fila);
   return { archivos: total, recientes: recientes };
 }
