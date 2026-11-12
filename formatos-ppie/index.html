@@ -7229,6 +7229,8 @@ function usoContar(path,title,evento){if(!USO.activo)return;const o={path:(DEMO?
    · persona/<Escuela> · <Nombre>            → una fila por persona; sube cada jornada en que genera documentos
      (GoatCounter cuenta una vez cada 8 horas por fila, así que equivale a «días de uso»).
    · logro/<Escuela> · <Nombre> · 010 documentos → el total exacto, que lleva este dispositivo, al llegar a 1 y a cada 5.
+   Además, cada documento se avisa al servidor de Tequio (si este dispositivo tiene enlace de Tequio o la zona vinculó
+   Tlamatini con Tequio): ahí queda el total exacto por persona, con su apartado, para el medallero que solo ve la Supervisión.
    Sin conexión se guarda y se envía al volver internet. La demostración y la Supervisión no se cuentan. */
 const USO_DOCS_K="tlm-uso-docs",USO_PEND_K="tlm-uso-pend";let USO_T=0;
 function usoBonito(t){return String(t||"").trim().replace(/\s+/g," ").replace(/\//g,"-").toLocaleLowerCase("es").replace(/(^|[\s.\-(])(\p{L})/gu,(m,a,b)=>a+b.toLocaleUpperCase("es"))}
@@ -7236,9 +7238,18 @@ function usoQuien(){const p=perfil||{};return`${usoBonito(p.escuela)||p.cct||(p.
 function usoDocs(){try{return Math.max(0,parseInt((JSON.parse(localStorage.getItem(USO_DOCS_K)||"{}")||{}).n,10)||0)}catch(e){return 0}}
 function usoEnviar(o){if(navigator.onLine===false){try{const q=JSON.parse(localStorage.getItem(USO_PEND_K)||"[]");q.push(o);localStorage.setItem(USO_PEND_K,JSON.stringify(q.slice(-60)))}catch(e){}return}usoContar(o.path,o.title,true)}
 function usoPendientes(){if(navigator.onLine===false)return;try{const q=JSON.parse(localStorage.getItem(USO_PEND_K)||"[]");if(!q.length)return;localStorage.removeItem(USO_PEND_K);q.forEach(o=>usoContar(o.path,o.title,true))}catch(e){}}
+const USO_TQ_K="tlm-uso-tq";let USO_TQ_OCUP=false,USO_TQ_T=0;
+function usoTqPend(){try{const o=JSON.parse(localStorage.getItem(USO_TQ_K)||"null");return o&&o.n>0?o:{n:0,ap:{}}}catch(e){return{n:0,ap:{}}}}
+function usoTequioSumar(ap){const o=usoTqPend();o.n=Math.min(600,o.n+1);o.ap=o.ap||{};o.ap[ap]=(o.ap[ap]||0)+1;try{localStorage.setItem(USO_TQ_K,JSON.stringify(o))}catch(e){}clearTimeout(USO_TQ_T);USO_TQ_T=setTimeout(usoTequio,4000)}
+async function usoTequio(){if(USO_TQ_OCUP||navigator.onLine===false)return;const o=usoTqPend();if(!o.n)return;const sv=typeof tqiServidor==="function"?tqiServidor():null;if(!sv)return;
+  USO_TQ_OCUP=true;const n=Math.min(60,o.n),p=perfil||{};
+  try{const r=await fetch(sv.s,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({k:sv.k||"",accion:"tlaUso",datos:{tok:sv.tok||"",cct:p.cct||"",escuela:usoBonito(p.escuela),nombre:usoBonito(p.minombre),cargo:String(p.micargo||"").trim(),n,apartados:n===o.n?o.ap:{}}})});
+    const j=await r.json();if(j&&j.ok){const q=usoTqPend();q.n=Math.max(0,q.n-n);if(n===o.n)Object.keys(o.ap||{}).forEach(k=>{q.ap[k]=(q.ap[k]||0)-o.ap[k];if(!(q.ap[k]>0))delete q.ap[k]});
+      try{if(q.n>0)localStorage.setItem(USO_TQ_K,JSON.stringify(q));else localStorage.removeItem(USO_TQ_K)}catch(e){}}}
+  catch(e){}finally{USO_TQ_OCUP=false}}
 function usoPersona(){try{if(!USO.activo||DEMO)return;const t=Date.now();if(t-USO_T<1500)return;USO_T=t; /* varias descargas seguidas = un documento */
   const n=usoDocs()+1,q=usoQuien();try{localStorage.setItem(USO_DOCS_K,JSON.stringify({n,ultimo:new Date().toISOString().slice(0,10)}))}catch(e){}
-  usoEnviar({path:"persona/"+q,title:"Documentos generados · "+q});
+  usoEnviar({path:"persona/"+q,title:"Documentos generados · "+q});usoTequioSumar(usoApartado());
   if(n===1||n%5===0)usoEnviar({path:`logro/${q} · ${String(n).padStart(3,"0")} documentos`,title:`${q}: ${n} documentos generados`})}catch(e){}}
 if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO}.goatcounter.com/count`};
   const s=document.createElement("script");s.async=true;s.src="https://gc.zgo.at/count.js";
@@ -7253,7 +7264,7 @@ if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO
   /* formatos generados: toda descarga o envío por compartir */
   const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download&&!DOCS_SKIP){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true);usoPersona()}}catch(e){}return clk.apply(this,arguments)};
   if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files&&!DOCS_SKIP){usoContar("genera/"+usoApartado(),"Compartido",true);usoPersona()}}catch(e){}return sh(d)}}
-  window.addEventListener("online",usoPendientes);setTimeout(usoPendientes,9000)}
+  window.addEventListener("online",()=>{usoPendientes();usoTequio()});setTimeout(()=>{usoPendientes();usoTequio()},9000)}
 </script>
 
 </body></html>

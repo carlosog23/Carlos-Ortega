@@ -31,6 +31,9 @@
  *  · Lee el correo de la Supervisión (cada hora): resume cada mensaje con IA, lo clasifica por urgencia (fechas y tema)
  *    y detecta las facturas (CFDI). La factura se guarda en el Drive solo cuando el Supervisor elige su clasificación
  *    (PIMMEE, Ingresos propios, CPE, La Escuela es Nuestra, Caja chica o Personal); «Sin clasificar» queda pendiente.
+ *  · Recibe de Tlamatini cuántos documentos genera cada persona (nombre, escuela y apartado; nunca el contenido)
+ *    y arma el medallero de uso por escuela y por persona. Aparte lleva el uso de Tequio por usuario (entradas, acciones
+ *    y días de uso de ATP y directores). Los dos medalleros solo los ve la Supervisión.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *
@@ -199,19 +202,26 @@ const HOJAS = {
   pmc: ['id', 'ciclo', 'cct', 'archivoId', 'archivo', 'url', 'fechaArchivo', 'datos', 'pa', 'estado', 'leidoPor', 'actualizado'],
   // Insumos que la Mesa Técnica publica para Tlamatini: la lectura de la realidad de la escuela y de cada grupo (SisAT + EIA, sin nombres de alumnos)
   tla: ['id', 'ciclo', 'cct', 'nivel', 'grado', 'grupo', 'datos', 'publicadoPor', 'actualizado'],
+  // Uso de Tlamatini por persona (medallero, solo la Supervisión). docs: documentos generados; dias: días distintos en que generó;
+  // meses: {"2026-11": documentos}; apartados: {"Recados y avisos": documentos}. No guarda el contenido de ningún documento.
+  uso: ['id', 'cct', 'escuela', 'nombre', 'cargo', 'docs', 'dias', 'primera', 'ultima', 'meses', 'apartados'],
+  // Uso de Tequio por usuario (medallero, solo la Supervisión; la Supervisión no se cuenta). id = id del usuario.
+  // entradas: veces que abrió Tequio; acciones: lo que hizo dentro (guardar, subir, enviar…); dias: días distintos de uso;
+  // meses: {"2026-11": {d: días, e: entradas, a: acciones}}.
+  ust: ['id', 'nombre', 'rol', 'cct', 'entradas', 'acciones', 'dias', 'primera', 'ultima', 'meses'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados' };
-const VERSION = 48;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario' };
+const VERSION = 49;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa'];
+const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -470,12 +480,18 @@ function doPost(e) {
     }
     // Tlamatini pide los insumos de una escuela: con el enlace de Tequio (k) o con el enlace de acceso de Tlamatini (tok)
     if (q.accion === 'tlaInsumos') return json_(Object.assign({ ok: true }, tlaInsumos_(q)));
+    // Tlamatini avisa cuántos documentos generó una persona (para el medallero de la Supervisión)
+    if (q.accion === 'tlaUso') {
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { return json_(Object.assign({ ok: true }, tlaUso_(q))); } finally { lock.releaseLock(); }
+    }
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
     if (!f) return json_({ ok: false, error: 'accion', mensaje: 'Acción desconocida.' });
     if (yo.rol === 'director' && SOLO_DIRECTOR.indexOf(q.accion) < 0)
       return json_({ ok: false, error: 'permiso', mensaje: 'Su enlace de dirección permite consultar y subir evidencias de su escuela.' });
+    usoTequio_(yo, q.accion);
     if (SIN_BLOQUEO.indexOf(q.accion) >= 0) r = f(yo, q.datos || {});  // tardan; se bloquean solo al guardar
     else {
       const lock = LockService.getScriptLock();
@@ -501,6 +517,15 @@ const MAX_MB = 20;
 const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos'];
 
 const ACCIONES = {
+  // Medallero de uso de Tlamatini: solo la Supervisión
+  medallero: (yo) => {
+    soloAdmin_(yo);
+    const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    return { uso: leer_('uso').map(x => ({ cct: x.cct, escuela: x.escuela, nombre: x.nombre, cargo: x.cargo, docs: parseInt(x.docs, 10) || 0, dias: parseInt(x.dias, 10) || 0,
+      primera: x.primera, ultima: x.ultima, meses: obj(x.meses), apartados: obj(x.apartados) })),
+      tequio: leer_('ust').map(x => ({ nombre: x.nombre, rol: x.rol, cct: x.cct, escuela: x.cct ? nombreEscuelaDir_(x.cct) : '', entradas: parseInt(x.entradas, 10) || 0,
+        acciones: parseInt(x.acciones, 10) || 0, dias: parseInt(x.dias, 10) || 0, primera: x.primera, ultima: x.ultima, meses: obj(x.meses) })) };
+  },
   // El Supervisor elige los módulos que usa su zona
   guardarModulos: (yo, d) => {
     soloAdmin_(yo);
@@ -2582,20 +2607,27 @@ function limpiarPmc_(j) {
 }
 
 // ¿El enlace de acceso de Tlamatini es vigente y es de esta escuela?
-function tlmTokenValido_(tok, esc) {
+/** Enlace de acceso de Tlamatini vigente que corresponde a este token, o null. */
+function tlmEnlace_(tok) {
   tok = String(tok || '');
-  if (tok.length < 10) return false;
+  if (tok.length < 10) return null;
   const cache = CacheService.getScriptCache();
   let txt = cache.get('tlm-acceso');
   if (!txt) {
     const r = UrlFetchApp.fetch(TLM_ACCESO_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
-    if (r.getResponseCode() !== 200) return false;
+    if (r.getResponseCode() !== 200) return null;
     txt = r.getContentText('UTF-8');
     try { if (txt.length < 90000) cache.put('tlm-acceso', txt, 300); } catch (e) {}
   }
-  let acc; try { acc = JSON.parse(txt); } catch (e) { return false; }
+  let acc; try { acc = JSON.parse(txt); } catch (e) { return null; }
   const e = (acc.enlaces || []).find(x => x.h === sha_(tok));
-  if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return false;
+  if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return null;
+  return e;
+}
+
+function tlmTokenValido_(tok, esc) {
+  const e = tlmEnlace_(tok);
+  if (!e) return false;
   const norm = n => sinAcentos_(n).replace(/^(escuela\s+)?(primaria\s+)?/, '').replace(/[^a-z0-9 ]/g, '').replace(/\b(pte|pdte|presidente|lic|gral)\b/g, '').replace(/\s+/g, ' ').trim();
   // Los enlaces de Tlamatini guardan la escuela como «Nombre · CCT»
   if (String(e.escuela || '').toUpperCase().indexOf(esc.cct) >= 0) return true;
@@ -2620,6 +2652,58 @@ function tlaInsumos_(q) {
     pa: pmc ? (pmc.pa || []).map(x => ({ nombre: x.nombre, url: x.url, fecha: x.fecha })) : [],
     escuelaIns: esc0 ? { datos: esc0.datos, actualizado: esc0.actualizado } : null,
     grupos: tla.filter(x => x.nivel === 'grupo').sort((x, y) => (x.grado + x.grupo).localeCompare(y.grado + y.grupo)).map(x => ({ grado: x.grado, grupo: x.grupo, datos: x.datos, actualizado: x.actualizado })) };
+}
+
+/** Anota el uso de Tequio de un ATP o director (la Supervisión no se cuenta). Nunca detiene la acción si falla. */
+function usoTequio_(yo, accion) {
+  try {
+    if (yo.rol === 'admin' || accion === 'vidEstado' || accion === 'medallero') return;
+    const lock = LockService.getScriptLock(); lock.waitLock(8000);
+    try {
+      const hoy = hoy_(), mes = hoy.slice(0, 7), entra = accion === 'datos';
+      let o = leer_('ust').find(x => x.id === yo.id);
+      if (!o) o = { id: yo.id, entradas: 0, acciones: 0, dias: 0, primera: hoy, ultima: '', meses: {} };
+      o.meses = o.meses && typeof o.meses === 'object' && !Array.isArray(o.meses) ? o.meses : {};
+      const m = o.meses[mes] = o.meses[mes] || { d: 0, e: 0, a: 0 };
+      o.nombre = yo.nombre; o.rol = yo.rol; o.cct = yo.rol === 'director' ? cctDe_(yo) : '';
+      if (entra) { o.entradas = (parseInt(o.entradas, 10) || 0) + 1; m.e = (m.e || 0) + 1; }
+      else { o.acciones = (parseInt(o.acciones, 10) || 0) + 1; m.a = (m.a || 0) + 1; }
+      if (o.ultima !== hoy) { o.dias = (parseInt(o.dias, 10) || 0) + 1; m.d = (m.d || 0) + 1; o.ultima = hoy; }
+      guardar_('ust', o);
+    } finally { lock.releaseLock(); }
+  } catch (e) {}
+}
+
+/** Tlamatini suma los documentos que generó una persona. Entra con el enlace de Tequio (k) o con un enlace vigente de Tlamatini (tok). */
+function tlaUso_(q) {
+  const d = q.datos || {};
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente.');
+  const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const cct = limpio(d.cct, 12).toUpperCase(), nombre = limpio(d.nombre, 80) || '(sin nombre)';
+  const enDir = cct ? leer_('dir').find(c => c.tipo === 'director' && c.cct === cct) : null;
+  const escuela = enDir ? enDir.escuela : (limpio(d.escuela, 90) || 'Sin escuela');
+  const n = Math.max(1, Math.min(60, parseInt(d.n, 10) || 1));
+  // La misma persona con o sin título, acentos o mayúsculas es una sola fila
+  const clave = (enDir ? cct : sinAcentos_(escuela)) + '|' + sinAcentos_(nombre).replace(/\b(mtro|mtra|profr|profra|prof|lic|dr|dra|ing|c)\b\.?\s+/g, '').replace(/[^a-z0-9 ]/g, '').trim();
+  const id = sha_(clave).slice(0, 16), filas = leer_('uso'), hoy = hoy_(), mes = hoy.slice(0, 7);
+  let o = filas.find(x => x.id === id);
+  if (!o && filas.length >= 3000) return { recibido: 0 };
+  if (!o) o = { id: id, cct: enDir ? cct : '', escuela: escuela, nombre: nombre, cargo: '', docs: 0, dias: 0, primera: hoy, ultima: '', meses: {}, apartados: {} };
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  o.meses = obj(o.meses); o.apartados = obj(o.apartados);
+  o.nombre = nombre; o.escuela = escuela; o.cargo = limpio(d.cargo, 60) || o.cargo;
+  o.docs = (parseInt(o.docs, 10) || 0) + n;
+  if (o.ultima !== hoy) o.dias = (parseInt(o.dias, 10) || 0) + 1;
+  o.ultima = hoy;
+  o.meses[mes] = (parseInt(o.meses[mes], 10) || 0) + n;
+  const ap = obj(d.apartados);
+  Object.keys(ap).slice(0, 15).forEach(k => {
+    const nom = limpio(k, 60), c = Math.max(0, Math.min(60, parseInt(ap[k], 10) || 0));
+    if (!nom || !c || (!(nom in o.apartados) && Object.keys(o.apartados).length >= 80)) return;
+    o.apartados[nom] = (parseInt(o.apartados[nom], 10) || 0) + c;
+  });
+  guardar_('uso', o);
+  return { recibido: n };
 }
 
 /* ===================== Oficios ===================== */

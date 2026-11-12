@@ -89,6 +89,14 @@ main{padding:20px 0 40px}
 .tlm-l{color:var(--gris);font-style:italic}
 .tlm-intro{border-top:3px solid var(--terra);padding:16px 18px}
 .tlm-fam{font-size:18px;margin:20px 0 8px}
+.med{border-top:3px solid var(--ambar);padding:16px 18px;margin-top:14px}.med h2{margin:0 0 2px;font-size:19px}
+.med-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px 26px;margin-top:10px}.med-cols h3{font-size:15px;margin:6px 0 4px}
+.med-f{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07)}.med-f:last-child{border-bottom:0}
+.med-p{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13.5px;background:rgba(0,0,0,.06)}
+.med-p.o1{background:#E8B93D;color:#4a3500}.med-p.o2{background:#C3C9D1;color:#2c333b}.med-p.o3{background:#D19A6A;color:#44240a}
+.med-n{flex:1;min-width:0}.med-n b{display:block;overflow-wrap:anywhere}.med-n span{font-size:12.5px;opacity:.72}
+.med-c{flex:none;text-align:right;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}.med-c small{display:block;font-weight:400;font-size:11.5px;opacity:.72}
+.med-top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}.med-top select{min-height:36px}
 .tlm-rejilla{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
 .tlm-sec{position:relative;text-align:left;cursor:pointer;font:inherit;color:inherit;padding:14px 38px 14px 16px;display:flex;flex-direction:column;gap:3px;border:1px solid var(--borde)}
 .tlm-sec:hover,.tlm-sec:focus-visible{border-color:var(--terra)}
@@ -2251,8 +2259,66 @@ function vHerramientas() {
   </div>
   ${TLM_FAMILIAS.map(([fam, secs]) => `<h2 class="tlm-fam">${esc(fam)}</h2>
     <div class="tlm-rejilla">${secs.map(([id, t, d]) => `<button class="tarjeta tlm-sec" data-tlm="${id}"><b>${esc(t)}</b><span>${esc(d)}</span>${ico('i-der', 'tlm-chev')}</button>`).join('')}</div>`).join('')}
+  ${esAdmin() && !cfg.demo ? '<div class="tarjeta med" id="med"><h2>Medallero de Tlamatini</h2><p class="peq mudo" style="margin:0">Cargando…</p></div>' : ''}
   <p class="peq mudo" style="margin-top:18px">Para volver, use la franja «Regresar a Tequio» en la parte de arriba de Tlamatini.</p>`;
   $$('[data-tlm]').forEach(b => b.onclick = () => irTlamatini(b.dataset.tlm));
+  if ($('#med')) medCargar();
+}
+
+/* ---------------- Medallero de Tlamatini (solo la Supervisión) ----------------
+   Tlamatini avisa al servidor cada documento que genera una persona (nombre, escuela y apartado; nunca el contenido).
+   Aquí se ordena por escuela y por persona, de todo el tiempo o de un mes. */
+let MED = null, MEDTQ = null;
+async function medCargar() {
+  try { const r = await api('medallero'); MED = r.uso || []; MEDTQ = r.tequio || []; }
+  catch (e) {
+    const c = $('#med') || $('#medtq'); if (!c) return;
+    const app = c.id === 'med' ? 'Tlamatini' : 'Tequio';
+    c.innerHTML = '<h2>Medallero de ' + app + '</h2>' + (/desconocida/i.test(e.message)
+      ? '<p style="margin:6px 0 0">Para ver quién usa más ' + app + ', el servidor de Tequio necesita la versión nueva. Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> con el Codigo.gs nuevo.</p>'
+      : `<p class="peq mudo" style="margin:6px 0 0">No se pudo cargar: ${esc(e.message)}</p>`);
+    return;
+  }
+  medPintar(); medTqPintar();
+}
+/* Medallero de Tequio: ATP y directores, por días distintos de uso (la Supervisión no se cuenta) */
+function medTqPintar() {
+  const c = $('#medtq'); if (!c || !MEDTQ) return;
+  const mes = vista.medTqMes || '', meses = [...new Set(MEDTQ.flatMap(x => Object.keys(x.meses || {})))].sort().reverse();
+  const nomMes = m => { const t = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1, 12).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const de = x => { const m = mes ? (x.meses || {})[mes] || {} : null; return m ? { d: +m.d || 0, e: +m.e || 0, a: +m.a || 0 } : { d: x.dias, e: x.entradas, a: x.acciones }; };
+  const todos = MEDTQ.map(x => Object.assign({ u: de(x) }, x)).filter(x => x.u.d || x.u.e || x.u.a).sort((a, b) => b.u.d - a.u.d || b.u.a - a.u.a || b.u.e - a.u.e || String(a.nombre).localeCompare(String(b.nombre)));
+  const fila = (x, i) => `<div class="med-f"><span class="med-p ${i < 3 ? 'o' + (i + 1) : ''}">${i + 1}</span><div class="med-n"><b>${esc(x.rol === 'director' ? (x.escuela || x.nombre) : x.nombre)}</b><span>${esc((x.rol === 'director' ? x.nombre + ' · ' : '') + (x.u.e === 1 ? '1 entrada' : x.u.e + ' entradas') + ' · ' + (x.u.a === 1 ? '1 acción' : x.u.a + ' acciones') + (x.ultima ? ' · último uso: ' + fechaLarga(x.ultima) : ''))}</span></div><div class="med-c">${x.u.d}<small>${x.u.d === 1 ? 'día de uso' : 'días de uso'}</small></div></div>`;
+  const dirs = todos.filter(x => x.rol === 'director'), mesa = todos.filter(x => x.rol !== 'director');
+  c.innerHTML = `<div class="med-top"><div><h2>Medallero de Tequio</h2><div class="peq mudo">Solo lo ve la Supervisión · días en que cada quien usó Tequio${mes ? ' en ' + nomMes(mes).toLowerCase() : ' desde que se activó el conteo'}</div></div>
+    <select id="medtq-mes" aria-label="Periodo"><option value="">Todo el tiempo</option>${meses.map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${esc(nomMes(m))}</option>`).join('')}</select></div>
+    ${todos.length ? `<div class="med-cols">
+      <div><h3>Escuelas (direcciones)</h3>${dirs.length ? dirs.map(fila).join('') : '<p class="peq mudo">Sin registros todavía.</p>'}</div>
+      <div><h3>Mesa Técnica</h3>${mesa.length ? mesa.map(fila).join('') : '<p class="peq mudo">Sin registros todavía.</p>'}</div>
+    </div><p class="peq mudo" style="margin:10px 0 0">«Entradas» son las veces que abrieron Tequio; «acciones», lo que hicieron dentro (guardar, subir evidencias, enviar…).</p>` : `<p style="margin:10px 0 0">Aún no hay registros${mes ? ' en este mes' : ''}. El conteo empieza cuando los ATP y directores entran a Tequio con el servidor actualizado.</p>`}`;
+  $('#medtq-mes').onchange = e => { vista.medTqMes = e.target.value; medTqPintar(); };
+}
+function medPintar() {
+  const c = $('#med'); if (!c || !MED) return;
+  const mes = vista.medMes || '', meses = [...new Set(MED.flatMap(x => Object.keys(x.meses || {})))].sort().reverse();
+  const nomMes = m => { const t = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1, 12).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const cuenta = x => mes ? (+(x.meses || {})[mes] || 0) : x.docs;
+  const per = MED.map(x => Object.assign({ n: cuenta(x) }, x)).filter(x => x.n > 0).sort((a, b) => b.n - a.n || b.dias - a.dias || a.nombre.localeCompare(b.nombre));
+  const porEsc = {};
+  per.forEach(x => { const k = x.cct || x.escuela, e = porEsc[k] = porEsc[k] || { escuela: x.escuela, zona: !!x.cct, n: 0, gente: 0 }; e.n += x.n; e.gente++; });
+  const esc_ = Object.values(porEsc).sort((a, b) => b.n - a.n || b.gente - a.gente || a.escuela.localeCompare(b.escuela));
+  const fila = (i, t, sub, n) => `<div class="med-f"><span class="med-p ${i < 3 ? 'o' + (i + 1) : ''}">${i + 1}</span><div class="med-n"><b>${esc(t)}</b><span>${esc(sub)}</span></div><div class="med-c">${n}<small>${n === 1 ? 'documento' : 'documentos'}</small></div></div>`;
+  const todos = vista.medTodos, tope = todos ? per.length : 10;
+  const fav = x => { const a = Object.entries(x.apartados || {}).sort((p, q) => q[1] - p[1])[0]; return a ? ' · más usado: ' + a[0] : ''; };
+  c.innerHTML = `<div class="med-top"><div><h2>Medallero de Tlamatini</h2><div class="peq mudo">Solo lo ve la Supervisión · documentos generados${mes ? ' en ' + nomMes(mes).toLowerCase() : ' desde que se activó el conteo'}</div></div>
+    <select id="med-mes" aria-label="Periodo"><option value="">Todo el tiempo</option>${meses.map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${esc(nomMes(m))}</option>`).join('')}</select></div>
+    ${per.length ? `<div class="med-cols">
+      <div><h3>Escuelas</h3>${esc_.map((e, i) => fila(i, e.escuela, (e.gente === 1 ? '1 persona' : e.gente + ' personas') + (e.zona ? '' : ' · fuera del directorio de la zona'), e.n)).join('')}</div>
+      <div><h3>Personas</h3>${per.slice(0, tope).map((x, i) => fila(i, x.nombre, x.escuela + (x.cargo ? ' · ' + x.cargo : '') + ' · ' + (x.dias === 1 ? '1 día de uso' : x.dias + ' días de uso') + (mes ? '' : fav(x)), x.n)).join('')}
+        ${per.length > 10 ? `<button class="boton sec" id="med-todos" style="margin-top:10px">${todos ? 'Ver solo los 10 primeros' : 'Ver a las ' + per.length + ' personas'}</button>` : ''}</div>
+    </div>` : `<p style="margin:10px 0 0">Aún no hay documentos registrados${mes ? ' en este mes' : ''}. El conteo empieza cuando el personal genera documentos en Tlamatini con su nombre y escuela capturados.</p>`}`;
+  $('#med-mes').onchange = e => { vista.medMes = e.target.value; medPintar(); };
+  if ($('#med-todos')) $('#med-todos').onclick = () => { vista.medTodos = !todos; medPintar(); };
 }
 
 /* ---------------- Vista: Agenda ---------------- */
@@ -5210,8 +5276,10 @@ function vEnlaces() {
     <h2 style="font-size:19px;margin-bottom:6px">Correos de hoy</h2>
     <p class="peq" style="margin:0">Quedan <b>${S.cuota != null ? S.cuota : '—'}</b> envíos disponibles hoy en ${esc(ZONA.correoSupervision)}. Gmail permite cerca de 100 destinatarios al día en una cuenta gratuita; si se agotan, Tequio deja los avisos para la mañana siguiente.</p>
   </div>
+  ${esAdmin() && !cfg.demo ? '<div class="tarjeta med" id="medtq"><h2>Medallero de Tequio</h2><p class="peq mudo" style="margin:0">Cargando…</p></div>' : ''}
   ${esAdmin() ? tarjetaModulos() : ''}`;
   ligarModulos();
+  if ($('#medtq')) medCargar();
   $('#b-dirs').onclick = () => accion('prepararDirectores', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'Directores actualizados: ' + r.cambios + '.' : 'Los directores ya estaban al día.', 'ok', 3000); });
   $$('[data-genlace]').forEach(b => b.onclick = () => {
     const u = usuario(b.dataset.genlace);
