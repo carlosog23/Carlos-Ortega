@@ -17,7 +17,7 @@
  * No vuelva a ejecutar «instalar» (cambiaría las llaves y habría que activar los avisos otra vez en el celular).
  */
 
-const VERSION = 1;
+const VERSION = 2;
 const CONTACTO = 'https://carlosog23.github.io/Carlos-Ortega/cherry-nails/';
 const VENTANA_MIN = 5;      // cada cuánto revisa (minutos)
 const MAX_CELULARES = 40;
@@ -29,7 +29,7 @@ function instalar() {
   if (!p.getProperty('VAPID_PRIV')) {
     let semilla = [];
     for (let i = 0; i < 8; i++) semilla = semilla.concat(sha256_(bytesDeTexto_(Utilities.getUuid() + Date.now() + Math.random())));
-    const d = (aBig_(sha256_(semilla)) % (N_ - 1n)) + 1n;
+    const d = (aBig_(sha256_(semilla)) % (N_ - B1)) + B1;
     p.setProperty('VAPID_PRIV', b64u_(aBytes_(d, 32)));
     p.setProperty('VAPID_PUB', b64u_(publica_(d)));
   }
@@ -93,33 +93,35 @@ function empujar_(endpoint) {
 
 function salida_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
-/* ===================== Firma ES256 (curva P-256) ===================== */
-const P_ = 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffffn;
-const N_ = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
-const A_ = P_ - 3n;
-const GX_ = 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n;
-const GY_ = 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n;
-function mod_(a, m) { const r = a % m; return r < 0n ? r + m : r; }
-function inv_(a, m) { let r0 = m, r1 = mod_(a, m), s0 = 0n, s1 = 1n; while (r1 !== 0n) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; } return mod_(s0, m); }
+/* ===================== Firma ES256 (curva P-256) =====================
+   Los números grandes se escriben con BigInt(...) porque el editor de Apps Script no acepta la forma abreviada con «n» al final. */
+const B0 = BigInt(0), B1 = BigInt(1), B2 = BigInt(2), B3 = BigInt(3), B8 = BigInt(8), B255 = BigInt(255);
+const P_ = BigInt('0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff');
+const N_ = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
+const A_ = P_ - BigInt(3);
+const GX_ = BigInt('0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296');
+const GY_ = BigInt('0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5');
+function mod_(a, m) { const r = a % m; return r < B0 ? r + m : r; }
+function inv_(a, m) { let r0 = m, r1 = mod_(a, m), s0 = B0, s1 = B1; while (r1 !== B0) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; } return mod_(s0, m); }
 function suma_(p1, p2) {
   if (!p1) return p2; if (!p2) return p1;
   let l;
-  if (p1[0] === p2[0]) { if (mod_(p1[1] + p2[1], P_) === 0n) return null; l = mod_((3n * p1[0] * p1[0] + A_) * inv_(2n * p1[1], P_), P_); }
+  if (p1[0] === p2[0]) { if (mod_(p1[1] + p2[1], P_) === B0) return null; l = mod_((B3 * p1[0] * p1[0] + A_) * inv_(B2 * p1[1], P_), P_); }
   else l = mod_((p2[1] - p1[1]) * inv_(p2[0] - p1[0], P_), P_);
   const x = mod_(l * l - p1[0] - p2[0], P_);
   return [x, mod_(l * (p1[0] - x) - p1[1], P_)];
 }
-function mult_(k, pt) { let r = null, a = pt; while (k > 0n) { if (k & 1n) r = suma_(r, a); a = suma_(a, a); k >>= 1n; } return r; }
+function mult_(k, pt) { let r = null, a = pt; while (k > B0) { if (k & B1) r = suma_(r, a); a = suma_(a, a); k >>= B1; } return r; }
 function publica_(d) { const q = mult_(d, [GX_, GY_]); return [4].concat(aBytes_(q[0], 32), aBytes_(q[1], 32)); }
 /** Firma en formato r||s (64 bytes). El número de un solo uso se deriva de la llave y del mensaje. */
 function firmar_(mensaje, d) {
   const h = sha256_(mensaje), z = aBig_(h), llave = aBytes_(d, 32);
   for (let i = 0; i < 50; i++) {
-    const k = mod_(aBig_(hmac_(h.concat([i]), llave)), N_ - 1n) + 1n;
+    const k = mod_(aBig_(hmac_(h.concat([i]), llave)), N_ - B1) + B1;
     const r = mod_(mult_(k, [GX_, GY_])[0], N_);
-    if (r === 0n) continue;
+    if (r === B0) continue;
     const s = mod_(inv_(k, N_) * (z + r * d), N_);
-    if (s === 0n) continue;
+    if (s === B0) continue;
     return aBytes_(r, 32).concat(aBytes_(s, 32));
   }
   throw new Error('No se pudo firmar.');
@@ -130,7 +132,7 @@ function con_(b) { return b.map(x => x > 127 ? x - 256 : x); }
 function sha256_(b) { return sin_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, con_(b))); }
 function hmac_(b, llave) { return sin_(Utilities.computeHmacSha256Signature(con_(b), con_(llave))); }
 function bytesDeTexto_(t) { return sin_(Utilities.newBlob(t).getBytes()); }
-function aBig_(b) { let n = 0n; b.forEach(x => { n = (n << 8n) | BigInt(x); }); return n; }
-function aBytes_(n, largo) { const o = []; for (let i = 0; i < largo; i++) { o.unshift(Number(n & 255n)); n >>= 8n; } return o; }
+function aBig_(b) { let n = B0; b.forEach(x => { n = (n << B8) | BigInt(x); }); return n; }
+function aBytes_(n, largo) { const o = []; for (let i = 0; i < largo; i++) { o.unshift(Number(n & B255)); n >>= B8; } return o; }
 function b64u_(b) { return Utilities.base64EncodeWebSafe(con_(b)).replace(/=+$/, ''); }
 function deB64u_(t) { return sin_(Utilities.base64DecodeWebSafe(t)); }
