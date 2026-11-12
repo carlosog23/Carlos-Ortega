@@ -226,7 +226,7 @@ const TABS=[['agenda','Agenda','<rect x="3" y="5" width="18" height="16" rx="2"/
 function render(){
   $('#hNeg').textContent=S.cfg.negocio;$('#hDue').textContent=S.cfg.duena;
   $('#tabs').innerHTML=TABS.map(t=>'<button data-a="tab" data-v="'+t[0]+'"'+(view===t[0]?' aria-current="page"':'')+'><svg viewBox="0 0 24 24">'+t[2]+'</svg>'+t[1]+'</button>').join('');
-  $('#main').innerHTML=({agenda:vAgenda,clientas:vClientas,tarifas:vTarifas,caja:vCaja,ajustes:vAjustes})[view]();
+  $('#main').innerHTML=(view==='agenda'?instBanner():'')+({agenda:vAgenda,clientas:vClientas,tarifas:vTarifas,caja:vCaja,ajustes:vAjustes})[view]();
 }
 function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2600)}
 function sheet(title,html){$('#sheetT').textContent=title;$('#sheetB').innerHTML=html;$('#sheet').classList.add('open');$('#sheetB').scrollTop=0}
@@ -349,7 +349,27 @@ async function contacto(to){
   }catch(e){toast('No se pudieron abrir los contactos en este navegador. Captura los datos a mano.')}}
 
 /* ---------- Tarifas ---------- */
-function vTarifas(){return '<div class="row between"><h2>Tarifas</h2><button class="btn sm gold" data-a="editSvc">Agregar</button></div><p class="muted small" style="margin:0">Los servicios con tres precios son chico, mediano y grande. Los diseños se cobran como extra en cada cita.</p><div class="card list">'+S.servicios.map(s=>'<button class="item" data-a="editSvc" data-id="'+s.id+'"><span class="grow"><b>'+esc(s.nombre)+'</b><br><span class="small muted">'+durTxt(s.dur)+'</span></span><span class="num" style="font-weight:700;color:var(--gold);text-align:right">'+s.precios.map(money).join(' · ')+'</span></button>').join('')+'</div>'}
+function vTarifas(){return '<div class="row between"><h2>Tarifas</h2><span class="row" style="gap:8px"><button class="btn sm" data-a="editPrecios">Editar precios</button><button class="btn sm gold" data-a="editSvc">Agregar</button></span></div><p class="muted small" style="margin:0">Toca «Editar precios» para cambiarlos todos de una vez, o toca un servicio para cambiar su nombre, precio o duración. Los servicios con tres precios son chico, mediano y grande. Los diseños se cobran como extra en cada cita.</p><div class="card list">'+S.servicios.map(s=>'<button class="item" data-a="editSvc" data-id="'+s.id+'"><span class="grow"><b>'+esc(s.nombre)+'</b><br><span class="small muted">'+durTxt(s.dur)+'</span></span><span class="num" style="font-weight:700;color:var(--gold);text-align:right">'+s.precios.map(money).join(' · ')+'<br><span class="small muted" style="font-weight:600">Editar ›</span></span></button>').join('')+'</div>'}
+/* Todos los precios en una sola pantalla */
+function editPrecios(){if(!S.servicios.length)return toast('Primero agrega un servicio');
+  sheet('Editar precios','<span class="small muted">Cambia los que necesites y toca Guardar. Las citas ya agendadas conservan el precio con el que se hicieron.</span>'+S.servicios.map(s=>{const tres=s.precios.length>1;
+    return '<div class="col" style="gap:6px;border-bottom:1px solid var(--line);padding:8px 0 12px"><b>'+esc(s.nombre)+'</b><div class="grid2" style="grid-template-columns:repeat('+(tres?3:1)+',1fr)">'+s.precios.map((p,i)=>'<label class="f">'+(tres?TAM[i][0].toUpperCase()+TAM[i].slice(1):'Precio')+' ($)<input inputmode="decimal" data-pp="'+s.id+'" data-pi="'+i+'" value="'+(p!=null?p:'')+'"></label>').join('')+'</div></div>'}).join('')+
+    '<button class="btn gold block" data-a="savePrecios">Guardar precios</button>')}
+/* ---------- Instalar en el celular ---------- */
+let INST=null;
+const instalada=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
+const esIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function instPasos(){return esIOS()
+  ?'<ol style="margin:0;padding-left:20px;line-height:1.7"><li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (el cuadro con una flecha hacia arriba).</li><li>Elige <b>Agregar a inicio</b> y luego <b>Agregar</b>.</li></ol>'
+  :'<ol style="margin:0;padding-left:20px;line-height:1.7"><li>Abre esta página en <b>Chrome</b>.</li><li>Toca el menú <b>⋮</b> de arriba a la derecha.</li><li>Elige <b>Instalar app</b> o <b>Agregar a pantalla principal</b> y confirma.</li></ol>'}
+function instCard(){if(instalada())return '<div class="card col"><h3>Instalar en el celular</h3><span class="small muted">La app ya está instalada en este celular. Ábrela desde su ícono en la pantalla de inicio.</span></div>';
+  return '<div class="card col"><h3>Instalar en el celular</h3><span class="small muted">Queda con su ícono en la pantalla de inicio, se abre a pantalla completa y funciona sin internet.</span>'+(INST?'<button class="btn gold block" data-a="instalar">Instalar Cherry Nails</button>':instPasos())+'</div>'}
+function instBanner(){let x='';try{x=localStorage.getItem('cn-inst-x')||''}catch(e){}
+  if(instalada()||x)return '';
+  return '<div class="card row between" style="gap:10px;border-color:var(--gold)"><span class="grow"><b>Instala la app en tu celular</b><br><span class="small muted">Con su ícono, como cualquier otra app.</span></span><button class="btn sm gold" data-a="instalar">Instalar</button><button class="btn sm" data-a="instNo" aria-label="Ocultar este aviso">✕</button></div>'}
+function instRefrescar(){try{if(!$('#sheet').classList.contains('open')&&(view==='agenda'||view==='ajustes'))render()}catch(e){}}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();INST=e;instRefrescar()});
+window.addEventListener('appinstalled',()=>{INST=null;toast('App instalada');instRefrescar()});
 function editSvc(id){const s=id?S.servicios.find(x=>x.id===id):{nombre:'',precios:[''],dur:60},tres=s.precios.length>1;
   sheet(id?'Editar servicio':'Servicio nuevo','<label class="f">Nombre<input id="sN" value="'+esc(s.nombre)+'"></label><div class="row between"><span>Tiene precio chico, mediano y grande</span><button class="switch" role="switch" id="sTres" aria-checked="'+tres+'" data-a="svcTres" aria-label="Tres precios"></button></div><div class="grid2" id="sP" style="grid-template-columns:repeat(3,1fr)">'+[0,1,2].map(i=>'<label class="f" '+(i&&!tres?'hidden':'')+'>'+(tres?TAM[i][0].toUpperCase()+TAM[i].slice(1):i?TAM[i]:'Precio')+' ($)<input inputmode="decimal" id="sP'+i+'" value="'+(s.precios[i]!=null?s.precios[i]:'')+'"></label>').join('')+'</div><label class="f">Duración aproximada (minutos)<input inputmode="numeric" id="sD" value="'+s.dur+'"></label><button class="btn gold block" data-a="saveSvc" data-id="'+(id||'')+'">Guardar</button>'+(id?'<button class="btn danger block" data-a="delSvc" data-id="'+id+'">Eliminar servicio</button>':''))}
 
@@ -365,7 +385,7 @@ function vCaja(){const [y,m]=cajaM.split('-').map(Number),t=hoy();let cob=0,met=
 
 /* ---------- Ajustes ---------- */
 function vAjustes(){const c=S.cfg;
-  return '<h2>Ajustes</h2><div class="card col"><h3>Negocio</h3><label class="f">Nombre del negocio<input data-cfg="negocio" id="aNeg" value="'+esc(c.negocio)+'"></label><label class="f">Quién atiende<input data-cfg="duena" id="aDue" value="'+esc(c.duena)+'"></label></div>'+
+  return '<h2>Ajustes</h2>'+instCard()+'<div class="card col"><h3>Negocio</h3><label class="f">Nombre del negocio<input data-cfg="negocio" id="aNeg" value="'+esc(c.negocio)+'"></label><label class="f">Quién atiende<input data-cfg="duena" id="aDue" value="'+esc(c.duena)+'"></label></div>'+
   '<div class="card col"><h3>Días y horario de trabajo</h3><span class="small muted">Es la semana normal. Un día en particular se abre o se cierra desde la Agenda.</span>'+[1,2,3,4,5,6,0].map(i=>{const h=c.horario[i];return '<div class="row"><button class="switch" role="switch" aria-checked="'+h.on+'" data-a="togDow" data-d="'+i+'" aria-label="Trabajo los '+DOW[i]+'"></button><span style="width:78px;text-transform:capitalize">'+DOW[i]+'</span><input type="time" id="hI'+i+'" data-hor="'+i+'" data-k="ini" value="'+h.ini+'" '+(h.on?'':'disabled')+'><input type="time" id="hF'+i+'" data-hor="'+i+'" data-k="fin" value="'+h.fin+'" '+(h.on?'':'disabled')+'></div>'}).join('')+
   '<label class="f">Cada cuánto se ofrece un espacio<select data-cfg="slot" id="aSlot">'+[15,30,45,60].map(x=>'<option value="'+x+'"'+(c.slot===x?' selected':'')+'>'+x+' minutos</option>').join('')+'</select></label></div>'+
   '<div class="card col"><h3>Avisos por WhatsApp</h3><label class="f">Clave de país para números de 10 dígitos<input data-cfg="lada" id="aLada" inputmode="numeric" value="'+esc(c.lada)+'"></label><span class="small muted">Palabras que se llenan solas: {nombre} {fecha} {hora} {servicios} {total} {anticipo} {resta} {negocio}</span><label class="f">Mensaje de confirmación<textarea data-cfg="tConf" id="aConf">'+esc(c.tConf)+'</textarea></label><label class="f">Mensaje de recordatorio<textarea data-cfg="tRec" id="aRec">'+esc(c.tRec)+'</textarea></label><label class="f">Despedida del recibo<input data-cfg="tGracias" id="aGra" value="'+esc(c.tGracias)+'"></label></div>'+
@@ -411,6 +431,10 @@ const A={
    let id=d.id;if(id)Object.assign(cli(id),o);else{id=uid();S.clientas.push(Object.assign({id},o))}save();toast('Clienta guardada');verCli(id)},
  delCli(d,el){dos(el,'dk'+d.id,()=>{S.clientas=S.clientas.filter(k=>k.id!==d.id);S.citas=S.citas.filter(c=>c.clientaId!==d.id);save();toast('Clienta y sus citas eliminadas');closeSheet()})},
  editSvc(d){editSvc(d.id)},
+ editPrecios(){editPrecios()},
+ savePrecios(){document.querySelectorAll('[data-pp]').forEach(el=>{const sv=S.servicios.find(x=>x.id===el.dataset.pp);if(sv)sv.precios[Number(el.dataset.pi)]=num(el.value)});save();toast('Precios guardados');closeSheet()},
+ instalar(){if(INST){const e=INST;INST=null;try{e.prompt();e.userChoice.then(()=>instRefrescar()).catch(()=>{})}catch(x){}}else sheet('Instalar en el celular','<span class="small muted">En este celular se instala desde el navegador, en tres pasos:</span>'+instPasos())},
+ instNo(){try{localStorage.setItem('cn-inst-x','1')}catch(e){}render()},
  svcTres(d,el){const on=el.getAttribute('aria-checked')!=='true';el.setAttribute('aria-checked',on);document.querySelectorAll('#sP label').forEach((l,i)=>{if(i)l.hidden=!on})},
  saveSvc(d){const n=$('#sN').value.trim(),tres=$('#sTres').getAttribute('aria-checked')==='true',p=(tres?[0,1,2]:[0]).map(i=>num($('#sP'+i).value));if(!n)return toast('Falta el nombre');
    const o={nombre:n,precios:p,dur:Math.max(10,num($('#sD').value)||60)};if(d.id)Object.assign(S.servicios.find(x=>x.id===d.id),o);else S.servicios.push(Object.assign({id:uid()},o));save();toast('Tarifa guardada');closeSheet()},
