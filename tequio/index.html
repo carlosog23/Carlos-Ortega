@@ -2259,10 +2259,54 @@ function vHerramientas() {
   </div>
   ${TLM_FAMILIAS.map(([fam, secs]) => `<h2 class="tlm-fam">${esc(fam)}</h2>
     <div class="tlm-rejilla">${secs.map(([id, t, d]) => `<button class="tarjeta tlm-sec" data-tlm="${id}"><b>${esc(t)}</b><span>${esc(d)}</span>${ico('i-der', 'tlm-chev')}</button>`).join('')}</div>`).join('')}
+  ${esAdmin() && !cfg.demo ? '<div class="tarjeta med" id="sol"><h2>Solicitudes a Tlami</h2><p class="peq mudo" style="margin:0">Cargando…</p></div>' : ''}
   ${esAdmin() && !cfg.demo ? '<div class="tarjeta med" id="med"><h2>Medallero de Tlamatini</h2><p class="peq mudo" style="margin:0">Cargando…</p></div>' : ''}
   <p class="peq mudo" style="margin-top:18px">Para volver, use la franja «Regresar a Tequio» en la parte de arriba de Tlamatini.</p>`;
   $$('[data-tlm]').forEach(b => b.onclick = () => irTlamatini(b.dataset.tlm));
   if ($('#med')) medCargar();
+  if ($('#sol')) solCargar();
+}
+
+/* ---------------- Solicitudes a Tlami (solo la Supervisión) ----------------
+   Lo que el personal le pidió a Tlami, el guía de Tlamatini, y todavía no existe. Aquí se ve qué pidieron, quién y de qué
+   escuela, y se marca si ya está en desarrollo, hecha o descartada. */
+let SOL = null;
+const SOL_EST = { nueva: 'Nueva', desarrollo: 'En desarrollo', hecha: 'Hecha', descartada: 'Descartada' };
+async function solCargar() {
+  try { SOL = (await api('solicitudes')).solicitudes || []; }
+  catch (e) {
+    const c = $('#sol'); if (!c) return;
+    c.innerHTML = '<h2>Solicitudes a Tlami</h2>' + (/desconocida/i.test(e.message)
+      ? '<p style="margin:6px 0 0">Para que Tlami pueda conversar y guardar solicitudes, el servidor de Tequio necesita la versión nueva. Siga los pasos de <a href="instalacion.html#actualizar">«Actualizar el servidor»</a> con el Codigo.gs nuevo.</p>'
+      : `<p class="peq mudo" style="margin:6px 0 0">No se pudo cargar: ${esc(e.message)}</p>`);
+    return;
+  }
+  solPintar();
+}
+function solPintar() {
+  const c = $('#sol'); if (!c || !SOL) return;
+  const todas = vista.solTodas, pend = SOL.filter(x => x.estado === 'nueva' || x.estado === 'desarrollo'), lista = todas ? SOL : pend;
+  const nuevas = SOL.filter(x => x.estado === 'nueva').length;
+  c.innerHTML = `<div class="med-top"><div><h2>Solicitudes a Tlami${nuevas ? ` <span class="chip" style="font-size:13px;vertical-align:middle">${nuevas} nueva${nuevas > 1 ? 's' : ''}</span>` : ''}</h2>
+      <div class="peq mudo">Solo lo ve la Supervisión · lo que el personal pidió en Tlamatini y todavía no existe</div></div>
+      ${SOL.length ? `<button class="boton sec" id="sol-todas">${todas ? 'Ver solo las pendientes' : 'Ver todas (' + SOL.length + ')'}</button>` : ''}</div>
+    ${lista.length ? lista.map(x => `<div class="med-f" style="align-items:flex-start;flex-wrap:wrap">
+        <div class="med-n" style="flex:1 1 260px"><b>${esc(x.resumen || x.texto.slice(0, 120))}</b>
+          <span>${esc(x.nombre)} · ${esc(x.escuela)}${x.cargo ? ' · ' + esc(x.cargo) : ''} · ${esc(fechaCorta(String(x.fecha).slice(0, 10)))}</span>
+          <div style="margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere">«${esc(x.texto)}»</div>
+          <label class="peq mudo" for="sol-n-${x.id}" style="display:block;margin-top:8px">Nota de la Supervisión</label>
+          <input id="sol-n-${x.id}" data-solnota="${x.id}" value="${esc(x.nota || '')}" maxlength="600" placeholder="Qué se decidió o qué falta" style="width:100%"></div>
+        <div style="flex:none"><label class="peq mudo" for="sol-e-${x.id}" style="display:block">Estado</label>
+          <select id="sol-e-${x.id}" data-solest="${x.id}">${Object.keys(SOL_EST).map(k => `<option value="${k}" ${x.estado === k ? 'selected' : ''}>${SOL_EST[k]}</option>`).join('')}</select></div>
+      </div>`).join('')
+      : `<p style="margin:10px 0 0">${SOL.length ? 'No hay solicitudes pendientes.' : 'Aún no hay solicitudes. Aparecen aquí cuando alguien le pide a Tlami algo que Tlamatini todavía no tiene y decide enviarlo.'}</p>`}`;
+  if ($('#sol-todas')) $('#sol-todas').onclick = () => { vista.solTodas = !todas; solPintar(); };
+  const guardar = async (id, d) => {
+    try { const r = await api('solicitudEstado', Object.assign({ id: id }, d)); const i = SOL.findIndex(x => x.id === id); if (i >= 0) SOL[i] = r.solicitud; if (d.estado) solPintar(); }
+    catch (e) { aviso('No se pudo guardar: ' + e.message, 'error'); }
+  };
+  $$('[data-solest]').forEach(s => s.onchange = () => guardar(s.dataset.solest, { estado: s.value }));
+  $$('[data-solnota]').forEach(n => n.onchange = () => guardar(n.dataset.solnota, { nota: n.value }));
 }
 
 /* ---------------- Medallero de Tlamatini (solo la Supervisión) ----------------

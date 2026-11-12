@@ -7224,6 +7224,118 @@ function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[
 const USO={cola:[],listo:false,ultima:"",activo:(()=>{try{return !!USO_CODIGO&&!localStorage.getItem("gh-token")&&!/^(localhost|127\.)/.test(location.hostname)}catch(e){return false}})()};
 function usoContar(path,title,evento){if(!USO.activo)return;const o={path:(DEMO?"demo/":"")+path,title:title||path,event:!!evento};
   if(USO.listo&&window.goatcounter&&window.goatcounter.count){try{window.goatcounter.count(o)}catch(e){}}else USO.cola.push(o)}
+/* ---------- Tlami, el guía de Tlamatini ----------
+   Un botón flotante en el inicio y en las secciones abre la conversación. La persona escribe o dicta lo que necesita;
+   Tlami (Gemini, por el servidor de Tequio de la zona) le dice qué apartado le sirve, pregunta si hay duda y, si lo que
+   pide todavía no existe, ofrece enviar la solicitud a la Supervisión. Sin internet o sin vínculo con Tequio, busca
+   por palabras en este dispositivo. Lo que se le escribe sale del dispositivo: por eso pide no poner datos de alumnos. */
+const TLAMI_CARA='<svg viewBox="36 32 168 190" aria-hidden="true"><path d="M120 40 C178 40 196 86 196 132 C196 186 162 214 120 214 C78 214 44 186 44 132 C44 86 62 40 120 40Z" fill="#F4E1C1" stroke="#24427A" stroke-width="6"/><path d="M72 198 H88 V186 H102 V174 H116 V162 H128 A22 22 0 0 0 128 118 A15 15 0 0 0 128 148 A9 9 0 0 0 128 130" fill="none" stroke="#24427A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/><circle cx="128" cy="139" r="5" fill="#E8A33D"/><ellipse cx="98" cy="76" rx="7.5" ry="9" fill="#1E2A40"/><ellipse cx="142" cy="76" rx="7.5" ry="9" fill="#1E2A40"/><circle cx="100.5" cy="72.5" r="2.4" fill="#fff"/><circle cx="144.5" cy="72.5" r="2.4" fill="#fff"/><path d="M109 94 Q120 103 131 94" stroke="#1E2A40" stroke-width="4" fill="none" stroke-linecap="round"/></svg>';
+const TLAMI={msgs:[],cat:null,ocupado:false,listo:false};
+function tlamiCatalogo(){if(TLAMI.cat)return TLAMI.cat;const it=[];
+  SECCIONES.forEach(x=>{it.push({id:"s:"+x.id,t:x.title,d:x.desc||"",ic:ICON[x.icon]||"",go:()=>sectionView(x.id)});
+    (x.tools||[]).forEach(t=>it.push({id:"t:"+x.id+"/"+t.id,t:t.name,d:(t.use||"")+" (en "+x.title+")",ic:ICON[TICON[t.id]]||esc(t.letra||""),go:()=>{S.sec=x.id;if(t.open)t.open();else edadesView()}}))});
+  Object.keys(ANEXOS).forEach(L=>{const sid=iniSecDe(L),ppie=sid==="ppie";
+    it.push({id:"a:"+L,t:(ppie?"Anexo "+L+" del PPIE · ":"")+ANEXOS[L].name,d:(ANEXOS[L].use||"")+(L==="L"?" (el «permiso económico»)":""),ic:AICON[L]?ICON[AICON[L]]:L,go:()=>{S.sec=sid;openAnexo(L)}})});
+  it.forEach(o=>{o.q=nrmTx(o.t+" "+o.d)});return TLAMI.cat=it}
+const TLAMI_VACIAS=new Set("para como donde quiero necesito hacer tengo puedo favor algo unos unas este esta esto sobre desde hasta entre pero porque cuando quien cual todo toda todos todas alumno alumnos escuela formato documento".split(" "));
+function tlamiLocal(msg){const ws=nrmTx(msg).split(/[^a-z0-9ñ]+/).filter(w=>w.length>3&&!TLAMI_VACIAS.has(w)).map(w=>w.replace(/(es|s)$/,""));if(!ws.length)return[];
+  return tlamiCatalogo().map(o=>({o,s:ws.reduce((a,w)=>a+(nrmTx(o.t).includes(w)?3:o.q.includes(w)?1:0),0)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.o.id)}
+function tlamiQuien(){const p=perfil||{};return{nombre:String(p.minombre||"").trim(),escuela:String(p.escuela||"").trim(),cct:String(p.cct||"").trim(),cargo:String(p.micargo||"").trim()}}
+async function tlamiPost(accion,datos){const sv=typeof tqiServidor==="function"?tqiServidor():null;if(!sv||DEMO||navigator.onLine===false)throw new Error("sinservidor");
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),40000);
+  try{const r=await fetch(sv.s,{method:"POST",redirect:"follow",signal:ctl.signal,headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({k:sv.k||"",accion,datos:Object.assign({tok:sv.tok||"",quien:tlamiQuien()},datos)})});
+    const j=await r.json();if(!j||!j.ok)throw new Error((j&&(j.mensaje||j.error))||"El servidor no respondió.");return j}
+  finally{clearTimeout(tm)}}
+function tlamiMontar(){if(TLAMI.listo)return;TLAMI.listo=true;
+  const st=document.createElement("style");st.textContent=`
+#tlamiBtn{position:fixed;right:16px;bottom:18px;z-index:8990;display:flex;align-items:center;gap:8px;padding:6px 16px 6px 6px;border-radius:999px;border:1.5px solid var(--line2,rgba(0,0,0,.14));background:var(--card,#fff);color:var(--ink,#14213A);font:inherit;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.2)}
+#tlamiBtn svg{width:42px;height:46px;display:block}#tlamiBtn[hidden]{display:none}
+#tlamiBtn:focus-visible,.tmi-x:focus-visible,.tmi-env:focus-visible{outline:3px solid var(--ambar,#E8A33D);outline-offset:2px}
+#tlamiPan{position:fixed;right:12px;bottom:12px;z-index:8995;width:min(430px,calc(100vw - 24px));height:min(620px,calc(100dvh - 24px));display:flex;flex-direction:column;background:var(--bg,#F6F1E7);color:var(--ink,#14213A);border:1.5px solid var(--line2,rgba(0,0,0,.14));border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden}
+#tlamiPan[hidden]{display:none}
+.tmi-cab{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card,#fff);border-bottom:1px solid var(--line2,rgba(0,0,0,.12))}
+.tmi-cab svg{width:38px;height:42px;flex:none}.tmi-cab b{font-family:var(--brand,Georgia,serif);font-size:19px;display:block;line-height:1.1}.tmi-cab span{font-size:12.5px;opacity:.75}
+.tmi-x{margin-left:auto;border:0;background:none;color:inherit;font-size:26px;line-height:1;width:44px;height:44px;border-radius:50%;cursor:pointer}
+.tmi-msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.tmi-msgs>*{flex:none}
+.tmi-m{max-width:88%;min-width:0;padding:10px 13px;border-radius:16px;font-size:15.5px;line-height:1.45;overflow-wrap:break-word;word-break:normal;white-space:pre-wrap;margin:0;width:auto}
+.tmi-m.tmi-u{align-self:flex-end;background:var(--accent,#24427A);color:var(--accent-ink,#fff);border-bottom-right-radius:5px}
+.tmi-m.tmi-t{align-self:flex-start;background:var(--card,#fff);border:1px solid var(--line2,rgba(0,0,0,.1));border-bottom-left-radius:5px}
+.tmi-d{align-self:stretch;display:flex;flex-direction:column;gap:6px}
+.tmi-go{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid var(--accent,#24427A);background:var(--card,#fff);color:var(--ink,#14213A);font:inherit;cursor:pointer;min-height:52px}
+.tmi-go .ico{flex:none;width:26px;height:26px;display:grid;place-items:center;font-weight:700}.tmi-go .ico svg{width:24px;height:24px}
+.tmi-go b{display:block}.tmi-go small{display:block;opacity:.75;font-size:12.5px}
+.tmi-sol{align-self:stretch;border:1.5px dashed var(--ambar,#E8A33D);border-radius:12px;padding:10px 12px;background:var(--card,#fff);display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.tmi-sol textarea,.tmi-sol input{font:inherit;width:100%;box-sizing:border-box;border:1.5px solid var(--line2,rgba(0,0,0,.2));border-radius:10px;padding:9px 10px;background:var(--bg,#fff);color:inherit}
+.tmi-sol textarea{min-height:84px;resize:vertical}
+.tmi-b{font:inherit;font-weight:700;border-radius:10px;padding:9px 14px;min-height:44px;border:1.5px solid var(--accent,#24427A);background:var(--accent,#24427A);color:var(--accent-ink,#fff);cursor:pointer}
+.tmi-b.tmi-b2{background:none;color:var(--ink,#14213A);border-color:var(--line2,rgba(0,0,0,.25))}.tmi-b:disabled{opacity:.55;cursor:default}
+.tmi-chips{display:flex;flex-wrap:wrap;gap:6px}.tmi-chips button{font:inherit;font-size:14px;border-radius:999px;border:1.5px solid var(--line2,rgba(0,0,0,.2));background:var(--card,#fff);color:inherit;padding:7px 12px;min-height:40px;cursor:pointer}
+.tmi-pie{padding:8px 10px 10px;border-top:1px solid var(--line2,rgba(0,0,0,.12));background:var(--card,#fff)}
+.tmi-fila{display:flex;gap:6px;align-items:flex-end}.tmi-fila textarea{flex:1;font:inherit;font-size:16px;border:1.5px solid var(--line2,rgba(0,0,0,.2));border-radius:14px;padding:10px 12px;min-height:46px;max-height:110px;resize:none;background:var(--bg,#fff);color:inherit}
+.tmi-env{flex:none;width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;font-size:20px}
+.tmi-env{background:var(--accent,#24427A);color:var(--accent-ink,#fff)}
+.tmi-nota{font-size:11.5px;opacity:.7;margin:6px 2px 0;line-height:1.35}
+.tmi-esp i{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.35;margin-right:4px;animation:tmip 1s infinite}.tmi-esp i:nth-child(2){animation-delay:.15s}.tmi-esp i:nth-child(3){animation-delay:.3s}
+@keyframes tmip{50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tmi-esp i{animation:none}}
+@media (max-width:520px){#tlamiPan{right:0;bottom:0;width:100vw;height:min(88dvh,680px);border-radius:18px 18px 0 0}#tlamiBtn span{display:none}#tlamiBtn{padding:6px}}
+@media print{#tlamiBtn,#tlamiPan{display:none!important}}`;document.head.appendChild(st);
+  const b=document.createElement("button");b.type="button";b.id="tlamiBtn";b.hidden=true;b.setAttribute("aria-label","Pregúntele a Tlami qué necesita");b.innerHTML=TLAMI_CARA+"<span>¿Le ayudo?</span>";b.onclick=tlamiAbrir;document.body.appendChild(b);
+  const p=document.createElement("section");p.id="tlamiPan";p.hidden=true;p.setAttribute("role","dialog");p.setAttribute("aria-label","Tlami, guía de Tlamatini");
+  p.innerHTML=`<div class="tmi-cab">${TLAMI_CARA}<div><b>Tlami</b><span>Su guía en Tlamatini</span></div><button type="button" class="tmi-x" id="tlamiX" aria-label="Cerrar">×</button></div>
+   <div class="tmi-msgs" id="tlamiMsgs" aria-live="polite"></div>
+   <div class="tmi-pie"><div class="tmi-fila"><label class="sr" for="tlamiQ">Escriba lo que necesita</label><textarea id="tlamiQ" rows="1" maxlength="600" placeholder="Escriba lo que necesita…" enterkeyhint="send"></textarea><button type="button" class="tmi-env" id="tlamiEnv" aria-label="Enviar">➤</button></div>
+    <p class="tmi-nota">No escriba nombres ni datos de alumnos. Tlami usa inteligencia artificial y puede equivocarse.</p></div>`;
+  document.body.appendChild(p);
+  const q=p.querySelector("#tlamiQ");
+  p.querySelector("#tlamiX").onclick=tlamiCerrar;
+  p.querySelector("#tlamiEnv").onclick=()=>tlamiDecir(q.value);
+  q.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();tlamiDecir(q.value)}if(e.key==="Escape")tlamiCerrar()});
+  const ver=()=>{b.hidden=!(S.view==="home"||S.view==="section")||!p.hidden};
+  new MutationObserver(ver).observe(app,{childList:true});TLAMI.ver=ver;ver()}
+function tlamiAbrir(){const p=document.getElementById("tlamiPan");p.hidden=false;TLAMI.ver();
+  if(!TLAMI.msgs.length){const n=(tlamiQuien().nombre.replace(/^(mtr[oa]|profr?a?|lic|dra?|ing)\.?\s+/i,"").split(" ")[0])||"";
+    TLAMI.msgs.push({r:"t",t:`Hola${n?", "+n:""}. Soy Tlami. Dígame con sus palabras qué necesita hacer y le digo dónde está en Tlamatini. Si todavía no existe, se lo paso a la Supervisión.`,chips:["Un recado para los padres de familia","Pedir un permiso económico","La lista de asistencia del mes","Diplomas para mis alumnos"]})}
+  tlamiPinta();setTimeout(()=>{try{document.getElementById("tlamiQ").focus()}catch(e){}},50)}
+function tlamiCerrar(){document.getElementById("tlamiPan").hidden=true;TLAMI.ver();try{document.getElementById("tlamiBtn").focus()}catch(e){}}
+function tlamiPinta(){const c=document.getElementById("tlamiMsgs");if(!c)return;const cat=tlamiCatalogo();
+  c.innerHTML=TLAMI.msgs.map((m,i)=>{let o=`<div class="tmi-m tmi-${m.r}">${esc(m.t)}</div>`;
+    if(m.chips&&i===TLAMI.msgs.length-1)o+=`<div class="tmi-chips">${m.chips.map(x=>`<button type="button" data-chip="${esc(x)}">${esc(x)}</button>`).join("")}</div>`;
+    if(m.dest&&m.dest.length)o+=`<div class="tmi-d">${m.dest.map(id=>{const x=cat.find(z=>z.id===id);return x?`<button type="button" class="tmi-go" data-go="${esc(id)}"><span class="ico">${x.ic}</span><span><b>${esc(x.t)}</b><small>Abrir ›</small></span></button>`:""}).join("")}</div>`;
+    if(m.sol!=null&&m.sol!==false){
+      if(m.enviada)o+=`<div class="tmi-sol"><b>Solicitud enviada</b><span>La Supervisión ya la tiene en su lista. Gracias por decirnos qué le hace falta.</span></div>`;
+      else if(m.form)o+=`<div class="tmi-sol"><b>Solicitud para la Supervisión</b><label class="sr" for="tlamiSolT">Qué necesita</label><textarea id="tlamiSolT" maxlength="1500">${esc(m.texto||"")}</textarea>
+        ${tlamiQuien().nombre?`<span style="font-size:13px;opacity:.8">Se envía a nombre de ${esc(tlamiQuien().nombre)}${tlamiQuien().escuela?", "+esc(tlamiQuien().escuela):""}.</span>`:`<label for="tlamiSolN" style="font-size:13px">Su nombre y escuela</label><input id="tlamiSolN" maxlength="120" autocomplete="name">`}
+        ${m.err?`<span role="alert" style="color:#B3261E">${esc(m.err)}</span>`:""}
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="tmi-b" data-solenv="${i}">Enviar solicitud</button><button type="button" class="tmi-b tmi-b2" data-solno="${i}">Cancelar</button></div></div>`;
+      else o+=`<div class="tmi-d"><button type="button" class="tmi-b" data-sol="${i}">Enviar esta solicitud a la Supervisión</button></div>`}
+    return o}).join("")+(TLAMI.ocupado?'<div class="tmi-m tmi-t tmi-esp" aria-label="Tlami está pensando"><i></i><i></i><i></i></div>':"");
+  c.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>tlamiDecir(b.dataset.chip));
+  c.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const x=cat.find(z=>z.id===b.dataset.go);if(x){tlamiCerrar();x.go()}});
+  c.querySelectorAll("[data-sol]").forEach(b=>b.onclick=()=>{const m=TLAMI.msgs[+b.dataset.sol];m.form=true;if(!m.texto){const us=[];for(let k=+b.dataset.sol-1;k>=0&&us.length<3;k--){const z=TLAMI.msgs[k];if(z.r==="u")us.unshift(z.t);else if((z.dest&&z.dest.length)||z.sol||z.chips)break}m.texto=us.join("\n")}tlamiPinta();try{document.getElementById("tlamiSolT").focus()}catch(e){}});
+  c.querySelectorAll("[data-solno]").forEach(b=>b.onclick=()=>{const m=TLAMI.msgs[+b.dataset.solno];m.form=false;m.err="";tlamiPinta()});
+  c.querySelectorAll("[data-solenv]").forEach(b=>b.onclick=()=>tlamiSolicitar(+b.dataset.solenv,b));
+  c.scrollTop=c.scrollHeight}
+async function tlamiDecir(txt){txt=String(txt||"").replace(/\s+/g," ").trim();if(!txt||TLAMI.ocupado)return;
+  const q=document.getElementById("tlamiQ");if(q)q.value="";
+  const hist=TLAMI.msgs.slice(-6).map(m=>({r:m.r,t:m.t}));
+  TLAMI.msgs.push({r:"u",t:txt});TLAMI.ocupado=true;tlamiPinta();
+  try{const j=await tlamiPost("tlami",{mensaje:txt,historial:hist,catalogo:tlamiCatalogo().map(o=>({id:o.id,t:o.t,d:o.d.slice(0,150)}))});
+    TLAMI.msgs.push({r:"t",t:j.respuesta,dest:j.destinos||[],sol:j.solicitud?j.solicitud:false})}
+  catch(e){const ids=tlamiLocal(txt),sin=/sinservidor|desconocida|Failed to fetch|abort/i.test(String(e&&e.message)+String(e&&e.name));
+    const pre=sin?"Ahora no tengo conexión con mi parte inteligente, así que busqué por palabras. ":(e.message+" Mientras tanto busqué por palabras. ");
+    TLAMI.msgs.push({r:"t",t:pre+(ids.length?"Esto es lo más parecido que hay en Tlamatini:":"No encontré algo parecido en Tlamatini. Pruebe con otras palabras o envíe su solicitud."),dest:ids,sol:""})}
+  TLAMI.ocupado=false;tlamiPinta()}
+async function tlamiSolicitar(i,btn){const m=TLAMI.msgs[i],t=document.getElementById("tlamiSolT"),nm=document.getElementById("tlamiSolN");
+  m.texto=String(t&&t.value||"").trim();if(m.texto.length<8){m.err="Describa un poco más lo que necesita.";return tlamiPinta()}
+  const firma=nm&&nm.value.trim()?"\n— "+nm.value.trim():"";btn.disabled=true;btn.textContent="Enviando…";
+  try{await tlamiPost("tlamiSolicitud",{texto:m.texto+firma,resumen:m.sol||""});m.enviada=true;m.form=false;m.err=""}
+  catch(e){const sin=/sinservidor|desconocida|Failed to fetch|abort/i.test(String(e&&e.message)+String(e&&e.name));
+    m.err=sin?"No hay conexión con la Supervisión en este momento. Intente más tarde, o escríbala a tlamatini023@gmail.com.":e.message}
+  tlamiPinta()}
+try{tlamiMontar()}catch(e){}
+
 /* ---------- Uso por persona (reconocimiento a quienes más usan Tlamatini) ----------
    Identifica por el alta en la app (escuela + nombre) y cuenta documentos generados. En GoatCounter queda:
    · persona/<Escuela> · <Nombre>            → una fila por persona; sube cada jornada en que genera documentos
