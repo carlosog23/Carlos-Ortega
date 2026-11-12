@@ -995,7 +995,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-1015';
+const PUBLICACION = '2026-11-12-1030';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -4594,7 +4594,7 @@ function vEvidencias() {
   const porAtp = atps().map(u => { const e = escuelasDeAtp(u).filter(c => !vista.municipio || (escuelaDe(c) || {}).municipio === vista.municipio); return { u, n: e.length, a: avanceEvi(e) }; });
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Evidencias en Drive</h1>
-    <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton sec" id="b-revisar">${ico('i-act')}Revisar ahora</button><button class="boton sec" id="b-carpeta">${ico('i-carpeta')}Nueva carpeta</button><button class="boton terra" id="b-subir">${ico('i-mas')}Subir archivos</button></div></div>
+    <div class="acciones"><a class="boton sec" target="_blank" rel="noopener" href="${RAIZ_DRIVE}">Abrir el Drive</a><button class="boton sec" id="b-revisar">${ico('i-act')}Revisar ahora</button><button class="boton sec" id="b-carpeta">${ico('i-carpeta')}Nueva carpeta</button>${esAdmin() ? `<button class="boton sec" id="b-quitar-carpeta">${ico('i-x')}Quitar carpeta</button>` : ''}<button class="boton terra" id="b-subir">${ico('i-mas')}Subir archivos</button></div></div>
   <div class="aviso-caja peq">Tequio revisa las carpetas cada mañana a las 6:00. Última revisión: <b>${revisado ? fechaHora(revisado) : 'todavía no se ha hecho'}</b>. Solo lee nombres y fechas de los archivos, no su contenido.</div>
   <div class="filtros">${selAtp()}
     ${munSelect('f-mun', vista.municipio)}</div>
@@ -4643,6 +4643,7 @@ function vEvidencias() {
   };
   if ($('#b-evi-comp')) $('#b-evi-comp').onclick = () => { eviVerCompletas = !eviVerCompletas; try { localStorage.setItem('tequio.eviCompletas', eviVerCompletas ? '1' : '0'); } catch (e) {} vEvidencias(); };
   $('#b-carpeta').onclick = formCarpeta;
+  if ($('#b-quitar-carpeta')) $('#b-quitar-carpeta').onclick = formQuitarCarpeta;
   $('#b-subir').onclick = () => formSubir(vista.atp && escuelasDeAtp(usuario(vista.atp))[0] || '');
   $('#f-mun').onchange = e => { vista.municipio = e.target.value; vEvidencias(); };
   $('#f-atp').onchange = e => { vista.atp = e.target.value; vEvidencias(); };
@@ -4837,6 +4838,26 @@ function formCarpeta() {
       if (r.sinBase.length) p.push('No se encontró la carpeta base en: ' + r.sinBase.map(nombreEscuela).join(', ') + '.');
       aviso(esc(p.join(' ')), r.sinBase.length ? '' : 'ok', 7000);
     });
+  };
+}
+
+/* Quitar una carpeta de todas las escuelas (solo la Supervisión y solo si está vacía en todas): va a la papelera del Drive */
+function formQuitarCarpeta() {
+  if (!cfg.demo && (S.version || 0) < 55) return aviso('Para quitar carpetas, primero actualice el servidor de Tequio a la versión 55.', 'mal', 7000);
+  const rutas = [...new Map((S.evi || []).filter(e => e.ruta && !/^01-expedientes/i.test(e.ruta)).map(e => [normRuta(e.ruta), e.ruta])).values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  const info = r => { const fs = (S.evi || []).filter(e => normRuta(e.ruta) === normRuta(r)); return { esc: fs.length, arch: fs.reduce((s, e) => s + nArch(e), 0) }; };
+  modal('Quitar una carpeta de las escuelas', `
+    <div class="campo"><label for="q-ruta">Carpeta</label><select id="q-ruta"><option value="">Elija la carpeta…</option>${rutas.map(r => { const i = info(r); return `<option value="${esc(r)}">${esc(r.replace(/\//g, ' › '))} · ${i.esc} escuela${i.esc === 1 ? '' : 's'}${i.arch ? ' · ' + i.arch + ' archivo' + (i.arch === 1 ? '' : 's') : ' · vacía'}</option>`; }).join('')}</select></div>
+    <div id="q-nota" class="ayuda">Se quita en todas las escuelas, con sus subcarpetas. Va a la papelera del Drive de la Supervisión (se puede recuperar durante 30 días). Solo se puede si está vacía en todas las escuelas.</div>`,
+    '<button class="boton sec" id="q-cancelar">Cancelar</button><button class="boton peligro" id="q-ok">Quitar carpeta</button>');
+  $('#q-cancelar').onclick = cerrarModal;
+  $('#q-ok').onclick = () => {
+    const ruta = $('#q-ruta').value; if (!ruta) return aviso('Elija la carpeta.', 'mal');
+    const i = info(ruta);
+    if (i.arch) return aviso('Esa carpeta tiene ' + i.arch + ' archivo(s); no se puede quitar. Muévalos o bórrelos primero.', 'mal', 7000);
+    if (!confirm('¿Quitar «' + ruta.replace(/\//g, ' › ') + '» de ' + i.esc + ' escuela(s)? Se manda a la papelera del Drive.')) return;
+    if (cfg.demo) { S.evi = S.evi.filter(e => normRuta(e.ruta) !== normRuta(ruta) && !normRuta(e.ruta).startsWith(normRuta(ruta) + '/')); cerrarModal(); pintar(); return aviso('Carpeta quitada (demostración).', 'ok', 3000); }
+    accion('quitarCarpeta', { ruta }, r => { S.evi = r.evi; cerrarModal(); pintar(); aviso('Carpeta quitada de ' + r.quitadas + ' escuelas. Está en la papelera del Drive.', 'ok', 6000); });
   };
 }
 

@@ -228,7 +228,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 54;
+const VERSION = 55;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -527,7 +527,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -1637,6 +1637,24 @@ const ACCIONES = {
     return { creadas: nuevas.map(x => x.cct), existian: existian, sinBase: sinBase, evi: leer_('evi') };
   },
 
+
+  // Quita una carpeta de todas las escuelas (la manda a la papelera del Drive, de donde se puede recuperar 30 días).
+  // Solo la Supervisión, y solo si está vacía en todas: si alguna escuela ya subió algo, no se quita en ninguna.
+  quitarCarpeta: (yo, d) => {
+    soloAdmin_(yo);
+    const ruta = String(d.ruta || '').trim();
+    if (!ruta) throw new Error('Elija la carpeta.');
+    const k = normRuta_(ruta), evi = leer_('evi'), filas = evi.filter(e => normRuta_(e.ruta) === k && e.carpetaId);
+    if (!filas.length) throw new Error('No se encontró esa carpeta en el Drive de las escuelas.');
+    const cuenta = f => { let n = 0; const a = f.getFiles(); while (a.hasNext()) { a.next(); n++; } const s = f.getFolders(); while (s.hasNext()) n += cuenta(s.next()); return n; };
+    const carpetas = filas.map(e => ({ e: e, f: DriveApp.getFolderById(e.carpetaId) }));
+    const conArchivos = carpetas.map(x => ({ cct: x.e.cct, n: cuenta(x.f) })).filter(x => x.n);
+    if (conArchivos.length) throw new Error('No se quitó: tiene archivos en ' + conArchivos.map(x => nombreEscuelaDir_(x.cct) + ' (' + x.n + ')').join(', ') + '. Muévalos o bórrelos primero.');
+    carpetas.forEach(x => x.f.setTrashed(true));
+    conLock_(() => reemplazarTodo_('evi', leer_('evi').filter(e => { const r = normRuta_(e.ruta); return r !== k && r.indexOf(k + '/') !== 0; })));
+    bitacora_('carpeta', ruta, [], 'Carpeta quitada', 'a la papelera en ' + carpetas.length + ' escuelas por ' + yo.nombre);
+    return { quitadas: carpetas.length, evi: leer_('evi') };
+  },
 
   /* ---- Directorio de personas para los oficios ---- */
 
