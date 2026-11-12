@@ -180,7 +180,7 @@ function load(){
   const d=defaults();
   if(raw){try{const o=JSON.parse(raw);S=Object.assign(d,o);S.cfg=Object.assign(defaults().cfg,o.cfg||{})}catch(e){S=d}}else S=d;
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){mem=true}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){mem=true}try{recAlGuardar()}catch(e){}}
 
 /* ---------- reglas ---------- */
 const activa=c=>c.estado!=='cancelada'&&c.estado!=='noasistio';
@@ -360,6 +360,53 @@ function editPrecios(){if(!S.servicios.length)return toast('Primero agrega un se
   sheet('Editar precios','<span class="small muted">Cambia los que necesites y toca Guardar. Las citas ya agendadas conservan el precio con el que se hicieron.</span>'+S.servicios.map(s=>{const tres=s.precios.length>1;
     return '<div class="col" style="gap:6px;border-bottom:1px solid var(--line);padding:8px 0 12px"><b>'+esc(s.nombre)+'</b><div class="grid2" style="grid-template-columns:repeat('+(tres?3:1)+',1fr)">'+s.precios.map((p,i)=>'<label class="f">'+(tres?TAM[i][0].toUpperCase()+TAM[i].slice(1):'Precio')+' ($)<input inputmode="decimal" data-pp="'+s.id+'" data-pi="'+i+'" value="'+(p!=null?p:'')+'"></label>').join('')+'</div></div>'}).join('')+
     '<button class="btn gold block" data-a="savePrecios">Guardar precios</button>')}
+/* ---------- Recordatorios una hora antes ----------
+   Una hora antes de cada cita agendada, el servidor de recordatorios «despierta» a este celular y la app muestra el aviso,
+   aunque esté cerrada. Al tocarlo se abre WhatsApp con el recordatorio de la clienta ya escrito.
+   Al servidor solo viajan la dirección de aviso del celular y las horas; nombres, teléfonos y citas se quedan aquí. */
+const REC_URL='';            // dirección /exec del servidor de recordatorios (si está vacía, se captura en Ajustes)
+const REC_MIN=60;            // minutos de anticipación
+const recUrl=()=>REC_URL||(S.cfg.recUrl||'').trim();
+const recEp=()=>{try{return localStorage.getItem('cn-rec-ep')||''}catch(e){return ''}};
+const recIni=c=>new Date(c.fecha+'T'+c.hora+':00').getTime();
+function recLista(){const a=Date.now();return S.citas.filter(c=>c.estado==='agendada'&&recIni(c)>a).map(c=>{const k=cli(c.clientaId),tel=wa(k.tel);
+  return {id:c.id,ini:recIni(c),hora:h12(c.hora),nombre:k.nombre||'Clienta',serv:servTxt(c),wa:tel?waLink(k.tel,fill(S.cfg.tRec,c)):''}})}
+function recDB(){return new Promise((ok,no)=>{const r=indexedDB.open('cherry-nails-rec',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+async function recPon(k,v){const db=await recDB();return new Promise((ok,no)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>{db.close();ok()};t.onerror=()=>{db.close();no(t.error)}})}
+async function recPost(o){const r=await fetch(recUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o)});return r.json()}
+let recT=0;
+function recAlGuardar(){clearTimeout(recT);recT=setTimeout(recSync,2500)}
+async function recSync(){try{const l=recLista();await recPon('lista',{lista:l,negocio:S.cfg.negocio});
+  if(!recEp()||!recUrl()||navigator.onLine===false)return;
+  const j=await recPost({accion:'guardar',endpoint:recEp(),horas:l.map(x=>x.ini-REC_MIN*60000)});try{localStorage.setItem('cn-rec-ok',j&&j.ok?String(Date.now()):'')}catch(e){}}catch(e){}}
+const b64aBytes=t=>{const b=atob(t.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((t.length+3)%4)),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+function recCard(){const url=recUrl(),on=!!recEp(),sop='serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+  let o='<div class="card col"><h3>Recordatorios 1 hora antes</h3><span class="small muted">Una hora antes de cada cita llega un aviso a este celular, aunque la app esté cerrada. Al tocarlo se abre WhatsApp con el recordatorio de la clienta ya escrito; solo falta enviarlo.</span>';
+  if(!REC_URL)o+='<label class="f">Dirección del servicio de recordatorios<input id="aRecU" data-cfg="recUrl" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(S.cfg.recUrl||'')+'"></label>';
+  if(on)o+='<span class="pill ok" style="align-self:flex-start">Activos en este celular</span><div class="grid2"><button class="btn" data-a="recProbar">Probar aviso</button><button class="btn" data-a="recQuitar">Desactivar</button></div>';
+  else if(esIOS()&&!instalada())o+='<span class="small" style="color:var(--gold)">En iPhone, primero instala la app en la pantalla de inicio (tarjeta de arriba) y ábrela desde su ícono; entonces aquí aparecerá el botón para activarlos.</span>';
+  else if(!sop)o+='<span class="small" style="color:var(--gold)">Este navegador no permite avisos. En Android usa Chrome; en iPhone, la app instalada (iOS 16.4 o más nuevo).</span>';
+  else if(!url)o+='<span class="small" style="color:var(--gold)">Falta la dirección del servicio para poder activarlos.</span>';
+  else o+='<button class="btn gold block" data-a="recActivar">Activar recordatorios</button>';
+  return o+'</div>'}
+async function recActivar(el){const url=recUrl();if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url))return toast('La dirección del servicio no es válida (debe terminar en /exec)');
+  try{el.disabled=true;el.textContent='Activando…';
+    const perm=await Notification.requestPermission();if(perm!=='granted'){render();return toast('No diste permiso para las notificaciones')}
+    const j=await (await fetch(url)).json();if(!j||!j.clave)throw new Error('servicio');
+    const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe();
+    sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64aBytes(j.clave)});
+    localStorage.setItem('cn-rec-ep',sub.endpoint);await recSync();render();toast('Recordatorios activados');
+  }catch(e){render();toast(e&&e.message==='servicio'?'El servicio de recordatorios no respondió. Revisa la dirección.':'No se pudieron activar: '+(e&&e.message||e))}}
+async function recProbar(el){try{el.disabled=true;el.textContent='Enviando…';await recPon('prueba',Date.now());const j=await recPost({accion:'probar',endpoint:recEp()});
+    toast(j&&j.ok?'Aviso de prueba enviado. Debe llegar en unos segundos.':'El servicio no pudo enviar el aviso'+(j&&j.codigo?' (código '+j.codigo+')':'')+'.')}catch(e){toast('No hay conexión con el servicio de recordatorios')}render()}
+async function recQuitar(){try{await recPost({accion:'quitar',endpoint:recEp()})}catch(e){}
+  try{const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe()}catch(e){}
+  try{localStorage.removeItem('cn-rec-ep')}catch(e){}render();toast('Recordatorios desactivados')}
+/* Al tocar el aviso (en iPhone, o si la clienta no tiene teléfono) se abre la cita con su botón de recordatorio */
+function recDesdeAviso(){const m=location.hash.match(/^#rec=(.+)$/);if(!m)return;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  const c=S.citas.find(x=>x.id===decodeURIComponent(m[1]));if(c){view='agenda';sel=c.fecha;mesV=c.fecha.slice(0,7);render();verCita(c.id)}}
+window.addEventListener('hashchange',recDesdeAviso);
+try{navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.rec){location.hash='#rec='+encodeURIComponent(e.data.rec)}})}catch(e){}
 /* ---------- Instalar en el celular ---------- */
 let INST=null;
 const instalada=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
@@ -390,7 +437,7 @@ function vCaja(){const [y,m]=cajaM.split('-').map(Number),t=hoy();let cob=0,met=
 
 /* ---------- Ajustes ---------- */
 function vAjustes(){const c=S.cfg;
-  return '<h2>Ajustes</h2>'+instCard()+'<div class="card col"><h3>Negocio</h3><label class="f">Nombre del negocio<input data-cfg="negocio" id="aNeg" value="'+esc(c.negocio)+'"></label><label class="f">Quién atiende<input data-cfg="duena" id="aDue" value="'+esc(c.duena)+'"></label></div>'+
+  return '<h2>Ajustes</h2>'+instCard()+recCard()+'<div class="card col"><h3>Negocio</h3><label class="f">Nombre del negocio<input data-cfg="negocio" id="aNeg" value="'+esc(c.negocio)+'"></label><label class="f">Quién atiende<input data-cfg="duena" id="aDue" value="'+esc(c.duena)+'"></label></div>'+
   '<div class="card col"><h3>Días y horario de trabajo</h3><span class="small muted">Es la semana normal. Un día en particular se abre o se cierra desde la Agenda.</span>'+[1,2,3,4,5,6,0].map(i=>{const h=c.horario[i];return '<div class="row"><button class="switch" role="switch" aria-checked="'+h.on+'" data-a="togDow" data-d="'+i+'" aria-label="Trabajo los '+DOW[i]+'"></button><span style="width:78px;text-transform:capitalize">'+DOW[i]+'</span><input type="time" id="hI'+i+'" data-hor="'+i+'" data-k="ini" value="'+h.ini+'" '+(h.on?'':'disabled')+'><input type="time" id="hF'+i+'" data-hor="'+i+'" data-k="fin" value="'+h.fin+'" '+(h.on?'':'disabled')+'></div>'}).join('')+
   '<label class="f">Cada cuánto se ofrece un espacio<select data-cfg="slot" id="aSlot">'+[15,30,45,60].map(x=>'<option value="'+x+'"'+(c.slot===x?' selected':'')+'>'+x+' minutos</option>').join('')+'</select></label></div>'+
   '<div class="card col"><h3>Avisos por WhatsApp</h3><label class="f">Clave de país para números de 10 dígitos<input data-cfg="lada" id="aLada" inputmode="numeric" value="'+esc(c.lada)+'"></label><span class="small muted">Palabras que se llenan solas: {nombre} {fecha} {hora} {servicios} {total} {anticipo} {resta} {negocio}</span><label class="f">Mensaje de confirmación<textarea data-cfg="tConf" id="aConf">'+esc(c.tConf)+'</textarea></label><label class="f">Mensaje de recordatorio<textarea data-cfg="tRec" id="aRec">'+esc(c.tRec)+'</textarea></label><label class="f">Despedida del recibo<input data-cfg="tGracias" id="aGra" value="'+esc(c.tGracias)+'"></label></div>'+
@@ -439,6 +486,7 @@ const A={
  editPrecios(){editPrecios()},
  savePrecios(){document.querySelectorAll('[data-pp]').forEach(el=>{const sv=S.servicios.find(x=>x.id===el.dataset.pp);if(sv)sv.precios[Number(el.dataset.pi)]=num(el.value)});save();toast('Precios guardados');closeSheet()},
  instalar(){if(INST){const e=INST;INST=null;try{e.prompt();e.userChoice.then(()=>instRefrescar()).catch(()=>{})}catch(x){}}else sheet('Instalar en el celular','<span class="small muted">En este celular se instala desde el navegador, en tres pasos:</span>'+instPasos())},
+ recActivar(d,el){recActivar(el)}, recProbar(d,el){recProbar(el)}, recQuitar(){recQuitar()},
  instNo(){try{localStorage.setItem('cn-inst-x','1')}catch(e){}render()},
  svcTres(d,el){const on=el.getAttribute('aria-checked')!=='true';el.setAttribute('aria-checked',on);document.querySelectorAll('#sP label').forEach((l,i)=>{if(i)l.hidden=!on})},
  saveSvc(d){const n=$('#sN').value.trim(),tres=$('#sTres').getAttribute('aria-checked')==='true',p=(tres?[0,1,2]:[0]).map(i=>num($('#sP'+i).value));if(!n)return toast('Falta el nombre');
@@ -469,11 +517,11 @@ function onIn(e,live){const el=e.target;
   if(el.dataset.i){const k=el.dataset.i;if(k==='rsF'){if(!live&&el.files[0]){const r=new FileReader();r.onload=()=>{$('#rsT').value=r.result};r.readAsText(el.files[0])}return}
     if(!!LIVE[k]===live)I[k](el.value);return}
   if(live)return;
-  if(el.dataset.cfg){const k=el.dataset.cfg;S.cfg[k]=k==='slot'?Number(el.value):k==='lada'?el.value.replace(/\D/g,''):el.value;save();if(k==='negocio'||k==='duena'){$('#hNeg').textContent=S.cfg.negocio;$('#hDue').textContent=S.cfg.duena}}
+  if(el.dataset.cfg){const k=el.dataset.cfg;S.cfg[k]=k==='slot'?Number(el.value):k==='lada'?el.value.replace(/\D/g,''):el.value;save();if(k==='negocio'||k==='duena'){$('#hNeg').textContent=S.cfg.negocio;$('#hDue').textContent=S.cfg.duena}if(k==='recUrl')render()}
   if(el.dataset.hor&&el.value){S.cfg.horario[el.dataset.hor][el.dataset.k]=el.value;save()}}
 document.addEventListener('input',e=>onIn(e,true));
 document.addEventListener('change',e=>onIn(e,false));
-load();render();
+load();render();recDesdeAviso();setTimeout(recSync,1500);
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js')}catch(e){}
 </script>
