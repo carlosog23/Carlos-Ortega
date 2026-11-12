@@ -995,7 +995,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-0830';
+const PUBLICACION = '2026-11-12-0840';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -5328,7 +5328,8 @@ function vRelweb() {
     return;
   }
   const de = cct => REL.rel.find(x => x.cct === cct);
-  const mias = directores().filter(c => REL.escuelas.includes(c.cct));
+  // La clave de la propia Supervisión va primero y solo le llega al Supervisor
+  const sup = relSup(), mias = (sup && REL.escuelas.includes(sup.cct) ? [sup] : []).concat(directores().filter(c => REL.escuelas.includes(c.cct)));
   const fAtp = esAdmin() && vista.relAtp ? usuario(vista.relAtp) : null, deAtp = fAtp ? escuelasDeAtp(fAtp) : null;
   const lista = mias.filter(c => !deAtp || deAtp.includes(c.cct));
   const alDia = lista.filter(c => { const r = de(c.cct); return r && r.ciclo === REL.ciclo; }).length;
@@ -5337,9 +5338,9 @@ function vRelweb() {
   const tarjeta = c => {
     const r = de(c.cct), a = atpDe(c.cct), ver = relVistas.has(c.cct);
     const estado = !r ? '<span class="chip mal">Sin capturar</span>' : r.ciclo === REL.ciclo ? `<span class="chip ok">Ciclo ${esc(r.ciclo)}</span>` : `<span class="chip aviso">Es del ciclo ${esc(r.ciclo)} · falta actualizarla</span>`;
-    return `<div class="tarjeta contacto">
+    return `<div class="tarjeta contacto"${c.sup ? ' style="border-color:var(--indigo)"' : ''}>
       <div class="nom">${esc(c.escuela)}</div>
-      <div class="peq mudo">${esc(c.municipio)}${c.turno ? ' · ' + esc(c.turno) : ''}${esAdmin() && a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : ''}</div>
+      <div class="peq mudo">${c.sup ? 'Clave de la Supervisión · solo la ve usted' : esc(c.municipio) + (c.turno ? ' · ' + esc(c.turno) : '') + (esAdmin() && a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : '')}</div>
       <div>${estado}</div>
       <div class="rel-dato"><span class="ayuda">Usuario</span><code>${esc(c.cct)}</code><button class="icono-btn" data-rlcu="${c.cct}" title="Copiar el usuario" aria-label="Copiar el usuario">${ico('i-copiar')}</button></div>
       <div class="rel-dato"><span class="ayuda">Contraseña</span>${r ? `<code>${ver ? esc(r.clave) : '••••••••'}</code><button class="boton sec chico" data-rlver="${c.cct}">${ver ? 'Ocultar' : 'Ver'}</button><button class="icono-btn" data-rlcc="${c.cct}" title="Copiar la contraseña" aria-label="Copiar la contraseña">${ico('i-copiar')}</button>` : '<span class="peq mudo" style="flex:1">Todavía no se captura</span>'}</div>
@@ -5349,7 +5350,7 @@ function vRelweb() {
     </div>`;
   };
   $('#vista').innerHTML = cab + `
-  <div class="aviso-caja">${esAdmin() ? 'Aquí están las claves de la RELweb de todas las escuelas de la zona. Cada ATP captura y actualiza las de sus escuelas; usted también puede hacerlo.' : 'Aquí captura y actualiza las claves de la RELweb de las escuelas que tiene a su cargo. Solo usted y la Supervisión las ven.'} El usuario es la clave del centro de trabajo; la contraseña cambia cada ciclo escolar.</div>
+  <div class="aviso-caja">${esAdmin() ? 'Aquí están la clave de la RELweb de la Supervisión y las de todas las escuelas de la zona. Cada ATP captura y actualiza las de sus escuelas; usted también puede hacerlo.' : 'Aquí captura y actualiza las claves de la RELweb de las escuelas que tiene a su cargo. Solo usted y la Supervisión las ven.'} El usuario es la clave del centro de trabajo; la contraseña cambia cada ciclo escolar.</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     <span class="chip ok">${alDia} de ${lista.length} al día (${esc(REL.ciclo)})</span>
     ${viejas ? `<span class="chip aviso">${viejas} por actualizar</span>` : ''}${faltan ? `<span class="chip mal">${faltan} sin capturar</span>` : ''}
@@ -5363,10 +5364,10 @@ function vRelweb() {
   $$('[data-rled]').forEach(b => b.onclick = () => formRelweb(b.dataset.rled));
 }
 function formRelweb(cct) {
-  const c = escuelaDe(cct), r = REL.rel.find(x => x.cct === cct), y = +REL.ciclo.slice(0, 4);
+  const c = relSup() && relSup().cct === cct ? relSup() : escuelaDe(cct), r = REL.rel.find(x => x.cct === cct), y = +REL.ciclo.slice(0, 4);
   const ciclos = [(y - 1) + '-' + y, REL.ciclo, (y + 1) + '-' + (y + 2)];
   modal(r ? 'Actualizar la clave de la RELweb' : 'Capturar la clave de la RELweb', `
-    <div class="campo"><label>Escuela</label><input value="${esc(c.escuela)}" disabled></div>
+    <div class="campo"><label>${c.sup ? 'Centro de trabajo' : 'Escuela'}</label><input value="${esc(c.escuela)}" disabled></div>
     <div class="campo"><label>Usuario (clave del centro de trabajo)</label><input value="${esc(cct)}" disabled></div>
     <div class="campo"><label for="rl-c">Contraseña</label><input id="rl-c" maxlength="80" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="${r ? esc(r.clave) : ''}" placeholder="Escríbala tal como se la dieron">
       <div class="ayuda">Respete mayúsculas, minúsculas y signos.</div></div>
@@ -5382,6 +5383,7 @@ function formRelweb(cct) {
     poner2(REL.rel, res.rel); cerrarModal(); vRelweb(); aviso('Clave guardada.', 'ok', 2500);
   };
 }
+const relSup = () => ZONA.cctSupervision ? { cct: ZONA.cctSupervision, escuela: ZONA.nombreNo, municipio: '', sup: true } : null;
 const poner2 = (lista, o) => { const i = lista.findIndex(x => x.cct === o.cct); if (i >= 0) lista[i] = o; else lista.push(o); };
 
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
@@ -9670,7 +9672,7 @@ const Demo = (() => {
     crearAclaracion: d => { const a = { id: uid('acl'), cct: '02DPR0684N', informeId: d.informeId, tema: d.tema, ref: d.ref, mensaje: d.mensaje, atpId: d.atpId, estado: 'abierta', respuestas: [], creadoPor: 'u-d-02DPR0684N', creadoNombre: 'Dirección de ejemplo', creado: ahora(), actualizado: ahora(), resuelto: '' }; D.acl.push(a); return { acl: copia(a) }; },
     relDatos: () => { if (!D.rel) D.rel = [['02DPR0210Z', 'Ejemplo#2026', cicloActual()], ['02DPR0862Z', 'Demo.4521', cicloActual()], ['02DPR0684N', 'Clave-vieja1', (+cicloActual().slice(0, 4) - 1) + '-' + cicloActual().slice(0, 4)]]
         .map(([cct, clave, ciclo]) => ({ cct, usuario: cct, clave, ciclo, nota: '', actualizado: ahora(), actualizadoNombre: 'Isidra Analy Arce Aviña' }));
-      return { ciclo: cicloActual(), escuelas: D.dir.filter(c => c.tipo === 'director').map(c => c.cct), rel: copia(D.rel) }; },
+      return { ciclo: cicloActual(), escuelas: [ZONA.cctSupervision].concat(D.dir.filter(c => c.tipo === 'director').map(c => c.cct)), rel: copia(D.rel) }; },
     relGuardar: d => { const o = { cct: d.cct, usuario: d.cct, clave: d.clave, ciclo: d.ciclo || cicloActual(), nota: d.nota || '', actualizado: ahora(), actualizadoNombre: D.yo.nombre };
       const i = D.rel.findIndex(x => x.cct === d.cct); if (i >= 0) D.rel[i] = o; else D.rel.push(o); return { rel: copia(o) }; },
     guardarPermiso: d => { const previo = d.id ? D.prm.find(x => x.id === d.id) : null;

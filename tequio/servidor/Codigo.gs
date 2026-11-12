@@ -40,6 +40,7 @@
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
  *  · Guarda las claves de la RELweb de cada escuela (usuario = clave del centro de trabajo; la contraseña cambia cada ciclo).
  *    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas. Las direcciones no las ven.
+ *    También guarda la clave de la propia Supervisión, que solo ve y captura el Supervisor.
  *    La contraseña se guarda cifrada en la hoja de cálculo.
  *
  * No modifique este archivo salvo que la Supervisión lo indique.
@@ -573,7 +574,7 @@ const ACCIONES = {
   // Captura o actualiza la contraseña de una escuela (cada ciclo cambia). El usuario siempre es la clave del centro de trabajo.
   relGuardar: (yo, d) => {
     const cct = String(d.cct || '').trim().toUpperCase();
-    if (relEscuelas_(yo).indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'La escuela no está en el Directorio.' : 'Solo puede capturar las claves de las escuelas que tiene a su cargo.');
+    if (relEscuelas_(yo).indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'El centro de trabajo no está en el Directorio.' : 'Solo puede capturar las claves de las escuelas que tiene a su cargo.');
     const clave = String(d.clave == null ? '' : d.clave).trim();
     if (!clave) throw new Error('Escriba la contraseña de la RELweb.');
     if (clave.length > 80) throw new Error('La contraseña es demasiado larga (máximo 80 caracteres).');
@@ -2914,11 +2915,12 @@ function escuelasDeAtp_(u) {
   const f = Z().numero === '050' && ASIGNACION_INICIAL.find(a => a[0].test(u.nombre));
   return f ? f[1].slice() : [];
 }
-// Escuelas cuyas claves puede ver y capturar: la Supervisión, todas; el ATP, las suyas; las direcciones, ninguna
+// Centros cuyas claves puede ver y capturar: la Supervisión, todas (y la suya propia); el ATP, las de sus escuelas; las direcciones, ninguna
 function relEscuelas_(yo) {
   soloMesa_(yo);
   const todas = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false).map(c => c.cct);
-  if (yo.rol === 'admin') return todas;
+  // La clave de la propia Supervisión solo la ve y la captura el Supervisor
+  if (yo.rol === 'admin') return (Z().cctSupervision ? [Z().cctSupervision] : []).concat(todas);
   const mias = escuelasDeAtp_(yo);
   return todas.filter(c => mias.indexOf(c) >= 0);
 }
