@@ -95,7 +95,8 @@ h3{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute
 label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
 input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%;color:var(--text)}
 textarea{min-height:92px;resize:vertical;line-height:1.35}
-input[type=time],input[type=date]{min-width:0}
+input[type=time],input[type=date]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;display:block}
+.grid2>*,label.f{min-width:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 11px;font-size:14px;font-weight:600;min-height:38px}
@@ -279,7 +280,7 @@ function updDur(){$('#fDurC').innerHTML=[30,45,60,90,120,150,180].map(m=>'<butto
   $('#fFin').textContent='De '+h12(F.hora)+' a '+h12(m2t(Math.min(1439,t2m(F.hora)+F.dur)))+' ('+durTxt(F.dur)+')'}
 function updCli(){const el=$('#fCli');if(!el)return;let o='';
   if(F.clientaId){const k=cli(F.clientaId);o='<div class="card row between"><span><b>'+esc(k.nombre)+'</b><br><span class="small muted">'+esc(k.tel||'Sin teléfono')+'</span></span><button class="btn sm" data-a="fCamb">Cambiar</button></div>'}
-  else if(F.nueva){o='<div class="col"><div class="grid2"><label class="f">Nombre<input id="fNN" data-i="fNN" value="'+esc(F.nueva.nombre)+'"></label><label class="f">WhatsApp<input id="fNT" data-i="fNT" inputmode="tel" value="'+esc(F.nueva.tel)+'" placeholder="10 dígitos"></label></div><button class="btn sm ghost" data-a="fCamb">Elegir otra clienta</button></div>'}
+  else if(F.nueva){o='<div class="col">'+(F.nueva.ios?'<span class="small" style="color:var(--gold)">En iPhone: toca el campo Nombre y, arriba del teclado, elige «Autorrellenar contacto» (o «Contactos») para traer el nombre y el teléfono. Si no aparece, actívalo en Ajustes del iPhone › Safari › Autorrelleno › Usar datos de contacto.</span>':'')+'<div class="grid2"><label class="f">Nombre<input id="fNN" data-i="fNN" name="name" autocomplete="name" value="'+esc(F.nueva.nombre)+'"></label><label class="f">WhatsApp<input id="fNT" data-i="fNT" type="tel" name="tel" autocomplete="tel" inputmode="tel" value="'+esc(F.nueva.tel)+'" placeholder="10 dígitos"></label></div><button class="btn sm ghost" data-a="fCamb">Elegir otra clienta</button></div>'}
   else{const q=F.q.toLowerCase(),r=S.clientas.filter(k=>!q||k.nombre.toLowerCase().includes(q)||(k.tel||'').includes(q)).slice(0,5);
     o='<div class="col"><input id="fQ" data-i="fQ" placeholder="Buscar clienta guardada…" value="'+esc(F.q)+'"><div class="list" id="fRes">'+resHtml(r)+'</div><div class="grid2"><button class="btn sm" data-a="contacto" data-to="cita">Desde mis contactos</button><button class="btn sm" data-a="fNueva">Clienta nueva</button></div></div>'}
   el.innerHTML=o}
@@ -296,7 +297,8 @@ function updSvc(){$('#fSvc').innerHTML=S.servicios.map(s=>{const it=F.items.find
     return '<button class="chip num" data-a="fSvc" data-id="'+s.id+'" data-i="'+i+'" aria-pressed="'+(!!it&&it.tam===tam)+'">'+(tam?TAMC[i]+' ':'')+money(p)+'</button>'}).join('')+'</span></div>'}).join('')}
 function updTot(){const t=total(F),p=F.edit?pagado(F):num(F.ant);
   $('#fTot').innerHTML='<span>Costo</span><span class="big">'+money(t)+'</span><span>'+(F.edit?'Pagado':'Anticipo')+'</span><span class="paid">'+money(p)+'</span><span><b>Resta</b></span><span class="big rest">'+money(Math.max(0,t-p))+'</span>'}
-function guardarCita(){
+function guardarCita(){if(F&&F.nueva){const a=$('#fNN'),b=$('#fNT');if(a)F.nueva.nombre=a.value;if(b)F.nueva.tel=b.value}
+ 
   if(!F.clientaId){
     if(F.nueva&&F.nueva.nombre.trim()){const tel=F.nueva.tel.trim(),ex=tel&&S.clientas.find(k=>wa(k.tel)===wa(tel));
       if(ex)F.clientaId=ex.id;else{const k={id:uid(),nombre:F.nueva.nombre.trim(),tel,email:F.nueva.email||'',dir:F.nueva.dir||'',notas:F.nueva.notas||''};S.clientas.push(k);F.clientaId=k.id}}
@@ -336,9 +338,12 @@ function verCli(id){const k=cli(id),cs=S.citas.filter(c=>c.clientaId===id).sort(
   o+='<div class="grid2"><button class="btn" data-a="editCli" data-id="'+id+'">Editar datos</button><button class="btn danger" data-a="delCli" data-id="'+id+'">Eliminar</button></div>';
   sheet('Clienta',o)}
 function editCli(id,pre){const k=id?cli(id):Object.assign({nombre:'',tel:'',email:'',dir:'',notas:''},pre||{});
-  sheet(id?'Editar clienta':'Clienta nueva','<label class="f">Nombre<input id="cN" value="'+esc(k.nombre)+'"></label><label class="f">WhatsApp<input id="cT" inputmode="tel" value="'+esc(k.tel)+'" placeholder="10 dígitos"></label><label class="f">Correo<input id="cE" inputmode="email" value="'+esc(k.email||'')+'"></label><label class="f">Dirección<input id="cD" value="'+esc(k.dir||'')+'"></label><label class="f">Notas<textarea id="cO" placeholder="Gustos, forma de uña, cumpleaños…">'+esc(k.notas||'')+'</textarea></label><button class="btn gold block" data-a="saveCli" data-id="'+(id||'')+'">Guardar</button>')}
+  sheet(id?'Editar clienta':'Clienta nueva',(k.ios?'<span class="small" style="color:var(--gold)">En iPhone: toca el campo Nombre y, arriba del teclado, elige «Autorrellenar contacto» (o «Contactos») para traer el nombre y el teléfono. Si no aparece, actívalo en Ajustes del iPhone › Safari › Autorrelleno › Usar datos de contacto.</span>':'')+'<label class="f">Nombre<input id="cN" name="name" autocomplete="name" value="'+esc(k.nombre)+'"></label><label class="f">WhatsApp<input id="cT" type="tel" name="tel" autocomplete="tel" inputmode="tel" value="'+esc(k.tel)+'" placeholder="10 dígitos"></label><label class="f">Correo<input id="cE" type="email" name="email" autocomplete="email" inputmode="email" value="'+esc(k.email||'')+'"></label><label class="f">Dirección<input id="cD" name="address" autocomplete="street-address" value="'+esc(k.dir||'')+'"></label><label class="f">Notas<textarea id="cO" placeholder="Gustos, forma de uña, cumpleaños…">'+esc(k.notas||'')+'</textarea></label><button class="btn gold block" data-a="saveCli" data-id="'+(id||'')+'">Guardar</button>')}
 async function contacto(to){
-  if(!(navigator.contacts&&navigator.contacts.select))return toast('Los contactos del celular solo se pueden leer en Chrome de Android, con la app abierta en su propia dirección.');
+  if(!(navigator.contacts&&navigator.contacts.select)){
+    /* iPhone no deja que una página abra la lista de contactos; sí deja traer un contacto desde el teclado («Autorrellenar contacto») */
+    if(esIOS()){if(to==='cita'){F.nueva={nombre:'',tel:'',ios:1};updCli();setTimeout(()=>{const e=$('#fNN');if(e)e.focus()},60)}else{editCli('',{ios:1});setTimeout(()=>{const e=$('#cN');if(e)e.focus()},60)}return}
+    return toast('Los contactos del celular solo se pueden leer en Chrome de Android, con la app abierta en su propia dirección.')}
   try{const sup=await navigator.contacts.getProperties(),props=['name','tel','email','address'].filter(p=>sup.includes(p));
     const r=await navigator.contacts.select(props,{multiple:false});if(!r||!r.length)return;const x=r[0];
     const tels=(x.tel||[]).filter(Boolean),ad=(x.address||[])[0];
