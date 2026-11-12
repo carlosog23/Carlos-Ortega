@@ -1,5 +1,5 @@
 // Cherry Nails: usa la red cuando hay y guarda copia para abrir sin internet
-const C='cherry-nails-v4';
+const C='cherry-nails-v5';
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(['./','manifest.webmanifest','icon-192.png','icon-512.png'])))});
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',e=>{
