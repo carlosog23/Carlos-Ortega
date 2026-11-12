@@ -1737,7 +1737,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
      ${z.sup?`<div class="ini-firma"><b>${esc(z.sup)}</b><i aria-hidden="true"></i><span>${esc(z.cargo)}</span></div>`:""}`})()}
      <div class="ini-chips"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a><a href="mailto:tlamatini023@gmail.com?subject=Tlamatini%3A%20observaci%C3%B3n">Reportar un error o pedir un formato</a></div>
      ${TLM_SIGNIF}
-     <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos se guardan solo en este dispositivo. Nada se envía a internet.<br>${ZONA_TQ?`Supervisión Escolar Zona ${esc(ZONA_NUM)} · ${ZONA_TQ.estatal?"Secretaría de Educación":"ISEP"}${ZONA_TQ.lemaZona?" · «"+esc(ZONA_TQ.lemaZona)+"»":""}`:"Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»"}<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
+     <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos y documentos se guardan solo en este dispositivo.<br>Para reconocer a quienes más usan Tlamatini, se registra su nombre, su escuela y cuántos documentos genera; nunca su contenido ni datos de alumnos.<br>${ZONA_TQ?`Supervisión Escolar Zona ${esc(ZONA_NUM)} · ${ZONA_TQ.estatal?"Secretaría de Educación":"ISEP"}${ZONA_TQ.lemaZona?" · «"+esc(ZONA_TQ.lemaZona)+"»":""}`:"Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»"}<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
     </footer>
    </div>
    <nav class="ini-nav" aria-label="Navegación principal">
@@ -7212,8 +7212,9 @@ if(DEMO&&typeof DEMO_IR!=="undefined"){Object.assign(DEMO_IR,{misalumnos:()=>{S.
 </script>
 <script>
 /* ---------- Contador de uso (GoatCounter) ----------
-   Cuenta aperturas, apartados visitados y formatos generados. No envía nombres, CURP ni datos de alumnos:
-   solo el nombre del apartado, y la escuela (CCT) o la zona para saber de dónde se usa.
+   Cuenta aperturas, apartados visitados y formatos generados. No envía CURP, datos de alumnos ni el contenido
+   de los documentos: solo el nombre del apartado, la escuela (CCT) o la zona y, para reconocer a quienes más
+   usan la plataforma, el nombre de quien se dio de alta y cuántos documentos ha generado (ver usoPersona).
    Para activarlo, escriba en USO_CODIGO el nombre de la cuenta de goatcounter.com (ej. "tlamatini").
    El equipo de la Supervisión (con llave de administración) no se cuenta, para no inflar las cifras. */
 const USO_CODIGO="tlamatini";
@@ -7223,6 +7224,22 @@ function usoApartado(){if((S.view==="step"||S.view==="review")&&S.letra&&ANEXOS[
 const USO={cola:[],listo:false,ultima:"",activo:(()=>{try{return !!USO_CODIGO&&!localStorage.getItem("gh-token")&&!/^(localhost|127\.)/.test(location.hostname)}catch(e){return false}})()};
 function usoContar(path,title,evento){if(!USO.activo)return;const o={path:(DEMO?"demo/":"")+path,title:title||path,event:!!evento};
   if(USO.listo&&window.goatcounter&&window.goatcounter.count){try{window.goatcounter.count(o)}catch(e){}}else USO.cola.push(o)}
+/* ---------- Uso por persona (reconocimiento a quienes más usan Tlamatini) ----------
+   Identifica por el alta en la app (escuela + nombre) y cuenta documentos generados. En GoatCounter queda:
+   · persona/<Escuela> · <Nombre>            → una fila por persona; sube cada jornada en que genera documentos
+     (GoatCounter cuenta una vez cada 8 horas por fila, así que equivale a «días de uso»).
+   · logro/<Escuela> · <Nombre> · 010 documentos → el total exacto, que lleva este dispositivo, al llegar a 1 y a cada 5.
+   Sin conexión se guarda y se envía al volver internet. La demostración y la Supervisión no se cuentan. */
+const USO_DOCS_K="tlm-uso-docs",USO_PEND_K="tlm-uso-pend";let USO_T=0;
+function usoBonito(t){return String(t||"").trim().replace(/\s+/g," ").replace(/\//g,"-").toLocaleLowerCase("es").replace(/(^|[\s.\-(])(\p{L})/gu,(m,a,b)=>a+b.toLocaleUpperCase("es"))}
+function usoQuien(){const p=perfil||{};return`${usoBonito(p.escuela)||p.cct||(p.zona?"Zona "+p.zona:"Sin escuela")} · ${usoBonito(p.minombre)||"(sin nombre)"}`}
+function usoDocs(){try{return Math.max(0,parseInt((JSON.parse(localStorage.getItem(USO_DOCS_K)||"{}")||{}).n,10)||0)}catch(e){return 0}}
+function usoEnviar(o){if(navigator.onLine===false){try{const q=JSON.parse(localStorage.getItem(USO_PEND_K)||"[]");q.push(o);localStorage.setItem(USO_PEND_K,JSON.stringify(q.slice(-60)))}catch(e){}return}usoContar(o.path,o.title,true)}
+function usoPendientes(){if(navigator.onLine===false)return;try{const q=JSON.parse(localStorage.getItem(USO_PEND_K)||"[]");if(!q.length)return;localStorage.removeItem(USO_PEND_K);q.forEach(o=>usoContar(o.path,o.title,true))}catch(e){}}
+function usoPersona(){try{if(!USO.activo||DEMO)return;const t=Date.now();if(t-USO_T<1500)return;USO_T=t; /* varias descargas seguidas = un documento */
+  const n=usoDocs()+1,q=usoQuien();try{localStorage.setItem(USO_DOCS_K,JSON.stringify({n,ultimo:new Date().toISOString().slice(0,10)}))}catch(e){}
+  usoEnviar({path:"persona/"+q,title:"Documentos generados · "+q});
+  if(n===1||n%5===0)usoEnviar({path:`logro/${q} · ${String(n).padStart(3,"0")} documentos`,title:`${q}: ${n} documentos generados`})}catch(e){}}
 if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO}.goatcounter.com/count`};
   const s=document.createElement("script");s.async=true;s.src="https://gc.zgo.at/count.js";
   s.onload=()=>{USO.listo=true;USO.cola.splice(0).forEach(o=>{try{window.goatcounter.count(o)}catch(e){}})};document.head.appendChild(s);
@@ -7234,8 +7251,9 @@ if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO
   /* apartados visitados */
   new MutationObserver(()=>{const a=usoApartado();if(a===USO.ultima||/^(setup|setupsub|setupotra)$/.test(S.view))return;USO.ultima=a;usoContar("ver/"+a,a,true)}).observe(document.getElementById("app"),{childList:true});
   /* formatos generados: toda descarga o envío por compartir */
-  const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download&&!DOCS_SKIP){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true)}}catch(e){}return clk.apply(this,arguments)};
-  if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files&&!DOCS_SKIP)usoContar("genera/"+usoApartado(),"Compartido",true)}catch(e){}return sh(d)}}}
+  const clk=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{if(this.download&&!DOCS_SKIP){const ext=(this.download.match(/\.(\w+)$/)||[,""])[1].toUpperCase();usoContar("genera/"+usoApartado(),`Generado (${ext||"archivo"})`,true);usoPersona()}}catch(e){}return clk.apply(this,arguments)};
+  if(navigator.share){const sh=navigator.share.bind(navigator);navigator.share=function(d){try{if(d&&d.files&&!DOCS_SKIP){usoContar("genera/"+usoApartado(),"Compartido",true);usoPersona()}}catch(e){}return sh(d)}}
+  window.addEventListener("online",usoPendientes);setTimeout(usoPendientes,9000)}
 </script>
 
 </body></html>
