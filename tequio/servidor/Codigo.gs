@@ -220,7 +220,7 @@ const NOMBRES = { act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 50;
+const VERSION = 51;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -2726,7 +2726,11 @@ function tlami_(q) {
     'Responde SOLO con un JSON así: {"respuesta": "texto para el docente", "destinos": ["id", ...], "solicitud": "resumen o cadena vacía"}'
   ].filter(x => x !== '').join('\n');
   let j = {};
-  const crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096 });
+  let crudo = '';
+  for (let n = 0; ; n++) {   // Gemini a veces contesta «saturado» (500-504): se reintenta un par de veces
+    try { crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096 }); break; }
+    catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (n + 1)); }
+  }
   try { j = JSON.parse(crudo.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (e) { j = { respuesta: crudo }; }
   const ids = {}; cat.forEach(c => { ids[c.id] = 1; });
   return {

@@ -7310,22 +7310,26 @@ function tlamiPinta(){const c=document.getElementById("tlamiMsgs");if(!c)return;
         ${m.err?`<span role="alert" style="color:#B3261E">${esc(m.err)}</span>`:""}
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="tmi-b" data-solenv="${i}">Enviar solicitud</button><button type="button" class="tmi-b tmi-b2" data-solno="${i}">Cancelar</button></div></div>`;
       else o+=`<div class="tmi-d"><button type="button" class="tmi-b" data-sol="${i}">Enviar esta solicitud a la Supervisión</button></div>`}
+    if(m.otra&&i===TLAMI.msgs.length-1)o+=`<div class="tmi-d"><button type="button" class="tmi-b tmi-b2" data-otra="${i}">Preguntarle otra vez a Tlami</button></div>`;
     return o}).join("")+(TLAMI.ocupado?'<div class="tmi-m tmi-t tmi-esp" aria-label="Tlami está pensando"><i></i><i></i><i></i></div>':"");
   c.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>tlamiDecir(b.dataset.chip));
   c.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const x=cat.find(z=>z.id===b.dataset.go);if(x){tlamiCerrar();x.go()}});
   c.querySelectorAll("[data-sol]").forEach(b=>b.onclick=()=>{const m=TLAMI.msgs[+b.dataset.sol];m.form=true;if(!m.texto){const us=[];for(let k=+b.dataset.sol-1;k>=0&&us.length<3;k--){const z=TLAMI.msgs[k];if(z.r==="u")us.unshift(z.t);else if((z.dest&&z.dest.length)||z.sol||z.chips)break}m.texto=us.join("\n")}tlamiPinta();try{document.getElementById("tlamiSolT").focus()}catch(e){}});
   c.querySelectorAll("[data-solno]").forEach(b=>b.onclick=()=>{const m=TLAMI.msgs[+b.dataset.solno];m.form=false;m.err="";tlamiPinta()});
+  c.querySelectorAll("[data-otra]").forEach(b=>b.onclick=()=>{const m=TLAMI.msgs[+b.dataset.otra],t=m.otra;TLAMI.msgs.splice(+b.dataset.otra-1,2);tlamiDecir(t)});
   c.querySelectorAll("[data-solenv]").forEach(b=>b.onclick=()=>tlamiSolicitar(+b.dataset.solenv,b));
   c.scrollTop=c.scrollHeight}
 async function tlamiDecir(txt){txt=String(txt||"").replace(/\s+/g," ").trim();if(!txt||TLAMI.ocupado)return;
   const q=document.getElementById("tlamiQ");if(q)q.value="";
   const hist=TLAMI.msgs.slice(-6).map(m=>({r:m.r,t:m.t}));
   TLAMI.msgs.push({r:"u",t:txt});TLAMI.ocupado=true;tlamiPinta();
-  try{const j=await tlamiPost("tlami",{mensaje:txt,historial:hist,catalogo:tlamiCatalogo().map(o=>({id:o.id,t:o.t,d:o.d.slice(0,150)}))});
+  try{const datos={mensaje:txt,historial:hist,catalogo:tlamiCatalogo().map(o=>({id:o.id,t:o.t,d:o.d.slice(0,150)}))};let j=null;
+    for(let n=0;;n++){try{j=await tlamiPost("tlami",datos);break}catch(e){if(n>=2||!/\(5\d\d\)/.test(String(e&&e.message)))throw e;await new Promise(r=>setTimeout(r,2500*(n+1)))}} /* Gemini saturado: se reintenta solo */
     TLAMI.msgs.push({r:"t",t:j.respuesta,dest:j.destinos||[],sol:j.solicitud?j.solicitud:false})}
   catch(e){const ids=tlamiLocal(txt),sin=/sinservidor|desconocida|Failed to fetch|abort/i.test(String(e&&e.message)+String(e&&e.name));
-    const pre=sin?"Ahora no tengo conexión con mi parte inteligente, así que busqué por palabras. ":(e.message+" Mientras tanto busqué por palabras. ");
-    TLAMI.msgs.push({r:"t",t:pre+(ids.length?"Esto es lo más parecido que hay en Tlamatini:":"No encontré algo parecido en Tlamatini. Pruebe con otras palabras o envíe su solicitud."),dest:ids,sol:""})}
+    const em=String(e&&e.message||""),ocup=/\(5\d\d\)/.test(em),lim=/l[ií]mite|muchas preguntas/i.test(em);
+    const pre=sin?"Ahora no tengo conexión con mi parte inteligente, así que busqué por palabras. ":ocup?"Mi parte inteligente está muy ocupada en este momento, así que busqué por palabras. ":lim?"Por ahora llegué a mi tope de preguntas, así que busqué por palabras. ":(em+" Mientras tanto busqué por palabras. ");
+    TLAMI.msgs.push({r:"t",t:pre+(ids.length?"Esto es lo más parecido que hay en Tlamatini:":"No encontré algo parecido. Pruebe con otras palabras o intente de nuevo en un momento."),dest:ids,sol:ids.length?false:"",otra:txt})}
   TLAMI.ocupado=false;tlamiPinta()}
 async function tlamiSolicitar(i,btn){const m=TLAMI.msgs[i],t=document.getElementById("tlamiSolT"),nm=document.getElementById("tlamiSolN");
   m.texto=String(t&&t.value||"").trim();if(m.texto.length<8){m.err="Describa un poco más lo que necesita.";return tlamiPinta()}
