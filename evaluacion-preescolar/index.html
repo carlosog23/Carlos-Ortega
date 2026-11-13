@@ -394,7 +394,7 @@ async function cargarEvaluada(src){
 }
 async function importarEvaluada(file){
   try{ if(!AI) throw new Error("La lectura de listas ya evaluadas no está disponible por ahora. Registra las valoraciones en la app.");
-    busy("Leyendo la lista de cotejo evaluada… puede tardar hasta un minuto."); await cargarEvaluada(await leer(file,true));
+    busy("Leyendo la lista de cotejo evaluada… puede tardar un par de minutos."); await cargarEvaluada(await leer(file,true));
   }catch(e){ toast(errAI(e)); } finally{ busy(); }
 }
 async function clasificar(){
@@ -695,8 +695,8 @@ const IAservidor = { async json(prompt,o={}){
   }
 },
 async una(prompt,imagenes,o){
-  /* Tope de espera: si el servicio no contesta en 2 minutos, se avisa en lugar de dejar la app esperando */
-  const ctl=new AbortController(); let venc=false; const tm=setTimeout(()=>{venc=true;ctl.abort();},120000);
+  /* Tope de espera: si el servicio no contesta en 2 minutos (4 al leer fotos, que tardan más), se avisa en lugar de dejar la app esperando */
+  const ctl=new AbortController(); let venc=false; const tm=setTimeout(()=>{venc=true;ctl.abort();},imagenes.length?240000:120000);
   if(o.signal){ if(o.signal.aborted) ctl.abort(); else o.signal.addEventListener("abort",()=>ctl.abort(),{once:true}); }
   let r; try{ r=await fetch(SERVIDOR,{method:"POST",body:JSON.stringify({accion:"ia",prompt,imagenes}),signal:ctl.signal}); }
   catch(e){ if(venc) throw new Error("El servicio de redacción tardó demasiado en responder. Intenta de nuevo en unos minutos."); if(o.signal&&o.signal.aborted) throw {code:"cancelled"}; throw new Error("No hay conexión con el servicio de redacción. Revisa tu internet e intenta de nuevo."); }

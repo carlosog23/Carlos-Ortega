@@ -64,13 +64,15 @@ function contarUso_() {
 let ULTIMO_MODELO = '';
 
 /* Los modelos Gemini «razonan» antes de responder y eso puede tardar minutos. Para redactar no hace falta:
-   se pide el nivel de razonamiento más bajo que admite cada modelo. */
+   se pide el nivel de razonamiento más bajo que admite cada modelo.
+   Para leer fotos de listas (casillas y marcas) sí conviene: ahí se deja que el modelo razone lo que necesite. */
 function configuracion_(modelo, conImagenes, sinRazonamiento) {
-  const g = { maxOutputTokens: 16384, responseMimeType: 'application/json' };
+  const g = { maxOutputTokens: conImagenes ? 32768 : 16384, responseMimeType: 'application/json' };
   const ver = parseFloat((modelo.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
   if (ver < 3) g.temperature = conImagenes ? 0.1 : 0.8;
   if (!sinRazonamiento) {
-    if (ver >= 3) g.thinkingConfig = { thinkingLevel: /lite/.test(modelo) ? 'minimal' : 'low' };
+    if (conImagenes) { if (ver >= 2.5 && ver < 3) g.thinkingConfig = { thinkingBudget: -1 }; }
+    else if (ver >= 3) g.thinkingConfig = { thinkingLevel: /lite/.test(modelo) ? 'minimal' : 'low' };
     else if (ver >= 2.5) g.thinkingConfig = { thinkingBudget: 0 };
   }
   return g;
