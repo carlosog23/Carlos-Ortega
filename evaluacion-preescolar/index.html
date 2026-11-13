@@ -278,22 +278,34 @@ function lib(src){ return libs[src] || (libs[src] = new Promise((ok,no)=>{ const
 const errAI = e => ({not_granted:"No se autorizó el uso de la IA en esta página.",rate_limited:"Se alcanzó el límite de uso de la IA por ahora. Intenta de nuevo en unos minutos.",session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",sampling_disabled:"La IA no está disponible para esta cuenta.",refused:"La IA no pudo procesar este contenido.",invalid_json:"La respuesta llegó incompleta. Intenta de nuevo.",image_rejected:"No se pudo leer la imagen. Prueba con otra foto más clara.",images_unavailable:"Aquí no es posible enviar imágenes."}[e&&e.code] || (e&&e.message&&!e.code?e.message:"Ocurrió un problema de conexión. Intenta de nuevo."));
 
 /* ============ Lectura de archivos ============ */
-async function leer(file){
+/* ev = lista ya evaluada: además del texto se conserva la imagen de cada página (las marcas casi nunca vienen como texto)
+   y, en Word, la estructura de las tablas. */
+async function leer(file,ev){
   const n = file.name.toLowerCase();
-  if(file.type.startsWith("image/")) return {text:"",images:[file]};
+  if(file.type.startsWith("image/")) return {text:"",images:[file],pages:[{text:"",image:file}]};
   if(n.endsWith(".pdf")){
     await lib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js");
     await lib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
     const pdf = await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
     let text=""; const np=Math.min(pdf.numPages,8);
     for(let i=1;i<=np;i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); let y=null,line="";
-      for(const it of tc.items){ const yy=Math.round(it.transform[5]); if(y!==null&&Math.abs(yy-y)>3){text+=line.trim()+"\n";line="";} y=yy; line+=it.str+" "; } text+=line.trim()+"\n"; }
+      for(const it of tc.items){ const yy=Math.round(it.transform[5]); if(y!==null&&Math.abs(yy-y)>3){text+=line.trim()+"\n";line="";} y=yy; line+=it.str+" "; } text+=line.trim()+"\n";
+      if(ev) text+="\f"; }
+    if(ev){ const tx=text.split("\f"), pages=[];
+      for(let i=1;i<=np;i++){ const pg=await pdf.getPage(i); const v0=pg.getViewport({scale:1}); const vp=pg.getViewport({scale:Math.min(2.4,1900/Math.max(v0.width,v0.height))}); const c=document.createElement("canvas"); c.width=vp.width;c.height=vp.height;
+        await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise; pages.push({text:(tx[i-1]||"").trim(),image:await new Promise(r=>c.toBlob(r,"image/jpeg",.9))}); }
+      return {text:tx.join("\n"),images:pages.map(p=>p.image),pages}; }
     if(text.replace(/\s/g,"").length>40) return {text,images:[]};
     const images=[];
     for(let i=1;i<=Math.min(pdf.numPages,3);i++){ const pg=await pdf.getPage(i); const vp=pg.getViewport({scale:1.6}); const c=document.createElement("canvas"); c.width=vp.width;c.height=vp.height;
       await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise; images.push(await new Promise(r=>c.toBlob(r,"image/jpeg",.88))); }
     return {text:"",images};
   }
+  if(n.endsWith(".docx")&&ev){ await lib("https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js");
+    const h=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()}); const d=new DOMParser().parseFromString(h.value,"text/html"); let text="";
+    const celda=c=>[c.textContent.replace(/\s+/g," ").trim()].concat(Array(Math.max(0,(+c.getAttribute("colspan")||1)-1)).fill(""));
+    for(const el of d.body.children){ if(el.tagName==="TABLE"){ for(const tr of el.querySelectorAll("tr")) text+=[...tr.children].flatMap(celda).join(" | ")+"\n"; } else { const x=el.textContent.replace(/\s+/g," ").trim(); if(x) text+=x+"\n"; } }
+    return {text,images:[],tabla:true}; }
   if(n.endsWith(".docx")){ await lib("https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"); const r=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,images:[]}; }
   if(n.endsWith(".doc")) throw new Error("Los archivos .doc antiguos no se pueden leer. Guárdalo como .docx o PDF, o toma una foto.");
   return {text:await file.text(),images:[]};
@@ -331,21 +343,58 @@ async function importarAlumnos(file){
 }
 async function importarAspectos(file){
   try{ busy("Leyendo los aspectos a evaluar…"); const src=await leer(file); let list;
-    if(AI){ list = await pedir('Extrae de este documento de preescolar los aspectos, indicadores o criterios a evaluar (los enunciados de una lista de cotejo o rúbrica). No incluyas nombres de alumnos ni encabezados. Clasifica cada uno en el campo formativo que mejor corresponda; si el documento ya indica el campo, respétalo. '+GUIA_CAMPOS+' Responde solo con un arreglo JSON de objetos {"texto": enunciado completo, "campo": "L"|"S"|"E"|"H"}.',src); }
+    if(AI){ list = await pedir('Extrae de este documento de preescolar los aspectos, indicadores o criterios a evaluar (los enunciados de una lista de cotejo o rúbrica). No incluyas nombres de alumnos ni encabezados. Clasifica cada uno en el campo formativo que mejor corresponda; si el documento ya indica el campo, respétalo. '+GUIA_CAMPOS+' Responde solo con un objeto JSON {"aspectos":[{"texto": enunciado completo, "campo": "L"|"S"|"E"|"H"}], "evaluada": true si el documento además trae alumnos con marcas o niveles ya registrados en esos aspectos, false si no}.',src);
+      if(list&&!Array.isArray(list)){ if(list.evaluada===true){ const s2=await leer(file,true); busy("La lista ya viene evaluada. Leyendo las marcas… puede tardar hasta un minuto."); await cargarEvaluada(s2); return; } list=list.aspectos; } }
     else if(src.text) list = src.text.split(/\n/).map(l=>l.trim()).filter(l=>l.length>12);
     else throw new Error("La lectura de fotos no está disponible por ahora. Puedes escribir los aspectos.");
     const {n}=addAspectos(Array.isArray(list)?list:[]); save(); render(); toast(n?`Se agregaron ${n} aspectos. Revisa el campo formativo asignado.`:"No se encontraron aspectos nuevos.");
   }catch(e){ toast(errAI(e)); } finally{ busy(); }
 }
+/* Convierte lo que devuelva la IA al nivel de la app: S (Sí), O (En ocasiones), N (No) */
+const NIV = {S:"S",SI:"S",LOGRADO:"S",L:"S",O:"O","EN OCASIONES":"O","A VECES":"O","EN PROCESO":"O",EP:"O",P:"O",N:"N",NO:"N","NO LOGRADO":"N",NL:"N","REQUIERE APOYO":"N",RA:"N"};
+const nivel = x => x===true?"S":x===false?"N":(NIV[norm(x)]||"");
+/* Busca a un alumno ya registrado aunque el nombre venga en otro orden o con un nombre de menos */
+function buscarAlumno(nombre){
+  const n=norm(nombre); if(!n) return null;
+  const a=S.alumnos.find(x=>norm(x.nombre)===n); if(a) return a;
+  const P=new Set(["DE","DEL","LA","LAS","LOS","Y"]), tk=s=>norm(s).split(" ").filter(w=>w.length>1&&!P.has(w)), q=tk(nombre); if(q.length<2) return null;
+  const c=S.alumnos.filter(x=>{ const k=tk(x.nombre), com=q.filter(w=>k.includes(w)).length; return com>=2&&com===Math.min(q.length,k.length); });
+  return c.length===1?c[0]:null;
+}
+/* Busca un aspecto ya registrado aunque la redacción cambie un poco */
+function buscarAspecto(texto){
+  const t=T(), n=norm(texto); const a=t.aspectos.find(x=>norm(x.texto)===n); if(a) return a;
+  const tk=s=>[...new Set(norm(s).split(" ").filter(w=>w.length>3))], q=tk(texto); if(q.length<2) return null;
+  let best=null,bs=0,seg=0;
+  for(const x of t.aspectos){ const k=tk(x.texto), com=q.filter(w=>k.includes(w)).length, p=com/((q.length+k.length-com)||1); if(p>bs){seg=bs;bs=p;best=x;} else if(p>seg) seg=p; }
+  return bs>=.6&&bs-seg>=.1?best:null;
+}
+const PROMPT_EVAL = 'Este documento es una lista de cotejo de preescolar YA EVALUADA: cada fila es un alumno y cada aspecto (indicador) tiene su marca o nivel. Tu tarea es leer las marcas tal como están, sin inventar ni omitir. Primero identifica cómo está marcada la lista: subcolumnas «Sí» y «No»; una sola casilla por aspecto con palomita o tache; tres o más niveles (por ejemplo Logrado / En proceso / Requiere apoyo); colores de semáforo; letras, números o palabras escritas. Si trae una clave o simbología, úsala. Lee fila por fila, siguiendo con cuidado la línea de cada alumno y la columna de cada aspecto. Convierte cada marca a uno de estos valores: "S" = lo logra (palomita en Sí, palomita en casilla única, Logrado, verde, el nivel más alto); "O" = a veces o en proceso (anotación «En ocasiones», En proceso, amarillo, niveles intermedios); "N" = no lo logra (palomita en No, tache, Requiere apoyo, rojo, el nivel más bajo, otra anotación negativa como «No interactúa»); "" = sin marca. Si cada aspecto tiene una sola casilla y solo se palomean los logrados, la casilla vacía de un alumno que sí tiene otras marcas vale "N". Si recibes imagen y texto, las marcas se leen en la imagen; el texto solo ayuda a escribir bien nombres y enunciados. En texto de Word, «ü» o «P» sueltas en una casilla suelen ser palomita y «û» o «O» tache. '+GUIA_CAMPOS+' Responde solo con un objeto JSON: {"aspectos":[{"texto": enunciado completo, "campo":"L"|"S"|"E"|"H"}], "alumnos":[{"nombre": nombre completo, "pila": primer nombre de pila con mayúscula inicial, "v":[...]}]} donde "v" tiene exactamente un valor por aspecto, en el mismo orden de "aspectos".';
+async function cargarEvaluada(src){
+  if(!AIimg&&src.text) src={text:src.text,images:[]};
+  /* Hasta 3 páginas van juntas; las listas más largas se leen de dos en dos páginas */
+  const pg=src.pages||[], partes = pg.length>3 ? pg.reduce((o,p,i)=>{ if(i%2===0) o.push({text:"",images:[]}); const u=o[o.length-1]; u.text+=p.text+"\n"; u.images.push(p.image); return o; },[]) : [src];
+  let aspectos=null; const filas=[];
+  for(let i=0;i<partes.length;i++){
+    if(partes.length>1) busy(`Leyendo la lista de cotejo evaluada… parte ${i+1} de ${partes.length}.`);
+    const r = await pedir(PROMPT_EVAL + (aspectos ? "\n\nEsta parte es la continuación de la misma lista. Usa exactamente estos aspectos, en este orden, aunque aquí no se vea el encabezado:\n"+aspectos.map((a,k)=>(k+1)+". "+(a.texto||a)).join("\n") : ""), partes[i]);
+    if(!r||typeof r!=="object") throw {code:"invalid_json"};
+    if(!aspectos){ if(!Array.isArray(r.aspectos)||!r.aspectos.length){ if(i<partes.length-1) continue; throw new Error("No se encontraron aspectos en el documento. Revisa que sea la lista de cotejo."); } aspectos=r.aspectos; }
+    (Array.isArray(r.alumnos)?r.alumnos:[]).forEach((ra,k)=>{ if(ra) filas.push({nombre:String(typeof ra==="string"?ra:ra.nombre||""),pila:ra.pila,v:Array.isArray(ra.v)?ra.v:((r.valores||[])[k]||[])}); });
+  }
+  if(!aspectos) throw new Error("No se encontraron aspectos en el documento. Revisa que sea la lista de cotejo.");
+  const t=T(), usados=new Set();
+  const ids=aspectos.map(it=>{ const texto=String(typeof it==="string"?it:(it&&it.texto)||""); let a=buscarAspecto(texto); if(a&&usados.has(a.id)) a=null;
+    const id=a?a.id:addAspectos([it]).ids[0]; if(id) usados.add(id); if(a&&!a.campo&&CK.includes(it&&it.campo)) a.campo=it.campo; return id; });
+  let m=0, na=0;
+  for(const f of filas){ let a=buscarAlumno(f.nombre); if(!a){ addAlumnos([f]); a=S.alumnos.find(x=>norm(x.nombre)===norm(f.nombre)); } if(!a) continue;
+    let k=0; ids.forEach((id,j)=>{ const v=nivel(f.v[j]); if(id&&v){ (t.val[a.id]=t.val[a.id]||{})[id]=v; k++; } }); if(k){ m+=k; na++; } }
+  save(); view="valorar"; modoVal = window.innerWidth<760?"alumno":"tabla"; render();
+  toast(m?`Se cargaron ${m} valoraciones de ${na} alumnos. Compara con tu lista y corrige lo necesario.`:"No se reconocieron las marcas de la lista. Prueba con una foto más clara y de frente, o con el PDF original.");
+}
 async function importarEvaluada(file){
   try{ if(!AI) throw new Error("La lectura de listas ya evaluadas no está disponible por ahora. Registra las valoraciones en la app.");
-    busy("Leyendo la lista de cotejo evaluada… puede tardar hasta un minuto."); const src=await leer(file);
-    const r = await pedir('Este documento es una lista de cotejo de preescolar ya evaluada: filas de alumnos, columnas de aspectos, cada aspecto con subcolumnas «Sí» y «No». Lee con mucho cuidado cada fila, siguiendo la línea de cada alumno. Reglas de lectura: palomita en la subcolumna Sí = "S"; palomita en la subcolumna No = "N"; anotación manuscrita «En ocasiones» = "O"; otra anotación negativa (por ejemplo «No interactúa») = "N"; sin marca = "". '+GUIA_CAMPOS+' Responde solo con un objeto JSON: {"alumnos":[{"nombre": nombre completo, "pila": primer nombre de pila con mayúscula inicial}], "aspectos":[{"texto": enunciado completo, "campo":"L"|"S"|"E"|"H"}], "valores":[[...]]} donde "valores" tiene una fila por alumno, en el mismo orden, y cada fila un valor por aspecto, en el mismo orden.',src);
-    if(!r||!Array.isArray(r.alumnos)||!Array.isArray(r.aspectos)) throw {code:"invalid_json"};
-    addAlumnos(r.alumnos); const {ids}=addAspectos(r.aspectos); const t=T(); let m=0;
-    r.alumnos.forEach((ra,i)=>{ const a=S.alumnos.find(x=>norm(x.nombre)===norm(ra.nombre)); if(!a) return; const row=(r.valores||[])[i]||[]; t.val[a.id]=t.val[a.id]||{};
-      ids.forEach((id,j)=>{ if(id&&["S","O","N"].includes(row[j])){ t.val[a.id][id]=row[j]; m++; } }); });
-    save(); view="valorar"; modoVal = window.innerWidth<760?"alumno":"tabla"; render(); toast(`Se cargaron ${m} valoraciones. Compara con tu lista y corrige lo necesario.`);
+    busy("Leyendo la lista de cotejo evaluada… puede tardar hasta un minuto."); await cargarEvaluada(await leer(file,true));
   }catch(e){ toast(errAI(e)); } finally{ busy(); }
 }
 async function clasificar(){
@@ -519,7 +568,7 @@ V.aspectos = () => { const t=T(); const sin=t.aspectos.filter(a=>!a.campo); cons
 <section class="card"><h2>Aspectos a evaluar · ${TRI[S.tri]}</h2><p class="hint">Son los enunciados de tu lista de cotejo. Cada uno pertenece a un campo formativo: <b>L</b> Lenguajes, <b>S</b> Saberes y Pensamiento Científico, <b>E</b> Ética, Naturaleza y Sociedades, <b>H</b> De lo Humano y lo Comunitario. Si subes un documento, la app propone el campo y tú lo confirmas.</p>
  <div class="drop">
   <div class="row"><button class="btn pri" data-act="subirEval">Subir lista de cotejo ya evaluada</button><button class="btn" data-act="subirAsp">Subir solo los aspectos</button></div>
-  <p class="hint" style="margin:0">La lista ya evaluada (foto o PDF) carga alumnos, aspectos y marcas de una vez. También puedes escribir un aspecto:</p>
+  <p class="hint" style="margin:0">La lista ya evaluada (foto, PDF o Word) carga alumnos, aspectos y marcas de una vez. También puedes escribir un aspecto:</p>
   <div class="row"><input type="text" id="nuevoAsp" placeholder="Ejemplo: Comunica sus ideas y emociones de forma verbal." style="flex:1 1 260px"><select id="nuevoCampo" style="flex:0 1 240px" aria-label="Campo formativo"><option value="">Campo: que lo proponga la app</option>${CK.map(c=>`<option value="${c}">${CAMPOS[c].n}</option>`).join("")}</select><button class="btn" data-act="addAsp">Agregar</button></div>
   <div class="row">${prev&&!t.aspectos.length?'<button class="btn" data-act="copiarAsp">Usar los aspectos del trimestre anterior</button>':""}${t.aspectos.length?"":'<button class="btn ghost" data-act="ejAsp">Cargar aspectos de ejemplo</button>'}</div>
  </div>
@@ -582,7 +631,7 @@ const ACC = {
  alta:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id); a.baja=false; delete a.bajaTri; save(); render(); toast(a.nombre+" está de alta otra vez."); },
  elimAl:el=>{ const a=S.alumnos.find(x=>x.id===el.dataset.id); confirmar(`¿Eliminar definitivamente a ${a.nombre}? Se borrará también su historial de los tres trimestres.`,()=>{ S.alumnos=S.alumnos.filter(x=>x!==a); for(const t of [1,2,3]){ delete S.tris[t].val[a.id]; delete S.tris[t].textos[a.id]; delete S.tris[t].notas[a.id]; } save(); render(); },"Eliminar"); },
  subirAsp:()=>pick(".pdf,.docx,.txt,image/*",importarAspectos),
- subirEval:()=>pick(".pdf,image/*",importarEvaluada),
+ subirEval:()=>pick(".pdf,.docx,image/*",importarEvaluada),
  addAsp:async()=>{ const x=$("#nuevoAsp").value.trim(); if(x.length<4) return toast("Escribe el aspecto a evaluar."); const c=$("#nuevoCampo").value; addAspectos([{texto:x,campo:c}]); save(); render(); if(!c&&AI) clasificar(); },
  ejAsp:()=>{ addAspectos((EJ_ASPECTOS[S.tri]||EJ_ASPECTOS.x).map(([texto,campo])=>({texto,campo}))); save(); render(); },
  copiarAsp:()=>{ addAspectos(S.tris[S.tri-1].aspectos.map(a=>({texto:a.texto,campo:a.campo}))); save(); render(); },
