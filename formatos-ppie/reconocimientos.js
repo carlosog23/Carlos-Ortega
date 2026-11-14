@@ -19,6 +19,8 @@ const RK_DISENOS=[
   {id:"infantil",nombre:"Infantil",desc:"Banderines, estrellas y colores alegres.",letra:"fredoka",pal:"multicolor"},
   {id:"moderno",nombre:"Moderno",desc:"Franja de color y letra limpia.",letra:"playB",pal:"verde"},
   {id:"honor",nombre:"Cuadro de honor",desc:"Medalla y laureles, para logros destacados.",letra:"cinzelB",pal:"vino"},
+  {id:"mosaico",nombre:"Mosaico",desc:"Cenefas de mosaicos de colores y listón para el nombre.",letra:"fredoka",pal:"multicolor"},
+  {id:"geo",nombre:"Geométrico",desc:"Arcos, puntos y figuras en las esquinas.",letra:"montB",pal:"cielo"},
   {id:"fondo",nombre:"Mi propio fondo",desc:"Suba una imagen o un diploma que le guste y Tlamatini escribe encima.",letra:"script",pal:"anil"}];
 
 const RK_PALETAS=[
@@ -131,6 +133,36 @@ async function rkPDF(cfg,personas,env){
       rect(M,M,PW-2*M,PH-2*M,{borderColor:c2,borderWidth:2.2});rect(M+5,M+5,PW-2*M-10,PH-2*M-10,{borderColor:c2,borderWidth:.6});
       rect(M+11,M+11,PW-2*M-22,PH-2*M-22,{borderColor:c1,borderWidth:1.2});
       box={x:M+50,top:M+28,w:PW-2*(M+50),h:PH-2*(M+28)};
+    }else if(cfg.diseno==="mosaico"){
+      /* cenefas de mosaicos arriba y abajo: cada mosaico es una figura sencilla en los colores de la paleta */
+      fT=F.fredoka;fP=F.mont;fM=F.mont;tituloSp=1;col.tit=K[3]||c1;col.nom=c1;col.lin=K[1]||c2;col.fir=c1;
+      const n=vert?12:16,t=PW/n,op=ink?.45:1,kc=i=>K[((i%K.length)+K.length)%K.length];
+      const mosaico=(x,top,i)=>{const A=kc(i),B=kc(i+2),m=(i*7+3)%6;
+        if(m===4){rect(x,top,t,t,{color:c3});for(let a=0;a<3;a++)for(let b=0;b<3;b++)pg.drawCircle({x:x+t*(.22+a*.28),y:Y(top+t*(.22+b*.28)),size:t*.07,color:A,opacity:op});return}
+        rect(x,top,t,t,{color:A,opacity:op});
+        if(m===0)svg(`M${x} ${top+t}A${t} ${t} 0 0 1 ${x+t} ${top}L${x+t} ${top+t}Z`,{color:B,opacity:op});
+        else if(m===1)pg.drawCircle({x:x+t/2,y:Y(top+t/2),size:t*.3,color:c3});
+        else if(m===2)svg(`M${x} ${top}L${x+t} ${top}L${x} ${top+t}Z`,{color:B,opacity:op});
+        else if(m===3)svg(`M${x} ${top+t}A${t/2} ${t/2} 0 0 1 ${x+t} ${top+t}Z`,{color:c3});
+        else svg(`M${x+t/2} ${top+t*.16}L${x+t*.84} ${top+t/2}L${x+t/2} ${top+t*.84}L${x+t*.16} ${top+t/2}Z`,{color:B,opacity:op})};
+      for(let i=0;i<n;i++){mosaico(i*t,0,i);mosaico(i*t,PH-t,i+3)}
+      rect(0,t,PW,2.2,{color:c1});rect(0,PH-t-2.2,PW,2.2,{color:c1});
+      box={x:62,top:t+24,w:PW-124,h:PH-2*t-46};
+    }else if(cfg.diseno==="geo"){
+      /* figuras grandes en las esquinas: arcos, anillos, puntos y triángulos */
+      fT=F.montB;fP=F.mont;fM=F.mont;tituloSp=4;col.lin=c2;const op=ink?.4:1,r=vert?84:146;
+      const k0=K[0],k1=K[1],k2=K[2]||c2,k3=K[3]||c1,k4=K[4]||c2;
+      const arco=(x,y,rr,sx,sy,o)=>svg(`M${x+sx*rr} ${y}A${rr} ${rr} 0 0 ${sx*sy>0?1:0} ${x} ${y+sy*rr}`,o);
+      const cuarto=(x,y,rr,sx,sy,c)=>svg(`M${x} ${y}L${x+sx*rr} ${y}A${rr} ${rr} 0 0 ${sx*sy>0?1:0} ${x} ${y+sy*rr}Z`,{color:c,opacity:op});
+      const puntos=(x,y,nx,ny,c)=>{for(let a=0;a<nx;a++)for(let b=0;b<ny;b++)pg.drawCircle({x:x+a*11,y:Y(y+b*11),size:2,color:c,opacity:op})};
+      cuarto(0,0,r,1,1,k1);arco(0,0,r+16,1,1,{borderColor:k0,borderWidth:7,opacity:op});arco(0,0,r+32,1,1,{borderColor:k2,borderWidth:2.5,opacity:op});
+      pg.drawCircle({x:r*.36,y:Y(r*.36),size:r*.16,color:c3});puntos(r+50,22,6,3,k3);
+      cuarto(PW,PH,r,-1,-1,k0);arco(PW,PH,r+16,-1,-1,{borderColor:k1,borderWidth:7,opacity:op});arco(PW,PH,r+32,-1,-1,{borderColor:k4,borderWidth:2.5,opacity:op});
+      pg.drawCircle({x:PW-r*.36,y:Y(PH-r*.36),size:r*.16,color:c3});puntos(PW-r-50-55,PH-22-22,6,3,k2);
+      svg(`M${PW-70} 0L${PW} 0L${PW} 70Z`,{color:k2,opacity:op});svg(`M${PW-112} 0L${PW-82} 0L${PW} 82L${PW} 112Z`,{color:k3,opacity:op});
+      svg(`M0 ${PH-70}L0 ${PH}L70 ${PH}Z`,{color:k4,opacity:op});svg(`M0 ${PH-112}L0 ${PH-82}L82 ${PH}L112 ${PH}Z`,{color:k1,opacity:op});
+      pg.drawCircle({x:PW-34,y:Y(vert?150:132),size:7,borderColor:k0,borderWidth:2.5,opacity:op});pg.drawCircle({x:34,y:Y(PH-(vert?150:132)),size:7,borderColor:k2,borderWidth:2.5,opacity:op});
+      box=vert?{x:66,top:r+12,w:PW-132,h:PH-2*r-24}:{x:r+24,top:50,w:PW-2*r-48,h:PH-128};
     }else{ /* fondo propio */
       if(I.fondo){const im=I.fondo,cover=cfg.fondo.ajuste!=="ajustar";const k=cover?Math.max(PW/im.width,PH/im.height):Math.min(PW/im.width,PH/im.height);
         const iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:(PW-iw)/2,y:(PH-ih)/2,width:iw,height:ih})}
@@ -149,7 +181,7 @@ async function rkPDF(cfg,personas,env){
     const A=esF?B.A:null,AN=A&&A.nom?A.nom:null;const lim=(v,a,b)=>Math.max(a,Math.min(b,v));
     const fsA=(cfg.firmas||[]).filter(f=>f.on&&(f.nom||f.car));
     const feA=[String(cfg.lugarFecha||"").trim(),rkFechaLarga(cfg.fecha)].filter(Boolean).join(", a ");
-    let cxN=cx,wN=B.w*(cfg.diseno==="honor"?.66:.88),hN=1e9,cxB=cx,wB=B.w,R=null,motTop=null,motAlto=null;
+    let cxN=cx,wN=B.w*(cfg.diseno==="honor"?.66:cfg.diseno==="mosaico"?.8:.88),hN=1e9,cxB=cx,wB=B.w,R=null,motTop=null,motAlto=null;
     if(A&&!AN){const firIn=mostrar("firmas")&&!A.firmas&&fsA.length>0;
       const a=mostrar("encabezado")?0:mostrar("titulo")?fr.tit-.085:mostrar("preambulo")?fr.pre-.05:fr.nom-.11,b=firIn?1:mostrar("fecha")&&feA?fr.fec+.045:fr.lug+.06;
       const nat=(b-a)*(PH-96),k=lim(Math.min(Math.sqrt(B.w/(PW-120)),B.h/nat),.55,1.2);zz*=k;const span=Math.min(B.h,nat*k*1.12),off=(B.h-span)/2;
@@ -207,11 +239,14 @@ async function rkPDF(cfg,personas,env){
 
     /* nombre */
     {const s=sNom;
-      const top=T("nom")+(cfg.diseno==="honor"?10:0);ctr(nom,cxN,top,s,fN,AN&&AN.banda?(AN.claro?tinta:blanco):col.nom);
+      const top=T("nom")+(cfg.diseno==="honor"?10:0);
+      if(cfg.diseno==="mosaico"){const lw=Math.min(B.w*.96,Math.max(w(nom,fN,s)+80,B.w*.5)),hh=s*1.42,x0=cxN-lw/2,y0=top-s*.98,pt=hh*.5;
+        svg(`M${x0} ${y0}H${x0+lw}L${x0+lw-pt*.6} ${y0+hh/2}L${x0+lw} ${y0+hh}H${x0}L${x0+pt*.6} ${y0+hh/2}Z`,ink?{borderColor:K[1]||c2,borderWidth:1}:{color:K[1]||c2,opacity:.28})}
+      ctr(nom,cxN,top,s,fN,AN&&AN.banda?(AN.claro?tinta:blanco):col.nom);
       /* espacios en blanco del modelo que Tlamatini sabe llenar (ciclo, grado, grupo) */
       if(A&&A.huecos)A.huecos.forEach(h=>{const t=String(h.dato==="ciclo"?(cfg.cicloTxt||""):h.dato==="grado"?(per.grado?String(per.grado).replace(/[°º]/g,"")+"°":""):h.dato==="grupo"?(per.grupo||""):"").trim();
         if(t)ctr(t,h.cx*PW,h.y*PH-3+dy,fit(t,fSB,13,h.w*PW*.9,6),fSB,A.oscuro?blanco:tinta)});
-      if(!esF||cfg.fondo.ver.linea!==false){const lw=AN?wN:Math.min(B.w*.72,Math.max(w(nom,fN,s)+60,B.w*.45));pg.drawLine({start:{x:cxN-lw/2,y:Y(top+8)},end:{x:cxN+lw/2,y:Y(top+8)},thickness:.7,color:col.lin})}}
+      if(cfg.diseno!=="mosaico"&&(!esF||cfg.fondo.ver.linea!==false)){const lw=AN?wN:Math.min(B.w*.72,Math.max(w(nom,fN,s)+60,B.w*.45));pg.drawLine({start:{x:cxN-lw/2,y:Y(top+8)},end:{x:cxN+lw/2,y:Y(top+8)},thickness:.7,color:col.lin})}}
 
     /* grado y grupo */
     const gg=cfg.verGrado&&(per.grado||per.grupo)?[per.grado?String(per.grado).replace(/[°º]/g,"")+"° grado":"",per.grupo?`grupo «${per.grupo}»`:""].filter(Boolean).join(", "):"";
