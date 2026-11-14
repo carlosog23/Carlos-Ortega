@@ -154,7 +154,7 @@ async function rkPDF(cfg,personas,env){
       const a=mostrar("encabezado")?0:mostrar("titulo")?fr.tit-.085:mostrar("preambulo")?fr.pre-.05:fr.nom-.11,b=firIn?1:mostrar("fecha")&&feA?fr.fec+.045:fr.lug+.06;
       const nat=(b-a)*(PH-96),k=lim(Math.min(Math.sqrt(B.w/(PW-120)),B.h/nat),.55,1.2);zz*=k;const span=Math.min(B.h,nat*k*1.12),off=(B.h-span)/2;
       T=q=>B.top+off+span*(fr[q]-a)/(b-a)+dy}
-    if(AN){zz*=lim(Math.min(AN.w*PW/430,B.w/(PW-120)),.5,1.1);cxN=AN.cx*PW;wN=AN.w*PW*.94;hN=Math.max(12,AN.alto*PH*.82)}
+    if(AN){zz*=lim(Math.min(AN.w*PW/430,B.w/(PW-120)),.6,1.1);cxN=AN.cx*PW;wN=AN.w*PW*.94;hN=Math.max(12,AN.alto*PH*.82)}
 
     /* encabezado */
     if(mostrar("encabezado")){const lh=vert?52:46;let xl=B.x;
@@ -169,9 +169,10 @@ async function rkPDF(cfg,personas,env){
 
     const fN=F[cfg.letra]||F.script;const nom=rkCaso(per.nombre,cfg.caso);
     let sNom=(fN===F.script?(vert?48:54):fN===F.pacifico?(vert?36:40):(vert?32:36))*zz;sNom=fit(nom,fN,Math.min(sNom,hN),wN,AN?9:12);
-    if(AN){const nt=AN.y*PH-4+dy;const P={nom:nt,tit:B.top+36*zz+dy,pre:nt-sNom*.95-8};
+    if(AN){const nt=AN.y*PH-(AN.banda?0:4)+dy;const P={nom:nt,tit:B.top+36*zz+dy,pre:nt-sNom*.95-8};
       const hayMot=A.mot&&!A.mot.ys;let r0=(hayMot?A.mot.top*PH:AN.y*PH+8)+dy,r1=(hayMot?A.mot.bottom*PH:AN.y*PH+8+PH*.09)+dy;
-      if(A.mot&&A.mot.ys)R={ys:A.mot.ys.map(q=>({y:q.y*PH+dy,cx:q.cx*PW,w:q.w*PW*.95}))};
+      if(A.mot&&A.mot.no)R={no:true,ys:[]};
+      else if(A.mot&&A.mot.ys)R={ys:A.mot.ys.map(q=>({y:q.y*PH+dy,cx:q.cx*PW,w:q.w*PW*.95}))};
       else{cxB=hayMot?A.mot.cx*PW:cxN;wB=hayMot?A.mot.w*PW:wN;
         const ggA=cfg.verGrado&&(per.grado||per.grupo),lugA=String(per.lugar||cfg.lugarGral||"").trim();
         if(ggA){P.gr=r0+11*zz;r0+=16*zz}if(mostrar("fecha")&&feA){P.fec=r1-3;r1-=17*zz}if(lugA){P.lug=r1-16*zz;r1-=24*zz}
@@ -206,7 +207,10 @@ async function rkPDF(cfg,personas,env){
 
     /* nombre */
     {const s=sNom;
-      const top=T("nom")+(cfg.diseno==="honor"?10:0);ctr(nom,cxN,top,s,fN,col.nom);
+      const top=T("nom")+(cfg.diseno==="honor"?10:0);ctr(nom,cxN,top,s,fN,AN&&AN.banda?(AN.claro?tinta:blanco):col.nom);
+      /* espacios en blanco del modelo que Tlamatini sabe llenar (ciclo, grado, grupo) */
+      if(A&&A.huecos)A.huecos.forEach(h=>{const t=String(h.dato==="ciclo"?(cfg.cicloTxt||""):h.dato==="grado"?(per.grado?String(per.grado).replace(/[°º]/g,"")+"°":""):h.dato==="grupo"?(per.grupo||""):"").trim();
+        if(t)ctr(t,h.cx*PW,h.y*PH-3+dy,fit(t,fSB,13,h.w*PW*.9,6),fSB,A.oscuro?blanco:tinta)});
       if(!esF||cfg.fondo.ver.linea!==false){const lw=AN?wN:Math.min(B.w*.72,Math.max(w(nom,fN,s)+60,B.w*.45));pg.drawLine({start:{x:cxN-lw/2,y:Y(top+8)},end:{x:cxN+lw/2,y:Y(top+8)},thickness:.7,color:col.lin})}}
 
     /* grado y grupo */
@@ -217,7 +221,7 @@ async function rkPDF(cfg,personas,env){
     const mot=String(per.motivo||"").trim()||String(cfg.motivo||"").trim();
     if(R){/* el modelo trae renglones: el texto se escribe sobre ellos */
       const txt=[lug,mot,gg].map(t=>String(t||"").trim()).filter(Boolean).map(t=>/[.!?»]$/.test(t)?t:t+".").join(" ");
-      if(txt){const n=R.ys.length,sep=n>1?(R.ys[n-1].y-R.ys[0].y)/(n-1):24;const ren=i=>i<n?R.ys[i]:{y:R.ys[n-1].y+sep*(i-n+1),cx:R.ys[n-1].cx,w:R.ys[n-1].w};let s=Math.min(14*zz,sep*.66),L;
+      if(txt&&!R.no){const n=R.ys.length,sep=n>1?(R.ys[n-1].y-R.ys[0].y)/(n-1):24;const ren=i=>i<n?R.ys[i]:{y:R.ys[n-1].y+sep*(i-n+1),cx:R.ys[n-1].cx,w:R.ys[n-1].w};let s=Math.min(14*zz,sep*.66),L;
         const partir=sz=>{const out=[];let cur="";for(const pal of txt.split(/\s+/)){const t=cur?cur+" "+pal:pal;if(w(t,fM,sz)>ren(out.length).w&&cur){out.push(cur);cur=pal}else cur=t}if(cur)out.push(cur);return out};
         for(;;){L=partir(s);if(L.length<=n||s<=9)break;s-=.5}
         L.forEach((ln,i)=>ctr(ln,ren(i).cx,ren(i).y-3,s,fM,col.txt))}}
@@ -653,21 +657,26 @@ function rkAnalizaPixeles(d,W,H){
   const lumP=(.299*P[0]+.587*P[1]+.114*P[2])/255;
   /* tinta: lo que se aparta del papel */
   const ink=new Uint8Array(N);let nInk=0;
-  for(let i=0;i<N;i++){const j=i*4;if(Math.max(Math.abs(d[j]-P[0]),Math.abs(d[j+1]-P[1]),Math.abs(d[j+2]-P[2]))>46){ink[i]=1;nInk++}}
+  for(let i=0;i<N;i++){const j=i*4;if(Math.max(Math.abs(d[j]-P[0]),Math.abs(d[j+1]-P[1]),Math.abs(d[j+2]-P[2]))>62){ink[i]=1;nInk++}}
   /* une letras y puntos vecinos (en horizontal) para tratar palabras y líneas punteadas como una sola pieza */
   const R=Math.max(2,Math.round(W*.009));
   const dilatar=src=>{const o=new Uint8Array(N);for(let y=0;y<H;y++){let ult=-99;const f=y*W;for(let x=0;x<W;x++){if(src[f+x])ult=x;if(x-ult<=R)o[f+x]=1}ult=1e9;for(let x=W-1;x>=0;x--){if(src[f+x])ult=x;if(ult-x<=R)o[f+x]=1}}return o};
   let dil=dilatar(ink);
   /* líneas para escribir (continuas o punteadas): tramos largos, delgados y sin letras pegadas arriba o abajo */
-  const gMax=Math.max(3,Math.round(H*.009)),lnM=new Uint8Array(N);
+  const gMax=Math.max(4,Math.round(H*.013)),lnM=new Uint8Array(N);
   const cub=(y,a,b)=>{if(y<0||y>=H)return 0;let c=0;const f=y*W;for(let x=a;x<=b;x++)c+=dil[f+x];return c/(b-a+1)};
   for(let y=1;y<H-1;y++){const f=y*W;for(let x=0;x<W;x++){if(!dil[f+x])continue;let b=x;while(b+1<W&&dil[f+b+1])b++;const a=x;x=b;
       if(b-a+1<W*.07||b-a+1>=W*.8||lnM[f+a+((b-a)>>1)])continue;
-      let up=0,dn=0;while(up<=gMax&&cub(y-up-1,a,b)>=.7)up++;while(dn<=gMax&&cub(y+dn+1,a,b)>=.7)dn++;
+      const letra=xx=>{for(let q=Math.max(0,y-gMax-10);q<y-gMax-1;q++)if(ink[q*W+xx])return true;return false};
+      let a2=a,b2=b;while(a2<b2&&letra(a2))a2++;while(b2>a2&&letra(b2))b2--;
+      /* en el tramo ya recortado puede haber letras sueltas: se toma el trozo libre más largo */
+      {let m0=a2,m1=a2-1,i0=a2;for(let xx=a2;xx<=b2+1;xx++){if(xx>b2||letra(xx)){if(xx-1-i0>m1-m0){m0=i0;m1=xx-1}i0=xx+1}}a2=m0;b2=m1}
+      if(b2-a2+1<W*.07)continue;const a0=a,b0=b;{const t=a2;b=b2;x=b0;var aT=t}
+      let up=0,dn=0;while(up<=gMax&&cub(y-up-1,aT,b)>=.7)up++;while(dn<=gMax&&cub(y+dn+1,aT,b)>=.7)dn++;
       if(up+dn+1>gMax)continue;
-      let limpio=true;for(let q=1;q<=3;q++){if(cub(y-up-1-q,a,b)>.12||cub(y+dn+1+q,a,b)>.12){limpio=false;break}}
+      let limpio=true;for(let q=1;q<=3;q++){if(cub(y-up-1-q,aT,b)>.12||cub(y+dn+1+q,aT,b)>.4){limpio=false;break}}
       if(!limpio)continue;
-      for(let yy=y-up;yy<=y+dn;yy++)for(let xx=a;xx<=b;xx++)lnM[yy*W+xx]=1}}
+      for(let yy=y-up;yy<=y+dn;yy++)for(let xx=aT;xx<=b;xx++)lnM[yy*W+xx]=1}}
   const piezas=(m,cond)=>{const lab=new Int32Array(N),out=[],pila=new Int32Array(N);
     for(let s0=0;s0<N;s0++){if(!m[s0]||lab[s0])continue;const id=out.length+1;let n=0,x0=W,x1=0,y0=H,y1=0,top=0;pila[top++]=s0;lab[s0]=id;
       while(top){const p=pila[--top],x=p%W,y=(p-x)/W;n++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
@@ -676,17 +685,23 @@ function rkAnalizaPixeles(d,W,H){
   const lineasT=piezas(lnM).out.filter(c=>c.w>=W*.07).map(c=>Object.assign(c,{t:"linea"}));
   /* lo demás (sin las líneas): piezas de texto o de adorno */
   const ink2=new Uint8Array(N);for(let i=0;i<N;i++)ink2[i]=ink[i]&&!lnM[i]&&!(i>=W&&lnM[i-W])&&!(i+W<N&&lnM[i+W])?1:0;
-  dil=dilatar(ink2);const pz=piezas(dil),lab=pz.lab,comps=pz.out;
   const mx=W*.055,my=H*.055;
-  comps.forEach(c=>{const borde=c.x0<mx||c.x1>W-mx||c.y0<my||c.y1>H-my;
-    c.t=c.n<W*.00004*W?"ruido":(!borde&&c.h<=H*.2&&c.w<=W*.8&&(c.h<=H*.1||c.w/c.h>=2))?"texto":"adorno"});
+  /* 1) piezas tal cual (sin unir): marcos, mosaicos y adornos de la orilla, y los listones de color */
+  const p0=piezas(ink2),esAd=new Uint8Array(N),bandas=[];
+  const tipo0=p0.out.map(c=>{const borde=c.x0<mx||c.x1>W-mx||c.y0<my||c.y1>H-my;
+    if(!borde&&c.w>=W*.3&&c.w<W*.85&&c.h>=H*.04&&c.h<=H*.17&&c.n>=c.w*c.h*.72){bandas.push(Object.assign(c,{t:"banda"}));return 2}
+    return borde||c.h>H*.2||c.w>W*.8?1:0});
+  const ink3=new Uint8Array(N);for(let i=0;i<N;i++){const l=p0.lab[i];if(!l)continue;const t=tipo0[l-1];if(t===1)esAd[i]=1;else if(t===0)ink3[i]=1}
+  /* 2) lo que queda se une en palabras: texto impreso o adornos sueltos */
+  dil=dilatar(ink3);const pz=piezas(dil),lab=pz.lab,comps=pz.out;
+  comps.forEach(c=>{c.t=c.n<W*.00004*W?"ruido":(c.h<=H*.2&&c.w<=W*(c.h<=H*.1?.95:.8)&&(c.h<=H*.1||c.w/c.h>=2))?"texto":"adorno"});
   /* un bloque compacto y solo (sello, medalla, escudo) es adorno, no texto */
   comps.forEach(c=>{if(c.t!=="texto"||c.h<=H*.05||c.w/c.h>=1.6||c.n<c.w*c.h*.5)return;
     const vecino=comps.some(o=>o!==c&&o.t==="texto"&&Math.min(o.y1,c.y1)-Math.max(o.y0,c.y0)>=Math.min(o.h,c.h)*.5&&Math.max(o.x0-c.x1,c.x0-o.x1)<c.h*2.5);
     if(!vecino)c.t="adorno"});
   /* espacio libre: el rectángulo más grande que no toca adornos ni marcos */
   const G=4,gw=Math.ceil(W/G),gh=Math.ceil(H/G),ocu=new Uint8Array(gw*gh);
-  for(let i=0;i<N;i++){const l=lab[i];if(l&&ink2[i]&&comps[l-1].t==="adorno"){const x=i%W,y=(i-x)/W;ocu[(y/G|0)*gw+(x/G|0)]=1}}
+  for(let i=0;i<N;i++){const l=lab[i];if(esAd[i]||(l&&ink3[i]&&comps[l-1].t==="adorno")){const x=i%W,y=(i-x)/W;ocu[(y/G|0)*gw+(x/G|0)]=1}}
   const ocu2=new Uint8Array(gw*gh),bx=Math.max(1,Math.round(gw*.03)),by=Math.max(1,Math.round(gh*.03));
   for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){let o=x<bx||y<by||x>=gw-bx||y>=gh-by;
     if(!o)for(let dy=-1;dy<=1&&!o;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<gw&&yy<gh&&ocu[yy*gw+xx]){o=1;break}}
@@ -698,46 +713,62 @@ function rkAnalizaPixeles(d,W,H){
         /* se prefiere un espacio centrado: el texto de un reconocimiento va al centro */
         const cxr=(i0+x)/2/gw,pun=a*(1-.45*Math.abs(cxr-.5));if(pun>(best.p||0))best={a,p:pun,x:i0,y:y-hh+1,w:x-i0,h:hh};ini=i0}
       st.push([ini,h])}}
-  const res={v:3,papel:"#"+P.map(v=>v.toString(16).padStart(2,"0")).join(""),oscuro:lumP<.45,box:null,nom:null,mot:null,fec:null,firmas:null,trae:{titulo:false,frase:false,nombre:false,motivo:false,firmas:false},ver:{}};
+  const res={v:6,papel:"#"+P.map(v=>v.toString(16).padStart(2,"0")).join(""),oscuro:lumP<.45,box:null,nom:null,mot:null,fec:null,firmas:null,trae:{titulo:false,frase:false,nombre:false,motivo:false,firmas:false},ver:{}};
   if(!best.a||best.a<gw*gh*.16)return res;   /* casi no hay espacio libre: se deja el acomodo normal */
   let B={x0:best.x*G,y0:best.y*G,x1:Math.min(W,(best.x+best.w)*G),y1:Math.min(H,(best.y+best.h)*G)};
   /* lo impreso dentro del espacio libre */
-  const dentro=c=>{const sol=Math.min(c.x1,B.x1)-Math.max(c.x0,B.x0);return sol>=c.w*.5&&c.y1>=B.y0&&c.y0<=B.y1};
-  const lineas=lineasT.filter(dentro).sort((a,b)=>a.y0-b.y0);
+  const dentro=c=>{const sol=Math.min(c.x1,B.x1)-Math.max(c.x0,B.x0);return sol>=c.w*.5&&c.y1>=B.y0&&c.y0<=Math.min(H*.965,B.y1+H*.14)};
+  const lineas=lineasT.filter(l=>dentro(l)&&l.y0<=B.y1+H*.02&&l.y0<H*.93).sort((a,b)=>a.y0-b.y0);
   const textos=comps.filter(c=>c.t==="texto"&&dentro(c));
-  const bh=B.y1-B.y0,fy=y=>(y-B.y0)/bh;
+  const bh=B.y1-B.y0,fy=y=>(y-B.y0)/bh;const X=v=>v/W,Yf=v=>v/H;
+  /* espacios en blanco dentro de una frase impresa («…periodo escolar ______.»): no son la línea del nombre */
+  const tinta=(xa,xb,ya,yb)=>{let n=0,t=0;for(let y=Math.max(0,ya);y<=Math.min(H-1,yb);y++)for(let x=Math.max(0,xa);x<=Math.min(W-1,xb);x++){t++;n+=ink3[y*W+x]}return t?n/t:0};
+  const junto=l=>{const ya=Math.round(l.y0-H*.045),yb=l.y0-2,an=Math.round(W*.06);return tinta(l.x0-an,l.x0-3,ya,yb)>.05||tinta(l.x1+3,l.x1+an,ya,yb)>.05};
+  const huecos=lineas.filter(l=>l.w<W*.5&&junto(l));
   /* líneas de firma: las de la parte baja, cortas y a la misma altura */
-  let firmas=lineas.filter(l=>fy(l.y0)>.62&&l.w<=W*.42);
+  let firmas=lineas.filter(l=>!huecos.includes(l)&&l.y0>H*.6&&fy(l.y0)>.62&&l.w<=W*.42);
   if(firmas.length){const yb=Math.max(...firmas.map(l=>l.y0));firmas=firmas.filter(l=>yb-l.y0<=H*.035).sort((a,b)=>a.x0-b.x0).slice(0,3)}
   const otras=lineas.filter(l=>!firmas.includes(l));
   const yFir=firmas.length?Math.min(...firmas.map(l=>l.y0)):B.y1;
-  const lnNom=otras.find(l=>l.w>=W*.22&&fy(l.y0)>.12&&fy(l.y0)<.8);
+  let lnNom=otras.find(l=>!huecos.includes(l)&&l.w>=W*.22&&fy(l.y0)>.12&&fy(l.y0)<.8);
+  const banda=bandas.filter(c=>dentro(c)&&fy(c.y0)>.1&&fy(c.y1)<.85).sort((a,b)=>b.w-a.w)[0];
+  if(huecos.length)res.huecos=huecos.map(l=>({cx:X((l.x0+l.x1+1)/2),y:Yf(l.y0),w:X(l.w),dato:null,x0:l.x0/W}));
+  if(banda){lnNom=null;/* el nombre va dentro del listón, a un lado de su etiqueta («A:») */
+    const med=k=>{const v=[];for(let y=banda.y0;y<=banda.y1;y+=2)for(let x=banda.x0;x<=banda.x1;x+=3)v.push(d[(y*W+x)*4+k]);v.sort((p,q)=>p-q);return v[v.length>>1]};const cb=[med(0),med(1),med(2)];
+    const osc=x=>{let n=0;for(let y=banda.y0+2;y<=banda.y1-2;y++){const j=(y*W+x)*4;if(Math.max(Math.abs(d[j]-cb[0]),Math.abs(d[j+1]-cb[1]),Math.abs(d[j+2]-cb[2]))>70)n++}return n>banda.h*.12};
+    let m0=banda.x0,m1=banda.x0-1,i0=banda.x0;const xa=banda.x0+Math.round(banda.h*.5),xb=banda.x1-Math.round(banda.h*.5);i0=xa;m0=xa;m1=xa-1;
+    for(let x=xa;x<=xb+1;x++){if(x>xb||osc(x)){if(x-1-i0>m1-m0){m0=i0;m1=x-1}i0=x+1}}
+    if(m1-m0>=W*.18){const lb=(.299*cb[0]+.587*cb[1]+.114*cb[2])/255;
+      lnNom={banda:true,x0:m0+3,x1:m1-3,w:m1-m0-5,y0:banda.y0,y1:banda.y1,h:banda.h,claro:lb>.5}}}
   /* renglones de texto impreso */
   const filas=new Uint8Array(H);textos.forEach(c=>{for(let y=c.y0;y<=c.y1;y++)filas[y]=1});
   const reng=[];for(let y=B.y0;y<=B.y1&&y<H;y++){if(!filas[y])continue;let y1=y;while(y1+1<H&&(filas[y1+1]||filas[Math.min(H-1,y1+2)]))y1++;reng.push({y0:y,y1});y=y1}
-  const X=v=>v/W,Yf=v=>v/H;
   const etiquetaBajo=l=>textos.some(c=>c.y0>l.y1&&c.y0-l.y1<H*.06&&c.x1>l.x0&&c.x0<l.x1);
   if(firmas.length){res.firmas=firmas.map(l=>({cx:X((l.x0+l.x1+1)/2),y:Yf(l.y0),w:X(l.w),arriba:etiquetaBajo(l)}));res.trae.firmas=true}
   if(lnNom){
     /* modelo con línea para el nombre: cada dato va en su renglón */
     const arriba=Math.max(B.y0,...reng.filter(r=>r.y1<lnNom.y0-2).map(r=>r.y1),...otras.filter(l=>l.y1<lnNom.y0-2).map(l=>l.y1));
-    res.nom={cx:X((lnNom.x0+lnNom.x1+1)/2),y:Yf(lnNom.y0),w:X(lnNom.w),alto:Yf(lnNom.y0-arriba)};
+    res.nom=lnNom.banda?{cx:X((lnNom.x0+lnNom.x1+1)/2),y:Yf(lnNom.y0+lnNom.h*.72),w:X(lnNom.w),alto:Yf(lnNom.h*.95),banda:true,claro:lnNom.claro}
+      :{cx:X((lnNom.x0+lnNom.x1+1)/2),y:Yf(lnNom.y0),w:X(lnNom.w),alto:Yf(lnNom.y0-arriba)};
     const sobre=reng.filter(r=>r.y1<lnNom.y0).length;res.trae.nombre=true;res.trae.titulo=sobre>0;res.trae.frase=sobre>1;
-    const lm=otras.filter(l=>l.y0>lnNom.y1+2&&l.y0<yFir-H*.04&&l.w>=W*.18);
+    const lm=otras.filter(l=>!huecos.includes(l)&&l.y0>lnNom.y1+2&&l.y0<yFir-H*.04&&l.w>=W*.18);
     const tope=Math.min(yFir-H*.075,B.y1);
     if(lm.length){res.trae.motivo=true;const x0=Math.min(...lm.map(l=>l.x0)),x1=Math.max(...lm.map(l=>l.x1));
       res.mot={ys:lm.map(l=>({y:Yf(l.y0),cx:X((l.x0+l.x1+1)/2),w:X(l.w)})),cx:X((x0+x1+1)/2),w:X(x1-x0+1)};
       const yu=lm[lm.length-1].y1,sig=Math.min(tope,...reng.filter(r=>r.y0>yu+2).map(r=>r.y0));
       if(sig-yu>=H*.055)res.fec={y:Yf(yu+(sig-yu)*.62),cx:res.mot.cx,w:res.mot.w}}
     else{const ini=lnNom.y1+H*.012,sig=Math.min(tope,...reng.filter(r=>r.y0>ini).map(r=>r.y0));
-      if(sig-ini>=H*.05)res.mot={top:Yf(ini),bottom:Yf(sig),cx:X((B.x0+B.x1)/2),w:X(B.x1-B.x0)}}
+      if(sig-ini>=H*.09)res.mot={top:Yf(ini),bottom:Yf(sig),cx:X((B.x0+B.x1)/2),w:X(B.x1-B.x0)};
+      else{res.mot={no:true};res.trae.motivo=true}}   /* debajo del nombre el modelo ya trae su texto: no se escribe encima */
     res.box={x:X(B.x0),y:Yf(B.y0),w:X(B.x1-B.x0),h:Yf(bh)};
-    res.ver={titulo:!res.trae.titulo,preambulo:!res.trae.frase&&res.nom.alto>=.17,linea:false,fecha:!!(res.fec||(res.mot&&!res.mot.ys)),firmas:true};
+    res.ver={titulo:!res.trae.titulo,preambulo:!res.trae.frase&&!lnNom.banda&&res.nom.alto>=.17,linea:false,fecha:!!(res.fec||(res.mot&&!res.mot.ys&&!res.mot.no)),firmas:true};
   }else{
     /* fondo (con o sin título impreso): el texto va en la franja libre más alta */
     const ocup=reng.concat(lineas.map(l=>({y0:l.y0,y1:l.y1}))).sort((a,b)=>a.y0-b.y0);
     const fr=[];let y=B.y0;ocup.forEach(o=>{if(o.y0-y>0)fr.push({y0:y,y1:o.y0});y=Math.max(y,o.y1+1)});if(B.y1-y>0)fr.push({y0:y,y1:B.y1});
     const pr=fr.slice().sort((a,b)=>(b.y1-b.y0)-(a.y1-a.y0))[0]||{y0:B.y0,y1:B.y1};
+    if(pr.y1-pr.y0<H*.22&&reng.length>=3){/* modelo lleno de texto y sin lugar claro para el nombre: no se adivina */
+      res.lleno=true;res.ver={titulo:false,preambulo:false,linea:false,fecha:false,firmas:!res.trae.firmas};return res}
     const arr=reng.filter(r=>r.y1<=pr.y0+1),aba=reng.filter(r=>r.y0>=pr.y1-1);
     const pad=H*.012;const y0=pr.y0+(arr.length?pad:0),y1=pr.y1-((aba.length||firmas.length)?pad:0);
     res.trae.titulo=arr.length>0;res.trae.frase=arr.length>1;
@@ -753,23 +784,33 @@ function rkAnalizaPixeles(d,W,H){
 async function rkAnalizarFondo(dataURL,orient,ajuste){const im=await imgLoad(dataURL);const vert=orient==="vertical";const W=vert?496:640,H=vert?640:496;
   const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d",{willReadFrequently:true});x.fillStyle="#fff";x.fillRect(0,0,W,H);
   const iw0=im.naturalWidth,ih0=im.naturalHeight,k=ajuste!=="ajustar"?Math.max(W/iw0,H/ih0):Math.min(W/iw0,H/ih0);x.imageSmoothingQuality="high";
-  x.drawImage(im,(W-iw0*k)/2,(H-ih0*k)/2,iw0*k,ih0*k);return rkAnalizaPixeles(x.getImageData(0,0,W,H).data,W,H)}
+  x.drawImage(im,(W-iw0*k)/2,(H-ih0*k)/2,iw0*k,ih0*k);const res=rkAnalizaPixeles(x.getImageData(0,0,W,H).data,W,H);
+  if(res.huecos&&typeof ocrWorker==="function"){try{const wk=await Promise.race([ocrWorker(),new Promise((_,no)=>setTimeout(()=>no(new Error("t")),25000))]);
+      for(const h of res.huecos){const E=4,cw=Math.round(W*.5*E),chh=Math.round(H*.1*E),cc=document.createElement("canvas");cc.width=cw;cc.height=chh;const cx2=cc.getContext("2d");cx2.fillStyle="#fff";cx2.fillRect(0,0,cw,chh);
+        const sx=(h.x0-.5)*W,sy=(h.y-.075)*H;cx2.imageSmoothingQuality="high";cx2.setTransform(E,0,0,E,-sx*E,-sy*E);cx2.drawImage(im,(W-iw0*k)/2,(H-ih0*k)/2,iw0*k,ih0*k);
+        const{data}=await wk.recognize(cc);const t=rkN(data.text||"").split(" ").slice(-4).join(" ");
+        h.dato=/periodo|ciclo|lectivo|escolar|curso/.test(t)?"ciclo":/grado/.test(t)?"grado":/grupo/.test(t)?"grupo":null}}catch(e){}}
+  return res}
 const rkAutoClave=()=>[RK.orient,RK.fondo.ajuste,(rkFondoGet()||"").length].join("|");
 /* Antes de dibujar: si cambió la imagen, la orientación o el acomodo, se vuelve a medir (sin tocar lo que la persona eligió) */
 async function rkAutoAsegura(){if(!RK||RK.diseno!=="fondo"||RK.fondo.autoOn===false)return;const f=rkFondoGet();if(!f)return;const k=rkAutoClave();
-  if(RK.fondo.auto&&RK.fondo.auto.k===k&&RK.fondo.auto.v===3)return;
+  if(RK.fondo.auto&&RK.fondo.auto.k===k&&RK.fondo.auto.v===6)return;
   try{const a=await rkAnalizarFondo(f,RK.orient,RK.fondo.ajuste);a.k=k;RK.fondo.auto=a;try{localStorage.setItem(RK_KEY,JSON.stringify(RK))}catch(e){}}catch(e){RK.fondo.auto=null}}
 /* Al subir (o mejorar) la imagen: mide y además propone qué escribir y el color del texto */
 async function rkAutoNuevo(){RK.fondo.auto=null;RK.fondo.dy=0;RK.fondo.fdy=0;RK.fondo.esc=1;if(RK.fondo.autoOn===false)return;await rkAutoAsegura();const a=RK.fondo.auto;if(!a)return;
   if(a.box){Object.assign(RK.fondo.ver,a.ver,{encabezado:false})}
   if(a.oscuro)RK.fondo.color="#FFFFFF"}
 function rkAutoTexto(){const a=RK.fondo.auto;if(RK.fondo.autoOn===false)return"";
-  if(!a)return"";if(!a.box)return"No se encontró un espacio libre claro en la imagen; se usa el acomodo general. Ajústelo con los controles de abajo.";
-  const t=[];if(a.nom)t.push("la línea del nombre");if(a.mot&&a.mot.ys)t.push(a.mot.ys.length===1?"el renglón del motivo":`${a.mot.ys.length} renglones para el motivo`);
+  if(!a)return"";if(a.lleno)return"<b>Diseño analizado.</b> Este modelo ya viene lleno de texto y no se encontró una línea o listón para el nombre, así que no se escribió nada encima. Marque abajo lo que quiera agregar y acomódelo con los controles.";
+  if(!a.box)return"No se encontró un espacio libre claro en la imagen; se usa el acomodo general. Ajústelo con los controles de abajo.";
+  const t=[];if(a.nom)t.push(a.nom.banda?"el listón del nombre":"la línea del nombre");
+  const hs=(a.huecos||[]).filter(h=>h.dato);if(hs.length)t.push("el espacio del "+hs.map(h=>h.dato==="ciclo"?"ciclo escolar":h.dato).join(" y del "));if(a.mot&&a.mot.ys)t.push(a.mot.ys.length===1?"el renglón del motivo":`${a.mot.ys.length} renglones para el motivo`);
   if(a.firmas)t.push(a.firmas.length===1?"una línea de firma":`${a.firmas.length} líneas de firma`);
   const ya=[];if(a.trae.titulo)ya.push("título");if(a.trae.frase&&!a.nom)ya.push("frase");if(a.trae.firmas&&!a.firmas)ya.push("firmas");
   return"<b>Diseño analizado.</b> El texto se acomodó en el espacio libre"+(a.oscuro?", con letra clara por el fondo oscuro":"")+"."+
     (t.length?` Se encontró ${t.join(", ").replace(/, ([^,]*)$/," y $1")} y cada dato se escribe en su lugar.`:"")+
+    (a.mot&&a.mot.no?" El modelo ya trae su propio texto, así que no se escribe el motivo, el grado ni la fecha.":"")+
+    (a.firmas&&a.firmas.length===1?" Solo trae una línea de firma: se escribe la primera persona de «Firmas».":"")+
     (ya.length?` Parece que el diseño ya trae ${ya.join(" y ")}, así que Tlamatini no ${ya.length>1?"los":"lo"} repite (puede cambiarlo abajo).`:"")}
 
 /* --- mejorar la calidad de la imagen de fondo (en el dispositivo) --- */

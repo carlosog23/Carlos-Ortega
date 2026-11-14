@@ -4,7 +4,7 @@
      se use el nuevo de inmediato; sin conexión se usa la copia guardada.
    - Librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-11-14a";
+const VERSION = "tlm-2026-11-14b";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
@@ -16,7 +16,7 @@ const NUCLEO = [
   "formatos/A.pdf", "formatos/B.pdf", "formatos/C.pdf", "formatos/D.pdf", "formatos/E.pdf", "formatos/F.pdf", "formatos/G.pdf", "formatos/H.pdf", "formatos/I.pdf",
   "formatos/L.pdf", "formatos/P.pdf", "formatos/S.pdf", "formatos/T.pdf", "formatos/U.pdf", "formatos/inventarios.pdf", "formatos/logo_se_lista.jpg",
   "lib/pdf-lib.min.js", "lib/pdf.min.js", "lib/pdf.worker.min.js",
-  "reconocimientos.js?v=2026-11-14a", "banxico.js?v=2026-11-11a"
+  "reconocimientos.js?v=2026-11-14b", "banxico.js?v=2026-11-11a"
 ];
 /* Paquete completo opcional: se descarga cuando la persona lo pide desde la app. */
 const COMPLETO = [
