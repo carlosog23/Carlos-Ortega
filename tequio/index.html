@@ -5902,7 +5902,7 @@ function vSisat() {
   const migas = sisMigas(v);
   const momBtns = [1, 2, 3].map(m => { const hay = sisFilas(m).some(pred); return `<button data-sm="${m}" aria-pressed="${v.m === m}">Momento ${m}${hay ? '' : ' <span class="sis-vacio">· sin datos</span>'}</button>`; }).join('') +
     `<button data-sm="t" aria-pressed="${tend}">Tendencia</button>`;
-  const faltan = !esDirector() && esAdmin() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
+  const faltan = !esDirector() && esAdmin() && esZona050() ? SIS_SEMILLA.filter(p => !(S.sis || []).some(r => r.ciclo === p.ciclo && +r.momento === p.momento && r.cct === p.cct)) : [];
   const cab = `<div class="titulo-vista"><h1>SisAT · Alerta temprana</h1>
     <div class="acciones">${!esDirector() && typeof v.m === 'number' ? `<button class="boton terra" id="b-sis-zimp">${ico('i-carpeta')}Leer los Excel de todas las escuelas</button>` : ''}<button class="boton ${esDirector() ? 'terra' : 'sec'}" id="b-sis-cargar">${ico('i-mas')}Cargar resultados</button><button class="boton sec" id="b-sis-doc">${ico('i-graf')}Informe del SisAT</button><button class="boton sec" id="b-sis-int">${ico('i-graf')}Informe integrado SisAT + EIA</button><button class="boton sec" id="b-sis-ins">${ico('i-lapiz')}Insumo para la lectura de la realidad</button></div></div>
     ${faltan.length ? `<div class="aviso-caja" style="display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Resultados listos para cargar:</b> ${faltan.map(p => esc(nombreEscuela(p.cct)) + ', Momento ' + p.momento + ' (' + p.grupos.length + ' grupos)').join('; ')}.</div><button class="boton" id="b-sis-semilla">Cargar ahora</button></div>` : ''}
@@ -8911,8 +8911,8 @@ function insFuentes(w) {
   return { m: sis.length ? m : null, sis, eia };
 }
 function insQuien(w) {
-  if (w.nivel === 'zona') return 'la Zona Escolar 050';
-  if (w.nivel === 'zgrado') return w.grado + '.° grado de la Zona Escolar 050';
+  if (w.nivel === 'zona') return 'la Zona Escolar ' + ZONA.numero;
+  if (w.nivel === 'zgrado') return w.grado + '.° grado de la Zona Escolar ' + ZONA.numero;
   if (w.nivel === 'escuela') return 'la escuela ' + nombreEscuela(w.cct);
   if (w.nivel === 'grado') return w.grado + '.° grado de la escuela ' + nombreEscuela(w.cct);
   return 'el grupo ' + sisNomGrupo(w) + ' de la escuela ' + nombreEscuela(w.cct);
@@ -10101,10 +10101,34 @@ const Demo = (() => {
         escuelaIns: t0 ? { datos: t0.datos, actualizado: t0.actualizado } : null, grupos: t.filter(x => x.nivel === 'grupo').map(x => ({ grado: x.grado, grupo: x.grupo, datos: x.datos, actualizado: x.actualizado })) }; }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['tlaDatos', 'tlaInsumos', 'personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer'];
-  return { llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
+  const LECTURA = ['tlaDatos', 'tlaInsumos', 'personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer', 'finDatos', 'relDatos', 'verInforme'];
+  /* La demostración no muestra nada de la zona real: por dentro trabaja con las claves de siempre, pero todo lo que sale
+     hacia la página pasa por una tabla que cambia escuelas, claves, nombres, correos y sede por datos ficticios
+     (y lo que la página manda de regreso se convierte al revés, para que todo siga cuadrando). */
+  const FIC_ESC = [['Belisario Domínguez', 'Benito Juárez'], ['Josefa Ortiz de Domínguez', 'Leona Vicario'], ['Niños Héroes', 'Héroes de la Patria'], ['13 de Septiembre', '20 de Noviembre'],
+    ['Pdte. Adolfo López Mateos', 'Pdte. Guadalupe Victoria'], ['Emiliano Zapata', 'Francisco Villa'], ['Margarita Maza de Juárez', 'Sor Juana Inés de la Cruz'], ['Maximino Virgen Flores', 'Rosario Castellanos'],
+    ['José Vasconcelos', 'Justo Sierra'], ['James S. Yglesias', 'Jaime Torres Bodet'], ['Luis Donaldo Colosio Murrieta', 'Octavio Paz'], ['Narciso Mendoza', 'Amado Nervo'],
+    ['Ignacio Allende', 'Miguel Hidalgo'], ['José Ma. Pino Suárez', 'Francisco I. Madero']];
+  const FIC = FIC_ESC.concat(ESC.map((e, i) => [e[1], '02DPR' + (9001 + i) + 'ABCDEFGHJKLMNP'[i]]));
+  const FIC_UNO = FIC_ESC.map(p => [p[0].toUpperCase(), p[1].toUpperCase()]).concat([
+    ['Adolfo López Mateos', 'Guadalupe Victoria'], ['ADOLFO LÓPEZ MATEOS', 'GUADALUPE VICTORIA'], ['Pino Suárez', 'Francisco I. Madero'], ['Colosio', 'Octavio Paz'], ['Yglesias', 'Torres Bodet'],
+    ['Carlos Gabriel Ortega Gutiérrez', 'Andrés Ejemplo Ríos'], ['CARLOS GABRIEL ORTEGA GUTIÉRREZ', 'ANDRÉS EJEMPLO RÍOS'], ['Carlos Gabriel', 'Andrés Ejemplo'], ['Carlos Ortega', 'Andrés Ejemplo'],
+    ['HUMBERTO GARCÍA SOLORIO', 'JORGE EJEMPLO SALAS'], ['ARTURO AGUILAR CITAL', 'RAÚL EJEMPLO MORA'],
+    ['supervision050sep@gmail.com', 'supervision999@ejemplo.mx'], ['cortegagutierrez@bcedu.mx', 'supervisor@ejemplo.mx'],
+    ['SE-050', 'SE-999'], ['Zona 050', 'Zona 999'], ['ZONA 050', 'ZONA 999'], ['zona 050', 'zona 999'], ['Zona No. 050', 'Zona No. 999'], ['"zona":"050"', '"zona":"999"'], ['Supervisión 050', 'Supervisión 999'],
+    ['02FIZ0094X', '02FIZ9999X'], ['Camalú', 'Villa Ejemplo'], ['CAMALÚ', 'VILLA EJEMPLO']]);
+  const ficTabla = pares => { const m = new Map(pares), re = new RegExp(pares.map(x => x[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).sort((a, b) => b.length - a.length).join('|'), 'g'); return t => t.replace(re, x => m.get(x)); };
+  const aFic = ficTabla(FIC.concat(FIC_UNO)), aReal = ficTabla(FIC.map(x => [x[1], x[0]]));
+  const trad = (o, f) => o == null ? o : JSON.parse(f(JSON.stringify(o)));
+  const ZONA_FIC = { numero: '999', sede: 'Villa Ejemplo', codigoPostal: '00000', telefono: '616 000 0000', supervisor: 'Mtro. Andrés Ejemplo Ríos',
+    correoSupervision: 'supervision999@ejemplo.mx', correoInstitucional: 'supervisor@ejemplo.mx', lemaZona: 'Zona de demostración', logoZona: '', carpetaEvidencias: '', nombreCarpeta: 'Supervisión 999',
+    folioPrefijo: 'SE-999', cctSupervision: '02FIZ9999X', vespertinas: ZONA_DEF.vespertinas, sedeMultigrado: ZONA_DEF.sedeMultigrado,
+    autoridades: [{ municipio: 'San Quintín', nombre: 'C. JORGE EJEMPLO SALAS', cargo: 'Jefe del Departamento de Educación Primaria en San Quintín', institucion: 'ISEP' },
+      { municipio: 'Ensenada', nombre: 'PROFR. RAÚL EJEMPLO MORA', cargo: 'Jefe del Departamento de Educación Primaria en Ensenada', institucion: 'ISEP' }] };
+  return { nombre: cct => (ESC.find(e => e[1] === cct) || [cct])[0],
+    llamar: (accion, datos) => (cfg.lectura && !LECTURA.includes(accion))
     ? Promise.reject(new Error('Modo consulta: puede ver y descargar todo, pero no se puede guardar, modificar ni enviar nada.'))
-    : new Promise(res => { if (!D) iniciar(); setTimeout(() => res(Object.assign({ ok: true }, A[accion](copia(datos)))), 180); }) };
+    : new Promise(res => { if (!D) iniciar(); setTimeout(() => { const r = Object.assign({ ok: true }, A[accion](trad(copia(datos), aReal))); if (accion === 'datos') r.zona = ZONA_FIC; res(trad(r, aFic)); }, 180); }) };
 })();
 
 /* =========================================================
@@ -11920,7 +11944,7 @@ function finDemo() {
   const add = (cct, tipo, fecha, datos) => l.push(finArmarDemo(l, { cct, tipo, fecha, datos }, yo));
   ['02DPR0684N', '02DPR0210Z'].forEach((cct, k) => {
     add(cct, 'cta', y + '-08-01', { banco: 'BBVA', cuenta: '0123456789', saldoBanco: k ? '8450.00' : '3210.50', saldoCaja: k ? '0.00' : '350.00', tesorero: 'Profra. Ana López Ruiz', director: (escDatos(cct) || [])[4] || '', revisa: '', sector: '', nivel: 'PRIMARIA' });
-    add(cct, 'sol', y + '-08-28', { nivel: 'PRIMARIA', cantidad: '0', inicial: '0101', final: '0200', total: '100', nombre: finMay(nombreEscuela(cct)), zona: '050', clave: cct });
+    add(cct, 'sol', y + '-08-28', { nivel: 'PRIMARIA', cantidad: '0', inicial: '0101', final: '0200', total: '100', nombre: finMay(Demo.nombre(cct)), zona: '050', clave: cct });
     add(cct, 'mov', y + '-09-08', { clase: 'ingreso', medio: 'banco', concepto: 'Cuotas voluntarias de padres de familia, septiembre', lineas: [{ concepto: 'Cuotas voluntarias 1.° a 3.°', importe: '2400.00' }, { concepto: 'Cuotas voluntarias 4.° a 6.°', importe: '2650.00' }], recibos: '0101 al 0142', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '', reviso: '' });
     add(cct, 'mov', y + '-09-19', { clase: 'egreso', medio: 'banco', concepto: 'Compra de material de limpieza', lineas: [{ partida: '322', concepto: 'Cloro, jabón y bolsas', importe: '1180.40' }], comprobante: 'Factura', compNum: 'A-2231', proveedor: 'Abarrotes del Valle', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '' });
     add(cct, 'mov', y + '-10-03', { clase: 'egreso', medio: 'caja', concepto: 'Reparación de chapa de la dirección', lineas: [{ partida: '245', concepto: 'Mano de obra de cerrajería', importe: '300.00' }], comprobante: 'Recibo económico', proveedor: 'Juan Pérez Gómez', domProv: 'Camalú, San Quintín', elaboro: 'Profra. Ana López Ruiz', autorizo: (escDatos(cct) || [])[4] || '' });
@@ -12753,7 +12777,7 @@ function laHtml(d) {
       <div class="la-filete"></div>
       <table class="la-t la-dat${multi ? ' multi' : ''}"><colgroup>${(multi ? [50, 84, 214, 160, 206, 70, 92, 88] : [56, 96, 250, 104, 150, 86, 102, 120]).map(w => `<col style="width:${w}px">`).join('')}</colgroup>
         <tr><th>ZONA</th><th>CLAVE DE CT</th><th>${multi ? 'ESCUELAS' : 'NOMBRE DE LA ESCUELA'}</th><th>MUNICIPIO</th><th>LOCALIDAD</th><th>TURNO</th><th>FECHA</th><th>SESIÓN</th></tr>
-        <tr><td>050</td><td>${multi ? esc2(e[7]) : esc2(d.cct)}</td><td>${esc2(laMay(e[0] || nombreEscuela(d.cct)))}</td><td>${esc2(laMay(e[1]))}</td><td>${esc2(laMay(e[2]))}</td><td>${esc2(laMay(e[6] || (multi ? '' : sisTurno(d.cct))))}</td><td>${esc2(fechaTxt)}</td><td>${esc2(d.sesionTxt)}</td></tr></table>
+        <tr><td>${esc2(ZONA.numero)}</td><td>${multi ? esc2(e[7]) : esc2(d.cct)}</td><td>${esc2(laMay(e[0] || nombreEscuela(d.cct)))}</td><td>${esc2(laMay(e[1]))}</td><td>${esc2(laMay(e[2]))}</td><td>${esc2(laMay(e[6] || (multi ? '' : sisTurno(d.cct))))}</td><td>${esc2(fechaTxt)}</td><td>${esc2(d.sesionTxt)}</td></tr></table>
       <table class="la-t la-reg"><colgroup>${W.map(w => `<col style="width:${w}px">`).join('')}</colgroup>
         <thead><tr><th rowspan="2">No.</th><th rowspan="2">RFC</th><th colspan="3">NOMBRE COMPLETO DEL DOCENTE</th><th colspan="2">GÉNERO</th><th rowspan="2">FUNCIÓN</th><th rowspan="2">CURP</th>${multi ? '<th rowspan="2">C.C.T.</th>' : ''}<th colspan="2">FIRMAS</th></tr>
         <tr><th class="s">APELLIDO PATERNO</th><th class="s">APELLIDO MATERNO</th><th class="s">NOMBRE(S)</th><th class="s">H</th><th class="s">M</th><th class="s">ENTRADA</th><th class="s">SALIDA</th></tr></thead>
@@ -13573,7 +13597,7 @@ function htmlOficioEsc(o, s = 1, rec = {}, t = 0, abajo = false) {
       </div></div>
       <div class="h-ccp">${lineasCcp(o).map(l => `<div><b>C.c.p.</b> ${esc(l)}</div>`).join('')}</div>
     </div>
-    <div class="h-pie"><div>${esc(['Escuela Primaria «' + c.escuela + '»', c.domicilio, c.municipio ? c.municipio + ', B.C.' : ''].filter(Boolean).join(' · '))}</div><div>${esc(pie2 || 'Zona Escolar 050 · Primaria Federalizada · ISEP')}</div></div>
+    <div class="h-pie"><div>${esc(['Escuela Primaria «' + c.escuela + '»', c.domicilio, c.municipio ? c.municipio + ', B.C.' : ''].filter(Boolean).join(' · '))}</div><div>${esc(pie2 || 'Zona Escolar ' + ZONA.numero + ' · ' + ZONA.nivelSost + ' · ' + ZONA.inst)}</div></div>
   </div>`;
 }
 const eoDisp = (o, reserva, escalas, holgura) => disposicion(o, {}, reserva, escalas, holgura, htmlOficioEsc);
@@ -13613,7 +13637,7 @@ async function wordOficioEsc(o) {
   const ccp = lineasCcp(o);
   const parCcp = x => new Paragraph({ alignment: A.LEFT, spacing: { before: 0, after: x, line: 240 },
     children: ccp.flatMap((l, i) => [...(i ? [new TextRun({ break: 1 })] : []), tx('C.c.p. ', { bold: true, size: 15 }), tx(l, { size: 15 })]) });
-  const pie2 = [c.telefono ? 'Tel. ' + c.telefono : '', c.correo].filter(Boolean).join(' · ') || 'Zona Escolar 050 · Primaria Federalizada · ISEP';
+  const pie2 = [c.telefono ? 'Tel. ' + c.telefono : '', c.correo].filter(Boolean).join(' · ') || 'Zona Escolar ' + ZONA.numero + ' · ' + ZONA.nivelSost + ' · ' + ZONA.inst;
   const footer = new Footer({ children: [
     ...(dis.unaHoja && ccp.length ? [parCcp(160)] : []),
     new Paragraph({ alignment: A.CENTER, border: { top: { style: BorderStyle.SINGLE, size: 6, color: OS, space: 4 } }, spacing: { after: 20 }, children: [pie(['Escuela Primaria «' + c.escuela + '»', c.domicilio, c.municipio ? c.municipio + ', B.C.' : ''].filter(Boolean).join(' · '))] }),
