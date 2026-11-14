@@ -4459,9 +4459,10 @@ function cifrasSemanal_(D, c, hoy) {
   r.visitas = [];
   D.seg.filter(s => s.cct === cct && s.origen !== 'ate').forEach(s => (s.acuerdos || []).forEach(x => { if (x.estado === 'pendiente') r.visitas.push(x); }));
   // porcentajes: lo que no le aplica cuenta como cumplido
-  const cumpl = q => { const n = q.na || 0, t = q.total + n; return t ? (q.hecho + n) / t : null; };
+  // los acuerdos se miden a la fecha: solo resta lo vencido, no lo que aún no vence
+  const cumpl = (q, k) => { const n = q.na || 0; if (k === 'acu') return q.total + n ? (r.vencidos.length ? (q.hecho + n) / (q.hecho + n + r.vencidos.length) : 1) : null; const t = q.total + n; return t ? (q.hecho + n) / t : null; };
   r.pct = {}; const pesos = [];
-  ['acu', 'evi', 'sis', 'eia'].forEach(q => { const v = cumpl(r[q]); r.pct[q] = v == null ? null : Math.round(v * 100); if (v != null) pesos.push([v, PESO_GENERAL[q]]); });
+  ['acu', 'evi', 'sis', 'eia'].forEach(q => { const v = cumpl(r[q], q); r.pct[q] = v == null ? null : Math.round(v * 100); if (v != null) pesos.push([v, PESO_GENERAL[q]]); });
   const sp = pesos.reduce((s, p) => s + p[1], 0);
   r.general = sp ? Math.round(pesos.reduce((s, p) => s + p[0] * p[1], 0) * 100 / sp) : 0;
   // nivel del informe anterior, para mostrar cuánto subió o bajó

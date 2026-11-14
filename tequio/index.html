@@ -113,6 +113,8 @@ main{padding:20px 0 40px}
 .chip.terra{background:#F7E0D5;color:var(--terra-d)}
 .chip.ok{background:var(--ok-f);color:var(--ok)}
 .chip.mal{background:var(--alerta-f);color:var(--alerta)}
+.chip.venc{cursor:pointer;border:0;font-family:inherit;line-height:inherit}
+.chip.venc:hover{box-shadow:inset 0 0 0 1.5px var(--alerta)}
 .chip.aviso{background:var(--aviso-f);color:#8A5A0B}
 .mudo{color:var(--gris)}
 .peq{font-size:14px}
@@ -2894,7 +2896,7 @@ function vEscuela(cct) {
     </div>
   </div>
   ${S.acu && S.acu.length ? (() => { const ax = avance(S.acu, [cct]); return `<div class="tarjeta pad" style="margin-bottom:14px;display:flex;gap:12px 16px;align-items:center;flex-wrap:wrap">
-    <div style="flex:1;min-width:200px"><div class="seccion-t" style="padding:0 0 6px">Checklist de acuerdos de reuniones</div>${barraAv(ax, c.escuela)}<div class="peq" style="margin-top:6px"><b>${ax.pct}%</b> · ${ax.hecho} de ${ax.total} cumplidos${ax.vencidos ? ` · <span style="color:var(--alerta)">${ax.vencidos} con fecha vencida</span>` : ''}</div></div>
+    <div style="flex:1;min-width:200px"><div class="seccion-t" style="padding:0 0 6px">Checklist de acuerdos de reuniones</div>${barraAv(ax, c.escuela)}<div class="peq" style="margin-top:6px"><b>${ax.pct}% a la fecha</b> · ${ax.hecho} de ${ax.total} cumplidos</div><div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chipsAv(ax, c.escuela)}</div></div>
     <button class="boton sec chico" id="b-chk">${ico('i-chk')}Ver y palomear</button></div>`; })() : ''}
   ${prox.length ? `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t">Próximas actividades en esta escuela</div><div class="lista-act">${prox.map(filaAct).join('')}</div></div>` : ''}
   ${S.inf ? (() => { const l = S.inf.filter(x => x.cct === cct).sort((a, b) => String(b.creado).localeCompare(String(a.creado))), ac = (S.acl || []).filter(a => a.cct === cct && a.estado !== 'resuelta'); return l.length || ac.length ? `<div class="tarjeta pad" style="margin-bottom:14px"><div class="seccion-t" style="padding:0 0 6px">Informes enviados</div>
@@ -3267,7 +3269,7 @@ function infCifras(cct) {
   const todosAcu = reuniones().flatMap(x => acuerdosReu(x.id).map(a => Object.assign({ reuT: reuTitulo(x) }, a)));
   const acu = todosAcu.filter(a => aplicaA(a, cct)).map(a => ({ a, e: estadoDe(a.id, cct) })).filter(o => o.e !== 'no_aplica');
   // na = acuerdos que no le aplican (marcados «no aplica» o dirigidos a otras escuelas): cuentan como cumplidos en el porcentaje
-  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: todosAcu.length - acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length };
+  r.acu = { lista: acu, hecho: acu.filter(o => o.e === 'hecho').length, total: acu.length, na: todosAcu.length - acu.length, vencidos: acu.filter(o => o.e !== 'hecho' && limiteVencido(o.a)).length, proximos: acu.filter(o => o.e !== 'hecho' && o.a.limite && !limiteVencido(o.a)).length };
   // 2. Evidencias en Drive
   const colsE = S.evi ? columnasEvi() : [];
   // la carpeta de un programa con actividades se desglosa: cada actividad pesa lo mismo dentro del rubro
@@ -3294,7 +3296,8 @@ function infCifras(cct) {
   /* nivel general (criterio de la Supervisión): acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 %.
      Evidencias = cumplimiento por rubro: si ya se revisó, cuenta solo en verde; si no, cuenta si tiene al menos un archivo, sin importar cuántos
      (una escuela grande con más grupos sube más archivos, pero cumple lo mismo). */
-  const cumpl = k => { const n = r[k].na || 0, t = r[k].total + n; return t ? (r[k].hecho + n) / t : null; };   // lo que no aplica cuenta como cumplido
+  // lo que no aplica cuenta como cumplido; los acuerdos se miden a la fecha: solo resta lo vencido, no lo que aún no vence
+  const cumpl = k => { const n = r[k].na || 0; if (k === 'acu') return r.acu.total + n ? (r.acu.vencidos ? (r.acu.hecho + n) / (r.acu.hecho + n + r.acu.vencidos) : 1) : null; const t = r[k].total + n; return t ? (r[k].hecho + n) / t : null; };
   r.pct = Object.fromEntries(['acu', 'evi', 'sis', 'eia'].map(k => { const v = cumpl(k); return [k, v == null ? null : Math.round(v * 100)]; }));
   const pesos = ['acu', 'evi', 'sis', 'eia'].map(k => [cumpl(k), PESO_GENERAL[k]]).filter(([v]) => v != null);
   const sumaP = pesos.reduce((s, [, w]) => s + w, 0);
@@ -3397,7 +3400,7 @@ ${(() => { const lu = z.podio.lugar[r.cct], m = MEDALLAS[lu]; return m ? `<div s
 ${areas.map(([n, e, zz]) => `<tr><td width="92" style="font-size:14px;color:${INK};font-weight:600;padding:7px 8px 7px 0;border-bottom:1px solid #F0F2F5">${n}</td><td style="padding:6px 0;border-bottom:1px solid #F0F2F5">${barraP(e, G)}<div style="height:4px"></div>${barraP(zz, A)}</td></tr>`).join('')}</table>
 <div style="font-size:12px;color:${MU};margin-top:8px"><span style="display:inline-block;width:10px;height:10px;background:${G};border-radius:2px"></span> Su escuela &nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;background:${A};border-radius:2px"></span> Promedio de las ${z.n} escuelas de la zona · Nivel general: acuerdos 70 %, evidencias 20 %, SisAT 5 % y EIA 5 % (en evidencias cuenta cada rubro cumplido: en verde si ya se revisó, o con archivos si aún no; lo que no le aplica a la escuela cuenta como cumplido).</div></div></td></tr>
 <tr><td style="padding:8px 18px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.hecho === r.acu.total ? 'Al corriente' : (r.acu.total - r.acu.hecho) + ' pendiente' + (r.acu.total - r.acu.hecho === 1 ? '' : 's'), r.acu.vencidos ? MAL : r.acu.hecho === r.acu.total ? OK : AV, r.pct.acu)}
+${tarjeta('Acuerdos', r.acu.hecho, r.acu.total, 'acuerdos cumplidos', r.acu.vencidos ? r.acu.vencidos + ' vencido' + (r.acu.vencidos === 1 ? '' : 's') : r.acu.proximos ? 'Al corriente · ' + r.acu.proximos + ' por vencer' : 'Al corriente', r.acu.vencidos ? MAL : OK, r.pct.acu)}
 ${tarjeta('Evidencias', r.evi.hecho, r.evi.total, 'rubros cumplidos', r.evi.total - r.evi.hecho ? (r.evi.total - r.evi.hecho) + ' por atender' : 'Al corriente', r.evi.total - r.evi.hecho ? AV : OK, r.pct.evi)}</tr><tr>
 ${tarjeta('SisAT · ' + r.sis.m + '.er momento', r.sis.hecho, r.sis.total, 'grupos cargados', r.sis.hecho === r.sis.total ? 'Completo' : 'Faltan ' + (r.sis.total - r.sis.hecho), r.sis.hecho === r.sis.total ? OK : AV, r.pct.sis)}
 ${tarjeta('EIA', r.eia.hecho, r.eia.total, 'grupos capturados', r.eia.hecho === r.eia.total ? 'Completo' : 'Faltan ' + (r.eia.total - r.eia.hecho), r.eia.hecho === r.eia.total ? OK : AV, r.pct.eia)}</tr></table></td></tr>
@@ -4152,18 +4155,49 @@ const aplicaA = (x, cct) => !(x.escuelas || []).length || x.escuelas.includes(cc
 const marcaDe = (acuId, cct) => (S.cum || []).find(m => m.id === acuId + '|' + cct);
 const estadoDe = (acuId, cct) => { const m = marcaDe(acuId, cct); return m ? m.estado : 'pendiente'; };
 const limiteVencido = x => !!x.limite && x.limite < hoy();
+/* Cumplimiento A LA FECHA: el porcentaje solo baja con lo vencido. Lo que todavía no vence (o no tiene fecha límite) no resta:
+   una escuela sin nada vencido está al 100 % aunque tenga compromisos por venir; esos se muestran aparte como «con vencimiento próximo». */
+const pctALaFecha = (cumplidos, vencidos) => { if (!vencidos) return 100; const p = Math.round(cumplidos * 100 / (cumplidos + vencidos)); return Math.min(p, 99); };
+const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+/* Lo vencido se puede tocar para ver la lista. Cada avance pintado se guarda aquí y el chip lleva su número. */
+let VENC = [];
+function chipVenc(a, titulo, texto, dentroDeBoton) {
+  if (!a.vencidos) return '';
+  const i = VENC.push({ a, titulo }) - 1, tx = texto || plural(a.vencidos, 'vencido', 'vencidos');
+  return dentroDeBoton ? `<span class="chip mal venc" data-venc="${i}" title="Ver lo vencido">${tx} ›</span>`
+    : `<button type="button" class="chip mal venc" data-venc="${i}" title="Ver lo vencido">${tx} ›</button>`;
+}
+const chipsAv = (a, titulo) => `${a.vencidos ? chipVenc(a, titulo, a.vencidos + ' con fecha vencida') : a.total ? '<span class="chip ok">Al corriente a la fecha</span>' : ''}${a.proximos ? `<span class="chip aviso" title="Pendientes que todavía no vencen: no bajan el porcentaje">${plural(a.proximos, 'tarea con vencimiento próximo', 'tareas con vencimiento próximo')}</span>` : ''}${a.sinFecha ? `<span class="chip" title="Pendientes sin fecha límite: no bajan el porcentaje">${plural(a.sinFecha, 'pendiente sin fecha límite', 'pendientes sin fecha límite')}</span>` : ''}`;
+const NOTA_FECHA = '<div class="ayuda" style="margin-top:8px">El porcentaje es <b>a la fecha</b>: solo baja con lo vencido. Lo que aún no vence no resta.</div>';
+function verVencidos(i) {
+  const v = VENC[i]; if (!v) return;
+  const l = v.a.lv.slice().sort((p, q) => String(p.x.limite).localeCompare(String(q.x.limite)));
+  const ccts = [...new Set(l.map(o => o.cct))].sort((p, q) => ((escuelaDe(p) || {}).escuela || p).localeCompare((escuelaDe(q) || {}).escuela || q, 'es'));
+  const reuDe = x => { const r = (S.reu || []).find(r => r.id === x.reunionId); return r ? reuTitulo(r) : ''; };
+  const fila = o => { const d = diasEntre(o.x.limite, hoy()); return `<div style="padding:8px 0;border-top:1px solid var(--borde)"><div>${o.x.numero ? '<b>' + esc(o.x.numero) + '.</b> ' : ''}${esc(o.x.texto)}</div>
+    <div class="ayuda"><b style="color:var(--alerta)">Venció el ${fechaCorta(o.x.limite)}</b> · hace ${plural(d, 'día', 'días')}${reuDe(o.x) ? ' · ' + esc(reuDe(o.x)) : ''}</div></div>`; };
+  modal('Vencido · ' + esc(v.titulo || ''), `<p class="peq" style="margin-top:0">${plural(l.length, 'compromiso con la fecha vencida', 'compromisos con la fecha vencida')}${ccts.length > 1 ? ' en ' + ccts.length + ' escuelas' : ''}. Al palomearlos, el porcentaje vuelve a subir.</p>
+    ${ccts.map(c => { const e = escuelaDe(c) || {}, xs = l.filter(o => o.cct === c); return `<div style="margin-bottom:12px">
+      ${ccts.length > 1 || !esDirector() ? `<div style="display:flex;gap:8px;align-items:center;margin-bottom:2px"><b style="flex:1">${esc(e.escuela || c)} <span class="chip mal">${xs.length}</span></b>${esDirector() ? '' : `<button class="boton sec chico" data-vchk="${esc(c)}">Abrir su checklist</button>`}</div>` : ''}
+      ${xs.map(fila).join('')}</div>`; }).join('')}`, '<button class="boton" id="m-ok">Cerrar</button>');
+  $('#m-ok').onclick = cerrarModal;
+  $$('[data-vchk]').forEach(b => b.onclick = () => { cerrarModal(); vista.tab = 'acuerdos'; vista.acuEsc = b.dataset.vchk; vista.escuela = null; pintar(); window.scrollTo(0, 0); });
+}
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-venc]'); if (!t) return; e.preventDefault(); e.stopPropagation(); verVencidos(+t.dataset.venc); }, true);
 /* Lo que no le aplica a una escuela (marcado «no aplica» o dirigido a otras escuelas) cuenta como cumplido en el porcentaje,
    para que todas se comparen sobre la misma base y no salgan en desventaja las multigrado. */
 function avance(lista, ccts) {
-  const r = { hecho: 0, total: 0, noAplica: 0, na: 0, vencidos: 0 };
+  const r = { hecho: 0, total: 0, noAplica: 0, na: 0, vencidos: 0, proximos: 0, sinFecha: 0, lv: [] };
   lista.forEach(x => ccts.forEach(c => {
     if (!aplicaA(x, c)) { r.na++; return; }
     const e = estadoDe(x.id, c);
     if (e === 'no_aplica') { r.noAplica++; r.na++; return; }
     r.total++;
-    if (e === 'hecho') r.hecho++; else if (limiteVencido(x)) r.vencidos++;
+    if (e === 'hecho') r.hecho++;
+    else if (limiteVencido(x)) { r.vencidos++; r.lv.push({ x, cct: c }); }
+    else if (x.limite) r.proximos++; else r.sinFecha++;
   }));
-  r.pct = r.total + r.na ? Math.round((r.hecho + r.na) * 100 / (r.total + r.na)) : 0;
+  r.pct = r.total + r.na ? pctALaFecha(r.hecho + r.na, r.vencidos) : 0;
   r.pend = r.total - r.hecho;
   return r;
 }
@@ -4180,7 +4214,7 @@ function anillo(pct, tam = 128, etiqueta = 'cumplido') {
     <text x="64" y="86" text-anchor="middle" font-size="12" fill="var(--gris)">${etiqueta}</text>
   </svg>`;
 }
-const barraAv = (a, titulo) => `<span class="barra-av" title="${esc(titulo || '')}${titulo ? ': ' : ''}${a.hecho} de ${a.total} cumplidos (${a.pct}%)"><i style="width:${a.pct}%"></i></span>`;
+const barraAv = (a, titulo) => `<span class="barra-av" title="${esc(titulo || '')}${titulo ? ': ' : ''}${a.hecho} de ${a.total} cumplidos · ${a.pct}% a la fecha${a.proximos ? ' · ' + a.proximos + ' con vencimiento próximo' : ''}"><i style="width:${a.pct}%"></i></span>`;
 
 /* ---------------- Vista: Acuerdos ---------------- */
 function vAcuerdos() {
@@ -4192,6 +4226,7 @@ function vAcuerdos() {
   }
   if (esDirector()) return vMiEscuela();
   if (vista.acuEsc) return vChecklistEscuela(vista.acuEsc);
+  VENC = [];
   const dirs = filtroEscuelas();
   const ccts = dirs.map(c => c.cct);
   const lista = acuerdosFiltro();
@@ -4219,26 +4254,26 @@ function vAcuerdos() {
   ${porAtp.length ? `<div class="tarjeta" style="margin-bottom:16px">
     <div class="seccion-t" style="display:flex;align-items:center;gap:8px">Avance por ATP${esAdmin() ? `<button class="boton sec chico" id="b-asignar" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}Asignar escuelas</button>` : ''}</div>
     <div class="barras">${porAtp.map(({ u, n, a, visitas }) => `<button class="fila-av ${vista.atp === u.id ? 'sel' : ''}" data-fatp="${u.id}" aria-label="${esc(u.nombre)}: ${a.pct}% en sus ${n} escuelas. Ver solo sus escuelas">
-      <span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${visitas} visita${visitas === 1 ? '' : 's'} registrada${visitas === 1 ? '' : 's'}${a.vencidos ? ` · <span style="color:var(--alerta);font-weight:600">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div>
+      <span class="nom">${esc(nombreCorto(u.nombre))}<br><span class="ayuda" style="font-weight:400">${n} escuela${n === 1 ? '' : 's'} · ${visitas} visita${visitas === 1 ? '' : 's'} registrada${visitas === 1 ? '' : 's'}${a.proximos ? ' · ' + a.proximos + ' con vencimiento próximo' : ''}${a.vencidos ? ' ' + chipVenc(a, 'Escuelas de ' + nombreCorto(u.nombre), '', true) : ''}</span></span>${barraAv(a, u.nombre)}<span class="pct">${n ? a.pct + '%' : '—'}</span></button>`).join('')}</div>
     ${esAdmin() && sinAtp.length ? `<div class="ayuda" style="padding:0 14px 12px">Sin ATP asignado: ${sinAtp.map(c => esc(c.escuela)).join(', ')}.</div>` : ''}
   </div>` : ''}
   <div class="tablero">
     <div class="tarjeta pad general">
-      ${anillo(total.pct)}
+      ${anillo(total.pct, 128, 'a la fecha')}
       <div class="general-tx">
         <div class="seccion-t" style="padding:0 0 4px">${atpSel ? 'Escuelas de ' + esc(nombreCorto(atpSel.nombre)) : 'Avance de la zona'}</div>
         <div><b class="num">${total.hecho}</b> de <b class="num">${total.total}</b> compromisos cumplidos</div>
         <div class="peq mudo">${lista.length} acuerdo${lista.length === 1 ? '' : 's'} × ${dirs.length} escuela${dirs.length === 1 ? '' : 's'}${total.noAplica ? ' · ' + total.noAplica + ' marcados «no aplica»' : ''}</div>
         <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-          <span class="chip aviso">${total.pend} pendiente${total.pend === 1 ? '' : 's'}</span>
-          ${total.vencidos ? `<span class="chip mal">${total.vencidos} con fecha vencida</span>` : ''}
+          ${chipsAv(total, atpSel ? 'Escuelas de ' + nombreCorto(atpSel.nombre) : 'Zona')}
         </div>
+        ${NOTA_FECHA}
       </div>
     </div>
     <div class="tarjeta">
       <div class="seccion-t">Avance por escuela</div>
-      <div class="barras">${porEsc.map(({ c, a }) => `<button class="fila-av" data-chk="${c.cct}" aria-label="${esc(c.escuela)}: ${a.pct}% cumplido. Abrir su checklist">
-        <span class="nom">${esc(c.escuela)}${!atpSel && atpDe(c.cct) ? `<br><span class="ayuda" style="font-weight:400">${esc(nombreCorto(atpDe(c.cct).nombre))}</span>` : ''}${a.vencidos ? ` <span class="chip mal" title="Compromisos con fecha vencida">${a.vencidos} vencido${a.vencidos === 1 ? '' : 's'}</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
+      <div class="barras">${porEsc.map(({ c, a }) => `<button class="fila-av" data-chk="${c.cct}" aria-label="${esc(c.escuela)}: ${a.pct}% a la fecha. Abrir su checklist">
+        <span class="nom">${esc(c.escuela)}${!atpSel && atpDe(c.cct) ? `<br><span class="ayuda" style="font-weight:400">${esc(nombreCorto(atpDe(c.cct).nombre))}</span>` : ''}${a.vencidos ? ' ' + chipVenc(a, c.escuela, '', true) : ''}${a.proximos ? ` <span class="chip aviso" title="Tareas con vencimiento próximo: no bajan el porcentaje">${a.proximos} por vencer</span>` : ''}</span>${barraAv(a, c.escuela)}<span class="pct">${a.pct}%</span></button>`).join('')}</div>
     </div>
   </div>
   ${reus.length > 1 ? `<div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Avance por reunión, convocatoria o programa</div>
@@ -4280,7 +4315,7 @@ function tarjetaReunion(r, ccts) {
         <span class="acu-num">${esc(x.numero)}</span>
         <div class="tx"><div>${esc(x.texto)}</div>
           <div class="ayuda">${x.responsable ? esc(x.responsable) + ' · ' : ''}${esc(x.plazo || (x.limite ? fechaCorta(x.limite) : 'Sin fecha'))}${x.nota ? ' · ' + esc(x.nota) : ''}${x.evidencia ? ' · 📁 Evidencia en «' + esc(sinNum(String(x.evidencia).split('/').pop())) + '»' : ''}</div></div>
-        <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${ax.vencidos ? '<span class="chip mal">vencido</span>' : ''}${(() => { const n = S.evi ? ccts.filter(c => estadoDe(x.id, c) === 'pendiente' && eviAcuerdo(x.id, c)).length : 0; return n ? `<span class="chip ok" title="Escuelas con archivos en Drive y sin palomear">📎 ${n} por revisar</span>` : ''; })()}</div>
+        <div class="acu-av">${barraAv(ax, x.numero)}<span class="peq"><b>${ax.hecho}</b>/${ax.total}</span>${chipVenc(ax, 'Acuerdo ' + (x.numero || ''), plural(ax.vencidos, 'escuela vencida', 'escuelas vencidas'))}${(() => { const n = S.evi ? ccts.filter(c => estadoDe(x.id, c) === 'pendiente' && eviAcuerdo(x.id, c)).length : 0; return n ? `<span class="chip ok" title="Escuelas con archivos en Drive y sin palomear">📎 ${n} por revisar</span>` : ''; })()}</div>
         <button class="boton sec chico" data-palomear="${x.id}">${ico('i-seg')}Palomear</button>
       </div>`; }).join('')}`).join('')}
     ${!acs.length ? '<div class="vacio peq">' + (esReunion(r.tipo) ? 'Esta reunión no tiene acuerdos.' : 'No tiene puntos registrados.') + '</div>' : ''}
@@ -4320,6 +4355,7 @@ function vChecklistEscuela(cct) {
   if (!c) { vista.acuEsc = null; return vAcuerdos(); }
   const reus = reunionesF().filter(r => !vista.acuReu || r.id === vista.acuReu);
   const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
+  VENC = [];
   const a = avance(todos, [cct]);
   const dl = filtroEscuelas().some(d => d.cct === cct) ? filtroEscuelas() : directores(), idx = dl.findIndex(d => d.cct === cct);
   const ant = dl[(idx - 1 + dl.length) % dl.length], sig = dl[(idx + 1) % dl.length];
@@ -4328,11 +4364,11 @@ function vChecklistEscuela(cct) {
   <div class="titulo-vista"><h1>${esc(c.escuela)}</h1>
     <div class="acciones"><button class="icono-btn" id="e-ant" aria-label="Escuela anterior: ${esc(ant.escuela)}">${ico('i-izq')}</button><button class="icono-btn" id="e-sig" aria-label="Escuela siguiente: ${esc(sig.escuela)}">${ico('i-der')}</button></div></div>
   <div class="tarjeta pad general" style="margin-bottom:14px">
-    ${anillo(a.pct)}
+    ${anillo(a.pct, 128, 'a la fecha')}
     <div class="general-tx">
       <div class="peq mudo">${c.cct} · ${esc(c.municipio)} · ${esc(c.cargo || 'Director(a)')}: ${esc(c.nombre)}${atpDe(cct) ? ' · ATP: ' + esc(nombreCorto(atpDe(cct).nombre)) : ''}</div>
       <div style="margin-top:4px"><b class="num">${a.hecho}</b> de <b class="num">${a.total}</b> compromisos cumplidos</div>
-      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${a.pend} pendiente${a.pend === 1 ? '' : 's'}</span>${a.vencidos ? `<span class="chip mal">${a.vencidos} con fecha vencida</span>` : ''}</div>
+      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${chipsAv(a, c.escuela)}</div>
       <div class="barras" style="padding:10px 0 0">${reus.map(r => { const ar = avance(acuerdosReu(r.id), [cct]); return `<div class="fila-av" style="padding:4px 0"><span class="nom peq">${esc(reuTitulo(r))}</span>${barraAv(ar, r.titulo)}<span class="pct">${ar.pct}%</span></div>`; }).join('')}</div>
     </div>
   </div>
@@ -4371,6 +4407,7 @@ function vMiEscuela() {
   if (!c) { $('#vista').innerHTML = '<div class="tarjeta vacio">Su usuario no está ligado a una escuela. Avise a la Supervisión.</div>'; return; }
   const reus = reuniones();
   const todos = reus.flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct));
+  VENC = [];
   const mia = avance(todos, [cct]);
   const zona = avance(S.acu || [], directores().map(d => d.cct));
   const ordenPend = (x, y) => (limiteVencido(y) - limiteVencido(x)) || String(x.limite || '9999').localeCompare(String(y.limite || '9999'));
@@ -4384,14 +4421,14 @@ function vMiEscuela() {
   <div class="peq mudo" style="margin:-6px 0 14px">${c.cct} · ${esc(c.municipio)}${atp ? ' · ATP: ' + esc(nombreCorto(atp.nombre)) : ''}</div>
   ${bloqueInformeDir(cct)}
   <div class="tablero">
-    <div class="tarjeta pad general">${anillo(mia.pct)}
+    <div class="tarjeta pad general">${anillo(mia.pct, 128, 'a la fecha')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Avance de su escuela</div>
         <div><b class="num">${mia.hecho}</b> de <b class="num">${mia.total}</b> compromisos cumplidos</div>
-        <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip aviso">${mia.pend} pendiente${mia.pend === 1 ? '' : 's'}</span>${mia.vencidos ? `<span class="chip mal">${mia.vencidos} con fecha vencida</span>` : ''}</div></div></div>
+        <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${chipsAv(mia, c.escuela)}</div>${NOTA_FECHA}</div></div>
     <div class="tarjeta pad general">${anillo(zona.pct, 128, 'de la zona')}
       <div class="general-tx"><div class="seccion-t" style="padding:0 0 4px">Avance general de la zona</div>
         <div><b class="num">${zona.hecho}</b> de <b class="num">${zona.total}</b> compromisos cumplidos en las ${directores().length} escuelas</div>
-        <div class="peq mudo" style="margin-top:6px">Su escuela: <b>${mia.pct}%</b> · Zona: <b>${zona.pct}%</b></div></div></div>
+        <div class="peq mudo" style="margin-top:6px">Su escuela: <b>${mia.pct}%</b> · Zona: <b>${zona.pct}%</b> (a la fecha)${zona.proximos ? ' · ' + zona.proximos + ' con vencimiento próximo en la zona' : ''}</div></div></div>
   </div>
   <div class="tarjeta" style="margin-bottom:16px"><div class="seccion-t">Pendientes de su escuela</div>
     ${pend.length ? `<div class="checklist sin-borde">${pend.map(x => { const r = (S.reu || []).find(y => y.id === x.reunionId); return `<div class="chk-fila pendiente"><span style="flex:1;min-width:0"><b>${esc(x.numero)}.</b> ${esc(x.texto)}
