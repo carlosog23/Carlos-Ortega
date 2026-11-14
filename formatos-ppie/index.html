@@ -1602,7 +1602,8 @@ const SECCIONES=[
  {id:"directorio",icon:"people",title:"Directorio de la comunidad escolar",desc:"Escuelas de la zona, maestros con grado y grupo, y alumnos con tutores, emergencias y quién los recoge.",grupos:[],view:()=>dirView(),count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.length:0,m=(typeof DIR!=="undefined")?DIR.maestros.length:0;return n||m?[m?m+" maestro"+(m>1?"s":""):"",n?n+" alumno"+(n>1?"s":""):""].filter(Boolean).join(" · "):"Personalice su escuela"}},
  {id:"reconocimientos",icon:"award",title:"Reconocimientos y diplomas",desc:"Diplomas y reconocimientos para alumnos, con varios diseños o su propia imagen de fondo; uno por uno o toda la lista de una vez (Excel, Word, PDF o foto).",grupos:[],view:()=>rkAbrir(),count:()=>1,cntLabel:()=>{const r=store.get("reconocimientos",null);const n=r&&r.personas?r.personas.length:0;return n?`${n} nombre${n>1?"s":""} en su lista`:"6 diseños · lista desde foto o Excel"}},
  {id:"misdocs",icon:"folder",title:"Mis documentos",desc:"Todo lo que ha generado en Tlamatini: véalo, imprímalo o envíelo de nuevo, o bórrelo cuando ya no lo necesite.",grupos:[],view:()=>docsView(),count:()=>1,cntLabel:()=>docsCntLabel()},
- {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>correoCard()+curpCard()},
+ {id:"laboral",icon:"work",title:"Laboral",desc:"Licencias, permisos, correo institucional, CURP y trámites del personal.",grupos:["Personal"],intro:()=>rtCard()+correoCard()+curpCard()},
+ {id:"riesgo",icon:"cross",title:"Riesgo de trabajo (ISSSTE)",desc:"Qué hacer si se accidenta en la escuela, en el trayecto o en comisión: pasos, plazos, documentos y fundamento legal. Accidente de trabajo, incapacidad, RT-01, Medicina del Trabajo.",grupos:[],view:()=>rtView(),count:()=>1,cntLabel:()=>"Guía paso a paso"},
 {id:"salario",icon:"money",title:"Salario y declaración patrimonial",desc:"Calcule su sueldo neto anual subiendo sus talones de pago, para la declaración patrimonial.",grupos:[],tools:[{id:"salario",letra:"$",name:"Cálculo de salario anual",use:"Suba sus talones de pago en PDF y obtenga las percepciones, deducciones y el neto del año.",open:()=>salView()}]},
  {id:"croquis",icon:"shield",title:"Croquis de evacuación y riesgos",desc:"Ubique la escuela en el mapa satelital y arme el croquis interno (evacuación) y el externo (riesgos del entorno) con la señalética de protección civil, para el atlas de riesgo. PDF carta o doble carta.",grupos:[],view:()=>crqAbrir(),count:()=>1,cntLabel:()=>{const n=(store.get("crq-proyectos",[])||[]).length;return n?`${n} croquis guardado${n>1?"s":""}`:"Mapa satelital · NOM-003-SEGOB-2011"}},
  {id:"ppie",icon:"shield",title:"Protección escolar (PPIE)",desc:"Anexos A al I del Programa de Protección Integral Escolar 2026.",grupos:["Docente","Dirección","Todos","Jefatura de Nivel"]},
@@ -1625,7 +1626,7 @@ const FAMILIAS=[
  ["En el aula",[["pedagogico","Planeación y diagnóstico","Lectura de la realidad, PMCE, programa analítico y planeación"],["eia","Ejercicios Integradores (EIA)","Qué son y materiales de las fases 3, 4 y 5"],["familias","","Recados, citatorios, avisos y autorizaciones"],["reconocimientos","","Diplomas para sus alumnos, toda la lista de una vez"],["banxico","El dinero en México (Banxico)","Educación financiera de 6.°: libro, guía e impresión de hojas"]],"book","Lo que usa el docente con su grupo","aula"],
  ["Alumnos y control escolar",[["misalumnos","Mis alumnos y directorio","Alumnos, tutores, emergencias y maestros de la escuela"],["estadistica","","Asistencia mensual y edades al 1 de septiembre"],["becas","","Formato Único de Beca de la Secretaría de Educación"]],"people","Datos de los alumnos, asistencia, estadística y becas","alumnos"],
  ["Dirección y gestión",[["direccion","","Libros, minuta de CTE, inventarios y datos de alumnos"],["ppie","","Anexos A al I, idénticos al formato oficial"],["croquis","Croquis de evacuación y riesgos","Atlas de riesgo: mapa satelital, rutas y señalética"],["consejo","","Convocatoria, minuta, comités y plan de trabajo"]],"school","Documentos de la escuela, protección escolar y consejo","direccion"],
- ["Trámites del personal",[["laboral","","Licencias, actualización de datos, correo @bcedu.mx y CURP"],["salario","","Ingreso anual neto desde sus talones de pago"]],"work","Trámites laborales y declaración patrimonial","personal"],
+ ["Trámites del personal",[["laboral","","Licencias, actualización de datos, correo @bcedu.mx y CURP"],["riesgo","Riesgo de trabajo (ISSSTE)","Accidente en la escuela, en trayecto o en comisión: qué hacer paso a paso"],["salario","","Ingreso anual neto desde sus talones de pago"]],"work","Trámites laborales y declaración patrimonial","personal"],
  ["Consulta",[["apoyo","Red de apoyo: ¿a quién acudo?","Teléfonos e instituciones ante una situación con alumnos o familias"],["calendario","","El calendario de Baja California que rige el ciclo"],["normas","Normatividad y libros de texto","Leyes, acuerdos, protocolos y libros de texto"]],"law","Calendario oficial, normatividad y libros de texto","consulta"]];
 const FAMILIA_FUERA=["seguro","misdocs","directorio"]; // tienen su propio acceso en el inicio
 const FAVS=[
@@ -6208,6 +6209,144 @@ const EIA_LINKS={
 const EIA_FASES=[{f:"3",g:"1.º y 2.º grado"},{f:"4",g:"3.º y 4.º grado"},{f:"5",g:"5.º y 6.º grado"}];
 function eiaBtn(href,label,primary){const url=href||EIA_MAT;const cls=primary?"btn primary":"btn ghost";
   return `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">${esc(label)}</a>`}
+/* ---------- Riesgo de trabajo (ISSSTE): guía paso a paso para el trabajador ---------- */
+const RT_LEY="https://www.diputados.gob.mx/LeyesBiblio/pdf/LISSSTE.pdf",RT_REG="https://www.diputados.gob.mx/LeyesBiblio/regla/n490.pdf",RT_REG_DOF="https://sidof.segob.gob.mx/notas/docFuente/5472982",
+  RT_CPEUM="https://www.diputados.gob.mx/LeyesBiblio/pdf/CPEUM.pdf",RT_OV="https://oficinavirtual.issste.gob.mx",RT_03C="https://www.secadva.unach.mx/images/PERSONAL/PDF/FORMATO_RT.03_C_1.pdf";
+function rtCard(){return`<section class="card" aria-label="Riesgo de trabajo"><div><h3>Riesgo de trabajo (ISSSTE)</h3>
+   <p class="muted" style="font-size:15px">¿Se accidentó en la escuela, en el trayecto o en una comisión? Vea qué hacer paso a paso, los plazos, los documentos y el fundamento legal.</p></div>
+   <div class="acts"><button type="button" class="btn primary act" data-ir="riesgo">Ver la guía paso a paso</button></div>
+   <p class="help">Los primeros 3 días son clave: conviene conocer el trámite antes de necesitarlo.</p></section>`}
+function rtSuma(f,n,hab){const d=new Date(f+"T12:00");let k=0;while(k<n){d.setDate(d.getDate()+1);const w=d.getDay();if(!hab||(w!==0&&w!==6))k++}return d}
+function rtFecha(d){return d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+function rtView(){S.view="riesgo";S.sec="riesgo";S.letra=null;setBar("");
+  const a=(u,t,p)=>`<a class="btn ${p?"primary":"ghost"}" href="${u}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;text-align:center">${t}</a>`;
+  const li=x=>`<ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px">${x.map(t=>`<li>${t}</li>`).join("")}</ul>`;
+  const fund=t=>`<p class="help"><b>Fundamento:</b> ${t}</p>`;
+  const paso=(n,t,plazo,cuerpo,abierto)=>`<details class="card"${abierto?" open":""}><summary><span class="pnum" style="margin-right:8px">${n}</span><b>${t}</b>${plazo?` <span class="draft" style="white-space:nowrap">${plazo}</span>`:""}</summary>${cuerpo}</details>`;
+  app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Laboral · Trámites del personal</div><h2>Riesgo de trabajo (ISSSTE)</h2></div></div>
+   <p class="muted">Guía para el trabajador de la educación (docente, directivo, ATP o personal de apoyo) afiliado al ISSSTE que sufre un accidente en la escuela, en el trayecto o en una comisión. Es un trámite que casi nunca se hace y tiene plazos cortos: si no se tramita a tiempo, el accidente puede quedar como enfermedad general.</p>
+   <div class="emer"><div class="emer-t">Si acaba de ocurrir</div>
+    ${li(["<b>Atiéndase hoy</b> en Urgencias del ISSSTE y diga que ocurrió en el trabajo (o en el trayecto). Pida su nota médica y el certificado médico inicial (RT-02).",
+      "<b>Avise hoy</b> a su director o jefe inmediato; si usted es director, a la Supervisión.",
+      "<b>Antes de 3 días</b> debe quedar entregado el aviso por escrito en el ISSSTE, con acuse sellado.",
+      "<b>Antes de 30 días hábiles</b> debe quedar presentada la solicitud de calificación (RT-01)."])}</div>
+
+   <section class="card"><h3>Calcule sus fechas límite</h3>
+    <div class="field"><label for="rt_f">¿Qué día ocurrió el accidente?</label><input type="date" id="rt_f"></div>
+    <div id="rt_r" class="help">Elija la fecha para ver hasta cuándo tiene para cada paso.</div></section>
+
+   <details class="card"><summary><b>¿Qué es un riesgo de trabajo?</b></summary>
+    <p style="font-size:15px">Son los accidentes y las enfermedades a los que está expuesto el trabajador <b>en ejercicio o con motivo de su trabajo</b>. Cuentan:</p>
+    ${li(["El accidente <b>en el centro de trabajo</b>: una caída en el patio, en el salón, en una escalera, durante una actividad escolar.",
+      "El accidente <b>en trayecto</b>: al ir directamente de su domicilio (o de la estancia infantil de sus hijos) a la escuela, o de regreso.",
+      "El accidente <b>en comisión</b>: en una actividad fuera de la escuela que le fue encomendada por oficio (reunión, capacitación, evento).",
+      "La <b>enfermedad de trabajo</b>, de las que reconocen las leyes laborales."])}
+    <p style="font-size:15px"><b>No se considera riesgo de trabajo</b> lo ocurrido en estado de embriaguez o bajo el efecto de drogas (salvo prescripción médica avisada al jefe inmediato), las lesiones que el trabajador se cause a propósito, las derivadas de una riña o de un delito cometido por él, ni los padecimientos crónico-degenerativos o congénitos sin relación con el accidente.</p>
+    ${fund("Ley del ISSSTE, artículos 56 y 59.")}</details>
+
+   <details class="card"><summary><b>¿Por qué importa tramitarlo? Sus derechos</b></summary>
+    ${li(["<b>Atención completa sin costo:</b> diagnóstico, atención médica, quirúrgica y farmacéutica, hospitalización, prótesis y ortopedia, y rehabilitación.",
+      "<b>Licencia con el 100 % de su sueldo</b> desde el primer día y mientras dure la incapacidad temporal (hasta que termine o se declare la permanente). La paga la dependencia.",
+      "<b>Pensión</b> si quedan secuelas: por incapacidad parcial (según la tabla de valuación de la Ley Federal del Trabajo) o por incapacidad total.",
+      "Si el riesgo <b>no se califica</b>, sus licencias se expiden como <b>enfermedad general</b>, que tiene días con sueldo limitados y no da derecho a estas prestaciones."])}
+    ${fund("Ley del ISSSTE, artículos 61 y 62; Reglamento para la Dictaminación, artículos 9 y 22.")}</details>
+
+   <h3 style="margin:18px 0 2px">El trámite, paso por paso</h3>
+   ${paso(1,"Atención médica inmediata","El mismo día",`
+    ${li(["Acuda a <b>Urgencias del ISSSTE</b> (clínica u hospital que le corresponda). Si lo llevan a otro lugar por la urgencia, preséntese en el ISSSTE en cuanto pueda y conserve todo lo que le entreguen.",
+      "Desde el primer momento diga que el accidente fue <b>en el trabajo, en el trayecto o en comisión</b>, y cuente los hechos igual que quedarán en el acta: misma fecha, misma hora, mismo lugar.",
+      "Pida la <b>nota médica inicial de urgencias</b>, con fecha, hora y descripción de cómo lo recibieron.",
+      "Pida el <b>certificado médico inicial (formato RT-02)</b>. Lo llena el médico que lo atiende y hace constar la primera atención por un probable riesgo de trabajo, la lesión y los días de licencia.",
+      "Guarde <b>todas las licencias médicas</b> (incapacidades) y saque copias."])}
+    ${fund("Reglamento para la Dictaminación, artículos 4 (fracción VII), 10 y 14.")}`,true)}
+   ${paso(2,"Avise a su jefe inmediato y pida el acta de hechos","De inmediato",`
+    ${li(["Avise <b>de inmediato</b> a su director o encargado de despacho. Si usted es director, avise a la Supervisión. Si no puede, que avise un familiar. Deje constancia (mensaje o escrito con fecha).",
+      "Pida que se levante el <b>acta administrativa (acta de hechos)</b> del accidente: qué pasó, día, hora, lugar exacto, qué actividad realizaba, quién lo auxilió y a dónde lo llevaron.",
+      "El acta debe llevar la firma de quien tuvo conocimiento del accidente, el <b>sello de la escuela</b> y la firma de los <b>testigos presenciales</b>, con copia de su identificación.",
+      "Cuide que el acta coincida con la nota médica en <b>fechas y horas</b>: es lo primero que revisa el médico que califica."])}
+    ${fund("Reglamento para la Dictaminación, artículos 4 (fracción II), 5, 13 y 20.")}`)}
+   ${paso(3,"Aviso por escrito al ISSSTE","3 días",`
+    ${li(["La dependencia (su director, por el conducto que indique ISEP) debe <b>avisar por escrito al ISSSTE dentro de los 3 días siguientes</b> a que conoció el accidente. El servidor público que omita el aviso incurre en responsabilidad.",
+      "<b>Usted o un familiar también pueden dar el aviso.</b> No espere a que alguien más lo haga: lleve usted mismo el aviso firmado por su directivo.",
+      "Se entrega en <b>Medicina del Trabajo / Subdelegación de Prestaciones del ISSSTE</b>. Según la experiencia de una maestra de la zona, en Ensenada esa oficina está dentro del hospital, en el área de urgencias. Confirme el lugar y el horario antes de ir.",
+      "Lleve <b>dos tantos</b> y pida que le sellen y fechen su copia como <b>acuse de recibo</b>. Ese acuse es su prueba de que avisó a tiempo."])}
+    <div class="alert"><b>No se confíe con este plazo.</b> La Ley dice que no procede la calificación si el riesgo no se notificó al ISSSTE; el Reglamento dice que la falta del aviso no hace improcedente la solicitud. Para no depender de esa discusión, deje el aviso entregado dentro de los 3 días.</div>
+    ${fund("Ley del ISSSTE, artículo 60; Reglamento para la Dictaminación, artículo 5.")}`)}
+   ${paso(4,"Solicitud de calificación (formato RT-01)","30 días hábiles",`
+    <p style="font-size:15px">Usted (o un familiar o representante) debe <b>solicitar al ISSSTE la calificación del probable riesgo de trabajo dentro de los 30 días hábiles siguientes al accidente</b>, en la Subdelegación de Prestaciones que corresponda a su domicilio. Para iniciar se presentan, en original y copia:</p>
+    ${li(["<b>Formato RT-01</b>, «Solicitud de calificación de probable riesgo de trabajo»: lo llenan usted y la dependencia (firma del directivo y sello).",
+      "<b>Formato RT-02</b>, certificado médico inicial (el del paso 1).",
+      "<b>Acta administrativa</b> del accidente (la del paso 2).",
+      "Copia de su <b>credencial para votar</b>.",
+      "<b>Acta ministerial</b>, solo si intervino el Ministerio Público (por ejemplo, en un choque)."])}
+    <p style="font-size:15px">Al recibirlos, la Subdelegación le sella y fecha su acuse y le entrega el <b>formato RT-03</b> con la lista de documentos que debe reunir, según dónde ocurrió: <b>RT-03 A</b> (centro de trabajo), <b>RT-03 B</b> (trayecto) o <b>RT-03 C</b> (comisión).</p>
+    <p class="help">Si presenta la solicitud fuera de los 30 días hábiles, tendrá que comprobar que fue por caso fortuito o fuerza mayor.</p>
+    ${fund("Ley del ISSSTE, artículo 60; Reglamento para la Dictaminación, artículos 6, 11, 13 y 14.")}`)}
+   ${paso(5,"Integre el expediente (formato RT-03)","10 días hábiles",`
+    <p style="font-size:15px">Desde que firma de recibido el RT-03 tiene <b>10 días hábiles</b> para entregar los documentos, sin pasar de los 30 días hábiles del accidente. La lista exacta es la que le entregue el ISSSTE; normalmente incluye:</p>
+    <p style="font-size:15px"><b>De la escuela e ISEP</b> (firmados por la autoridad que conoció el accidente y con sello):</p>
+    ${li(["Acta administrativa del accidente.",
+      "<b>Horario de labores</b>: oficio del director con sus días y horas de entrada y salida.",
+      "<b>Constancia de descripción del puesto</b> o de funciones: qué hace usted en la escuela.",
+      "<b>Registro de asistencia</b> del día del accidente: copia certificada del libro de firmas.",
+      "<b>Certificación de sueldos</b> o constancia de servicios (Recursos Humanos de ISEP).",
+      "<b>Talón de pago</b> reciente."])}
+    <p style="font-size:15px"><b>Médicos</b> (con firma del médico y sello de la unidad):</p>
+    ${li(["Certificado médico inicial RT-02.","Copia de las licencias médicas.","Nota médica inicial de urgencias."])}
+    <p style="font-size:15px"><b>Además, si fue en trayecto (RT-03 B):</b></p>
+    ${li(["<b>Croquis y tiempos del recorrido habitual</b> entre su domicilio y la escuela. El recorrido debe ser directo y sin desvíos.",
+      "Si hubo un percance vial: parte de tránsito o de la autoridad que acudió, parte de la aseguradora y de la ambulancia, y la carpeta del Ministerio Público si se abrió."])}
+    <p style="font-size:15px"><b>Además, si fue en comisión (RT-03 C):</b></p>
+    ${li(["<b>Oficio o pliego de comisión</b>.","Constancia de las actividades de la comisión.","Croquis y tiempos del recorrido."])}
+    <div class="soon" style="color:var(--ink)"><b>Si no logra conseguir un documento</b>, avise al ISSSTE dentro de los 30 días hábiles: la Subdelegación puede pedirlo por oficio a la dependencia. Si le falta algo, le dan un aviso y <b>10 días hábiles más</b>; después califican con lo que tengan, así que no deje huecos.</div>
+    ${fund("Reglamento para la Dictaminación, artículos 13 a 17 y Anexos 6, 7 y 8 (formatos RT-03 A, B y C).")}`)}
+   ${paso(6,"El ISSSTE califica","5 + 15 días hábiles",`
+    ${li(["Califica el <b>médico de Medicina del Trabajo</b> de la Subdelegación de Prestaciones, en <b>5 días hábiles</b> desde que recibe el expediente (en enfermedades de trabajo puede tardar hasta 90).",
+      "Revisa que las <b>fechas y horas</b> coincidan, que los testimonios sean congruentes, la descripción de sus actividades, la relación entre el accidente y la lesión y, en trayecto, que el recorrido haya sido directo.",
+      "El resultado es <b>«Sí de trabajo»</b> o <b>«No de trabajo»</b>. Se lo notifican en 15 días hábiles, entregándole el <b>RT-01 firmado y sellado</b> con la calificación al reverso."])}
+    ${fund("Reglamento para la Dictaminación, artículos 19 a 22.")}`)}
+   ${paso(7,"Entregue la calificación en ISEP y dé seguimiento","Al recibirla",`
+    ${li(["Entregue el resolutivo en <b>Recursos Humanos de ISEP</b> para que sus licencias se paguen al <b>100 % del sueldo</b>. Deje copia a su director y a la Supervisión, y conserve su original.",
+      "Mientras siga en tratamiento, cuide que sus licencias salgan <b>por el mismo padecimiento</b> y sin interrupciones.",
+      "Al sanar, el médico expide el <b>alta por riesgo de trabajo (RT-04)</b>. Si quedan secuelas, se elabora el <b>certificado RT-09</b>, con el que se tramita la pensión por incapacidad parcial o total. La incapacidad temporal dura como máximo un año."])}
+    ${fund("Ley del ISSSTE, artículo 62; Reglamento para la Dictaminación, artículos 4, 7 a 9, 17 y 22.")}`)}
+
+   <details class="card"><summary><b>Si lo califican como «No de trabajo»</b></summary>
+    ${li(["Puede <b>inconformarse por escrito ante el ISSSTE dentro de los 30 días naturales</b> siguientes a la notificación.",
+      "Debe acompañar el <b>dictamen de un médico especialista en medicina del trabajo</b> (perito particular certificado). Sin ese dictamen la inconformidad no avanza.",
+      "El ISSSTE propone una terna de especialistas y usted elige uno. El dictamen de ese tercer perito es <b>definitivo</b>.",
+      "Mientras tanto, sus licencias se expiden como enfermedad general, sin que eso le quite el derecho a inconformarse."])}
+    ${fund("Ley del ISSSTE, artículo 58; Reglamento para la Dictaminación, artículos 9 y 73 a 93.")}</details>
+
+   <details class="card"><summary><b>Para el director o encargado de despacho</b></summary>
+    ${li(["Asegure la atención médica y avise a la familia.",
+      "Levante el <b>acta administrativa</b> el mismo día, con testigos presenciales, y séllela.",
+      "Dé el <b>aviso por escrito al ISSSTE dentro de los 3 días</b> y firme el <b>RT-01</b>. Omitir el aviso genera responsabilidad para el servidor público.",
+      "Expida sin demora el horario de labores, la constancia de funciones y la copia certificada del registro de asistencia.",
+      "Informe a la Supervisión el mismo día."])}
+    ${fund("Ley del ISSSTE, artículo 60; Reglamento para la Dictaminación, artículos 5 y 14.")}</details>
+
+   <section class="card"><h3>Fundamento de este derecho</h3>
+    ${li(["<b>Constitución, artículo 123, apartado B, fracción XI, inciso a):</b> la seguridad social de los trabajadores del Estado cubre los accidentes y enfermedades profesionales.",
+      "<b>Ley del ISSSTE, artículos 56 a 62:</b> qué es un riesgo de trabajo, quién lo califica, el aviso y los plazos, y las prestaciones en especie y en dinero.",
+      "<b>Reglamento para la Dictaminación en Materia de Riesgos del Trabajo e Invalidez del ISSSTE</b> (Diario Oficial, 24 de febrero de 2017): el procedimiento y los formatos RT-01, RT-02, RT-03, RT-04 y RT-09.",
+      "<b>Ley Federal del Trabajo, Título Noveno:</b> tablas de enfermedades de trabajo y de valuación de incapacidades, que el ISSSTE aplica."])}
+    <div class="acts">${a(RT_LEY,"Ley del ISSSTE (Cámara de Diputados)",true)}${a(RT_REG,"Reglamento para la Dictaminación (PDF)")}${a(RT_REG_DOF,"Reglamento en el Diario Oficial")}${a(RT_CPEUM,"Constitución (art. 123, apartado B)")}</div></section>
+   <section class="card"><h3>Formatos y enlaces</h3>
+    <p class="help">Los formatos RT-01 y RT-03 se los entregan en Medicina del Trabajo o en la Subdelegación de Prestaciones del ISSSTE; el RT-02 lo llena el médico. Como referencia puede ver cómo es un RT-03:</p>
+    <div class="acts">${a(RT_03C,"Ejemplo de formato RT-03 C (comisión)")}${a(RT_OV,"Oficina Virtual del ISSSTE")}</div></section>
+   <div class="acts"><button type="button" class="btn ghost" id="rt_imp">Imprimir esta guía</button></div>
+   <div class="soon" style="color:var(--ink)">Esta guía es de orientación. La lista exacta de documentos, la oficina y los horarios los confirma el ISSSTE; ante cualquier duda acuda a Medicina del Trabajo, a su representación sindical o a la Supervisión.</div>
+   <p class="foot">Elaborada con la Ley del ISSSTE y su Reglamento para la Dictaminación, y con la experiencia de una maestra de la zona que realizó el trámite.</p>`;
+  document.getElementById("salir").onclick=()=>sectionView("laboral");
+  document.getElementById("rt_imp").onclick=()=>{app.querySelectorAll("details").forEach(d=>d.open=true);setTimeout(()=>window.print(),100)};
+  const f=document.getElementById("rt_f"),r=document.getElementById("rt_r");
+  f.onchange=()=>{if(!f.value){r.textContent="Elija la fecha para ver hasta cuándo tiene para cada paso.";return}
+    const hoy=new Date();hoy.setHours(12,0,0,0);const fila=(t,d,n)=>{const dif=Math.round((d-hoy)/864e5);
+      return`<div class="rv"><span>${t}</span><span><b>${rtFecha(d)}</b><br>${dif<0?`<b style="color:var(--warn)">Venció hace ${-dif} día${dif===-1?"":"s"}</b>`:dif===0?`<b style="color:var(--warn)">Vence hoy</b>`:`Falta${dif===1?"":"n"} ${dif} día${dif===1?"":"s"}`}${n?`<br><span class="muted">${n}</span>`:""}</span></div>`};
+    r.innerHTML=`<div class="review">${fila("Aviso por escrito al ISSSTE (3 días)",rtSuma(f.value,3,false),"Contados en días naturales, para ir a lo seguro.")}${fila("Solicitud de calificación RT-01 (30 días hábiles)",rtSuma(f.value,30,true))}</div>
+     <p class="help" style="margin-top:8px">Los días hábiles se cuentan de lunes a viernes; los días festivos oficiales recorren la fecha, pero no espere al último día. Los 10 días hábiles del expediente corren desde que firma de recibido el RT-03. Si un plazo ya venció, <b>presente el trámite de todos modos</b> y explique la causa.</p>`};
+  window.scrollTo(0,0)}
 function eiaView(){S.view="eia";S.sec="eia";S.letra=null;setBar("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini · Zona 050</div><h2>Ejercicios Integradores del Aprendizaje (EIA)</h2></div></div>`;
   const fases=EIA_FASES.map(x=>{const L=EIA_LINKS.fases[x.f];
@@ -6453,7 +6592,7 @@ function demoBanda(){if(document.getElementById("demoBanda"))return;const b=docu
   b.innerHTML=`<span><b>Demostración</b> · Escuela de ejemplo. Lo que haga aquí no se guarda.</span><button type="button" id="demoFuera">Salir de la demostración</button>`;
   document.body.prepend(b);document.body.classList.add("con-demo");document.getElementById("demoFuera").onclick=demoSalir}
 const DEMO_IR={perfil:()=>perfilView(),dx:()=>dxView(),pmce:()=>pmView(),pa:()=>paView(),plan:()=>plView(),recado:()=>rcView(),inventario:()=>invView(),consejo:()=>cpView(),asistencia:()=>asView(),cte:()=>cteView(),firmas:()=>lfView(),visitas:()=>lvView(),pases:()=>psView(),
-  ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),salario:()=>sectionView("salario"),estadistica:()=>sectionView("estadistica"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
+  ppie:()=>sectionView("ppie"),laboral:()=>sectionView("laboral"),riesgo:()=>sectionView("riesgo"),salario:()=>sectionView("salario"),estadistica:()=>sectionView("estadistica"),seguro:()=>sectionView("seguro"),calendario:()=>sectionView("calendario"),normas:()=>sectionView("normas"),eia:()=>sectionView("eia")};
 function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-paso" data-demo="${k}"><b>${t}</b><span>${d}</span></button>`;
   return`<section class="card demo-rec"><span class="piloto-tag">Recorrido de demostración</span>
    <p>Bienvenida, bienvenido. Esta es una escuela de ejemplo con sus datos ya capturados, para que vea cómo Tlamatini <b>llena solo los formatos</b> y le ahorra tiempo. Toque cualquier opción para probarla:</p>
