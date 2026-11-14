@@ -21,6 +21,7 @@ const RK_DISENOS=[
   {id:"honor",nombre:"Cuadro de honor",desc:"Medalla y laureles, para logros destacados.",letra:"cinzelB",pal:"vino"},
   {id:"mosaico",nombre:"Mosaico",desc:"Cenefas de mosaicos de colores y listón para el nombre.",letra:"fredoka",pal:"multicolor"},
   {id:"geo",nombre:"Geométrico",desc:"Arcos, puntos y figuras en las esquinas.",letra:"montB",pal:"cielo"},
+  {id:"deportes",nombre:"Deportivo",desc:"Para torneos y eventos: fútbol, atletismo, ajedrez y más.",letra:"montB",pal:"verde"},
   {id:"fondo",nombre:"Mi propio fondo",desc:"Suba una imagen o un diploma que le guste y Tlamatini escribe encima.",letra:"script",pal:"anil"}];
 
 const RK_PALETAS=[
@@ -31,6 +32,7 @@ const RK_PALETAS=[
   {id:"cielo",nombre:"Azul cielo",c1:"#1A6FB4",c2:"#F2A900",c3:"#F1F7FC"},
   {id:"multicolor",nombre:"Multicolor",c1:"#2E86AB",c2:"#E4572E",c3:"#FFFBF0",k:["#E4572E","#F6AE2D","#76B041","#2E86AB","#9B5DE5"]}];
 
+const RK_DEPORTES=[["futbol","Fútbol"],["atletismo","Atletismo"],["ajedrez","Ajedrez"],["basquetbol","Básquetbol"],["voleibol","Voleibol"],["general","Otro deporte (trofeo)"]];
 const RK_LETRAS=[["script","Manuscrita elegante"],["playB","Clásica"],["cinzelB","Romana"],["pacifico","Alegre"],["fredoka","Redondeada"],["montB","Moderna"]];
 const RK_TIPOS=["Reconocimiento","Diploma","Constancia","Mención honorífica"];
 
@@ -163,6 +165,57 @@ async function rkPDF(cfg,personas,env){
       svg(`M0 ${PH-70}L0 ${PH}L70 ${PH}Z`,{color:k4,opacity:op});svg(`M0 ${PH-112}L0 ${PH-82}L82 ${PH}L112 ${PH}Z`,{color:k1,opacity:op});
       pg.drawCircle({x:PW-34,y:Y(vert?150:132),size:7,borderColor:k0,borderWidth:2.5,opacity:op});pg.drawCircle({x:34,y:Y(PH-(vert?150:132)),size:7,borderColor:k2,borderWidth:2.5,opacity:op});
       box=vert?{x:66,top:r+12,w:PW-132,h:PH-2*r-24}:{x:r+24,top:50,w:PW-2*r-48,h:PH-128};
+    }else if(cfg.diseno==="deportes"){
+      /* franja de color con el emblema de la disciplina y un motivo de cancha, pista o tablero */
+      fT=F.montB;fP=F.mont;fM=F.mont;tituloSp=4;col.lin=c2;
+      const dep=cfg.deporte||"futbol",fo=ink?.14:1,ci=ink?c1:blanco,cf=ink?c3:c1,po=ink?.5:1;
+      const bw=vert?PW:150,bh=vert?128:PH;rect(0,0,bw,bh,{color:c1,opacity:fo});
+      if(vert){rect(0,bh,PW,5,{color:c2});rect(0,PH-12,PW,12,{color:c1,opacity:fo})}else{rect(bw,0,6,PH,{color:c2});rect(bw+6,PH-9,PW-bw-6,9,{color:c1,opacity:fo})}
+      const R=vert?42:50,ix=vert?84:bw/2,iy=vert?bh/2:92;
+      const ln=(x1,y1,x2,y2,t,c)=>pg.drawLine({start:{x:ix+x1*R,y:Y(iy+y1*R)},end:{x:ix+x2*R,y:Y(iy+y2*R)},thickness:t,color:c||ci,lineCap:PDFLib.LineCapStyle.Round});
+      const pol=(pts,o)=>svg("M"+pts.map(([a,b])=>`${(ix+a*R).toFixed(1)} ${(iy+b*R).toFixed(1)}`).join("L")+"Z",o);
+      const cir=(a,b,r,o)=>pg.drawCircle(Object.assign({x:ix+a*R,y:Y(iy+b*R),size:r*R},o));
+      const ang=(k,n,r,d=0)=>{const t=-Math.PI/2+d+k*2*Math.PI/n;return[r*Math.cos(t),r*Math.sin(t)]};
+      if(dep==="futbol"){cir(0,0,1,{color:ci});pol([0,1,2,3,4].map(k=>ang(k,5,.36)),{color:cf});
+        for(let k=0;k<5;k++){const a=ang(k,5,.36),b=ang(k,5,.7);ln(a[0],a[1],b[0],b[1],2,cf);
+          const m=ang(k,5,.98),l=ang(k,5,.97,-.3),r2=ang(k,5,.97,.3);pol([b,[l[0]*.86,l[1]*.86],l,m,r2,[r2[0]*.86,r2[1]*.86]],{color:cf})}
+        cir(0,0,1,{borderColor:ci,borderWidth:2})}
+      else if(dep==="atletismo"){cir(.2,-.66,.17,{color:ci});const t=R*.17;
+        ln(.1,-.42,-.12,.08,t);ln(.08,-.36,.42,-.2,t*.8);ln(.42,-.2,.6,-.44,t*.8);ln(.04,-.34,-.34,-.3,t*.8);ln(-.34,-.3,-.5,-.02,t*.8);
+        ln(-.12,.08,.26,.26,t);ln(.26,.26,.2,.7,t);ln(-.12,.08,-.42,.38,t);ln(-.42,.38,-.8,.32,t);
+        [-.95,-.7].forEach(x=>ln(x,.05,x+.22,.05,2));ln(-.98,.5,-.76,.5,2)}
+      else if(dep==="ajedrez"){/* torre */
+        pol([[-.62,.92],[.62,.92],[.62,.72],[-.62,.72]],{color:ci});pol([[-.5,.72],[.5,.72],[.36,.56],[-.36,.56]],{color:ci});
+        pol([[-.34,.56],[.34,.56],[.28,-.3],[-.28,-.3]],{color:ci});pol([[-.52,-.3],[.52,-.3],[.52,-.5],[-.52,-.5]],{color:ci});
+        [-.52,-.14,.24].forEach(x=>pol([[x,-.5],[x+.28,-.5],[x+.28,-.86],[x,-.86]],{color:ci}))}
+      else if(dep==="basquetbol"){cir(0,0,1,{color:ci});ln(-1,0,1,0,2,cf);ln(0,-1,0,1,2,cf);
+        svg(`M${ix-R*.72} ${iy-R*.7}Q${ix-R*.2} ${iy} ${ix-R*.72} ${iy+R*.7}`,{borderColor:cf,borderWidth:2});svg(`M${ix+R*.72} ${iy-R*.7}Q${ix+R*.2} ${iy} ${ix+R*.72} ${iy+R*.7}`,{borderColor:cf,borderWidth:2})}
+      else if(dep==="voleibol"){cir(0,0,1,{color:ci});const P=(q)=>`${(ix+q[0]*R).toFixed(1)} ${(iy+q[1]*R).toFixed(1)}`;
+        for(let k=0;k<3;k++){svg(`M${ix} ${iy}Q${P(ang(k,3,.62,.55))} ${P(ang(k,3,1,0))}`,{borderColor:cf,borderWidth:2});
+          svg(`M${P(ang(k,3,.42,1.05))}Q${P(ang(k,3,.9,.95))} ${P(ang(k,3,1,.5))}`,{borderColor:cf,borderWidth:2})}}
+      else{/* trofeo */
+        svg(`M${ix-R*.5} ${iy-R*.85}H${ix+R*.5}V${iy-R*.3}A${R*.5} ${R*.5} 0 0 1 ${ix-R*.5} ${iy-R*.3}Z`,{color:ci});
+        svg(`M${ix-R*.5} ${iy-R*.68}H${ix-R*.82}V${iy-R*.4}A${R*.34} ${R*.34} 0 0 0 ${ix-R*.46} ${iy-R*.1}`,{borderColor:ci,borderWidth:R*.09});
+        svg(`M${ix+R*.5} ${iy-R*.68}H${ix+R*.82}V${iy-R*.4}A${R*.34} ${R*.34} 0 0 1 ${ix+R*.46} ${iy-R*.1}`,{borderColor:ci,borderWidth:R*.09});
+        pol([[-.1,.18],[.1,.18],[.1,.56],[-.1,.56]],{color:ci});pol([[-.42,.56],[.42,.56],[.42,.7],[-.42,.7]],{color:ci});pol([[-.56,.7],[.56,.7],[.56,.9],[-.56,.9]],{color:ci});
+        svg(star(ix,iy-R*.4,R*.2),{color:cf})}
+      /* motivo de la disciplina en el resto de la franja */
+      const px=vert?170:16,pt=vert?20:176,pw=vert?PW-170-24:bw-32,ph=vert?bh-40:PH-176-28;
+      if(dep==="futbol"){const cxp=px+pw/2,cyp=pt+ph/2,rr=Math.min(pw,ph)*.3;rect(px,pt,pw,ph,{borderColor:ci,borderWidth:1.6,opacity:po,borderOpacity:po});
+        if(vert)rect(cxp-.8,pt,1.6,ph,{color:ci,opacity:po});else rect(px,cyp-.8,pw,1.6,{color:ci,opacity:po});
+        pg.drawCircle({x:cxp,y:Y(cyp),size:rr,borderColor:ci,borderWidth:1.6,borderOpacity:po});pg.drawCircle({x:cxp,y:Y(cyp),size:2.4,color:ci,opacity:po});
+        const aw=vert?ph*.5:pw*.5,ad=vert?pw*.1:ph*.1;
+        if(vert){rect(px,cyp-aw/2,ad,aw,{borderColor:ci,borderWidth:1.6,borderOpacity:po});rect(px+pw-ad,cyp-aw/2,ad,aw,{borderColor:ci,borderWidth:1.6,borderOpacity:po})}
+        else{rect(cxp-aw/2,pt,aw,ad,{borderColor:ci,borderWidth:1.6,borderOpacity:po});rect(cxp-aw/2,pt+ph-ad,aw,ad,{borderColor:ci,borderWidth:1.6,borderOpacity:po})}}
+      else if(dep==="atletismo"){const n=5;for(let k=0;k<=n;k++){if(vert)rect(px,pt+ph*k/n-.8,pw,1.6,{color:ci,opacity:po});else rect(px+pw*k/n-.8,pt,1.6,ph,{color:ci,opacity:po})}
+        for(let k=0;k<n;k++){const t=String(k+1);if(vert)pg.drawText(t,{x:px+8,y:Y(pt+ph*(k+.5)/n+4),size:11,font:F.montB,color:ci,opacity:po});else pg.drawText(t,{x:px+pw*(k+.5)/n-3.5,y:Y(pt+ph-8),size:11,font:F.montB,color:ci,opacity:po})}}
+      else if(dep==="ajedrez"){const q=vert?ph/3:pw/5,nx=Math.floor(pw/q),ny=Math.floor(ph/q),x0=px+(pw-nx*q)/2,y0=pt+(ph-ny*q)/2;
+        for(let a=0;a<nx;a++)for(let b=0;b<ny;b++)if((a+b)%2===0)rect(x0+a*q,y0+b*q,q,q,{color:ci,opacity:ink?.45:.92});
+        rect(x0,y0,nx*q,ny*q,{borderColor:ci,borderWidth:1.6,borderOpacity:po})}
+      else{const paso=vert?26:30,n=Math.floor((vert?pw:ph)/paso);for(let k=0;k<n;k++){const o=po*(1-k/(n*1.25));
+          if(vert){const x=px+k*paso;svg(`M${x} ${pt+4}L${x+16} ${pt+ph/2}L${x} ${pt+ph-4}`,{borderColor:ci,borderWidth:5,borderOpacity:o})}
+          else{const y=pt+k*paso;svg(`M${px+4} ${y}L${px+pw/2} ${y+16}L${px+pw-4} ${y}`,{borderColor:ci,borderWidth:5,borderOpacity:o})}}}
+      box=vert?{x:56,top:bh+30,w:PW-112,h:PH-bh-30-52}:{x:bw+54,top:42,w:PW-bw-54-46,h:PH-42-58};
     }else{ /* fondo propio */
       if(I.fondo){const im=I.fondo,cover=cfg.fondo.ajuste!=="ajustar";const k=cover?Math.max(PW/im.width,PH/im.height):Math.min(PW/im.width,PH/im.height);
         const iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:(PW-iw)/2,y:(PH-ih)/2,width:iw,height:ih})}
@@ -353,7 +406,7 @@ const RK_KEY="reconocimientos",RK_FONDO_KEY="rk-fondo",RK_MIS_KEY="rk-mis-diseno
 let RK=null,RK_FONDO,RK_THUMBS={},RK_PV_T=null,RK_PV_N=0;
 const RK_MOTIVOS=["Por su esfuerzo, dedicación y entusiasmo en su aprendizaje.","Por su destacado aprovechamiento escolar.","Por su asistencia y puntualidad perfectas.",
   "Por su notable avance en lectura y escritura.","Por ser ejemplo de respeto, compañerismo y buena convivencia.","Por su participación destacada en ","Por obtener el primer lugar en ",
-  "Por su compromiso, responsabilidad y trabajo en equipo.","Por concluir satisfactoriamente sus estudios de educación primaria."];
+  "Por su compromiso, responsabilidad y trabajo en equipo.","Por su esfuerzo, disciplina y juego limpio.","Por su destacada participación en el torneo de ","Por concluir satisfactoriamente sus estudios de educación primaria."];
 const RK_LUGARES=["Primer lugar","Segundo lugar","Tercer lugar","Mención honorífica"];
 
 function rkDirCargo(dcar){return/^Director$/.test(dcar)?"Director de la escuela":/^Directora$/.test(dcar)?"Directora de la escuela":dcar||"Director de la escuela"}
@@ -516,6 +569,7 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
        <div class="rkrange" ${v.fondo.autoOn!==false&&v.fondo.auto&&v.fondo.auto.box?"hidden":""}><span>Margen a los lados</span><input type="range" id="rk_fmar" min="20" max="140" step="2" value="${+v.fondo.margen||60}"><span class="rkmini" id="rk_fmarv">${+v.fondo.margen||60}</span></div>
        <div class="rkrange"><span>Tamaño de letra</span><input type="range" id="rk_fesc" min="0.7" max="1.3" step="0.05" value="${+v.fondo.esc||1}"><span class="rkmini" id="rk_fescv">${Math.round((+v.fondo.esc||1)*100)}%</span></div></div>`:""}</div>
     <div class="field" ${v.diseno==="fondo"?"hidden":""}><label>Colores</label><div class="rkpal" id="rk_pal">${palHTML}</div></div>
+    ${v.diseno==="deportes"?`<div class="field"><label for="rk_dep">Disciplina</label><select id="rk_dep">${opt(RK_DEPORTES,v.deporte||"futbol")}</select><p class="help">Cambia el emblema y el motivo de la franja (cancha, pista, tablero).</p></div>`:""}
     <div class="row2"><div class="field"><label for="rk_tipo">Documento</label><select id="rk_tipo">${opt(RK_TIPOS.concat(["Otro"]).map(t=>[t,t==="Otro"?"Otro (escribirlo)":t]),v.tipo)}</select></div>
      <div class="field"><label for="rk_orient">Orientación</label><select id="rk_orient">${opt([["horizontal","Horizontal"],["vertical","Vertical"]],v.orient)}</select></div></div>
     <div class="field" id="rk_tipoOF" ${v.tipo==="Otro"?"":"hidden"}><label for="rk_tipoO">Título del documento</label><input type="text" id="rk_tipoO" value="${esc(v.tipoOtro)}" placeholder="Ej. Alumno del mes" autocomplete="off"></div>
@@ -587,6 +641,7 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
   [["rk_tipo","tipo"],["rk_letra","letra"],["rk_caso","caso"]].forEach(([id,k])=>g(id).onchange=()=>{v[k]=g(id).value;if(k==="tipo"){g("rk_tipoOF").hidden=v.tipo!=="Otro"}cambio()});
   g("rk_tipoO").oninput=()=>{v.tipoOtro=g("rk_tipoO").value;cambio()};
   g("rk_orient").onchange=()=>{v.orient=g("rk_orient").value;re()};
+  if(g("rk_dep"))g("rk_dep").onchange=()=>{v.deporte=g("rk_dep").value;RK_THUMBS={};re()};
   g("rk_ahorro").onchange=()=>{v.ahorro=g("rk_ahorro").checked;re()};
   app.querySelectorAll(".opt input").forEach(i=>i.addEventListener("change",()=>i.closest(".opt").classList.toggle("on",i.checked)));
   app.querySelectorAll("[data-mis]").forEach(b=>b.onclick=()=>{const m=store.get(RK_MIS_KEY,[])[+b.dataset.mis];if(!m)return;const keep={personas:v.personas,verIdx:v.verIdx,esc:v.esc,sel:v.sel,firmas:v.firmas,fecha:v.fecha,lugarFecha:v.lugarFecha};
