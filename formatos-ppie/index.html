@@ -1685,7 +1685,7 @@ function iniPersona(){const n=String(perfil.minombre||"").trim();if(!n)return{sa
   return{nombre:pal[0]||"",trato,ini:ini.toUpperCase()}}
 function iniSaludo(){const h=new Date().getHours();const s=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";const p=iniPersona();
   return p.nombre?`${s}, ${p.trato?p.trato+" ":""}${esc(p.nombre)}`:`${s}`}
-function iniEscuela(){if(!perfil.escuela)return"Capture los datos de su escuela y se llenarán solos en los formatos.";
+function iniEscuela(){if(!perfil.escuela)return"Capture los datos de su escuela y se llenarán automáticamente en los formatos.";
   const g=[perfil.grado,perfil.grupo].filter(Boolean).join(" ");return[perfil.escuela,perfil.cct,g].filter(Boolean).map(esc).join(" · ")}
 function iniEvento(){const c=CAL||store.get("cal-cache",null);if(!c||!Array.isArray(c.eventos))return null;const h=today();
   const e=c.eventos.find(e=>e&&e[1]>=h);if(!e)return null;
