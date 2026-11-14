@@ -428,6 +428,14 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .cmp-qt{font-weight:700;font-size:16px;margin-bottom:6px;line-height:1.35}
 .cmp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}.cmp-op{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--borde);border-radius:999px;padding:9px 14px;cursor:pointer;background:var(--papel);font-size:15px}
 .cmp-op input{position:absolute;opacity:0;pointer-events:none}.cmp-op.on{border-color:var(--indigo);background:#EAF0FA;color:var(--indigo);font-weight:700}
+/* semáforo de la revisión (verde, amarillo, rojo) y programación de visitas */
+.cmp-op.sem-v::before,.cmp-op.sem-a::before,.cmp-op.sem-r::before{content:"";width:15px;height:15px;border-radius:50%;flex:none}
+.cmp-op.sem-v::before{background:#2E9E4F}.cmp-op.sem-a::before{background:#E8B004}.cmp-op.sem-r::before{background:#D23B2E}
+.cmp-op.sem-v.on{border-color:#2E9E4F;background:#DDF3E3;color:#17602D}.cmp-op.sem-a.on{border-color:#D9A400;background:#FFF3C4;color:#6B5200}.cmp-op.sem-r.on{border-color:#D23B2E;background:#FBDEDA;color:#8E1D13}
+.pg-fila{display:grid;grid-template-columns:minmax(0,1fr) 158px 118px 118px;gap:8px 10px;align-items:end;padding:12px 14px;border-top:1px solid var(--borde)}.pg-fila:first-child{border-top:0}
+.pg-fila label{display:flex;flex-direction:column;gap:3px}.pg-fila input{border:1px solid var(--borde);border-radius:9px;padding:8px;min-height:42px;background:#fff;width:100%;font:inherit}
+.pg-fila .chip{margin-top:5px}
+@media (max-width:680px){.pg-fila{grid-template-columns:1fr 1fr}.pg-fila>div:first-child,.pg-fila>label:nth-child(2){grid-column:1/-1}}
 .cmp-obs{min-height:56px;margin-top:4px}.cmp-fotos{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .cmp-foto{position:relative;display:inline-flex;align-items:center}.cmp-foto img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)}.cmp-foto a{font-size:26px;text-decoration:none}
 .cmp-foto button{position:absolute;top:-8px;right:-8px;background:#fff;border:1px solid var(--borde);border-radius:50%;width:22px;height:22px;line-height:18px;font-size:16px;padding:0}
@@ -995,7 +1003,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-12-1045';
+const PUBLICACION = '2026-11-13-1900';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1573,6 +1581,138 @@ const CMP_FOTO = ['Sin foto', 'Foto opcional', 'Foto obligatoria'];
 const CMP_VER = 38;
 const cmpListo = () => (S && (S.version >= CMP_VER || S.offline)) || (cfg && cfg.demo);
 
+/* --- Visita de asesoría y acompañamiento: semáforo, guías base de la 1.ª visita y programación (fecha y hora por escuela) ---
+   Cada aspecto se califica con semáforo (verde, amarillo, rojo o «No aplica»), con observaciones y fotos.
+   Las guías base se cargan con un botón y quedan como guías normales (se pueden corregir en «Guías»).
+   La fecha y la hora de cada escuela se guardan como actividad de la Agenda (así la dirección la ve y entran los recordatorios);
+   no hace falta actualizar el servidor. */
+const CMP_SEM = ['Verde · Cumple', 'Amarillo · En proceso', 'Rojo · Requiere acompañamiento', 'No aplica'];
+const semClase = o => /^verde/i.test(o) ? ' sem-v' : /^amarillo/i.test(o) ? ' sem-a' : /^rojo/i.test(o) ? ' sem-r' : '';
+const semEstado = v => /^verde/i.test(v) ? 'cumple' : /^amarillo/i.test(v) ? 'proceso' : /^rojo/i.test(v) ? 'acomp' : /^no aplica/i.test(v) ? 'na' : '';
+// Lo que se revisa con cada docente en la 1.ª visita
+const CMP_V1_DOC = [
+  { k: 'dlr', t: 'Lectura de la realidad de su grupo', r: ['Diagnóstico del grupo con datos (SisAT, EIA, evaluación diagnóstica)', 'Alumnos que requieren apoyo identificados', 'Considera el contexto de las familias y la comunidad'] },
+  { k: 'dpd', t: 'Planeación didáctica', r: ['Vigente y a la mano', 'Vinculada al programa analítico, con proyectos (en multigrado, planeación multigrado)', 'Prevé ajustes para los alumnos que requieren apoyo', 'Dice cómo se va a evaluar'] },
+  { k: 'def', t: 'Evaluación formativa', r: ['Instrumentos (rúbricas, listas de cotejo, registros)', 'Registro del avance de cada alumno en el trimestre', 'Retroalimentación a los alumnos y comunicación con las familias', 'Seguimiento a quienes requieren apoyo'] },
+  { k: 'dcp', t: 'Cuadernos y producciones de los alumnos', r: ['Corresponden a lo planeado', 'Revisados y retroalimentados por el docente', 'Muestran avance en lectura, escritura y cálculo', 'Orden, fecha y continuidad del trabajo'] },
+  { k: 'dpa', t: 'Programa analítico', r: ['Lo conoce y lo tiene a la mano', 'Identifica la problemática que atiende con su grupo', 'Su planeación retoma los contenidos contextualizados'] },
+  { k: 'dpmc', t: 'Programa de Mejora Continua (PMC)', r: ['Conoce los objetivos y metas de la escuela', 'Sabe en qué acciones participa', 'Tiene evidencia de las acciones que le corresponden'] }];
+const CMP_BASE_TIT = { dir: 'Visita 1 · Dirección y ATP', doc: 'Visita 1 · Docentes' };
+function cmpBaseGuias() {
+  const q = para => t => ({ k: t.k, t: t.t, tipo: 'escala', op: CMP_SEM.slice(), para, quien: 'revisor', foto: 1, ayuda: ('Se revisa: ' + (t.r || []).join('; ') + '.').slice(0, 400), sec: '' });
+  return [
+    { titulo: CMP_BASE_TIT.dir, descripcion: 'Primera visita de asesoría y acompañamiento. Se revisa con la dirección y el ATP o subdirector de la escuela. Marque el color del semáforo en cada aspecto, escriba sus observaciones y tome las fotos de evidencia.', visita: '1', escuelas: [], preguntas: visGuia(1).map(q('direccion')) },
+    { titulo: CMP_BASE_TIT.doc, descripcion: 'Primera visita de asesoría y acompañamiento. Se revisa con cada docente en su grupo. Marque el color del semáforo en cada aspecto, escriba sus observaciones y tome las fotos de evidencia.', visita: '1', escuelas: [], preguntas: CMP_V1_DOC.map(q('docente')) }];
+}
+const cmpBaseFalta = () => (S && !S.offline && esMesa()) ? cmpBaseGuias().filter(g => !(S.cue || []).some(c => c.activo !== false && c.titulo === g.titulo)) : [];
+const cmpBaseHTML = () => cmpBaseFalta().length ? `<div class="aviso-caja" style="margin-bottom:14px"><b>Guías de la 1.ª visita de asesoría y acompañamiento.</b> Ya están armadas: una para la <b>dirección y ATP</b> (${visGuia(1).length} aspectos) y otra para los <b>docentes</b> (${CMP_V1_DOC.length} aspectos), con semáforo, observaciones y fotos en cada aspecto.
+    <div class="acciones" style="margin-top:8px"><button class="boton terra chico" id="cm-base">${ico('i-chk')}Cargar las guías de la 1.ª visita</button></div></div>` : '';
+async function cmpCargarBase() {
+  const falta = cmpBaseFalta(); if (!falta.length) return;
+  cargando(true);
+  try {
+    for (const g of falta) { const r = await api('cueGuardar', g); S.cue = S.cue || []; poner(S.cue, r.cue); }
+    await cmpPreparar(true);
+    aviso('Listo: ya están las guías de la 1.ª visita (Dirección y ATP, y Docentes). Puede corregirlas en «Guías».', 'ok', 7000);
+  } catch (e) { aviso(esc(e.message || 'No se pudieron cargar las guías.'), 'mal', 8000); }
+  finally { cargando(false); vCampo(); }
+}
+// Programación: la visita N de una escuela es la actividad de la Agenda «N.ª visita de asesoría y acompañamiento · Escuela»
+const VISP_TIT = n => n + '.ª visita de asesoría y acompañamiento';
+const VISP_RE = /^(\d)\.ª visita de asesoría y acompañamiento/i;
+const enCicloVis = f => { const c = cicloVis().split('-'); return f >= c[0] + '-08-01' && f <= c[1] + '-07-31'; };
+function visProg(cct, n) {
+  if (!S) return null;
+  if (S.offline) return ((CMP.paq && CMP.paq.prog) || []).find(x => x.cct === cct && +x.n === +n) || null;
+  const a = (S.act || []).filter(x => x.tipo === 'visita' && x.estado !== 'cancelada' && (x.escuelas || []).length === 1 && x.escuelas[0] === cct && enCicloVis(x.fecha || '') && +(VISP_RE.exec(x.titulo || '') || [])[1] === +n)
+    .sort((x, y) => String(y.actualizado || '').localeCompare(String(x.actualizado || '')))[0];
+  return a ? { id: a.id, cct, n: +n, fecha: a.fecha, hi: a.horaInicio || '', hf: a.horaFin || '' } : null;
+}
+const visProgTxt = p => p ? fechaCorta(p.fecha) + (p.hi ? ' · ' + p.hi + (p.hf ? ' a ' + p.hf : '') + ' h' : '') : '';
+const visProgTodas = () => (S && S.offline) ? ((CMP.paq && CMP.paq.prog) || []) : directores().flatMap(c => [1, 2, 3].map(n => visProg(c.cct, n)).filter(Boolean));
+function visProgBase(cct, n) {
+  const c = escuelaDe(cct) || {}, adm = S.usr.find(u => u.rol === 'admin' && u.activo !== false), atp = atpDe(cct);
+  const dir = visGuia(n).map(t => t.t).join('; '), doc = +n === 1 ? CMP_V1_DOC.map(t => t.t).join('; ') : '';
+  return { titulo: (VISP_TIT(n) + ' · ' + (c.escuela || cct)).slice(0, 200), tipo: 'visita', lugar: c.escuela || '', escuelas: [cct], destinatarios: [c.id].filter(Boolean),
+    responsables: [...new Set([S.yo.id, adm && adm.id, atp && atp.id].filter(Boolean))], confidencial: false, avisos: ['calendario', 'dia_antes'],
+    proposito: 'Visita de asesoría y acompañamiento de la Supervisión Escolar. Con la dirección se revisará: ' + dir + '.' + (doc ? ' Con los docentes: ' + doc + '.' : '') + ' Tenga los documentos a la mano. La guía completa está en Tequio › Visitas.' };
+}
+// Lista de visitas con fecha (de hoy en adelante), para el inicio de la revisión en campo y de la app de visitas
+function cmpProgHTML() {
+  const l = visProgTodas().filter(p => p.fecha >= hoy()).sort((a, b) => String(a.fecha + a.hi).localeCompare(String(b.fecha + b.hi))).slice(0, 14);
+  const puede = !S.offline && esMesa();
+  if (!l.length && !puede) return '';
+  return `<div class="seccion-t" style="display:flex;align-items:center;gap:8px">Visitas programadas<span style="flex:1"></span>${puede ? `<button class="boton sec chico" data-cg="programar">${ico('i-cal')}Programar</button>` : ''}</div>
+  ${l.length ? l.map(p => `<button class="tarjeta pad cmp-ses" data-pv="${esc(p.cct)}|${p.n}"><div style="flex:1;min-width:0"><b>${esc(nombreEscuela(p.cct))}</b><div class="peq mudo">${esc(cmpNomVisita(p.n))} · ${esc(visProgTxt(p))}</div></div>${p.fecha === hoy() ? '<span class="chip ok">Hoy</span>' : ''}${ico('i-der')}</button>`).join('')
+    : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Aún no hay visitas con fecha. Pulse «Programar» para poner la fecha y la hora de cada escuela.</div></div>'}`;
+}
+function cmpBaseCablear() {
+  const b = $('#cm-base'); if (b) b.onclick = cmpCargarBase;
+  $$('[data-pv]').forEach(x => x.onclick = () => { const [cct, n] = x.dataset.pv.split('|'); cmpNueva({ cct, n }); });
+}
+// Pantalla para poner la fecha y la hora de la visita de cada escuela (con internet)
+function cmpProgramar() {
+  if (S.offline || !esMesa()) return cmpIr({ pant: 'inicio' });
+  const n = +(vista.cmp.n || 1);
+  const escs = directores().slice().sort((a, b) => String(a.municipio || '').localeCompare(String(b.municipio || ''), 'es') || a.escuela.localeCompare(b.escuela, 'es'));
+  const fila = c => { const p = visProg(c.cct, n), v = visDe(c.cct, n), atp = atpDe(c.cct);
+    return `<div class="pg-fila" data-cct="${esc(c.cct)}"><div><b>${esc(c.escuela)}</b><div class="peq mudo">${esc([c.municipio, c.nombre, atp ? 'ATP de zona: ' + nombreCorto(atp.nombre) : ''].filter(Boolean).join(' · '))}</div>
+      ${v && v.estado === 'cerrada' ? '<span class="chip ok">Visita realizada</span>' : p ? '<span class="chip indigo">Programada · ' + esc(visProgTxt(p)) + '</span>' : '<span class="chip">Sin fecha</span>'}</div>
+      <label><span class="ayuda">Fecha</span><input type="date" data-k="f" value="${esc(p ? p.fecha : '')}"></label>
+      <label><span class="ayuda">Llegada</span><input type="time" data-k="hi" value="${esc(p ? p.hi : '')}"></label>
+      <label><span class="ayuda">Salida</span><input type="time" data-k="hf" value="${esc(p ? p.hf : '')}"></label></div>`; };
+  const con = escs.filter(c => visProg(c.cct, n)).length;
+  $('#vista').innerHTML = `
+  <div class="titulo-vista"><div><button class="enlace" id="pg-volver">← Revisión en campo</button><h1 style="margin-top:4px">Programar visitas</h1></div></div>
+  <p class="peq mudo" style="margin-top:-6px">Ponga la fecha y la hora en que visitarán cada escuela. Al guardar, la visita aparece en la Agenda de Tequio y en la app de visitas, la dirección la ve con su guía para prepararse y entra en los recordatorios. Puede dejar escuelas sin fecha y programarlas después; para cambiar una fecha, solo corríjala y guarde.</p>
+  <div class="filtros"><select id="pg-n" aria-label="Visita">${[1, 2, 3].map(x => `<option value="${x}" ${x === n ? 'selected' : ''}>${esc(cmpNomVisita(x))}</option>`).join('')}</select><span class="peq mudo">${con} de ${escs.length} escuelas con fecha</span></div>
+  <div class="tarjeta" style="margin-bottom:14px">${escs.map(fila).join('')}</div>
+  <div class="tarjeta pad"><label class="casilla"><input type="checkbox" id="pg-av" checked><span>Enviar ahora el aviso por correo a la dirección de cada escuela que programe o cambie<br><span class="ayuda">Sale de ${esc(ZONA.correoSupervision || 'la cuenta de la Supervisión')}. Hoy quedan ${S.cuota != null ? S.cuota : '—'} envíos disponibles. El recordatorio de un día antes se manda solo.</span></span></label>
+    <div class="acciones" style="margin-top:12px;justify-content:flex-end"><button class="boton terra" id="pg-ok">${ico('i-chk')}Guardar programación</button></div></div>`;
+  $('#pg-volver').onclick = () => cmpIr({ pant: 'inicio' });
+  $('#pg-n').onchange = e => cmpIr({ pant: 'programar', n: +e.target.value });
+  $('#pg-ok').onclick = async () => {
+    const cambios = $$('.pg-fila').map(f => { const cct = f.dataset.cct, p = visProg(cct, n), g = k => f.querySelector('[data-k=' + k + ']').value; return { cct, p, f: g('f'), hi: g('hi'), hf: g('hf') }; })
+      .filter(x => x.f !== (x.p ? x.p.fecha : '') || x.hi !== (x.p ? x.p.hi : '') || x.hf !== (x.p ? x.p.hf : ''));
+    if (!cambios.length) return aviso('No hay cambios que guardar.', 'ok');
+    const sinF = cambios.find(x => !x.f && !x.p), malH = cambios.find(x => x.f && x.hi && x.hf && x.hf <= x.hi);
+    if (sinF) return aviso('Ponga la fecha de ' + esc(nombreEscuela(sinF.cct)) + ' (solo tiene hora).', 'mal');
+    if (malH) return aviso('En ' + esc(nombreEscuela(malH.cct)) + ' la salida debe ser después de la llegada.', 'mal');
+    const quitar = cambios.filter(x => !x.f && x.p);
+    if (quitar.length && !confirm('Quitó la fecha de ' + quitar.length + ' escuela(s). Su visita se cancela en la Agenda. ¿Continuar?')) return;
+    const avisar = $('#pg-av').checked; let ok = 0, err = 0, ultimo = '';
+    cargando(true);
+    try {
+      for (const x of cambios) {
+        try {
+          if (!x.f) { const r = await api('estadoActividad', { id: x.p.id, estado: 'cancelada', avisar }); if (r.act) poner(S.act, r.act); }
+          else { const prev = x.p ? S.act.find(a => a.id === x.p.id) : null;
+            const r = await api('guardarActividad', Object.assign({}, prev || visProgBase(x.cct, n), { id: prev ? prev.id : '', fecha: x.f, horaInicio: x.hi, horaFin: x.hf, avisarAhora: avisar, estado: 'programada' }));
+            poner(S.act, r.act); if (typeof r.cuota === 'number') S.cuota = r.cuota; }
+          ok++;
+        } catch (e) { err++; ultimo = e.message || ''; }
+      }
+      await cmpPreparar(true);
+    } finally { cargando(false); }
+    aviso(ok + ' visita(s) guardada(s) en la Agenda' + (avisar ? ' y con aviso a la escuela' : '') + '.' + (err ? ' ' + err + ' no se pudieron guardar: ' + esc(ultimo) : ''), err ? 'mal' : 'ok', 7000);
+    cmpProgramar();
+  };
+}
+// Al subir la revisión de la dirección, el semáforo y las observaciones pasan también a Seguimiento › Visita N de la escuela
+async function cmpSincVis(revs) {
+  if (!S || S.offline || !Array.isArray(S.vis)) return;
+  const grupos = {};
+  revs.filter(r => r.persona === 'direccion' && +r.visita >= 1 && r.ciclo === cicloVis()).forEach(r => { (grupos[r.cct + '|' + r.visita] = grupos[r.cct + '|' + r.visita] || []).push(r); });
+  for (const [key, l] of Object.entries(grupos)) {
+    const [cct, n] = key.split('|'), v = visDe(cct, n);
+    if (v && v.estado === 'cerrada') continue;
+    const claves = new Set(visTemas(v, n).map(t => t.k)), items = {};
+    l.forEach(r => Object.entries(r.respuestas || {}).forEach(([k, x]) => { const e = semEstado((x && x.v) || ''); if (claves.has(k) && e) items[k] = { k, estado: e, obs: (x.obs || '').trim() || visItem(v, k).obs || '' }; }));
+    if (!Object.keys(items).length) continue;
+    try { const res = await api('guardarVisita', { cct, numero: +n, ciclo: cicloVis(), fecha: l[0].fecha || hoy(), resumen: (v && v.resumen) || '', items: Object.values(items) }); if (res.vis) poner(S.vis, res.vis); } catch (e) {}
+  }
+}
+
 /* --- almacenamiento en el dispositivo (IndexedDB): paquete de datos, revisiones y fotos --- */
 const CDB = (() => {
   let db = null;
@@ -1609,7 +1749,7 @@ const cmpEnLinea = () => navigator.onLine !== false && !(S && S.offline);
 async function cmpPreparar(silencio) {
   if (!Array.isArray(S.trb)) { try { const r = await api('personal'); S.trb = Array.isArray(r.trb) ? r.trb : []; } catch (e) { if (!silencio) aviso(esc(e.message), 'mal'); return false; } }
   const trb = (S.trb || []).filter(t => t.estado !== 'baja').flatMap(t => perActivas(t).filter(p => p.cct).map(p => ({ id: t.id, n: perNombre(t), f: p.funcion || '', g: p.grupo || '', cct: p.cct })));
-  const paq = { fecha: ahora(), yo: S.yo, zona: S.zonaRaw || null, dir: S.dir, usr: S.usr.filter(u => u.rol !== 'director'), cue: S.cue || [], trb, vis: (S.vis || []).map(v => ({ cct: v.cct, ciclo: v.ciclo, numero: v.numero, titulo: v.titulo, estado: v.estado })), version: S.version };
+  const paq = { fecha: ahora(), yo: S.yo, zona: S.zonaRaw || null, dir: S.dir, usr: S.usr.filter(u => u.rol !== 'director'), cue: S.cue || [], trb, vis: (S.vis || []).map(v => ({ cct: v.cct, ciclo: v.ciclo, numero: v.numero, titulo: v.titulo, estado: v.estado })), prog: visProgTodas(), version: S.version };
   try { await CDB.put('kv', 'paq-' + cmpDueño(), paq); CMP.paq = paq; if (!silencio) aviso('Listo: Tequio guardó en este dispositivo las ' + directores().length + ' escuelas, su personal y las guías. Ya puede trabajar sin internet.', 'ok', 6000); return true; }
   catch (e) { if (!silencio) aviso('No se pudo guardar en el dispositivo.', 'mal'); return false; }
 }
@@ -1634,7 +1774,11 @@ async function cmpIntentarSinConexion() {
 }
 
 /* --- ayudas --- */
-const cmpPersonal = cct => ((CMP.paq && CMP.paq.trb) || []).filter(t => t.cct === cct && !/^(director|subdirector|intendente|velador|secretari|administrativ|supervisor|atp)/i.test(t.f));
+const cmpPersonal = cct => ((CMP.paq && CMP.paq.trb) || []).filter(t => t.cct === cct && (!/^(director|subdirector|intendente|velador|secretari|administrativ|supervisor|atp)/i.test(t.f) || /con grupo/i.test(t.f)));
+// ATP o subdirector de la propia escuela: acompaña a la dirección en la revisión
+const cmpApoyoDir = cct => ((CMP.paq && CMP.paq.trb) || []).filter(t => t.cct === cct && /^(subdirector|atp)/i.test(t.f));
+const cmpApoyoTxt = cct => { const l = cmpApoyoDir(cct); return l.length ? ' · ' + esc(l.map(t => (/^sub/i.test(t.f) ? 'Subdirección: ' : 'ATP: ') + t.n).join(' · ')) : ''; };
+const cmpDocentes = cct => { const v = {}; return cmpPersonal(cct).filter(t => !v[t.id] && (v[t.id] = 1)).sort((a, b) => String(a.g || 'zz').localeCompare(String(b.g || 'zz'), 'es', { numeric: true })); };
 const cmpDirector = cct => { const c = (S.dir || []).find(x => x.tipo === 'director' && x.cct === cct); return c ? c.nombre : ''; };
 const cmpPreg = (cue, persona) => (cue.preguntas || []).filter(p => p.para === 'ambos' || (persona === 'direccion' ? p.para === 'direccion' : p.para === 'docente'));
 const cmpCue = id => (S.cue || []).find(c => c.id === id) || ((CMP.paq && CMP.paq.cue) || []).find(c => c.id === id);
@@ -1672,7 +1816,7 @@ async function vCampo() {
   if (!vista.cmp) vista.cmp = { pant: 'inicio' };
   if (!CMP.cargado) { await cmpCargarLocal(); CMP.cargado = true; if (!S.offline) cmpPreparar(true).then(() => { if (vista.tab === 'campo' && vista.cmp.pant === 'inicio') cmpInicio(); }); }
   if (CMP.err) { $('#vista').innerHTML = `<div class="tarjeta pad"><p style="margin:0">${esc(CMP.err)}</p></div>`; return; }
-  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro })[vista.cmp.pant || 'inicio']();
+  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro, programar: cmpProgramar })[vista.cmp.pant || 'inicio']();
 }
 function cmpIr(o) { vista.cmp = Object.assign({}, o); vCampo(); window.scrollTo(0, 0); }
 
@@ -1682,7 +1826,7 @@ function cmpInicio() {
   const ses = CMP.ses.slice().sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Revisión en campo</h1>
-    <div class="acciones">${S.offline ? '' : `<button class="boton sec" data-cg="guias">${ico('i-lapiz')}Guías</button><button class="boton sec" data-cg="resultados">${ico('i-graf')}Resultados</button><button class="boton sec" data-cg="registro">${ico('i-seg')}Registro de visitas</button>`}<a class="boton sec" href="./?campo">📱 App de visitas</a><button class="boton sec" id="cm-ate">${ico('i-mas')}Visita de atención</button><button class="boton terra" id="cm-nueva">${ico('i-mas')}Nueva revisión</button></div></div>
+    <div class="acciones">${S.offline ? '' : `<button class="boton sec" data-cg="guias">${ico('i-lapiz')}Guías</button><button class="boton sec" data-cg="resultados">${ico('i-graf')}Resultados</button><button class="boton sec" data-cg="registro">${ico('i-seg')}Registro de visitas</button>${esMesa() ? `<button class="boton sec" data-cg="programar">${ico('i-cal')}Programar visitas</button>` : ''}`}<a class="boton sec" href="./?campo">📱 App de visitas</a><button class="boton sec" id="cm-ate">${ico('i-mas')}Visita de atención</button><button class="boton terra" id="cm-nueva">${ico('i-mas')}Nueva revisión</button></div></div>
   <div class="tarjeta pad cmp-estado">
     <div><span class="chip ${cmpEnLinea() ? 'ok' : 'aviso'}">${cmpEnLinea() ? 'En línea' : 'Sin conexión'}</span>
       <span class="peq mudo">${paq ? 'Datos para trabajar sin internet guardados el ' + esc(fechaHora(paq.fecha)) : 'Aún no se guardan los datos para trabajar sin internet'}</span></div>
@@ -1690,6 +1834,7 @@ function cmpInicio() {
       <button class="boton ${pend ? 'terra' : 'sec'} chico" id="cm-subir" ${pend ? '' : 'disabled'}>${ico('i-carpeta')}Subir a Tequio${pend ? ' (' + pend + ')' : ''}</button></div>
   </div>
   <p class="peq mudo" style="margin:-4px 0 14px">Antes de salir a una escuela abra esta sección con internet: Tequio guarda en el dispositivo las escuelas, su personal y las guías. En la escuela puede trabajar sin señal; todo se guarda aquí hasta que pulse «Subir a Tequio».</p>
+  ${cmpBaseHTML()}${cmpProgHTML()}
   <div class="seccion-t">Revisiones en este dispositivo</div>
   ${ses.length ? ses.map(s => { const revs = CMP.revs.filter(r => r.sesion === s.id), sucias = revs.filter(r => r.sucio).length;
     return `<button class="tarjeta pad cmp-ses" data-ses="${esc(s.id)}"><div style="flex:1;min-width:0"><b>${esc(nombreEscuela(s.cct))}</b>
@@ -1705,7 +1850,7 @@ function cmpInicio() {
   $$('[data-cg]').forEach(b => b.onclick = () => cmpIr({ pant: b.dataset.cg }));
   $('#cm-ate').onclick = () => cmpNuevaAte();
   $$('[data-ate]').forEach(b => b.onclick = () => cmpIr({ pant: 'atencion', aid: b.dataset.ate }));
-  $('#cm-nueva').onclick = cmpNueva;
+  $('#cm-nueva').onclick = () => cmpNueva(); cmpBaseCablear();
   if ($('#cm-prep')) $('#cm-prep').onclick = async () => { cargando(true); await cmpPreparar(false); cargando(false); cmpInicio(); };
   $('#cm-subir').onclick = () => cmpSubir();
   $$('[data-ses]').forEach(b => b.onclick = () => cmpIr({ pant: 'sesion', sid: b.dataset.ses }));
@@ -1724,16 +1869,17 @@ function cmpInicioApp() {
     <button class="app-tile t3" id="ap-subir" ${pend ? '' : 'disabled'}>${ico('i-carpeta')}<b>Subir a Tequio</b><span>${pend ? pend + ' pendiente' + (pend === 1 ? '' : 's') + ' de subir' : 'Todo está subido'}</span></button>
     ${S.offline ? '' : `<button class="app-tile t4" id="ap-prep">${ico('i-act')}<b>Preparar para salir</b><span>Guardar escuelas, personal y guías en este celular</span></button>`}
   </div>
+  ${cmpBaseHTML()}${cmpProgHTML()}
   ${ses.length ? `<div class="seccion-t">Revisiones recientes</div>${ses.map(s => { const sucias = CMP.revs.filter(r => r.sesion === s.id && r.sucio).length; return `<button class="tarjeta pad cmp-ses" data-ses="${esc(s.id)}"><div style="flex:1;min-width:0"><b>${esc(nombreEscuela(s.cct))}</b><div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${esc(fechaCorta(s.fecha))} · ${s.personas.length} persona(s)</div></div>${sucias ? `<span class="chip aviso">${sucias} sin subir</span>` : ''}${ico('i-der')}</button>`; }).join('')}` : ''}
   ${ates.length ? `<div class="seccion-t">Visitas de atención recientes</div>${ates.map(a => `<button class="tarjeta pad cmp-ses" data-ate="${esc(a.id)}"><div style="flex:1;min-width:0"><b>${esc(a.asunto || 'Sin asunto')}</b><div class="peq mudo">${esc(ateLugar(a))} · ${esc(CMP_ATE[a.tipo] || 'Visita')} · ${esc(fechaCorta(a.fecha))}</div></div><span class="chip ${a.estado === 'cerrada' ? 'ok' : 'aviso'}">${a.estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</span>${a.sucio ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`).join('')}` : ''}
   ${S.offline ? '' : `<div class="app-links"><button class="enlace" data-cg="guias">Guías de revisión</button> · <button class="enlace" data-cg="resultados">Resultados</button> · <button class="enlace" data-cg="registro">Registro de visitas</button> · <a href="./">Abrir Tequio completo</a></div>`}
   ${cmpInstalarHTML()}`;
-  $('#ap-rev').onclick = cmpNueva; $('#ap-ate').onclick = () => cmpNuevaAte(); $('#ap-subir').onclick = () => cmpSubir();
+  $('#ap-rev').onclick = () => cmpNueva(); $('#ap-ate').onclick = () => cmpNuevaAte(); $('#ap-subir').onclick = () => cmpSubir();
   if ($('#ap-prep')) $('#ap-prep').onclick = async () => { cargando(true); await cmpPreparar(false); cargando(false); cmpInicioApp(); };
   $$('[data-ses]').forEach(b => b.onclick = () => cmpIr({ pant: 'sesion', sid: b.dataset.ses }));
   $$('[data-ate]').forEach(b => b.onclick = () => cmpIr({ pant: 'atencion', aid: b.dataset.ate }));
   $$('[data-cg]').forEach(b => b.onclick = () => cmpIr({ pant: b.dataset.cg }));
-  cmpInstalarCablear();
+  cmpInstalarCablear(); cmpBaseCablear();
 }
 // «Instalar la app»: Android lo ofrece con un botón; en iPhone se explica cómo agregarla a la pantalla de inicio
 let cmpPromptInstalar = null;
@@ -1749,16 +1895,19 @@ function cmpInstalarHTML() {
 function cmpInstalarCablear() { const b = $('#ap-inst'); if (b) b.onclick = async () => { if (!cmpPromptInstalar) return; cmpPromptInstalar.prompt(); await cmpPromptInstalar.userChoice; cmpPromptInstalar = null; b.hidden = true; }; }
 
 /* --- nueva revisión: escuela, visita y guías --- */
-function cmpNueva() {
+function cmpNueva(pre) {
+  pre = pre && pre.cct ? pre : null;
   const escs = directores();
   modal('Nueva revisión', `
-    <div class="campo"><label for="cn-esc">Escuela</label><select id="cn-esc"><option value="">Elija la escuela…</option>${escs.map(c => `<option value="${c.cct}">${esc(c.escuela)}</option>`).join('')}</select></div>
+    <div class="campo"><label for="cn-esc">Escuela</label><select id="cn-esc"><option value="">Elija la escuela…</option>${escs.map(c => `<option value="${c.cct}" ${pre && pre.cct === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select></div>
     <div class="campo"><label for="cn-vis">Visita</label><select id="cn-vis"></select></div>
+    <div id="cn-info"></div>
     <div class="campo"><span class="et">Guías que va a aplicar</span><div class="casillas" id="cn-guias"><div class="ayuda">Elija primero la escuela.</div></div></div>`,
     '<button class="boton sec" id="cn-no">Cancelar</button><button class="boton terra" id="cn-ok">Continuar</button>');
   const pintaVis = () => {
     const cct = $('#cn-esc').value, nums = cct ? [1, 2, 3].concat((S.vis || []).filter(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero > 3).map(v => +v.numero)) : [1, 2, 3];
-    const sig = cct ? (nums.find(n => { const v = (S.vis || []).find(x => x.cct === cct && x.ciclo === cicloVis() && +x.numero === n); return !v || v.estado !== 'cerrada'; }) || 1) : 1;
+    let sig = cct ? (nums.find(n => { const v = (S.vis || []).find(x => x.cct === cct && x.ciclo === cicloVis() && +x.numero === n); return !v || v.estado !== 'cerrada'; }) || 1) : 1;
+    if (pre && pre.cct === cct && nums.includes(+pre.n)) sig = +pre.n;
     $('#cn-vis').innerHTML = nums.map(n => `<option value="${n}" ${n === sig ? 'selected' : ''}>${esc(cmpNomVisita(n))}</option>`).join('');
     pintaGuias();
   };
@@ -1767,7 +1916,16 @@ function cmpNueva() {
     $('#cn-guias').innerHTML = !cct ? '<div class="ayuda">Elija primero la escuela.</div>' : g.length ? g.map(c => `<label class="casilla"><input type="checkbox" value="${esc(c.id)}" checked><span>${esc(c.titulo)}<br><span class="ayuda">${c.preguntas.length} preguntas</span></span></label>`).join('')
       : `<div class="ayuda">No hay guías para esta escuela y visita.${S.offline ? '' : ' Créela en «Guías».'}</div>`;
   };
-  $('#cn-esc').onchange = pintaVis; $('#cn-vis').onchange = pintaGuias; pintaVis();
+  // al elegir la escuela se cargan la dirección, su ATP o subdirector, los docentes y la fecha programada
+  const pintaInfo = () => {
+    const cct = $('#cn-esc').value; if (!cct) { $('#cn-info').innerHTML = ''; return; }
+    const ap = cmpApoyoDir(cct), docs = cmpDocentes(cct), p = visProg(cct, $('#cn-vis').value);
+    $('#cn-info').innerHTML = `<div class="aviso-caja peq" style="margin:0 0 13px">${p ? `<div><b>Programada:</b> ${esc(visProgTxt(p))}</div>` : ''}
+      <div><b>Dirección:</b> ${esc(cmpDirector(cct) || 'Sin registrar en el Directorio')}</div>
+      ${ap.length ? `<div><b>${ap.every(t => /^sub/i.test(t.f)) ? 'Subdirección' : ap.every(t => /^atp/i.test(t.f)) ? 'ATP de la escuela' : 'ATP y subdirección'}:</b> ${esc(ap.map(t => t.n).join(', '))}</div>` : ''}
+      <div><b>Docentes (${docs.length}):</b> ${docs.length ? esc(docs.map(t => t.n + (t.g ? ' (' + t.g + ')' : '')).join(', ')) : 'no hay personal de esta escuela en la base de Personal; se puede agregar a mano'}</div></div>`;
+  };
+  $('#cn-esc').onchange = () => { pintaVis(); pintaInfo(); }; $('#cn-vis').onchange = () => { pintaGuias(); pintaInfo(); }; pintaVis(); pintaInfo();
   $('#cn-no').onclick = cerrarModal;
   $('#cn-ok').onclick = async () => {
     const cct = $('#cn-esc').value, visita = $('#cn-vis').value, cueIds = $$('#cn-guias input:checked').map(i => i.value);
@@ -1775,7 +1933,8 @@ function cmpNueva() {
     if (!cueIds.length) return aviso('Elija al menos una guía.', 'mal');
     let s = CMP.ses.find(x => x.cct === cct && String(x.visita) === String(visita));
     if (s) { cueIds.forEach(id => { if (!s.cueIds.includes(id)) s.cueIds.push(id); }); }
-    else { s = { id: uid('ses'), cct, visita: String(visita), cueIds, personas: [{ persona: 'direccion', nombre: cmpDirector(cct) || 'Dirección', funcion: 'Dirección' }], fecha: hoy(), creado: ahora() }; CMP.ses.push(s); }
+    else { s = { id: uid('ses'), cct, visita: String(visita), cueIds, personas: [{ persona: 'direccion', nombre: cmpDirector(cct) || 'Dirección', funcion: 'Dirección' }]
+        .concat(cueIds.some(id => cmpPreg(cmpCue(id) || {}, 'docente').length) ? cmpDocentes(cct).map(t => ({ persona: t.id, nombre: t.n, funcion: t.f, grupo: t.g })) : []), fecha: hoy(), creado: ahora() }; CMP.ses.push(s); }
     await cmpGuardarSes(); cerrarModal(); cmpIr({ pant: 'sesion', sid: s.id });
   };
 }
@@ -1788,17 +1947,17 @@ function cmpSesion() {
     const av = cues.map(c => cmpPreg(c, per.persona).length ? cmpAvance(cmpRevLocal(s, c, per), c) : null).filter(Boolean);
     const tot = av.reduce((a, x) => a + x.total, 0), h = av.reduce((a, x) => a + x.hechas, 0), ff = av.reduce((a, x) => a + x.faltaFoto, 0);
     const sucia = cues.some(c => { const r = CMP.revs.find(x => x.id === cmpRevId({ cueId: c.id, cct: s.cct, visita: s.visita, persona: per.persona })); return r && r.sucio; });
-    return `<button class="tarjeta pad cmp-ses" data-per="${esc(per.persona)}"><div style="flex:1;min-width:0"><b>${esc(per.nombre)}</b><div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))}</div>
+    return `<button class="tarjeta pad cmp-ses" data-per="${esc(per.persona)}"><div style="flex:1;min-width:0"><b>${esc(per.nombre)}</b><div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))}${per.persona === 'direccion' ? cmpApoyoTxt(s.cct) : ''}</div>
       <div class="cmp-barra"><i style="width:${tot ? Math.round(h * 100 / tot) : 0}%"></i></div><div class="peq mudo">${tot ? h + ' de ' + tot + ' preguntas' : 'Sin preguntas para esta persona'}${ff ? ' · falta' + (ff === 1 ? '' : 'n') + ' ' + ff + ' foto' + (ff === 1 ? '' : 's') : ''}</div></div>
       ${sucia ? '<span class="chip aviso">Sin subir</span>' : ''}${ico('i-der')}</button>`;
   };
   $('#vista').innerHTML = `
   <div class="titulo-vista"><div><button class="enlace" id="cs-volver">← Revisiones</button><h1 style="margin-top:4px">${esc(nombreEscuela(s.cct))}</h1>
-    <div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${cues.map(c => esc(c.titulo)).join(', ')}</div></div>
+    <div class="peq mudo">${esc(cmpNomVisita(s.visita))} · ${cues.map(c => esc(c.titulo)).join(', ')}${(p => p ? ' · Programada: ' + esc(visProgTxt(p)) : '')(visProg(s.cct, s.visita))}</div></div>
     <div class="acciones">${cmpEnLinea() && !S.offline ? `<button class="boton sec chico" id="cs-traer">${ico('i-act')}Traer de Tequio</button>` : ''}<button class="boton sec chico" id="cs-guias">${ico('i-mas')}Guías</button></div></div>
-  <div class="seccion-t">Dirección</div>${tarjeta(s.personas[0])}
+  <div class="seccion-t">Dirección y ATP</div>${tarjeta(s.personas[0])}
   <div class="seccion-t" style="display:flex;align-items:center;gap:8px">Docentes<span style="flex:1"></span><button class="boton sec chico" id="cs-docs">${ico('i-mas')}Elegir docentes</button></div>
-  ${s.personas.length > 1 ? s.personas.slice(1).map(tarjeta).join('') : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Pulse «Elegir docentes» para escoger a quiénes va a revisar.</div></div>'}
+  ${s.personas.length > 1 ? s.personas.slice(1).map(tarjeta).join('') : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Pulse «Elegir docentes» para escoger a quiénes va a revisar (esta escuela no tiene docentes en la base de Personal o la guía no trae aspectos para docentes).</div></div>'}
   <div class="acciones" style="margin-top:16px;justify-content:flex-end"><button class="boton peligro chico" id="cs-borrar">Quitar del dispositivo</button><button class="boton terra" id="cs-subir" ${cmpPendientes().some(r => r.sesion === s.id) ? '' : 'disabled'}>${ico('i-carpeta')}Subir a Tequio</button></div>`;
   $('#cs-volver').onclick = () => cmpIr({ pant: 'inicio' });
   $$('[data-per]').forEach(b => b.onclick = () => cmpIr({ pant: 'persona', sid: s.id, pk: b.dataset.per }));
@@ -1856,8 +2015,8 @@ function cmpPersona() {
       <div class="cmp-qt">${esc(p.t)}${p.foto === 2 ? ' <span class="chip mal" style="font-size:11px">foto obligatoria</span>' : ''}${doc ? ' <span class="chip indigo" style="font-size:11px">la contesta el docente</span>' : ''}${x.por === 'docente' ? ' <span class="chip ok" style="font-size:11px">contestó el docente</span>' : ''}</div>
       ${p.ayuda ? `<div class="ayuda">${esc(p.ayuda)}</div>` : ''}
       ${p.tipo === 'texto' ? `<textarea data-qv="${esc(cue.id)}|${esc(p.k)}" placeholder="Respuesta">${esc(x.v || '')}</textarea>`
-        : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${x.v === o ? ' on' : ''}"><input type="radio" name="${nm}" value="${esc(o)}" data-qv="${esc(cue.id)}|${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>`}
-      ${p.tipo !== 'texto' ? `<textarea class="cmp-obs" data-qo="${esc(cue.id)}|${esc(p.k)}" placeholder="Observación (opcional)">${esc(x.obs || '')}</textarea>` : ''}
+        : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${semClase(o)}${x.v === o ? ' on' : ''}"><input type="radio" name="${nm}" value="${esc(o)}" data-qv="${esc(cue.id)}|${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>`}
+      ${p.tipo !== 'texto' ? `<textarea class="cmp-obs" data-qo="${esc(cue.id)}|${esc(p.k)}" placeholder="Observaciones">${esc(x.obs || '')}</textarea>` : ''}
       ${p.foto ? `<div class="cmp-fotos">${fotos}<label class="boton sec chico">${ico('i-cam')}Tomar o elegir foto<input type="file" accept="image/*" capture="environment" hidden data-qp="${esc(cue.id)}|${esc(p.k)}"></label></div>` : ''}
     </div>`;
   };
@@ -1870,7 +2029,7 @@ function cmpPersona() {
     const hayDoc = cues.some(c => cmpPreg(c, per.persona).some(p => p.quien === 'docente'));
     $('#vista').innerHTML = `
     <div class="titulo-vista"><div><button class="enlace" id="cp-volver">← ${esc(nombreEscuela(s.cct))}</button><h1 style="margin-top:4px">${esc(per.nombre)}</h1>
-      <div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))} · ${esc(cmpNomVisita(s.visita))}</div></div></div>
+      <div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))}${per.persona === 'direccion' ? cmpApoyoTxt(s.cct) : ''} · ${esc(cmpNomVisita(s.visita))}</div></div></div>
     ${hayDoc ? `<div class="aviso-caja cmp-docbox"><b>Hay preguntas que contesta ${per.persona === 'direccion' ? 'la dirección' : 'el docente'}.</b> Puede pasarle este dispositivo o darle un código para que conteste en su celular (necesita internet).
       <div class="acciones" style="margin-top:8px"><label class="casilla"><input type="checkbox" id="cp-mdoc" ${modoDoc ? 'checked' : ''}> Está contestando ${per.persona === 'direccion' ? 'la dirección' : 'el docente'} en este dispositivo</label>${cmpEnLinea() && !S.offline ? `<button class="boton sec chico" id="cp-cod">Código para su celular</button>` : ''}</div></div>` : ''}
     ${cues.map((c, i) => `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 4px">${esc(c.titulo)}</h2>${c.descripcion ? `<p class="peq mudo" style="margin:0 0 8px">${esc(c.descripcion)}</p>` : ''}
@@ -1942,6 +2101,7 @@ async function cmpSubir(sid) {
       const res = await api('revGuardar', { revs: lote.map(r => ({ cueId: r.cueId, cct: r.cct, visita: r.visita, ciclo: r.ciclo, persona: r.persona, personaNombre: r.personaNombre, funcion: r.funcion, grupo: r.grupo, respuestas: r.respuestas, estado: r.estado, fecha: r.fecha })) });
       for (const sv of (res.rev || [])) { const loc = lote.find(r => r.id === sv.id); if (!loc) continue; loc.respuestas = sv.respuestas; loc.sucio = false; loc.subido = ahora(); await cmpGuardarRev(limpioRev(loc)); if (S.rev) poner(S.rev, sv); }
     }
+    await cmpSincVis(listos);
     aviso('Se subió a Tequio: ' + listos.length + ' revisión(es)' + (fotos ? ' y ' + fotos + ' foto(s) al Drive de la Supervisión' : '') + '.' + (errores ? ' ' + errores + ' foto(s) no se pudieron subir; intente de nuevo.' : ''), errores ? 'mal' : 'ok', 7000);
   } catch (e) { aviso(esc(e.message || 'No se pudo subir. Intente de nuevo.'), 'mal', 8000); }
   finally { cargando(false); vCampo(); }
@@ -1969,11 +2129,13 @@ function cmpGuias() {
   <div class="titulo-vista"><div><button class="enlace" id="gu-volver">← Revisión en campo</button><h1 style="margin-top:4px">Guías de revisión</h1></div>
     <div class="acciones"><button class="boton terra" id="gu-nueva">${ico('i-mas')}Nueva guía</button></div></div>
   <p class="peq mudo" style="margin-top:-6px">Lo que se va a revisar o solicitar en las escuelas. Cada pregunta dice si es para la dirección o para cada docente, quién la contesta y si pide foto.</p>
+  ${cmpBaseHTML()}
   ${l.length ? l.map(c => { const n = { d: c.preguntas.filter(p => p.para !== 'docente').length, k: c.preguntas.filter(p => p.para !== 'direccion').length, f: c.preguntas.filter(p => p.foto).length };
     return `<button class="tarjeta pad cmp-ses" data-gu="${esc(c.id)}"><div style="flex:1;min-width:0"><b>${esc(c.titulo)}</b><div class="peq mudo">${c.visita ? esc(c.visita === 'x' ? 'Visitas extraordinarias' : cmpNomVisita(c.visita)) : 'Cualquier visita'} · ${(c.escuelas || []).length ? c.escuelas.length + ' escuela(s)' : 'Todas las escuelas'} · ${n.d} para la dirección · ${n.k} para docentes · ${n.f} con foto</div></div>${ico('i-der')}</button>`; }).join('')
     : '<div class="tarjeta pad"><div class="vacio peq" style="padding:6px">Aún no hay guías. Pulse «Nueva guía».</div></div>'}`;
   $('#gu-volver').onclick = () => cmpIr({ pant: 'inicio' });
   $('#gu-nueva').onclick = () => cmpFormGuia(null);
+  if ($('#cm-base')) $('#cm-base').onclick = cmpCargarBase;
   $$('[data-gu]').forEach(b => b.onclick = () => cmpFormGuia(b.dataset.gu));
 }
 function cmpFormGuia(id) {
@@ -2025,7 +2187,7 @@ function cmpResultados() {
   const c = cues.find(x => x.id === f.cue);
   const revs = (S.rev || []).filter(r => r.cueId === f.cue && (!f.cct || r.cct === f.cct) && (!f.vis || String(r.visita) === f.vis))
     .sort((a, b) => nombreEscuela(a.cct).localeCompare(nombreEscuela(b.cct), 'es') || (a.persona === 'direccion' ? -1 : b.persona === 'direccion' ? 1 : String(a.personaNombre).localeCompare(String(b.personaNombre), 'es')));
-  const col = v => /^(sí|logrado)$/i.test(v) ? 'ok' : /^(no|requiere)/i.test(v) ? 'mal' : /proceso|desarrollo/i.test(v) ? 'aviso' : '';
+  const col = v => /^no aplica/i.test(v) ? '' : /^(sí|logrado)$|^verde/i.test(v) ? 'ok' : /^(no|requiere|rojo)/i.test(v) ? 'mal' : /proceso|desarrollo|^amarillo/i.test(v) ? 'aviso' : '';
   $('#vista').innerHTML = `
   <div class="titulo-vista"><div><button class="enlace" id="rs-volver">← Revisión en campo</button><h1 style="margin-top:4px">Resultados de la revisión</h1></div>
     <div class="acciones"><button class="boton sec" id="rs-act">${ico('i-act')}Actualizar</button></div></div>
@@ -2813,11 +2975,11 @@ const VIS_GUIAS = {
     { k: 'lr', t: 'Lectura de la realidad', r: ['Elaborada en colectivo (CTE), con la participación de todo el personal', 'Usa datos: SisAT 1.er momento, EIA, asistencia y contexto de la comunidad', 'Incluye el análisis crítico de cómo se llegó a los resultados', 'Prioriza las problemáticas y plantea cómo atenderlas'], f: 'Portada y apartado de problemáticas priorizadas' },
     { k: 'pmc', t: 'Programa de Mejora Continua (PMC)', r: ['Objetivos y metas que se desprenden de la lectura de la realidad', 'Acciones con responsables, tiempos y recursos', 'Atiende aprovechamiento, convivencia, participación de las familias e infraestructura', 'Define cómo se dará seguimiento y cómo se evaluará'], f: 'Objetivos, metas y cronograma de acciones' },
     { k: 'pa', t: 'Programa analítico', r: ['Plano 1: lectura de la realidad (contextualización)', 'Plano 2: contenidos de los programas sintéticos contextualizados por fase', 'Plano 3: codiseño de contenidos locales (si aplica)', 'Vinculado a las problemáticas priorizadas', 'Conocido por todo el colectivo docente'], f: 'Índice y un ejemplo de contenido contextualizado' },
+    { k: 'cpye', t: 'Comité de Planeación y Evaluación', r: ['Integrado, con acta firmada y vigente para el ciclo', 'Sesiona y deja registro de sus reuniones', 'Coordina la elaboración y el seguimiento del PMC', 'Informa los avances al colectivo en el CTE'], f: 'Acta de integración y registro de la última reunión' },
     { k: 'go', t: 'Guía Operativa', r: ['Leída y analizada en colectivo', 'Firma de enterado de TODO el personal (directivo, docente, de apoyo e intendencia)', 'Ejemplar disponible en la dirección para consulta'], f: 'Hoja de firmas completa' },
-    { k: 'ppie', t: 'PPIE (Programa de Protección Integral Escolar)', r: ['Anexos completos y actualizados al ciclo', 'Comités integrados', 'Croquis y rutas de evacuación visibles en el plantel', 'Protocolos de acceso y salida conocidos por el personal', 'Firma de TODO el personal'], f: 'Hoja de firmas, croquis y rutas de evacuación en el plantel' },
-    { k: 'cpe', t: 'Consejo de Participación Escolar', r: ['Instalado, con acta firmada', 'Comités integrados', 'Plan de trabajo elaborado o con fecha para elaborarlo', 'Documentación entregada en tiempo a quien corresponde'], f: 'Acta de instalación y relación de comités' },
-    { k: 'inm', t: 'Seguridad del inmueble', r: ['Botiquín de primeros auxilios surtido', 'Extintores vigentes y señalización de rutas y salidas', 'Zonas de riesgo identificadas y atendidas', 'Libro de visitas al día'], f: 'Botiquín, extintores, señalización y libro de visitas' },
-    { k: 'sis1', t: 'SisAT · 1.er momento', r: ['Aplicado a todos los grupos', 'Resultados cargados en Tequio (Excel oficial)', 'Alumnos en riesgo identificados por grupo', 'Estrategias acordadas para los alumnos en riesgo'], f: 'Concentrado de resultados y listado de alumnos en riesgo' }] },
+    { k: 'ppie', t: 'Manual del PPIE (Programa de Protección Integral Escolar)', r: ['Anexos completos y actualizados al ciclo', 'Comités integrados', 'Croquis y rutas de evacuación visibles en el plantel', 'Protocolos de acceso y salida conocidos por el personal', 'Firma de TODO el personal'], f: 'Hoja de firmas, croquis y rutas de evacuación en el plantel' },
+    { k: 'len', t: 'Carpeta de La Escuela es Nuestra (LEEN)', r: ['Acta de asamblea y del Comité Escolar de Administración Participativa (CEAP)', 'Plan de trabajo o de uso del recurso acordado en asamblea', 'Comprobación de gastos al corriente (facturas, notas y bitácora)', 'Evidencia de las acciones y rendición de cuentas a la comunidad', 'Si la escuela no recibe el programa, se marca «No aplica»'], f: 'Carátula de la carpeta, acta del comité y registro de gastos' },
+    { k: 'inm', t: 'Seguridad de la escuela', r: ['Botiquín de primeros auxilios surtido', 'Extintores vigentes y señalización de rutas y salidas', 'Zonas de riesgo identificadas y atendidas (bardas, techos, instalación eléctrica, sanitarios)', 'Control de acceso y libro de visitas al día'], f: 'Botiquín, extintores, señalización, zonas de riesgo y libro de visitas' }] },
   2: { titulo: 'Seguimiento pedagógico', cuando: 'enero – febrero', temas: [
     { k: 'obs', t: 'Observación de clase', r: ['Se observa al menos un grupo, acordado con la dirección', 'La clase atiende problemáticas del programa analítico', 'Participación de los alumnos y aprovechamiento del tiempo', 'Retroalimentación al docente al terminar'], f: 'Momento de la clase y producciones de los alumnos' },
     { k: 'plan', t: 'Planeación didáctica', r: ['Planeaciones vigentes de todos los grupos', 'Vinculadas a los contenidos del programa analítico', 'Consideran a los alumnos en riesgo del SisAT', 'Prevén la evaluación formativa'], f: 'Una planeación por fase' },
@@ -2838,7 +3000,8 @@ const VIS_GUIAS = {
 // Temas que van en TODAS las visitas (las tres del ciclo y las extraordinarias)
 const VIS_COMUNES = [
   { k: 'lf', t: 'Libro de firmas', r: ['Al día, con la entrada y salida de todo el personal', 'Firmas completas, sin espacios en blanco ni enmendaduras', 'Incidencias anotadas (licencias, comisiones, retardos e inasistencias) con su respaldo', 'Revisado y firmado por la dirección'], f: 'Las hojas de la semana o quincena más reciente' }];
-const VIS_ESTADOS = { cumple: ['Cumple', 'ok'], proceso: ['En proceso', 'aviso'], acomp: ['Requiere acompañamiento', 'terra'], na: ['No aplica', ''] };
+// Semáforo: verde, amarillo y rojo (el tercer dato es el color que se muestra en el botón)
+const VIS_ESTADOS = { cumple: ['Cumple', 'ok', '🟢'], proceso: ['En proceso', 'aviso', '🟡'], acomp: ['Requiere acompañamiento', 'mal', '🔴'], na: ['No aplica', '', '⚪'] };
 const cicloVis = () => { const h = new Date(), y = h.getFullYear(); return h.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y; };
 const visDe = (cct, n) => (S.vis || []).find(v => v.cct === cct && v.ciclo === cicloVis() && +v.numero === +n) || null;
 const visGuia = n => (+n <= 3 ? VIS_GUIAS[+n].temas : []).concat(VIS_COMUNES);
@@ -2866,7 +3029,7 @@ function bloqueVisitas(cct) {
     const v = visDe(cct, n), a = visAvance(v, n);
     return `<button class="act" data-vis="${n}"><div class="fecha"><b>${n <= 3 ? n : 'E' + (n - 3)}</b><span>${n <= 3 ? 'visita' : 'extra'}</span></div>
       <div class="cuerpo"><div class="t">${esc(visNombre(n, v))}</div>
-        <div class="m"><span>${n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : (v && v.fecha ? fechaCorta(v.fecha) : '')}</span><span>· ${a.revisados} de ${a.total} temas revisados</span>${a.fotos ? `<span>· ${a.fotos} foto${a.fotos === 1 ? '' : 's'}</span>` : ''}${a.listos ? `<span>· ${a.listos} listo${a.listos === 1 ? '' : 's'} por la escuela</span>` : ''}</div>
+        <div class="m"><span>${(p => p && !(v && v.estado === 'cerrada') ? 'Programada: ' + visProgTxt(p) : n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : (v && v.fecha ? fechaCorta(v.fecha) : ''))(visProg(cct, n))}</span><span>· ${a.revisados} de ${a.total} temas revisados</span>${a.fotos ? `<span>· ${a.fotos} foto${a.fotos === 1 ? '' : 's'}</span>` : ''}${a.listos ? `<span>· ${a.listos} listo${a.listos === 1 ? '' : 's'} por la escuela</span>` : ''}</div>
         <div class="chips">${visEstadoChip(v)}${a.acomp ? `<span class="chip terra">${a.acomp} requiere${a.acomp === 1 ? '' : 'n'} acompañamiento</span>` : ''}</div></div></button>`;
   }).join('');
   return `<div class="tarjeta" style="margin-bottom:14px"><div class="seccion-t" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">Visitas de supervisión · ciclo ${cicloVis()}
@@ -2948,7 +3111,7 @@ function vEditorVisita() {
         ${mesa && propio && !cerrada ? `<button type="button" class="boton sec chico" data-et="${esc(t.k)}">${ico('i-lapiz')}</button>` : ''}</div>
       ${(t.r || []).length ? `<div class="ayuda" style="margin:8px 0 2px">Qué se revisa</div><ul style="margin:0 0 6px;padding-left:20px">${t.r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       ${t.f ? `<div class="peq"><b>Evidencia sugerida:</b> foto de ${esc(t.f.charAt(0).toLowerCase() + t.f.slice(1))}.</div>` : ''}
-      ${mesa ? `<div class="filtros" style="margin:10px 0 6px">${Object.entries(VIS_ESTADOS).map(([k, e]) => `<button type="button" class="chip${d.estado === k ? ' ' + (e[1] || 'indigo') : ''}" data-est="${esc(t.k)}|${k}" style="cursor:pointer;border:${d.estado === k ? '0' : '1px solid var(--borde)'};padding:6px 12px;font-size:14px" ${cerrada ? 'disabled' : ''}>${e[0]}</button>`).join('')}</div>
+      ${mesa ? `<div class="filtros" style="margin:10px 0 6px">${Object.entries(VIS_ESTADOS).map(([k, e]) => `<button type="button" class="chip${d.estado === k ? ' ' + (e[1] || 'indigo') : ''}" data-est="${esc(t.k)}|${k}" style="cursor:pointer;border:${d.estado === k ? '0' : '1px solid var(--borde)'};padding:6px 12px;font-size:14px" ${cerrada ? 'disabled' : ''}>${e[2]} ${e[0]}</button>`).join('')}</div>
         <textarea data-obs="${esc(t.k)}" placeholder="Observaciones de la Supervisión" style="width:100%;min-height:64px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px" ${cerrada ? 'disabled' : ''}>${esc(d.obs)}</textarea>`
       : (it.obs ? `<div class="aviso-caja peq" style="margin-top:8px"><b>Observación de la Supervisión:</b> ${esc(it.obs)}</div>` : '')}
       ${mesa ? (it.nd ? `<div class="aviso-caja conf peq" style="margin-top:8px"><b>Nota de la escuela:</b> ${esc(it.nd)}</div>` : '')
@@ -2966,6 +3129,7 @@ function vEditorVisita() {
     <div><div class="ayuda">Escuela</div><b>${esc(c ? c.escuela : cct)}</b></div>
     <div><div class="ayuda">C.C.T.</div><b>${esc(cct)}</b></div>
     ${mesa ? `<div class="campo" style="margin:0"><label for="v-fecha" class="ayuda">Fecha de la visita</label><input type="date" id="v-fecha" value="${esc(D.fecha)}" ${cerrada ? 'disabled' : ''}></div>` : `<div><div class="ayuda">Fecha</div><b>${v && v.fecha ? fechaLarga(v.fecha) : (n <= 3 ? 'Sugerida: ' + VIS_GUIAS[n].cuando : 'Por definir')}</b></div>`}
+    ${(p => p && !cerrada ? `<div><div class="ayuda">Programada</div><b>${esc(visProgTxt(p))}</b></div>` : '')(visProg(cct, n))}
     <div style="margin-left:auto">${visEstadoChip(v)}</div></div>
   <div class="aviso-caja peq">${mesa ? (cerrada ? `Visita cerrada${v.cerradaPor ? ' por ' + esc(v.cerradaPor) : ''}. Quedó en el seguimiento; la escuela solo ve los acuerdos.` : 'Marque cada tema, escriba sus observaciones y suba las fotos de evidencia (van a la carpeta de la Supervisión › Visitas a escuelas; la escuela no las ve). La escuela ve esta guía desde antes para prepararse, pero no los resultados. Al terminar pulse «Cerrar visita».')
     : (cerrada ? 'Esta visita ya se realizó. Los resultados los registra y conserva la Supervisión.' : 'Esta es la guía de lo que se revisará en la visita. Prepare cada tema: puede subir fotos de evidencia, dejar una nota y marcarlo como listo. Recuerde que los productos del CTE se quedan en la escuela; las fotos solo muestran que están hechos.')}</div>
