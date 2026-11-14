@@ -135,14 +135,26 @@ async function rkPDF(cfg,personas,env){
       if(I.fondo){const im=I.fondo,cover=cfg.fondo.ajuste!=="ajustar";const k=cover?Math.max(PW/im.width,PH/im.height):Math.min(PW/im.width,PH/im.height);
         const iw=im.width*k,ih=im.height*k;pg.drawImage(im,{x:(PW-iw)/2,y:(PH-ih)/2,width:iw,height:ih})}
       const ct=rgb(...rkHex(cfg.fondo.color||"#1F3A6B"));col={tit:ct,nom:ct,pre:ct,txt:ct,sub:ct,lin:ct,fir:ct};
-      const mg=Math.max(20,Math.min(140,+cfg.fondo.margen||60));box={x:mg,top:mg*.8,w:PW-2*mg,h:PH-1.6*mg};
+      const AU=cfg.fondo.autoOn!==false&&cfg.fondo.auto&&cfg.fondo.auto.box?cfg.fondo.auto:null;
+      if(AU)box={x:AU.box.x*PW+6,top:AU.box.y*PH,w:AU.box.w*PW-12,h:AU.box.h*PH,A:AU};
+      else{const mg=Math.max(20,Math.min(140,+cfg.fondo.margen||60));box={x:mg,top:mg*.8,w:PW-2*mg,h:PH-1.6*mg}}
     }
 
     /* ---------- contenido ---------- */
-    const B=box,cx=B.x+B.w/2,esF=cfg.diseno==="fondo";const dy=esF?(+cfg.fondo.dy||0):0,fdy=esF?(+cfg.fondo.fdy||0):0;const zz=esF?(+cfg.fondo.esc||1):1;
+    const B=box,cx=B.x+B.w/2,esF=cfg.diseno==="fondo";const dy=esF?(+cfg.fondo.dy||0):0,fdy=esF?(+cfg.fondo.fdy||0):0;let zz=esF?(+cfg.fondo.esc||1):1;
     const mostrar=k=>!esF||cfg.fondo.ver[k]!==false;
     const fr=vert?{tit:.235,pre:.32,nom:.43,gr:.48,mot:.54,lug:.715,fec:.80}:{tit:.255,pre:.35,nom:.475,gr:.535,mot:.595,lug:.75,fec:.82};
-    const T=k=>B.top+B.h*fr[k]+dy;
+    let T=k=>B.top+B.h*fr[k]+dy;
+    /* Fondo propio adaptado al diseño (A): el texto se reparte en el espacio libre que se midió en la imagen */
+    const A=esF?B.A:null,AN=A&&A.nom?A.nom:null;const lim=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const fsA=(cfg.firmas||[]).filter(f=>f.on&&(f.nom||f.car));
+    const feA=[String(cfg.lugarFecha||"").trim(),rkFechaLarga(cfg.fecha)].filter(Boolean).join(", a ");
+    let cxN=cx,wN=B.w*(cfg.diseno==="honor"?.66:.88),hN=1e9,cxB=cx,wB=B.w,R=null,motTop=null,motAlto=null;
+    if(A&&!AN){const firIn=mostrar("firmas")&&!A.firmas&&fsA.length>0;
+      const a=mostrar("encabezado")?0:mostrar("titulo")?fr.tit-.085:mostrar("preambulo")?fr.pre-.05:fr.nom-.11,b=firIn?1:mostrar("fecha")&&feA?fr.fec+.045:fr.lug+.06;
+      const nat=(b-a)*(PH-96),k=lim(Math.min(Math.sqrt(B.w/(PW-120)),B.h/nat),.55,1.2);zz*=k;const span=Math.min(B.h,nat*k*1.12),off=(B.h-span)/2;
+      T=q=>B.top+off+span*(fr[q]-a)/(b-a)+dy}
+    if(AN){zz*=lim(Math.min(AN.w*PW/430,B.w/(PW-120)),.5,1.1);cxN=AN.cx*PW;wN=AN.w*PW*.94;hN=Math.max(12,AN.alto*PH*.82)}
 
     /* encabezado */
     if(mostrar("encabezado")){const lh=vert?52:46;let xl=B.x;
@@ -156,7 +168,15 @@ async function rkPDF(cfg,personas,env){
       ctr(l3,cx,h0+39,fit(l3,fS,7,mw),fS,col.sub)}
 
     const fN=F[cfg.letra]||F.script;const nom=rkCaso(per.nombre,cfg.caso);
-    let sNom=(fN===F.script?(vert?48:54):fN===F.pacifico?(vert?36:40):(vert?32:36))*zz;sNom=fit(nom,fN,sNom,B.w*(cfg.diseno==="honor"?.66:.88),12);
+    let sNom=(fN===F.script?(vert?48:54):fN===F.pacifico?(vert?36:40):(vert?32:36))*zz;sNom=fit(nom,fN,Math.min(sNom,hN),wN,AN?9:12);
+    if(AN){const nt=AN.y*PH-4+dy;const P={nom:nt,tit:B.top+36*zz+dy,pre:nt-sNom*.95-8};
+      const hayMot=A.mot&&!A.mot.ys;let r0=(hayMot?A.mot.top*PH:AN.y*PH+8)+dy,r1=(hayMot?A.mot.bottom*PH:AN.y*PH+8+PH*.09)+dy;
+      if(A.mot&&A.mot.ys)R={ys:A.mot.ys.map(q=>({y:q.y*PH+dy,cx:q.cx*PW,w:q.w*PW*.95}))};
+      else{cxB=hayMot?A.mot.cx*PW:cxN;wB=hayMot?A.mot.w*PW:wN;
+        const ggA=cfg.verGrado&&(per.grado||per.grupo),lugA=String(per.lugar||cfg.lugarGral||"").trim();
+        if(ggA){P.gr=r0+11*zz;r0+=16*zz}if(mostrar("fecha")&&feA){P.fec=r1-3;r1-=17*zz}if(lugA){P.lug=r1-16*zz;r1-=24*zz}
+        motTop=r0;motAlto=Math.max(10,r1-r0)}
+      T=q=>P[q]!=null?P[q]:nt}
     /* medalla del cuadro de honor */
     const lug=String(per.lugar||cfg.lugarGral||"").trim();
     if(cfg.diseno==="honor"){const my=B.top+(vert?122:70),mx=cx,r=vert?22:19;
@@ -182,37 +202,51 @@ async function rkPDF(cfg,personas,env){
 
     /* preámbulo */
     const pre=(cfg.pre||"").trim()||rkPreDefault(cfg,tipo);
-    if(mostrar("preambulo")&&pre){const s=fit(pre,fP,13*zz,B.w*.9,8);ctr(pre,cx,T("pre")+(cfg.diseno==="honor"?14:0),s,fP,col.pre)}
+    if(mostrar("preambulo")&&pre){const s=fit(pre,fP,13*zz,B.w*.9,8);ctr(pre,AN?cxN:cx,T("pre")+(cfg.diseno==="honor"?14:0),s,fP,col.pre)}
 
     /* nombre */
     {const s=sNom;
-      const top=T("nom")+(cfg.diseno==="honor"?10:0);ctr(nom,cx,top,s,fN,col.nom);
-      if(!esF||cfg.fondo.ver.linea!==false){const lw=Math.min(B.w*.72,Math.max(w(nom,fN,s)+60,B.w*.45));pg.drawLine({start:{x:cx-lw/2,y:Y(top+8)},end:{x:cx+lw/2,y:Y(top+8)},thickness:.7,color:col.lin})}}
+      const top=T("nom")+(cfg.diseno==="honor"?10:0);ctr(nom,cxN,top,s,fN,col.nom);
+      if(!esF||cfg.fondo.ver.linea!==false){const lw=AN?wN:Math.min(B.w*.72,Math.max(w(nom,fN,s)+60,B.w*.45));pg.drawLine({start:{x:cxN-lw/2,y:Y(top+8)},end:{x:cxN+lw/2,y:Y(top+8)},thickness:.7,color:col.lin})}}
 
     /* grado y grupo */
     const gg=cfg.verGrado&&(per.grado||per.grupo)?[per.grado?String(per.grado).replace(/[°º]/g,"")+"° grado":"",per.grupo?`grupo «${per.grupo}»`:""].filter(Boolean).join(", "):"";
-    if(gg)ctr(gg,cx,T("gr")+(cfg.diseno==="honor"?8:0),10*zz,fS,col.sub);
+    if(gg&&!R)ctr(gg,cxB,T("gr")+(cfg.diseno==="honor"?8:0),10*zz,fS,col.sub);
 
     /* motivo */
     const mot=String(per.motivo||"").trim()||String(cfg.motivo||"").trim();
-    if(mot){const maxW=B.w*(vert?.86:.78),alto=B.h*(fr.lug-fr.mot)-6;let s=15*zz,L;
+    if(R){/* el modelo trae renglones: el texto se escribe sobre ellos */
+      const txt=[lug,mot,gg].map(t=>String(t||"").trim()).filter(Boolean).map(t=>/[.!?»]$/.test(t)?t:t+".").join(" ");
+      if(txt){const n=R.ys.length,sep=n>1?(R.ys[n-1].y-R.ys[0].y)/(n-1):24;const ren=i=>i<n?R.ys[i]:{y:R.ys[n-1].y+sep*(i-n+1),cx:R.ys[n-1].cx,w:R.ys[n-1].w};let s=Math.min(14*zz,sep*.66),L;
+        const partir=sz=>{const out=[];let cur="";for(const pal of txt.split(/\s+/)){const t=cur?cur+" "+pal:pal;if(w(t,fM,sz)>ren(out.length).w&&cur){out.push(cur);cur=pal}else cur=t}if(cur)out.push(cur);return out};
+        for(;;){L=partir(s);if(L.length<=n||s<=9)break;s-=.5}
+        L.forEach((ln,i)=>ctr(ln,ren(i).cx,ren(i).y-3,s,fM,col.txt))}}
+    else if(mot){const maxW=AN?wB*.94:B.w*(vert?.86:.78),alto=motAlto!=null?motAlto:T("lug")-T("mot")-6;let s=15*zz,L;
       const partir=sz=>{const out=[];let cur="";for(const pal of mot.split(/\s+/)){const t=cur?cur+" "+pal:pal;if(w(t,fM,sz)>maxW&&cur){out.push(cur);cur=pal}else cur=t}if(cur)out.push(cur);return out};
       for(;;){L=partir(s);if(L.length*s*1.32<=alto||s<=9)break;s-=.5}
-      L.forEach((ln,i)=>ctr(ln,cx,T("mot")+(cfg.diseno==="honor"?6:0)+s+i*s*1.32,s,fM,col.txt))}
+      const m0=motTop!=null?motTop+Math.max(0,(motAlto-L.length*s*1.32)/2)-s*.2:T("mot")+(cfg.diseno==="honor"?6:0);
+      L.forEach((ln,i)=>ctr(ln,cxB,m0+s+i*s*1.32,s,fM,col.txt))}
 
     /* lugar obtenido */
-    if(lug&&cfg.diseno!=="honor"){const t=lug.toLocaleUpperCase("es-MX"),s=10.5*zz,tw=w(t,fSB,s)+30,h=20;const top=T("lug")-4;
-      if(esF)ctr(t,cx,top+14,s+2,fSB,col.tit);
+    if(R){}
+    else if(lug&&cfg.diseno!=="honor"){const t=lug.toLocaleUpperCase("es-MX"),s=10.5*zz,tw=w(t,fSB,s)+30,h=20;const top=T("lug")-4;
+      if(esF)ctr(t,cxB,top+14,s+2,fSB,col.tit);
       else{svg(rrect(cx-tw/2,top,tw,h,10),{color:cfg.diseno==="infantil"?(K[1]||c2):c2});ctr(t,cx,top+14,s,fSB,blanco)}}
     else if(lug&&cfg.diseno==="honor"){const t=lug.toLocaleUpperCase("es-MX");ctr(t,cx,T("lug")+10,fit(t,F.playB,13,B.w*.6),F.playB,c2)}
 
     /* lugar y fecha */
     const fe=[String(cfg.lugarFecha||"").trim(),rkFechaLarga(cfg.fecha)].filter(Boolean).join(", a ");
-    if(mostrar("fecha")&&fe)ctr(fe+".",cx,T("fec")+(lug?6:0),fit(fe+".",F.loraI,11*zz,B.w*.8),F.loraI,col.sub);
+    if(R){if(mostrar("fecha")&&fe&&A.fec)ctr(fe+".",A.fec.cx*PW,A.fec.y*PH+dy,fit(fe+".",F.loraI,11*zz,A.fec.w*PW),F.loraI,col.sub)}
+    else if(mostrar("fecha")&&fe)ctr(fe+".",cxB,T("fec")+(lug&&!AN?6:0),fit(fe+".",F.loraI,11*zz,(AN?wB:B.w)*.8),F.loraI,col.sub);
 
     /* firmas */
     const fs=(cfg.firmas||[]).filter(f=>f.on&&(f.nom||f.car));
-    if(mostrar("firmas")&&fs.length){const n=fs.length,ln=B.top+B.h-22+fdy;const pos=n===1?[.5]:n===2?[.25,.75]:[.17,.5,.83];const cw=Math.min(210,B.w/n-24);
+    if(mostrar("firmas")&&fs.length&&A&&A.firmas){/* el modelo trae sus líneas de firma: cada nombre va en la suya */
+      fs.slice(0,A.firmas.length).forEach((f,i)=>{const q=A.firmas.length>fs.length&&fs.length===1?A.firmas[Math.floor(A.firmas.length/2)]:A.firmas[i];const x=q.cx*PW,ln=q.y*PH+fdy,cw=Math.max(60,q.w*PW);
+        const nm=String(f.nom||"").trim(),cg=String(f.car||"").trim();
+        if(q.arriba){if(nm)ctr(nm,x,ln-5,fit(nm,fSB,10,cw),fSB,col.fir)}
+        else{if(f.firma&&I.firma)pic(I.firma,x-cw/2+10,ln-44,cw-20,42);if(nm)ctr(nm,x,ln+12,fit(nm,fSB,9.5,cw),fSB,col.fir);if(cg)ctr(cg,x,ln+22,fit(cg,fS,8,cw),fS,col.sub)}})}
+    else if(mostrar("firmas")&&fs.length){const n=fs.length,ln=B.top+B.h-22+fdy;const pos=n===1?[.5]:n===2?[.25,.75]:[.17,.5,.83];const cw=Math.min(210,B.w/n-24);
       fs.forEach((f,i)=>{const x=B.x+B.w*pos[i];
         if(f.firma&&I.firma)pic(I.firma,x-cw/2+20,ln-44,cw-40,42);
         pg.drawLine({start:{x:x-cw/2,y:Y(ln)},end:{x:x+cw/2,y:Y(ln)},thickness:.7,color:esF?col.fir:tinta});
@@ -300,7 +334,7 @@ function rkGuardar(){OUT=null;try{localStorage.setItem(RK_KEY,JSON.stringify(RK)
 function rkFondoGet(){if(RK_FONDO===undefined)RK_FONDO=store.get(RK_FONDO_KEY,null);return RK_FONDO}
 function rkFondoSet(d){RK_FONDO=d;try{if(d)localStorage.setItem(RK_FONDO_KEY,JSON.stringify(d));else localStorage.removeItem(RK_FONDO_KEY);return true}catch(e){return false}}
 let RK_ZONA_B=null;
-async function rkEnv(){await loadScript("lib/fontkit.min.js");
+async function rkEnv(){await rkAutoAsegura();await loadScript("lib/fontkit.min.js");
   if(!RK_ZONA_B){try{RK_ZONA_B=await lvBytes("img/zona050.png")}catch(e){RK_ZONA_B=null}}
   return{PDFLib,fontkit:window.fontkit,bytes:u=>lvBytes(u),inst:await instLogoData(),zona:RK_ZONA_B,esc:logoGet(),
     firma:typeof firmaGet==="function"?firmaGet():null,fondo:rkFondoGet()}}
@@ -378,7 +412,7 @@ function rkCSS(){if(document.getElementById("rkcss"))return;const s=document.cre
 @media (max-width:560px){.rkper .c .r{grid-template-columns:1fr 1fr}}
 .rkbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.rkpv{background:#ece7dc;border-radius:12px;padding:10px;min-height:120px;display:flex;align-items:center;justify-content:center}
 .rkpv canvas{max-width:100%;height:auto;box-shadow:0 2px 12px rgba(0,0,0,.18);background:#fff;display:block}
-.rkfondo{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.rkfondo .pv{width:150px;aspect-ratio:11/8.5;border-radius:10px;background:#f3efe6;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--line,#ddd)}
+.rkcal{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #d9cfbb}.rkfondo{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.rkfondo .pv{width:150px;aspect-ratio:11/8.5;border-radius:10px;background:#f3efe6;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--line,#ddd)}
 .rkfondo .pv img{width:100%;height:100%;object-fit:cover}.rkrange{display:grid;grid-template-columns:150px 1fr 44px;gap:8px;align-items:center;margin:6px 0}
 .rkrange input{width:100%}.rkmini{font-size:13px;color:var(--muted,#666)}.rkalu{max-height:320px;overflow:auto;border:1px solid var(--line,#ddd);border-radius:10px;padding:6px 10px;margin:8px 0}
 .rkalu label{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:15px}`;document.head.appendChild(s)}
@@ -426,18 +460,21 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
    <section class="card"><h3>1. Diseño</h3>
     <div class="rkgrid">${RK_DISENOS.map(d=>`<button type="button" class="rkd ${v.diseno===d.id?"on":""} ${v.orient==="vertical"?"v":""}" data-d="${d.id}"><span class="th"><span>Preparando…</span></span><b>${esc(d.nombre)}</b><small>${esc(d.desc)}</small></button>`).join("")}</div>
     ${mis.length?`<div class="field"><label>Mis diseños guardados</label><div class="chips">${mis.map((m,i)=>`<button type="button" class="chip" data-mis="${i}">${esc(m.nombre)}</button>`).join("")}</div><p class="help">Toque uno para usarlo. <button type="button" class="btn link" id="rk_misdel">Borrar un diseño guardado</button></p></div>`:""}
-    <div id="rk_fondoBox" ${v.diseno==="fondo"?"":"hidden"}><div class="field"><label>Imagen de fondo</label><p class="help">Una foto o imagen de un diploma que le guste (vacío o con adornos), o un PDF. Tlamatini escribe encima los nombres y textos. Use imágenes propias o libres: evite personajes comerciales.</p>
+    <div id="rk_fondoBox" ${v.diseno==="fondo"?"":"hidden"}><div class="field"><label>Imagen de fondo</label><p class="help">Una foto o imagen de un diploma o modelo que le guste (vacío, con adornos o con sus líneas para nombre y firmas), o un PDF. Tlamatini revisa el diseño y acomoda cada dato en su lugar, sin encimar. Use imágenes propias o libres: evite personajes comerciales.</p>
       <div class="rkfondo"><div class="pv">${fondo?`<img src="${fondo}" alt="Fondo">`:'<span class="rkmini">Sin imagen</span>'}</div><div style="display:grid;gap:8px">
        <label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir imagen o PDF<input type="file" id="rk_ffile" accept="image/*,.pdf" hidden></label>
-       ${fondo?`<button type="button" class="btn ghost" id="rk_fcol">Usar sus colores en los demás diseños</button><button type="button" class="btn link" id="rk_fdel">Quitar imagen</button>`:""}</div></div><div class="help" id="rk_fmsg"></div></div>
+       ${fondo?`<button type="button" class="btn ghost" id="rk_fcol">Usar sus colores en los demás diseños</button><button type="button" class="btn link" id="rk_fdel">Quitar imagen</button>`:""}</div></div><div class="help" id="rk_fmsg">${fondo?rkAutoTexto():""}</div>
+      ${fondo?`<div class="opts" style="margin-top:8px">${chk("rk_fauto",v.fondo.autoOn!==false,"Adaptar el texto al diseño automáticamente")}</div>
+       ${v.fondo.autoOn!==false?'<button type="button" class="btn link" id="rk_fana">Volver a analizar el diseño</button>':""}
+       <div class="rkcal"><span id="rk_fcal" class="rkmini"></span><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost" id="rk_fmej">Mejorar la calidad de la imagen</button>${RK_FONDO_ORIG?'<button type="button" class="btn link" id="rk_fdes">Deshacer la mejora</button>':""}</div></div>`:""}</div>
      ${fondo?`<div class="row2"><div class="field"><label for="rk_fajuste">Acomodo de la imagen</label><select id="rk_fajuste">${opt([["cubrir","Llenar toda la hoja"],["ajustar","Que se vea completa"]],v.fondo.ajuste)}</select></div>
       <div class="field"><label for="rk_fcolor">Color del texto</label><input type="color" id="rk_fcolor" value="${esc(v.fondo.color)}" style="height:48px;width:100%"></div></div>
       <div class="field"><label>Qué escribe Tlamatini encima</label><div class="opts">${[["encabezado","Logos y nombre de la escuela"],["titulo","Título"],["preambulo","Frase «otorga el presente…»"],["linea","Línea bajo el nombre"],["fecha","Lugar y fecha"],["firmas","Firmas"]].map(([k,t])=>chk("rk_fv_"+k,v.fondo.ver[k]!==false,t)).join("")}</div>
-       <p class="help">Si su imagen ya trae el título o las líneas de firma, desmárquelos para que no se encimen.</p></div>
-      <div class="field"><label>Acomodar el texto</label>
+       <p class="help">Tlamatini marca solo lo que al diseño le falta. Si algo se repite o falta, márquelo o desmárquelo aquí.</p></div>
+      <div class="field"><label>${v.fondo.autoOn!==false&&v.fondo.auto&&v.fondo.auto.box?"Ajuste fino (si hace falta)":"Acomodar el texto"}</label>
        <div class="rkrange"><span>Subir o bajar textos</span><input type="range" id="rk_fdy" min="-140" max="140" step="2" value="${+v.fondo.dy||0}"><span class="rkmini" id="rk_fdyv">${+v.fondo.dy||0}</span></div>
        <div class="rkrange"><span>Subir o bajar firmas</span><input type="range" id="rk_ffdy" min="-120" max="40" step="2" value="${+v.fondo.fdy||0}"><span class="rkmini" id="rk_ffdyv">${+v.fondo.fdy||0}</span></div>
-       <div class="rkrange"><span>Margen a los lados</span><input type="range" id="rk_fmar" min="20" max="140" step="2" value="${+v.fondo.margen||60}"><span class="rkmini" id="rk_fmarv">${+v.fondo.margen||60}</span></div>
+       <div class="rkrange" ${v.fondo.autoOn!==false&&v.fondo.auto&&v.fondo.auto.box?"hidden":""}><span>Margen a los lados</span><input type="range" id="rk_fmar" min="20" max="140" step="2" value="${+v.fondo.margen||60}"><span class="rkmini" id="rk_fmarv">${+v.fondo.margen||60}</span></div>
        <div class="rkrange"><span>Tamaño de letra</span><input type="range" id="rk_fesc" min="0.7" max="1.3" step="0.05" value="${+v.fondo.esc||1}"><span class="rkmini" id="rk_fescv">${Math.round((+v.fondo.esc||1)*100)}%</span></div></div>`:""}</div>
     <div class="field" ${v.diseno==="fondo"?"hidden":""}><label>Colores</label><div class="rkpal" id="rk_pal">${palHTML}</div></div>
     <div class="row2"><div class="field"><label for="rk_tipo">Documento</label><select id="rk_tipo">${opt(RK_TIPOS.concat(["Otro"]).map(t=>[t,t==="Otro"?"Otro (escribirlo)":t]),v.tipo)}</select></div>
@@ -524,9 +561,18 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
   /* fondo propio */
   if(g("rk_ffile"))g("rk_ffile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;g("rk_fmsg").textContent="Preparando la imagen…";
     try{const d=await rkFondoDesdeArchivo(f);const ok=rkFondoSet(d);const im=await imgLoad(d);v.orient=im.naturalWidth>=im.naturalHeight?"horizontal":"vertical";
-      try{const c=await rkColoresDe(d);if(c)v.fondo.color=c.c1}catch(_){}rkGuardar();rkView();if(!ok)setTimeout(()=>{const m=g("rk_fmsg");if(m)m.innerHTML="<b>Ojo:</b> la imagen es grande y no cupo en la memoria del navegador; se usará mientras no cierre esta página."},50)}
+      try{const c=await rkColoresDe(d);if(c)v.fondo.color=c.c1}catch(_){}RK_FONDO_ORIG=null;g("rk_fmsg").textContent="Revisando el diseño…";await rkAutoNuevo();rkGuardar();rkView();if(!ok)setTimeout(()=>{const m=g("rk_fmsg");if(m)m.innerHTML="<b>Ojo:</b> la imagen es grande y no cupo en la memoria del navegador; se usará mientras no cierre esta página."},50)}
     catch(err){g("rk_fmsg").textContent=err.message||String(err)}};
-  if(g("rk_fdel"))g("rk_fdel").onclick=()=>{rkFondoSet(null);re()};
+  if(g("rk_fdel"))g("rk_fdel").onclick=()=>{rkFondoSet(null);RK_FONDO_ORIG=null;v.fondo.auto=null;re()};
+  if(g("rk_fauto"))g("rk_fauto").onchange=async()=>{v.fondo.autoOn=g("rk_fauto").checked;if(v.fondo.autoOn)await rkAutoNuevo();else{v.fondo.auto=null;Object.assign(v.fondo.ver,{titulo:true,preambulo:true,linea:true,fecha:true,firmas:true})}re()};
+  if(g("rk_fana"))g("rk_fana").onclick=async()=>{g("rk_fmsg").textContent="Revisando el diseño…";await rkAutoNuevo();re()};
+  if(g("rk_fcal")){imgLoad(rkFondoGet()).then(im=>{const q=rkFondoCalidad(im),e=g("rk_fcal");if(!e)return;
+      e.innerHTML=`Calidad de la imagen: <b>${q.cal}</b> (${im.naturalWidth} × ${im.naturalHeight} px).`+(q.cal==="buena"||RK_FONDO_ORIG?"":" Se recomienda mejorarla para que no salga borrosa al imprimir (tarda uno o dos minutos).")}).catch(()=>{});
+    g("rk_fmej").onclick=async()=>{const b=g("rk_fmej"),orig=rkFondoGet();b.disabled=true;b.textContent="Mejorando… 0%";
+      try{const out=await rkMejorarFondo(orig,p=>{b.textContent=`Mejorando… ${Math.round(p*100)}%`});const ok=rkFondoSet(out);RK_FONDO_ORIG=orig;v.fondo.auto=null;await rkAutoAsegura();rkGuardar();rkView();
+        setTimeout(()=>{const m=g("rk_fmsg");if(m)m.innerHTML="<b>Imagen mejorada.</b> Revise la vista previa; si no le gusta, toque «Deshacer la mejora»."+(ok?"":" <b>Ojo:</b> la imagen mejorada es grande y no cupo en la memoria del navegador; se usará mientras no cierre esta página.")},50)}
+      catch(err){b.disabled=false;b.textContent="Mejorar la calidad de la imagen";g("rk_fmsg").innerHTML="<b>No se pudo mejorar la imagen.</b> ("+esc(err.message||String(err))+")"}};
+    if(g("rk_fdes"))g("rk_fdes").onclick=async()=>{rkFondoSet(RK_FONDO_ORIG);RK_FONDO_ORIG=null;v.fondo.auto=null;await rkAutoAsegura();re()}}
   if(g("rk_fcol"))g("rk_fcol").onclick=async()=>{const c=await rkColoresDe(rkFondoGet());if(!c){g("rk_fmsg").textContent="No se encontraron colores en la imagen.";return}v.palImg=c;v.pal="imagen";RK_THUMBS={};
     g("rk_fmsg").innerHTML="Listo: elija otro diseño y verá la opción <b>«Colores de mi imagen»</b> seleccionada.";rkGuardar()};
   if(g("rk_fajuste")){g("rk_fajuste").onchange=()=>{v.fondo.ajuste=g("rk_fajuste").value;cambio()};g("rk_fcolor").oninput=()=>{v.fondo.color=g("rk_fcolor").value;cambio()};
@@ -591,3 +637,161 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
   if(g("rk_vac"))g("rk_vac").onclick=()=>{if(confirm(`¿Quitar los ${v.personas.length} nombres de la lista?`)){v.personas=[];v.verIdx=0;re()}};
   app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
   g("salir").onclick=()=>{S.sec=null;home()};resumen();rkPrevia(true);rkMiniaturas()}
+
+/* =========================================================
+   Fondo propio: adaptar el texto al diseño que suben
+   Tlamatini «mira» la imagen tal como quedará en la hoja y ubica: los adornos y marcos (para no pisarlos),
+   el espacio libre donde cabe el texto, lo que el modelo ya trae impreso (título, frases) y sus líneas
+   (la del nombre, las del motivo y las de firma). Con eso acomoda cada dato en su lugar.
+   Todo se hace en el dispositivo; la imagen no se envía a ningún lado.
+   ========================================================= */
+function rkAnalizaPixeles(d,W,H){
+  const N=W*H,px=i=>[d[i*4],d[i*4+1],d[i*4+2]];
+  /* color del «papel»: mediana del centro de la hoja */
+  const rs=[],gs=[],bs=[];for(let y=Math.round(H*.22);y<H*.78;y+=2)for(let x=Math.round(W*.2);x<W*.8;x+=2){const i=(y*W+x)*4;rs.push(d[i]);gs.push(d[i+1]);bs.push(d[i+2])}
+  const med=a=>{a.sort((p,q)=>p-q);return a[a.length>>1]};const P=[med(rs),med(gs),med(bs)];
+  const lumP=(.299*P[0]+.587*P[1]+.114*P[2])/255;
+  /* tinta: lo que se aparta del papel */
+  const ink=new Uint8Array(N);let nInk=0;
+  for(let i=0;i<N;i++){const j=i*4;if(Math.max(Math.abs(d[j]-P[0]),Math.abs(d[j+1]-P[1]),Math.abs(d[j+2]-P[2]))>46){ink[i]=1;nInk++}}
+  /* une letras y puntos vecinos (en horizontal) para tratar palabras y líneas punteadas como una sola pieza */
+  const R=Math.max(2,Math.round(W*.009));
+  const dilatar=src=>{const o=new Uint8Array(N);for(let y=0;y<H;y++){let ult=-99;const f=y*W;for(let x=0;x<W;x++){if(src[f+x])ult=x;if(x-ult<=R)o[f+x]=1}ult=1e9;for(let x=W-1;x>=0;x--){if(src[f+x])ult=x;if(ult-x<=R)o[f+x]=1}}return o};
+  let dil=dilatar(ink);
+  /* líneas para escribir (continuas o punteadas): tramos largos, delgados y sin letras pegadas arriba o abajo */
+  const gMax=Math.max(3,Math.round(H*.009)),lnM=new Uint8Array(N);
+  const cub=(y,a,b)=>{if(y<0||y>=H)return 0;let c=0;const f=y*W;for(let x=a;x<=b;x++)c+=dil[f+x];return c/(b-a+1)};
+  for(let y=1;y<H-1;y++){const f=y*W;for(let x=0;x<W;x++){if(!dil[f+x])continue;let b=x;while(b+1<W&&dil[f+b+1])b++;const a=x;x=b;
+      if(b-a+1<W*.07||b-a+1>=W*.8||lnM[f+a+((b-a)>>1)])continue;
+      let up=0,dn=0;while(up<=gMax&&cub(y-up-1,a,b)>=.7)up++;while(dn<=gMax&&cub(y+dn+1,a,b)>=.7)dn++;
+      if(up+dn+1>gMax)continue;
+      let limpio=true;for(let q=1;q<=3;q++){if(cub(y-up-1-q,a,b)>.12||cub(y+dn+1+q,a,b)>.12){limpio=false;break}}
+      if(!limpio)continue;
+      for(let yy=y-up;yy<=y+dn;yy++)for(let xx=a;xx<=b;xx++)lnM[yy*W+xx]=1}}
+  const piezas=(m,cond)=>{const lab=new Int32Array(N),out=[],pila=new Int32Array(N);
+    for(let s0=0;s0<N;s0++){if(!m[s0]||lab[s0])continue;const id=out.length+1;let n=0,x0=W,x1=0,y0=H,y1=0,top=0;pila[top++]=s0;lab[s0]=id;
+      while(top){const p=pila[--top],x=p%W,y=(p-x)/W;n++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;const q=yy*W+xx;if(m[q]&&!lab[q]){lab[q]=id;pila[top++]=q}}}
+      out.push({id,n,x0,x1,y0,y1,w:x1-x0+1,h:y1-y0+1})}return{lab,out}};
+  const lineasT=piezas(lnM).out.filter(c=>c.w>=W*.07).map(c=>Object.assign(c,{t:"linea"}));
+  /* lo demás (sin las líneas): piezas de texto o de adorno */
+  const ink2=new Uint8Array(N);for(let i=0;i<N;i++)ink2[i]=ink[i]&&!lnM[i]&&!(i>=W&&lnM[i-W])&&!(i+W<N&&lnM[i+W])?1:0;
+  dil=dilatar(ink2);const pz=piezas(dil),lab=pz.lab,comps=pz.out;
+  const mx=W*.055,my=H*.055;
+  comps.forEach(c=>{const borde=c.x0<mx||c.x1>W-mx||c.y0<my||c.y1>H-my;
+    c.t=c.n<W*.00004*W?"ruido":(!borde&&c.h<=H*.2&&c.w<=W*.8&&(c.h<=H*.1||c.w/c.h>=2))?"texto":"adorno"});
+  /* un bloque compacto y solo (sello, medalla, escudo) es adorno, no texto */
+  comps.forEach(c=>{if(c.t!=="texto"||c.h<=H*.05||c.w/c.h>=1.6||c.n<c.w*c.h*.5)return;
+    const vecino=comps.some(o=>o!==c&&o.t==="texto"&&Math.min(o.y1,c.y1)-Math.max(o.y0,c.y0)>=Math.min(o.h,c.h)*.5&&Math.max(o.x0-c.x1,c.x0-o.x1)<c.h*2.5);
+    if(!vecino)c.t="adorno"});
+  /* espacio libre: el rectángulo más grande que no toca adornos ni marcos */
+  const G=4,gw=Math.ceil(W/G),gh=Math.ceil(H/G),ocu=new Uint8Array(gw*gh);
+  for(let i=0;i<N;i++){const l=lab[i];if(l&&ink2[i]&&comps[l-1].t==="adorno"){const x=i%W,y=(i-x)/W;ocu[(y/G|0)*gw+(x/G|0)]=1}}
+  const ocu2=new Uint8Array(gw*gh),bx=Math.max(1,Math.round(gw*.03)),by=Math.max(1,Math.round(gh*.03));
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){let o=x<bx||y<by||x>=gw-bx||y>=gh-by;
+    if(!o)for(let dy=-1;dy<=1&&!o;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<gw&&yy<gh&&ocu[yy*gw+xx]){o=1;break}}
+    ocu2[y*gw+x]=o?1:0}
+  const alt=new Int32Array(gw);let best={a:0};
+  for(let y=0;y<gh;y++){for(let x=0;x<gw;x++)alt[x]=ocu2[y*gw+x]?0:alt[x]+1;
+    const st=[];for(let x=0;x<=gw;x++){const h=x<gw?alt[x]:0;let ini=x;
+      while(st.length&&st[st.length-1][1]>=h){const[i0,hh]=st.pop();const a=hh*(x-i0);
+        /* se prefiere un espacio centrado: el texto de un reconocimiento va al centro */
+        const cxr=(i0+x)/2/gw,pun=a*(1-.45*Math.abs(cxr-.5));if(pun>(best.p||0))best={a,p:pun,x:i0,y:y-hh+1,w:x-i0,h:hh};ini=i0}
+      st.push([ini,h])}}
+  const res={v:3,papel:"#"+P.map(v=>v.toString(16).padStart(2,"0")).join(""),oscuro:lumP<.45,box:null,nom:null,mot:null,fec:null,firmas:null,trae:{titulo:false,frase:false,nombre:false,motivo:false,firmas:false},ver:{}};
+  if(!best.a||best.a<gw*gh*.16)return res;   /* casi no hay espacio libre: se deja el acomodo normal */
+  let B={x0:best.x*G,y0:best.y*G,x1:Math.min(W,(best.x+best.w)*G),y1:Math.min(H,(best.y+best.h)*G)};
+  /* lo impreso dentro del espacio libre */
+  const dentro=c=>{const sol=Math.min(c.x1,B.x1)-Math.max(c.x0,B.x0);return sol>=c.w*.5&&c.y1>=B.y0&&c.y0<=B.y1};
+  const lineas=lineasT.filter(dentro).sort((a,b)=>a.y0-b.y0);
+  const textos=comps.filter(c=>c.t==="texto"&&dentro(c));
+  const bh=B.y1-B.y0,fy=y=>(y-B.y0)/bh;
+  /* líneas de firma: las de la parte baja, cortas y a la misma altura */
+  let firmas=lineas.filter(l=>fy(l.y0)>.62&&l.w<=W*.42);
+  if(firmas.length){const yb=Math.max(...firmas.map(l=>l.y0));firmas=firmas.filter(l=>yb-l.y0<=H*.035).sort((a,b)=>a.x0-b.x0).slice(0,3)}
+  const otras=lineas.filter(l=>!firmas.includes(l));
+  const yFir=firmas.length?Math.min(...firmas.map(l=>l.y0)):B.y1;
+  const lnNom=otras.find(l=>l.w>=W*.22&&fy(l.y0)>.12&&fy(l.y0)<.8);
+  /* renglones de texto impreso */
+  const filas=new Uint8Array(H);textos.forEach(c=>{for(let y=c.y0;y<=c.y1;y++)filas[y]=1});
+  const reng=[];for(let y=B.y0;y<=B.y1&&y<H;y++){if(!filas[y])continue;let y1=y;while(y1+1<H&&(filas[y1+1]||filas[Math.min(H-1,y1+2)]))y1++;reng.push({y0:y,y1});y=y1}
+  const X=v=>v/W,Yf=v=>v/H;
+  const etiquetaBajo=l=>textos.some(c=>c.y0>l.y1&&c.y0-l.y1<H*.06&&c.x1>l.x0&&c.x0<l.x1);
+  if(firmas.length){res.firmas=firmas.map(l=>({cx:X((l.x0+l.x1+1)/2),y:Yf(l.y0),w:X(l.w),arriba:etiquetaBajo(l)}));res.trae.firmas=true}
+  if(lnNom){
+    /* modelo con línea para el nombre: cada dato va en su renglón */
+    const arriba=Math.max(B.y0,...reng.filter(r=>r.y1<lnNom.y0-2).map(r=>r.y1),...otras.filter(l=>l.y1<lnNom.y0-2).map(l=>l.y1));
+    res.nom={cx:X((lnNom.x0+lnNom.x1+1)/2),y:Yf(lnNom.y0),w:X(lnNom.w),alto:Yf(lnNom.y0-arriba)};
+    const sobre=reng.filter(r=>r.y1<lnNom.y0).length;res.trae.nombre=true;res.trae.titulo=sobre>0;res.trae.frase=sobre>1;
+    const lm=otras.filter(l=>l.y0>lnNom.y1+2&&l.y0<yFir-H*.04&&l.w>=W*.18);
+    const tope=Math.min(yFir-H*.075,B.y1);
+    if(lm.length){res.trae.motivo=true;const x0=Math.min(...lm.map(l=>l.x0)),x1=Math.max(...lm.map(l=>l.x1));
+      res.mot={ys:lm.map(l=>({y:Yf(l.y0),cx:X((l.x0+l.x1+1)/2),w:X(l.w)})),cx:X((x0+x1+1)/2),w:X(x1-x0+1)};
+      const yu=lm[lm.length-1].y1,sig=Math.min(tope,...reng.filter(r=>r.y0>yu+2).map(r=>r.y0));
+      if(sig-yu>=H*.055)res.fec={y:Yf(yu+(sig-yu)*.62),cx:res.mot.cx,w:res.mot.w}}
+    else{const ini=lnNom.y1+H*.012,sig=Math.min(tope,...reng.filter(r=>r.y0>ini).map(r=>r.y0));
+      if(sig-ini>=H*.05)res.mot={top:Yf(ini),bottom:Yf(sig),cx:X((B.x0+B.x1)/2),w:X(B.x1-B.x0)}}
+    res.box={x:X(B.x0),y:Yf(B.y0),w:X(B.x1-B.x0),h:Yf(bh)};
+    res.ver={titulo:!res.trae.titulo,preambulo:!res.trae.frase&&res.nom.alto>=.17,linea:false,fecha:!!(res.fec||(res.mot&&!res.mot.ys)),firmas:true};
+  }else{
+    /* fondo (con o sin título impreso): el texto va en la franja libre más alta */
+    const ocup=reng.concat(lineas.map(l=>({y0:l.y0,y1:l.y1}))).sort((a,b)=>a.y0-b.y0);
+    const fr=[];let y=B.y0;ocup.forEach(o=>{if(o.y0-y>0)fr.push({y0:y,y1:o.y0});y=Math.max(y,o.y1+1)});if(B.y1-y>0)fr.push({y0:y,y1:B.y1});
+    const pr=fr.slice().sort((a,b)=>(b.y1-b.y0)-(a.y1-a.y0))[0]||{y0:B.y0,y1:B.y1};
+    const arr=reng.filter(r=>r.y1<=pr.y0+1),aba=reng.filter(r=>r.y0>=pr.y1-1);
+    const pad=H*.012;const y0=pr.y0+(arr.length?pad:0),y1=pr.y1-((aba.length||firmas.length)?pad:0);
+    res.trae.titulo=arr.length>0;res.trae.frase=arr.length>1;
+    const firmasFuera=firmas.length>0&&firmas[0].y0>=y1-2;
+    if(aba.length&&!firmas.length)res.trae.firmas=true;
+    if(firmas.length&&!firmasFuera){res.firmas=null}   /* líneas sueltas dentro de la franja: se ignoran */
+    res.box={x:X(B.x0),y:Yf(y0),w:X(B.x1-B.x0),h:Yf(y1-y0),sinFirmas:firmasFuera||(aba.length>0&&!firmas.length)};
+    res.ver={titulo:!res.trae.titulo,preambulo:!res.trae.frase,linea:true,fecha:true,firmas:!(aba.length&&!firmas.length)};
+  }
+  return res}
+
+/* Dibuja la imagen como quedará en la hoja (mismo acomodo que el PDF) y la analiza */
+async function rkAnalizarFondo(dataURL,orient,ajuste){const im=await imgLoad(dataURL);const vert=orient==="vertical";const W=vert?496:640,H=vert?640:496;
+  const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d",{willReadFrequently:true});x.fillStyle="#fff";x.fillRect(0,0,W,H);
+  const iw0=im.naturalWidth,ih0=im.naturalHeight,k=ajuste!=="ajustar"?Math.max(W/iw0,H/ih0):Math.min(W/iw0,H/ih0);x.imageSmoothingQuality="high";
+  x.drawImage(im,(W-iw0*k)/2,(H-ih0*k)/2,iw0*k,ih0*k);return rkAnalizaPixeles(x.getImageData(0,0,W,H).data,W,H)}
+const rkAutoClave=()=>[RK.orient,RK.fondo.ajuste,(rkFondoGet()||"").length].join("|");
+/* Antes de dibujar: si cambió la imagen, la orientación o el acomodo, se vuelve a medir (sin tocar lo que la persona eligió) */
+async function rkAutoAsegura(){if(!RK||RK.diseno!=="fondo"||RK.fondo.autoOn===false)return;const f=rkFondoGet();if(!f)return;const k=rkAutoClave();
+  if(RK.fondo.auto&&RK.fondo.auto.k===k&&RK.fondo.auto.v===3)return;
+  try{const a=await rkAnalizarFondo(f,RK.orient,RK.fondo.ajuste);a.k=k;RK.fondo.auto=a;try{localStorage.setItem(RK_KEY,JSON.stringify(RK))}catch(e){}}catch(e){RK.fondo.auto=null}}
+/* Al subir (o mejorar) la imagen: mide y además propone qué escribir y el color del texto */
+async function rkAutoNuevo(){RK.fondo.auto=null;RK.fondo.dy=0;RK.fondo.fdy=0;RK.fondo.esc=1;if(RK.fondo.autoOn===false)return;await rkAutoAsegura();const a=RK.fondo.auto;if(!a)return;
+  if(a.box){Object.assign(RK.fondo.ver,a.ver,{encabezado:false})}
+  if(a.oscuro)RK.fondo.color="#FFFFFF"}
+function rkAutoTexto(){const a=RK.fondo.auto;if(RK.fondo.autoOn===false)return"";
+  if(!a)return"";if(!a.box)return"No se encontró un espacio libre claro en la imagen; se usa el acomodo general. Ajústelo con los controles de abajo.";
+  const t=[];if(a.nom)t.push("la línea del nombre");if(a.mot&&a.mot.ys)t.push(a.mot.ys.length===1?"el renglón del motivo":`${a.mot.ys.length} renglones para el motivo`);
+  if(a.firmas)t.push(a.firmas.length===1?"una línea de firma":`${a.firmas.length} líneas de firma`);
+  const ya=[];if(a.trae.titulo)ya.push("título");if(a.trae.frase&&!a.nom)ya.push("frase");if(a.trae.firmas&&!a.firmas)ya.push("firmas");
+  return"<b>Diseño analizado.</b> El texto se acomodó en el espacio libre"+(a.oscuro?", con letra clara por el fondo oscuro":"")+"."+
+    (t.length?` Se encontró ${t.join(", ").replace(/, ([^,]*)$/," y $1")} y cada dato se escribe en su lugar.`:"")+
+    (ya.length?` Parece que el diseño ya trae ${ya.join(" y ")}, así que Tlamatini no ${ya.length>1?"los":"lo"} repite (puede cambiarlo abajo).`:"")}
+
+/* --- mejorar la calidad de la imagen de fondo (en el dispositivo) --- */
+let RK_FONDO_ORIG=null;
+function rkFondoCalidad(im){const m=Math.max(im.naturalWidth,im.naturalHeight);return{m,cal:m<900?"baja":m<1500?"media":"buena"}}
+function rkNitidez(c,fu){const x=c.getContext("2d"),W=c.width,H=c.height,id=x.getImageData(0,0,W,H),d=id.data;
+  /* niveles: recupera blancos y negros apagados (fotos y escaneos) */
+  const hi=new Uint32Array(256);for(let i=0;i<d.length;i+=16)hi[Math.round(.299*d[i]+.587*d[i+1]+.114*d[i+2])]++;
+  const tot=d.length/16;let lo=0,hiV=255,ac=0;for(let v=0;v<256;v++){ac+=hi[v];if(ac>=tot*.01){lo=v;break}}ac=0;for(let v=255;v>=0;v--){ac+=hi[v];if(ac>=tot*.02){hiV=v;break}}
+  /* solo en hojas claras (fotos o escaneos de un diploma): en un diseño oscuro o de color se respetan sus tonos */
+  let cl=0;for(let v=140;v<256;v++)cl+=hi[v];const clara=cl>=tot*.6;
+  lo=clara&&lo>25?Math.min(lo,60):0;hiV=clara?Math.max(hiV,200):255;const esc=255/Math.max(1,hiV-lo);
+  if(clara&&(lo>4||hiV<250))for(let i=0;i<d.length;i+=4){d[i]=Math.max(0,Math.min(255,(d[i]-lo)*esc));d[i+1]=Math.max(0,Math.min(255,(d[i+1]-lo)*esc));d[i+2]=Math.max(0,Math.min(255,(d[i+2]-lo)*esc))}
+  /* enfoque suave */
+  const s=new Uint8ClampedArray(d);const w4=W*4;
+  for(let y=1;y<H-1;y++)for(let xx=1;xx<W-1;xx++){const i=(y*W+xx)*4;for(let k=0;k<3;k++){const j=i+k;const bl=(s[j-4]+s[j+4]+s[j-w4]+s[j+w4])/4;d[j]=Math.max(0,Math.min(255,s[j]+(s[j]-bl)*fu))}}
+  x.putImageData(id,0,0);return c}
+async function rkMejorarFondo(src,prog){const im=await imgLoad(src);const w=im.naturalWidth,h=im.naturalHeight,m=Math.max(w,h);
+  if(m>=1500){/* ya tiene tamaño suficiente: solo niveles y enfoque */const c=rkCanvasDe(im);rkNitidez(c,.45);prog&&prog(1);return c.toDataURL("image/jpeg",.92)}
+  const scale=m<=520?4:2;await loadScript("lib/tf.min.js");await loadScript("lib/upscaler.min.js");await loadScript(`lib/esrgan/x${scale}/def.min.js`);
+  const def=window[`ESRGANSlim${scale}x`];const up=new Upscaler({model:{...def,path:new URL(`lib/esrgan/x${scale}/model.json`,location.href).href}});
+  try{const base=document.createElement("canvas");base.width=w;base.height=h;const bx=base.getContext("2d");bx.fillStyle="#fff";bx.fillRect(0,0,w,h);bx.drawImage(im,0,0);
+    const inp=await imgLoad(base.toDataURL("image/png"));
+    const out=await up.upscale(inp,{output:"base64",patchSize:96,padding:6,progress:p=>prog&&prog(p*.97)});
+    const oi=await imgLoad(out);const c=rkCanvasDe(oi,2200);rkNitidez(c,.25);prog&&prog(1);return c.toDataURL("image/jpeg",.92)}finally{try{up.dispose()}catch(e){}}}
