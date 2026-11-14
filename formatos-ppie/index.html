@@ -939,7 +939,7 @@ ANEXOS.L={name:"Licencia económica con goce de sueldo (permiso económico)",pre
     {id:"del",label:"Periodo del",type:"date",fmt:"larga",to:"Periodo del"},{id:"al",label:"Al",type:"date",fmt:"larga",noToday:true,to:"Periodo al",help:"Se calcula solo en días hábiles (lunes a viernes). Corríjalo si hay un día festivo."},
     {id:"rean",label:"Fecha de reanudación de labores",type:"date",fmt:"partesAnio",noToday:true,to:["Reanudación: día","Reanudación: mes","Reanudación: año"]}]},
   {title:"Datos del centro de trabajo",wire:wireLicCentro,fields:[
-    {id:"centro",label:"Centro de trabajo",type:"pick",help:"Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.",
+    {id:"centro",label:"Centro de trabajo",type:"pick",help:"Elija su escuela y los datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.",
       options:CENTROS.map((c,i)=>({label:c.label+" · "+c.cct,value:String(i)})).concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
       preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct);return i>=0?String(i):(p.cct?"otra":"")}},
     {id:"quien",label:"¿Quién solicita la licencia?",type:"choice",options:["Personal de la escuela (autoriza el director o E.D.)","El director o encargado de despacho (autoriza el Supervisor)"]},
@@ -1012,7 +1012,7 @@ ANEXOS.P={name:"Actualización de datos personales (expediente)",pref:"Datos per
     {id:"telesc",label:"Teléfono de la escuela",type:"tel",pre:"telefono",opt:true,to:"Teléfono de la escuela"}]},
   {title:"Datos personales",fields:[
     {id:"pat",label:"Apellido paterno",to:"Apellido paterno",half:true},{id:"mat",label:"Apellido materno",to:"Apellido materno",half:true},{id:"nom",label:"Nombre(s)",to:"Nombre(s)"},
-    {id:"curp",label:"CURP (18 caracteres)",type:"chars",to:lstN("CURP",18),help:"Al escribirla completa se llenan solos la fecha de nacimiento y el sexo.",
+    {id:"curp",label:"CURP (18 caracteres)",type:"chars",to:lstN("CURP",18),help:"Al escribirla completa se llenan automáticamente la fecha de nacimiento y el sexo.",
       onFull:v=>{const ci=curpInfo(v);if(!ci)return;const fn=document.getElementById("f_fnac");if(fn)fn.value=ci.dob;const r=document.querySelector(`input[name="f_sexo"][value="${ci.sexo==="M"?"Mujer (F)":"Hombre (M)"}"]`);if(r){r.click()}}},
     {id:"rfc",label:"RFC (10 caracteres: 4 letras y 6 números)",type:"chars",to:lstN("RFC",10)},{id:"homo",label:"Homoclave (3 caracteres)",type:"chars",to:lstN("Homoclave",3),opt:true},
     {id:"fnac",label:"Fecha de nacimiento",type:"date",noToday:true,half:true},{id:"lugar",label:"Lugar de nacimiento (Estado / ciudad)",to:"Lugar de nacimiento",half:true},
@@ -1110,7 +1110,7 @@ ANEXOS.S={name:"Aviso de accidente (seguro escolar)",pref:"Seguro escolar",who:"
     {id:"desc",label:"Descripción detallada",type:"box",to:"Descripción",help:"Sea claro y específico: qué hacía la alumna o el alumno, cómo ocurrió el accidente y qué se hizo enseguida."},
     {id:"lesion",label:"Tipo de lesión(es) que presenta",type:"box",to:"Tipo de lesión",help:"Ej.: golpe en la frente con inflamación; raspón en la rodilla derecha; posible fractura de la muñeca izquierda."}]},
   {title:"Datos de la institución",wire:wireInstSeg,fields:[
-    {id:"centro",label:"Escuela",type:"pick",opt:true,help:"Elija su escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.",
+    {id:"centro",label:"Escuela",type:"pick",opt:true,help:"Elija su escuela y los datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.",
       options:ESC_SEG.map((c,i)=>({label:c.label+" · "+c.cct,value:String(i)})).concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
       preFn:p=>{const i=ESC_SEG.findIndex(c=>c.cct===p.cct);return i>=0?String(i):(p.cct?"otra":"")}},
     {id:"inst",label:"Nombre de la institución",pre:"escuela",to:"Nombre de la institución"},
@@ -1271,7 +1271,7 @@ ANEXOS.U={name:"Formato Único de Beca",pref:"Beca",who:"Madre, padre o tutor (c
   {title:"Fecha y lugar del trámite",fields:[{id:"fecha",label:"Fecha",type:"date",fmt:"partesAnio",to:["Fecha: día","Fecha: mes","Fecha: año"]},
     {id:"mun",label:"Municipio donde se realiza el trámite",type:"select",options:MUNIS,pre:"municipio",to:"Municipio"}]},
   {title:"Datos de la escuela",wire:wireBecaEsc,fields:[
-    {id:"centro",label:"Escuela",type:"pick",help:"Elija la escuela y sus datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.",
+    {id:"centro",label:"Escuela",type:"pick",help:"Elija la escuela y sus datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.",
       options:BECA_ESC_OPTS.concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
       preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct&&c.cct!=="02FIZ0094X");return i>=0?String(i):(p.cct?"otra":"")}},
     {id:"eclave",label:"Clave (CCT)",preFn:becaPre("clave"),to:"Escuela: clave",half:true},{id:"etel",label:"Teléfono de la escuela",type:"tel",opt:true,preFn:becaPre("tel"),to:"Escuela: teléfono",half:true},
@@ -1326,7 +1326,7 @@ ANEXOS.T={name:"Formato para la autorización de salida escolar",pref:"Salida es
  upper:true,noUpper:["Hora de salida","Hora de llegada"],boxCenter:["Domicilio"],bold:["Delegación","Destino","Dirección del destino","Fecha","Firma: director","Firma: supervisor"],sizes:{"Delegación":11.5},
  steps:[
   {title:"Datos del plantel educativo",wire:aseWireSalEsc,fields:[
-    {id:"centro",label:"Escuela",type:"pick",help:"Elija la escuela y se llenan solos sus datos, los del director(a), los suyos como supervisor y el Jefe de Nivel. Todo se puede corregir.",
+    {id:"centro",label:"Escuela",type:"pick",help:"Elija la escuela y se llenan automáticamente sus datos, los del director(a), los suyos como supervisor y el Jefe de Nivel. Todo se puede corregir.",
       options:BECA_ESC_OPTS.concat([{label:"Otra escuela (llenar a mano)",value:"otra"}]),
       preFn:p=>{const i=CENTROS.findIndex(c=>c.cct===p.cct&&!/supervisi/i.test(c.nombre));return i>=0?String(i):(p.cct?"otra":"")}},
     {id:"escuela",label:"Nombre de la escuela",preFn:aseSalPre("nombre"),to:"Escuela"},
@@ -1349,7 +1349,7 @@ ANEXOS.T={name:"Formato para la autorización de salida escolar",pref:"Salida es
   {title:"Firmas",fields:[
     {id:"firdir",label:"Solicitante: director(a) de la escuela",help:"Como aparece en la firma. Firma y sello van a mano.",preFn:aseSalPre("firma"),to:"Firma: director"},
     {id:"firsup",label:"Vo. Bo.: supervisor(a)",preFn:()=>SUP_NOMBRE,to:"Firma: supervisor"},
-    {id:"jefe",label:"Jefe de Nivel (autoriza)",help:"Se pone solo según el municipio de la escuela.",preFn:aseSalPre("jefe"),to:"Jefe de nivel"},
+    {id:"jefe",label:"Jefe de Nivel (autoriza)",help:"Se pone automáticamente según el municipio de la escuela.",preFn:aseSalPre("jefe"),to:"Jefe de nivel"},
     {id:"deleg",label:"Delegación (encabezado del formato)",preFn:aseSalPre("deleg"),to:"Delegación"}]}],
  // avisos de la fecha: se muestran, pero no impiden imprimir (a veces el evento se avisa con poco tiempo)
  warn:v=>{const o=[];if(v.fecha){const p=parseDate(v.fecha);if(p){const d=new Date(p.y,p.m-1,p.d),h=new Date();h.setHours(0,0,0,0);const n=Math.round((d-h)/864e5);
@@ -1412,7 +1412,7 @@ function today(){const d=new Date();return`${d.getFullYear()}-${String(d.getMont
 function preValue(f){const y=yoPre(f);if(y)return y;if(f.preFn)return f.preFn(perfil);if(f.pre)return perfil[f.pre]||"";if(f.type==="date"&&!f.noToday)return today();return""}
 
 /* ---------- Mis datos: la persona que usa Tlamatini en este dispositivo ----------
-   Se capturan una sola vez (al darse de alta o en «Mi escuela») y se ponen solos en todos los formatos:
+   Se capturan una sola vez (al darse de alta o en «Mi escuela») y se ponen automáticamente en todos los formatos:
    nombre, cargo, grado y grupo; y, si los da, RFC, CURP, claves, domicilio y contacto para los trámites laborales. */
 const YO_TIT=["Profr.","Profra.","Mtro.","Mtra.","Lic.","Dr.","Dra."];
 const YO_FUNC=["Docente frente a grupo","Director(a)","Encargado(a) de despacho","Subdirector(a)","Docente de Educación Física","Docente de Inglés","Docente de Artes","Maestro(a) de USAER","Asesor(a) técnico pedagógico","Supervisor(a) escolar","Personal de apoyo y asistencia","Otra"];
@@ -1456,7 +1456,7 @@ function yoHTML(){const p=yoPartes(),v=k=>esc(perfil[k]||""),fn=yoFuncion();
   const lab=(t,o)=>`${t}${o?' <span class="muted" style="font-weight:400">(opcional)</span>':""}`;
   const lab2=["rfc","curp","celular","correo","claves","ingreso","mcalle","mnum","mcol","mcp","mmun"].some(k=>perfil[k]);
   return`<section class="card" id="yoCard"><h3>Mis datos</h3>
-   <p class="help">Son los de la persona que usa Tlamatini en este dispositivo. Se ponen solos en todos los formatos: ya no tendrá que volver a escribirlos.</p>
+   <p class="help">Son los de la persona que usa Tlamatini en este dispositivo. Se ponen automáticamente en todos los formatos: ya no tendrá que volver a escribirlos.</p>
    <div class="row2"><div class="field"><label for="y_tit">${lab("Título",1)}</label><select id="y_tit"><option value="">—</option>${YO_TIT.map(t=>`<option ${p.tit===t?"selected":""}>${t}</option>`).join("")}</select></div>
     <div class="field"><label for="y_nom">Nombre(s)</label><input type="text" id="y_nom" value="${esc(p.nom)}" autocomplete="given-name"></div></div>
    <div class="row2"><div class="field"><label for="y_pat">Apellido paterno</label><input type="text" id="y_pat" value="${esc(p.pat)}" autocomplete="family-name"></div>
@@ -1598,7 +1598,7 @@ money:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/
 const SECCIONES=[
  {id:"seguro",icon:"cross",title:"Seguro escolar (accidentes)",desc:"Teléfonos para reportar, aviso de accidente y red de clínicas.",grupos:["Seguro"],intro:()=>seguroCard(),admin:true},
  {id:"calendario",icon:"cal",title:"Calendario escolar oficial",desc:"El calendario de Baja California que rige el ciclo: CTE, suspensiones, vacaciones y fechas de evaluación.",grupos:[],view:()=>calView(),count:()=>1,cntLabel:()=>{const c=CAL||store.get("cal-cache",null);return c?`Ciclo ${c.ciclo}`:"Consulta"}},
- {id:"misalumnos",icon:"people",title:"Mis alumnos",desc:"Su base de datos del grupo: captúrela o suba sus archivos (PDF, Excel o Word) y Tlamatini los junta. Con ella se llenan solos los formatos.",grupos:[],view:()=>{S.dirGrupo=undefined;dirView("alumnos")},count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.filter(a=>!String(a.baja||"").trim()).length:0;return n?`${n} alumno${n>1?"s":""} en su base`:"Crear mi base de alumnos"}},
+ {id:"misalumnos",icon:"people",title:"Mis alumnos",desc:"Su base de datos del grupo: captúrela o suba sus archivos (PDF, Excel o Word) y Tlamatini los junta. Con ella se llenan automáticamente los formatos.",grupos:[],view:()=>{S.dirGrupo=undefined;dirView("alumnos")},count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.filter(a=>!String(a.baja||"").trim()).length:0;return n?`${n} alumno${n>1?"s":""} en su base`:"Crear mi base de alumnos"}},
  {id:"directorio",icon:"people",title:"Directorio de la comunidad escolar",desc:"Escuelas de la zona, maestros con grado y grupo, y alumnos con tutores, emergencias y quién los recoge.",grupos:[],view:()=>dirView(),count:()=>1,cntLabel:()=>{const n=(typeof DIR!=="undefined")?DIR.alumnos.length:0,m=(typeof DIR!=="undefined")?DIR.maestros.length:0;return n||m?[m?m+" maestro"+(m>1?"s":""):"",n?n+" alumno"+(n>1?"s":""):""].filter(Boolean).join(" · "):"Personalice su escuela"}},
  {id:"reconocimientos",icon:"award",title:"Reconocimientos y diplomas",desc:"Diplomas y reconocimientos para alumnos, con varios diseños o su propia imagen de fondo; uno por uno o toda la lista de una vez (Excel, Word, PDF o foto).",grupos:[],view:()=>rkAbrir(),count:()=>1,cntLabel:()=>{const r=store.get("reconocimientos",null);const n=r&&r.personas?r.personas.length:0;return n?`${n} nombre${n>1?"s":""} en su lista`:"6 diseños · lista desde foto o Excel"}},
  {id:"misdocs",icon:"folder",title:"Mis documentos",desc:"Todo lo que ha generado en Tlamatini: véalo, imprímalo o envíelo de nuevo, o bórrelo cuando ya no lo necesite.",grupos:[],view:()=>docsView(),count:()=>1,cntLabel:()=>docsCntLabel()},
@@ -1613,9 +1613,9 @@ const SECCIONES=[
  {id:"banxico",icon:"money",title:"El dinero en México (Banxico)",desc:"Programa de educación financiera del Banco de México para 6.°: proyecte el libro en clase, siga la sesión con la guía, imprima las hojas para quien no tiene libro y lleve el avance del grupo.",grupos:[],view:()=>bxAbrir(),count:()=>20,cntLabel:()=>{const n=Object.keys(store.get("bx-avance",{})).length;return n?`${n} de 20 sesiones impartidas`:"6.° · 20 sesiones · libro y guía"}},
  {id:"eia",icon:"book",title:"Ejercicios Integradores del Aprendizaje (EIA)",desc:"Qué son, materiales por fase (3, 4 y 5), concentrado y tutoriales del portal oficial.",grupos:[],view:()=>eiaView(),count:()=>1,cntLabel:()=>"Primaria · Fases 3-5"},
  {id:"familias",icon:"chat",title:"Comunicación con familias",desc:"Recados, citatorios, avisos, autorizaciones, permisos de salida a eventos, autorización de fotos y videos y constancias de asistencia.",grupos:[],tools:[{id:"recado",letra:"R",name:"Recados, avisos y autorizaciones",use:"Avisos, citatorios, permisos, felicitaciones y reportes, para un alumno o generales (todo el grupo o toda la escuela), con el logo de la escuela y la firma digital del docente. Word o PDF.",open:()=>rcView()},{id:"salida",letra:"S",name:"Autorización de salida a eventos",use:"Permiso institucional para desfiles, torneos de fútbol, encuentros de atletismo, olimpiadas del conocimiento u otro evento fuera de la escuela: quién lleva y recoge al alumno y firma del tutor. Dos por hoja (media carta). Para un alumno, todo el grupo o en blanco. Word o PDF.",open:()=>slView()},{id:"privacidad",letra:"P",name:"Autorización de datos personales (fotos y videos)",use:"Formato oficial de la Secretaría de Educación y el ISEP que firma el padre, madre o tutor para que su hijo(a) pueda aparecer en fotos o videos que se publican. Para un alumno, todo el grupo (con los datos del tutor) o en blanco. Word o PDF.",open:()=>apView()},{id:"constancia",letra:"C",name:"Constancia de asistencia (justificante)",use:"Para que el padre, madre o tutor justifique en su trabajo que acudió a la escuela: reunión, entrega de boletas, asunto de su hijo(a), CPE, jornada de limpieza, apoyo en la vialidad u otro. Con logos, datos de la escuela, firma de la dirección y el logo de la zona como marca de agua. Word o PDF.",open:()=>caView()}]},
- {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan solos los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
+ {id:"becas",icon:"school",title:"Becas",desc:"Formato Único de Beca de la Secretaría de Educación: se llenan automáticamente los datos de la escuela y, si tiene su lista, los del alumno.",grupos:["Becas"]},
  {id:"consejo",icon:"people",title:"Consejo de Participación Escolar",desc:"Formatos oficiales 2026: convocatoria, lista de asistencia, minuta de instalación, comités, plan de trabajo y alta y baja de integrantes, con los requisitos de validación.",grupos:[],view:()=>cpView(),count:()=>6,cntLabel:()=>"6 formatos y guía de requisitos"},
- {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, autorización de salida escolar, convenio de expendio de alimentos, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"convenio",letra:"C",name:"Convenio para el expendio de alimentos",use:"Convenio de ISEP con la persona que vende alimentos en la escuela, actualizado a los Lineamientos de 2024, con anexo de productos y precios. Se llenan solos los datos de la escuela.",open:()=>cvView()},{id:"salidaesc",letra:"S",name:"Autorización de salida escolar",use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos: se llenan solos los datos de la escuela, del director(a), del supervisor y del Jefe de Nivel.",open:()=>openAnexo("T")},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
+ {id:"direccion",icon:"school",intro:()=>curpCard(),title:"Dirección",desc:"Minuta de CTE, autorización de salida escolar, convenio de expendio de alimentos, libros de firmas, de visitas y de pases de salida, formatos de inventario, oficios, actas administrativas y entrega de documentación.",grupos:[],tools:[{id:"firmas",letra:"F",name:"Libro de firmas del personal",use:"En actualización por la Circular 40 (control de asistencia). Disponible en breve.",open:()=>lfView()},{id:"visitas",letra:"V",name:"Libro de registro de visitas",use:"Portada, hoja de bienvenida y hojas foliadas listas para imprimir, con el logo de la escuela.",open:()=>lvView()},{id:"pases",letra:"S",name:"Libro de pases de salida anticipada",use:"Un libro por grupo para el aula: portada, aviso a madres y padres con fundamento legal y pases foliados para llenar a mano.",open:()=>psView()},{id:"cte",letra:"T",name:"Minuta de Consejo Técnico Escolar",use:"Elija la sesión del calendario, marque asistencia, anote acuerdos y dé seguimiento a los de la sesión anterior. PDF o Word con lista para firmar.",open:()=>cteView()},{id:"convenio",letra:"C",name:"Convenio para el expendio de alimentos",use:"Convenio de ISEP con la persona que vende alimentos en la escuela, actualizado a los Lineamientos de 2024, con anexo de productos y precios. Se llenan automáticamente los datos de la escuela.",open:()=>cvView()},{id:"salidaesc",letra:"S",name:"Autorización de salida escolar",use:"Formato oficial del Departamento de Educación Primaria para salidas de los alumnos: se llenan automáticamente los datos de la escuela, del director(a), del supervisor y del Jefe de Nivel.",open:()=>openAnexo("T")},{id:"inventario",letra:"I",name:"Formatos de inventario",use:"Resguardo interno, transferencia, alta, bajas, bienes no localizados y aclaraciones, con los datos de su escuela. Formato oficial de Recursos Materiales (ISEP) en PDF.",open:()=>invView()},{id:"alumnos",letra:"D",name:"Extraer datos de alumnos (PDF)",use:"Suba un PDF con la lista: extrae nombre, CURP, fecha de nacimiento y sexo (desde la CURP) y lo entrega en Word para copiar y pegar en cualquier formato.",open:()=>alView()}]}];
 const GLBL={Becas:"",Seguro:"",Personal:"",Docente:"Lo llena: Docente",Dirección:"Lo llena: Dirección",Todos:"Lo llena: Todos","Jefatura de Nivel":"Lo llena: Jefatura de Nivel"};
 function secForms(x){return Object.keys(ANEXOS).filter(L=>x.grupos.includes(ANEXOS[L].grupo)).concat((x.tools||[]).map(t=>t.id))}
 function goBack(){if(S.sec)sectionView(S.sec);else home()}
@@ -1722,7 +1722,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     ${(window.SpeechRecognition||window.webkitSpeechRecognition)?`<button type="button" class="ini-mic" id="buscarMic" aria-label="Dictar lo que busca">${ICON.mic}</button>`:""}</div>
    <div class="ini-res" id="iniRes" hidden aria-live="polite"></div>
    <div class="ini-main" id="iniMain">
-    ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán solos en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
+    ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán automáticamente en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
     ${DEMO?"":respAvisoHTML()}
     <div class="ini-hoy"><div id="iniEvBox">${iniEvento()||""}</div>
      <button type="button" class="urg" data-s="seguro"><span class="ico t">${ICON.cross}</span><span class="tx"><b>¿Hubo un accidente?</b><span class="ds">Seguro escolar: teléfonos para reportar, aviso y clínicas</span></span>${CHEV}</button></div>
@@ -1792,7 +1792,7 @@ function iniBuscador(){const q=document.getElementById("buscarQ"),res=document.g
 /* Mi escuela: datos de la escuela, instalación, respaldo y datos de la Supervisión */
 function miEscuelaView(){S.view="miescuela";S.sec=null;S.letra=null;setBar("");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div style="min-width:0"><div class="eyebrow">Tlamatini</div><h2>Mi escuela</h2></div></div>
-   <section class="card"><div><h3>Mi escuela y mis datos</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán solos en todos los formatos."}</p>
+   <section class="card"><div><h3>Mi escuela y mis datos</h3><p class="muted" style="font-size:15px">${perfil.escuela?esc(perfil.escuela)+(perfil.cct?" · "+esc(perfil.cct):""):"Captúrelos una vez y se llenarán automáticamente en todos los formatos."}</p>
     ${perfil.minombre?`<p class="help" style="margin-top:4px">${esc(perfil.minombre)}${perfil.micargo?" · "+esc(perfil.micargo):""}</p>`:""}</div>
     <button type="button" class="btn ${perfil.escuela?"ghost":"primary"}" id="perfilBtn">${perfil.escuela?"Editar mi escuela y mis datos":"Capturar mi escuela y mis datos"}</button></section>
    <section class="lista">${iniFila("misalumnos","Mis alumnos","",[])}${iniFila("directorio","","",[])}${iniFila("misdocs","","",[])}</section>
@@ -2146,8 +2146,8 @@ function openAnexo(L){S.letra=L;const d=store.get("ppie-draft-"+L,null);S.vals=d
 
 function perfilView(){if(perfil.modo==="otra")return setupOtraView(true);S.view="perfil";
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Volver al inicio">←</button><div><div class="eyebrow">Se usa en todos los formatos</div><h2>Mi escuela y mis datos</h2></div></div>
-   <p class="muted">Capture sus datos una sola vez; Tlamatini los pone solos en todos los formatos.</p>
-   <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan solos.</p>
+   <p class="muted">Capture sus datos una sola vez; Tlamatini los pone automáticamente en todos los formatos.</p>
+   <section class="card"><div class="field"><label for="selEsc">Escuelas de la Zona 050</label><p class="help">Elija su escuela y los datos se llenan automáticamente.</p>
     <select id="selEsc"><option value="" disabled ${perfil.cct?"":"selected"}>Elija su escuela…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${perfil.cct===e[1]?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}</select></div></section>
    <form class="card" id="frm" novalidate><h3>Mi escuela</h3>${PERFIL.map(f=>inputHTML(f,perfil[f.id]??f.def??"")).join("")}</form>
    ${yoHTML()}
@@ -2243,7 +2243,7 @@ function edadesView(){if(!ED.ok||!ED.ciclo)return edCicloView();ED.corte=corteDe
     <div id="msg"></div></section>
    ${gs.length?`<div class="group-title">Concentrado de la escuela · ${todos.length} alumnos</div><section class="card">${matrizHTML(todos)}
      <div class="acts"><button class="btn primary act" id="xls">${EI.down}Descargar Excel de estadística</button></div>
-     <p class="help">Se llena el Excel oficial de estadística (de seis a doce grupos): CURP, nombre y repetidor en cada grupo; las edades y concentrados se calculan solos.</p></section>
+     <p class="help">Se llena el Excel oficial de estadística (de seis a doce grupos): CURP, nombre y repetidor en cada grupo; las edades y concentrados se calculan automáticamente.</p></section>
     ${grados.length>1?grados.map(gr=>`<details class="card"><summary><b>Concentrado de ${gr}°</b> · ${gs.filter(g=>g.grado===gr).reduce((t,g)=>t+g.alumnos.length,0)} alumnos</summary>${matrizHTML(gs.filter(g=>g.grado===gr).flatMap(g=>g.alumnos))}</details>`).join(""):""}
     <div class="group-title">Grupos</div>
     ${gs.map(g=>{const k=gs.indexOf(g);const av=g.alumnos.map(a=>[a,avisosAlumno(a)]).filter(x=>x[1].length);
@@ -2314,7 +2314,7 @@ async function excelEdades(btn){const label=btn.innerHTML;btn.disabled=true;btn.
 const LOGO_KEY="logo-escuela";let LOGO_ESC,LOGO_ORIG=null;
 function logoGet(){if(LOGO_ESC===undefined)LOGO_ESC=store.get(LOGO_KEY,null)||store.get("libro-visitas-logo",null);return LOGO_ESC}
 function logoSet(u){LOGO_ESC=u||null;store.del("libro-visitas-logo");if(!u){store.del(LOGO_KEY);return true}try{localStorage.setItem(LOGO_KEY,JSON.stringify(u));return true}catch(e){return false}}
-/* Logos oficiales de las escuelas de la Zona 050 (img/escuelas/<CCT>.png|jpg): al elegir la escuela se carga solo su logo */
+/* Logos oficiales de las escuelas de la Zona 050 (img/escuelas/<CCT>.png|jpg): al elegir la escuela se carga automáticamente su logo */
 const LOGOS_ESC_050={"02DPR0012Z":"jpg","02DPR0014Y":"png","02DPR0077J":"jpg","02DPR0150B":"png","02DPR0210Z":"jpg","02DPR0378F":"png","02DPR0379E":"jpg","02DPR0382S":"png","02DPR0425Z":"jpg","02DPR0556S":"jpg","02DPR0593W":"png","02DPR0684N":"jpg","02DPR0862Z":"png","02DPR0882N":"png"};
 function logoOficialURL(cct){if(ZONA_TQ||!cct)return null;const x=LOGOS_ESC_050[cct];return x?`img/escuelas/${cct}.${x}`:null}
 async function logoOficialCargar(cct){const u=logoOficialURL(cct);if(!u)return false;try{const b=await(await fetch(u)).blob();
@@ -2355,7 +2355,7 @@ async function pdfMembrete(doc,pg,M,W0,y){const inst=await embedInst(doc),sch=aw
   if(sch){const d=sch.scaleToFit(h+8,h);pg.drawImage(sch,{x:M+W0-d.width,y:y-d.height,width:d.width,height:d.height})}
   return y-h-8}
 function logoWidgetHTML(){const L=logoGet();
-  return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Al elegir una escuela de la Zona 050 se carga solo su logo oficial; si no tiene, se usa el logo de la Zona 050.</p>
+  return`<section class="card"><h3>Logo de la escuela</h3><p class="help">Aparece en la portada y en cada hoja. Se guarda en este dispositivo y sirve para el libro de visitas y el de firmas. Al elegir una escuela de la Zona 050 se carga automáticamente su logo oficial; si no tiene, se usa el logo de la Zona 050.</p>
    <div class="ph"><div class="phf lvlogo" id="lg_pv">${L?`<img src="${L}" alt="Logo de la escuela">`:"<span>Sin logo</span>"}</div>
     <div class="phb"><label class="btn primary" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir logo de la escuela<input type="file" accept="image/*" id="lg_file" hidden></label>
      <button type="button" class="btn ghost" id="lg_up" ${L?"":"hidden"}>${EI.spark}Mejorar calidad</button>
@@ -2638,7 +2638,7 @@ async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaVie
    <p class="muted">Registro de asistencia del personal: una hoja por cada día hábil del ciclo escolar, con la fecha ya escrita y las fechas importantes del calendario oficial en el recuadro de abajo.</p>
    ${CAL?"":`<div class="alert"><b>No se pudo cargar el calendario oficial.</b> Revise su conexión y vuelva a entrar.</div>`}
    <section class="card"><h3>Escuela</h3>
-    <div class="field"><label for="lf_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+    <div class="field"><label for="lf_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
      <select id="lf_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
     <div class="field"><label for="lf_tipo">Tipo de escuela</label><input type="text" id="lf_tipo" value="${esc(v.tipo)}" autocomplete="off"></div>
     <div class="field"><label for="lf_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="lf_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
@@ -2677,7 +2677,7 @@ async function lfView(){if(LF_PAUSA&&!store.get("gh-token",""))return lfPausaVie
     ${chk("lf_recuadro",v.recuadro,"Poner las fechas importantes en el recuadro de abajo")}${chk("lf_susp",v.susp,"Incluir hojas de los días de suspensión de labores docentes")}</div></section>
    <section class="card"><h3>Vista previa</h3><p class="help">Muestra la portada, la primera hoja de normatividad, el primer día y un día con fecha importante.</p>
     <button class="btn ghost" id="lf_prev">Ver vista previa</button><div id="lf_pvw" class="lvpv"></div></section>
-   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>${v.orient==="horizontal"?"horizontal":"vertical"}</b>${v.orient==="horizontal"&&(v.portada||v.normas)?" (la portada y la normatividad salen en vertical; la impresora las acomoda sola)":""}.</p>
+   <section class="card"><h3>¿Qué desea hacer con el libro?</h3><p class="muted" style="font-size:15px">Imprímalo en hojas tamaño <b>Carta</b>, orientación <b>${v.orient==="horizontal"?"horizontal":"vertical"}</b>${v.orient==="horizontal"&&(v.portada||v.normas)?" (la portada y la normatividad salen en vertical; la impresora las acomoda automáticamente)":""}.</p>
     <div class="acts">
      <button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
      <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
@@ -2836,7 +2836,7 @@ function lvView(){S.view="libro";S.letra=null;if(!LV)LV=lvInit();setBar("");OUT=
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de registro de visitas</h2></div></div>
    <p class="muted">Genere el libro listo para imprimir: portada, hoja de bienvenida para quien visita la escuela y hojas foliadas para el registro, como lo pide el protocolo de acceso a las escuelas.</p>
    <section class="card"><h3>Escuela</h3>
-    <div class="field"><label for="lv_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+    <div class="field"><label for="lv_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
      <select id="lv_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
     <div class="field"><label for="lv_tipo">Tipo de escuela</label><input type="text" id="lv_tipo" value="${esc(v.tipo)}" autocomplete="off">
      <div class="chips">${["Escuela Primaria","Escuela Primaria Federal","Jardín de Niños","Escuela Secundaria"].map(c=>`<button type="button" class="chip" data-tipo="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>
@@ -3028,7 +3028,7 @@ function psView(){S.view="pases";S.letra=null;if(!PS)PS=psInit();setBar("");OUT=
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Libro de pases de salida anticipada</h2></div></div>
    <p class="muted">Un libro por grupo para el aula: portada, aviso a madres y padres con el fundamento legal y pases con folio, listos para llenar a mano, como lo pide el Protocolo de Acceso y Salida de Baja California.</p>
    <section class="card"><h3>Escuela</h3>
-    <div class="field"><label for="ps_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan solos. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
+    <div class="field"><label for="ps_sel">Escuelas de la Zona 050</label><p class="help">Elija la escuela y los datos se llenan automáticamente. Si es de otra zona, elija «Otra escuela» y escríbalos.</p>
      <select id="ps_sel"><option value="">Elija…</option>${ESCUELAS_050.map((e,i)=>`<option value="${i}" ${v.sel===String(i)?"selected":""}>${esc(e[0])} · ${e[1]}</option>`).join("")}<option value="otra" ${v.sel==="otra"?"selected":""}>Otra escuela (llenar a mano)</option></select></div>
     <div class="field"><label for="ps_nombre">Nombre de la escuela</label><p class="help">Solo el nombre, sin «Escuela Primaria».</p><input type="text" id="ps_nombre" value="${esc(v.nombre)}" autocomplete="off"></div>
     <div class="row2"><div class="field"><label for="ps_cct">C.C.T.</label><input type="text" id="ps_cct" value="${esc(v.cct)}" style="text-transform:uppercase" autocomplete="off"></div>
@@ -4827,7 +4827,7 @@ function cvView(){S.view="convenio";S.letra=null;setBar("");if(!CV)CV=cvNuevo();
     <div class="field"><label>Forma de pago</label><select id="cv_pago">${CV_PAGO.map(([k,t])=>`<option value="${k}" ${CV.pago===k?"selected":""}>${t}</option>`).join("")}</select></div>
     <div class="row2"><div class="field"><label>Aportación ${{semanal:"por semana",quincenal:"por quincena",mensual:"por mes"}[CV.pago]} ($)</label>${v("monto","0.00","text",'inputmode="decimal"')}</div>
      ${CV.pago==="mensual"?`<div class="field"><label>Día límite de cada mes</label>${v("diaMes","5","text",'inputmode="numeric"')}</div>`:'<div class="field"></div>'}</div>
-    <p class="help" id="cv_letra">${CV.monto?"Con letra: "+esc(cvLetra(CV.monto))+" M.N.":"La cantidad con letra se escribe sola."}</p>
+    <p class="help" id="cv_letra">${CV.monto?"Con letra: "+esc(cvLetra(CV.monto))+" M.N.":"La cantidad con letra se escribe automáticamente."}</p>
     <div class="row2"><div class="field"><label>Cuenta bancaria de la escuela</label>${v("cuenta","Número de cuenta","text",'inputmode="numeric"')}</div><div class="field"><label>Banco</label>${v("banco")}</div></div></section>
    <section class="card"><h3>Anexo 1 · Propuesta de alimentos y precios</h3>
     <p class="help">Lo que venderá, la porción o presentación y el precio. Solo alimentos y bebidas permitidos por los Lineamientos: nada con sellos de advertencia. Si lo deja vacío, el anexo sale en blanco para llenarlo a mano.</p>
@@ -4846,7 +4846,7 @@ function cvView(){S.view="convenio";S.letra=null;setBar("");if(!CV)CV=cvNuevo();
   const campos=["escuela","cct","turno","subsistema","director","domEsc","locEsc","munEsc","cpe","expendedor","expDom","expLoc","horaIni","horaFin","vigIni","vigFin","monto","diaMes","cuenta","banco","lugarFirma","fechaFirma","test1","test2"];
   const leer=()=>{campos.forEach(k=>{const e=g("cv_"+k);if(e)CV[k]=e.value.trim()});CV.cargo=g("cv_cargo").value;
     app.querySelectorAll("[data-cvp]").forEach(e=>{CV.productos[+e.dataset.cvp][e.dataset.k]=e.value.trim()});cvSave()};
-  campos.forEach(k=>{const e=g("cv_"+k);if(e)e.addEventListener("change",()=>{leer();if(k==="monto")g("cv_letra").textContent=CV.monto?"Con letra: "+cvLetra(CV.monto)+" M.N.":"La cantidad con letra se escribe sola.";
+  campos.forEach(k=>{const e=g("cv_"+k);if(e)e.addEventListener("change",()=>{leer();if(k==="monto")g("cv_letra").textContent=CV.monto?"Con letra: "+cvLetra(CV.monto)+" M.N.":"La cantidad con letra se escribe automáticamente.";
     if(k==="vigIni"||k==="vigFin")g("cv_dur").textContent=CV.vigIni&&CV.vigFin?(CV.vigFin<CV.vigIni?"Revise las fechas: termina antes de iniciar.":"Duración: "+cvDuracion(CV.vigIni,CV.vigFin)+"."):""})});
   app.querySelectorAll("[data-cvp]").forEach(e=>e.addEventListener("change",leer));
   g("cv_cargo").onchange=leer;
@@ -4855,7 +4855,7 @@ function cvView(){S.view="convenio";S.letra=null;setBar("");if(!CV)CV=cvNuevo();
   g("cv_pago").onchange=()=>{leer();CV.pago=g("cv_pago").value;cvSave();cvView()};
   g("cv_mas").onclick=()=>{leer();CV.productos.push({p:"",d:"",precio:""});cvSave();cvView()};
   app.querySelectorAll("[data-cvq]").forEach(b=>b.onclick=()=>{leer();CV.productos.splice(+b.dataset.cvq,1);if(!CV.productos.length)CV.productos.push({p:"",d:"",precio:""});cvSave();cvView()});
-  g("cv_nuevo").onclick=()=>{if(!confirm("¿Empezar un convenio nuevo? Se borran los datos capturados (los de la escuela se vuelven a llenar solos)."))return;CV=cvNuevo();cvSave();cvView()};
+  g("cv_nuevo").onclick=()=>{if(!confirm("¿Empezar un convenio nuevo? Se borran los datos capturados (los de la escuela se vuelven a llenar automáticamente)."))return;CV=cvNuevo();cvSave();cvView()};
   g("salir").onclick=()=>{leer();goBack()};
   const listo=()=>{if(CV.vigIni&&CV.vigFin&&CV.vigFin<CV.vigIni){alert("Revise la vigencia: la fecha en que concluye es anterior a la de inicio.");return false}return true};
   g("cv_pdf").onclick=e=>{leer();if(listo())cvPDF(e.currentTarget)};wireImprimir("cvPrint",b=>{leer();if(listo())cvPDF(b)});
@@ -6275,7 +6275,7 @@ function setupView(){S.view="setup";S.sec=null;setBar("");
     :`<button type="button" class="bv-op p" id="su050"><span class="bv-ic">${ICON.group}</span><span><b>Zona Escolar No. 050</b><span>Sus escuelas ya están cargadas</span></span></button>`;
   app.innerHTML=`<div class="bv">
    <header class="bv-h">${TLM("oscuro")}<h1 class="bv-n">Tlamatini</h1><p class="bv-l">Un camino para la labor docente</p>
-    <p class="bv-p">Formatos oficiales, documentos pedagógicos y trámites que se llenan solos con los datos de su escuela.</p></header>
+    <p class="bv-p">Formatos oficiales, documentos pedagógicos y trámites que se llenan automáticamente con los datos de su escuela.</p></header>
    <div class="bv-c">
     <h2 class="bv-q">¿Dónde trabaja?</h2><p class="bv-qs">Elíjalo una sola vez; después entrará directo.</p>
     ${zBtn}
@@ -6327,7 +6327,7 @@ function setupOtraView(editar){S.view="setupotra";S.sec=null;setBar("");
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Configuración</div><h2>Datos de mi zona y escuela</h2></div></div>
    <p class="muted">Capture sus datos una vez; con ellos se llenan todos los formatos que genere. Lo que no aplique, déjelo en blanco.</p>
    <section class="card" style="display:flex;align-items:center;gap:12px"><img src="${esc(perfil.instLogo||'img/isep.png')}" alt="" style="height:40px"><div style="flex:1"><b>Subsistema: ${perfil.subsis==="SEBS"?"SEBS (escuelas estatales)":"ISEP (escuelas federalizadas)"}</b><br><span class="muted" style="font-size:13px">Logotipo institucional seleccionado.</span></div><button type="button" class="btn link" id="s_cambsub">Cambiar</button></section>
-   ${DEMO?"":`<section class="card"><h3>¿Es supervisión de zona?</h3><p class="help">Suba el directorio de sus escuelas (Excel) y elija la suya; después podrá compartirlo con sus directores para que a cada uno se le llenen solos sus datos.</p>
+   ${DEMO?"":`<section class="card"><h3>¿Es supervisión de zona?</h3><p class="help">Suba el directorio de sus escuelas (Excel) y elija la suya; después podrá compartirlo con sus directores para que a cada uno se le llenen automáticamente sus datos.</p>
     <div class="dir-acts" style="margin-top:4px"><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Subir directorio de escuelas<input type="file" accept=".xlsx,.csv" id="s_dirxls" hidden></label><button type="button" class="btn ghost" id="s_dirpl">Plantilla de Excel</button></div><p class="help" id="s_dirmsg" role="status"></p>
     ${DIR.escuelas.length?`<div class="field" style="margin-top:8px"><label for="s_selesc">Escuelas de mi zona (${DIR.escuelas.length})</label><p class="help">Elija su escuela y sus datos se llenan abajo.</p><select id="s_selesc"><option value="">Elija su escuela…</option>${DIR.escuelas.map((e,i)=>`<option value="${i}" ${perfil.cct&&perfil.cct===e.cct?"selected":""}>${esc(e.nombre)}${e.cct?" · "+esc(e.cct):""}</option>`).join("")}</select></div>`:""}</section>`}
    <section class="card"><h3>Zona escolar y supervisión</h3>
@@ -6435,7 +6435,7 @@ function equipoInner(){let completo=false,ult="";try{completo=localStorage.getIt
     :`<p class="help">Para instalarla: abra el menú del navegador (⋮) y elija <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla de inicio»</b>.</p>`;
   return`<div><h3>Tlamatini en este equipo</h3><p class="muted" style="font-size:15px">Instálela como app, úsela sin internet y respalde su información.</p></div>
    ${inst}
-   <div class="eq-fila"><div><b>Sin internet</b><p class="help">${completo?"Todos los formatos están guardados: puede trabajar sin conexión.":"Los formatos principales ya se guardan solos. Para tener también el Consejo, la estadística y las demás plantillas, guárdelos una vez con internet."}</p></div>
+   <div class="eq-fila"><div><b>Sin internet</b><p class="help">${completo?"Todos los formatos están guardados: puede trabajar sin conexión.":"Los formatos principales ya se guardan automáticamente. Para tener también el Consejo, la estadística y las demás plantillas, guárdelos una vez con internet."}</p></div>
     ${completo?"":`<button type="button" class="btn ghost" id="eq_todo">Guardar todos los formatos (5 MB)</button>`}</div>
    <div class="eq-fila"><div><b>Respaldo de mis datos</b><p class="help">Sus datos viven solo en este equipo. Descargue un respaldo para pasarlos a otro teléfono o no perderlos.${ult?` Último respaldo: ${esc(fmtDate(ult,"larga"))}.`:""}</p></div>
     ${DEMO?`<p class="help"><i>No disponible en la demostración.</i></p>`:`<div class="phb row"><button type="button" class="btn ghost" id="eq_resp">Descargar respaldo</button><label class="btn ghost" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Restaurar respaldo<input type="file" accept=".json,application/json" id="eq_rest" hidden></label></div>`}</div>
@@ -6459,14 +6459,14 @@ function demoRecorrido(){const p=(k,t,d)=>`<button type="button" class="demo-pas
    <p>Bienvenida, bienvenido. Esta es una escuela de ejemplo con sus datos ya capturados, para que vea cómo Tlamatini <b>llena solo los formatos</b> y le ahorra tiempo. Toque cualquier opción para probarla:</p>
    <div class="demo-pasos">
     ${p("perfil","1 · Datos de mi escuela","Se capturan una sola vez y aparecen en todos los formatos.")}
-    ${p("misalumnos","2 · Mis alumnos","Base ficticia de 4.° A con tutores, emergencias, salud, apoyos, una alta y una baja. Con ella se llenan solos los formatos.")}
+    ${p("misalumnos","2 · Mis alumnos","Base ficticia de 4.° A con tutores, emergencias, salud, apoyos, una alta y una baja. Con ella se llenan automáticamente los formatos.")}
     ${p("maestros","3 · Personal de la escuela","Directorio del personal con grado y grupo; alimenta la minuta de CTE y la plantilla.")}
     ${p("dx","4 · Lectura de la realidad","Ya tiene un ejemplo de 4.° A respondido. Descárguelo en Word o PDF.")}
     ${p("pmce","5 · Programa de Mejora Continua","Retoma la lectura de la realidad para armar objetivos, metas y acciones.")}
     ${p("pa","6 · Programa Analítico","Contenidos y PDA oficiales por campo formativo, para ordenar y codiseñar.")}
     ${p("plan","7 · Planeación didáctica","Desde el analítico: metodología, secuencia y evaluación formativa.")}
     ${p("cte","8 · Consejo Técnico Escolar","Minuta formal con el personal de la escuela ya cargado.")}
-    ${p("ppie","9 · Protección escolar (PPIE)","Los anexos oficiales A al I; elija un alumno de la lista y sus datos se llenan solos.")}
+    ${p("ppie","9 · Protección escolar (PPIE)","Los anexos oficiales A al I; elija un alumno de la lista y sus datos se llenan automáticamente.")}
     ${p("familias","10 · Comunicación con familias","Recados, citatorios y autorizaciones, a un alumno o a todo el grupo.")}
     ${p("asistencia","11 · Lista de asistencia mensual","El grupo de 4.° A ya cargado, con los días hábiles del calendario oficial.")}
     ${p("estadistica","12 · Estadística de edades","Edades al 1 de septiembre calculadas desde la base de alumnos.")}
@@ -6550,7 +6550,7 @@ const DIR_SANGRE=["O+","O−","A+","A−","B+","B−","AB+","AB−","No sabe"];
 const DF_ALU=[
  {sec:"Datos del alumno"},
  {k:"nombre",l:"Nombre del alumno",req:1,help:"Apellidos y nombre(s), como en el acta.",al:["nombre del alumno","alumno","nombre completo","nombre"]},
- {k:"curp",l:"CURP",up:1,help:"Con la CURP se calculan solos la fecha de nacimiento y el sexo.",al:["curp"]},
+ {k:"curp",l:"CURP",up:1,help:"Con la CURP se calculan automáticamente la fecha de nacimiento y el sexo.",al:["curp"]},
  {k:"grado",l:"Grado",half:1,al:["grado"]},{k:"grupo",l:"Grupo",half:1,al:["grupo"]},
  {k:"fnac",l:"Fecha de nacimiento",half:1,ph:"dd/mm/aaaa",al:["fecha de nacimiento","nacimiento","f nac"]},
  {k:"sexo",l:"Sexo",half:1,opts:["Hombre","Mujer"],al:["sexo","genero"]},
@@ -6635,7 +6635,7 @@ function dirAcciones(t,extra){return`<div class="dir-acts">
 const DIR_LISTA=t=>t==="escuelas"?dirEscuelasBase():DIR[t];
 function dirEscHTML(){const L=dirEscuelasBase();const z=DIR.zona||{};
   return`<section class="card"><h3>Escuelas de la zona${perfil.zona?" "+esc(perfil.zona):""}</h3>
-   <p class="help">Para la <b>supervisión</b>: capture o suba el directorio de sus escuelas y compártalo con los directores. Cada director elige su escuela y sus datos se llenan solos.</p>
+   <p class="help">Para la <b>supervisión</b>: capture o suba el directorio de sus escuelas y compártalo con los directores. Cada director elige su escuela y sus datos se llenan automáticamente.</p>
    ${dirAcciones("escuelas")}
    ${L.length?`<button type="button" class="btn primary dir-share" data-a="compartir">Compartir con los directores</button>`:""}</section>
    ${L.length?`<div class="group-title">${L.length} escuela${L.length>1?"s":""}${z.supervisor?" · "+esc(z.supervisor):""}</div><div class="dir-list">${L.map((e,i)=>`<button type="button" class="dir-it ${perfil.cct&&perfil.cct===e.cct?"yo":""}" data-i="${i}"><span class="dir-av">${esc((e.nombre||"?").trim().charAt(0))}</span><span class="tx"><b>${esc(e.nombre)}</b><span class="ds">${esc([e.cct,e.localidad,e.organizacion].filter(Boolean).join(" · "))}</span><span class="ds">${esc(e.director||"Sin titular")}${perfil.cct&&perfil.cct===e.cct?' · <i class="dir-yo">Mi escuela</i>':""}</span></span><span class="chev" aria-hidden="true">›</span></button>`).join("")}</div>`
@@ -6645,7 +6645,7 @@ function dirMaeHTML(){const L=[...DIR.maestros].sort(dirOrden);const yo=DIR.maes
    <p class="help">Para la <b>dirección</b>: capture o suba la plantilla de su personal (grado, grupo, RFC, CURP y celular) y compártala con sus maestros. Cada quien elige su nombre y Tlamatini se ajusta a su grado y grupo.</p>
    ${dirAcciones("maestros")}
    ${L.length?`<button type="button" class="btn primary dir-share" data-a="compartir">Compartir con mis maestros</button>`:""}</section>
-   ${L.length?`<section class="card dir-yo-card"><h3>¿Quién es usted en esta escuela?</h3><p class="help">Elija su nombre: se llenan solos su nombre, cargo, grado y grupo en todos los formatos de este dispositivo.</p>
+   ${L.length?`<section class="card dir-yo-card"><h3>¿Quién es usted en esta escuela?</h3><p class="help">Elija su nombre: se llenan automáticamente su nombre, cargo, grado y grupo en todos los formatos de este dispositivo.</p>
     <select id="dir_yo"><option value="">Elija su nombre…</option>${L.map(m=>`<option value="${esc(m.id)}" ${m.id===DIR.yo?"selected":""}>${esc(m.nombre)}${m.grado?` · ${esc(m.grado)}° ${esc(m.grupo||"")}`:m.funcion?" · "+esc(m.funcion):""}</option>`).join("")}</select>
     ${yo?`<p class="eq-ok" style="margin-top:8px">✓ Tlamatini está personalizada para ${esc(yo.nombre)}.</p>`:""}</section>
     <div class="group-title">${L.length} persona${L.length>1?"s":""}</div><div class="dir-list">${L.map(m=>{const i=DIR.maestros.indexOf(m);return`<button type="button" class="dir-it ${m.id===DIR.yo?"yo":""}" data-i="${i}"><span class="dir-av">${m.grado?esc(m.grado)+"°":esc((m.nombre||"?").charAt(0))}</span><span class="tx"><b>${esc(m.nombre)}</b><span class="ds">${esc([m.grado?`${m.grado}° ${m.grupo||""}`.trim():"",m.funcion].filter(Boolean).join(" · "))}</span>${m.celular?`<span class="ds">${esc(m.celular)}</span>`:""}</span><span class="chev" aria-hidden="true">›</span></button>`}).join("")}</div>`
@@ -6991,10 +6991,10 @@ function dirCompartirView(t){const nivel={escuelas:"zona",maestros:"escuela",alu
   const dest={zona:"los directores de su zona",escuela:"los maestros de su escuela",grupo:"la dirección de su escuela"}[nivel];
   const F=S.dirGrupo||"";const FF=F==="bajas"?"":F;const nAl=DIR.alumnos.filter(a=>dirActivo(a)&&(!FF||((a.grado||"?")+"|"+(a.grupo||""))===FF)).length,nBj=DIR.alumnos.filter(a=>!dirActivo(a)&&(!FF||((a.grado||"?")+"|"+(a.grupo||""))===FF)).length;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio · Compartir</div><h2>Compartir con ${esc(dest)}</h2></div></div>
-   <section class="card"><p style="margin:0 0 8px">Tlamatini prepara un <b>archivo</b> que puede mandar por WhatsApp o correo. Quien lo reciba lo carga en <b>Directorio → Cargar archivo recibido</b> (o al abrir Tlamatini por primera vez) y sus datos se llenan solos.</p>
+   <section class="card"><p style="margin:0 0 8px">Tlamatini prepara un <b>archivo</b> que puede mandar por WhatsApp o correo. Quien lo reciba lo carga en <b>Directorio → Cargar archivo recibido</b> (o al abrir Tlamatini por primera vez) y sus datos se llenan automáticamente.</p>
     ${nivel==="zona"?`<p class="help">Incluye las ${dirEscuelasBase().length} escuelas con sus datos y los de la supervisión. Cada director elegirá la suya.</p>`:""}
     ${nivel==="escuela"?`<p class="help">Incluye los datos de la escuela y la lista de ${DIR.maestros.length} maestros con grado, grupo, función, celular y correo. Cada maestro elegirá su nombre.</p>
-     <label class="opt dir-chk"><input type="checkbox" id="c_ids"><span><b>Incluir RFC y CURP</b><br><span class="muted" style="font-size:14px">Así a cada maestro se le llenan solos en los formatos laborales, pero todos verán los de todos. Si no lo marca, cada quien los escribe una vez.</span></span></label>`:""}
+     <label class="opt dir-chk"><input type="checkbox" id="c_ids"><span><b>Incluir RFC y CURP</b><br><span class="muted" style="font-size:14px">Así a cada maestro se le llenan automáticamente en los formatos laborales, pero todos verán los de todos. Si no lo marca, cada quien los escribe una vez.</span></span></label>`:""}
     ${nivel==="grupo"?`<p class="help">Incluye ${nAl} alumno${nAl===1?"":"s"}${FF?" de "+esc(dirGLabel(...FF.split("|"))):""} con sus fichas completas: tutores, emergencias, quién los recoge, salud y apoyos${nBj?`, y ${nBj} baja${nBj===1?"":"s"} para que la dirección también las registre`:""}.</p>
      <p class="help">Sirve para dos cosas: <b>guardar una copia</b> de su base (por si cambia de teléfono o computadora, o para pasarla a otro dispositivo suyo) y <b>enviarla a la dirección</b>, donde se juntan las bases de todos los grupos. Cuando haya altas o bajas, vuelva a enviarla: la dirección la carga encima y se actualiza.</p>
      <div class="alert" style="margin:8px 0 0"><b>Datos de menores.</b> Envíe este archivo solo a la dirección de su escuela y bórrelo del chat cuando la dirección lo haya cargado.</div>`:""}
@@ -7039,7 +7039,7 @@ async function dirImportarVarios(fs){const pk=[];const malos=[];
   if(m)m.innerHTML=`<b>Bases cargadas:</b> ${nu} alumnos nuevos y ${ac} actualizados.${malos.length?` <br>No se reconocieron: ${esc(malos.join(", "))}.`:""}`}
 function dirElegirEscuelaView(){S.view="dir";const L=dirEscuelasBase();
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Directorio${perfil.zona?" · Zona "+esc(perfil.zona):""}</div><h2>¿Cuál es su escuela?</h2></div></div>
-   <p class="muted">Elíjala y sus datos se llenan solos en todos los formatos de este dispositivo.</p>
+   <p class="muted">Elíjala y sus datos se llenan automáticamente en todos los formatos de este dispositivo.</p>
    <div class="dir-list">${L.map((e,i)=>`<button type="button" class="dir-it" data-i="${i}"><span class="dir-av">${esc((e.nombre||"?").charAt(0))}</span><span class="tx"><b>${esc(e.nombre)}</b><span class="ds">${esc([e.cct,e.localidad,e.director].filter(Boolean).join(" · "))}</span></span><span class="chev" aria-hidden="true">›</span></button>`).join("")}</div>
    <p class="foot">¿Es usted la supervisión? <button type="button" class="btn link" id="sup" style="font-size:14px;padding:4px 0">Ver el directorio de escuelas</button></p>`;
   document.getElementById("salir").onclick=home;document.getElementById("sup").onclick=()=>dirView("escuelas");
@@ -7123,7 +7123,7 @@ if(DEMO&&typeof DEMO_IR!=="undefined"){Object.assign(DEMO_IR,{misalumnos:()=>{S.
 </script>
 <script>
 /* Dictado por voz · Tlamatini y Tequio
-   Agrega un micrófono a los campos de texto. Se toca, se habla y el texto se escribe solo.
+   Agrega un micrófono a los campos de texto. Se toca, se habla y el texto se escribe automáticamente.
    Usa el reconocimiento de voz del navegador (Chrome, Edge, Safari). Necesita internet.
    Comandos: «punto», «coma», «dos puntos», «punto y aparte» / «nueva línea», «signo de interrogación». */
 (function(){
