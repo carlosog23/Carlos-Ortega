@@ -6,6 +6,12 @@
 <meta name="description" content="Evaluación cualitativa de preescolar por campo formativo, a partir de listas de cotejo. Plan de Estudio 2022, Fase 2.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23fff'/%3E%3Crect x='5' y='5' width='10' height='10' rx='2' fill='%23C9470D'/%3E%3Crect x='17' y='5' width='10' height='10' rx='2' fill='%230B7285'/%3E%3Crect x='5' y='17' width='10' height='10' rx='2' fill='%232B7A3B'/%3E%3Crect x='17' y='17' width='10' height='10' rx='2' fill='%23A61E4D'/%3E%3C/svg%3E">
 <title>Evaluación Cualitativa Preescolar</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2F4BD8">
+<link rel="apple-touch-icon" href="img/icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Evaluación Preescolar">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
 <style>
@@ -154,6 +160,24 @@ dialog::backdrop{background:rgba(10,14,24,.5)}
 .busy .card{max-width:380px;text-align:center}
 .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 10px}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* Bienvenida (primer uso) e instalación */
+.bienv{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 70%,rgba(10,14,24,.55));backdrop-filter:blur(6px);display:flex;padding:16px;overflow:auto}
+.bienv-c{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px -20px rgba(24,34,59,.45);max-width:520px;width:100%;overflow:hidden;margin:auto}
+.bienv-cab{padding:22px 22px 16px;display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--line)}
+.bienv-cab .mosaico{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:48px;height:48px;flex:none}
+.bienv-cab .mosaico i{border-radius:5px}
+.bienv-cab h2{font-family:var(--display);font-size:22px;margin:0;line-height:1.15}
+.bienv-cab p{margin:4px 0 0;color:var(--muted);font-size:14.5px}
+.bienv-cu{padding:18px 22px;display:grid;gap:12px}
+.bienv-cu .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bienv-err{color:var(--no);font-weight:700;font-size:14px;margin:0}
+.instalar{display:flex;gap:12px;align-items:center;background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.instalar svg{width:28px;height:28px;flex:none;color:var(--accent)}
+.instalar b{display:block}.instalar span{font-size:14px;color:var(--muted)}
+.instalar .btn{margin-left:auto;flex:none}
+.bienv-pie{padding:14px 22px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);background:var(--surface2)}
+.aviso-inst{max-width:1100px;margin:12px auto 0;padding:0 16px}
+@media (max-width:520px){.bienv-cu .grid2{grid-template-columns:1fr}.instalar{flex-wrap:wrap}.instalar .btn{margin-left:0;width:100%;justify-content:center}}
 @media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
 </style>
 </head>
@@ -218,7 +242,9 @@ const EJ_ALUMNOS = ["ACOSTA RIVERA VALERIA","BELTRAN SOTO MATEO","CAMPOS DE LA C
 const SERVIDOR = "https://script.google.com/macros/s/AKfycbzAgEGtZ_2M04N6sTMJC58vQy2Jz9n5a5uFD5VYNJLIoFeSZ-uYH1E7Sj6Y8EG-DKQkBA/exec";
 const LS = "evalcual-preescolar-v1";
 const nt = () => ({aspectos:[],val:{},notas:{},textos:{}});
-const base = () => ({v:1,escuela:'Jardín de Niños "Justo Sierra"',docente:"Perla Aceves",grado:"2",grupo:"B",ciclo:"2026-2027",tri:1,
+/* Ciclo escolar vigente: de agosto en adelante empieza el siguiente */
+const cicloHoy = () => { const d=new Date(), y=d.getFullYear(); return d.getMonth()>=7 ? `${y}-${y+1}` : `${y-1}-${y}`; };
+const base = () => ({v:1,escuela:"",docente:"",grado:"2",grupo:"",ciclo:cicloHoy(),tri:1,
   alumnos:[],tris:{1:nt(),2:nt(),3:nt()},op:{largo:"media",limite:400,familia:true,docente:false,comparar:true},ts:0});
 let S = base();
 let view = "datos", modoVal = (window.innerWidth<760?"alumno":"tabla"), alSel = null, histSel = null;
@@ -240,7 +266,11 @@ function pila(full){
 const enTri = (a,t) => (a.altaTri||1) <= t && (!a.baja || t < (a.bajaTri||1));
 const activos = (t=S.tri) => S.alumnos.filter(a=>enTri(a,t));
 
-function load(){ try{ const j = JSON.parse(localStorage.getItem(LS)||"null"); if(j&&j.v===1) S = Object.assign(base(),j); }catch(e){} for(const t of [1,2,3]) S.tris[t] = Object.assign(nt(),S.tris[t]||{}); }
+function load(){ try{ const j = JSON.parse(localStorage.getItem(LS)||"null"); if(j&&j.v===1) S = Object.assign(base(),j); }catch(e){} for(const t of [1,2,3]) S.tris[t] = Object.assign(nt(),S.tris[t]||{});
+  /* La primera versión traía una escuela y una docente de ejemplo: si quedaron sin usarse, se limpian para que cada quien ponga los suyos */
+  if(S.escuela==='Jardín de Niños "Justo Sierra"'&&S.docente==="Perla Aceves"&&!S.alumnos.length){ S.escuela=""; S.docente=""; S.grupo=""; }
+}
+const configurado = () => !!(S.escuela.trim()&&S.docente.trim());
 let dbTimer=null, dbLast={}, dbChain=Promise.resolve();
 function save(){
   S.ts = Date.now();
@@ -522,7 +552,7 @@ async function expPdf(){
 /* ============ Vistas ============ */
 const PASOS=[["datos","Datos"],["alumnos","Alumnos"],["aspectos","Aspectos"],["valorar","Valoración"],["redaccion","Redacción"],["historial","Historial"]];
 function head(){
-  $("#subhead").innerHTML = `${esc(S.escuela)} · ${GR[S.grado]} ${esc(S.grupo)} · ${esc(S.docente)} <span class="pill ${AI?"ok":"warn"}" style="margin-left:6px"><span class="dot"></span>${AI?"Redacción con IA":"Redacción básica"}</span> <span class="pill"><span class="dot"></span>${nube?"Guardado en tu cuenta":"Guardado en este dispositivo"}</span>`;
+  $("#subhead").innerHTML = `${configurado()?`${esc(S.escuela)} · ${GR[S.grado]} ${esc(S.grupo)} · ${esc(S.docente)}`:"Escriba los datos de su escuela para empezar"} ${INST.puede()&&!INST.instalada()?`<button class="btn sm" data-act="instalar" style="margin-left:6px">${ICO_INST}Instalar app</button>`:""} <span class="pill ${AI?"ok":"warn"}" style="margin-left:6px"><span class="dot"></span>${AI?"Redacción con IA":"Redacción básica"}</span> <span class="pill"><span class="dot"></span>${nube?"Guardado en tu cuenta":"Guardado en este dispositivo"}</span>`;
   $("#trisel").innerHTML = [1,2,3].map(t=>`<button data-act="tri" data-t="${t}" aria-pressed="${S.tri===t}">${t}.º trimestre</button>`).join("");
   $("#steps").innerHTML = PASOS.map(([k,n],i)=>`<button data-act="ir" data-v="${k}" ${view===k?'aria-current="page"':""}><span class="n">${i+1}</span>${n}</button>`).join("");
 }
@@ -706,8 +736,67 @@ async una(prompt,imagenes,o){
   return leerJson(j.texto);
 } };
 
+/* ============ Instalar la app (celular o computadora) ============ */
+const ICO_INST = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>';
+const INST = {
+  ev: null,
+  ios: /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1),
+  instalada(){ return matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; },
+  puede(){ return !!this.ev || (this.ios && !this.instalada()); },
+  async pedir(){
+    if(this.ev){ this.ev.prompt(); const r=await this.ev.userChoice.catch(()=>null); this.ev=null; head(); pintaBienv();
+      if(r&&r.outcome==="accepted") toast("Listo: la app quedó instalada. Búscala en tu pantalla de inicio o en tus aplicaciones."); return; }
+    if(this.ios){ confirmar("Para instalarla en iPhone o iPad: abre esta página en Safari, toca el botón Compartir (el cuadro con la flecha hacia arriba) y elige «Agregar a pantalla de inicio».",()=>{},"Entendido"); $("#dlgno").style.display="none"; setTimeout(()=>{$("#dlgno").style.display="";},400); return; }
+    confirmar("Para instalarla: abre esta página en Chrome o Edge y, en el menú (⋮), elige «Instalar aplicación» o «Agregar a la pantalla principal».",()=>{},"Entendido");
+  }
+};
+ACC.instalar = () => INST.pedir();
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); INST.ev = e; head(); pintaBienv(); avisoInstalar(); });
+window.addEventListener("appinstalled", () => { INST.ev = null; head(); const a=$("#avisoInst"); if(a) a.remove(); });
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+function bloqueInstalar(){
+  if(INST.instalada()) return "";
+  if(!INST.puede()) return `<div class="instalar">${ICO_INST.replace(/16/g,"28")}<div><b>Instálala en tu celular o computadora</b><span>Desde el menú de tu navegador (⋮), elige «Instalar aplicación» o «Agregar a la pantalla principal».</span></div></div>`;
+  return `<div class="instalar">${ICO_INST.replace(/16/g,"28")}<div><b>Instálala en tu celular o computadora</b><span>Se abre como cualquier aplicación, sin buscar el enlace.</span></div><button class="btn pri" type="button" data-act="instalar">Instalar</button></div>`;
+}
+/* Primer uso: pide los datos de la escuela y la docente */
+function pintaBienv(){
+  let b=$("#bienv"); if(configurado()){ if(b) b.remove(); return; }
+  const vals = b ? {escuela:$("#bv-escuela").value,docente:$("#bv-docente").value,grado:$("#bv-grado").value,grupo:$("#bv-grupo").value,ciclo:$("#bv-ciclo").value} : {escuela:S.escuela,docente:S.docente,grado:S.grado,grupo:S.grupo,ciclo:S.ciclo};
+  if(!b){ b=document.createElement("div"); b.id="bienv"; b.className="bienv"; b.setAttribute("role","dialog"); b.setAttribute("aria-modal","true"); b.setAttribute("aria-labelledby","bv-t"); document.body.appendChild(b); }
+  b.innerHTML = `<form class="bienv-c" id="bv-form" novalidate>
+   <div class="bienv-cab"><span class="mosaico" aria-hidden="true"><i style="background:var(--cL)"></i><i style="background:var(--cS)"></i><i style="background:var(--cE)"></i><i style="background:var(--cH)"></i></span>
+    <div><h2 id="bv-t">Te damos la bienvenida</h2><p>Antes de empezar, escribe los datos de tu escuela y tu grupo. Aparecerán en el encabezado de tus documentos.</p></div></div>
+   <div class="bienv-cu">
+    <label class="f">Nombre de la escuela<input type="text" id="bv-escuela" required autocomplete="organization" placeholder="Ej.: Jardín de Niños «Benito Juárez»" value="${esc(vals.escuela)}"></label>
+    <label class="f">Nombre de la docente o el docente<input type="text" id="bv-docente" required autocomplete="name" placeholder="Ej.: Mtra. Ana López Ruiz" value="${esc(vals.docente)}"></label>
+    <div class="grid2"><label class="f">Grado<select id="bv-grado">${[1,2,3].map(g=>`<option value="${g}" ${vals.grado==g?"selected":""}>${GR[g]}</option>`).join("")}</select></label>
+     <label class="f">Grupo<input type="text" id="bv-grupo" placeholder="Ej.: A" value="${esc(vals.grupo)}"></label></div>
+    <label class="f">Ciclo escolar<input type="text" id="bv-ciclo" value="${esc(vals.ciclo)}"></label>
+    <p class="bienv-err" id="bv-err" role="alert" hidden></p>
+    ${bloqueInstalar()}
+   </div>
+   <div class="bienv-pie"><button class="btn pri" type="submit">Comenzar</button></div></form>`;
+  $("#bv-form").onsubmit = e => { e.preventDefault();
+    const es=$("#bv-escuela").value.trim(), dc=$("#bv-docente").value.trim();
+    if(!es||!dc){ const er=$("#bv-err"); er.hidden=false; er.textContent = !es&&!dc ? "Escribe el nombre de la escuela y el de la docente." : !es ? "Escribe el nombre de la escuela." : "Escribe el nombre de la docente."; (!es?$("#bv-escuela"):$("#bv-docente")).focus(); return; }
+    S.escuela=es; S.docente=dc; S.grado=$("#bv-grado").value; S.grupo=$("#bv-grupo").value.trim(); S.ciclo=$("#bv-ciclo").value.trim()||cicloHoy();
+    save(); $("#bienv").remove(); view="alumnos"; render(); window.scrollTo(0,0); toast(`¡Listo, ${dc.split(" ").filter(w=>!/^(mtr[oa]|profr?a?|lic|ed)\.?$/i.test(w))[0]||dc}! Ahora carga tu lista de alumnos.`);
+  };
+  if(!vals.escuela) setTimeout(()=>{ const i=$("#bv-escuela"); if(i) i.focus(); },50);
+}
+/* Para quien ya tiene sus datos: aviso discreto para instalar, una sola vez por dispositivo hasta que lo cierre */
+function avisoInstalar(){
+  if(!configurado()||INST.instalada()||!INST.puede()||$("#avisoInst")) return;
+  try{ if(localStorage.getItem(LS+"-sin-aviso-inst")) return; }catch(e){}
+  const a=document.createElement("div"); a.id="avisoInst"; a.className="aviso-inst";
+  a.innerHTML = bloqueInstalar().replace('</div><button','</div><button class="btn ghost" type="button" data-act="cerrarinst" aria-label="Cerrar aviso">Ahora no</button><button');
+  document.querySelector(".steps").after(a);
+  a.querySelector('[data-act="cerrarinst"]').onclick=()=>{ a.remove(); try{ localStorage.setItem(LS+"-sin-aviso-inst","1"); }catch(e){} };
+}
+
 /* ============ Arranque ============ */
-load(); render();
+load(); render(); pintaBienv(); avisoInstalar();
 (async()=>{ const use = window.claude&&window.claude.use ? n=>window.claude.use(n).catch(()=>null) : ()=>Promise.resolve(null);
   use("sample").then(async s=>{ if(!s){ if(SERVIDOR){ AI=IAservidor; AIimg=true; head(); if(view==="redaccion"&&!gen) render(); } return; } AI=s; try{ const l=await s.limits(); AIimg=!!(l&&l.images); }catch(e){} head(); if(view==="redaccion"&&!gen) render(); });
   use("downloads").then(d=>{ DL=d; });
