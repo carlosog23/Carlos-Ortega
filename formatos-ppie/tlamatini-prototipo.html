@@ -67,7 +67,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 /* ===== Inicio: escena ===== */
 .escena{display:grid;gap:22px;margin-top:22px}
 .escena>*,.taller>*,.blq{min-width:0}
-@media(min-width:980px){.escena{grid-template-columns:minmax(0,1fr) 420px;align-items:stretch}}
+@media(min-width:980px){.escena{grid-template-columns:minmax(0,1fr) 420px;align-items:start}.escena .noche{position:sticky;top:84px}}
 .saludo{padding:8px 0 0}
 .saludo h1{font-size:clamp(36px,6vw,60px);line-height:1.02;margin-top:12px}
 .saludo h1 em{font-style:italic;font-weight:500;color:var(--barro)}
@@ -311,12 +311,102 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 @media(max-width:600px){.wrap{padding:0 14px 120px}.top-in{padding:8px 14px}.noche{padding:18px 16px 22px;border-radius:24px}.herr{grid-template-columns:76px 1fr;gap:12px;padding:14px}.sec-cab .ilu{position:relative;width:100%;height:110px}.sec-cab .ilu::before{display:none}.sec-cab .tx{padding:18px 18px 22px}.fams{margin:14px -14px 0;padding:2px 14px 6px}}
 
 @media print{body{background:#fff}body *{visibility:hidden}.hoja,.hoja *{visibility:visible}.hoja{position:fixed;inset:0;width:100%;aspect-ratio:auto;height:100%;box-shadow:none;border-radius:0;font-size:12.4px}@page{size:letter;margin:0}}
+
+/* ===== Mi agenda ===== */
+.cand{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--jade);background:var(--jade-s);border-radius:999px;padding:3px 10px}
+.agh{margin-top:20px;background:var(--hoja);border:1px solid var(--hilo);border-radius:24px;padding:16px;box-shadow:var(--e1)}
+.agh-t{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.agh h3{font-size:24px;margin-top:6px}
+.agh .sig{font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);margin:12px 0 6px}
+.agh .nada{color:var(--gris);font-size:15px;padding:6px 0}
+.nuevo{width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed #CDBDA3;background:transparent;border-radius:16px;padding:11px;font-weight:700;color:var(--anil);cursor:pointer}
+.nuevo:hover{background:var(--papel2);border-style:solid}
+.ev{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--hilo2);border-radius:18px;padding:10px 12px;cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s}
+.ev+.ev{margin-top:8px}
+.ev:hover{transform:translateX(2px);box-shadow:var(--e1)}
+.ev::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--c)}
+.ev .hr{text-align:center;background:var(--s);border-radius:12px;padding:6px 0}
+.ev .hr b{display:block;font-family:var(--disp);font-size:18px;line-height:1.1;color:var(--tinta)}
+.ev .hr small{font-size:11px;color:var(--gris)}
+.ev .cu{min-width:0}
+.ev .tp{font-size:12px;font-weight:700;color:var(--c);letter-spacing:.04em;text-transform:uppercase}
+.ev .cu>b{display:block;line-height:1.3;font-size:16px}
+.ev .cu>small{display:block;color:var(--gris);font-size:14px}
+.ev .av{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12.5px;color:var(--gris)}
+.ev .av span{display:inline-flex;align-items:center;gap:4px}
+.ev .av em{font-style:normal;color:var(--jade);font-weight:700}
+.acc2{display:flex;gap:6px}
+.mini{width:40px;height:40px;border-radius:12px;border:1px solid var(--hilo);background:var(--hoja);display:grid;place-items:center;cursor:pointer;color:var(--anil)}
+.mini:hover{background:var(--anil-s)}
+.ag-cab{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-top:26px}
+.ag-cab h1{font-size:clamp(36px,5.4vw,54px);margin:10px 0 6px}
+.ag-cab p{max-width:52ch}
+.ag-bt{display:flex;gap:8px;flex-wrap:wrap}
+.ag{display:grid;gap:22px;margin-top:22px}
+@media(min-width:980px){.ag{grid-template-columns:minmax(0,1fr) 400px;align-items:start}.ag-mes{position:sticky;top:84px}}
+.ag>*{min-width:0}
+.ag-dia{background:var(--hoja);border:1px solid var(--hilo);border-radius:26px;padding:20px;box-shadow:var(--e2)}
+.dia-t{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:14px}
+.dia-t h2{font-size:clamp(28px,4vw,36px);margin-top:6px}
+.nav2{display:flex;gap:6px}
+.ofi{display:flex;gap:8px;align-items:flex-start;background:var(--maiz-s);color:#5E3E05;border-radius:14px;padding:10px 12px;font-size:14.5px;margin-bottom:12px}
+.vacio2{border:1.5px dashed var(--hilo);border-radius:18px;padding:22px;text-align:center;color:var(--gris)}
+.vacio2 b{display:block;color:var(--tinta);font-family:var(--disp);font-size:20px}
+.ag-sub{font-size:20px;margin:24px 0 10px}
+.mes-t{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mes-t h3{font-size:22px;color:#fff;margin:0}
+.mb{width:38px;height:38px;border-radius:12px;border:0;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer}
+.sem,.mesg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.sem{margin-top:14px;font-size:11.5px;color:#9FB0CF;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.mesg{margin-top:6px}
+.cd{aspect-ratio:1;border:0;border-radius:12px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;position:relative}
+.cd b{font-family:var(--disp);font-size:17px;font-weight:600}
+.cd .pts{display:flex;gap:2px;height:6px}
+.cd .pts i{width:6px;height:6px;border-radius:50%;box-shadow:0 0 0 1.5px rgba(18,34,67,.7)}
+.cd.fin{background:transparent;color:#7F90B0}
+.cd.sin{background:repeating-linear-gradient(135deg,rgba(255,255,255,.07) 0 4px,transparent 4px 8px);outline:1px dashed rgba(255,255,255,.3);outline-offset:-1px;color:#B8C4DC}
+.cd.cte{background:linear-gradient(180deg,#B85A35,var(--barro))}
+.cd.hoy b{color:var(--maiz)}
+.cd.hoy{box-shadow:inset 0 -3px 0 var(--maiz)}
+.cd.sel{outline:2px solid var(--maiz);outline-offset:1px;background:rgba(227,166,59,.18)}
+.ag-nota{font-size:13px;color:#9FB0CF;margin-top:10px}
+.ag-mes .leyenda i{flex:none}
+/* hoja inferior */
+.hoja2{position:fixed;inset:0;z-index:85;background:rgba(18,34,67,.45);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.hoja2.on{opacity:1;pointer-events:auto}
+.sh{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--hoja);border-radius:28px 28px 0 0;padding:18px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:var(--e3);transform:translateY(30px);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.hoja2.on .sh{transform:none}
+@media(min-width:700px){.hoja2{align-items:center}.sh{border-radius:28px}}
+.sh::before{content:"";display:block;width:44px;height:5px;border-radius:5px;background:var(--hilo);margin:0 auto 12px}
+.sh-t{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sh-t h3{font-size:26px}
+.sh .esc{font-size:14px;border:1px solid var(--hilo);border-radius:10px;padding:6px 12px;background:var(--papel2);cursor:pointer}
+.sh-b{display:flex;gap:8px;margin-top:20px}
+#ntp button[aria-pressed="true"]{background:var(--c);border-color:var(--c)}
+.canales{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.canales button{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--hilo);background:#fff;border-radius:16px;padding:12px 6px;cursor:pointer;text-align:center;min-width:0;color:var(--gris)}
+.canales button b{color:var(--tinta);font-size:15px}
+.canales button small{font-size:11.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.canales button[aria-pressed="true"]{border-color:var(--jade);box-shadow:0 0 0 2px var(--jade);background:var(--jade-s);color:var(--jade)}
+/* candado */
+.candado{max-width:380px;margin:50px auto 0;text-align:center}
+.cand-ic{width:76px;height:76px;border-radius:24px;margin:0 auto 14px;display:grid;place-items:center;color:#fff;background:linear-gradient(160deg,#2B4C86,var(--noche));box-shadow:var(--e3)}
+.candado h2{font-size:30px}
+.nip{display:flex;justify-content:center;gap:14px;margin:20px 0}
+.nip i{width:16px;height:16px;border-radius:50%;border:2px solid var(--anil)}
+.nip i.on{background:var(--anil)}
+.nip.mal{animation:temb .4s}
+@keyframes temb{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.teclado button{height:62px;border-radius:18px;border:1px solid var(--hilo);background:var(--hoja);font:600 24px var(--disp);cursor:pointer;box-shadow:var(--e1)}
+@media(max-width:600px){.ev{grid-template-columns:52px 1fr}.ev .acc2{grid-column:1/-1;justify-content:flex-end}.ag-dia{padding:16px}}
 </style>
 </head>
 <body>
 <div class="proto"><b>Prototipo del nuevo diseño</b> · escuela y alumnos de ejemplo · el calendario es el oficial de Baja California</div>
 <div id="app"></div>
 <div class="velo" id="velo"><div class="paleta" role="dialog" aria-label="Buscar en Tlamatini"><div class="in"><svg class="i" viewBox="0 0 24 24" style="color:var(--anil)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="pq" placeholder="Escríbalo con sus palabras: «justificante», «desfile», «faltar un día»…" autocomplete="off"><button class="esc" onclick="cerrarPaleta()">Esc</button></div><div class="res" id="res" role="listbox"></div></div></div>
+<div class="hoja2" id="hoja2"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 const CAL={"ciclo": "2026-2027", "inicio": "2026-08-24", "inicioClases": "2026-08-31", "fin": "2027-07-06", "vacaciones": [["2026-12-21", "2027-01-05", "Vacaciones de invierno"], ["2027-03-22", "2027-04-02", "Vacaciones de primavera"]], "eventos": [["2026-08-24", "2026-08-28", "Consejo Técnico Escolar Fase Intensiva"], ["2026-08-31", "2026-08-31", "Inicio de ciclo escolar"], ["2026-09-07", "2026-09-07", "Jornada de concientización sobre la gravedad del abuso sexual y el maltrato infantil"], ["2026-09-15", "2026-09-15", "Día conmemorativo: Independencia de México"], ["2026-09-16", "2026-09-16", "Suspensión de labores docentes"], ["2026-09-25", "2026-09-25", "Consejo Técnico Escolar 1a. Sesión Ordinaria"], ["2026-10-30", "2026-10-30", "Consejo Técnico Escolar 2a. Sesión Ordinaria"], ["2026-11-02", "2026-11-02", "Suspensión de labores docentes"], ["2026-11-16", "2026-11-16", "Suspensión de labores docentes"], ["2026-11-20", "2026-11-20", "Día conmemorativo: Aniversario de la Revolución Mexicana"], ["2026-11-23", "2026-11-26", "Registro y comunicación de los resultados de evaluación"], ["2026-11-27", "2026-11-27", "Consejo Técnico Escolar 3a. Sesión Ordinaria"], ["2026-12-25", "2026-12-25", "Suspensión de labores docentes"], ["2027-01-01", "2027-01-01", "Suspensión de labores docentes"], ["2027-01-06", "2027-01-06", "Suspensión de labores docentes"], ["2027-01-29", "2027-01-29", "Consejo Técnico Escolar 4a. Sesión Ordinaria"], ["2027-02-01", "2027-02-01", "Suspensión de labores docentes"], ["2027-02-02", "2027-02-12", "Preinscripción a preescolar, primer grado de primaria y primer grado de secundaria para el ciclo 2027-2028"], ["2027-02-05", "2027-02-05", "Día conmemorativo: Aniversario de la Constitución Mexicana"], ["2027-02-24", "2027-02-24", "Día conmemorativo: Día de la Bandera"], ["2027-02-26", "2027-02-26", "Consejo Técnico Escolar 5a. Sesión Ordinaria"], ["2027-03-15", "2027-03-15", "Suspensión de labores docentes"], ["2027-03-16", "2027-03-19", "Registro y comunicación de los resultados de evaluación"], ["2027-03-19", "2027-03-19", "Día conmemorativo"], ["2027-04-29", "2027-04-29", "Día conmemorativo"], ["2027-04-30", "2027-04-30", "Consejo Técnico Escolar 6a. Sesión Ordinaria"], ["2027-05-04", "2027-05-04", "Día conmemorativo"], ["2027-05-05", "2027-05-05", "Suspensión de labores docentes"], ["2027-05-28", "2027-05-28", "Consejo Técnico Escolar 7a. Sesión Ordinaria"], ["2027-06-25", "2027-06-25", "Consejo Técnico Escolar 8a. Sesión Ordinaria"], ["2027-06-28", "2027-06-30", "Reforzamiento de aprendizaje"], ["2027-07-01", "2027-07-02", "Ceremonias de clausura"], ["2027-07-05", "2027-07-06", "Registro y comunicación de los resultados de evaluación"], ["2027-07-06", "2027-07-06", "Fin de clases del ciclo escolar"]]};
@@ -335,6 +425,7 @@ const IC = {
   wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9 9.5c.3 2 1.8 3.8 4 4.5l1.2-1.2 2 .8c-.2 1.3-1.3 2-2.5 1.8-3.3-.6-5.8-3.2-6.3-6.4-.2-1.2.5-2.3 1.8-2.5l.8 2z"/>',
   ok: '<path d="M5 12l5 5 9-10"/>', chispa: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  candado: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', mas: '<path d="M12 5v14M5 12h14"/>',
   auto: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>'
 };
 const ic = (n, a = '') => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" ${a}>${IC[n] || ''}</svg>`;
@@ -393,6 +484,7 @@ const FAM = {
     ['seguro', 'Seguro escolar', 'Teléfonos para reportar, aviso de accidente y clínicas.', ['ofi:Urgente'], 'carta']] }
 };
 const TODO = Object.entries(FAM).flatMap(([f, F]) => F.h.map(h => ({ id: h[0], t: h[1], ds: h[2], tags: h[3], k: h[4], f })));
+TODO.push({ id: 'agenda', t: 'Mi agenda', ds: 'Sus pendientes, con recordatorios por correo, WhatsApp o alarma. Solo usted la ve.', tags: [], k: 'tabla', f: 'personal' });
 const herr = id => TODO.find(x => x.id === id);
 /* lo que la gente escribe → herramienta (para el buscador) */
 const SINON = { constancia: 'justificante comprobante padre vino trabajo constancia asistencia papá mamá',
@@ -402,6 +494,7 @@ const SINON = { constancia: 'justificante comprobante padre vino trabajo constan
   asis: 'faltas asistencia lista mes', plan: 'planear proyecto sesion clase secuencia', rk: 'diploma reconocimiento premio cuadro honor',
   fotos: 'privacidad fotografia video redes facebook publicar', salario: 'declaracion patrimonial sueldo cfdi talon nomina', riesgo: 'issste accidente trabajo incapacidad',
   croquis: 'mapa evacuacion protección civil atlas', beca: 'becas apoyo economico', edades: 'estadistica edad 911', calendario: 'vacaciones suspension cte fechas' };
+SINON.agenda = 'agenda recordatorio recordar recordarme pendiente cita alarma avisar whatsapp correo';
 
 /* ---------- calendario oficial ---------- */
 const d0 = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -454,6 +547,7 @@ let tt; function toast(h) { const t = $('#toast'); t.innerHTML = h; t.classList.
 function abrir(id) {
   const h = herr(id); if (!h) return;
   if (id === 'constancia') return ir('#herr/constancia');
+  if (id === 'agenda') { ir('#agenda'); return setTimeout(() => { if (!AGC.nip || agAbierta) hojaNuevo(); }, 80); }
   if (id === 'plan') { location.href = 'planeacion.html'; return; }
   toast(`En el prototipo solo está armada la <b>Constancia de asistencia</b>. En Tlamatini, «${esc(h.t)}» abre la herramienta real con este diseño.`);
 }
@@ -461,13 +555,13 @@ function ir(h) { if (location.hash === h) ruta(); else location.hash = h; }
 function topBar(izq, der = '') {
   return `<header class="top"><div class="top-in">${izq}<div class="der">
     <button class="kbd" data-buscar>${ic('buscar')}¿Qué necesita hacer hoy?<kbd>Ctrl K</kbd></button>
-    <button class="tbtn" onclick="ir('#docs')">${ic('docs')}Mis documentos</button>${der}
+    <button class="tbtn" onclick="ir('#agenda')">${ic('cal')}Mi agenda</button><button class="tbtn" onclick="ir('#docs')">${ic('docs')}Mis documentos</button>${der}
     <button class="ava" title="${esc(YO.nombre)}" onclick="toast('Aquí van <b>Mi escuela</b>, el respaldo y sus datos.')">${YO.ini}</button></div></div></header>`;
 }
 const marca = `<button class="marca" onclick="ir('#inicio')" aria-label="Tlamatini, inicio"><span class="lg">${LOGO}</span><span><b>Tlamatini</b><small>Un camino para la labor docente</small></span></button>`;
 const volver = (ruta, tit, a = '#inicio') => `<button class="back" onclick="ir('${a}')" aria-label="Regresar">${ic('atras')}</button><div style="min-width:0"><div class="ruta">${esc(ruta)}</div><h2>${esc(tit)}</h2></div>`;
 function tabbar(a) {
-  const B = [['inicio', 'casa', 'Inicio', "ir('#inicio')"], ['buscar', 'buscar', 'Buscar', 'paleta()'], ['docs', 'docs', 'Documentos', "ir('#docs')"], ['escuela', 'escuela', 'Mi escuela', "toast('Aquí van <b>Mi escuela</b>, el respaldo y sus datos.')"]];
+  const B = [['inicio', 'casa', 'Inicio', "ir('#inicio')"], ['agenda', 'cal', 'Mi agenda', "ir('#agenda')"], ['buscar', 'buscar', 'Buscar', 'paleta()'], ['docs', 'docs', 'Documentos', "ir('#docs')"]];
   return `<nav class="tabbar" aria-label="Navegación">${B.map(([k, i, t, f]) => `<button onclick="${f}" ${a === k ? 'aria-current="true"' : ''}>${ic(i)}${t}</button>`).join('')}</nav>`;
 }
 const tlami = `<button class="tlami" onclick="toast('Tlami: «Dígame qué necesita y lo busco por usted, o se lo paso al supervisor si todavía no existe».')"><span class="cara"><svg viewBox="0 0 40 40" width="30" height="30"><circle cx="15" cy="17" r="2.2" fill="#1B2740"/><circle cx="25" cy="17" r="2.2" fill="#1B2740"/><path d="M15 25c3 2.5 7 2.5 10 0" stroke="#1B2740" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M20 4c4 0 6 3 4 5" stroke="#E3A63B" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span><span>¿Le ayudo?</span></button>`;
@@ -505,7 +599,8 @@ function vInicio() {
       <p class="sub">${prox ? `${esc(prox.cuando)}: <b>${esc(prox.tx)}</b>. ` : ''}Tlamatini ya revisó el calendario oficial y le dejó listo lo que viene.</p>
       <div class="chips"><span class="chip">${ic('escuela')}${esc(YO.escuela)} (ejemplo)</span><span class="chip">${ic('grupo')}${YO.grado} · ${YO.alumnos} alumnos</span><span class="chip">C.C.T. ${YO.cct}</span></div>
       <div class="busca"><button class="campo" data-buscar>${ic('buscar', 'style="width:22px;height:22px;color:var(--anil)"')}¿Qué necesita hacer hoy?<span class="mic">${ic('mic')}</span></button>
-        <div class="intenciones">${[['Justificar a un papá que vino', 'constancia'], ['Citar a una mamá', 'recado'], ['Pedir un permiso económico', 'licencia'], ['Un alumno se lastimó', 'seguro'], ['Permiso para el desfile', 'eventos'], ['Diplomas para todo el grupo', 'rk']].map(([t, id]) => `<button data-abre="${id}">${t}</button>`).join('')}</div></div>
+        <div class="intenciones">${[['Justificar a un papá que vino', 'constancia'], ['Citar a una mamá', 'recado'], ['Pedir un permiso económico', 'licencia'], ['Un alumno se lastimó', 'seguro'], ['Permiso para el desfile', 'eventos'], ['Recordarme algo', 'agenda'], ['Diplomas para todo el grupo', 'rk']].map(([t, id]) => `<button data-abre="${id}">${t}</button>`).join('')}</div></div>
+      ${agendaHoyHTML()}
     </div>
     <aside class="noche entra" style="animation-delay:.08s">
       <div class="k">El telar del ciclo ${CAL.ciclo}</div><h3>Así va su ciclo escolar</h3>
@@ -658,12 +753,159 @@ function buscar(q) {
 function conectar() {
   $$('[data-buscar]').forEach(b => b.onclick = () => paleta());
   $$('[data-abre]').forEach(b => b.onclick = () => abrir(b.dataset.abre));
+  agConectar();
+}
+
+/* ===================== MI AGENDA (privada, en este equipo) ===================== */
+const AG_K = 'tlm-proto-agenda', AGC_K = 'tlm-proto-agenda-cfg';
+const sget = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const sset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } };
+const TIPOS = { clase: ['Clase', 'var(--jade)', 'var(--jade-s)'], reunion: ['Reunión', 'var(--anil)', 'var(--anil-s)'], tramite: ['Trámite', 'var(--ciruela)', 'var(--ciruela-s)'], entrega: ['Entrega', 'var(--barro)', 'var(--barro-s)'], personal: ['Personal', 'var(--maiz-d)', 'var(--maiz-s)'] };
+const ANTES = { 0: 'A la hora', 15: '15 min antes', 60: '1 hora antes', 1440: '1 día antes', 2880: '2 días antes' };
+function agSemilla() {
+  const d = n => { const x = new Date(HOY); x.setDate(x.getDate() + n); return iso(x); };
+  return [
+    { id: 1, t: 'Entregar lista de asistencia a la dirección', f: d(1), h: '08:00', tipo: 'entrega', antes: 1440, por: ['correo', 'wa'], nota: 'Llevar impresa y firmada.' },
+    { id: 2, t: 'Cita con la mamá de Diego (conducta)', f: d(2), h: '12:30', tipo: 'reunion', antes: 60, por: ['wa'], nota: 'Sra. Ruiz · traer el reporte.' },
+    { id: 3, t: 'Ensayo de la escolta para el desfile', f: d(3), h: '10:00', tipo: 'clase', antes: 15, por: ['alarma'] },
+    { id: 4, t: 'Subir evidencias del proyecto del agua', f: d(4), h: '18:00', tipo: 'personal', antes: 1440, por: ['correo'] },
+    { id: 5, t: 'Renovar licencia de manejo', f: d(9), h: '09:00', tipo: 'tramite', antes: 2880, por: ['correo', 'wa'] }];
+}
+let AG = sget(AG_K, null); if (!AG) { AG = agSemilla(); sset(AG_K, AG); }
+let AGC = sget(AGC_K, { correo: 'laura.mendez@bcedu.mx', tel: '6461234567', nip: '' });
+let agDia = iso(HOY), agMes = new Date(HOY.getFullYear(), HOY.getMonth(), 1), agAbierta = false;
+const agGuarda = () => sset(AG_K, AG);
+const hora12 = h => { if (!h) return 'Todo el día'; const [a, b] = h.split(':').map(Number); return `${a % 12 || 12}:${String(b).padStart(2, '0')} ${a < 12 ? 'a. m.' : 'p. m.'}`; };
+const agOrden = (a, b) => (a.f + (a.h || '')).localeCompare(b.f + (b.h || ''));
+const agDe = s => AG.filter(e => e.f === s).sort(agOrden);
+const agProx = () => AG.filter(e => e.f >= iso(HOY)).sort(agOrden);
+const msjDe = e => `⏰ Recordatorio de Tlamatini\n${e.t}\n${DL[d0(e.f).getDay()]} ${d0(e.f).getDate()} de ${MES[d0(e.f).getMonth()]} · ${hora12(e.h)}${e.nota ? '\n' + e.nota : ''}`;
+function agWA(e) { open(`https://wa.me/52${AGC.tel.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msjDe(e))}`, '_blank'); }
+function agCorreo(e) { location.href = `mailto:${AGC.correo}?subject=${encodeURIComponent('Recordatorio: ' + e.t)}&body=${encodeURIComponent(msjDe(e))}`; }
+function agICS(e) {
+  const [y, m, d] = e.f.split('-'), [hh, mm] = (e.h || '08:00').split(':'); const ini = `${y}${m}${d}T${hh}${mm}00`;
+  const fin = new Date(+y, m - 1, +d, +hh + 1, +mm); const f2 = `${fin.getFullYear()}${String(fin.getMonth() + 1).padStart(2, '0')}${String(fin.getDate()).padStart(2, '0')}T${String(fin.getHours()).padStart(2, '0')}${String(fin.getMinutes()).padStart(2, '0')}00`;
+  const tx = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tlamatini//Agenda//ES', 'BEGIN:VEVENT', `UID:tlm-${e.id}@tlamatini`, `DTSTAMP:${ini}`, `DTSTART:${ini}`, `DTEND:${f2}`, `SUMMARY:${e.t}`, `DESCRIPTION:${(e.nota || '').replace(/\n/g, '\\n')}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${e.t}`, `TRIGGER:-PT${e.antes || 0}M`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([tx], { type: 'text/calendar' })); a.download = 'Recordatorio.ics'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  toast('Ábralo en su celular: queda en su calendario con la alarma puesta.');
+}
+const porIc = { correo: '<path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/>', wa: IC.wa, alarma: '<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5 4 2 7M19 4l3 3"/>' };
+const porTx = { correo: 'Correo', wa: 'WhatsApp', alarma: 'Alarma' };
+const pIc = (k, s = 15) => `<svg class="i" viewBox="0 0 24 24" style="width:${s}px;height:${s}px">${porIc[k]}</svg>`;
+
+function evHTML(e, compacto) {
+  const T = TIPOS[e.tipo] || TIPOS.personal; const hoy = e.f === iso(HOY);
+  return `<article class="ev" style="--c:${T[1]};--s:${T[2]}" data-ev="${e.id}">
+    <div class="hr"><b>${e.h ? hora12(e.h).replace(/ (a|p)\. m\./, '') : '—'}</b><small>${e.h ? (+e.h.slice(0, 2) < 12 ? 'a. m.' : 'p. m.') : 'día'}</small></div>
+    <div class="cu"><span class="tp">${T[0]}${compacto && !hoy ? ` · ${DS[d0(e.f).getDay()]} ${d0(e.f).getDate()}` : ''}</span><b>${esc(e.t)}</b>${e.nota && !compacto ? `<small>${esc(e.nota)}</small>` : ''}
+      <span class="av">${(e.por || []).map(k => `<span>${pIc(k, 13)}${porTx[k]}</span>`).join('')}<em>${ANTES[e.antes] || ''}</em></span></div>
+    ${compacto ? '' : `<div class="acc2"><button class="mini" data-wa="${e.id}" title="Mandarme por WhatsApp">${pIc('wa', 18)}</button><button class="mini" data-co="${e.id}" title="Mandarme por correo">${pIc('correo', 18)}</button><button class="mini" data-ics="${e.id}" title="Alarma en mi celular">${pIc('alarma', 18)}</button></div>`}
+  </article>`;
+}
+/* tarjeta para el inicio */
+function agendaHoyHTML() {
+  const hoyL = agDe(iso(HOY)), pr = agProx().filter(e => e.f > iso(HOY)).slice(0, 3 - Math.min(hoyL.length, 2));
+  return `<section class="agh entra"><div class="agh-t"><div><span class="cand">${ic('candado', 'style="width:14px;height:14px"')}Solo usted la ve</span><h3>Mi agenda</h3></div><button class="btn sec chico" onclick="ir('#agenda')">Abrir ${ic('chev', 'style="width:16px;height:16px"')}</button></div>
+   ${hoyL.length ? hoyL.slice(0, 2).map(e => evHTML(e, true)).join('') : `<p class="nada">Hoy no tiene pendientes.</p>`}
+   ${pr.length ? `<div class="sig">Lo que sigue</div>${pr.map(e => evHTML(e, true)).join('')}` : ''}
+   <button class="nuevo" data-nuevo>${ic('mas')}Anotar un pendiente</button></section>`;
+}
+
+/* ---------- vista completa ---------- */
+function vAgenda() {
+  if (AGC.nip && !agAbierta) return vCandado();
+  const s = agDia, L = agDe(s), d = d0(s);
+  // mes
+  const a = new Date(agMes), ult = new Date(a.getFullYear(), a.getMonth() + 1, 0), off = (a.getDay() + 6) % 7;
+  let celdas = ''; for (let i = 0; i < off; i++) celdas += '<span></span>';
+  for (let n = 1; n <= ult.getDate(); n++) { const x = new Date(a.getFullYear(), a.getMonth(), n), k = iso(x), e = estado(x), mios = agDe(k);
+    const cl = [k === iso(HOY) ? 'hoy' : '', k === s ? 'sel' : '', e.t === 'cte' ? 'cte' : '', e.t === 'sin' ? 'sin' : '', e.t === 'finde' ? 'fin' : ''].join(' ');
+    celdas += `<button class="cd ${cl}" data-dia="${k}" title="${esc(e.tx || (e.ev || []).join(' · '))}"><b>${n}</b><span class="pts">${mios.slice(0, 3).map(m => `<i style="background:${TIPOS[m.tipo][1]}"></i>`).join('')}</span></button>`; }
+  const ofi = estado(d); const ofiTx = ofi.t === 'cte' || ofi.t === 'sin' ? ofi.tx : (ofi.ev || []).join(' · ');
+  app.innerHTML = topBar(volver('Tlamatini', 'Mi agenda')) + `<main class="wrap">
+  <section class="ag-cab entra"><div><span class="cand">${ic('candado', 'style="width:14px;height:14px"')}Privada: solo se guarda en este equipo${AGC.nip ? ' · con NIP' : ''}</span>
+    <h1>Mi agenda</h1><p class="muted">Sus pendientes, citas y entregas. Tlamatini le avisa por correo, por WhatsApp o con una alarma en su celular.</p></div>
+    <div class="ag-bt"><button class="btn sec chico" data-cfg>${ic('candado', 'style="width:16px;height:16px"')}Privacidad y avisos</button><button class="btn pri" data-nuevo>${ic('mas')}Nuevo pendiente</button></div></section>
+  <div class="ag">
+   <div class="ag-dia">
+     <div class="dia-t"><div><div class="eyebrow">${s === iso(HOY) ? 'Hoy' : DL[d.getDay()]}</div><h2>${d.getDate()} de ${MES[d.getMonth()]}</h2></div>
+       <div class="nav2"><button class="back" data-mov="-1" aria-label="Día anterior">${ic('atras')}</button><button class="back" data-mov="1" aria-label="Día siguiente">${ic('chev')}</button></div></div>
+     ${ofiTx ? `<div class="ofi">${ic('cal', 'style="width:16px;height:16px"')}<span><b>Calendario oficial:</b> ${esc(ofiTx)}</span></div>` : ''}
+     <div class="lista">${L.length ? L.map(e => evHTML(e)).join('') : `<div class="vacio2"><b>Día libre de pendientes</b><span>Toque «Nuevo pendiente» para anotar algo.</span></div>`}</div>
+     <h3 class="ag-sub">Próximos</h3><div class="lista">${agProx().filter(e => e.f !== s).slice(0, 5).map(e => evHTML(e, true)).join('') || '<p class="muted">No hay más pendientes.</p>'}</div>
+   </div>
+   <aside class="ag-mes noche"><div class="mes-t"><button class="mb" data-mes="-1" aria-label="Mes anterior">${ic('atras')}</button><h3>${MES[a.getMonth()][0].toUpperCase() + MES[a.getMonth()].slice(1)} ${a.getFullYear()}</h3><button class="mb" data-mes="1" aria-label="Mes siguiente">${ic('chev')}</button></div>
+     <div class="sem">${['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map(x => `<span>${x}</span>`).join('')}</div><div class="mesg">${celdas}</div>
+     <div class="leyenda"><span><i style="background:var(--barro)"></i>CTE</span><span><i style="outline:1px dashed rgba(255,255,255,.5)"></i>sin clase</span>${Object.values(TIPOS).map(t => `<span><i style="background:${t[1]};border-radius:50%"></i>${t[0]}</span>`).join('')}</div>
+     <p class="ag-nota">Las fechas oficiales de Baja California ya vienen marcadas; sus pendientes se suman encima.</p></aside>
+  </div>${pie}</main>${tlami}${tabbar('agenda')}`;
+  $$('[data-dia]').forEach(b => b.onclick = () => { agDia = b.dataset.dia; vAgenda(); });
+  $$('[data-mes]').forEach(b => b.onclick = () => { agMes.setMonth(agMes.getMonth() + +b.dataset.mes); vAgenda(); });
+  $$('[data-mov]').forEach(b => b.onclick = () => { const x = d0(agDia); x.setDate(x.getDate() + +b.dataset.mov); agDia = iso(x); agMes = new Date(x.getFullYear(), x.getMonth(), 1); vAgenda(); });
+  $('[data-cfg]').onclick = hojaCfg;
+  conectar();
+}
+function agConectar() {
+  $$('[data-nuevo]').forEach(b => b.onclick = () => hojaNuevo());
+  $$('[data-wa]').forEach(b => b.onclick = ev => { ev.stopPropagation(); agWA(AG.find(e => e.id == b.dataset.wa)); });
+  $$('[data-co]').forEach(b => b.onclick = ev => { ev.stopPropagation(); agCorreo(AG.find(e => e.id == b.dataset.co)); });
+  $$('[data-ics]').forEach(b => b.onclick = ev => { ev.stopPropagation(); agICS(AG.find(e => e.id == b.dataset.ics)); });
+  $$('.ev[data-ev]').forEach(b => b.onclick = () => hojaNuevo(AG.find(e => e.id == b.dataset.ev)));
+}
+
+/* ---------- hoja inferior: nuevo / editar ---------- */
+function hoja(html) { const h = $('#hoja2'); h.innerHTML = `<div class="sh" role="dialog" aria-modal="true">${html}</div>`; h.classList.add('on'); h.onclick = e => { if (e.target === h) cerrarHoja(); }; }
+function cerrarHoja() { $('#hoja2').classList.remove('on'); }
+function hojaNuevo(e) {
+  const E = e ? { ...e, por: [...(e.por || [])] } : { t: '', f: agDia, h: '08:00', tipo: 'reunion', antes: 60, por: ['correo', 'wa'], nota: '' };
+  hoja(`<div class="sh-t"><h3>${e ? 'Editar pendiente' : 'Nuevo pendiente'}</h3><button class="esc" onclick="cerrarHoja()">Cerrar</button></div>
+   <div class="campo2"><label for="nt">¿Qué tiene que hacer?</label><input id="nt" value="${esc(E.t)}" placeholder="Ej. Entregar boletas a la dirección"></div>
+   <div class="motivos" id="ntp">${Object.entries(TIPOS).map(([k, t]) => `<button data-tp="${k}" aria-pressed="${E.tipo === k}" style="--c:${t[1]}">${t[0]}</button>`).join('')}</div>
+   <div class="dos"><div class="campo2"><label for="nf">Día</label><input type="date" id="nf" value="${E.f}"></div><div class="campo2"><label for="nh">Hora</label><input type="time" id="nh" value="${E.h}"></div></div>
+   <div class="campo2"><label>Avisarme</label><div class="motivos" id="nan">${Object.entries(ANTES).map(([k, t]) => `<button data-an="${k}" aria-pressed="${E.antes == k}">${t}</button>`).join('')}</div></div>
+   <div class="campo2"><label>Por dónde</label><div class="canales">${Object.keys(porTx).map(k => `<button data-por="${k}" aria-pressed="${E.por.includes(k)}">${pIc(k, 22)}<b>${porTx[k]}</b><small>${k === 'correo' ? esc(AGC.correo) : k === 'wa' ? esc(AGC.tel) : 'En su celular'}</small></button>`).join('')}</div></div>
+   <div class="campo2"><label for="nn">Nota (opcional)</label><input id="nn" value="${esc(E.nota || '')}" placeholder="Qué llevar, con quién, dónde…"></div>
+   <div class="sh-b">${e ? `<button class="btn sec" id="nb" style="color:var(--rojo)">Borrar</button>` : ''}<button class="btn pri" id="ng" style="flex:1">${ic('ok')}Guardar y programar aviso</button></div>`);
+  $$('[data-tp]').forEach(b => b.onclick = () => { E.tipo = b.dataset.tp; $$('[data-tp]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $$('[data-an]').forEach(b => b.onclick = () => { E.antes = +b.dataset.an; $$('[data-an]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $$('[data-por]').forEach(b => b.onclick = () => { const k = b.dataset.por; E.por = E.por.includes(k) ? E.por.filter(x => x !== k) : [...E.por, k]; b.setAttribute('aria-pressed', E.por.includes(k)); });
+  setTimeout(() => $('#nt').focus(), 60);
+  $('#ng').onclick = () => {
+    E.t = $('#nt').value.trim(); E.f = $('#nf').value || E.f; E.h = $('#nh').value; E.nota = $('#nn').value.trim();
+    if (!E.t) { $('#nt').focus(); toast('Escriba qué tiene que hacer.'); return; }
+    if (e) Object.assign(e, E); else AG.push({ ...E, id: Date.now() });
+    agGuarda(); cerrarHoja(); agDia = E.f; agMes = new Date(d0(E.f).getFullYear(), d0(E.f).getMonth(), 1);
+    const p = E.por.map(k => porTx[k].toLowerCase()); ruta();
+    toast(p.length ? `Listo. Le avisaremos ${ANTES[E.antes].toLowerCase()} por ${p.join(' y ')}.` : 'Listo, quedó en su agenda.');
+    if (E.por.includes('alarma')) setTimeout(() => agICS(e || AG[AG.length - 1]), 400);
+  };
+  if (e) $('#nb').onclick = () => { if (!confirm('¿Borrar este pendiente?')) return; AG = AG.filter(x => x !== e); agGuarda(); cerrarHoja(); ruta(); toast('Pendiente borrado.'); };
+}
+function hojaCfg() {
+  hoja(`<div class="sh-t"><h3>Privacidad y avisos</h3><button class="esc" onclick="cerrarHoja()">Cerrar</button></div>
+   <p class="muted" style="font-size:15px">Su agenda se guarda solo en este equipo: ni la escuela ni la Supervisión pueden verla.</p>
+   <div class="campo2"><label for="cc">Correo para sus recordatorios</label><input id="cc" type="email" value="${esc(AGC.correo)}"></div>
+   <div class="campo2"><label for="ct">WhatsApp (10 dígitos)</label><input id="ct" inputmode="numeric" value="${esc(AGC.tel)}"></div>
+   <div class="campo2"><label for="cn">NIP para abrir la agenda (4 dígitos, opcional)</label><input id="cn" inputmode="numeric" maxlength="4" value="${esc(AGC.nip)}" placeholder="Sin NIP"></div>
+   <div class="sh-b"><button class="btn pri" id="cg" style="flex:1">${ic('ok')}Guardar</button></div>`);
+  $('#cg').onclick = () => { const n = $('#cn').value.replace(/\D/g, ''); if (n && n.length !== 4) { toast('El NIP debe tener 4 dígitos.'); return; }
+    AGC = { correo: $('#cc').value.trim(), tel: $('#ct').value.replace(/\D/g, ''), nip: n }; sset(AGC_K, AGC); agAbierta = true; cerrarHoja(); vAgenda(); toast(n ? 'Listo. Su agenda pedirá el NIP al abrirla.' : 'Datos guardados.'); };
+}
+function vCandado() {
+  let v = '';
+  app.innerHTML = topBar(volver('Tlamatini', 'Mi agenda')) + `<main class="wrap"><section class="candado entra"><div class="cand-ic">${ic('candado', 'style="width:34px;height:34px"')}</div><h2>Su agenda está protegida</h2><p class="muted">Escriba su NIP de 4 dígitos.</p>
+    <div class="nip" aria-live="polite">${'<i></i>'.repeat(4)}</div><div class="teclado">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? '<span></span>' : `<button data-k="${k}">${k}</button>`).join('')}</div></section></main>${tabbar('agenda')}`;
+  const pinta = () => $$('.nip i').forEach((x, i) => x.classList.toggle('on', i < v.length));
+  $$('[data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k; v = k === '⌫' ? v.slice(0, -1) : (v + k).slice(0, 4); pinta();
+    if (v.length === 4) { if (v === AGC.nip) { agAbierta = true; vAgenda(); } else { $('.nip').classList.add('mal'); setTimeout(() => { v = ''; pinta(); $('.nip').classList.remove('mal'); }, 500); } } });
+  conectar();
 }
 
 /* ===================== RUTAS ===================== */
 function ruta() {
-  const h = location.hash || '#inicio'; cerrarPaleta();
-  if (h.startsWith('#sec/')) vSeccion(h.slice(5)); else if (h === '#herr/constancia') vConstancia(); else if (h === '#docs') vDocs(); else vInicio();
+  const h = location.hash || '#inicio'; cerrarPaleta(); cerrarHoja();
+  if (h.startsWith('#sec/')) vSeccion(h.slice(5)); else if (h === '#herr/constancia') vConstancia(); else if (h === '#docs') vDocs(); else if (h === '#agenda') vAgenda(); else vInicio();
   scrollTo(0, 0);
 }
 addEventListener('hashchange', ruta);
