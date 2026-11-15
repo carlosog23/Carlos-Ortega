@@ -5887,138 +5887,273 @@ async function asPDF(btn){const t0=btn.textContent;
   catch(e){alert("No se pudo generar la lista: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
 /* ---------- Minuta de Consejo Técnico Escolar (CTE) ---------- */
-/* El personal se captura una vez; cada sesión se elige del calendario oficial y retoma los acuerdos de la sesión anterior. */
-const CTE_KEY="ppie-cte";let CTE=null;
+/* El personal se captura una vez; cada sesión se elige del calendario oficial y retoma los acuerdos de la sesión anterior.
+   Las notas se pueden dictar; con conexión a Tequio, la IA redacta el desarrollo y separa los acuerdos (siempre se revisan antes de usarlos).
+   La minuta terminada se puede enviar a Tequio: sus acuerdos quedan en «Minutas» para darles seguimiento. */
+const CTE_KEY="ppie-cte";let CTE=null,CTE_PROP=null,CTE_IA="";
 const CTE_ORDEN=["Bienvenida y registro de asistencia","Lectura y aprobación del orden del día","Seguimiento de los acuerdos de la sesión anterior","Actividades de la guía de la sesión","Avance del Programa Escolar de Mejora Continua (PEMC)","Asuntos generales","Acuerdos y compromisos","Cierre de la sesión"];
 const CTE_EST=["Cumplido","En proceso","Pendiente"];
+const CTE_TIPOS=[["ordinaria","Ordinaria","Sesión mensual de la fase ordinaria"],["intensiva","Fase intensiva","Antes de iniciar el ciclo escolar"],["extraordinaria","Extraordinaria","Convocada fuera del calendario"],["agrupado","CTE agrupado","Escuelas multigrado con menos de 4 docentes, presidido por la Supervisión"]];
+const CTE_AMBITOS=["Aprovechamiento académico y asistencia de los alumnos","Prácticas docentes y directivas","Formación docente","Avance de los planes y programas educativos","Participación de la comunidad","Desempeño de la autoridad escolar","Infraestructura y equipamiento","Carga administrativa"];
 const DIAS_SEM=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const cteFechaLarga=f=>{const p=parseDate(f);if(!p)return"";const d=new Date(p.y,p.m-1,p.d);return`${DIAS_SEM[d.getDay()]} ${fmtDate(f,"larga")}`};
+const cteId=()=>"a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 /* sesiones del calendario oficial */
 function cteSesionesCal(){const out=[];if(!CAL)return out;(CAL.eventos||[]).filter(e=>/consejo t[eé]cnico/i.test(e[2])).forEach(([a,b,t])=>{
     const nom=t.replace(/^Consejo T[eé]cnico Escolar\s*/i,"").trim()||"Sesión";
     if(a===b)out.push({id:a,fecha:a,nombre:nom});else{let n=1;for(let d=dOf(a);isoD(d)<=b;d.setDate(d.getDate()+1)){const w=d.getDay();if(w===0||w===6)continue;const k=isoD(d);out.push({id:k,fecha:k,nombre:`${nom} · día ${n++}`})}}});return out}
 function cteNueva(id,fecha,nombre){const ant=cteAnterior(fecha);
-  return{id,fecha,nombre,hIni:"",hFin:"",lugar:"",presentes:CTE.personal.map(p=>p.n),orden:CTE_ORDEN.map(t=>({t,nota:""})),acuerdos:[{a:"",r:"",f:""}],
-    seg:ant?ant.acuerdos.filter(x=>x.a.trim()).map(x=>({a:x.a,r:x.r,f:x.f,estado:"En proceso"})):[],relator:CTE.relator||""}}
+  return{id,fecha,nombre,tipo:/intensiva/i.test(nombre)?"intensiva":/extraordinaria/i.test(nombre)?"extraordinaria":"ordinaria",modal:"Presencial",hIni:"",hFin:"",lugar:"",preside:"",proposito:"",
+    presentes:CTE.personal.map(p=>p.n),aus:{},orden:CTE_ORDEN.map(t=>({t,nota:""})),acuerdos:[{id:cteId(),a:"",r:"",f:"",ev:"",pm:""}],
+    seg:ant?ant.acuerdos.filter(x=>x.a.trim()).map(x=>({a:x.a,r:x.r,f:x.f,estado:"En proceso",obs:""})):[],relator:CTE.relator||"",dictado:"",asuntos:"",acomp:"",proxima:"",vobo:false,agEsc:""}}
+/* Las sesiones guardadas con la versión anterior reciben los campos nuevos */
+function cteCompletar(C){if(!C)return C;const d={tipo:"ordinaria",modal:"Presencial",preside:"",proposito:"",aus:{},dictado:"",asuntos:"",acomp:"",proxima:"",vobo:false,agEsc:""};
+  Object.keys(d).forEach(k=>{if(C[k]==null)C[k]=typeof d[k]==="object"?{}:d[k]});(C.acuerdos||[]).forEach(x=>{if(!x.id)x.id=cteId();if(x.ev==null)x.ev="";if(x.pm==null)x.pm=""});(C.seg||[]).forEach(x=>{if(x.obs==null)x.obs=""});return C}
 function cteAnterior(fecha){return Object.values(CTE.ses).filter(s=>s.fecha<fecha&&s.acuerdos.some(x=>x.a.trim())).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0]||null}
 function cteInit(){const d=store.get(CTE_KEY,null);if(d&&d.ses){CTE=d;return}
   CTE={personal:[],ses:{},cur:"",relator:"",escuela:perfil.escuela||"",cct:perfil.cct||"",zona:perfil.zona||"050",director:perfil.director||""};
   if(perfil.director)CTE.personal.push({n:perfil.director,c:"Director(a)"});if(perfil.minombre&&perfil.minombre!==perfil.director)CTE.personal.push({n:perfil.minombre,c:perfil.micargo||"Docente"});
   if(typeof DIR!=="undefined")[...DIR.maestros].sort(dirOrden).forEach(m=>{if(!m.nombre||CTE.personal.some(p=>dirN(p.n)===dirN(m.nombre)))return;CTE.personal.push({n:m.nombre,c:m.grado?`Docente de ${m.grado}°${m.grupo?" "+m.grupo:""}`:(m.funcion||"Docente")})})}
 const cteSave=()=>store.set(CTE_KEY,CTE);
-const cteCur=()=>CTE.ses[CTE.cur]||null;
+const cteCur=()=>cteCompletar(CTE.ses[CTE.cur]||null);
 function cteElegir(){const cal=cteSesionesCal(),hoy=today();if(CTE.cur&&CTE.ses[CTE.cur])return;
   const prox=cal.find(s=>s.fecha>=hoy)||cal[cal.length-1];if(prox){CTE.ses[prox.id]=CTE.ses[prox.id]||cteNueva(prox.id,prox.fecha,prox.nombre);CTE.cur=prox.id;cteSave()}}
-function cteView(){S.view="cte";S.letra=null;setBar("");if(!CTE)cteInit();cteElegir();const cal=cteSesionesCal(),C=cteCur();
+/* Próxima sesión según el calendario oficial (el primer día de la siguiente sesión) */
+function cteProxima(C){const s=cteSesionesCal().find(x=>x.fecha>C.fecha&&!/día [2-9]/.test(x.nombre)&&x.nombre.split(" · ")[0]!==C.nombre.split(" · ")[0]);return s?`${s.nombre.replace(/ · día 1$/,"")}, ${cteFechaLarga(s.fecha)}`:""}
+const ctePreside=C=>C.tipo==="agrupado"?(C.preside||SUP_NOMBRE):(C.preside||CTE.director);
+function cteCSS(){if(document.getElementById("cteCss"))return;const st=document.createElement("style");st.id="cteCss";st.textContent=`
+.cte-hd{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
+.cte-hd a{display:block;text-decoration:none;color:inherit;border:1.5px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--card)}
+.cte-hd a b{display:block;font-size:13px;color:var(--muted);font-weight:600}.cte-hd a span{font-size:17px;font-weight:800}
+.cte-hd a.ok{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}.cte-hd a.ok span{color:var(--ok)}
+.cte-tipos{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}@media(min-width:900px){.cte-hd{grid-template-columns:repeat(6,1fr)}}
+.cte-tipos .opt{align-items:flex-start;min-height:0;padding:9px 11px}.cte-tipos .opt small{display:block;color:var(--muted);font-size:13px;line-height:1.3;margin-top:2px}
+.cte-ia{display:inline-flex;align-items:center;gap:6px;border:1.5px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.cte-ia:disabled{opacity:.55;cursor:wait}.cte-ia svg{width:16px;height:16px}
+.cte-sem{display:flex;gap:6px;flex-wrap:wrap}.cte-sem label{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:14px}
+.cte-sem label i{width:10px;height:10px;border-radius:50%;display:inline-block}.cte-sem input{position:absolute;opacity:0;pointer-events:none}
+.cte-sem label.on{font-weight:700;border-color:currentColor}
+.cte-c{color:#1E7A46}.cte-p{color:#A4541A}.cte-n{color:#B3261E}
+.cte-c i{background:#1E7A46}.cte-p i{background:#D98A1C}.cte-n i{background:#B3261E}
+.cte-dict{border:1.5px dashed color-mix(in srgb,var(--accent) 50%,var(--line));border-radius:12px;padding:12px;background:color-mix(in srgb,var(--accent-soft) 55%,transparent);margin-bottom:10px}
+.cte-prop{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;display:flex;gap:10px;align-items:flex-start;background:var(--card)}
+.cte-prop input{margin-top:4px;width:18px;height:18px;flex:none}.cte-prop small{color:var(--muted);display:block;font-weight:400;font-size:14px}.cte-prop span{font-weight:400}
+.cte-aus{display:flex;gap:8px;align-items:center;margin:-4px 0 8px 34px}.cte-aus input{flex:1;min-width:0}
+.cte-p2{display:flex;gap:8px;align-items:center}.cte-env{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cte-nota{font-size:14px;color:var(--muted);margin:4px 0 0}`;document.head.appendChild(st)}
+const CTE_IA_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
+function cteView(){S.view="cte";S.letra=null;setBar("");if(!CTE)cteInit();cteElegir();cteCSS();const cal=cteSesionesCal(),C=cteCur();
   const extra=Object.values(CTE.ses).filter(s=>!cal.some(c=>c.id===s.id)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const opt=cal.map(s=>`<option value="${s.id}" ${CTE.cur===s.id?"selected":""}>${esc(s.nombre)} · ${esc(cteFechaLarga(s.fecha))}${CTE.ses[s.id]?" ✓":""}</option>`).join("")
     +extra.map(s=>`<option value="${s.id}" ${CTE.cur===s.id?"selected":""}>${esc(s.nombre)} · ${esc(cteFechaLarga(s.fecha))} ✓</option>`).join("");
   const top=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Dirección</div><h2>Minuta de Consejo Técnico Escolar</h2></div></div>`;
   if(!C){app.innerHTML=top+`<section class="card"><p>No se pudo cargar el calendario oficial. Agregue la sesión a mano.</p><div class="acts"><button class="btn primary act" id="cte_ext">+ Sesión con otra fecha</button></div></section>`;
     document.getElementById("salir").onclick=goBack;document.getElementById("cte_ext").onclick=cteExtra;return}
-  const pres=new Set(C.presentes);
+  const pres=new Set(C.presentes),agr=C.tipo==="agrupado";
+  const conNota=C.orden.filter(o=>o.t.trim()&&o.nota.trim()).length,nOrd=C.orden.filter(o=>o.t.trim()).length,nAcu=C.acuerdos.filter(x=>x.a.trim()).length,sinResp=C.acuerdos.filter(x=>x.a.trim()&&!x.r.trim()).length;
+  const segC=C.seg.filter(x=>x.estado==="Cumplido").length;
+  const hd=[["cte_s1","Sesión",C.hIni&&C.hFin?"Lista":"Faltan horas",!!(C.hIni&&C.hFin)],["cte_s3","Asistencia",`${C.presentes.length} de ${CTE.personal.length}`,C.presentes.length>0],
+    ["cte_s5","Desarrollo",`${conNota} de ${nOrd}`,conNota>0],["cte_s6","Seguimiento",C.seg.length?`${segC} de ${C.seg.length} cumplidos`:"Sin previos",true],
+    ["cte_s7","Acuerdos",nAcu?`${nAcu}${sinResp?` · ${sinResp} sin responsable`:""}`:"Ninguno",nAcu>0&&!sinResp],["cte_s10","Tequio",C.envio?"Enviada":"Sin enviar",!!C.envio]];
+  const semCls={Cumplido:"cte-c","En proceso":"cte-p",Pendiente:"cte-n"};
+  const ambOpt=v=>`<option value="">— Sin vincular —</option>`+CTE_AMBITOS.map(a=>`<option ${v===a?"selected":""}>${esc(a)}</option>`).join("");
+  const iaBtn=(id,txt,extraAttr="")=>`<button type="button" class="cte-ia" id="${id}" ${extraAttr} ${CTE_IA?"disabled":""}>${CTE_IA_SVG}${CTE_IA===id?"Redactando…":txt}</button>`;
   app.innerHTML=top+`
-   <p class="muted">Elija la sesión, marque quién asistió, anote lo más importante de cada punto y los acuerdos. Al final descargue la minuta con la lista de asistencia para firmar.</p>
-   <section class="card"><h3>1 · Sesión</h3>
+   <p class="muted">Elija la sesión, marque quién asistió y anote o dicte lo más importante de cada punto. La IA puede convertir sus notas en una redacción formal y separar los acuerdos; usted revisa todo antes de descargar.</p>
+   <nav class="cte-hd" aria-label="Avance de la minuta">${hd.map(([h,b,s,ok])=>`<a href="#${h}" class="${ok?"ok":""}"><b>${b}</b><span>${esc(s)}</span></a>`).join("")}</nav>
+   <section class="card" id="cte_s1"><h3>1 · Sesión</h3>
     <div class="field"><label>Sesión del calendario oficial</label><select id="cte_ses">${opt}</select><p class="help">Las marcadas con ✓ ya tienen información guardada.</p></div>
     <div class="acts"><button type="button" class="btn link" id="cte_ext">+ Sesión extraordinaria u otra fecha</button></div>
+    <div class="field"><label>Tipo de sesión</label><div class="cte-tipos">${CTE_TIPOS.map(([v,t,d])=>`<label class="opt ${C.tipo===v?"on":""}"><input type="radio" name="cte_tipo" data-tipo value="${v}" ${C.tipo===v?"checked":""}><span><b>${t}</b><small>${d}</small></span></label>`).join("")}</div></div>
     <div class="row2">${cpIn("ses.hIni","Hora de inicio",C.hIni,{type:"time"})}${cpIn("ses.hFin","Hora de término",C.hFin,{type:"time"})}</div>
-    ${cpIn("ses.lugar","Lugar",C.lugar,{ph:"Ej. Aula de medios de la escuela"})}</section>
+    <div class="row2">${cpIn("ses.lugar","Lugar",C.lugar,{ph:"Ej. Aula de medios de la escuela"})}<div class="field"><label>Modalidad</label><select data-f="ses.modal">${["Presencial","Virtual","Híbrida"].map(m=>`<option ${C.modal===m?"selected":""}>${m}</option>`).join("")}</select></div></div>
+    <div class="field"><label>Propósito de la sesión <span class="muted" style="font-weight:400">(opcional, viene en la guía)</span></label><textarea data-f="ses.proposito" rows="2" placeholder="Ej. Que el colectivo docente analice los resultados de la evaluación diagnóstica para ajustar su programa analítico.">${esc(C.proposito)}</textarea></div></section>
    <section class="card"><h3>2 · Escuela</h3>
     ${cpIn("escuela","Escuela",CTE.escuela)}<div class="row2">${cpIn("cct","C.C.T.",CTE.cct)}${cpIn("zona","Zona escolar",CTE.zona)}</div>
-    ${cpIn("director","Director(a) o encargado(a) de la dirección",CTE.director)}</section>
-   <section class="card"><h3>3 · Asistencia</h3><p class="help">El personal se guarda para las siguientes sesiones. Marque solo a quienes asistieron.</p>
-    ${CTE.personal.map((p,i)=>`<div class="cte-p"><label class="opt ${pres.has(p.n)?"on":""}" style="min-height:0;padding:8px 10px;flex:1"><input type="checkbox" data-pres="${i}" ${pres.has(p.n)?"checked":""}><span><b>${esc(p.n)}</b><br><span class="muted" style="font-size:14px">${esc(p.c)}</span></span></label><button type="button" class="btn link" data-pdel="${i}" aria-label="Quitar a ${esc(p.n)}">Quitar</button></div>`).join("")||`<p class="help"><i>Aún no hay personal capturado.</i></p>`}
+    ${cpIn("director","Director(a) o encargado(a) de la dirección",CTE.director)}
+    ${agr?`<div class="field"><label>Escuelas que integran el CTE agrupado</label><textarea data-f="ses.agEsc" rows="3" placeholder="Una por renglón: nombre y C.C.T.">${esc(C.agEsc)}</textarea><p class="help">En las escuelas multigrado con menos de cuatro docentes, el CTE se integra con otras escuelas y lo preside la Supervisión.</p></div>`:""}
+    ${cpIn("ses.preside",agr?"Preside (Supervisión escolar)":"Preside la sesión",agr?(C.preside||SUP_NOMBRE):(C.preside||CTE.director),{ph:agr?SUP_NOMBRE:CTE.director})}</section>
+   <section class="card" id="cte_s3"><h3>3 · Asistencia</h3><p class="help">El personal se guarda para las siguientes sesiones. Marque a quienes asistieron; a quien no, anote el motivo si la ausencia fue justificada.</p>
+    ${CTE.personal.map((p,i)=>`<div class="cte-p2"><label class="opt ${pres.has(p.n)?"on":""}" style="min-height:0;padding:8px 10px;flex:1"><input type="checkbox" data-pres="${i}" ${pres.has(p.n)?"checked":""}><span><b>${esc(p.n)}</b><br><span class="muted" style="font-size:14px">${esc(p.c)}</span></span></label><button type="button" class="btn link" data-pdel="${i}" aria-label="Quitar a ${esc(p.n)}">Quitar</button></div>
+      ${pres.has(p.n)?"":`<div class="cte-aus"><span class="muted" style="font-size:14px">Motivo</span><input type="text" data-aus="${esc(p.n)}" value="${esc(C.aus[p.n]||"")}" placeholder="Ej. Incapacidad médica, comisión oficial" autocomplete="off"></div>`}`).join("")||`<p class="help"><i>Aún no hay personal capturado.</i></p>`}
     <div class="row2" style="margin-top:6px"><div class="field"><label>Nombre</label><input type="text" id="cte_nn" autocomplete="off"></div><div class="field"><label>Cargo</label><input type="text" id="cte_nc" list="cte_cargos" autocomplete="off" placeholder="Docente de 3° A"></div></div>
-    <datalist id="cte_cargos"><option value="Director(a)"><option value="Docente"><option value="Docente de Educación Física"><option value="Maestro(a) de USAER"><option value="Personal de apoyo"><option value="Asesor(a) técnico pedagógico"></datalist>
+    <datalist id="cte_cargos"><option value="Director(a)"><option value="Docente"><option value="Docente de Educación Física"><option value="Maestro(a) de USAER"><option value="Personal de apoyo"><option value="Asesor(a) técnico pedagógico"><option value="Supervisor(a) escolar"></datalist>
     <div class="acts"><button type="button" class="btn ghost act" id="cte_padd">+ Agregar al personal</button></div>
     <p class="help">Asistieron <b>${C.presentes.length}</b> de ${CTE.personal.length}.</p></section>
-   <section class="card"><h3>4 · Orden del día y desarrollo</h3><p class="help">Puede cambiar, quitar o agregar puntos. En cada uno anote, si quiere, lo más importante que se trató.</p>
-    ${C.orden.map((o,i)=>`<div class="invit"><div class="invit_h"><b>${i+1}.</b><button type="button" class="btn link" data-odel="${i}">Quitar</button></div>
+   <section class="card" id="cte_s5"><h3>4 · Orden del día y desarrollo</h3><p class="help">En cada punto escriba o dicte (con el micrófono) lo que se trató, como le salga. Con <b>Redactar con IA</b> se convierte en texto formal; puede deshacerlo.</p>
+    <div class="acts" style="margin:0 0 6px">${iaBtn("cte_iaTodo","Redactar todos los puntos con IA")}</div>
+    ${C.orden.map((o,i)=>`<div class="invit"><div class="invit_h"><b>${i+1}.</b><span style="display:flex;gap:6px;align-items:center">${iaBtn("cte_ia"+i,"Redactar",`data-ia="${i}"`)}${o.prev!=null?`<button type="button" class="btn link" data-undo="${i}">Deshacer</button>`:""}<button type="button" class="btn link" data-odel="${i}">Quitar</button></span></div>
       <input type="text" data-f="ses.orden.${i}.t" value="${esc(o.t)}" autocomplete="off" style="margin-bottom:6px">
-      <textarea data-f="ses.orden.${i}.nota" rows="2" placeholder="Lo más importante que se trató (opcional)">${esc(o.nota)}</textarea></div>`).join("")}
+      <textarea data-f="ses.orden.${i}.nota" rows="${o.nota.length>220?5:2}" placeholder="Lo que se trató, ideas principales y conclusiones (opcional)">${esc(o.nota)}</textarea></div>`).join("")}
     <div class="acts"><button type="button" class="btn ghost act" id="cte_oadd">+ Agregar punto</button></div></section>
-   <section class="card"><h3>5 · Seguimiento de acuerdos anteriores</h3>
+   <section class="card" id="cte_s6"><h3>5 · Seguimiento de acuerdos anteriores</h3>
     ${C.seg.length?C.seg.map((x,i)=>`<div class="invit"><p style="margin:0 0 6px">${esc(x.a)}${x.r?` <span class="muted">· ${esc(x.r)}</span>`:""}</p>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${CTE_EST.map(e=>`<label class="opt ${x.estado===e?"on":""}" style="display:inline-flex;min-height:0;padding:6px 10px"><input type="radio" name="seg${i}" data-seg="${i}" value="${e}" ${x.estado===e?"checked":""}>${e}</label>`).join("")}</div></div>`).join("")
+      <div class="cte-sem" role="radiogroup" aria-label="Estado del acuerdo">${CTE_EST.map(e=>`<label class="${semCls[e]} ${x.estado===e?"on":""}"><input type="radio" name="seg${i}" data-seg="${i}" value="${e}" ${x.estado===e?"checked":""}><i></i>${e}</label>`).join("")}</div>
+      <input type="text" data-f="ses.seg.${i}.obs" value="${esc(x.obs)}" placeholder="Observación o avance (opcional)" autocomplete="off" style="margin-top:8px"></div>`).join("")
       :`<p class="help">No hay acuerdos de una sesión anterior registrada en Tlamatini. A partir de esta sesión, los acuerdos aparecerán aquí la próxima vez.</p>`}</section>
-   <section class="card"><h3>6 · Acuerdos y compromisos</h3>
+   <section class="card" id="cte_s7"><h3>6 · Acuerdos y compromisos</h3>
+    <div class="cte-dict"><label for="cte_dict" style="font-weight:700">Dicte o pegue los acuerdos tal como se dijeron</label>
+      <p class="help" style="margin:2px 0 8px">Ej. «Cada docente aplicará la lista de cotejo de lectura antes del 28 de noviembre. La directora enviará el informe a la Supervisión…». La IA los separa con responsable, fecha y evidencia.</p>
+      <textarea id="cte_dict" data-f="ses.dictado" rows="3">${esc(C.dictado)}</textarea>
+      <div class="acts" style="margin-top:8px">${iaBtn("cte_iaAcu","Separar acuerdos con IA")}<button type="button" class="btn link" id="cte_loc">Separar sin IA</button></div>
+      ${CTE_PROP?`<div style="margin-top:8px"><p style="margin:6px 0"><b>Revise los acuerdos propuestos</b> · desmarque los que no van.</p>
+        ${CTE_PROP.length?CTE_PROP.map((x,i)=>`<label class="cte-prop"><input type="checkbox" data-prop="${i}" checked><span>${esc(x.a)}<small>${[x.r&&"Responsable: "+x.r,x.f&&"Fecha: "+x.f,x.ev&&"Evidencia: "+x.ev].filter(Boolean).map(esc).join(" · ")||"Sin responsable ni fecha: complételos abajo."}</small></span></label>`).join(""):`<p class="help">No se encontraron acuerdos en el texto.</p>`}
+        <div class="acts">${CTE_PROP.length?`<button type="button" class="btn primary act" id="cte_propOk">Agregar a la minuta</button>`:""}<button type="button" class="btn link" id="cte_propNo">Descartar</button></div></div>`:""}</div>
     ${C.acuerdos.map((x,i)=>`<div class="invit"><div class="invit_h"><b>Acuerdo ${i+1}</b><button type="button" class="btn link" data-adel="${i}">Quitar</button></div>
-      <textarea data-f="ses.acuerdos.${i}.a" rows="2" placeholder="¿Qué se acordó?">${esc(x.a)}</textarea>
-      <div class="row2" style="margin-top:6px">${cpIn(`ses.acuerdos.${i}.r`,"Responsable(s)",x.r)}${cpIn(`ses.acuerdos.${i}.f`,"Fecha de cumplimiento",x.f,{ph:"Ej. 27 de noviembre"})}</div></div>`).join("")}
+      <textarea data-f="ses.acuerdos.${i}.a" rows="2" placeholder="¿Qué se acordó? Ej. Aplicar la estrategia de lectura diaria de 20 minutos en todos los grupos.">${esc(x.a)}</textarea>
+      <div class="row2" style="margin-top:6px">${cpIn(`ses.acuerdos.${i}.r`,"Responsable(s)",x.r,{list:"cte_resp"})}${cpIn(`ses.acuerdos.${i}.f`,"Fecha de cumplimiento",x.f,{ph:"Ej. 27 de noviembre"})}</div>
+      <div class="row2">${cpIn(`ses.acuerdos.${i}.ev`,"Evidencia o producto",x.ev,{ph:"Ej. Registro de lectura por grupo",opt:1})}<div class="field"><label>Ámbito del PEMC <span class="muted" style="font-weight:400">(opcional)</span></label><select data-f="ses.acuerdos.${i}.pm">${ambOpt(x.pm)}</select></div></div></div>`).join("")}
+    <datalist id="cte_resp"><option value="Colectivo docente"><option value="Dirección">${CTE.personal.map(p=>`<option value="${esc(p.n)}">`).join("")}</datalist>
     <div class="acts"><button type="button" class="btn ghost act" id="cte_aadd">+ Agregar acuerdo</button></div></section>
-   <section class="card"><h3>7 · Firmas</h3>
+   <section class="card"><h3>7 · Asuntos generales y acompañamiento</h3>
+    <div class="field"><label>Asuntos generales <span class="muted" style="font-weight:400">(opcional)</span></label><textarea data-f="ses.asuntos" rows="2" placeholder="Avisos, comisiones, eventos próximos…">${esc(C.asuntos)}</textarea></div>
+    <div class="field"><label>Acompañamiento de la Supervisión o ATP <span class="muted" style="font-weight:400">(opcional)</span></label><textarea data-f="ses.acomp" rows="2" placeholder="Quién acompañó la sesión y sus observaciones o sugerencias">${esc(C.acomp)}</textarea></div>
+    ${cpIn("ses.proxima","Próxima sesión",C.proxima||cteProxima(C),{ph:"Ej. Cuarta sesión ordinaria, viernes 30 de enero"})}</section>
+   <section class="card"><h3>8 · Firmas</h3>
     <div class="field"><label>Relator(a) o secretario(a) de la sesión</label><select data-f="ses.relator"><option value="">—</option>${CTE.personal.map(p=>`<option ${C.relator===p.n?"selected":""}>${esc(p.n)}</option>`).join("")}</select></div>
-    <p class="help">La minuta lleva la firma del director(a) y del relator(a), y al final la lista de asistencia para que firme cada asistente.</p></section>
+    <label class="opt ${C.vobo?"on":""}" style="min-height:0"><input type="checkbox" id="cte_vobo" ${C.vobo?"checked":""}><span>Agregar <b>Vo. Bo. de la Supervisión</b> (${esc(SUP_NOMBRE)})</span></label>
+    <p class="help">La minuta lleva la firma de quien preside y del relator(a), y al final la lista de asistencia para que firme cada asistente.</p></section>
    ${logoWidgetHTML()}
-   <section class="card"><div class="acts"><button class="btn primary act" id="cte_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="cte_word">${EI.down}Descargar para Word</button></div></section>
-   <p class="foot">Los datos se guardan solo en este dispositivo. Nada se envía a internet.</p>`;
+   <section class="card" id="cte_s10"><div class="acts"><button class="btn primary act" id="cte_pdf">${EI.down}Descargar PDF</button><button class="btn ghost act" id="cte_word">${EI.down}Descargar para Word</button></div>
+    <div class="cte-env" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"><button class="btn ghost act" id="cte_env">${C.envio?"Actualizar en Tequio":"Enviar a Tequio"}</button>
+     <span class="help" style="margin:0;flex:1;min-width:200px">${C.envio?`Enviada el ${esc(fmtDate(C.envio.t.slice(0,10),"larga"))}. La Supervisión ve los acuerdos y usted marca su avance en Tequio.`:"Los acuerdos quedan en Tequio para darles seguimiento con la Supervisión."}</span></div></section>
+   <p class="foot">La minuta se guarda en este dispositivo. Solo sale a internet si usa la IA (se envía el texto de las notas, sin nombres de alumnos) o si la envía a Tequio.</p>`;
   const g=id=>document.getElementById(id);
   const leer=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const p=e.dataset.f.split(".");let o=p[0]==="ses"?C:CTE;const q=p[0]==="ses"?p.slice(1):p;for(let j=0;j<q.length-1;j++)o=o[q[j]];o[q[q.length-1]]=e.value});
     C.presentes=CTE.personal.filter((p,i)=>{const e=app.querySelector(`[data-pres="${i}"]`);return e&&e.checked}).map(p=>p.n);
+    app.querySelectorAll("[data-aus]").forEach(e=>{if(e.value.trim())C.aus[e.dataset.aus]=e.value;else delete C.aus[e.dataset.aus]});
+    const t=app.querySelector("[data-tipo]:checked");if(t)C.tipo=t.value;C.vobo=!!(g("cte_vobo")&&g("cte_vobo").checked);
+    if(C.preside===(C.tipo==="agrupado"?SUP_NOMBRE:CTE.director))C.preside="";
     app.querySelectorAll("[data-seg]:checked").forEach(e=>C.seg[+e.dataset.seg].estado=e.value);if(C.relator)CTE.relator=C.relator;cteSave()};
-  const rer=fn=>()=>{leer();fn();cteSave();const y=window.scrollY;cteView();window.scrollTo(0,y)};
+  const pinta=()=>{const y=window.scrollY;cteView();window.scrollTo(0,y)};
+  const rer=fn=>()=>{leer();fn();cteSave();pinta()};
   app.querySelectorAll("[data-f]").forEach(e=>e.addEventListener("change",leer));
-  app.querySelectorAll("[data-pres],[data-seg]").forEach(e=>e.addEventListener("change",rer(()=>{})));
-  g("cte_ses").onchange=e=>{leer();const id=e.target.value;const s=cal.find(x=>x.id===id);if(!CTE.ses[id]&&s)CTE.ses[id]=cteNueva(s.id,s.fecha,s.nombre);CTE.cur=id;cteSave();cteView()};
+  app.querySelectorAll("[data-pres],[data-seg],[data-tipo],#cte_vobo").forEach(e=>e.addEventListener("change",rer(()=>{})));
+  g("cte_ses").onchange=e=>{leer();const id=e.target.value;const s=cal.find(x=>x.id===id);if(!CTE.ses[id]&&s)CTE.ses[id]=cteNueva(s.id,s.fecha,s.nombre);CTE.cur=id;CTE_PROP=null;cteSave();cteView()};
   g("cte_ext").onclick=()=>{leer();cteExtra()};
   g("cte_padd").onclick=rer(()=>{const n=g("cte_nn").value.trim(),c=g("cte_nc").value.trim();if(!n)return;if(!CTE.personal.some(p=>p.n===n)){CTE.personal.push({n,c:c||"Docente"});C.presentes.push(n)}});
   app.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=rer(()=>{const p=CTE.personal.splice(+b.dataset.pdel,1)[0];C.presentes=C.presentes.filter(n=>n!==p.n)}));
   g("cte_oadd").onclick=rer(()=>C.orden.push({t:"",nota:""}));app.querySelectorAll("[data-odel]").forEach(b=>b.onclick=rer(()=>C.orden.splice(+b.dataset.odel,1)));
-  g("cte_aadd").onclick=rer(()=>C.acuerdos.push({a:"",r:"",f:""}));app.querySelectorAll("[data-adel]").forEach(b=>b.onclick=rer(()=>{C.acuerdos.splice(+b.dataset.adel,1);if(!C.acuerdos.length)C.acuerdos.push({a:"",r:"",f:""})}));
+  app.querySelectorAll("[data-undo]").forEach(b=>b.onclick=rer(()=>{const o=C.orden[+b.dataset.undo];o.nota=o.prev;delete o.prev}));
+  g("cte_aadd").onclick=rer(()=>C.acuerdos.push({id:cteId(),a:"",r:"",f:"",ev:"",pm:""}));
+  app.querySelectorAll("[data-adel]").forEach(b=>b.onclick=rer(()=>{C.acuerdos.splice(+b.dataset.adel,1);if(!C.acuerdos.length)C.acuerdos.push({id:cteId(),a:"",r:"",f:"",ev:"",pm:""})}));
+  /* IA: redactar el desarrollo */
+  const redactar=async(idx,btnId)=>{leer();const L=idx.map(i=>C.orden[i]).filter(o=>o&&o.t.trim()&&o.nota.trim());if(!L.length){alert("Escriba o dicte primero lo que se trató en algún punto.");return}
+    CTE_IA=btnId;pinta();
+    try{const j=await cteIA({modo:"redactar",puntos:L.map(o=>({t:o.t,nota:o.nota}))});(j.puntos||[]).forEach((t,k)=>{if(t&&t.trim()&&L[k]){L[k].prev=L[k].nota;L[k].nota=t.trim()}})}
+    catch(e){alert(e.message)}finally{CTE_IA="";cteSave();pinta()}};
+  g("cte_iaTodo").onclick=()=>redactar(C.orden.map((o,i)=>i),"cte_iaTodo");
+  app.querySelectorAll("[data-ia]").forEach(b=>b.onclick=()=>redactar([+b.dataset.ia],b.id));
+  /* IA: separar acuerdos */
+  g("cte_iaAcu").onclick=async()=>{leer();if(C.dictado.trim().length<12){alert("Dicte o escriba primero los acuerdos en el recuadro.");return}CTE_IA="cte_iaAcu";pinta();
+    try{const j=await cteIA({modo:"acuerdos",texto:C.dictado,personas:CTE.personal.map(p=>p.n),fecha:C.fecha});CTE_PROP=(j.acuerdos||[]).map(x=>({...x,f:cteFechaTxt(x.f)}))}
+    catch(e){alert(e.message)}finally{CTE_IA="";pinta()}};
+  g("cte_loc").onclick=rer(()=>{CTE_PROP=cteSepararLocal(C.dictado,CTE.personal.map(p=>p.n))});
+  if(g("cte_propNo"))g("cte_propNo").onclick=rer(()=>{CTE_PROP=null});
+  if(g("cte_propOk"))g("cte_propOk").onclick=rer(()=>{const sel=CTE_PROP.filter((x,i)=>{const e=app.querySelector(`[data-prop="${i}"]`);return e&&e.checked});
+    C.acuerdos=C.acuerdos.filter(x=>x.a.trim()||x.r.trim()||x.f.trim());sel.forEach(x=>C.acuerdos.push({id:cteId(),a:x.a,r:x.r||"",f:x.f||"",ev:x.ev||"",pm:""}));if(!C.acuerdos.length)C.acuerdos.push({id:cteId(),a:"",r:"",f:"",ev:"",pm:""});CTE_PROP=null});
   wireLogo();
-  g("salir").onclick=()=>{leer();goBack()};
+  g("salir").onclick=()=>{leer();CTE_PROP=null;goBack()};
   g("cte_pdf").onclick=e=>{leer();ctePDF(e.currentTarget)};g("cte_word").onclick=()=>{leer();cteWord()};
-  window.scrollTo(0,0)}
+  g("cte_env").onclick=e=>{leer();cteEnviar(e.currentTarget)};
+  if(!CTE_IA)window.scrollTo(0,0)}
+/* Fecha que devuelve la IA (AAAA-MM-DD) en texto: «27 de noviembre» */
+function cteFechaTxt(f){f=String(f||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(f)&&parseDate(f))return fmtDate(f,"larga").replace(/ de \d{4}$/,"");return f}
+async function cteIA(datos){try{return await tlamiPost("minutaIA",datos)}
+  catch(e){const m=String(e&&e.message||e);
+    if(m==="sinservidor")throw new Error("La redacción con IA necesita internet y la conexión con Tequio (entrar a Tlamatini con su enlace de acceso). Mientras, puede escribir a mano o usar «Separar sin IA».");
+    if(/accion|desconocida/i.test(m))throw new Error("El servidor de Tequio todavía no tiene la IA de minutas (versión 57). Avise a la Supervisión.");
+    if(/abort/i.test(m))throw new Error("La IA tardó demasiado. Intente de nuevo.");throw new Error("No se pudo usar la IA: "+m)}}
+/* Sin IA: cada renglón, punto y seguido o «acuerdo» es un acuerdo; se reconoce «responsable: …» y una fecha escrita */
+function cteSepararLocal(t,gente){const L=String(t||"").replace(/\r/g,"").replace(/\.\s+(?=[A-ZÁÉÍÓÚÑ])/g,".\n").split(/\n+|;\s*|\b(?:acuerdo|compromiso)\s+(?:n[uú]mero\s+)?(?:\d+|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s*[:.,-]?\s*/i).map(x=>(x||"").trim()).filter(x=>x.length>8);
+  const MES="enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre";
+  return L.map(x=>{let r="",f="";const mr=x.match(/responsables?\s*:?\s*([^.;,]+)/i);if(mr){r=mr[1].trim();x=x.replace(mr[0],"").trim()}
+    else{const p=(gente||[]).find(n=>n&&new RegExp("\\b"+n.split(/\s+/)[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(x));if(p)r=p;else if(/\bcada docente|\bcolectivo|\btodos los docentes/i.test(x))r="Colectivo docente";else if(/\bdirector|\bdirectora|\bdirecci[oó]n/i.test(x))r="Dirección"}
+    const mf=x.match(new RegExp(`\\b(\\d{1,2}\\s+de\\s+(?:${MES}))`,"i"));if(mf)f=mf[1];else if(/pr[oó]xima sesi[oó]n/i.test(x))f="Próxima sesión";else if(/permanente/i.test(x))f="Permanente";
+    x=x.replace(/[,;.\s]+$/,"");return{a:x.charAt(0).toUpperCase()+x.slice(1)+".",r,f,ev:""}})}
+async function cteEnviar(btn){const C=cteCur();const ac=C.acuerdos.filter(x=>x.a.trim());
+  if(!CTE.cct.trim()){alert("Escriba la C.C.T. de la escuela (apartado 2) para enviar la minuta.");return}
+  if(!ac.length&&!confirm("La minuta no tiene acuerdos. ¿Enviarla de todos modos?"))return;
+  const t0=btn.textContent;btn.disabled=true;btn.textContent="Enviando…";const M=cteModelo();
+  try{const j=await tlamiPost("minutaEnviar",{minuta:{clave:CTE.cct.trim().toUpperCase()+"|"+C.id,cct:CTE.cct.trim().toUpperCase(),fecha:C.fecha,sesion:C.nombre,titulo:M.titulo,ciclo:(CAL&&CAL.ciclo)||cpCiclo(),
+      acuerdos:ac.map(x=>({id:x.id,a:x.a,r:x.r,f:x.f,ev:x.ev,pm:x.pm,est:"Pendiente"})),
+      datos:{tipo:C.tipo,modal:C.modal,hIni:C.hIni,hFin:C.hFin,lugar:C.lugar,preside:ctePreside(C),relator:C.relator,proposito:C.proposito,director:CTE.director,zona:CTE.zona,
+        asist:M.asist.map(p=>({n:p.n,c:p.c,a:p.a,m:p.m||""})),orden:M.orden.map(o=>({t:o.t,nota:o.nota})),seg:C.seg.map(x=>({a:x.a,r:x.r,estado:x.estado,obs:x.obs})),
+        asuntos:C.asuntos,acomp:C.acomp,proxima:M.proxima,agEsc:C.agEsc}}});
+    C.envio={t:new Date().toISOString(),id:j.id};cteSave();cteView();setTimeout(()=>alert(`Minuta enviada a Tequio con ${j.acuerdos} acuerdo(s).`),50)}
+  catch(e){const m=String(e&&e.message||e);alert(m==="sinservidor"?"Para enviar la minuta necesita internet y entrar a Tlamatini con su enlace de acceso.":/accion|desconocida/i.test(m)?"El servidor de Tequio todavía no recibe minutas (versión 57). Avise a la Supervisión.":"No se pudo enviar: "+m)}
+  finally{btn.disabled=false;btn.textContent=t0}}
 function cteExtra(){const f=prompt("Fecha de la sesión (AAAA-MM-DD):",today());if(!f||!parseDate(f)||!/^\d{4}-\d{2}-\d{2}$/.test(f))return;
   const nom=prompt("Nombre de la sesión:","Sesión extraordinaria")||"Sesión extraordinaria";const id="x-"+f+"-"+Date.now().toString(36);
   CTE.ses[id]=cteNueva(id,f,nom);CTE.cur=id;cteSave();cteView()}
 const cteHora=h=>{if(!h)return"____";const[a,b]=h.split(":").map(Number);return`${a>12?a-12:a||12}:${String(b).padStart(2,"0")} ${a<12?"a. m.":"p. m."}`};
-function cteModelo(){const C=cteCur();const pres=new Set(C.presentes);
-  return{C,titulo:"MINUTA DE LA SESIÓN DEL CONSEJO TÉCNICO ESCOLAR",sub:`${C.nombre} · Ciclo escolar ${(CAL&&CAL.ciclo)||cpCiclo()}`,
-    datos:[["Escuela",CTE.escuela],["C.C.T.",CTE.cct],["Zona escolar",CTE.zona],["Fecha",cteFechaLarga(C.fecha)],["Horario",`${cteHora(C.hIni)} a ${cteHora(C.hFin)}`],["Lugar",C.lugar||"—"]],
-    intro:`Siendo las ${cteHora(C.hIni)} del ${cteFechaLarga(C.fecha)}, en ${C.lugar||"las instalaciones de la escuela"}, se reunió el colectivo docente de la escuela ${CTE.escuela||"____"}, C.C.T. ${CTE.cct||"____"}, para celebrar la ${C.nombre} del Consejo Técnico Escolar, con la asistencia de ${C.presentes.length} de ${CTE.personal.length} integrantes, conforme al siguiente orden del día:`,
-    orden:C.orden.filter(o=>o.t.trim()),seg:C.seg,acuerdos:C.acuerdos.filter(x=>x.a.trim()),
+function cteModelo(){const C=cteCur();const pres=new Set(C.presentes),agr=C.tipo==="agrupado";
+  const tipoTxt={ordinaria:"sesión ordinaria",intensiva:"sesión de la fase intensiva",extraordinaria:"sesión extraordinaria",agrupado:"sesión del Consejo Técnico Escolar agrupado"}[C.tipo]||"sesión";
+  const colect=agr?"el colectivo docente de las escuelas que integran el Consejo Técnico Escolar agrupado":`el colectivo docente de la escuela ${CTE.escuela||"____"}, C.C.T. ${CTE.cct||"____"}`;
+  const modal=C.modal==="Virtual"?" de manera virtual":C.modal==="Híbrida"?" en modalidad híbrida":"";
+  return{C,agr,titulo:agr?"MINUTA DE LA SESIÓN DEL CONSEJO TÉCNICO ESCOLAR AGRUPADO":"MINUTA DE LA SESIÓN DEL CONSEJO TÉCNICO ESCOLAR",sub:`${C.nombre}${/ordinaria|intensiva|extraordinaria/i.test(C.nombre)&&!agr?"":" · "+tipoTxt.charAt(0).toUpperCase()+tipoTxt.slice(1)} · Ciclo escolar ${(CAL&&CAL.ciclo)||cpCiclo()}`,
+    datos:[["Escuela",CTE.escuela],["C.C.T.",CTE.cct],["Zona escolar",CTE.zona],["Fecha",cteFechaLarga(C.fecha)],["Horario",`${cteHora(C.hIni)} a ${cteHora(C.hFin)}`],["Lugar",(C.lugar||"—")+(C.modal&&C.modal!=="Presencial"?` (${C.modal.toLowerCase()})`:"")]],
+    intro:`Siendo las ${cteHora(C.hIni)} del ${cteFechaLarga(C.fecha)}, en ${C.lugar||"las instalaciones de la escuela"}, se reunió${modal} ${colect}, para celebrar la ${C.nombre} del Consejo Técnico Escolar, presidida por ${ctePreside(C)||"____"}, con la asistencia de ${C.presentes.length} de ${CTE.personal.length} integrantes, conforme al siguiente orden del día:`,
+    proposito:C.proposito.trim(),preside:ctePreside(C),presideCargo:agr?"Supervisor(a) escolar · Preside el CTE agrupado":"Director(a) · Presidente(a) del CTE",
+    agEsc:agr?C.agEsc.split("\n").map(x=>x.trim()).filter(Boolean):[],
+    orden:C.orden.filter(o=>o.t.trim()),seg:C.seg,acuerdos:C.acuerdos.filter(x=>x.a.trim()),asuntos:C.asuntos.trim(),acomp:C.acomp.trim(),proxima:(C.proxima||cteProxima(C)).trim(),
+    aus:CTE.personal.filter(p=>!pres.has(p.n)).map(p=>({n:p.n,m:C.aus[p.n]||""})),
     cierre:`No habiendo otro asunto que tratar, se da por concluida la sesión a las ${cteHora(C.hFin)} del mismo día, firmando de conformidad quienes en ella intervinieron.`,
-    asist:CTE.personal.map(p=>({...p,a:pres.has(p.n)})),director:CTE.director,relator:C.relator}}
+    asist:CTE.personal.map(p=>({...p,a:pres.has(p.n),m:C.aus[p.n]||""})),director:CTE.director,relator:C.relator,vobo:C.vobo}}
 async function ctePDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textContent="Preparando…";
   try{await fonts();const M=cteModelo();const doc=await PDFLib.PDFDocument.create();const F=await doc.embedFont(PDFLib.StandardFonts.Helvetica),FB=await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
     const{rgb}=PDFLib,ink=rgb(.1,.13,.19),azul=rgb(.07,.227,.42),gray=rgb(.38,.42,.5),soft=rgb(.93,.95,.98),line=rgb(.78,.81,.86);
-    const W=612,Hh=792,MG=50,AW=W-MG*2;let pg,y;const inst=await embedInst(doc);let sch=await embedLogo(doc);if(!sch){sch=await embedZonaLogo(doc)}
+    const semC={Cumplido:rgb(.12,.48,.27),"En proceso":rgb(.85,.54,.11),Pendiente:rgb(.7,.15,.12)};
+    const W=612,Hh=792,MG=50,AW=W-MG*2;let pg,y;const inst=await embedInst(doc);let sch=await embedLogo(doc);if(!sch||M.agr){sch=await embedZonaLogo(doc)||sch}
     const wrap=(t,f,s,w)=>{const o=[];for(const para of clean(t).split("\n")){if(!para.trim()){o.push("");continue}let ln="";for(const wd of para.split(/\s+/)){const te=ln?ln+" "+wd:wd;if(f.widthOfTextAtSize(te,s)>w&&ln){o.push(ln);ln=wd}else ln=te}if(ln)o.push(ln)}return o};
     const nueva=()=>{pg=doc.addPage([W,Hh]);y=Hh-MG;const bh=62;pg.drawRectangle({x:0,y:Hh-bh,width:W,height:bh,color:azul});const sz=44,by=Hh-bh+(bh-sz)/2;let lx=MG;
       const caja=(img,x)=>{pg.drawRectangle({x,y:by,width:sz,height:sz,color:rgb(1,1,1)});const d=img.scaleToFit(sz-6,sz-6);pg.drawImage(img,{x:x+3+(sz-6-d.width)/2,y:by+3+(sz-6-d.height)/2,width:d.width,height:d.height})};
       if(inst){caja(inst,MG);lx=MG+sz+12}if(sch)caja(sch,W-MG-sz);
-      const t1=clean(CTE.escuela||"Escuela"),mw=(sch?W-MG-sz-12:W-MG)-lx;let s1=13;while(FB.widthOfTextAtSize(t1,s1)>mw&&s1>8)s1-=.5;pg.drawText(t1,{x:lx,y:Hh-28,size:s1,font:FB,color:rgb(1,1,1)});
-      const t2=clean(`C.C.T. ${CTE.cct} · Zona Escolar ${CTE.zona} · Consejo Técnico Escolar`);let s2=8.5;while(F.widthOfTextAtSize(t2,s2)>mw&&s2>6)s2-=.3;pg.drawText(t2,{x:lx,y:Hh-44,size:s2,font:F,color:rgb(.88,.92,.98)});
+      const t1=clean(M.agr?`Supervisión Escolar Zona ${CTE.zona}`:(CTE.escuela||"Escuela")),mw=(sch?W-MG-sz-12:W-MG)-lx;let s1=13;while(FB.widthOfTextAtSize(t1,s1)>mw&&s1>8)s1-=.5;pg.drawText(t1,{x:lx,y:Hh-28,size:s1,font:FB,color:rgb(1,1,1)});
+      const t2=clean(M.agr?`Consejo Técnico Escolar agrupado · Escuelas multigrado`:`C.C.T. ${CTE.cct} · Zona Escolar ${CTE.zona} · Consejo Técnico Escolar`);let s2=8.5;while(F.widthOfTextAtSize(t2,s2)>mw&&s2>6)s2-=.3;pg.drawText(t2,{x:lx,y:Hh-44,size:s2,font:F,color:rgb(.88,.92,.98)});
       y=Hh-bh-22};
     const espacio=h=>{if(y-h<MG+14){nueva()}};
     const par=(t,s=10,f=F,ind=0,gap=3.2,c=ink)=>{for(const l of wrap(t,f,s,AW-ind)){espacio(s+gap);pg.drawText(l,{x:MG+ind,y:y-s,size:s,font:f,color:c});y-=s+gap}};
-    const sec=t=>{espacio(34);y-=6;pg.drawText(clean(t).toUpperCase(),{x:MG,y:y-10,size:9.5,font:FB,color:azul});y-=14;pg.drawLine({start:{x:MG,y},end:{x:W-MG,y},thickness:1,color:line});y-=8};
+    const sec=t=>{espacio(40);y-=6;pg.drawText(clean(t).toUpperCase(),{x:MG,y:y-10,size:9.5,font:FB,color:azul});y-=14;pg.drawLine({start:{x:MG,y},end:{x:W-MG,y},thickness:1,color:line});y-=8};
     const tabla=(cols,rows,o={})=>{const s=o.s||9,pad=4,head=o.head!==false;const ws=cols.map(c=>c[1]*AW);
-      const fila=(cells,bold,fill)=>{const L=cells.map((c,i)=>wrap(c,bold?FB:F,s,ws[i]-pad*2));const h=Math.max(...L.map(x=>x.length),1)*(s+2.5)+pad*2+(o.alto||0);espacio(h);
+      const fila=(cells,bold,fill)=>{const L=cells.map((c,i)=>wrap(c,bold?FB:F,s,ws[i]-pad*2-(o.dot===i&&!bold?10:0)));const h=Math.max(...L.map(x=>x.length),1)*(s+2.5)+pad*2+(o.alto||0);espacio(h);
         let x=MG;cells.forEach((c,i)=>{if(fill)pg.drawRectangle({x,y:y-h,width:ws[i],height:h,color:fill});pg.drawRectangle({x,y:y-h,width:ws[i],height:h,borderColor:line,borderWidth:.6});
-          L[i].forEach((l,j)=>pg.drawText(l,{x:x+pad,y:y-pad-s-j*(s+2.5)+1.5,size:s,font:bold?FB:F,color:ink}));x+=ws[i]});y-=h};
+          let dx=0;if(o.dot===i&&!bold&&semC[c]){pg.drawCircle({x:x+pad+3.5,y:y-pad-s/2-1,size:3.5,color:semC[c]});dx=10}
+          L[i].forEach((l,j)=>pg.drawText(l,{x:x+pad+dx,y:y-pad-s-j*(s+2.5)+1.5,size:s,font:bold?FB:F,color:ink}));x+=ws[i]});y-=h};
       if(head)fila(cols.map(c=>c[0]),true,soft);rows.forEach(r=>fila(r,false,null));y-=8};
     nueva();
     let s0=12.5;while(FB.widthOfTextAtSize(M.titulo,s0)>AW&&s0>9)s0-=.5;const tw=FB.widthOfTextAtSize(M.titulo,s0);pg.drawText(M.titulo,{x:(W-tw)/2,y:y-s0,size:s0,font:FB,color:ink});y-=s0+6;
-    const sw=F.widthOfTextAtSize(clean(M.sub),10);pg.drawText(clean(M.sub),{x:(W-sw)/2,y:y-10,size:10,font:F,color:gray});y-=22;
-    tabla([["",.5],["",.5]],[[`Escuela: ${M.datos[0][1]}`,`C.C.T.: ${M.datos[1][1]}   ·   Zona: ${M.datos[2][1]}`],[`Fecha: ${M.datos[3][1]}`,`Horario: ${M.datos[4][1]}`],[`Lugar: ${M.datos[5][1]}`,`Asistencia: ${M.C.presentes.length} de ${CTE.personal.length} integrantes`]],{head:false});
+    let ss=10;const st=clean(M.sub);while(F.widthOfTextAtSize(st,ss)>AW&&ss>7)ss-=.3;const sw=F.widthOfTextAtSize(st,ss);pg.drawText(st,{x:(W-sw)/2,y:y-ss,size:ss,font:F,color:gray});y-=22;
+    tabla([["",.5],["",.5]],[[M.agr?`Preside: ${M.preside}`:`Escuela: ${M.datos[0][1]}`,M.agr?`Zona escolar: ${M.datos[2][1]}`:`C.C.T.: ${M.datos[1][1]}   ·   Zona: ${M.datos[2][1]}`],[`Fecha: ${M.datos[3][1]}`,`Horario: ${M.datos[4][1]}`],[`Lugar: ${M.datos[5][1]}`,`Asistencia: ${M.C.presentes.length} de ${CTE.personal.length} integrantes`]],{head:false});
+    if(M.agEsc.length){par("Escuelas que integran el Consejo Técnico Escolar agrupado:",10,FB);M.agEsc.forEach(e=>par("• "+e,10,F,12,2.6));y-=4}
     par(M.intro,10);y-=4;M.orden.forEach((o,i)=>par(`${i+1}. ${o.t}`,10,F,14,2.6));
+    if(M.proposito){sec("Propósito de la sesión");par(M.proposito,10)}
     sec("Desarrollo de la sesión");const notas=M.orden.filter(o=>o.nota&&o.nota.trim());
     if(notas.length)M.orden.forEach((o,i)=>{if(!o.nota||!o.nota.trim())return;par(`${i+1}. ${o.t}`,10,FB,0,2.6);par(o.nota,10,F,12);y-=4});
     else par("Se desahogaron los puntos del orden del día conforme a la guía de la sesión.",10);
-    if(M.seg.length){sec("Seguimiento de acuerdos anteriores");tabla([["Acuerdo",.52],["Responsable(s)",.26],["Estado",.22]],M.seg.map(x=>[x.a,x.r||"—",x.estado]))}
-    sec("Acuerdos y compromisos");if(M.acuerdos.length)tabla([["No.",.07],["Acuerdo",.53],["Responsable(s)",.22],["Fecha",.18]],M.acuerdos.map((x,i)=>[String(i+1),x.a,x.r||"—",x.f||"—"]));else par("Sin acuerdos registrados.",10);
-    par(M.cierre,10);y-=10;
+    if(M.seg.length){sec("Seguimiento de acuerdos anteriores");tabla([["Acuerdo",.44],["Responsable(s)",.2],["Estado",.16],["Observación",.2]],M.seg.map(x=>[x.a,x.r||"—",x.estado,x.obs||"—"]),{dot:2})}
+    sec("Acuerdos y compromisos");
+    if(M.acuerdos.length){const conEv=M.acuerdos.some(x=>x.ev&&x.ev.trim());
+      tabla(conEv?[["No.",.06],["Acuerdo",.4],["Responsable(s)",.19],["Fecha",.14],["Evidencia",.21]]:[["No.",.07],["Acuerdo",.53],["Responsable(s)",.22],["Fecha",.18]],
+        M.acuerdos.map((x,i)=>{const a=x.a+(x.pm?`\nÁmbito del PEMC: ${x.pm}`:"");return conEv?[String(i+1),a,x.r||"—",x.f||"—",x.ev||"—"]:[String(i+1),a,x.r||"—",x.f||"—"]}))}
+    else par("Sin acuerdos registrados.",10);
+    if(M.asuntos){sec("Asuntos generales");par(M.asuntos,10)}
+    if(M.acomp){sec("Acompañamiento");par(M.acomp,10)}
+    const ausJ=M.aus.filter(a=>a.m.trim());if(ausJ.length){sec("Inasistencias justificadas");ausJ.forEach(a=>par(`${a.n}: ${a.m}`,10,F,0,2.6))}
+    if(M.proxima){y-=4;par(`Próxima sesión: ${M.proxima}.`,10,FB)}
+    const vob0=M.vobo&&!M.agr;if(y-(wrap(M.cierre,F,10,AW).length*13.2+(vob0?200:118))<MG+14)nueva();
+    y-=4;par(M.cierre,10);y-=10;
     /* firmas */
-    if(y-74<30)nueva();y-=34;const fw=200,gx=(AW-fw*2)/3;[[M.director,"Director(a) · Presidente(a) del CTE"],[M.relator,"Relator(a) de la sesión"]].forEach(([n,c],i)=>{const x=MG+gx+i*(fw+gx);
-      pg.drawLine({start:{x,y},end:{x:x+fw,y},thickness:.8,color:ink});const nm=clean(n||"");const nw=FB.widthOfTextAtSize(nm,9.5);pg.drawText(nm,{x:x+(fw-nw)/2,y:y-12,size:9.5,font:FB,color:ink});
-      const cw=F.widthOfTextAtSize(c,8.5);pg.drawText(c,{x:x+(fw-cw)/2,y:y-24,size:8.5,font:F,color:gray})});y-=40;
+    const firmas=[[M.preside,M.presideCargo],[M.relator,"Relator(a) de la sesión"]];if(M.agr&&M.director&&M.director!==M.preside)firmas.splice(1,0,[M.director,"Director(a) de la escuela"]);
+    const vob=M.vobo&&!M.agr;if(y-(vob?150:74)<30)nueva();y-=34;const fila=(L)=>{const fw=L.length>2?150:200,gx=(AW-fw*L.length)/(L.length+1);L.forEach(([n,c],i)=>{const x=MG+gx+i*(fw+gx);
+      pg.drawLine({start:{x,y},end:{x:x+fw,y},thickness:.8,color:ink});const nm=clean(n||"");let fs=9.5;while(FB.widthOfTextAtSize(nm,fs)>fw&&fs>7)fs-=.3;const nw=FB.widthOfTextAtSize(nm,fs);pg.drawText(nm,{x:x+(fw-nw)/2,y:y-12,size:fs,font:FB,color:ink});
+      let cs=8.5;while(F.widthOfTextAtSize(c,cs)>fw+20&&cs>6.5)cs-=.3;const cw=F.widthOfTextAtSize(c,cs);pg.drawText(c,{x:x+(fw-cw)/2,y:y-24,size:cs,font:F,color:gray})});y-=40};
+    fila(firmas);
+    if(vob){y-=40;fila([[SUP_NOMBRE,`Vo. Bo. · Supervisión Escolar Zona ${CTE.zona}`]])}
     /* lista de asistencia */
     if(M.asist.length){nueva();const lt="LISTA DE ASISTENCIA";const lw=FB.widthOfTextAtSize(lt,12);pg.drawText(lt,{x:(W-lw)/2,y:y-12,size:12,font:FB,color:ink});y-=18;
       const ls=clean(`${M.C.nombre} del Consejo Técnico Escolar · ${cteFechaLarga(M.C.fecha)}`);const lsw=F.widthOfTextAtSize(ls,9.5);pg.drawText(ls,{x:Math.max(MG,(W-lsw)/2),y:y-10,size:9.5,font:F,color:gray});y-=24;
-      tabla([["No.",.07],["Nombre",.4],["Cargo",.25],["Firma",.28]],M.asist.map((p,i)=>[String(i+1),p.n,p.c,p.a?"":"No asistió"]),{s:9.5,alto:10})}
+      tabla([["No.",.07],["Nombre",.4],["Cargo",.25],["Firma",.28]],M.asist.map((p,i)=>[String(i+1),p.n,p.c,p.a?"":(p.m?"No asistió (justificada)":"No asistió")]),{s:9.5,alto:10})}
     const pages=doc.getPages();if(pages.length>1)pages.forEach((p,i)=>{const t=`Página ${i+1} de ${pages.length}`;p.drawText(t,{x:W-MG-F.widthOfTextAtSize(t,8),y:26,size:8,font:F,color:gray})});
     const bytes=await doc.save();const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
     a.download=`Minuta CTE - ${clean(M.C.nombre).replace(/[\\/:*?"<>|·]/g,"").trim()} - ${M.C.fecha}.pdf`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
@@ -6028,18 +6163,29 @@ async function cteWord(){const M=cteModelo(),e2=t=>esc(t).replace(/\n/g,"<br>");
   const td="border:1px solid #bbb;padding:5px 7px;vertical-align:top",th=td+";background:#e7eef8;font-weight:bold";
   const tabla=(h,rows,ws)=>`<table style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 12px"><tr>${h.map((x,i)=>`<td style="${th};width:${ws[i]}%">${esc(x)}</td>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td style="${td}">${e2(c)}</td>`).join("")}</tr>`).join("")}</table>`;
   const h3=t=>`<h3 style="color:#123a6b;font-size:13px;border-bottom:1px solid #ccc;margin:16px 0 6px;text-transform:uppercase">${esc(t)}</h3>`;
+  const sem={Cumplido:"#1E7A46","En proceso":"#D98A1C",Pendiente:"#B3261E"};
+  const conEv=M.acuerdos.some(x=>x.ev&&x.ev.trim());const ausJ=M.aus.filter(a=>a.m.trim());
+  const firma=(n,c)=>`<td style="width:30%;border-top:1px solid #000;text-align:center;padding-top:4px"><b>${esc(n||"")}</b><br>${esc(c)}</td>`;
+  const firmas=[[M.preside,M.presideCargo],[M.relator,"Relator(a) de la sesión"]];if(M.agr&&M.director&&M.director!==M.preside)firmas.splice(1,0,[M.director,"Director(a) de la escuela"]);
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>Minuta CTE</title></head><body style="font-family:Calibri,Arial,sans-serif;color:#1a2230;font-size:13px">
-   <table style="width:100%;background:#123a6b;color:#fff"><tr>${IL?`<td style="width:62px;padding:8px"><img src="${IL}" style="height:46px;background:#fff;padding:2px"></td>`:""}<td style="padding:10px"><b style="font-size:15px">${esc(CTE.escuela)}</b><br><span style="font-size:11px">C.C.T. ${esc(CTE.cct)} · Zona Escolar ${esc(CTE.zona)} · Consejo Técnico Escolar</span></td>${L?`<td style="width:60px;padding:8px;text-align:right"><img src="${L}" style="width:46px;height:46px;background:#fff"></td>`:""}</tr></table>
+   <table style="width:100%;background:#123a6b;color:#fff"><tr>${IL?`<td style="width:62px;padding:8px"><img src="${IL}" style="height:46px;background:#fff;padding:2px"></td>`:""}<td style="padding:10px"><b style="font-size:15px">${esc(M.agr?`Supervisión Escolar Zona ${CTE.zona}`:CTE.escuela)}</b><br><span style="font-size:11px">${esc(M.agr?"Consejo Técnico Escolar agrupado · Escuelas multigrado":`C.C.T. ${CTE.cct} · Zona Escolar ${CTE.zona} · Consejo Técnico Escolar`)}</span></td>${L?`<td style="width:60px;padding:8px;text-align:right"><img src="${L}" style="width:46px;height:46px;background:#fff"></td>`:""}</tr></table>
    <p style="text-align:center;margin:14px 0 2px"><b style="font-size:15px">${esc(M.titulo)}</b></p><p style="text-align:center;color:#555;margin:0 0 10px">${esc(M.sub)}</p>
    <table style="width:100%;border-collapse:collapse;font-size:12px"><tr><td style="${td}"><b>Fecha:</b> ${esc(M.datos[3][1])}</td><td style="${td}"><b>Horario:</b> ${esc(M.datos[4][1])}</td></tr><tr><td style="${td}"><b>Lugar:</b> ${esc(M.datos[5][1])}</td><td style="${td}"><b>Asistencia:</b> ${M.C.presentes.length} de ${CTE.personal.length}</td></tr></table>
+   ${M.agEsc.length?`<p><b>Escuelas que integran el CTE agrupado:</b></p><ul>${M.agEsc.map(e=>`<li>${esc(e)}</li>`).join("")}</ul>`:""}
    <p style="text-align:justify">${esc(M.intro)}</p><ol>${M.orden.map(o=>`<li>${esc(o.t)}</li>`).join("")}</ol>
-   ${h3("Desarrollo de la sesión")}${M.orden.some(o=>o.nota&&o.nota.trim())?M.orden.map((o,i)=>o.nota&&o.nota.trim()?`<p><b>${i+1}. ${esc(o.t)}</b><br>${e2(o.nota)}</p>`:"").join(""):"<p>Se desahogaron los puntos del orden del día conforme a la guía de la sesión.</p>"}
-   ${M.seg.length?h3("Seguimiento de acuerdos anteriores")+tabla(["Acuerdo","Responsable(s)","Estado"],M.seg.map(x=>[x.a,x.r||"—",x.estado]),[52,26,22]):""}
-   ${h3("Acuerdos y compromisos")}${M.acuerdos.length?tabla(["No.","Acuerdo","Responsable(s)","Fecha"],M.acuerdos.map((x,i)=>[String(i+1),x.a,x.r||"—",x.f||"—"]),[7,53,22,18]):"<p>Sin acuerdos registrados.</p>"}
+   ${M.proposito?h3("Propósito de la sesión")+`<p style="text-align:justify">${e2(M.proposito)}</p>`:""}
+   ${h3("Desarrollo de la sesión")}${M.orden.some(o=>o.nota&&o.nota.trim())?M.orden.map((o,i)=>o.nota&&o.nota.trim()?`<p style="text-align:justify"><b>${i+1}. ${esc(o.t)}</b><br>${e2(o.nota)}</p>`:"").join(""):"<p>Se desahogaron los puntos del orden del día conforme a la guía de la sesión.</p>"}
+   ${M.seg.length?h3("Seguimiento de acuerdos anteriores")+tabla(["Acuerdo","Responsable(s)","Estado","Observación"],M.seg.map(x=>[x.a,x.r||"—",x.estado,x.obs||"—"]),[44,20,16,20]).replace(/<td style="([^"]*)">(Cumplido|En proceso|Pendiente)<\/td>/g,(m,s,e)=>`<td style="${s};color:${sem[e]};font-weight:bold">● ${e}</td>`):""}
+   ${h3("Acuerdos y compromisos")}${M.acuerdos.length?(conEv?tabla(["No.","Acuerdo","Responsable(s)","Fecha","Evidencia"],M.acuerdos.map((x,i)=>[String(i+1),x.a+(x.pm?`\nÁmbito del PEMC: ${x.pm}`:""),x.r||"—",x.f||"—",x.ev||"—"]),[6,40,19,14,21])
+      :tabla(["No.","Acuerdo","Responsable(s)","Fecha"],M.acuerdos.map((x,i)=>[String(i+1),x.a+(x.pm?`\nÁmbito del PEMC: ${x.pm}`:""),x.r||"—",x.f||"—"]),[7,53,22,18])):"<p>Sin acuerdos registrados.</p>"}
+   ${M.asuntos?h3("Asuntos generales")+`<p>${e2(M.asuntos)}</p>`:""}${M.acomp?h3("Acompañamiento")+`<p>${e2(M.acomp)}</p>`:""}
+   ${ausJ.length?h3("Inasistencias justificadas")+`<p>${ausJ.map(a=>`${esc(a.n)}: ${esc(a.m)}`).join("<br>")}</p>`:""}
+   ${M.proxima?`<p><b>Próxima sesión:</b> ${esc(M.proxima)}.</p>`:""}
    <p style="text-align:justify">${esc(M.cierre)}</p>
-   <table style="width:100%;margin-top:50px;font-size:12px"><tr><td style="width:45%;border-top:1px solid #000;text-align:center;padding-top:4px"><b>${esc(M.director)}</b><br>Director(a) · Presidente(a) del CTE</td><td></td><td style="width:45%;border-top:1px solid #000;text-align:center;padding-top:4px"><b>${esc(M.relator)}</b><br>Relator(a) de la sesión</td></tr></table>
+   <table style="width:100%;margin-top:50px;font-size:12px"><tr>${firmas.map(([n,c],i)=>(i?"<td></td>":"")+firma(n,c)).join("")}</tr></table>
+   ${M.vobo&&!M.agr?`<table style="width:100%;margin-top:50px;font-size:12px"><tr><td style="width:35%"></td>${firma(SUP_NOMBRE,`Vo. Bo. · Supervisión Escolar Zona ${CTE.zona}`)}<td style="width:35%"></td></tr></table>`:""}
    <br style="page-break-before:always"><p style="text-align:center;page-break-before:always"><b style="font-size:14px">LISTA DE ASISTENCIA</b><br><span style="color:#555">${esc(M.C.nombre)} · ${esc(cteFechaLarga(M.C.fecha))}</span></p>
-   ${tabla(["No.","Nombre","Cargo","Firma"],M.asist.map((p,i)=>[String(i+1),p.n,p.c,p.a?"":"No asistió"]),[7,40,25,28]).replace(/<td style="([^"]*)">/g,'<td style="$1;height:26px">')}</body></html>`;
+   ${tabla(["No.","Nombre","Cargo","Firma"],M.asist.map((p,i)=>[String(i+1),p.n,p.c,p.a?"":(p.m?"No asistió (justificada)":"No asistió")]),[7,40,25,28]).replace(/<td style="([^"]*)">/g,'<td style="$1;height:26px">')}</body></html>`;
   const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`Minuta CTE - ${clean(M.C.nombre).replace(/[\\/:*?"<>|·]/g,"").trim()} - ${M.C.fecha}.doc`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 /* ---------- Insumos subidos: Lectura de la realidad / Programa Analítico ya hechos (PDF) como base ---------- */
