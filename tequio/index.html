@@ -1005,7 +1005,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-13-1900';
+const PUBLICACION = '2026-11-14-1700';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2460,18 +2460,18 @@ function solPintar() {
   const todas = vista.solTodas, pend = SOL.filter(x => x.estado === 'nueva' || x.estado === 'desarrollo'), lista = todas ? SOL : pend;
   const nuevas = SOL.filter(x => x.estado === 'nueva').length;
   c.innerHTML = `<div class="med-top"><div><h2>Solicitudes a Tlami${nuevas ? ` <span class="chip" style="font-size:13px;vertical-align:middle">${nuevas} nueva${nuevas > 1 ? 's' : ''}</span>` : ''}</h2>
-      <div class="peq mudo">Solo lo ve la Supervisión · lo que el personal pidió en Tlamatini y todavía no existe</div></div>
+      <div class="peq mudo">Solo lo ve la Supervisión · lo que el personal pidió a Tlami (Tlamatini) o al ayudante de Tequio y todavía no existe</div></div>
       ${SOL.length ? `<button class="boton sec" id="sol-todas">${todas ? 'Ver solo las pendientes' : 'Ver todas (' + SOL.length + ')'}</button>` : ''}</div>
     ${lista.length ? lista.map(x => `<div class="med-f" style="align-items:flex-start;flex-wrap:wrap">
         <div class="med-n" style="flex:1 1 260px"><b>${esc(x.resumen || x.texto.slice(0, 120))}</b>
-          <span>${esc(x.nombre)} · ${esc(x.escuela)}${x.cargo ? ' · ' + esc(x.cargo) : ''} · ${esc(fechaCorta(String(x.fecha).slice(0, 10)))}</span>
+          <span>${x.app === 'tequio' || /^Desde Tequio: /.test(x.texto) ? '<span class="chip indigo" style="font-size:12px">Tequio</span> ' : '<span class="chip" style="font-size:12px">Tlamatini</span> '}${esc(x.nombre)} · ${esc(x.escuela)}${x.cargo ? ' · ' + esc(x.cargo) : ''} · ${esc(fechaCorta(String(x.fecha).slice(0, 10)))}</span>
           <div style="margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere">«${esc(x.texto)}»</div>
           <label class="peq mudo" for="sol-n-${x.id}" style="display:block;margin-top:8px">Nota de la Supervisión</label>
           <input id="sol-n-${x.id}" data-solnota="${x.id}" value="${esc(x.nota || '')}" maxlength="600" placeholder="Qué se decidió o qué falta" style="width:100%"></div>
         <div style="flex:none"><label class="peq mudo" for="sol-e-${x.id}" style="display:block">Estado</label>
           <select id="sol-e-${x.id}" data-solest="${x.id}">${Object.keys(SOL_EST).map(k => `<option value="${k}" ${x.estado === k ? 'selected' : ''}>${SOL_EST[k]}</option>`).join('')}</select></div>
       </div>`).join('')
-      : `<p style="margin:10px 0 0">${SOL.length ? 'No hay solicitudes pendientes.' : 'Aún no hay solicitudes. Aparecen aquí cuando alguien le pide a Tlami algo que Tlamatini todavía no tiene y decide enviarlo.'}</p>`}`;
+      : `<p style="margin:10px 0 0">${SOL.length ? 'No hay solicitudes pendientes.' : 'Aún no hay solicitudes. Aparecen aquí cuando alguien le pide a Tlami o al ayudante de Tequio algo que todavía no existe y decide enviarlo.'}</p>`}`;
   if ($('#sol-todas')) $('#sol-todas').onclick = () => { vista.solTodas = !todas; solPintar(); };
   const guardar = async (id, d) => {
     try { const r = await api('solicitudEstado', Object.assign({ id: id }, d)); const i = SOL.findIndex(x => x.id === id); if (i >= 0) SOL[i] = r.solicitud; if (d.estado) solPintar(); }
@@ -14901,6 +14901,262 @@ function invitacionTerminada() {
     <p class="peq" style="margin-top:18px">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}<br>${esc(ZONA.lugar)}${esc(ZONA.lemaTxt)}</p>
   </div></div>`;
 }
+/* ---------------- Ayudante de Tequio ----------------
+   Botón flotante «¿Le ayudo?» en todas las secciones. La persona escribe o dicta lo que necesita y el ayudante
+   (Gemini, por el servidor de la zona) le dice en qué apartado está y cómo hacerlo, según lo que esa persona ve
+   (dirección, Mesa Técnica o Supervisión). «¿Qué tengo pendiente?» se arma aquí mismo con los datos de Tequio,
+   sin inteligencia artificial: lo vencido, lo que vence pronto, las evidencias que faltan y lo agendado.
+   Si lo que piden no existe, la solicitud llega a la lista de la Supervisión (la misma de Tlami, marcada «Tequio»).
+   Sin servidor nuevo (versión 56), sin internet o en la demostración, busca por palabras en este dispositivo. */
+const AYU_VER = 56;
+const AYU = { msgs: [], ocupado: false, listo: false };
+function ayuDesc() {
+  const d = esDirector();
+  return {
+    agenda: d ? 'Calendario de la zona con las actividades que tocan a su escuela: visitas de la Supervisión, reuniones, CTZ, CTE y fechas clave, con hora y lugar. Toque un día para ver el detalle.'
+      : 'Calendario de la Supervisión y de las escuelas: agendar actividades y visitas (con aviso por correo y Google Calendar a las escuelas), filtrar por escuela o responsable y marcar realizadas o canceladas.',
+    videollamadas: 'Videollamadas (Google Meet) de la Mesa Técnica con las direcciones: agendar, iniciar, escribir el orden del día y admitir a los invitados.',
+    pendientes: esAdmin() ? 'Tablón: lo que la Mesa Técnica le informa mientras está fuera de la oficina; los urgentes llegan por correo al momento y cada mañana el resumen. Se marcan como atendidos.'
+      : 'Tablón: dejarle al Supervisor lo que debe saber o atender (llamadas, oficios que llegaron, incidentes, solicitudes); si es urgente le llega por correo al momento. Los mensajes se pueden editar.',
+    acuerdos: d ? 'Mi escuela: avance de su escuela a la fecha comparado con la zona, sus pendientes (acuerdos de reuniones y CTZ, convocatorias, Érase una vez, SAAE y otros programas) con su fecha límite, y el botón «Subir evidencia» en los que la piden. Aquí también está el informe de seguimiento de su escuela y se puede pedir aclaración a su ATP si algo no coincide.'
+      : 'Acuerdos y programas: registrar reuniones, CTZ, convocatorias y programas con sus puntos, importar el checklist, palomear por escuela (también varias a la vez), ver el avance por ATP, por escuela y lo vencido.',
+    evidencias: d ? 'Evidencias de su escuela en el Drive de la Supervisión, carpeta por carpeta, con su semáforo (verde cumple, amarillo incompleto con la observación de lo que falta, rojo sin evidencia). Toque una carpeta para ver lo subido y subir archivos (foto o PDF) directo ahí. Las más nuevas aparecen primero.'
+      : 'Evidencias de todas las escuelas en el Drive: tabla por carpeta con semáforo, calificar cada rubro (verde, amarillo con observación, rojo), crear carpetas para todas las escuelas, subir archivos y mover sueltos.',
+    sisat: d ? 'SisAT (3 momentos): subir los Excel de la herramienta oficial de cada grupo y ver el análisis de su escuela, de un grado o de un grupo: alumnos en rezago y contenidos de los reactivos donde más fallan, con líneas de trabajo; se imprime o descarga en PDF y Word. En el 1.er momento no cuenta 1.° grado.'
+      : 'SisAT (3 momentos): análisis por grupo, grado, escuela y zona; comparativos (multigrado vs. completa, matutino vs. vespertino, dos escuelas, jerarquía); alumnos en rezago y reactivos con más fallas; descarga en PDF y Word.',
+    eia: d ? 'EIA (Ejercicios Integradores del Aprendizaje): subir los resultados por grupo y ver el análisis de su escuela, grado o grupo, con el informe integrado SisAT + EIA y líneas de trabajo para el docente.'
+      : 'EIA: resultados de las escuelas por grupo, grado, escuela y zona, e informe integrado con el SisAT y líneas de trabajo.',
+    insumos: 'Insumos para Tlamatini: la lectura de la realidad de cada escuela y grupo armada con el SisAT, los EIA y el PMC, que se publica para que el docente la use en Tlamatini.',
+    cte: d ? 'Consejo Técnico Escolar: entrar a la sesión vigente para ver la presentación y el cuadernillo de la Supervisión, generar e imprimir la lista de asistencia del CTE y subir la lista firmada, las fotos de la jornada y los productos del colectivo (carpeta CTEs del Drive).'
+      : 'CTE: subir los insumos de cada sesión, revisar con semáforo lo que subió cada escuela, avisar a la dirección lo que falta, enviar felicitaciones, generar listas de asistencia y registrar las visitas de la Mesa Técnica a las sesiones.',
+    seguimiento: 'Visitas de supervisión: programar las 3 visitas por escuela y las extraordinarias, llenar la guía de cada visita con semáforo, observaciones y fotos, registrar acuerdos de la visita y generar el informe de seguimiento por escuela para enviarlo por correo.',
+    campo: 'Revisión en campo: guías de preguntas para la dirección y los docentes que se contestan en la escuela (celular, tableta o laptop, también sin internet) y se suben después; visitas de atención por un tema puntual (queja, capacitación, apoyo) u otro lugar.',
+    visitas: 'Visitas de supervisión a su escuela: abra la guía antes de cada visita para preparar los temas (lectura de la realidad, PMC, programa analítico, libro de firmas, PPIE, Guía Operativa…) y suba fotos de evidencia; después verá el resultado.',
+    directorio: 'Directorio de la zona: escuelas con su CCT, directores, ATP y contactos; aquí se asignan escuelas a cada ATP.',
+    personal: d ? 'El personal de su escuela con su expediente completo (plazas, función, datos, altas, bajas e interinos) y sus inconsistencias, que se pueden corregir en el trabajador.'
+      : 'Base del personal de la zona (plantillas del SIRH): listados por escuela, turno, municipio y organización, doble plaza en otro color, altas, bajas e interinos, e informe de inconsistencias por centro de trabajo.',
+    oficios: d ? 'Oficios de la escuela: generar oficios formales con los datos y el logo de su escuela, buscando al destinatario en el directorio de autoridades y dependencias (o subiendo uno propio en PDF, Word o foto), con redacción asistida; se guardan solo en su dispositivo.'
+      : 'Oficios de la Supervisión: generar oficios numerados (consecutivo automático), contestar oficios recibidos, remisiones de material con lista de firmas, anexos, firma y sello digitales; descargar o enviar por correo y WhatsApp.',
+    finanzas: d ? 'Recursos financieros · Ingresos propios de su escuela: libro de bancos (ingresos y egresos, cada uno con su póliza), recibos, solicitud de recibos, combustible, reporte del ejercicio (periodos 1 de febrero–15 de junio y 16 de junio–31 de enero; si cambia de escuela, se hace al irse) y datos de la cuenta. Todo se edita y queda con historial.'
+      : 'Recursos financieros: ingresos propios de cada escuela (para cubrir una escuela sin director), actividades recaudatorias de la Supervisión (deudas, abonos, recibos y contabilidad) y facturas.',
+    herramientas: 'Tlamatini: formatos del PPIE, laborales (licencia o «permiso económico»), pedagógicos, recados y citatorios, constancias, permisos de salida, libros de registro, diplomas y reconocimientos, Consejos de Participación Escolar. Tiene su propio guía, Tlami.',
+    relweb: 'Claves de la RELweb de las escuelas (usuario = CCT, contraseña del ciclo): consultarlas, capturarlas y actualizarlas.',
+    correos: 'Correo de la Supervisión: resumen y urgencia de cada mensaje y clasificación de las facturas (PIMMEE, Ingresos propios, CPE, La Escuela es Nuestra, Caja chica, Personal).',
+    permisos: 'Permisos y facilidades que autoriza el Supervisor a ATP y directores: 9 días por persona en el año, máximo 3 al expediente; historial por año.',
+    enlaces: 'Enlaces personales de acceso a Tequio para ATP y directores: crear, reenviar o anular.'
+  };
+}
+function ayuCatalogo() {
+  const ds = ayuDesc();
+  return pestanas().map(t => ({ id: 'tab:' + t[0], tab: t[0], t: nombreLat(t), d: ds[t[0]] || '', ic: t[2] }));
+}
+const AYU_VACIAS = new Set('para como donde quiero necesito hacer tengo puedo favor algo unos unas este esta esto sobre desde hasta entre pero porque cuando quien cual todo toda todos todas escuela tequio ayuda'.split(' '));
+function ayuLocal(msg) {
+  const nrm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const ws = nrm(msg).split(/[^a-z0-9ñ]+/).filter(w => w.length > 3 && !AYU_VACIAS.has(w)).map(w => w.replace(/(es|s)$/, ''));
+  if (!ws.length) return [];
+  return ayuCatalogo().map(o => ({ o, s: ws.reduce((a, w) => a + (nrm(o.t).includes(w) ? 3 : nrm(o.d).includes(w) ? 1 : 0), 0) }))
+    .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.o.id);
+}
+const ayuPendiente = t => /pendiente|me falta|nos falta|falta(n)? por|vencid|debo|tengo que|que sigue|como voy|como vamos|como va mi|mis tareas|por entregar|por subir/i.test(String(t).normalize('NFD').replace(/[̀-ͯ]/g, ''));
+/* Lo pendiente, con los datos que ya trae Tequio (para la dirección: su escuela; Mesa Técnica: sus escuelas; Supervisión: la zona) */
+function ayuSituacion() {
+  if (!S || !S.acu) return null;
+  const h = hoy(), en15 = iso(new Date(Date.now() + 15 * 864e5)), lin = [], dest = new Set();
+  const enSemana = iso(new Date(Date.now() + 14 * 864e5));
+  if (esDirector()) {
+    const cct = miCct(), c = escuelaDe(cct); if (!c) return null;
+    const todos = reuniones().flatMap(r => acuerdosReu(r.id)).filter(x => aplicaA(x, cct)), a = avance(todos, [cct]);
+    const pend = todos.filter(x => estadoDe(x.id, cct) === 'pendiente');
+    const venc = pend.filter(limiteVencido).sort((p, q) => String(p.limite).localeCompare(String(q.limite)));
+    const prox = pend.filter(x => x.limite && !limiteVencido(x) && x.limite <= en15).sort((p, q) => String(p.limite).localeCompare(String(q.limite)));
+    const atp = atpDe(cct);
+    lin.push(`Avance de ${c.escuela} a la fecha: ${a.pct} %.${atp ? ' Su ATP: ' + nombreCorto(atp.nombre) + '.' : ''}`);
+    if (venc.length) { dest.add('tab:acuerdos'); lin.push(`Con fecha vencida (${venc.length}):`); venc.slice(0, 6).forEach(x => lin.push(`• ${x.texto.slice(0, 140)} (venció el ${fechaCorta(x.limite)}${x.evidencia ? ', pide evidencia' : ''})`)); if (venc.length > 6) lin.push(`• …y ${venc.length - 6} más.`); }
+    if (prox.length) { dest.add('tab:acuerdos'); lin.push(`Vencen en los próximos 15 días (${prox.length}):`); prox.slice(0, 5).forEach(x => lin.push(`• ${x.texto.slice(0, 140)} (${fechaCorta(x.limite)})`)); }
+    const sinFecha = pend.filter(x => !x.limite).length;
+    if (sinFecha) lin.push(`Pendientes sin fecha límite: ${sinFecha}.`);
+    const vis = acuerdosDe(cct).filter(x => x.estado === 'pendiente');
+    if (vis.length) { dest.add('tab:acuerdos'); lin.push(`Acuerdos de las visitas de la Supervisión por atender: ${vis.length}${vis.some(vencido) ? ' (' + vis.filter(vencido).length + ' con revisión vencida)' : ''}.`); }
+    if (S.evi) {
+      const falt = columnasEvi().map(col => { const e = eviDe(cct, col.ruta); if (!e) return null; const fr = eviFrac(cct, col.ruta, e); if (fr >= 1) return null; const r = eveDe(cct, col.ruta);
+        return { n: col.corto, est: r ? r.estado : nArch(e) ? 'con' : 'vacia', nota: r && r.nota ? String(r.nota) : '' }; }).filter(Boolean).filter(x => x.est !== 'con');
+      if (falt.length) { dest.add('tab:evidencias'); lin.push(`Evidencias que faltan o están incompletas (${falt.length}):`);
+        falt.slice(0, 6).forEach(x => lin.push(`• ${x.n}: ${x.est === 'incompleto' ? 'incompleta' + (x.nota ? ' — ' + x.nota.slice(0, 120) : '') : x.est === 'sin' ? 'sin evidencia' : 'vacía'}`)); if (falt.length > 6) lin.push(`• …y ${plural(falt.length - 6, 'carpeta más', 'carpetas más')}.`); }
+    }
+    const ag = (S.act || []).filter(x => x.estado !== 'cancelada' && x.fecha >= h && x.fecha <= enSemana && (!(x.escuelas || []).length || x.escuelas.includes(cct))).sort((p, q) => (p.fecha + (p.horaInicio || '')).localeCompare(q.fecha + (q.horaInicio || '')));
+    if (ag.length) { dest.add('tab:agenda'); lin.push('Agendado para su escuela en las próximas 2 semanas:'); ag.slice(0, 5).forEach(x => lin.push(`• ${fechaCorta(x.fecha)}${x.horaInicio ? ' ' + x.horaInicio : ''}: ${x.titulo}`)); }
+    if (!venc.length && !prox.length && !lin.some(l => l.startsWith('Evidencias'))) lin.push('No tiene compromisos vencidos ni por vencer en los próximos 15 días, y sus evidencias están al corriente. ¡Excelente trabajo!');
+  } else {
+    const ccts = esAdmin() ? directores().map(c => c.cct) : escuelasDeAtp(S.yo);
+    if (!ccts.length) return { txt: 'No tiene escuelas asignadas todavía. La Supervisión las asigna en el Directorio.', dest: ['tab:directorio'].filter(id => pestanas().some(t => 'tab:' + t[0] === id)) };
+    const lista = S.acu || [], a = avance(lista, ccts);
+    lin.push(`${esAdmin() ? 'Zona' : 'Sus ' + ccts.length + ' escuelas'}: ${a.pct} % a la fecha; ${a.vencidos} compromisos vencidos y ${a.proximos} por vencer.`);
+    const porEsc = ccts.map(c => ({ c, a: avance(lista, [c]) })).filter(x => x.a.vencidos).sort((p, q) => q.a.vencidos - p.a.vencidos);
+    if (porEsc.length) { dest.add('tab:acuerdos'); lin.push('Escuelas con más vencidos:'); porEsc.slice(0, 6).forEach(x => lin.push(`• ${nombreEscuela(x.c)}: ${x.a.vencidos} vencido${x.a.vencidos === 1 ? '' : 's'} (${x.a.pct} %)`)); }
+    if (S.evi && S.eve) {
+      const porRev = ccts.reduce((n, cct) => n + columnasEvi().filter(col => { const e = eviDe(cct, col.ruta); return e && (eviNuevo(cct, col.ruta, e) || (nArch(e) && !eveDe(cct, col.ruta) && !cteCol(cct, col.ruta))); }).length, 0);
+      if (porRev) { dest.add('tab:evidencias'); lin.push(`Carpetas con archivos nuevos o sin calificar en Evidencias: ${porRev}.`); }
+    }
+    if (Array.isArray(S.pen)) { const u = S.pen.filter(p => p.estado !== 'atendido' && (p.prioridad === 'urgente' || esAdmin())); if (u.length) { dest.add('tab:pendientes'); lin.push(`${esAdmin() ? 'Abiertos en el Tablón' : 'Urgentes abiertos en el Tablón'}: ${u.length}.`); } }
+    const ag = (S.act || []).filter(x => x.estado !== 'cancelada' && x.fecha >= h && x.fecha <= enSemana && (esAdmin() || (x.responsables || []).includes(S.yo.id))).sort((p, q) => (p.fecha + (p.horaInicio || '')).localeCompare(q.fecha + (q.horaInicio || '')));
+    if (ag.length) { dest.add('tab:agenda'); lin.push(esAdmin() ? 'Agenda de las próximas 2 semanas:' : 'Sus actividades de las próximas 2 semanas:'); ag.slice(0, 5).forEach(x => lin.push(`• ${fechaCorta(x.fecha)}${x.horaInicio ? ' ' + x.horaInicio : ''}: ${x.titulo}`)); }
+  }
+  const ok = new Set(ayuCatalogo().map(o => o.id));
+  return { txt: lin.join('\n'), dest: [...dest].filter(id => ok.has(id)) };
+}
+function ayuQuien() {
+  return { nombre: S.yo.nombre || '', escuela: esDirector() ? nombreEscuela(miCct()) : '', cct: miCct(), cargo: esAdmin() ? 'Supervisión' : esDirector() ? 'Dirección' : 'ATP de la Mesa Técnica' };
+}
+async function ayuPost(accion, datos) {
+  if (!cfg || cfg.demo || cfg.lectura || navigator.onLine === false) throw new Error('sinservidor');
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 45000);
+  try {
+    const r = await fetch(cfg.s, { method: 'POST', redirect: 'follow', signal: ctl.signal, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: cfg.k, accion, datos }) });
+    const j = await r.json(); if (!j || !j.ok) throw new Error((j && (j.mensaje || j.error)) || 'El servidor no respondió.'); return j;
+  } finally { clearTimeout(tm); }
+}
+function ayuMontar() {
+  if (AYU.listo) return; AYU.listo = true;
+  const st = document.createElement('style'); st.textContent = `
+#ayuBtn{position:fixed;right:16px;bottom:18px;z-index:8990;display:flex;align-items:center;gap:8px;padding:6px 16px 6px 6px;border-radius:999px;border:1.5px solid var(--borde);background:var(--papel);color:var(--tinta);font:inherit;font-weight:700;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.2)}
+#ayuBtn .ayu-av{width:42px;height:42px;border-radius:50%;background:var(--indigo-d);display:grid;place-items:center;flex:none}#ayuBtn .ayu-av svg{width:32px;height:32px;color:#FBF6EC}
+#ayuBtn[hidden],#ayuPan[hidden]{display:none}
+#ayuBtn:focus-visible,.ayu-x:focus-visible,.ayu-env:focus-visible,.ayu-go:focus-visible{outline:3px solid var(--ambar);outline-offset:2px}
+#ayuPan{position:fixed;right:12px;bottom:12px;z-index:8995;width:min(440px,calc(100vw - 24px));height:min(640px,calc(100dvh - 24px));display:flex;flex-direction:column;background:var(--crema);color:var(--tinta);border:1.5px solid var(--borde);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden}
+.ayu-cab{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--indigo-d);color:#FBF6EC;border-bottom:4px solid var(--terra)}
+.ayu-cab svg.lg{width:38px;height:38px;flex:none;color:#FBF6EC}.ayu-cab b{font-family:Fraunces,Georgia,serif;font-size:19px;display:block;line-height:1.1}.ayu-cab span{font-size:12.5px;opacity:.85}
+.ayu-x{margin-left:auto;border:0;background:none;color:inherit;font-size:26px;line-height:1;width:44px;height:44px;border-radius:50%;cursor:pointer}
+.ayu-msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}.ayu-msgs>*{flex:none}
+.ayu-m{max-width:90%;padding:10px 13px;border-radius:16px;font-size:15.5px;line-height:1.45;overflow-wrap:break-word;white-space:pre-wrap;margin:0}
+.ayu-m.ayu-u{align-self:flex-end;background:var(--indigo);color:#fff;border-bottom-right-radius:5px}
+.ayu-m.ayu-t{align-self:flex-start;background:var(--papel);border:1px solid var(--borde);border-bottom-left-radius:5px}
+.ayu-d{align-self:stretch;display:flex;flex-direction:column;gap:6px}
+.ayu-go{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid var(--indigo);background:var(--papel);color:var(--tinta);font:inherit;cursor:pointer;min-height:50px}
+.ayu-go svg{width:22px;height:22px;flex:none;color:var(--indigo)}.ayu-go b{display:block}.ayu-go small{display:block;color:var(--gris);font-size:12.5px}
+.ayu-sol{align-self:stretch;border:1.5px dashed var(--ambar);border-radius:12px;padding:10px 12px;background:var(--papel);display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.ayu-sol textarea{font:inherit;width:100%;box-sizing:border-box;border:1.5px solid var(--borde);border-radius:10px;padding:9px 10px;background:#fff;color:inherit;min-height:84px;resize:vertical}
+.ayu-b{font:inherit;font-weight:700;border-radius:10px;padding:9px 14px;min-height:44px;border:1.5px solid var(--indigo);background:var(--indigo);color:#fff;cursor:pointer}
+.ayu-b.ayu-b2{background:none;color:var(--tinta);border-color:var(--borde)}.ayu-b:disabled{opacity:.55;cursor:default}
+.ayu-chips{display:flex;flex-wrap:wrap;gap:6px}.ayu-chips button{font:inherit;font-size:14px;border-radius:999px;border:1.5px solid var(--borde);background:var(--papel);color:inherit;padding:7px 12px;min-height:40px;cursor:pointer}
+.ayu-chips button.pri{border-color:var(--terra);color:var(--terra-d);font-weight:700}
+.ayu-pie{padding:8px 10px 10px;border-top:1px solid var(--borde);background:var(--papel)}
+.ayu-fila{display:flex;gap:6px;align-items:flex-end}.ayu-fila .dct,.ayu-fila>textarea{flex:1}.ayu-fila textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;border:1.5px solid var(--borde);border-radius:14px;padding:10px 12px;min-height:46px;max-height:110px;resize:none;background:#fff;color:inherit}
+.ayu-env{flex:none;width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;font-size:20px;background:var(--indigo);color:#fff}
+.ayu-nota{font-size:11.5px;color:var(--gris);margin:6px 2px 0;line-height:1.35}
+.ayu-esp i{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.35;margin-right:4px;animation:ayup 1s infinite}.ayu-esp i:nth-child(2){animation-delay:.15s}.ayu-esp i:nth-child(3){animation-delay:.3s}
+@keyframes ayup{50%{opacity:1}}@media (prefers-reduced-motion:reduce){.ayu-esp i{animation:none}}
+@media (max-width:520px){#ayuPan{right:0;bottom:0;width:100vw;height:min(88dvh,700px);border-radius:18px 18px 0 0}#ayuBtn span.tx{display:none}#ayuBtn{padding:5px}}
+@media print{#ayuBtn,#ayuPan{display:none!important}}`; document.head.appendChild(st);
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'ayuBtn'; b.hidden = true; b.setAttribute('aria-label', 'Ayudante de Tequio: pregunte cómo hacer algo');
+  b.innerHTML = '<span class="ayu-av"><svg aria-hidden="true"><use href="#logo"/></svg></span><span class="tx">¿Le ayudo?</span>'; b.onclick = ayuAbrir; document.body.appendChild(b);
+  const p = document.createElement('section'); p.id = 'ayuPan'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Ayudante de Tequio');
+  p.innerHTML = `<div class="ayu-cab"><svg class="lg" aria-hidden="true"><use href="#logo"/></svg><div><b>Ayudante de Tequio</b><span>Le digo dónde está y cómo hacerlo</span></div><button type="button" class="ayu-x" id="ayuX" aria-label="Cerrar">×</button></div>
+    <div class="ayu-msgs" id="ayuMsgs" aria-live="polite"></div>
+    <div class="ayu-pie"><div class="ayu-fila"><label class="sr" for="ayuQ" style="position:absolute;left:-9999px">Escriba lo que necesita</label><textarea id="ayuQ" rows="1" maxlength="600" placeholder="Escriba o dicte lo que necesita…" enterkeyhint="send"></textarea><button type="button" class="ayu-env" id="ayuEnv" aria-label="Enviar">➤</button></div>
+    <p class="ayu-nota">No escriba nombres ni datos de alumnos, ni contraseñas. El ayudante usa inteligencia artificial y puede equivocarse.</p></div>`;
+  document.body.appendChild(p);
+  const q = p.querySelector('#ayuQ');
+  p.querySelector('#ayuX').onclick = ayuCerrar;
+  p.querySelector('#ayuEnv').onclick = () => ayuDecir(q.value);
+  q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ayuDecir(q.value); } if (e.key === 'Escape') ayuCerrar(); });
+  p.addEventListener('keydown', e => { if (e.key === 'Escape') ayuCerrar(); });
+  new MutationObserver(ayuVer).observe($('#app'), { childList: true }); ayuVer();
+}
+// Solo dentro de Tequio (con sesión y menú); no en la portada, la app de visitas ni la página del docente
+function ayuVer() {
+  const b = $('#ayuBtn'), p = $('#ayuPan'); if (!b) return;
+  const si = !!(S && S.yo && cfg && !cfg.docente && !MODO_CAMPO && $('#lateral'));
+  if (!si) { b.hidden = true; p.hidden = true; return; }
+  b.hidden = !p.hidden;
+}
+function ayuAbrir() {
+  const p = $('#ayuPan'); p.hidden = false; ayuVer();
+  if (!AYU.msgs.length || AYU.quien !== S.yo.id) {
+    AYU.msgs = []; AYU.quien = S.yo.id;
+    const n = /^(direcci|supervisi|mesa)/i.test(S.yo.nombre || '') ? '' : String(S.yo.nombre || '').replace(/^(mtr[oa]|profr?a?|lic|dra?|ing)\.?\s+/i, '').split(' ')[0];
+    const chips = esDirector() ? ['¿Qué tengo pendiente?', '¿Cómo subo una evidencia?', 'Hacer un oficio de la escuela', 'La lista de asistencia del CTE', 'Registrar ingresos propios']
+      : esAdmin() ? ['¿Qué hay pendiente en la zona?', 'Hacer un oficio de la Supervisión', 'Agendar una visita', 'Revisar evidencias']
+      : ['¿Qué hay pendiente en mis escuelas?', 'Revisar evidencias', 'Agendar una visita', 'Dejarle un pendiente al Supervisor'];
+    AYU.msgs.push({ r: 't', t: `Hola${n ? ', ' + n : ''}. Soy el ayudante de Tequio. Dígame con sus palabras qué necesita hacer y le digo dónde está y cómo hacerlo. También puedo decirle qué tiene pendiente.`, chips });
+  }
+  ayuPinta(); setTimeout(() => { try { $('#ayuQ').focus(); } catch (e) {} }, 50);
+}
+function ayuCerrar() { $('#ayuPan').hidden = true; ayuVer(); try { $('#ayuBtn').focus(); } catch (e) {} }
+function ayuIr(id) {
+  const o = ayuCatalogo().find(z => z.id === id); if (!o) return;
+  ayuCerrar(); $('#marco') && $('#marco').classList.remove('lat-abierta');
+  const b = document.querySelector(`#lateral [data-tab="${o.tab}"], .barra-ico [data-tab="${o.tab}"]`);
+  if (b) b.click(); else { vista.tab = o.tab; pintar(); }
+  window.scrollTo(0, 0);
+}
+function ayuPinta() {
+  const c = $('#ayuMsgs'); if (!c) return; const cat = ayuCatalogo();
+  c.innerHTML = AYU.msgs.map((m, i) => {
+    let o = `<div class="ayu-m ayu-${m.r}">${esc(m.t)}</div>`;
+    if (m.chips && i === AYU.msgs.length - 1) o += `<div class="ayu-chips">${m.chips.map((x, k) => `<button type="button" class="${k === 0 ? 'pri' : ''}" data-chip="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+    if (m.dest && m.dest.length) o += `<div class="ayu-d">${m.dest.map(id => { const x = cat.find(z => z.id === id); return x ? `<button type="button" class="ayu-go" data-go="${esc(id)}">${ico(x.ic)}<span><b>${esc(x.t)}</b><small>Abrir ›</small></span></button>` : ''; }).join('')}</div>`;
+    if (m.sol != null && m.sol !== false && !esAdmin()) {
+      if (m.enviada) o += `<div class="ayu-sol"><b>Solicitud enviada</b><span>La Supervisión ya la tiene en su lista. Gracias por decirnos qué le hace falta.</span></div>`;
+      else if (m.form) o += `<div class="ayu-sol"><b>Solicitud para la Supervisión</b><label for="ayuSolT" style="position:absolute;left:-9999px">Qué necesita</label><textarea id="ayuSolT" maxlength="1500">${esc(m.texto || '')}</textarea>
+        <span style="font-size:13px;color:var(--gris)">Se envía a nombre de ${esc(S.yo.nombre)}${esDirector() ? ', ' + esc(nombreEscuela(miCct())) : ''}.</span>
+        ${m.err ? `<span role="alert" style="color:var(--alerta,#B3261E)">${esc(m.err)}</span>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ayu-b" data-solenv="${i}">Enviar solicitud</button><button type="button" class="ayu-b ayu-b2" data-solno="${i}">Cancelar</button></div></div>`;
+      else o += `<div class="ayu-d"><button type="button" class="ayu-b" data-sol="${i}">Enviar esta solicitud a la Supervisión</button></div>`;
+    }
+    if (m.otra && i === AYU.msgs.length - 1) o += `<div class="ayu-d"><button type="button" class="ayu-b ayu-b2" data-otra="${i}">Preguntar otra vez</button></div>`;
+    return o;
+  }).join('') + (AYU.ocupado ? '<div class="ayu-m ayu-t ayu-esp" aria-label="Pensando"><i></i><i></i><i></i></div>' : '');
+  c.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => ayuDecir(b.dataset.chip));
+  c.querySelectorAll('[data-go]').forEach(b => b.onclick = () => ayuIr(b.dataset.go));
+  c.querySelectorAll('[data-sol]').forEach(b => b.onclick = () => { const k = +b.dataset.sol, m = AYU.msgs[k]; m.form = true;
+    if (!m.texto) { const us = []; for (let j = k - 1; j >= 0 && us.length < 3; j--) { const z = AYU.msgs[j]; if (z.r === 'u') us.unshift(z.t); else if ((z.dest && z.dest.length) || z.sol || z.chips) break; } m.texto = us.join('\n'); }
+    ayuPinta(); try { $('#ayuSolT').focus(); } catch (e) {} });
+  c.querySelectorAll('[data-solno]').forEach(b => b.onclick = () => { const m = AYU.msgs[+b.dataset.solno]; m.form = false; m.err = ''; ayuPinta(); });
+  c.querySelectorAll('[data-otra]').forEach(b => b.onclick = () => { const k = +b.dataset.otra, t = AYU.msgs[k].otra; AYU.msgs.splice(k - 1, 2); ayuDecir(t); });
+  c.querySelectorAll('[data-solenv]').forEach(b => b.onclick = () => ayuSolicitar(+b.dataset.solenv, b));
+  c.scrollTop = c.scrollHeight;
+}
+async function ayuDecir(txt) {
+  txt = String(txt || '').replace(/\s+/g, ' ').trim(); if (!txt || AYU.ocupado) return;
+  const q = $('#ayuQ'); if (q) q.value = '';
+  const hist = AYU.msgs.slice(-6).map(m => ({ r: m.r, t: m.t }));
+  AYU.msgs.push({ r: 'u', t: txt });
+  const sit = (() => { try { return ayuSituacion(); } catch (e) { return null; } })();
+  // «¿Qué tengo pendiente?» se contesta con los datos de Tequio, sin inteligencia artificial
+  if (ayuPendiente(txt) && sit && txt.length < 70) { AYU.msgs.push({ r: 't', t: sit.txt, dest: sit.dest }); ayuPinta(); return; }
+  AYU.ocupado = true; ayuPinta();
+  try {
+    if (cfg && !cfg.demo && S.version && S.version < AYU_VER) throw new Error('sinservidor');
+    const datos = { mensaje: txt, historial: hist, catalogo: ayuCatalogo().map(o => ({ id: o.id, t: o.t, d: o.d })), contexto: sit ? sit.txt : '' };
+    let j = null;
+    for (let n = 0; ; n++) { try { j = await ayuPost('ayudante', datos); break; } catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e && e.message))) throw e; await new Promise(r => setTimeout(r, 2500 * (n + 1))); } }
+    AYU.msgs.push({ r: 't', t: j.respuesta, dest: j.destinos || [], sol: j.solicitud ? j.solicitud : false });
+  } catch (e) {
+    const em = String(e && e.message || ''), sin = /sinservidor|desconocida|Failed to fetch|abort/i.test(em + String(e && e.name)), ocup = /\(5\d\d\)/.test(em), lim = /muchas preguntas|l[ií]mite/i.test(em);
+    const ids = ayuLocal(txt);
+    if (!ids.length && sit && ayuPendiente(txt)) AYU.msgs.push({ r: 't', t: sit.txt, dest: sit.dest });
+    else {
+      const pre = sin ? (cfg && cfg.demo ? 'En la demostración busco por palabras. ' : 'Ahora no tengo conexión con mi parte inteligente, así que busqué por palabras. ') : ocup ? 'Mi parte inteligente está muy ocupada en este momento, así que busqué por palabras. ' : lim ? em + ' Mientras tanto busqué por palabras. ' : em + ' Mientras tanto busqué por palabras. ';
+      AYU.msgs.push({ r: 't', t: pre + (ids.length ? 'Esto es lo más parecido en Tequio:' : 'No encontré algo parecido. Pruebe con otras palabras.'), dest: ids, sol: ids.length || (cfg && cfg.demo) ? false : '', otra: sin && cfg && cfg.demo ? '' : txt });
+    }
+  }
+  AYU.ocupado = false; ayuPinta();
+}
+async function ayuSolicitar(i, btn) {
+  const m = AYU.msgs[i], t = $('#ayuSolT');
+  m.texto = String(t && t.value || '').trim(); if (m.texto.length < 8) { m.err = 'Describa un poco más lo que necesita.'; return ayuPinta(); }
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    if (!cfg || cfg.demo) throw new Error('En la demostración no se envían solicitudes.');
+    const viejo = S.version && S.version < AYU_VER;
+    await ayuPost('tlamiSolicitud', { quien: ayuQuien(), app: 'tequio', texto: (viejo ? 'Desde Tequio: ' : '') + m.texto, resumen: m.sol || '' });
+    m.enviada = true; m.form = false; m.err = '';
+  } catch (e) { m.err = /sinservidor|Failed to fetch|abort/i.test(String(e && e.message)) ? 'No hay conexión con el servidor en este momento. Intente más tarde.' : e.message; }
+  ayuPinta();
+}
+try { ayuMontar(); } catch (e) {}
+
 cfg = leerCfg();
 if (cfg && cfg.docente) docentePagina(); else if (cfg && cfg.vencido) invitacionTerminada(); else if (cfg) cargar(); else portada('');
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
