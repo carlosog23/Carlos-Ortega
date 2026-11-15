@@ -400,6 +400,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .teclado button{height:62px;border-radius:18px;border:1px solid var(--hilo);background:var(--hoja);font:600 24px var(--disp);cursor:pointer;box-shadow:var(--e1)}
 @media(max-width:600px){.ev{grid-template-columns:52px 1fr}.ev .acc2{grid-column:1/-1;justify-content:flex-end}.ag-dia{padding:16px}}
+.ev .av span.c-ok{color:var(--jade);font-weight:700}.ev .av span.c-pend,.ev .av span.c-sin{color:var(--maiz-d)}.ev .av span.c-pasado{color:var(--gris)}
 </style>
 </head>
 <body>
@@ -775,6 +776,32 @@ let AG = sget(AG_K, null); if (!AG) { AG = agSemilla(); sset(AG_K, AG); }
 let AGC = sget(AGC_K, { correo: 'laura.mendez@bcedu.mx', tel: '6461234567', nip: '' });
 let agDia = iso(HOY), agMes = new Date(HOY.getFullYear(), HOY.getMonth(), 1), agAbierta = false;
 const agGuarda = () => sset(AG_K, AG);
+/* ---- correo automático: el servidor de Tequio guarda solo el aviso pendiente y lo borra al enviarlo ---- */
+let AGL = sget('tlm-agenda-llave', ''); if (!AGL) { AGL = Array.from(crypto.getRandomValues(new Uint8Array(18)), b => b.toString(16).padStart(2, '0')).join(''); sset('tlm-agenda-llave', AGL); }
+function agServidor() {
+  const c = sget('tequio.cfg', null); if (c && c.s && c.k) return { s: c.s, k: c.k };
+  const tok = sget('acc-token', ''), s = (sget('acc-cache', {}) || {}).tequio || ''; return s && tok ? { s, tok } : null;
+}
+function agCuando(e) { const [y, m, d] = e.f.split('-').map(Number), [hh, mm] = (e.h || '07:00').split(':').map(Number); const x = new Date(y, m - 1, d, hh, mm - (e.antes || 0));
+  return `${iso(x)}T${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; }
+async function agPost(accion, datos) {
+  const sv = agServidor(); if (!sv) throw new Error('sinservidor'); if (navigator.onLine === false) throw new Error('sinred');
+  const r = await fetch(sv.s, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: sv.k || '', accion, datos: Object.assign({ tok: sv.tok || '', llave: AGL }, datos) }) });
+  const x = await r.json(); if (!x || !x.ok) throw new Error((x && (x.mensaje || x.error)) || 'servidor'); return x;
+}
+async function agSync(e, borrar) {
+  try {
+    if (borrar || !(e.por || []).includes('correo')) { if (e.cor) { await agPost('recBorrar', { id: e.id }); } if (!borrar) delete e.cor; return; }
+    const cu = agCuando(e); const ya = new Date(); const ahora = `${iso(ya)}T${String(ya.getHours()).padStart(2, '0')}:${String(ya.getMinutes()).padStart(2, '0')}`;
+    if (cu <= ahora) { e.cor = 'pasado'; return; }
+    await agPost('recProgramar', { id: e.id, correo: AGC.correo, cuando: cu, titulo: e.t, texto: msjDe(e).replace(/^⏰ Recordatorio de Tlamatini\n/, '') });
+    e.cor = 'ok';
+  } catch (err) { if (!borrar) e.cor = err.message === 'sinservidor' ? 'sin' : 'pend'; }
+  finally { if (!borrar) agGuarda(); }
+}
+async function agReintentar() { const p = AG.filter(e => (e.cor === 'pend' || e.cor === 'sin') && (e.por || []).includes('correo')); if (!p.length || !agServidor()) return;
+  for (const e of p) await agSync(e); if (location.hash === '#agenda') vAgenda(); }
+const COR_TX = { ok: 'programado', pend: 'por enviar al servidor', sin: 'se activa con su enlace', pasado: 'ya pasó la hora' };
 const hora12 = h => { if (!h) return 'Todo el día'; const [a, b] = h.split(':').map(Number); return `${a % 12 || 12}:${String(b).padStart(2, '0')} ${a < 12 ? 'a. m.' : 'p. m.'}`; };
 const agOrden = (a, b) => (a.f + (a.h || '')).localeCompare(b.f + (b.h || ''));
 const agDe = s => AG.filter(e => e.f === s).sort(agOrden);
@@ -799,7 +826,7 @@ function evHTML(e, compacto) {
   return `<article class="ev" style="--c:${T[1]};--s:${T[2]}" data-ev="${e.id}">
     <div class="hr"><b>${e.h ? hora12(e.h).replace(/ (a|p)\. m\./, '') : '—'}</b><small>${e.h ? (+e.h.slice(0, 2) < 12 ? 'a. m.' : 'p. m.') : 'día'}</small></div>
     <div class="cu"><span class="tp">${T[0]}${compacto && !hoy ? ` · ${DS[d0(e.f).getDay()]} ${d0(e.f).getDate()}` : ''}</span><b>${esc(e.t)}</b>${e.nota && !compacto ? `<small>${esc(e.nota)}</small>` : ''}
-      <span class="av">${(e.por || []).map(k => `<span>${pIc(k, 13)}${porTx[k]}</span>`).join('')}<em>${ANTES[e.antes] || ''}</em></span></div>
+      <span class="av">${(e.por || []).map(k => `<span class="${k === 'correo' && e.cor ? 'c-' + e.cor : ''}">${pIc(k, 13)}${porTx[k]}${k === 'correo' && e.cor ? ' · ' + COR_TX[e.cor] : ''}</span>`).join('')}<em>${ANTES[e.antes] || ''}</em></span></div>
     ${compacto ? '' : `<div class="acc2"><button class="mini" data-wa="${e.id}" title="Mandarme por WhatsApp">${pIc('wa', 18)}</button><button class="mini" data-co="${e.id}" title="Mandarme por correo">${pIc('correo', 18)}</button><button class="mini" data-ics="${e.id}" title="Alarma en mi celular">${pIc('alarma', 18)}</button></div>`}
   </article>`;
 }
@@ -815,6 +842,7 @@ function agendaHoyHTML() {
 /* ---------- vista completa ---------- */
 function vAgenda() {
   if (AGC.nip && !agAbierta) return vCandado();
+  if (!vAgenda.r) { vAgenda.r = 1; setTimeout(agReintentar, 600); }
   const s = agDia, L = agDe(s), d = d0(s);
   // mes
   const a = new Date(agMes), ult = new Date(a.getFullYear(), a.getMonth() + 1, 0), off = (a.getDay() + 6) % 7;
@@ -874,23 +902,26 @@ function hojaNuevo(e) {
   $('#ng').onclick = () => {
     E.t = $('#nt').value.trim(); E.f = $('#nf').value || E.f; E.h = $('#nh').value; E.nota = $('#nn').value.trim();
     if (!E.t) { $('#nt').focus(); toast('Escriba qué tiene que hacer.'); return; }
-    if (e) Object.assign(e, E); else AG.push({ ...E, id: Date.now() });
-    agGuarda(); cerrarHoja(); agDia = E.f; agMes = new Date(d0(E.f).getFullYear(), d0(E.f).getMonth(), 1);
+    let obj; if (e) { Object.assign(e, E); obj = e; } else { obj = { ...E, id: Date.now() }; AG.push(obj); }
+    agGuarda(); agSync(obj).then(() => { if (location.hash === '#agenda' || location.hash === '' || location.hash === '#inicio') ruta(); }); cerrarHoja(); agDia = E.f; agMes = new Date(d0(E.f).getFullYear(), d0(E.f).getMonth(), 1);
     const p = E.por.map(k => porTx[k].toLowerCase()); ruta();
-    toast(p.length ? `Listo. Le avisaremos ${ANTES[E.antes].toLowerCase()} por ${p.join(' y ')}.` : 'Listo, quedó en su agenda.');
+    toast(p.length ? `Listo. Le avisaremos ${ANTES[E.antes].toLowerCase()} por ${p.join(' y ')}.${E.por.includes('correo') && !agServidor() ? ' El correo automático se activa al entrar con su enlace de Tlamatini.' : ''}` : 'Listo, quedó en su agenda.');
     if (E.por.includes('alarma')) setTimeout(() => agICS(e || AG[AG.length - 1]), 400);
   };
-  if (e) $('#nb').onclick = () => { if (!confirm('¿Borrar este pendiente?')) return; AG = AG.filter(x => x !== e); agGuarda(); cerrarHoja(); ruta(); toast('Pendiente borrado.'); };
+  if (e) $('#nb').onclick = () => { if (!confirm('¿Borrar este pendiente?')) return; AG = AG.filter(x => x !== e); agGuarda(); agSync(e, true); cerrarHoja(); ruta(); toast('Pendiente borrado.'); };
 }
 function hojaCfg() {
   hoja(`<div class="sh-t"><h3>Privacidad y avisos</h3><button class="esc" onclick="cerrarHoja()">Cerrar</button></div>
    <p class="muted" style="font-size:15px">Su agenda se guarda solo en este equipo: ni la escuela ni la Supervisión pueden verla.</p>
+   <div class="ofi" style="background:var(--jade-s);color:#14523F;margin-top:12px">${ic('candado', 'style="width:16px;height:16px"')}<span><b>Correo automático:</b> solo el aviso viaja al servidor de la Supervisión, cifrado, y se borra en cuanto se envía. ${agServidor() ? 'Está activo en este equipo.' : 'Se activa cuando entra a Tlamatini con su enlace de acceso.'}</span></div>
    <div class="campo2"><label for="cc">Correo para sus recordatorios</label><input id="cc" type="email" value="${esc(AGC.correo)}"></div>
    <div class="campo2"><label for="ct">WhatsApp (10 dígitos)</label><input id="ct" inputmode="numeric" value="${esc(AGC.tel)}"></div>
    <div class="campo2"><label for="cn">NIP para abrir la agenda (4 dígitos, opcional)</label><input id="cn" inputmode="numeric" maxlength="4" value="${esc(AGC.nip)}" placeholder="Sin NIP"></div>
    <div class="sh-b"><button class="btn pri" id="cg" style="flex:1">${ic('ok')}Guardar</button></div>`);
   $('#cg').onclick = () => { const n = $('#cn').value.replace(/\D/g, ''); if (n && n.length !== 4) { toast('El NIP debe tener 4 dígitos.'); return; }
-    AGC = { correo: $('#cc').value.trim(), tel: $('#ct').value.replace(/\D/g, ''), nip: n }; sset(AGC_K, AGC); agAbierta = true; cerrarHoja(); vAgenda(); toast(n ? 'Listo. Su agenda pedirá el NIP al abrirla.' : 'Datos guardados.'); };
+    const cambio = AGC.correo !== $('#cc').value.trim();
+    AGC = { correo: $('#cc').value.trim(), tel: $('#ct').value.replace(/\D/g, ''), nip: n }; sset(AGC_K, AGC);
+    if (cambio) AG.filter(x => (x.por || []).includes('correo')).forEach(x => agSync(x)); agAbierta = true; cerrarHoja(); vAgenda(); toast(n ? 'Listo. Su agenda pedirá el NIP al abrirla.' : 'Datos guardados.'); };
 }
 function vCandado() {
   let v = '';

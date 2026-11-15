@@ -221,6 +221,9 @@ const HOJAS = {
   // Solicitudes que el personal le deja a Tlami cuando Tlamatini todavía no tiene lo que necesita (solo las ve la Supervisión).
   // estado: nueva | desarrollo | hecha | descartada
   // app: de dónde llegó (tlamatini | tequio)
+  // Recordatorios por correo de «Mi agenda» de Tlamatini. La agenda vive en el equipo del docente; aquí solo queda cada aviso
+  // hasta que se envía y después se borra. llave: huella (sha) de la llave del equipo; asunto y texto van cifrados.
+  rec: ['id', 'llave', 'correo', 'cuando', 'asunto', 'texto', 'estado', 'creado'],
   sol: ['id', 'fecha', 'nombre', 'escuela', 'cct', 'cargo', 'texto', 'resumen', 'estado', 'nota', 'actualizado', 'app'],
   // Claves de la RELweb por escuela (id = CCT). usuario: la clave del centro de trabajo; clave: la contraseña, cifrada (relCifrar_);
   // ciclo: ciclo escolar al que corresponde (cambia cada ciclo). La Supervisión ve todas; cada ATP, solo las de sus escuelas.
@@ -229,11 +232,11 @@ const HOJAS = {
   min: ['id', 'tipo', 'cct', 'escuela', 'ciclo', 'sesion', 'fecha', 'titulo', 'datos', 'acuerdos', 'origen', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'activo'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
-const NOMBRES = { min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
+const NOMBRES = { rec: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 57;
+const VERSION = 58;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -509,6 +512,11 @@ function doPost(e) {
     if (q.accion === 'minutaEnviar') {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try { return json_(Object.assign({ ok: true }, minutaEnviar_(q))); } finally { lock.releaseLock(); }
+    }
+    // «Mi agenda» de Tlamatini: programa o borra un recordatorio por correo
+    if (q.accion === 'recProgramar' || q.accion === 'recBorrar') {
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { return json_(Object.assign({ ok: true }, q.accion === 'recProgramar' ? recProgramar_(q) : recBorrar_(q))); } finally { lock.releaseLock(); }
     }
     // Tlamatini avisa cuántos documentos generó una persona (para el medallero de la Supervisión)
     if (q.accion === 'tlaUso') {
@@ -2977,6 +2985,63 @@ function tlamiSolicitud_(q) {
   return { folio: o.id };
 }
 
+/* ===================== Recordatorios de «Mi agenda» (Tlamatini) ===================== */
+/** El docente programa un aviso por correo desde su agenda privada. Se identifica con su enlace de Tlamatini (tok) o de Tequio (k)
+ *  y con la llave de su equipo: solo ese equipo puede cambiar o borrar sus avisos. Nada de la agenda se guarda aquí salvo el aviso pendiente. */
+function recProgramar_(q) {
+  const d = q.datos || {};
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
+  const llave = String(d.llave || ''); if (llave.length < 16) throw new Error('Falta la llave del equipo.');
+  const correo = String(d.correo || '').trim().toLowerCase();
+  if (!/^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/.test(correo)) throw new Error('El correo no es válido.');
+  const cuando = String(d.cuando || '');
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(cuando)) throw new Error('La fecha del aviso no es válida.');
+  const cache = CacheService.getScriptCache(), kk = 'rec-' + sha_(llave).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 60) throw new Error('Ya programó muchos avisos seguidos. Intente más tarde.');
+  cache.put(kk, String(n), 3600);
+  const h = sha_(llave), id = 'rec-' + sha_(llave + '|' + String(d.id || '')).slice(0, 18);
+  const mios = leer_('rec').filter(x => x.llave === h && x.id !== id);
+  if (mios.length >= 300) throw new Error('Tiene demasiados avisos pendientes. Borre algunos de su agenda.');
+  guardar_('rec', { id: id, llave: h, correo: correo, cuando: cuando, asunto: relCifrar_(String(d.titulo || 'Recordatorio').slice(0, 160)),
+    texto: relCifrar_(String(d.texto || '').slice(0, 1500)), estado: 'pendiente', creado: ahora_() });
+  asegurarRecordatorios_();
+  return { id: id, cuando: cuando };
+}
+function recBorrar_(q) {
+  const d = q.datos || {};
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
+  const llave = String(d.llave || ''), h = sha_(llave), id = 'rec-' + sha_(llave + '|' + String(d.id || '')).slice(0, 18);
+  const l = leer_('rec'), resto = l.filter(x => !(x.id === id && x.llave === h));
+  if (resto.length !== l.length) reemplazarTodo_('rec', resto);
+  return { borrado: resto.length !== l.length };
+}
+/** Cada 15 minutos: envía los avisos que ya tocan y los borra de la hoja. */
+function recordatoriosRevisar() {
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
+  try {
+    const ahora = Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd'T'HH:mm"), l = leer_('rec');
+    if (!l.length) return;
+    const quedan = [];
+    l.forEach(r => {
+      if (r.estado !== 'pendiente' || r.cuando > ahora) { quedan.push(r); return; }
+      if (r.cuando < Utilities.formatDate(new Date(Date.now() - 2 * 864e5), TZ, "yyyy-MM-dd'T'HH:mm")) return;   // vencido hace más de 2 días: se descarta
+      if (MailApp.getRemainingDailyQuota() < 1) { quedan.push(r); return; }
+      const asunto = relDescifrar_(r.asunto), texto = relDescifrar_(r.texto);
+      const html = '<div style="background:#F3EBDD;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#1B2740"><div style="max-width:560px;margin:0 auto;background:#FFFDF9;border-radius:14px;overflow:hidden;border:1px solid #E2D6C2">' +
+        '<div style="background:#1F3A6B;color:#FBF6EC;padding:16px 22px;border-bottom:4px solid #E3A63B"><div style="font-family:Georgia,serif;font-size:24px;font-weight:bold">Tlamatini</div><div style="font-family:Georgia,serif;font-style:italic;font-size:13px;color:#E9D8BA">Mi agenda · recordatorio</div></div>' +
+        '<div style="padding:22px;font-size:16px;line-height:1.55"><h2 style="font-size:21px;color:#1F3A6B;margin:0 0 10px">' + esc_(asunto) + '</h2><p style="white-space:pre-line;margin:0">' + esc_(texto) + '</p></div>' +
+        '<div style="background:#F1E4CC;padding:12px 22px;font-size:12px;color:#5E5446">Usted programó este aviso en su agenda de Tlamatini. Su agenda solo está en su equipo; este aviso ya se borró del servidor.</div></div></div>';
+      try { MailApp.sendEmail({ to: r.correo, subject: '⏰ ' + asunto, htmlBody: html, body: asunto + '\n' + texto, name: 'Tlamatini · Mi agenda' }); }
+      catch (e) { quedan.push(r); }
+    });
+    if (quedan.length !== l.length) reemplazarTodo_('rec', quedan);
+  } finally { lock.releaseLock(); }
+}
+function asegurarRecordatorios_() {
+  if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'recordatoriosRevisar')) return;
+  ScriptApp.newTrigger('recordatoriosRevisar').timeBased().everyMinutes(15).create();
+}
+
 /* ===================== Ayudante de Tequio ===================== */
 /** Una vuelta de conversación: recibe el mensaje, lo anterior, el catálogo de apartados que esa persona ve en Tequio
  *  y un resumen de sus pendientes (sin nombres de alumnos); responde qué apartado le sirve y cómo hacerlo. */
@@ -4160,6 +4225,7 @@ function tareaDiaria() {
   try { const c = cicloActual_(); cteSincronizar_(c, cteSesionesARevisar_(c, true)); } catch (e) { bitacora_('cte', '', [], 'Revisar el Drive del CTE', 'error: ' + e.message); }
   try { resumenPendientes_(); } catch (e) { bitacora_('pendientes', '', [], 'Resumen de pendientes', 'error: ' + e.message); }
   try { asegurarCorreos_(); revisarCorreos_({}); resumenCorreos_(); } catch (e) { bitacora_('correos', '', [], 'Correo de la Supervisión', 'error: ' + e.message); }
+  try { asegurarRecordatorios_(); } catch (e) {}
   try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
