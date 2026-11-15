@@ -2434,7 +2434,14 @@ function inputHTML(f,val){const id=`f_${f.id}`;const opt=f.opt?' <span class="mu
   const fill=f.fillChips?`<div class="chips">${f.fillChips.map((c,i)=>`<button type="button" class="chip" data-fill="${f.id}" data-i="${i}">${esc(c.label)}</button>`).join("")}</div>`:"";
   return`<div class="field">${lab}${help}<input type="${type}" id="${id}" value="${esc(val||"")}" ${f.ph?`placeholder="${esc(f.ph)}"`:""} ${type==="tel"?'inputmode="tel"':""}${type==="email"?' inputmode="email" autocapitalize="none" spellcheck="false"':""} autocomplete="off">${chips}${fill}</div>`}
 /* ---------- Diseño 3: vista previa en vivo de los formatos oficiales (pantallas anchas) ---------- */
-const T3VP={t:0,n:0,ok:()=>matchMedia("(min-width:1180px)").matches&&(S.view==="step"||S.view==="review")&&!!S.letra};
+const T3VP_BTN={recado:"rc_pdf",constancia:"ca_pdf",salida:"sl_pdf",privacidad:"ap_pdf",convenio:"cv_pdf"};
+const T3VP={t:0,n:0,ok:()=>matchMedia("(min-width:1180px)").matches&&(((S.view==="step"||S.view==="review")&&!!S.letra)||(!!T3VP_BTN[S.view]&&!!document.getElementById(T3VP_BTN[S.view])))};
+let T3CAP=null;
+/* Genera el PDF de una herramienta con pantalla propia usando su mismo botón, pero sin descargarlo ni registrarlo */
+function t3VPcaptura(){const b=document.getElementById(T3VP_BTN[S.view]);if(!b||typeof b.onclick!=="function")return Promise.reject(new Error("sin botón"));
+  return new Promise((res,rej)=>{const al=window.alert;let fin=false;const listo=v=>{if(fin)return;fin=true;T3CAP=null;window.alert=al;clearTimeout(tm);v instanceof Blob?res(v):rej(v||new Error("sin datos"))};
+    const tm=setTimeout(()=>listo(new Error("tiempo")),12000);T3CAP=listo;window.alert=m=>listo(new Error(String(m)));
+    const falso={textContent:"",disabled:false};try{const r=b.onclick({currentTarget:falso,target:falso,preventDefault(){}});Promise.resolve(r).then(()=>setTimeout(()=>listo(new Error("sin datos")),400)).catch(listo)}catch(e){listo(e)}})}
 function t3VPquitar(){const p=document.getElementById("t3vp");if(p)p.remove();document.body.classList.remove("t3-convp")}
 function t3VPprog(ms){clearTimeout(T3VP.t);T3VP.t=setTimeout(t3VPpinta,ms==null?650:ms)}
 async function t3VPpinta(){if(!T3VP.ok())return t3VPquitar();
@@ -2442,15 +2449,17 @@ async function t3VPpinta(){if(!T3VP.ok())return t3VPquitar();
   if(!p){p=document.createElement("aside");p.id="t3vp";p.className="t3-vp";p.setAttribute("aria-label","Vista previa del formato");
     p.innerHTML=`<div class="vl"><b>Vista previa en vivo</b><span id="t3vpN"></span></div><div class="hojas" id="t3vpH"><div class="cargando">Preparando el formato oficial…</div></div><p class="pie">Así saldrá impreso. Se actualiza mientras escribe.</p>`;
     document.body.appendChild(p);document.body.classList.add("t3-convp")}
-  const tk=++T3VP.n,L=S.letra;
-  try{if(S.view==="step")readStep();const bytes=await generar(L);if(tk!==T3VP.n||!T3VP.ok())return;
+  const tk=++T3VP.n,L=S.letra;if(T3VP_BTN[S.view]){const pp=document.getElementById("t3vp");if(pp&&pp.dataset.v!==S.view){pp.dataset.v=S.view}}
+  try{let bytes;if(S.view==="step"||S.view==="review"){if(S.view==="step")readStep();bytes=await generar(L)}else bytes=new Uint8Array(await(await t3VPcaptura()).arrayBuffer());if(tk!==T3VP.n||!T3VP.ok())return;
     const lib=await pdfjs();const doc=await lib.getDocument({data:bytes.slice(0)}).promise;if(tk!==T3VP.n)return;
     const H=document.getElementById("t3vpH");if(!H)return;const W=H.clientWidth-4,dpr=Math.min(2,window.devicePixelRatio||1),frag=document.createDocumentFragment();
-    for(let i=1;i<=Math.min(doc.numPages,4);i++){const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:W/v0.width*dpr});
+    for(let i=1;i<=Math.min(doc.numPages,8);i++){const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:W/v0.width*dpr});
       const c=document.createElement("canvas");c.width=Math.round(v.width);c.height=Math.round(v.height);c.style.width=W+"px";await pg.render({canvasContext:c.getContext("2d"),viewport:v}).promise;if(tk!==T3VP.n)return;frag.appendChild(c)}
     H.replaceChildren(frag);const nn=document.getElementById("t3vpN");if(nn)nn.textContent=doc.numPages>1?`${doc.numPages} hojas`:"1 hoja"}
   catch(e){console.warn("vista previa",e);const H=document.getElementById("t3vpH");if(H&&tk===T3VP.n)H.innerHTML=`<div class="cargando">No se pudo mostrar la vista previa${navigator.onLine===false?" sin internet":""}. Puede seguir llenando; el formato se genera al final.</div>`}}
 (()=>{const ap=document.getElementById("app");if(!ap)return;
+  ap.addEventListener("input",e=>{if(T3VP_BTN[S.view]&&T3VP.ok())t3VPprog()});ap.addEventListener("change",e=>{if(T3VP_BTN[S.view]&&T3VP.ok())t3VPprog(250)});
+  ap.addEventListener("click",e=>{if(T3VP_BTN[S.view]&&T3VP.ok()&&e.target.closest("button,.chip,.opt,label")&&!e.target.closest("#"+T3VP_BTN[S.view]))t3VPprog(400)});
   new MutationObserver(()=>{if(T3VP.ok()){t3VPprog(250);const f=document.getElementById("frm");if(f&&!f.dataset.t3vp){f.dataset.t3vp=1;f.addEventListener("input",()=>t3VPprog());f.addEventListener("change",()=>t3VPprog(200));f.addEventListener("click",e=>{if(e.target.closest(".chip,.opt"))t3VPprog(200)})}}else t3VPquitar()}).observe(ap,{childList:true});
   addEventListener("resize",()=>{if(T3VP.ok())t3VPprog(300);else t3VPquitar()})})();
 
@@ -2571,7 +2580,7 @@ let PMODE="save";
 function pToast(html,ms=9000){let t=document.getElementById("pToast");if(!t){t=document.createElement("div");t.id="pToast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");
   t.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9998;max-width:min(92vw,560px);background:#1E2A40;color:#fff;border-radius:14px;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25)";
   t.onclick=()=>t.hidden=true;document.body.appendChild(t)}t.innerHTML=html;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,ms)}
-async function entregarPDF(blob,filename,hint=""){docsReg(blob,filename);const m=PMODE;PMODE="save";const o={filename,blob,file:new File([blob],filename,{type:"application/pdf"})};
+async function entregarPDF(blob,filename,hint=""){if(T3CAP){T3CAP(blob);return}docsReg(blob,filename);const m=PMODE;PMODE="save";const o={filename,blob,file:new File([blob],filename,{type:"application/pdf"})};
   if(m==="print"){
     if(isIOS){const r=await tryShare(o,"");if(r===true)return;if(r==="cancel"){pToast("<b>Cancelado.</b> En el menú que aparece, elija <b>Imprimir</b>.");return}}
     if(!isIOS&&!isAndroid&&await tryPrintFrame(o)){pToast(`<b>Se abrió la ventana de impresión.</b> Elija su impresora, tamaño <b>Carta</b> y escala al <b>100 %</b> (tamaño real)${hint}.`);return}
