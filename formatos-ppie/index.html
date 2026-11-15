@@ -1048,6 +1048,22 @@ body{background:radial-gradient(1200px 600px at 100% -10%,#E9DCC6 0,transparent 
 .t3-vp .pie{font-size:12.5px;margin:10px 0 0;text-align:center}
 @media(max-width:1179px){.t3-vp{display:none}}
 @media print{.t3-vp{display:none}}
+
+/* celular: ver la hoja */
+.t3-vmb{position:fixed;left:16px;bottom:18px;z-index:60;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 18px;font:700 15px "Atkinson Hyperlegible",system-ui,sans-serif;color:#2A1C05;background:linear-gradient(180deg,#F0BA55,#E3A63B);box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 12px 24px -10px rgba(120,80,10,.8);cursor:pointer}
+.t3-vmb.alto{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+@media(min-width:1180px){.t3-vmb{display:none}}
+.t3-vm{position:fixed;inset:0;z-index:9700;background:linear-gradient(180deg,#E8DECD,#DDD0BA);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s;font-family:"Atkinson Hyperlegible",system-ui,sans-serif;color:#5E5446}
+.t3-vm.on{opacity:1;pointer-events:auto}
+.t3-vm .vm-t{display:flex;align-items:center;gap:10px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(251,247,239,.92);border-bottom:1px solid #E2D6C2}
+.t3-vm .vm-t b{font:600 20px "Fraunces",Georgia,serif;color:#1B2740}
+.t3-vm .vm-t span{font-size:13px;margin-left:auto}
+.t3-vm .vm-t button{border:1px solid #E2D6C2;background:#FFFDF9;border-radius:12px;padding:8px 14px;font:700 15px inherit;font-family:inherit;color:#1B2740;cursor:pointer}
+.t3-vm .vm-h{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px;align-items:center}
+.t3-vm canvas{display:block;background:#fff;border-radius:3px;box-shadow:0 2px 4px rgba(40,28,10,.1),0 24px 40px -20px rgba(40,28,10,.5);max-width:100%}
+.t3-vm .cargando{background:#FFFDF9;border-radius:6px;width:100%;aspect-ratio:8.5/11;display:grid;place-items:center;text-align:center;padding:30px;font-size:15px}
+.t3-vm .vm-p{font-size:13px;text-align:center;margin:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+@media print{.t3-vmb,.t3-vm{display:none!important}}
 </style>
 
 <div class="wrap" id="app"><p class="muted">Cargando…</p></div>
@@ -2444,6 +2460,22 @@ function t3VPcaptura(){const b=document.getElementById(T3VP_BTN[S.view]);if(!b||
     const falso={textContent:"",disabled:false};try{const r=b.onclick({currentTarget:falso,target:falso,preventDefault(){}});Promise.resolve(r).then(()=>setTimeout(()=>listo(new Error("sin datos")),400)).catch(listo)}catch(e){listo(e)}})}
 function t3VPquitar(){const p=document.getElementById("t3vp");if(p)p.remove();document.body.classList.remove("t3-convp")}
 function t3VPprog(ms){clearTimeout(T3VP.t);T3VP.t=setTimeout(t3VPpinta,ms==null?650:ms)}
+async function t3VPbytes(){if(S.view==="step"||S.view==="review"){if(S.view==="step")readStep();return await generar(S.letra)}return new Uint8Array(await(await t3VPcaptura()).arrayBuffer())}
+async function t3VPcanvas(bytes,W,max,vivo){const lib=await pdfjs();const doc=await lib.getDocument({data:bytes.slice(0)}).promise;const dpr=Math.min(2,window.devicePixelRatio||1),out=[];
+  for(let i=1;i<=Math.min(doc.numPages,max);i++){if(vivo&&!vivo())return null;const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:W/v0.width*dpr});
+    const c=document.createElement("canvas");c.width=Math.round(v.width);c.height=Math.round(v.height);c.style.width=W+"px";await pg.render({canvasContext:c.getContext("2d"),viewport:v}).promise;out.push(c)}
+  return{c:out,n:doc.numPages}}
+/* En el celular: botón «Ver la hoja» que muestra la hoja tal como saldrá */
+const T3VM={ok:()=>!matchMedia("(min-width:1180px)").matches&&(((S.view==="step"||S.view==="review")&&!!S.letra)||(!!T3VP_BTN[S.view]&&!!document.getElementById(T3VP_BTN[S.view])))};
+function t3VMboton(){let b=document.getElementById("t3vmB");if(!T3VM.ok()){if(b)b.remove();return}
+  if(!b){b=document.createElement("button");b.type="button";b.id="t3vmB";b.className="t3-vmb";b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Ver la hoja';b.onclick=t3VMabrir;document.body.appendChild(b)}
+  b.classList.toggle("alto",!document.getElementById("bar").hidden)}
+async function t3VMabrir(){let o=document.getElementById("t3vm");if(!o){o=document.createElement("div");o.id="t3vm";o.className="t3-vm";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");document.body.appendChild(o)}
+  o.innerHTML=`<div class="vm-t"><b>Así saldrá su hoja</b><span id="t3vmN"></span><button type="button" id="t3vmX">Cerrar</button></div><div class="vm-h" id="t3vmH"><div class="cargando">Preparando la hoja…</div></div><p class="vm-p">Es solo una vista previa: para imprimir o guardar use los botones de la herramienta.</p>`;
+  o.classList.add("on");document.body.style.overflow="hidden";const cerrar=()=>{o.classList.remove("on");document.body.style.overflow=""};document.getElementById("t3vmX").onclick=cerrar;
+  try{const bytes=await t3VPbytes();const H=document.getElementById("t3vmH");if(!H||!o.classList.contains("on"))return;const r=await t3VPcanvas(bytes,H.clientWidth-4,8);
+    H.replaceChildren(...r.c);document.getElementById("t3vmN").textContent=r.n>1?r.n+" hojas":"1 hoja"}
+  catch(e){const H=document.getElementById("t3vmH");if(H)H.innerHTML=`<div class="cargando">No se pudo mostrar la hoja${/llen|elija|revise|seleccion/i.test(String(e.message))?": "+esc(e.message):"."} Revise que los datos estén completos.</div>`}}
 async function t3VPpinta(){if(!T3VP.ok())return t3VPquitar();
   let p=document.getElementById("t3vp");
   if(!p){p=document.createElement("aside");p.id="t3vp";p.className="t3-vp";p.setAttribute("aria-label","Vista previa del formato");
@@ -2460,8 +2492,8 @@ async function t3VPpinta(){if(!T3VP.ok())return t3VPquitar();
 (()=>{const ap=document.getElementById("app");if(!ap)return;
   ap.addEventListener("input",e=>{if(T3VP_BTN[S.view]&&T3VP.ok())t3VPprog()});ap.addEventListener("change",e=>{if(T3VP_BTN[S.view]&&T3VP.ok())t3VPprog(250)});
   ap.addEventListener("click",e=>{if(T3VP_BTN[S.view]&&T3VP.ok()&&e.target.closest("button,.chip,.opt,label")&&!e.target.closest("#"+T3VP_BTN[S.view]))t3VPprog(400)});
-  new MutationObserver(()=>{if(T3VP.ok()){t3VPprog(250);const f=document.getElementById("frm");if(f&&!f.dataset.t3vp){f.dataset.t3vp=1;f.addEventListener("input",()=>t3VPprog());f.addEventListener("change",()=>t3VPprog(200));f.addEventListener("click",e=>{if(e.target.closest(".chip,.opt"))t3VPprog(200)})}}else t3VPquitar()}).observe(ap,{childList:true});
-  addEventListener("resize",()=>{if(T3VP.ok())t3VPprog(300);else t3VPquitar()})})();
+  new MutationObserver(()=>{t3VMboton();const vm=document.getElementById("t3vm");if(vm&&vm.classList.contains("on")&&!T3VM.ok()){vm.classList.remove("on");document.body.style.overflow=""}if(T3VP.ok()){t3VPprog(250);const f=document.getElementById("frm");if(f&&!f.dataset.t3vp){f.dataset.t3vp=1;f.addEventListener("input",()=>t3VPprog());f.addEventListener("change",()=>t3VPprog(200));f.addEventListener("click",e=>{if(e.target.closest(".chip,.opt"))t3VPprog(200)})}}else t3VPquitar()}).observe(ap,{childList:true});
+  addEventListener("resize",()=>{t3VMboton();if(T3VP.ok())t3VPprog(300);else t3VPquitar()})})();
 
 
 function readStep(){const st=ANEXOS[S.letra].steps[S.step];for(const f of st.fields){const id=`f_${f.id}`;
