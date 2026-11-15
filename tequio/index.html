@@ -1005,7 +1005,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-14-1700';
+const PUBLICACION = '2026-11-14-2050';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2525,7 +2525,9 @@ function medPintar() {
   const esc_ = Object.values(porEsc).sort((a, b) => b.n - a.n || b.gente - a.gente || a.escuela.localeCompare(b.escuela));
   const fila = (i, t, sub, n) => `<div class="med-f"><span class="med-p ${i < 3 ? 'o' + (i + 1) : ''}">${i + 1}</span><div class="med-n"><b>${esc(t)}</b><span>${esc(sub)}</span></div><div class="med-c">${n}<small>${n === 1 ? 'documento' : 'documentos'}</small></div></div>`;
   const todos = vista.medTodos, tope = todos ? per.length : 10;
-  const fav = x => { const a = Object.entries(x.apartados || {}).sort((p, q) => q[1] - p[1])[0]; return a ? ' · más usado: ' + a[0] : ''; };
+  /* Nombres claros para apartados que Tlamatini registró con su nombre interno */
+  const NOM_AP = { banxico:"El dinero en México (Banxico)",bxcarga:"El dinero en México (Banxico)",crq:"Croquis de riesgos",crqed:"Croquis de riesgos",crqcarga:"Croquis de riesgos",constancia:"Constancia de asistencia",convenio:"Convenio de cooperativa escolar",cte:"Minuta de CTE",miescuela:"Mi escuela",misdocs:"Mis documentos",privacidad:"Autorización de datos personales",riesgo:"Riesgo de trabajo (ISSSTE)",salida:"Autorización de salida escolar",rkcarga:"Reconocimientos y diplomas" };
+  const fav = x => { const t = {}; Object.entries(x.apartados || {}).forEach(([k, v]) => { const n = NOM_AP[k] || k; t[n] = (t[n] || 0) + v; }); const a = Object.entries(t).sort((p, q) => q[1] - p[1])[0]; return a ? ' · más usado: ' + a[0] : ''; };
   c.innerHTML = `<div class="med-top"><div><h2>Medallero de Tlamatini</h2><div class="peq mudo">Solo lo ve la Supervisión · documentos generados${mes ? ' en ' + nomMes(mes).toLowerCase() : ' desde que se activó el conteo'}</div></div>
     <select id="med-mes" aria-label="Periodo"><option value="">Todo el tiempo</option>${meses.map(m => `<option value="${m}" ${m === mes ? 'selected' : ''}>${esc(nomMes(m))}</option>`).join('')}</select></div>
     ${per.length ? `<div class="med-cols">
