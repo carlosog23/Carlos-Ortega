@@ -235,7 +235,7 @@ const HOJAS = {
   // grupos: [{ id, gr (1-6 o M = multigrado), gp, al (alumnos), doc (id del trabajador), docN }].
   // asj: cada vez que la Supervisión pide la asistencia del día. escuelas vacío = toda la zona. estado: abierta | cerrada.
   // asr: lo que capturó cada escuela (id = jornada|CCT). grupos: [{ id, gr, gp, al, as, doc, docN, docA (1 acudió / 0 no), mot, otro }];
-  // equipo: el resto del personal [{ id, n, f, a, mot, otro }]. mot: incapacidad | economico | sininfo | otro.
+  // equipo: el resto del personal [{ id, n, f, a, mot, otro }]. mot: incapacidad | economico | sininfo | otro | nolab (no le corresponde laborar ese día; no cuenta).
   agr: ['id', 'cct', 'grupos', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
   asj: ['id', 'fecha', 'motivo', 'nota', 'escuelas', 'estado', 'avisado', 'creadoPor', 'creadoNombre', 'creado', 'cerrada', 'cerradaPor'],
   asr: ['id', 'jornada', 'cct', 'grupos', 'equipo', 'alumnos', 'asistieron', 'docentes', 'docentesA', 'personal', 'personalA', 'capturoPor', 'capturoNombre', 'capturoRol', 'actualizado'],
@@ -245,7 +245,7 @@ const NOMBRES = { rec: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas C
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela' };
-const VERSION = 59;
+const VERSION = 60;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -624,9 +624,9 @@ const ACCIONES = {
     const equipo = (Array.isArray(d.equipo) ? d.equipo : []).slice(0, 60).map(p => asiAusencia_({ id: String(p.id || '').slice(0, 40), n: String(p.n || '').trim().slice(0, 120), f: String(p.f || '').trim().slice(0, 60), a: p.a }, p))
       .filter(p => p.n);
     const sum = (l, k) => l.reduce((t, x) => t + (+x[k] || 0), 0);
-    const conDoc = grupos.filter(g => g.docA !== '');
+    const conDoc = grupos.filter(g => g.docA !== '' && g.mot !== 'nolab'), eqCuenta = equipo.filter(p => p.mot !== 'nolab');
     const o = { id: j.id + '|' + cct, jornada: j.id, cct: cct, grupos: grupos, equipo: equipo, alumnos: String(sum(grupos, 'al')), asistieron: String(sum(grupos, 'as')),
-      docentes: String(conDoc.length), docentesA: String(conDoc.filter(g => g.docA === 1).length), personal: String(equipo.length), personalA: String(equipo.filter(p => p.a === 1).length),
+      docentes: String(conDoc.length), docentesA: String(conDoc.filter(g => g.docA === 1).length), personal: String(eqCuenta.length), personalA: String(eqCuenta.filter(p => p.a === 1).length),
       capturoPor: yo.id, capturoNombre: yo.nombre, capturoRol: yo.rol, actualizado: ahora_() };
     guardar_('asr', o);
     // los grupos registrados se actualizan con lo capturado (por si cambió el número de alumnos o el docente)
@@ -3316,7 +3316,8 @@ function expedientes_(persona, anio, sin) {
 function puedeCtv_(yo, o) { if (yo.rol !== 'admin' && o.visitoPor !== yo.id) throw new Error('Solo quien registró la visita o el Supervisor puede modificarla.'); }
 /* ---- Asistencia en contingencias ---- */
 const ASI_MOTIVOS = { lluvias: 'lluvias', frio: 'frío extremo', calor: 'calor extremo', otro: 'contingencia' };
-const ASI_AUSENCIA = ['incapacidad', 'economico', 'sininfo', 'otro'];
+// nolab: ese día no le corresponde laborar en la escuela (p. ej., Educación Física); no es falta y no entra en la estadística del personal
+const ASI_AUSENCIA = ['incapacidad', 'economico', 'sininfo', 'otro', 'nolab'];
 // Escuelas con las que trabaja cada quien: la Supervisión, todas; el ATP, las suyas; la dirección, la suya
 function asiEscuelas_(yo) {
   if (yo.rol === 'director') { const c = cctDe_(yo); return c ? [c] : []; }

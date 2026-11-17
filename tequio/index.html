@@ -6052,6 +6052,24 @@ const ASI_VER = 59;
 const ASI_MOT = { lluvias: 'Lluvias', frio: 'Frío extremo', calor: 'Calor extremo', otro: 'Otra contingencia' };
 const ASI_AUS = [['incapacidad', 'Incapacidad médica'], ['economico', 'Permiso económico'], ['sininfo', 'Sin información'], ['otro', 'Otro (escribirlo)']];
 const asiAusNom = (m, otro) => m === 'otro' ? (otro ? otro : 'Otro motivo') : ((ASI_AUS.find(x => x[0] === m) || [])[1] || 'Sin información');
+/* «No le corresponde laborar hoy» (p. ej., el docente de Educación Física o de apoyo que ese día no tiene horario en la escuela):
+   no es una falta, así que no cuenta en la estadística del personal (ni como que acudió ni como que no acudió).
+   Desde el servidor 60 se guarda como mot = 'nolab'; con el 59 se guarda como «Otro» con este texto. También se reconocen
+   las capturas anteriores donde lo escribieron a mano en «Otro» (p. ej., «no es día laborable para él»). */
+const ASI_NOLAB_VER = 60, ASI_NOLAB_TX = 'No le corresponde laborar este día';
+const ASI_NOLAB_RE = /no\s+(es\s+)?(su\s+|un\s+)?d[ií]as?\s+(laborable|h[aá]bil|de\s+trabajo)|no\s+le\s+(corresponde|toca)|no\s+labora|no\s+trabaja\s+(hoy|ese|este|los)|d[ií]a\s+inh[aá]bil|no\s+tiene\s+(horario|clases?)|no\s+es\s+su\s+d[ií]a/i;
+const asiNoLab = x => !!x && (x.mot === 'nolab' || (x.mot === 'otro' && ASI_NOLAB_RE.test(x.otro || '')));
+// Estado de una persona: 1 acudió, 0 no acudió, 2 no le corresponde laborar ese día ('' sin dato)
+const asiEdo = (a, x) => a === '' || a == null ? '' : +a === 2 ? 2 : +a === 0 ? (asiNoLab(x) ? 2 : 0) : 1;
+// Recalcula los totales del registro a partir del detalle, sin contar a quien no le corresponde laborar ese día
+function asiNormReg(r) {
+  const gd = (r.grupos || []).map(g => asiEdo(g.docA, g)).filter(e => e === 0 || e === 1), eq = (r.equipo || []).map(p => asiEdo(p.a, p)).filter(e => e === 0 || e === 1);
+  r.docentes = String(gd.length); r.docentesA = String(gd.filter(e => e === 1).length); r.personal = String(eq.length); r.personalA = String(eq.filter(e => e === 1).length);
+  return r;
+}
+// Personas del registro a las que no les correspondía laborar ese día
+const asiNoLabDe = r => [...(r.grupos || []).filter(g => asiEdo(g.docA, g) === 2).map(g => ({ n: g.docN || 'Docente de ' + asiGrNom(g), f: 'Docente de ' + asiGrNom(g) })),
+  ...(r.equipo || []).filter(p => asiEdo(p.a, p) === 2).map(p => ({ n: p.n, f: p.f }))];
 let ASI = null, asiAutoAbierto = false;
 const asiGrNom = g => g.gr === 'M' ? 'Multigrado' + (g.gp ? ' ' + g.gp : '') : g.gr + '° ' + (g.gp || '');
 const asiQuien = r => r.capturoRol === 'director' ? 'La dirección' : nombreCorto(r.capturoNombre) + (r.capturoRol === 'atp' ? ' (ATP)' : ' (Supervisión)');
@@ -6069,8 +6087,8 @@ const asiTotales = l => l.reduce((t, r) => ({ al: t.al + asiNum(r.alumnos), as: 
 // Ausencias del personal de un registro, por motivo
 function asiAusencias(r) {
   const l = [];
-  (r.grupos || []).filter(g => g.docA === 0).forEach(g => l.push({ n: g.docN || 'Docente de ' + asiGrNom(g), f: 'Docente de ' + asiGrNom(g), mot: g.mot, otro: g.otro }));
-  (r.equipo || []).filter(p => p.a === 0).forEach(p => l.push({ n: p.n, f: p.f, mot: p.mot, otro: p.otro }));
+  (r.grupos || []).filter(g => asiEdo(g.docA, g) === 0).forEach(g => l.push({ n: g.docN || 'Docente de ' + asiGrNom(g), f: 'Docente de ' + asiGrNom(g), mot: g.mot, otro: g.otro }));
+  (r.equipo || []).filter(p => asiEdo(p.a, p) === 0).forEach(p => l.push({ n: p.n, f: p.f, mot: p.mot, otro: p.otro }));
   return l;
 }
 
@@ -6084,6 +6102,7 @@ async function asiCargar(silencio) {
 // La alerta se recalcula con lo que hay en ASI (después de capturar o pedir)
 function asiSinc() {
   if (!ASI || ASI.error) return;
+  ASI.asr.forEach(asiNormReg);
   const ab = ASI.asj.filter(j => j.estado === 'abierta' && j.fecha === hoy()).map(j => ({ id: j.id, fecha: j.fecha, motivo: j.motivo, nota: j.nota, escuelas: asiEscuelasDe(j) })).filter(j => j.escuelas.length);
   S.asi = { abiertas: ab, hechas: ASI.asr.map(r => r.id), conGrupos: ASI.agr.map(g => g.cct) };
   pintarBandaAsi();
@@ -6214,11 +6233,11 @@ function formAsiGrupos(cct, despues) {
 function formAsiCaptura(jid, cct) {
   const j = ASI.asj.find(x => x.id === jid), base = ASI.agr.find(x => x.cct === cct), previo = asiReg(jid, cct);
   if (!j || !base) return aviso('No se encontró la solicitud o los grupos de la escuela.', 'mal');
-  const grupos = base.grupos.map(g => { const p = previo && (previo.grupos || []).find(x => x.id === g.id); return Object.assign({}, g, p ? { as: p.as, docA: p.docA, mot: p.mot, otro: p.otro } : { as: '', docA: 1, mot: '', otro: '' }); });
+  const grupos = base.grupos.map(g => { const p = previo && (previo.grupos || []).find(x => x.id === g.id); return Object.assign({}, g, p ? { as: p.as, docA: asiEdo(p.docA, p), mot: asiNoLab(p) ? '' : p.mot, otro: asiNoLab(p) ? '' : p.otro } : { as: '', docA: 1, mot: '', otro: '' }); });
   const enGrupo = new Set(grupos.map(g => g.doc).filter(Boolean));
-  let equipo = previo && (previo.equipo || []).length ? previo.equipo.map(x => Object.assign({}, x))
+  let equipo = previo && (previo.equipo || []).length ? previo.equipo.map(x => asiNoLab(x) ? Object.assign({}, x, { a: 2, mot: '', otro: '' }) : Object.assign({}, x))
     : asiPersonal(cct).filter(x => !enGrupo.has(x.id)).map(x => ({ id: x.id, n: x.n, f: x.f, a: 1, mot: '', otro: '' }));
-  const selAus = (pre, a, mot, otro) => `<select data-k="${pre}a" class="asi-si"><option value="1"${a !== 0 ? ' selected' : ''}>Acudió</option><option value="0"${a === 0 ? ' selected' : ''}>No acudió</option></select>
+  const selAus = (pre, a, mot, otro) => `<select data-k="${pre}a" class="asi-si"><option value="1"${a !== 0 && a !== 2 ? ' selected' : ''}>Acudió</option><option value="0"${a === 0 ? ' selected' : ''}>No acudió</option><option value="2"${a === 2 ? ' selected' : ''}>Hoy no le corresponde laborar</option></select>
     <select data-k="${pre}mot" class="asi-mot${a === 0 ? '' : ' oculto'}" aria-label="Motivo">${ASI_AUS.map(([k, t]) => `<option value="${k}"${(mot || 'sininfo') === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
     <input data-nodict data-k="${pre}otro" class="asi-otro${a === 0 && mot === 'otro' ? '' : ' oculto'}" maxlength="200" placeholder="Escriba el motivo" value="${esc(otro || '')}">`;
   const filaG = (g, i) => `<div class="asi-cg" data-i="${i}">
@@ -6230,16 +6249,17 @@ function formAsiCaptura(jid, cct) {
       <div class="asi-per">${selAus('p', p.a, p.mot, p.otro)}</div></div>`;
   const leer = () => {
     $$('.asi-cg').forEach(el => { const g = grupos[+el.dataset.i], v = k => el.querySelector(`[data-k="${k}"]`).value;
-      g.as = v('as'); g.docA = +v('da'); g.mot = g.docA ? '' : v('dmot'); g.otro = g.mot === 'otro' ? v('dotro').trim() : ''; });
+      g.as = v('as'); g.docA = +v('da'); g.mot = g.docA !== 0 ? '' : v('dmot'); g.otro = g.mot === 'otro' ? v('dotro').trim() : ''; });
     $$('.asi-cp').forEach(el => { const p = equipo[+el.dataset.i], v = k => { const x = el.querySelector(`[data-k="${k}"]`); return x ? x.value : null; };
       if (p.nuevo) { p.n = v('n').trim(); p.f = v('f').trim(); }
-      p.a = +v('pa'); p.mot = p.a ? '' : v('pmot'); p.otro = p.mot === 'otro' ? v('potro').trim() : ''; });
+      p.a = +v('pa'); p.mot = p.a !== 0 ? '' : v('pmot'); p.otro = p.mot === 'otro' ? v('potro').trim() : ''; });
   };
   const total = () => {
     leer();
     const al = grupos.reduce((s, g) => s + asiNum(g.al), 0), as = grupos.reduce((s, g) => s + Math.min(asiNum(g.as), asiNum(g.al)), 0);
-    const pt = grupos.length + equipo.filter(p => p.n).length, pa = grupos.filter(g => g.docA !== 0).length + equipo.filter(p => p.n && p.a !== 0).length;
-    $('#asi-tot').innerHTML = `<div><b>${as}</b> de ${al} alumnos ${asiChip(asiPct(as, al))}</div><div><b>${pa}</b> de ${pt} del personal acudió</div>`;
+    const nl = grupos.filter(g => g.docA === 2).length + equipo.filter(p => p.n && p.a === 2).length;
+    const pt = grupos.filter(g => g.docA !== 2).length + equipo.filter(p => p.n && p.a !== 2).length, pa = grupos.filter(g => g.docA === 1).length + equipo.filter(p => p.n && p.a === 1).length;
+    $('#asi-tot').innerHTML = `<div><b>${as}</b> de ${al} alumnos ${asiChip(asiPct(as, al))}</div><div><b>${pa}</b> de ${pt} del personal acudió${nl ? ` <span class="ayuda">(no se cuenta${nl === 1 ? '' : 'n'} ${nl} a quien${nl === 1 ? '' : 'es'} hoy no le${nl === 1 ? '' : 's'} corresponde laborar)</span>` : ''}</div>`;
   };
   const ligar = () => {
     $$('#velo .asi-si, #velo .asi-mot').forEach(s => s.onchange = () => {
@@ -6268,9 +6288,12 @@ function formAsiCaptura(jid, cct) {
     const mal = grupos.find(g => asiNum(g.as) > asiNum(g.al));
     if (mal) return aviso(`En ${esc(asiGrNom(mal))} asistieron más alumnos (${mal.as}) de los que tiene el grupo (${mal.al}). Corríjalo o cambie los grupos.`, 'mal', 8000);
     if ([...grupos, ...equipo].some(x => (x.docA === 0 || x.a === 0) && x.mot === 'otro' && !x.otro)) return aviso('Escriba el motivo de la persona marcada con «Otro».', 'mal');
+    // «Hoy no le corresponde laborar» se guarda como 'nolab' (servidor 60) o como «Otro» con su texto (servidor 59)
+    const nuevo = (cfg && cfg.demo) || (S.version || 0) >= ASI_NOLAB_VER;
+    const enviar = (a, mot, otro) => a === 2 ? { a: 0, mot: nuevo ? 'nolab' : 'otro', otro: nuevo ? '' : ASI_NOLAB_TX } : { a, mot, otro };
     const r = await accion('asiCapturar', { jornada: jid, cct,
-      grupos: grupos.map(g => ({ id: g.id, gr: g.gr, gp: g.gp, al: g.al, as: asiNum(g.as), doc: g.doc, docN: g.docN, docA: g.docA, mot: g.mot, otro: g.otro })),
-      equipo: equipo.filter(p => p.n).map(p => ({ id: p.id, n: p.n, f: p.f, a: p.a, mot: p.mot, otro: p.otro })) });
+      grupos: grupos.map(g => { const e = enviar(g.docA, g.mot, g.otro); return { id: g.id, gr: g.gr, gp: g.gp, al: g.al, as: asiNum(g.as), doc: g.doc, docN: g.docN, docA: e.a, mot: e.mot, otro: e.otro }; }),
+      equipo: equipo.filter(p => p.n).map(p => { const e = enviar(p.a, p.mot, p.otro); return { id: p.id, n: p.n, f: p.f, a: e.a, mot: e.mot, otro: e.otro }; }) });
     if (!r) return;
     poner(ASI.asr, r.asr); asiSinc(); cerrarModal();
     aviso('Asistencia guardada. Gracias.', 'ok', 3500);
@@ -6314,17 +6337,19 @@ function formAsiPedir(id) {
 function asiDetalle(jid, cct) {
   const r = asiReg(jid, cct), j = ASI.asj.find(x => x.id === jid);
   if (!r) return;
-  const aus = asiAusencias(r), pt = asiNum(r.docentes) + asiNum(r.personal), pa = asiNum(r.docentesA) + asiNum(r.personalA);
+  asiNormReg(r);
+  const aus = asiAusencias(r), nolab = asiNoLabDe(r), pt = asiNum(r.docentes) + asiNum(r.personal), pa = asiNum(r.docentesA) + asiNum(r.personalA);
   modal(esc(nombreEscuela(cct)), `
     <p class="peq" style="margin-top:0">${esc(ASI_MOT[j.motivo] || '')} · ${esc(fechaLarga(j.fecha))} · capturó ${esc(r.capturoRol === 'director' ? 'la dirección' : asiQuien(r))} a las ${esc(String(r.actualizado).slice(11, 16))} h</p>
     <div class="matriz-caja"><table class="matriz asi-tab"><thead><tr><th class="esc-col">Grupo</th><th>Alumnos</th><th>Asistieron</th><th>%</th><th style="max-width:none;text-align:left">Docente</th></tr></thead><tbody>
       ${(r.grupos || []).map(g => `<tr><td class="esc-col">${esc(asiGrNom(g))}</td><td>${g.al}</td><td><b>${g.as}</b></td><td>${asiChip(asiPct(g.as, g.al))}</td>
-        <td style="text-align:left;white-space:normal">${esc(g.docN || '—')} ${g.docA === 0 ? `<span class="chip mal">No acudió · ${esc(asiAusNom(g.mot, g.otro))}</span>` : g.docA === 1 ? '<span class="chip ok">Acudió</span>' : ''}</td></tr>`).join('')}
+        <td style="text-align:left;white-space:normal">${esc(g.docN || '—')} ${asiEdo(g.docA, g) === 2 ? '<span class="chip">Hoy no le corresponde laborar</span>' : asiEdo(g.docA, g) === 0 ? `<span class="chip mal">No acudió · ${esc(asiAusNom(g.mot, g.otro))}</span>` : g.docA === 1 ? '<span class="chip ok">Acudió</span>' : ''}</td></tr>`).join('')}
       <tr class="asi-total"><td class="esc-col">Total de la escuela</td><td>${r.alumnos}</td><td><b>${r.asistieron}</b></td><td>${asiChip(asiPct(+r.asistieron, +r.alumnos))}</td><td style="text-align:left">${pa} de ${pt} del personal acudió</td></tr>
     </tbody></table></div>
     <div class="seccion-t asi-st">Personal que no acudió</div>
     ${aus.length ? aus.map(a => `<div class="asi-aus"><b>${esc(a.n)}</b> <span class="ayuda">${esc(a.f)}</span> <span class="chip ${a.mot === 'sininfo' ? 'mal' : 'aviso'}">${esc(asiAusNom(a.mot, a.otro))}</span></div>`).join('') : '<p class="peq" style="margin:4px 0">Acudió todo el personal.</p>'}
-    ${(r.equipo || []).filter(p => p.a !== 0).length ? `<details style="margin-top:10px"><summary class="peq">Resto del personal que acudió (${(r.equipo || []).filter(p => p.a !== 0).length})</summary>${(r.equipo || []).filter(p => p.a !== 0).map(p => `<div class="peq">${esc(p.n)} <span class="ayuda">${esc(p.f)}</span></div>`).join('')}</details>` : ''}`,
+    ${nolab.length ? `<div class="seccion-t asi-st">Hoy no les correspondía laborar <span class="ayuda" style="text-transform:none;letter-spacing:0">(no cuentan como falta)</span></div>${nolab.map(a => `<div class="asi-aus"><b>${esc(a.n)}</b> <span class="ayuda">${esc(a.f)}</span></div>`).join('')}` : ''}
+    ${(r.equipo || []).filter(p => asiEdo(p.a, p) === 1).length ? `<details style="margin-top:10px"><summary class="peq">Resto del personal que acudió (${(r.equipo || []).filter(p => asiEdo(p.a, p) === 1).length})</summary>${(r.equipo || []).filter(p => asiEdo(p.a, p) === 1).map(p => `<div class="peq">${esc(p.n)} <span class="ayuda">${esc(p.f)}</span></div>`).join('')}</details>` : ''}`,
     `${asiPuedeCapturar(j, cct) ? '<button class="boton sec" id="asd-ed">Corregir</button>' : ''}<button class="boton" id="asd-x">Cerrar</button>`);
   $('#asd-x').onclick = cerrarModal;
   if ($('#asd-ed')) $('#asd-ed').onclick = () => { cerrarModal(); asiAbrirCaptura(jid, cct); };
@@ -10668,8 +10693,7 @@ const Demo = (() => {
     asiDatos: () => { if (!D.asj) asiDemoIni(); const c = asiCcts(); return { asj: copia(D.asj.filter(j => !cfg.dir || !(j.escuelas || []).length || j.escuelas.includes(c[0]))), agr: copia(D.agr.filter(g => c.includes(g.cct))), asr: copia(D.asr.filter(r => c.includes(r.cct))), escuelas: c, hoy: hoy() }; },
     asiGrupos: d => { const o = { id: d.cct, cct: d.cct, grupos: d.grupos, actualizado: ahora(), actualizadoPor: D.yo.id, actualizadoNombre: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre }; poner(D.agr, o); return { agr: copia(o) }; },
     asiCapturar: d => { const g = d.grupos, e = d.equipo || [], sum = (l, k) => l.reduce((t, x) => t + (+x[k] || 0), 0);
-      const o = { id: d.jornada + '|' + d.cct, jornada: d.jornada, cct: d.cct, grupos: g, equipo: e, alumnos: String(sum(g, 'al')), asistieron: String(sum(g, 'as')), docentes: String(g.length), docentesA: String(g.filter(x => x.docA === 1).length),
-        personal: String(e.length), personalA: String(e.filter(x => x.a === 1).length), capturoPor: D.yo.id, capturoNombre: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, capturoRol: cfg.dir ? 'director' : D.yo.rol, actualizado: ahora() };
+      const o = { id: d.jornada + '|' + d.cct, jornada: d.jornada, cct: d.cct, grupos: g, equipo: e, alumnos: String(sum(g, 'al')), asistieron: String(sum(g, 'as')), docentes: '', docentesA: '', personal: '', personalA: '', capturoPor: D.yo.id, capturoNombre: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, capturoRol: cfg.dir ? 'director' : D.yo.rol, actualizado: ahora() };
       poner(D.asr, o); poner(D.agr, { id: d.cct, cct: d.cct, grupos: g.map(x => ({ id: x.id, gr: x.gr, gp: x.gp, al: x.al, doc: x.doc, docN: x.docN })), actualizado: ahora() }); return { asr: copia(o) }; },
     asiPedir: d => { const j = d.id ? D.asj.find(x => x.id === d.id) : null;
       const o = Object.assign(j || { id: uid('asj'), estado: 'abierta', avisado: '', creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora(), cerrada: '', cerradaPor: '' }, { fecha: d.fecha, motivo: d.motivo, nota: d.nota, escuelas: d.escuelas || [] });
