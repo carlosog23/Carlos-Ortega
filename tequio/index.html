@@ -463,6 +463,26 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .vid-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 @media (max-width:640px){.vid-banda{margin:10px 16px 0}.vid-banda .vid-btn{width:100%;justify-content:center}}
 @media (prefers-reduced-motion:reduce){.vid-luz{animation:none}}
+.asi-banda{background:#FDF1DC;border-color:#EBC98A;color:#6B4A0E}.asi-banda .asi-ico svg{width:26px;height:26px;color:var(--terra-d)}
+.asi-gf{display:grid;grid-template-columns:110px 110px 90px 1fr 34px;gap:8px;align-items:end;border-bottom:1px solid var(--borde);padding:6px 0}
+.asi-gf .campo{margin-bottom:4px}.asi-gf .icono-btn{margin-bottom:8px}
+.asi-st{display:flex;align-items:center;gap:8px;padding:14px 0 6px}
+.asi-cg,.asi-cp{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:9px 0;border-bottom:1px solid var(--borde)}
+.asi-cg-t{display:flex;flex-direction:column;min-width:96px}.asi-cg-t b{font-size:16px}
+.asi-num{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600}.asi-num input{width:84px;border:1px solid var(--borde);border-radius:9px;padding:8px 10px;min-height:40px;background:#fff}
+.asi-per{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:230px}
+.asi-per select,.asi-per input,.asi-cp>input{border:1px solid var(--borde);border-radius:9px;padding:7px 9px;min-height:38px;background:#fff}
+.asi-per .asi-otro{flex:1;min-width:150px}.asi-nom{flex:1;min-width:150px;display:flex;flex-direction:column}.asi-cg .asi-nom{flex:0 1 auto;min-width:0;font-size:14.5px}
+.asi-cp .asi-nom-in{flex:1;min-width:150px}.asi-cp .asi-fun-in{width:130px}
+.asi-tot{position:sticky;bottom:-1px;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;background:var(--crema);border:1px solid var(--borde);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:15px}
+.asi-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}
+.asi-cif{background:var(--crema);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}.asi-cif b{font-size:22px;color:var(--indigo);font-family:'Fraunces',Georgia,serif}.asi-cif span{font-size:13.5px;color:var(--gris)}.asi-cif .chip{align-self:flex-start;margin-top:2px}
+.asi-tab td{white-space:nowrap}.asi-tab .esc-col{white-space:normal}.asi-tab tr.asi-total td{font-weight:700;background:var(--arena-2);border-top:2px solid var(--indigo)}.asi-tab tr.asi-sub td{background:#F7F1E6;font-weight:600}
+.asi-tab tr.asi-falta td{background:#FFF8F6}
+.asi-aus{padding:6px 0;border-bottom:1px solid var(--borde);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.asi-esc{max-height:260px;overflow:auto;border:1px solid var(--borde);border-radius:9px;padding:8px 10px;background:#fff;display:flex;flex-direction:column;gap:6px}
+.asi-gr-l{display:flex;flex-direction:column;margin-top:8px}.asi-gr-e{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde)}.asi-gr-e>div{flex:1;min-width:0}
+@media (max-width:640px){.asi-gf{grid-template-columns:1fr 1fr 1fr 34px}.asi-gf .asi-doc{grid-column:1/4;grid-row:2}.asi-gf .icono-btn{grid-column:4;grid-row:1}.asi-per{min-width:100%}}
 .banda-demo{background:var(--ambar);color:#3A2A08;text-align:center;font-size:13.5px;font-weight:600;padding:5px 12px}
 .banda-demo button{background:none;border:0;text-decoration:underline;font-weight:700;cursor:pointer;color:inherit}
 .pie{text-align:center;font-size:12.5px;color:var(--gris);padding:10px 16px 26px}
@@ -1005,7 +1025,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-14-2330';
+const PUBLICACION = '2026-11-17-0830';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1029,7 +1049,7 @@ async function cargar() {
       reu: Array.isArray(r.reu) ? r.reu : null, acu: Array.isArray(r.acu) ? r.acu : null, cum: Array.isArray(r.cum) ? r.cum : null,
       evi: Array.isArray(r.evi) ? r.evi : null, eve: Array.isArray(r.eve) ? r.eve : null, eviRevisado: r.eviRevisado || '',
       ofi: Array.isArray(r.ofi) ? r.ofi : null, ofiCfg: r.ofiCfg || null,
-      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, cue: Array.isArray(r.cue) ? r.cue : null, rev: Array.isArray(r.rev) ? r.rev : null, ate: Array.isArray(r.ate) ? r.ate : null, zonaRaw: r.zona || null, vid: Array.isArray(r.vid) ? r.vid : null, vidSala: r.vidSala || '', prm: Array.isArray(r.prm) ? r.prm : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
+      sis: Array.isArray(r.sis) ? r.sis : null, sic: Array.isArray(r.sic) ? r.sic : [], sisCfg: r.sisCfg || null, eig: Array.isArray(r.eig) ? r.eig : null, per: Array.isArray(r.per) ? r.per : null, dep: Array.isArray(r.dep) ? r.dep : null, vis: Array.isArray(r.vis) ? r.vis : null, inf: Array.isArray(r.inf) ? r.inf : null, acl: Array.isArray(r.acl) ? r.acl : null, pen: Array.isArray(r.pen) ? r.pen : null, cue: Array.isArray(r.cue) ? r.cue : null, rev: Array.isArray(r.rev) ? r.rev : null, ate: Array.isArray(r.ate) ? r.ate : null, zonaRaw: r.zona || null, vid: Array.isArray(r.vid) ? r.vid : null, asi: r.asi || null, vidSala: r.vidSala || '', prm: Array.isArray(r.prm) ? r.prm : null, iaDirectorio: !!r.iaDirectorio, version: +r.version || 0 };
     if (vista.atp === null) vista.atp = S.yo.rol === 'atp' && escuelasDeAtp(S.yo).length ? S.yo.id : '';
     pintar();
     // el semáforo de la carpeta CTEs (Evidencias, informes) sale del apartado CTE: se carga en segundo plano
@@ -1130,8 +1150,8 @@ function pestanas() {
     .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm']];
-  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['insumos', 'Insumos para Tlamatini', 'i-tlm'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['seguimiento', 'Seguimiento', 'i-seg'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm'], ['asistencia', 'Asistencia', 'i-chk']];
+  const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['insumos', 'Insumos para Tlamatini', 'i-tlm'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['seguimiento', 'Seguimiento', 'i-seg'], ['asistencia', 'Asistencia', 'i-chk'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
   l.push(['finanzas', 'Recursos financieros', 'i-pesos']);
@@ -1147,7 +1167,7 @@ function pestanasTodas() {
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas']],
-  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'minutas', 'seguimiento', 'campo', 'visitas']],
+  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'minutas', 'seguimiento', 'campo', 'visitas', 'asistencia']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
   ['documentos', 'Documentos', 'i-lapiz', ['correos', 'oficios', 'directorio', 'herramientas', 'relweb']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
@@ -1156,7 +1176,7 @@ const LAT_GRUPOS = [
 const LAT_ARRIBA = ['pendientes', 'enlaces'];
 let latAbiertos = new Set((() => { try { return JSON.parse(localStorage.getItem('tequio.lat') || '[]'); } catch (e) { return []; } })());
 function nombreLat(t) {
-  return ({ agenda: 'Agenda de la zona', acuerdos: esDirector() ? t[1] : 'Acuerdos y programas', seguimiento: 'Visitas de supervisión', herramientas: 'Tlamatini', permisos: 'Permisos y facilidades', relweb: 'Claves de la RELweb', minutas: 'Minutas de CTE y CTZ', correos: 'Correo de la Supervisión', personal: esDirector() ? t[1] : 'Base del personal' })[t[0]] || t[1];
+  return ({ agenda: 'Agenda de la zona', acuerdos: esDirector() ? t[1] : 'Acuerdos y programas', seguimiento: 'Visitas de supervisión', herramientas: 'Tlamatini', permisos: 'Permisos y facilidades', relweb: 'Claves de la RELweb', asistencia: 'Asistencia en contingencias', minutas: 'Minutas de CTE y CTZ', correos: 'Correo de la Supervisión', personal: esDirector() ? t[1] : 'Base del personal' })[t[0]] || t[1];
 }
 function gruposLat(tabs) {
   const usados = new Set(LAT_ARRIBA), gr = [];
@@ -1220,6 +1240,7 @@ function pintar() {
   </div></header>
   ${ZONA.aviso && ZONA.aviso.texto ? `<div class="aviso-caja" style="max-width:1100px;margin:12px auto 0"><b>Aviso del administrador de Tequio:</b> ${esc(ZONA.aviso.texto)}</div>` : ''}
   <div id="vid-caja"></div>
+  <div id="asi-caja"></div>
   <div class="marco" id="marco">
   <aside class="lateral" id="lateral" aria-label="Secciones">${lateralHTML(tabs)}</aside>
   <div class="velo-lat" id="velo-lat"></div>
@@ -1229,11 +1250,11 @@ function pintar() {
   $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
   $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
   $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas })[vista.tab]();
-  pintarBandaVid(); vidVigilar();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas })[vista.tab]();
+  pintarBandaVid(); vidVigilar(); pintarBandaAsi();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
 // Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
@@ -6021,6 +6042,403 @@ function formRelweb(cct) {
 const relSup = () => ZONA.cctSupervision ? { cct: ZONA.cctSupervision, escuela: ZONA.nombreNo, municipio: '', sup: true } : null;
 const poner2 = (lista, o) => { const i = lista.findIndex(x => x.cct === o.cct); if (i >= 0) lista[i] = o; else lista.push(o); };
 
+/* ---------------- Asistencia en contingencias (lluvias, frío o calor extremo) ----------------
+   Solo cuando la Supervisión la pide. Cada dirección ve la alerta al entrar y captura la de su escuela:
+   alumnos que asistieron por grupo, si el docente de cada grupo acudió y si acudió el resto del personal
+   (si no: incapacidad médica, permiso económico, sin información u otro motivo escrito).
+   La primera vez, la escuela da de alta sus grupos, sus alumnos y su docente (precargados de la base del personal).
+   Los ATP capturan la de sus escuelas si la dirección no asiste. Requiere el servidor versión 59. */
+const ASI_VER = 59;
+const ASI_MOT = { lluvias: 'Lluvias', frio: 'Frío extremo', calor: 'Calor extremo', otro: 'Otra contingencia' };
+const ASI_AUS = [['incapacidad', 'Incapacidad médica'], ['economico', 'Permiso económico'], ['sininfo', 'Sin información'], ['otro', 'Otro (escribirlo)']];
+const asiAusNom = (m, otro) => m === 'otro' ? (otro ? otro : 'Otro motivo') : ((ASI_AUS.find(x => x[0] === m) || [])[1] || 'Sin información');
+let ASI = null, asiAutoAbierto = false;
+const asiGrNom = g => g.gr === 'M' ? 'Multigrado' + (g.gp ? ' ' + g.gp : '') : g.gr + '° ' + (g.gp || '');
+const asiQuien = r => r.capturoRol === 'director' ? 'La dirección' : nombreCorto(r.capturoNombre) + (r.capturoRol === 'atp' ? ' (ATP)' : ' (Supervisión)');
+const asiPct = (a, t) => t ? Math.round(a * 100 / t) : null;
+const asiChip = p => p == null ? '<span class="chip">—</span>' : `<span class="chip ${p >= 80 ? 'ok' : p >= 50 ? 'aviso' : 'mal'}">${p} %</span>`;
+const asiListo = () => (cfg && cfg.demo) || (S.version || 0) >= ASI_VER;
+const asiNum = v => { const n = Math.round(+v); return isFinite(n) && n >= 0 ? n : 0; };
+// Estado de una solicitud: abierta (hoy), programada (fecha futura), concluida (ya pasó el día) o cerrada (la cerró la Supervisión)
+const asiEstado = j => j.estado === 'cerrada' ? 'cerrada' : j.fecha === hoy() ? 'abierta' : j.fecha > hoy() ? 'programada' : 'concluida';
+const ASI_EST = { abierta: ['Abierta hoy', 'ok'], programada: ['Programada', 'indigo'], concluida: ['Concluida', ''], cerrada: ['Cerrada', ''] };
+const asiEscuelasDe = j => ((j.escuelas || []).length ? j.escuelas : directores().map(c => c.cct)).filter(c => !ASI || ASI.escuelas.includes(c));
+const asiReg = (jid, cct) => ASI && ASI.asr.find(r => r.id === jid + '|' + cct);
+const asiTotales = l => l.reduce((t, r) => ({ al: t.al + asiNum(r.alumnos), as: t.as + asiNum(r.asistieron), d: t.d + asiNum(r.docentes), dA: t.dA + asiNum(r.docentesA),
+  p: t.p + asiNum(r.docentes) + asiNum(r.personal), pA: t.pA + asiNum(r.docentesA) + asiNum(r.personalA), n: t.n + 1 }), { al: 0, as: 0, d: 0, dA: 0, p: 0, pA: 0, n: 0 });
+// Ausencias del personal de un registro, por motivo
+function asiAusencias(r) {
+  const l = [];
+  (r.grupos || []).filter(g => g.docA === 0).forEach(g => l.push({ n: g.docN || 'Docente de ' + asiGrNom(g), f: 'Docente de ' + asiGrNom(g), mot: g.mot, otro: g.otro }));
+  (r.equipo || []).filter(p => p.a === 0).forEach(p => l.push({ n: p.n, f: p.f, mot: p.mot, otro: p.otro }));
+  return l;
+}
+
+async function asiCargar(silencio) {
+  try {
+    const r = await api('asiDatos', {});
+    ASI = { asj: r.asj || [], agr: r.agr || [], asr: r.asr || [], escuelas: r.escuelas || [] };
+    asiSinc();
+  } catch (e) { if (!silencio) ASI = { error: e.message }; }
+}
+// La alerta se recalcula con lo que hay en ASI (después de capturar o pedir)
+function asiSinc() {
+  if (!ASI || ASI.error) return;
+  const ab = ASI.asj.filter(j => j.estado === 'abierta' && j.fecha === hoy()).map(j => ({ id: j.id, fecha: j.fecha, motivo: j.motivo, nota: j.nota, escuelas: asiEscuelasDe(j) })).filter(j => j.escuelas.length);
+  S.asi = { abiertas: ab, hechas: ASI.asr.map(r => r.id), conGrupos: ASI.agr.map(g => g.cct) };
+  pintarBandaAsi();
+}
+function asiPendientes() {
+  const a = S && S.asi;
+  if (!a || !Array.isArray(a.abiertas)) return [];
+  const l = [];
+  a.abiertas.forEach(j => (j.escuelas || []).forEach(c => { if (!(a.hechas || []).includes(j.id + '|' + c)) l.push({ j, cct: c }); }));
+  return l;
+}
+function bandaAsi() {
+  if (!pestanas().some(t => t[0] === 'asistencia')) return '';
+  const p = asiPendientes();
+  if (!p.length) return '';
+  const j = p[0].j, mot = ASI_MOT[j.motivo] || 'Contingencia';
+  if (esDirector()) {
+    const primera = !((S.asi.conGrupos || []).includes(p[0].cct));
+    return `<div class="vid-banda asi-banda"><span class="asi-ico" aria-hidden="true">${ico('i-chk')}</span><div class="vid-banda-tx"><b>${esc(mot)}: la Supervisión solicita la asistencia de hoy</b>
+      <span>${j.nota ? esc(j.nota) + ' · ' : ''}${primera ? 'Como es la primera vez, primero dé de alta sus grupos y cuántos alumnos tiene cada uno.' : 'Capture cuántos alumnos asistieron por grupo y quién del personal acudió.'}</span></div>
+      <button class="boton" data-asicap="${esc(j.id)}" data-asicct="${esc(p[0].cct)}">${primera ? 'Dar de alta mis grupos' : 'Capturar la asistencia'}</button></div>`;
+  }
+  const n = new Set(p.map(x => x.cct)).size;
+  return `<div class="vid-banda asi-banda"><span class="asi-ico" aria-hidden="true">${ico('i-chk')}</span><div class="vid-banda-tx"><b>Asistencia de hoy (${esc(mot.toLowerCase())}): ${n} ${n === 1 ? 'escuela' : 'escuelas'} ${esAdmin() ? 'de la zona' : 'a su cargo'} sin capturar</b>
+    <span>${esAdmin() ? 'Vea cómo va la asistencia en las escuelas.' : 'Si alguna dirección no asiste, usted puede capturar la asistencia de su escuela.'}</span></div>
+    <button class="boton sec" data-asiver>Ver la asistencia</button></div>`;
+}
+function pintarBandaAsi() {
+  const c = $('#asi-caja'); if (!c) return;
+  const h = bandaAsi();
+  if (c.dataset.h !== h) {
+    c.dataset.h = h; c.innerHTML = h;
+    $$('[data-asicap]', c).forEach(b => b.onclick = () => asiAbrirCaptura(b.dataset.asicap, b.dataset.asicct));
+    $$('[data-asiver]', c).forEach(b => b.onclick = () => { vista.tab = 'asistencia'; pintar(); window.scrollTo(0, 0); });
+  }
+  // la dirección ve la alerta abierta al entrar (una vez por visita)
+  if (esDirector() && h && !asiAutoAbierto && !$('#velo')) {
+    asiAutoAbierto = true;
+    const p = asiPendientes()[0];
+    setTimeout(() => { if (!$('#velo')) asiAbrirCaptura(p.j.id, p.cct); }, 400);
+  }
+}
+
+// Personal de la escuela (base del personal): quien tiene una plaza activa en ese C.C.T.
+function asiPersonal(cct) {
+  const ord = f => /^(director|encargad)/i.test(f) ? 0 : /^subdirector/i.test(f) ? 1 : /frente a grupo|^docente/i.test(f) ? 2 : LA_APOYO.test(f) ? 4 : 3;
+  return (S.trb || []).filter(t => t.estado !== 'baja').map(t => ({ t, p: perActivas(t).find(p => p.cct === cct) })).filter(x => x.p)
+    .map(({ t, p }) => ({ id: t.id, n: laTitulo(perNombre(t)), f: p.funcion || '', g: p.grupo || '' }))
+    .sort((a, b) => ord(a.f) - ord(b.f) || a.n.localeCompare(b.n, 'es'));
+}
+const asiEsDocente = f => /frente a grupo|^docente|^maestr/i.test(f || '');
+// Grupos sugeridos la primera vez: los que dice la base del personal (grupo de cada docente) o, si no, los del SisAT de la escuela
+function asiSugerirGrupos(cct) {
+  const per = asiPersonal(cct), l = [], vistos = new Set();
+  per.filter(x => asiEsDocente(x.f) && x.g).forEach(x => {
+    const m = String(x.g).toUpperCase().match(/([1-6])\s*°?\s*([A-Z])?\b/);
+    if (!m) return;
+    const k = m[1] + '|' + (m[2] || '');
+    if (vistos.has(k)) return; vistos.add(k);
+    l.push({ id: uid('g'), gr: m[1], gp: m[2] || '', al: '', doc: x.id, docN: x.n });
+  });
+  if (!l.length && Array.isArray(S.sis)) S.sis.filter(x => x.cct === cct).forEach(x => { const k = x.grado + '|' + (x.grupo || ''); if (vistos.has(k)) return; vistos.add(k); l.push({ id: uid('g'), gr: String(x.grado), gp: x.grupo || '', al: '', doc: '', docN: '' }); });
+  if (!l.length) per.filter(x => asiEsDocente(x.f)).forEach(x => l.push({ id: uid('g'), gr: '', gp: '', al: '', doc: x.id, docN: x.n }));
+  return l.sort((a, b) => String(a.gr + a.gp).localeCompare(String(b.gr + b.gp))).concat(l.length ? [] : [{ id: uid('g'), gr: '', gp: '', al: '', doc: '', docN: '' }]);
+}
+
+async function asiPreparar() {
+  if (!ASI || ASI.error) { cargando(true); await asiCargar(); cargando(false); }
+  if (!Array.isArray(S.trb)) { cargando(true); await perCargar(); cargando(false); }
+  if (ASI && ASI.error) { aviso(esc(ASI.error), 'mal'); return false; }
+  return true;
+}
+async function asiAbrirCaptura(jid, cct) {
+  if (!(await asiPreparar())) return;
+  const g = ASI.agr.find(x => x.cct === cct);
+  if (!g || !(g.grupos || []).length) return formAsiGrupos(cct, () => formAsiCaptura(jid, cct));
+  formAsiCaptura(jid, cct);
+}
+
+/* --- Alta de los grupos de una escuela --- */
+function formAsiGrupos(cct, despues) {
+  const previo = ASI.agr.find(x => x.cct === cct);
+  let filas = previo && (previo.grupos || []).length ? previo.grupos.map(x => Object.assign({}, x)) : asiSugerirGrupos(cct);
+  const per = asiPersonal(cct), docentes = per.filter(x => !/^(director|encargad)/i.test(x.f) && !LA_APOYO.test(x.f));
+  const opDoc = sel => `<option value="">— Sin asignar —</option>${docentes.map(x => `<option value="${esc(x.id)}"${x.id === sel ? ' selected' : ''}>${esc(x.n)}${x.f && !asiEsDocente(x.f) ? ' · ' + esc(x.f) : ''}</option>`).join('')}`;
+  const fila = (g, i) => `<div class="asi-gf" data-i="${i}">
+      <label class="campo"><span class="et">Grado</span><select data-k="gr"><option value="">—</option>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}"${String(g.gr) === String(n) ? ' selected' : ''}>${n}°</option>`).join('')}<option value="M"${g.gr === 'M' ? ' selected' : ''}>Multigrado</option></select></label>
+      <label class="campo"><span class="et">Grupo</span><input data-k="gp" maxlength="20" value="${esc(g.gp || '')}" placeholder="${g.gr === 'M' ? '1° a 3°' : 'A'}"></label>
+      <label class="campo"><span class="et">Alumnos</span><input data-k="al" type="number" min="0" max="999" inputmode="numeric" value="${esc(g.al === '' || g.al == null ? '' : g.al)}"></label>
+      <label class="campo asi-doc"><span class="et">Docente</span>${docentes.length ? `<select data-k="doc">${opDoc(g.doc)}</select>` : `<input data-nodict data-k="docN" maxlength="120" value="${esc(g.docN || '')}" placeholder="Nombre del docente">`}</label>
+      <button class="icono-btn" data-quita="${i}" title="Quitar este grupo" aria-label="Quitar este grupo">${ico('i-x')}</button></div>`;
+  const leer = () => $$('.asi-gf').map(el => {
+    const i = +el.dataset.i, g = filas[i], v = k => { const x = el.querySelector(`[data-k="${k}"]`); return x ? x.value : null; };
+    g.gr = v('gr'); g.gp = String(v('gp') || '').trim(); if (g.gr !== 'M') g.gp = g.gp.toUpperCase(); g.al = v('al');
+    if (docentes.length) { g.doc = v('doc') || ''; g.docN = g.doc ? (docentes.find(x => x.id === g.doc) || {}).n || '' : ''; } else { g.doc = ''; g.docN = String(v('docN') || '').trim(); }
+    return g;
+  });
+  const pintarF = () => {
+    $('#asi-gl').innerHTML = filas.map(fila).join('');
+    $$('[data-quita]').forEach(b => b.onclick = () => { leer(); filas.splice(+b.dataset.quita, 1); pintarF(); });
+    $$('.asi-gf [data-k="gr"]').forEach(s => s.onchange = () => { leer(); pintarF(); });
+    const t = filas.reduce((s, g) => s + asiNum(g.al), 0); $('#asi-gt').textContent = filas.length + (filas.length === 1 ? ' grupo · ' : ' grupos · ') + t + ' alumnos';
+    $$('.asi-gf [data-k="al"]').forEach(x => x.oninput = () => { leer(); $('#asi-gt').textContent = filas.length + (filas.length === 1 ? ' grupo · ' : ' grupos · ') + filas.reduce((s, g) => s + asiNum(g.al), 0) + ' alumnos'; });
+  };
+  modal(previo ? 'Grupos de la escuela' : 'Dar de alta los grupos', `
+    <p class="peq" style="margin-top:0"><b>${esc(nombreEscuela(cct))}</b> · ${previo ? 'Corrija lo que haya cambiado.' : 'Esto se hace una sola vez; las siguientes veces solo se captura la asistencia.'} ${docentes.length ? 'Los docentes vienen de la base del personal de la zona.' : 'Escriba el nombre del docente de cada grupo.'}</p>
+    <div id="asi-gl"></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px"><button class="boton sec chico" id="asi-gmas">${ico('i-mas')}Agregar un grupo</button><span class="ayuda" id="asi-gt"></span></div>
+    <div class="ayuda" style="margin-top:8px">En escuelas multigrado elija «Multigrado» y escriba qué grados atiende (p. ej. «1° a 3°»). Los alumnos son los inscritos en el grupo.</div>`,
+    `<button class="boton sec" id="asi-gx">Cancelar</button><button class="boton" id="asi-gok">${despues ? 'Guardar y seguir' : 'Guardar'}</button>`);
+  pintarF();
+  $('#asi-gmas').onclick = () => { leer(); filas.push({ id: uid('g'), gr: '', gp: '', al: '', doc: '', docN: '' }); pintarF(); };
+  $('#asi-gx').onclick = cerrarModal;
+  $('#asi-gok').onclick = async () => {
+    const l = leer();
+    if (!l.length) return aviso('Agregue al menos un grupo.', 'mal');
+    if (l.some(g => !g.gr)) return aviso('Falta elegir el grado de algún grupo.', 'mal');
+    if (l.some(g => g.al === '' || g.al == null)) return aviso('Escriba cuántos alumnos tiene cada grupo.', 'mal');
+    const r = await accion('asiGrupos', { cct, grupos: l.map(g => ({ id: g.id, gr: g.gr, gp: g.gp, al: asiNum(g.al), doc: g.doc, docN: g.docN })) });
+    if (!r) return;
+    poner(ASI.agr, r.agr); asiSinc(); cerrarModal();
+    aviso('Grupos guardados.', 'ok', 2500);
+    if (despues) despues(); else if (vista.tab === 'asistencia') vAsistencia();
+  };
+}
+
+/* --- Captura de la asistencia del día --- */
+function formAsiCaptura(jid, cct) {
+  const j = ASI.asj.find(x => x.id === jid), base = ASI.agr.find(x => x.cct === cct), previo = asiReg(jid, cct);
+  if (!j || !base) return aviso('No se encontró la solicitud o los grupos de la escuela.', 'mal');
+  const grupos = base.grupos.map(g => { const p = previo && (previo.grupos || []).find(x => x.id === g.id); return Object.assign({}, g, p ? { as: p.as, docA: p.docA, mot: p.mot, otro: p.otro } : { as: '', docA: 1, mot: '', otro: '' }); });
+  const enGrupo = new Set(grupos.map(g => g.doc).filter(Boolean));
+  let equipo = previo && (previo.equipo || []).length ? previo.equipo.map(x => Object.assign({}, x))
+    : asiPersonal(cct).filter(x => !enGrupo.has(x.id)).map(x => ({ id: x.id, n: x.n, f: x.f, a: 1, mot: '', otro: '' }));
+  const selAus = (pre, a, mot, otro) => `<select data-k="${pre}a" class="asi-si"><option value="1"${a !== 0 ? ' selected' : ''}>Acudió</option><option value="0"${a === 0 ? ' selected' : ''}>No acudió</option></select>
+    <select data-k="${pre}mot" class="asi-mot${a === 0 ? '' : ' oculto'}" aria-label="Motivo">${ASI_AUS.map(([k, t]) => `<option value="${k}"${(mot || 'sininfo') === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+    <input data-nodict data-k="${pre}otro" class="asi-otro${a === 0 && mot === 'otro' ? '' : ' oculto'}" maxlength="200" placeholder="Escriba el motivo" value="${esc(otro || '')}">`;
+  const filaG = (g, i) => `<div class="asi-cg" data-i="${i}">
+      <div class="asi-cg-t"><b>${esc(asiGrNom(g))}</b><span class="ayuda">${g.al} alumnos</span></div>
+      <label class="asi-num"><span>Asistieron</span><input data-k="as" type="number" min="0" max="${g.al}" inputmode="numeric" value="${g.as === '' || g.as == null ? '' : esc(g.as)}" placeholder="0 a ${g.al}"></label>
+      <div class="asi-per"><span class="asi-nom">${esc(g.docN || 'Docente del grupo')}</span>${selAus('d', g.docA, g.mot, g.otro)}</div></div>`;
+  const filaP = (p, i) => `<div class="asi-cp" data-i="${i}">
+      ${p.nuevo ? `<input data-nodict data-k="n" maxlength="120" placeholder="Nombre" value="${esc(p.n)}" class="asi-nom-in"><input data-k="f" maxlength="60" placeholder="Función" value="${esc(p.f)}" class="asi-fun-in">` : `<div class="asi-nom"><b>${esc(p.n)}</b><span class="ayuda">${esc(p.f)}</span></div>`}
+      <div class="asi-per">${selAus('p', p.a, p.mot, p.otro)}</div></div>`;
+  const leer = () => {
+    $$('.asi-cg').forEach(el => { const g = grupos[+el.dataset.i], v = k => el.querySelector(`[data-k="${k}"]`).value;
+      g.as = v('as'); g.docA = +v('da'); g.mot = g.docA ? '' : v('dmot'); g.otro = g.mot === 'otro' ? v('dotro').trim() : ''; });
+    $$('.asi-cp').forEach(el => { const p = equipo[+el.dataset.i], v = k => { const x = el.querySelector(`[data-k="${k}"]`); return x ? x.value : null; };
+      if (p.nuevo) { p.n = v('n').trim(); p.f = v('f').trim(); }
+      p.a = +v('pa'); p.mot = p.a ? '' : v('pmot'); p.otro = p.mot === 'otro' ? v('potro').trim() : ''; });
+  };
+  const total = () => {
+    leer();
+    const al = grupos.reduce((s, g) => s + asiNum(g.al), 0), as = grupos.reduce((s, g) => s + Math.min(asiNum(g.as), asiNum(g.al)), 0);
+    const pt = grupos.length + equipo.filter(p => p.n).length, pa = grupos.filter(g => g.docA !== 0).length + equipo.filter(p => p.n && p.a !== 0).length;
+    $('#asi-tot').innerHTML = `<div><b>${as}</b> de ${al} alumnos ${asiChip(asiPct(as, al))}</div><div><b>${pa}</b> de ${pt} del personal acudió</div>`;
+  };
+  const ligar = () => {
+    $$('#velo .asi-si, #velo .asi-mot').forEach(s => s.onchange = () => {
+      const c = s.closest('.asi-per'), no = c.querySelector('.asi-si').value === '0', m = c.querySelector('.asi-mot');
+      m.classList.toggle('oculto', !no); c.querySelector('.asi-otro').classList.toggle('oculto', !(no && m.value === 'otro')); total(); });
+    $$('#velo input').forEach(x => x.oninput = total);
+  };
+  const est = asiEstado(j);
+  modal('Asistencia del ' + (j.fecha === hoy() ? 'día de hoy' : fechaMedia(j.fecha)), `
+    <p class="peq" style="margin-top:0"><b>${esc(nombreEscuela(cct))}</b> · ${esc(ASI_MOT[j.motivo] || 'Contingencia')}${j.nota ? ' · ' + esc(j.nota) : ''}${esDirector() ? '' : est !== 'abierta' ? ' · <span class="chip">' + ASI_EST[est][0] + '</span>' : ''}</p>
+    ${previo ? `<div class="aviso-caja" style="margin:0 0 10px">Ya se capturó (${esc(asiQuien(previo))}, ${esc(String(previo.actualizado).slice(11, 16))} h). Puede corregirla y volver a guardar.</div>` : ''}
+    <div class="seccion-t asi-st">Alumnos y docente de cada grupo <button class="boton sec chico" id="asi-edg" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-lapiz')}Cambiar los grupos</button></div>
+    <div id="asi-lg">${grupos.map(filaG).join('')}</div>
+    <div class="seccion-t asi-st">Resto del personal</div>
+    <div id="asi-lp">${equipo.length ? equipo.map(filaP).join('') : '<p class="peq mudo" style="margin:4px 0">No hay más personal registrado en la base del personal para esta escuela.</p>'}</div>
+    <button class="boton sec chico" id="asi-pmas" style="margin-top:6px">${ico('i-mas')}Agregar a otra persona</button>
+    <div class="asi-tot" id="asi-tot"></div>`,
+    `<button class="boton sec" id="asi-cx">Cancelar</button><button class="boton" id="asi-cok">Guardar la asistencia</button>`);
+  ligar(); total();
+  $('#asi-edg').onclick = () => { cerrarModal(); formAsiGrupos(cct, () => formAsiCaptura(jid, cct)); };
+  $('#asi-pmas').onclick = () => { leer(); equipo.push({ id: uid('p'), n: '', f: '', a: 1, mot: '', otro: '', nuevo: true }); $('#asi-lp').innerHTML = equipo.map(filaP).join(''); ligar(); total(); };
+  $('#asi-cx').onclick = cerrarModal;
+  $('#asi-cok').onclick = async () => {
+    leer();
+    if (grupos.some(g => g.as === '' || g.as == null)) return aviso('Escriba cuántos alumnos asistieron en cada grupo (si no asistió nadie, escriba 0).', 'mal');
+    const mal = grupos.find(g => asiNum(g.as) > asiNum(g.al));
+    if (mal) return aviso(`En ${esc(asiGrNom(mal))} asistieron más alumnos (${mal.as}) de los que tiene el grupo (${mal.al}). Corríjalo o cambie los grupos.`, 'mal', 8000);
+    if ([...grupos, ...equipo].some(x => (x.docA === 0 || x.a === 0) && x.mot === 'otro' && !x.otro)) return aviso('Escriba el motivo de la persona marcada con «Otro».', 'mal');
+    const r = await accion('asiCapturar', { jornada: jid, cct,
+      grupos: grupos.map(g => ({ id: g.id, gr: g.gr, gp: g.gp, al: g.al, as: asiNum(g.as), doc: g.doc, docN: g.docN, docA: g.docA, mot: g.mot, otro: g.otro })),
+      equipo: equipo.filter(p => p.n).map(p => ({ id: p.id, n: p.n, f: p.f, a: p.a, mot: p.mot, otro: p.otro })) });
+    if (!r) return;
+    poner(ASI.asr, r.asr); asiSinc(); cerrarModal();
+    aviso('Asistencia guardada. Gracias.', 'ok', 3500);
+    if (vista.tab === 'asistencia') vAsistencia();
+  };
+}
+
+/* --- La Supervisión pide la asistencia --- */
+function formAsiPedir(id) {
+  const j = id ? ASI.asj.find(x => x.id === id) : { fecha: hoy(), motivo: 'lluvias', nota: '', escuelas: [] };
+  const todas = !(j.escuelas || []).length, munis = [...new Set(directores().map(c => c.municipio).filter(Boolean))];
+  modal(id ? 'Cambiar la solicitud de asistencia' : 'Pedir la asistencia del día', `
+    <div class="pg-fila" style="grid-template-columns:1fr 1fr"><label class="campo"><span class="et">Fecha</span><input type="date" id="asp-f" min="${hoy()}" value="${esc(j.fecha)}"></label>
+      <label class="campo"><span class="et">Motivo</span><select id="asp-m">${Object.entries(ASI_MOT).map(([k, t]) => `<option value="${k}"${j.motivo === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label></div>
+    <label class="campo"><span class="et">Mensaje para las direcciones (opcional)</span><textarea id="asp-n" maxlength="300" rows="2" placeholder="Ej. Capturen antes de las 10:00 a. m., por favor.">${esc(j.nota || '')}</textarea></label>
+    <div class="campo"><span class="et">Escuelas</span>
+      <label class="chk"><input type="radio" name="asp-e" value="todas"${todas ? ' checked' : ''}> Toda la zona (${directores().length} escuelas)</label>
+      <label class="chk"><input type="radio" name="asp-e" value="algunas"${todas ? '' : ' checked'}> Solo algunas escuelas</label>
+      <div id="asp-lista" class="asi-esc${todas ? ' oculto' : ''}">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${munis.map(m => `<button class="boton sec chico" data-aspm="${esc(m)}">Solo ${esc(m)}</button>`).join('')}</div>
+        ${directores().map(c => `<label class="chk"><input type="checkbox" value="${esc(c.cct)}"${(j.escuelas || []).includes(c.cct) ? ' checked' : ''}> ${esc(c.escuela)} <span class="ayuda">${esc(c.municipio)}</span></label>`).join('')}
+      </div></div>
+    ${id ? '' : `<label class="chk"><input type="checkbox" id="asp-av" checked> Avisar por correo a las direcciones y a sus ATP</label>`}
+    <div class="ayuda" style="margin-top:6px">Las direcciones verán la alerta al entrar a Tequio ese día; los ATP, la de sus escuelas.</div>`,
+    `<button class="boton sec" id="asp-x">Cancelar</button><button class="boton" id="asp-ok">${id ? 'Guardar' : 'Pedir la asistencia'}</button>`);
+  $$('[name="asp-e"]').forEach(r => r.onchange = () => $('#asp-lista').classList.toggle('oculto', $('[name="asp-e"]:checked').value === 'todas'));
+  $$('[data-aspm]').forEach(b => b.onclick = ev => { ev.preventDefault(); $$('#asp-lista input[type=checkbox]').forEach(x => x.checked = (escuelaDe(x.value) || {}).municipio === b.dataset.aspm); });
+  $('#asp-x').onclick = cerrarModal;
+  $('#asp-ok').onclick = async () => {
+    const algunas = $('[name="asp-e"]:checked').value === 'algunas', esc2 = algunas ? $$('#asp-lista input[type=checkbox]:checked').map(x => x.value) : [];
+    if (algunas && !esc2.length) return aviso('Elija al menos una escuela.', 'mal');
+    const r = await accion('asiPedir', { id: id || '', fecha: $('#asp-f').value, motivo: $('#asp-m').value, nota: $('#asp-n').value.trim(), escuelas: esc2, avisar: !id && $('#asp-av').checked });
+    if (!r) return;
+    poner(ASI.asj, r.asj); vista.asiJ = r.asj.id; asiSinc(); cerrarModal(); vAsistencia();
+    aviso(id ? 'Solicitud actualizada.' : 'Listo: las direcciones verán la alerta al entrar a Tequio.', 'ok', 4000);
+    mostrarResultados(r.resultados);
+  };
+}
+
+/* --- Detalle de una escuela --- */
+function asiDetalle(jid, cct) {
+  const r = asiReg(jid, cct), j = ASI.asj.find(x => x.id === jid);
+  if (!r) return;
+  const aus = asiAusencias(r), pt = asiNum(r.docentes) + asiNum(r.personal), pa = asiNum(r.docentesA) + asiNum(r.personalA);
+  modal(esc(nombreEscuela(cct)), `
+    <p class="peq" style="margin-top:0">${esc(ASI_MOT[j.motivo] || '')} · ${esc(fechaLarga(j.fecha))} · capturó ${esc(r.capturoRol === 'director' ? 'la dirección' : asiQuien(r))} a las ${esc(String(r.actualizado).slice(11, 16))} h</p>
+    <div class="matriz-caja"><table class="matriz asi-tab"><thead><tr><th class="esc-col">Grupo</th><th>Alumnos</th><th>Asistieron</th><th>%</th><th style="max-width:none;text-align:left">Docente</th></tr></thead><tbody>
+      ${(r.grupos || []).map(g => `<tr><td class="esc-col">${esc(asiGrNom(g))}</td><td>${g.al}</td><td><b>${g.as}</b></td><td>${asiChip(asiPct(g.as, g.al))}</td>
+        <td style="text-align:left;white-space:normal">${esc(g.docN || '—')} ${g.docA === 0 ? `<span class="chip mal">No acudió · ${esc(asiAusNom(g.mot, g.otro))}</span>` : g.docA === 1 ? '<span class="chip ok">Acudió</span>' : ''}</td></tr>`).join('')}
+      <tr class="asi-total"><td class="esc-col">Total de la escuela</td><td>${r.alumnos}</td><td><b>${r.asistieron}</b></td><td>${asiChip(asiPct(+r.asistieron, +r.alumnos))}</td><td style="text-align:left">${pa} de ${pt} del personal acudió</td></tr>
+    </tbody></table></div>
+    <div class="seccion-t asi-st">Personal que no acudió</div>
+    ${aus.length ? aus.map(a => `<div class="asi-aus"><b>${esc(a.n)}</b> <span class="ayuda">${esc(a.f)}</span> <span class="chip ${a.mot === 'sininfo' ? 'mal' : 'aviso'}">${esc(asiAusNom(a.mot, a.otro))}</span></div>`).join('') : '<p class="peq" style="margin:4px 0">Acudió todo el personal.</p>'}
+    ${(r.equipo || []).filter(p => p.a !== 0).length ? `<details style="margin-top:10px"><summary class="peq">Resto del personal que acudió (${(r.equipo || []).filter(p => p.a !== 0).length})</summary>${(r.equipo || []).filter(p => p.a !== 0).map(p => `<div class="peq">${esc(p.n)} <span class="ayuda">${esc(p.f)}</span></div>`).join('')}</details>` : ''}`,
+    `${asiPuedeCapturar(j, cct) ? '<button class="boton sec" id="asd-ed">Corregir</button>' : ''}<button class="boton" id="asd-x">Cerrar</button>`);
+  $('#asd-x').onclick = cerrarModal;
+  if ($('#asd-ed')) $('#asd-ed').onclick = () => { cerrarModal(); asiAbrirCaptura(jid, cct); };
+}
+const asiPuedeCapturar = (j, cct) => esDirector() ? asiEstado(j) === 'abierta' && cct === miCct() : ASI.escuelas.includes(cct) && asiEstado(j) !== 'programada';
+
+/* --- Vista --- */
+function vAsistencia() {
+  const cab = (acc = '') => `<div class="titulo-vista"><h1>Asistencia en contingencias</h1><div class="acciones">${acc}</div></div>`;
+  if (!asiListo()) {
+    $('#vista').innerHTML = cab() + `<div class="tarjeta pad"><p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> (versión ${ASI_VER}) para usar la asistencia en contingencias. Toma unos 5 minutos y no se pierde nada.</p>${esAdmin() ? '<a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a>' : '<p class="peq mudo" style="margin-bottom:0">La actualización la hace la Supervisión.</p>'}</div>`;
+    return;
+  }
+  if (!ASI) { $('#vista').innerHTML = cab() + '<div class="tarjeta vacio">Cargando la asistencia…</div>'; Promise.all([asiCargar(), Array.isArray(S.trb) ? null : perCargar()]).then(() => { if (vista.tab === 'asistencia') vAsistencia(); }); return; }
+  if (ASI.error) { $('#vista').innerHTML = cab() + `<div class="tarjeta pad"><p style="margin-top:0">${esc(ASI.error)}</p><button class="boton sec" id="as-otra">Intentar de nuevo</button></div>`; $('#as-otra').onclick = () => { ASI = null; vAsistencia(); }; return; }
+  if (esDirector()) return vAsistenciaDir(cab);
+  const jor = ASI.asj.slice().sort((a, b) => String(b.fecha + b.creado).localeCompare(String(a.fecha + a.creado)));
+  if (!vista.asiJ || !jor.find(j => j.id === vista.asiJ)) vista.asiJ = (jor.find(j => asiEstado(j) === 'abierta') || jor[0] || {}).id;
+  const acc = esAdmin() ? `<button class="boton" id="as-pedir">${ico('i-mas')}Pedir la asistencia del día</button>` : '';
+  const intro = `<div class="aviso-caja">${esAdmin() ? 'Úsela solo cuando haya lluvias, frío o calor extremo: pida la asistencia del día y cada dirección verá la alerta al entrar a Tequio para capturar, por grupo, los alumnos que asistieron, si el docente acudió y el resto del personal. Los ATP pueden capturar la de sus escuelas si la dirección no asiste.' : 'Cuando la Supervisión pide la asistencia del día, cada dirección la captura al entrar a Tequio. Si alguna de sus escuelas no la captura (p. ej., la dirección no asistió), usted puede hacerlo aquí.'}</div>`;
+  if (!jor.length) {
+    $('#vista').innerHTML = cab(acc) + intro + `<div class="tarjeta vacio">${esAdmin() ? 'Todavía no ha pedido la asistencia. Pulse «Pedir la asistencia del día» cuando la necesite.' : 'La Supervisión todavía no ha pedido la asistencia.'}</div>` + asiTarjetaGrupos();
+    if ($('#as-pedir')) $('#as-pedir').onclick = () => formAsiPedir();
+    asiLigarGrupos(); return;
+  }
+  const j = jor.find(x => x.id === vista.asiJ), est = asiEstado(j);
+  const fAtp = esAdmin() && vista.asiAtp ? usuario(vista.asiAtp) : null, deAtp = fAtp ? escuelasDeAtp(fAtp) : null;
+  const escs = asiEscuelasDe(j).filter(c => !deAtp || deAtp.includes(c)).map(escuelaDe).filter(Boolean).sort((a, b) => a.municipio.localeCompare(b.municipio, 'es') || a.escuela.localeCompare(b.escuela, 'es'));
+  const regs = escs.map(c => asiReg(j.id, c.cct)).filter(Boolean), T = asiTotales(regs);
+  const motivos = {}; regs.forEach(r => asiAusencias(r).forEach(a => { const k = asiAusNom(a.mot, a.mot === 'otro' ? 'Otro motivo' : ''); motivos[k] = (motivos[k] || 0) + 1; }));
+  const cifra = (n, t, extra = '') => `<div class="asi-cif"><b>${n}</b><span>${t}</span>${extra}</div>`;
+  const filaEsc = c => {
+    const r = asiReg(j.id, c.cct), a = atpDe(c.cct);
+    if (!r) return `<tr class="asi-falta"><td class="esc-col"><b>${esc(c.escuela)}</b><div class="ayuda">${esc(c.municipio)}${esAdmin() && a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : ''}</div></td><td colspan="5"><span class="chip mal">Sin capturar</span></td>
+      <td>${asiPuedeCapturar(j, c.cct) ? `<button class="boton chico" data-ascap="${c.cct}">Capturar</button>` : ''}</td></tr>`;
+    const pt = asiNum(r.docentes) + asiNum(r.personal), pa = asiNum(r.docentesA) + asiNum(r.personalA);
+    return `<tr><td class="esc-col"><b>${esc(c.escuela)}</b><div class="ayuda">${esc(c.municipio)}${esAdmin() && a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : ''}</div></td>
+      <td>${r.asistieron} / ${r.alumnos}</td><td>${asiChip(asiPct(+r.asistieron, +r.alumnos))}</td><td>${r.docentesA} / ${r.docentes}</td><td>${pa} / ${pt}</td>
+      <td class="ayuda">${esc(asiQuien(r))}<br>${esc(String(r.actualizado).slice(11, 16))} h</td>
+      <td><button class="boton sec chico" data-asdet="${c.cct}">Ver</button></td></tr>`;
+  };
+  const munis = [...new Set(escs.map(c => c.municipio))];
+  const subt = munis.length > 1 ? munis.map(m => { const t = asiTotales(escs.filter(c => c.municipio === m).map(c => asiReg(j.id, c.cct)).filter(Boolean)), n = escs.filter(c => c.municipio === m).length;
+    return `<tr class="asi-sub"><td class="esc-col">${esc(m)} <span class="ayuda">(${t.n} de ${n})</span></td><td>${t.as} / ${t.al}</td><td>${asiChip(asiPct(t.as, t.al))}</td><td>${t.dA} / ${t.d}</td><td>${t.pA} / ${t.p}</td><td colspan="2"></td></tr>`; }).join('') : '';
+  $('#vista').innerHTML = cab(acc) + intro + `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <select id="as-j" aria-label="Solicitud de asistencia" style="padding:8px 10px;border:1px solid var(--borde);border-radius:9px;background:var(--papel);font:inherit;max-width:100%">${jor.map(x => `<option value="${esc(x.id)}"${x.id === j.id ? ' selected' : ''}>${esc(fechaCorta(x.fecha))} · ${esc(ASI_MOT[x.motivo] || '')}${(x.escuelas || []).length ? ' · ' + x.escuelas.length + ' escuelas' : ''}</option>`).join('')}</select>
+    ${esAdmin() && atps().length ? `<select id="as-atp" aria-label="Ver las escuelas de" style="padding:8px 10px;border:1px solid var(--borde);border-radius:9px;background:var(--papel);font:inherit"><option value="">Todas las escuelas</option>${atps().map(u => `<option value="${u.id}"${vista.asiAtp === u.id ? ' selected' : ''}>ATP: ${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>` : ''}
+    <button class="boton sec chico" id="as-act" style="margin-left:auto">Actualizar</button>
+  </div>
+  <div class="tarjeta pad">
+    <div class="pen-cab"><div class="pen-tit"><h3>${esc(ASI_MOT[j.motivo] || 'Contingencia')} · ${esc(fechaLarga(j.fecha))}</h3>
+      <div class="ayuda">${(j.escuelas || []).length ? j.escuelas.length + ' escuelas' : 'Toda la zona'} · pidió ${esc(nombreCorto(j.creadoNombre))}${j.avisado ? ' · se avisó por correo' : ''}${j.nota ? ' · ' + esc(j.nota) : ''}</div></div>
+      <div class="pen-chips"><span class="chip ${ASI_EST[est][1]}">${ASI_EST[est][0]}</span></div></div>
+    <div class="asi-cifras">
+      ${cifra(T.n + ' de ' + escs.length, 'escuelas capturaron')}
+      ${cifra(T.as + ' de ' + T.al, 'alumnos asistieron', asiChip(asiPct(T.as, T.al)))}
+      ${cifra(T.dA + ' de ' + T.d, 'docentes de grupo acudieron')}
+      ${cifra(T.pA + ' de ' + T.p, 'del personal acudió (con docentes)')}
+    </div>
+    ${Object.keys(motivos).length ? `<div class="peq" style="margin-top:8px">No acudieron: ${Object.entries(motivos).map(([k, n]) => `<span class="chip">${esc(k)}: ${n}</span>`).join(' ')}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="boton sec chico" id="as-cop">${ico('i-copiar')}Copiar el resumen</button>
+      ${esAdmin() ? `<button class="boton sec chico" id="as-ed">${ico('i-lapiz')}Cambiar</button>${est === 'cerrada' ? '<button class="boton sec chico" id="as-re">Reabrir</button>' : est === 'abierta' ? '<button class="boton sec chico" id="as-ce">Cerrar la captura</button>' : ''}<button class="boton peligro chico" id="as-el">Eliminar</button>` : ''}
+    </div>
+  </div>
+  <div class="tarjeta" style="margin-top:12px"><div class="matriz-caja"><table class="matriz asi-tab"><thead><tr><th class="esc-col">Escuela</th><th>Alumnos que asistieron</th><th>%</th><th>Docentes de grupo</th><th>Personal que acudió</th><th>Capturó</th><th></th></tr></thead><tbody>
+    ${escs.map(filaEsc).join('')}${subt}
+    <tr class="asi-total"><td class="esc-col">${deAtp ? 'Total de sus escuelas' : 'Total de la zona'}</td><td>${T.as} / ${T.al}</td><td>${asiChip(asiPct(T.as, T.al))}</td><td>${T.dA} / ${T.d}</td><td>${T.pA} / ${T.p}</td><td colspan="2" class="ayuda">${T.n} de ${escs.length} escuelas</td></tr>
+  </tbody></table></div></div>` + asiTarjetaGrupos();
+  $('#as-j').onchange = e => { vista.asiJ = e.target.value; vAsistencia(); };
+  if ($('#as-atp')) $('#as-atp').onchange = e => { vista.asiAtp = e.target.value; vAsistencia(); };
+  $('#as-act').onclick = async () => { cargando(true); await asiCargar(); cargando(false); vAsistencia(); };
+  if ($('#as-pedir')) $('#as-pedir').onclick = () => formAsiPedir();
+  if ($('#as-ed')) $('#as-ed').onclick = () => formAsiPedir(j.id);
+  const cambiar = e => accion('asiEstado', { id: j.id, estado: e }, r => { if (r.eliminada) { ASI.asj = ASI.asj.filter(x => x.id !== j.id); ASI.asr = ASI.asr.filter(x => x.jornada !== j.id); vista.asiJ = null; } else poner(ASI.asj, r.asj); asiSinc(); vAsistencia(); });
+  if ($('#as-ce')) $('#as-ce').onclick = () => cambiar('cerrada');
+  if ($('#as-re')) $('#as-re').onclick = () => cambiar('abierta');
+  if ($('#as-el')) $('#as-el').onclick = () => { if (confirm('¿Eliminar esta solicitud de asistencia y todo lo que capturaron las escuelas? No se puede deshacer.')) cambiar('eliminar'); };
+  $('#as-cop').onclick = () => {
+    const l = escs.map(c => { const r = asiReg(j.id, c.cct); if (!r) return `• ${c.escuela}: sin capturar`;
+      const aus = asiAusencias(r); return `• ${c.escuela}: ${r.asistieron} de ${r.alumnos} alumnos (${asiPct(+r.asistieron, +r.alumnos)} %)${aus.length ? ` · no acudieron ${aus.length} del personal` : ' · acudió todo el personal'}`; });
+    copiar(`*Asistencia del ${fechaLarga(j.fecha)}* (${(ASI_MOT[j.motivo] || '').toLowerCase()})\n${deAtp ? 'Escuelas de ' + nombreCorto(fAtp.nombre) : ZONA.nombreNo || 'Zona'}: ${T.as} de ${T.al} alumnos (${asiPct(T.as, T.al) == null ? '—' : asiPct(T.as, T.al)} %) · personal ${T.pA} de ${T.p}\n${T.n} de ${escs.length} escuelas capturaron\n\n${l.join('\n')}`, 'Resumen copiado');
+  };
+  $$('[data-ascap]').forEach(b => b.onclick = () => asiAbrirCaptura(j.id, b.dataset.ascap));
+  $$('[data-asdet]').forEach(b => b.onclick = () => asiDetalle(j.id, b.dataset.asdet));
+  asiLigarGrupos();
+}
+// Grupos registrados de cada escuela (Mesa Técnica): para revisarlos o darlos de alta por una dirección
+function asiTarjetaGrupos() {
+  const escs = directores().filter(c => ASI.escuelas.includes(c.cct));
+  return `<details class="tarjeta pad" style="margin-top:12px"><summary><b>Grupos registrados por escuela</b> <span class="ayuda">(${escs.filter(c => ASI.agr.some(g => g.cct === c.cct)).length} de ${escs.length} escuelas)</span></summary>
+    <div class="asi-gr-l">${escs.map(c => { const g = ASI.agr.find(x => x.cct === c.cct), n = g ? g.grupos.reduce((s, x) => s + asiNum(x.al), 0) : 0;
+      return `<div class="asi-gr-e"><div><b>${esc(c.escuela)}</b><div class="ayuda">${g ? g.grupos.length + ' grupos · ' + n + ' alumnos · ' + esc(g.grupos.map(asiGrNom).join(', ')) : 'Sin grupos registrados'}</div></div><button class="boton sec chico" data-asgr="${c.cct}">${g ? 'Revisar' : 'Dar de alta'}</button></div>`; }).join('')}</div></details>`;
+}
+function asiLigarGrupos() { $$('[data-asgr]').forEach(b => b.onclick = async () => { if (await asiPreparar()) formAsiGrupos(b.dataset.asgr); }); }
+
+function vAsistenciaDir(cab) {
+  const cct = miCct(), g = ASI.agr.find(x => x.cct === cct);
+  const jor = ASI.asj.filter(j => !(j.escuelas || []).length || j.escuelas.includes(cct)).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  const hoyJ = jor.find(j => asiEstado(j) === 'abierta');
+  $('#vista').innerHTML = cab() + `
+  <div class="aviso-caja">Cuando hay lluvias, frío o calor extremo, la Supervisión pide la asistencia del día. Ese día verá la alerta al entrar a Tequio: capture por grupo cuántos alumnos asistieron, si el docente acudió y el resto del personal.</div>
+  ${hoyJ ? `<div class="tarjeta pad" style="border-color:var(--ok)"><h2 style="font-size:19px;margin-bottom:4px">Hoy: ${esc(ASI_MOT[hoyJ.motivo] || 'Contingencia')}</h2>${hoyJ.nota ? `<p class="peq" style="margin:0 0 8px">${esc(hoyJ.nota)}</p>` : ''}
+    ${asiReg(hoyJ.id, cct) ? `<p style="margin:0 0 8px"><span class="chip ok">Ya la capturó</span> ${asiReg(hoyJ.id, cct).asistieron} de ${asiReg(hoyJ.id, cct).alumnos} alumnos</p><button class="boton sec" id="asd-c">Corregir la asistencia de hoy</button>` : '<button class="boton" id="asd-c">Capturar la asistencia de hoy</button>'}</div>` : ''}
+  <div class="tarjeta pad" style="margin-top:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="font-size:19px">Mis grupos</h2><button class="boton sec chico" id="asd-g" style="margin-left:auto">${ico('i-lapiz')}${g ? 'Cambiar mis grupos' : 'Dar de alta mis grupos'}</button></div>
+    ${g ? `<div class="asi-gr-l">${g.grupos.map(x => `<div class="asi-gr-e"><div><b>${esc(asiGrNom(x))}</b><div class="ayuda">${x.al} alumnos${x.docN ? ' · ' + esc(x.docN) : ''}</div></div></div>`).join('')}</div><p class="ayuda" style="margin-bottom:0">Total: ${g.grupos.reduce((s, x) => s + asiNum(x.al), 0)} alumnos.</p>` : '<p class="peq mudo" style="margin-bottom:0">Todavía no da de alta sus grupos. Puede hacerlo desde ahora para que el día que se pida la asistencia solo la capture.</p>'}</div>
+  ${jor.some(j => asiReg(j.id, cct)) ? `<div class="tarjeta pad" style="margin-top:12px"><h2 style="font-size:19px;margin-bottom:6px">Asistencias capturadas</h2>${jor.filter(j => asiReg(j.id, cct)).map(j => { const r = asiReg(j.id, cct);
+    return `<div class="asi-gr-e"><div><b>${esc(fechaCorta(j.fecha))} · ${esc(ASI_MOT[j.motivo] || '')}</b><div class="ayuda">${r.asistieron} de ${r.alumnos} alumnos · personal ${asiNum(r.docentesA) + asiNum(r.personalA)} de ${asiNum(r.docentes) + asiNum(r.personal)}</div></div>${asiChip(asiPct(+r.asistieron, +r.alumnos))}<button class="boton sec chico" data-asdet="${esc(j.id)}">Ver</button></div>`; }).join('')}</div>` : ''}`;
+  if ($('#asd-c')) $('#asd-c').onclick = () => asiAbrirCaptura(hoyJ.id, cct);
+  $('#asd-g').onclick = async () => { if (await asiPreparar()) formAsiGrupos(cct); };
+  $$('[data-asdet]').forEach(b => b.onclick = () => asiDetalle(b.dataset.asdet, cct));
+}
+
 /* ---------------- Vista: Enlaces (solo Supervisión) ---------------- */
 function vEnlaces() {
   const tarjeta = u => `<div class="tarjeta contacto">
@@ -6063,7 +6481,7 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'], ['minutas', 'Minutas de CTE y CTZ (con dictado y redacción con IA)'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)'], ['correos', 'Correo de la Supervisión (resumen, urgencia y facturas)'], ['relweb', 'Claves de la RELweb (cada ATP las de sus escuelas; la Supervisión, todas)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)'], ['correos', 'Correo de la Supervisión (resumen, urgencia y facturas)'], ['asistencia', 'Asistencia en contingencias (lluvias, frío o calor extremo): alumnos por grupo y personal'], ['relweb', 'Claves de la RELweb (cada ATP las de sus escuelas; la Supervisión, todas)']];
 // Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
 const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
 const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
@@ -10158,6 +10576,33 @@ const Demo = (() => {
       P('trb-d8', 'EJEMPLO', 'OCHO', 'RAÚL', 'H', [pl('02DPR0382S', 'Director(a) con grupo', 'Matutino')], { revisar: 'Falta la orden de presentación en el expediente.' })
     ];
   }
+
+  // Asistencia en contingencias: grupos de ejemplo, una solicitud de hoy (lluvias) a medio capturar y otra pasada (frío) completa.
+  // La escuela de la demostración como director (Maximino Virgen Flores) todavía no da de alta sus grupos.
+  function asiDemoIni() {
+    const h = hoy(); let sem = 7; const az = () => (sem = (sem * 9301 + 49297) % 233280) / 233280;
+    D.agr = []; D.asr = [];
+    ESC.forEach((e, i) => { if (e[1] === '02DPR0684N') return;
+      const gr = e[3] ? [['M', '1° A 3°'], ['M', '4° A 6°']] : [1, 2, 3, 4, 5, 6].map(n => [String(n), 'A']);
+      D.agr.push({ id: e[1], cct: e[1], grupos: gr.map(([g, gp], k) => ({ id: 'g' + (k + 1), gr: g, gp, al: 16 + Math.round(az() * 16), doc: '', docN: 'Docente de ejemplo ' + (i * 6 + k + 1) })), actualizado: h + 'T08:00:00', actualizadoNombre: 'Dirección de ejemplo ' + (i + 1) }); });
+    D.asj = [{ id: 'asj-hoy', fecha: h, motivo: 'lluvias', nota: 'Capturen antes de las 10:00 a. m., por favor.', escuelas: [], estado: 'abierta', avisado: h + 'T06:40:00', creadoPor: 'u-carlos', creadoNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: h + 'T06:40:00', cerrada: '', cerradaPor: '' },
+      { id: 'asj-frio', fecha: sumarDias(h, -9), motivo: 'frio', nota: '', escuelas: [], estado: 'abierta', avisado: '', creadoPor: 'u-carlos', creadoNombre: 'Mtro. Carlos Gabriel Ortega Gutiérrez', creado: sumarDias(h, -9) + 'T06:30:00', cerrada: '', cerradaPor: '' }];
+    const MOT = ['incapacidad', 'economico', 'sininfo', 'otro'];
+    const capturar = (jid, g, f, baja) => {
+      const grupos = g.grupos.map(x => { const no = az() < 0.12, m = MOT[Math.floor(az() * 4)];
+        return Object.assign({}, x, { as: Math.max(0, x.al - Math.round(az() * baja)), docA: no ? 0 : 1, mot: no ? m : '', otro: no && m === 'otro' ? 'Comisión sindical' : '' }); });
+      const equipo = [['Intendente de ejemplo', 'Intendente'], ['Profr. de Educación Física de ejemplo', 'Docente de educación física']].map(([n, fn], k) => { const no = az() < 0.2; return { id: 'p' + k, n, f: fn, a: no ? 0 : 1, mot: no ? 'sininfo' : '', otro: '' }; });
+      const sum = (l, k) => l.reduce((t, x) => t + (+x[k] || 0), 0);
+      D.asr.push({ id: jid + '|' + g.cct, jornada: jid, cct: g.cct, grupos, equipo, alumnos: String(sum(grupos, 'al')), asistieron: String(sum(grupos, 'as')), docentes: String(grupos.length), docentesA: String(grupos.filter(x => x.docA === 1).length),
+        personal: String(equipo.length), personalA: String(equipo.filter(x => x.a === 1).length), capturoPor: 'd-' + g.cct, capturoNombre: (D.dir.find(c => c.cct === g.cct && c.tipo === 'director') || {}).nombre || 'Dirección', capturoRol: 'director', actualizado: f });
+    };
+    D.agr.forEach((g, i) => { capturar('asj-frio', g, sumarDias(h, -9) + 'T09:' + pad(10 + i * 3), 6); if (i % 3 !== 2) capturar('asj-hoy', g, h + 'T08:' + pad(5 + i * 3), 14); });
+  }
+  function asiResDemo(ccts) {
+    const ab = D.asj.filter(j => j.estado === 'abierta' && j.fecha === hoy()).map(j => ({ id: j.id, fecha: j.fecha, motivo: j.motivo, nota: j.nota, escuelas: ((j.escuelas || []).length ? j.escuelas : ccts).filter(c => ccts.includes(c)) })).filter(j => j.escuelas.length);
+    return { abiertas: ab, hechas: D.asr.filter(r => ccts.includes(r.cct)).map(r => r.id), conGrupos: D.agr.filter(g => ccts.includes(g.cct)).map(g => g.cct) };
+  }
+  const asiCcts = () => cfg.dir ? ['02DPR0684N'] : D.dir.filter(c => c.tipo === 'director').map(c => c.cct);
   // Semáforo de ejemplo: algunas carpetas ya revisadas por la Supervisión o los ATP
   function demoEve(evi, ESC, usr) {
     const quien = [usr.find(u => u.rol === 'admin'), usr.find(u => u.rol === 'atp')].filter(Boolean);
@@ -10220,7 +10665,21 @@ const Demo = (() => {
     recEliminar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'elimino' }]); return { rec: copia(o) }; },
     recRestaurar: d => { const o = D.rec.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { rec: copia(o) }; },
     finRestaurar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = true; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: D.yo.nombre, a: 'restauro' }]); return { fin: copia(o) }; },
+    asiDatos: () => { if (!D.asj) asiDemoIni(); const c = asiCcts(); return { asj: copia(D.asj.filter(j => !cfg.dir || !(j.escuelas || []).length || j.escuelas.includes(c[0]))), agr: copia(D.agr.filter(g => c.includes(g.cct))), asr: copia(D.asr.filter(r => c.includes(r.cct))), escuelas: c, hoy: hoy() }; },
+    asiGrupos: d => { const o = { id: d.cct, cct: d.cct, grupos: d.grupos, actualizado: ahora(), actualizadoPor: D.yo.id, actualizadoNombre: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre }; poner(D.agr, o); return { agr: copia(o) }; },
+    asiCapturar: d => { const g = d.grupos, e = d.equipo || [], sum = (l, k) => l.reduce((t, x) => t + (+x[k] || 0), 0);
+      const o = { id: d.jornada + '|' + d.cct, jornada: d.jornada, cct: d.cct, grupos: g, equipo: e, alumnos: String(sum(g, 'al')), asistieron: String(sum(g, 'as')), docentes: String(g.length), docentesA: String(g.filter(x => x.docA === 1).length),
+        personal: String(e.length), personalA: String(e.filter(x => x.a === 1).length), capturoPor: D.yo.id, capturoNombre: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, capturoRol: cfg.dir ? 'director' : D.yo.rol, actualizado: ahora() };
+      poner(D.asr, o); poner(D.agr, { id: d.cct, cct: d.cct, grupos: g.map(x => ({ id: x.id, gr: x.gr, gp: x.gp, al: x.al, doc: x.doc, docN: x.docN })), actualizado: ahora() }); return { asr: copia(o) }; },
+    asiPedir: d => { const j = d.id ? D.asj.find(x => x.id === d.id) : null;
+      const o = Object.assign(j || { id: uid('asj'), estado: 'abierta', avisado: '', creadoPor: D.yo.id, creadoNombre: D.yo.nombre, creado: ahora(), cerrada: '', cerradaPor: '' }, { fecha: d.fecha, motivo: d.motivo, nota: d.nota, escuelas: d.escuelas || [] });
+      if (d.avisar) o.avisado = ahora(); if (!j) D.asj.push(o);
+      return { asj: copia(o), resultados: d.avisar ? [{ ok: true, mensaje: 'Demostración: aquí se enviaría el aviso por correo a las direcciones y a sus ATP.' }] : [] }; },
+    asiEstado: d => { const j = D.asj.find(x => x.id === d.id);
+      if (d.estado === 'eliminar') { D.asj = D.asj.filter(x => x !== j); D.asr = D.asr.filter(x => x.jornada !== j.id); return { eliminada: j.id }; }
+      j.estado = d.estado === 'cerrada' ? 'cerrada' : 'abierta'; j.cerrada = j.estado === 'cerrada' ? ahora() : ''; j.cerradaPor = j.estado === 'cerrada' ? D.yo.nombre : ''; return { asj: copia(j) }; },
     datos: () => {
+      if (!D.asj) asiDemoIni(); D.asi = asiResDemo(asiCcts());
       if (!cfg.dir) return copia(D);
       const cct = '02DPR0684N', yo = Object.assign({}, D.usr.find(u => u.id === 'u-d-' + cct), { cct });
       return copia(Object.assign({}, D, { yo, act: D.act.filter(a => !a.confidencial), seg: D.seg.filter(s => s.cct === cct && !s.confidencial),
@@ -10554,7 +11013,7 @@ const Demo = (() => {
         escuelaIns: t0 ? { datos: t0.datos, actualizado: t0.actualizado } : null, grupos: t.filter(x => x.nivel === 'grupo').map(x => ({ grado: x.grado, grupo: x.grupo, datos: x.datos, actualizado: x.actualizado })) }; }
   };
   // Modo consulta (#consulta): solo se permiten las acciones que leen; todo lo que guarda o envía se bloquea.
-  const LECTURA = ['minutaDatos', 'tlaDatos', 'tlaInsumos', 'personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer', 'finDatos', 'relDatos', 'verInforme'];
+  const LECTURA = ['minutaDatos', 'tlaDatos', 'tlaInsumos', 'personal', 'firmaLista', 'leerDirectorio', 'datos', 'sisatAlumnos', 'eiaAlumnos', 'sisatArchivos', 'eiaArchivos', 'sisatBajar', 'eiaBajar', 'recursosOficio', 'revisarEvidencias', 'cteDatos', 'cteVisitaFotosDatos', 'recDatos', 'corDatos', 'vidEstado', 'vidConectar', 'revTraer', 'finDatos', 'relDatos', 'verInforme', 'asiDatos'];
   /* La demostración no muestra nada de la zona real: por dentro trabaja con las claves de siempre, pero todo lo que sale
      hacia la página pasa por una tabla que cambia escuelas, claves, nombres, correos y sede por datos ficticios
      (y lo que la página manda de regreso se convierte al revés, para que todo siga cuadrando). */
@@ -15358,6 +15817,7 @@ function ayuDesc() {
     herramientas: 'Tlamatini: formatos del PPIE, laborales (licencia o «permiso económico»), pedagógicos, recados y citatorios, constancias, permisos de salida, libros de registro, diplomas y reconocimientos, Consejos de Participación Escolar. Tiene su propio guía, Tlami.',
     minutas: d ? 'Minutas de CTE: la minuta se elabora en Tlamatini (dictado e IA) y se envía a Tequio; aquí se da seguimiento a sus acuerdos con semáforo (cumplido, en proceso, pendiente) y se ven los acuerdos del CTZ que le tocan.'
       : 'Minutas de CTE y CTZ: elaborar la minuta del Consejo Técnico de Zona o del CTE agrupado multigrado con dictado y redacción con IA (desarrollo y acuerdos), PDF institucional con firma, llevar los acuerdos al checklist de las escuelas y dar seguimiento a las minutas de CTE que envían las direcciones desde Tlamatini.',
+    asistencia: 'Asistencia en contingencias (lluvias, frío o calor extremo): la Supervisión la pide; cada dirección ve la alerta al entrar y captura por grupo los alumnos que asistieron, si el docente acudió y el resto del personal (incapacidad médica, permiso económico, sin información u otro motivo). La primera vez da de alta sus grupos. Los ATP capturan la de sus escuelas si falta la dirección.',
     relweb: 'Claves de la RELweb de las escuelas (usuario = CCT, contraseña del ciclo): consultarlas, capturarlas y actualizarlas.',
     correos: 'Correo de la Supervisión: resumen y urgencia de cada mensaje y clasificación de las facturas (PIMMEE, Ingresos propios, CPE, La Escuela es Nuestra, Caja chica, Personal).',
     permisos: 'Permisos y facilidades que autoriza el Supervisor a ATP y directores: 9 días por persona en el año, máximo 3 al expediente; historial por año.',

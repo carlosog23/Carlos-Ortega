@@ -40,6 +40,7 @@
  *    apartado le sirve y, si lo que pide todavía no existe, guarda la solicitud para que la Supervisión la desarrolle.
  *  · Lleva los permisos y facilidades que el Supervisor autoriza a sus ATP y a los directores: la cuenta es por año
  *    calendario (9 días al año) y los años anteriores quedan como historial; nada se borra. Solo lo ve la Supervisión.
+ *  · Asistencia en contingencias (lluvias, frío o calor extremo): la Supervisión la pide; cada escuela captura alumnos por grupo y el personal que acudió.
  *  · Guarda las claves de la RELweb de cada escuela (usuario = clave del centro de trabajo; la contraseña cambia cada ciclo).
  *    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas. Las direcciones no las ven.
  *    También guarda la clave de la propia Supervisión, que solo ve y captura el Supervisor.
@@ -230,19 +231,27 @@ const HOJAS = {
   rel: ['id', 'cct', 'usuario', 'clave', 'ciclo', 'nota', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
   // Minutas de CTE (por escuela, también las que llegan de Tlamatini) y de CTZ o CTE agrupado (cct = ZONA). datos: la minuta completa; acuerdos: [{id,a,r,f,ev,pm,esc,est,nota}]
   min: ['id', 'tipo', 'cct', 'escuela', 'ciclo', 'sesion', 'fecha', 'titulo', 'datos', 'acuerdos', 'origen', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'activo'],
+  // Asistencia en contingencias (lluvias, frío o calor extremo). agr: los grupos de cada escuela (id = CCT), que se dan de alta la primera vez:
+  // grupos: [{ id, gr (1-6 o M = multigrado), gp, al (alumnos), doc (id del trabajador), docN }].
+  // asj: cada vez que la Supervisión pide la asistencia del día. escuelas vacío = toda la zona. estado: abierta | cerrada.
+  // asr: lo que capturó cada escuela (id = jornada|CCT). grupos: [{ id, gr, gp, al, as, doc, docN, docA (1 acudió / 0 no), mot, otro }];
+  // equipo: el resto del personal [{ id, n, f, a, mot, otro }]. mot: incapacidad | economico | sininfo | otro.
+  agr: ['id', 'cct', 'grupos', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
+  asj: ['id', 'fecha', 'motivo', 'nota', 'escuelas', 'estado', 'avisado', 'creadoPor', 'creadoNombre', 'creado', 'cerrada', 'cerradaPor'],
+  asr: ['id', 'jornada', 'cct', 'grupos', 'equipo', 'alumnos', 'asistieron', 'docentes', 'docentesA', 'personal', 'personalA', 'capturoPor', 'capturoNombre', 'capturoRol', 'actualizado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { rec: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami' };
-const VERSION = 58;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela' };
+const VERSION = 59;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa'];
+const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -544,7 +553,7 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
@@ -552,7 +561,7 @@ const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'vidEstado', 'moverSueltos', 'revFo
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb', 'asistencia'];
 
 const ACCIONES = {
   // Ayudante de Tequio: conversa con Gemini sobre cómo usar Tequio (sin bloqueo, porque Gemini tarda)
@@ -587,6 +596,83 @@ const ACCIONES = {
     // los módulos que existían al guardar: los que se agreguen después aparecen encendidos hasta que el Supervisor decida
     p.setProperty('MODULOS_VISTOS', JSON.stringify(MODULOS_VALIDOS));
     return { modulos: lista, modulosEditado: true, modulosVistos: MODULOS_VALIDOS };
+  },
+  /* ---- Asistencia en contingencias: la Supervisión la pide; cada dirección captura la de su escuela; los ATP, la de sus escuelas ---- */
+  asiDatos: (yo) => {
+    const mias = asiEscuelas_(yo);
+    const jor = leer_('asj').filter(j => yo.rol !== 'director' || !(j.escuelas || []).length || (j.escuelas || []).indexOf(mias[0]) >= 0)
+      .sort((a, b) => String(b.fecha + b.creado).localeCompare(String(a.fecha + a.creado))).slice(0, 80);
+    const ids = jor.map(j => j.id);
+    return { asj: jor, agr: leer_('agr').filter(g => mias.indexOf(g.cct) >= 0), asr: leer_('asr').filter(r => mias.indexOf(r.cct) >= 0 && ids.indexOf(r.jornada) >= 0), escuelas: mias, hoy: hoy_() };
+  },
+  // Da de alta o corrige los grupos de una escuela (grado, grupo, alumnos y docente)
+  asiGrupos: (yo, d) => {
+    const cct = asiCct_(yo, d.cct);
+    const o = { id: cct, cct: cct, grupos: asiLimpiarGrupos_(d.grupos, false), actualizado: ahora_(), actualizadoPor: yo.id, actualizadoNombre: yo.nombre };
+    if (!o.grupos.length) throw new Error('Agregue al menos un grupo.');
+    guardar_('agr', o);
+    return { agr: o };
+  },
+  // Captura (o corrige) la asistencia del día de una escuela
+  asiCapturar: (yo, d) => {
+    const cct = asiCct_(yo, d.cct), j = buscar_('asj', String(d.jornada || ''));
+    if (!j) throw new Error('No se encontró la solicitud de asistencia.');
+    if ((j.escuelas || []).length && j.escuelas.indexOf(cct) < 0) throw new Error('Esta solicitud de asistencia no incluye a su escuela.');
+    if (yo.rol === 'director' && (j.estado !== 'abierta' || j.fecha !== hoy_())) throw new Error('La captura de esta asistencia ya se cerró. Si necesita corregir algo, avise a su ATP.');
+    const grupos = asiLimpiarGrupos_(d.grupos, true);
+    if (!grupos.length) throw new Error('Faltan los grupos de la escuela.');
+    const equipo = (Array.isArray(d.equipo) ? d.equipo : []).slice(0, 60).map(p => asiAusencia_({ id: String(p.id || '').slice(0, 40), n: String(p.n || '').trim().slice(0, 120), f: String(p.f || '').trim().slice(0, 60), a: p.a }, p))
+      .filter(p => p.n);
+    const sum = (l, k) => l.reduce((t, x) => t + (+x[k] || 0), 0);
+    const conDoc = grupos.filter(g => g.docA !== '');
+    const o = { id: j.id + '|' + cct, jornada: j.id, cct: cct, grupos: grupos, equipo: equipo, alumnos: String(sum(grupos, 'al')), asistieron: String(sum(grupos, 'as')),
+      docentes: String(conDoc.length), docentesA: String(conDoc.filter(g => g.docA === 1).length), personal: String(equipo.length), personalA: String(equipo.filter(p => p.a === 1).length),
+      capturoPor: yo.id, capturoNombre: yo.nombre, capturoRol: yo.rol, actualizado: ahora_() };
+    guardar_('asr', o);
+    // los grupos registrados se actualizan con lo capturado (por si cambió el número de alumnos o el docente)
+    if (d.actualizarGrupos !== false) guardar_('agr', { id: cct, cct: cct, grupos: grupos.map(g => ({ id: g.id, gr: g.gr, gp: g.gp, al: g.al, doc: g.doc, docN: g.docN })), actualizado: ahora_(), actualizadoPor: yo.id, actualizadoNombre: yo.nombre });
+    return { asr: o };
+  },
+  // La Supervisión pide la asistencia del día (a toda la zona o a algunas escuelas) y, si quiere, avisa por correo
+  asiPedir: (yo, d) => {
+    soloAdmin_(yo);
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(d.fecha || '')) ? String(d.fecha) : hoy_();
+    if (fecha < hoy_()) throw new Error('La fecha no puede ser anterior a hoy.');
+    const todas = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false).map(c => c.cct);
+    const esc = (Array.isArray(d.escuelas) ? d.escuelas : []).map(String).filter(c => todas.indexOf(c) >= 0);
+    if (Array.isArray(d.escuelas) && d.escuelas.length && !esc.length) throw new Error('Elija al menos una escuela.');
+    const motivos = ['lluvias', 'frio', 'calor', 'otro'];
+    const j = d.id ? buscar_('asj', String(d.id)) : null;
+    const o = Object.assign(j || { id: 'asj-' + fecha + '-' + Utilities.getUuid().slice(0, 4), estado: 'abierta', avisado: '', creadoPor: yo.id, creadoNombre: yo.nombre, creado: ahora_(), cerrada: '', cerradaPor: '' },
+      { fecha: fecha, motivo: motivos.indexOf(d.motivo) >= 0 ? d.motivo : 'otro', nota: String(d.nota || '').trim().slice(0, 300), escuelas: esc.length === todas.length ? [] : esc });
+    let r = null;
+    if (d.avisar) {
+      const ccts = o.escuelas.length ? o.escuelas : todas, dir = leer_('dir');
+      const para = dir.filter(c => c.tipo === 'director' && ccts.indexOf(c.cct) >= 0).concat(dir.filter(c => c.tipo === 'atp' && String(c.cct || '').split(',').some(x => ccts.indexOf(x.trim()) >= 0)))
+        .reduce((l, c) => l.concat([c.correo1, c.correo2]), []).map(x => String(x || '').trim()).filter((x, i, a) => /@/.test(x) && a.indexOf(x) === i);
+      const que = ASI_MOTIVOS[o.motivo];
+      const cuerpo = '<p>Por ' + esc_(que) + ', la Supervisión solicita registrar en Tequio la <b>asistencia del ' + (fecha === hoy_() ? 'día de hoy' : fechaLarga_(fecha)) + '</b>: alumnos por grupo y el personal que acudió.</p>' +
+        (o.nota ? '<p style="white-space:pre-line">' + esc_(o.nota) + '</p>' : '') +
+        '<p>Al entrar a Tequio con su enlace verá la alerta para capturarla. Si es la primera vez, primero dé de alta sus grupos y el número de alumnos de cada uno.</p>' + boton_(PAGINA, 'Capturar la asistencia');
+      r = enviarCorreo_(para, 'Asistencia del día · ' + fechaCorta_(fecha) + ' · ' + que.charAt(0).toUpperCase() + que.slice(1), plantilla_('Asistencia del día', cuerpo), 'asistencia', o.id);
+      if (r.ok) o.avisado = ahora_();
+    }
+    guardar_('asj', o);
+    return { asj: o, resultados: r ? [r] : [] };
+  },
+  asiEstado: (yo, d) => {
+    soloAdmin_(yo);
+    const j = buscar_('asj', String(d.id || ''));
+    if (!j) throw new Error('No se encontró la solicitud.');
+    if (d.estado === 'eliminar') {
+      reemplazarTodo_('asj', leer_('asj').filter(x => x.id !== j.id));
+      reemplazarTodo_('asr', leer_('asr').filter(x => x.jornada !== j.id));
+      return { eliminada: j.id };
+    }
+    j.estado = d.estado === 'cerrada' ? 'cerrada' : 'abierta';
+    if (j.estado === 'cerrada') { j.cerrada = ahora_(); j.cerradaPor = yo.nombre; } else { j.cerrada = ''; j.cerradaPor = ''; }
+    guardar_('asj', j);
+    return { asj: j };
   },
   /* ---- Claves de la RELweb: la Supervisión ve todas; cada ATP, solo las de sus escuelas ---- */
   relDatos: (yo) => {
@@ -634,6 +720,7 @@ const ACCIONES = {
     prm: yo.rol === 'admin' ? leer_('prm') : undefined,
     vid: vidLista_(yo),
     vidSala: vidSala_(),
+    asi: asiResumen_(yo),
     cue: leer_('cue').filter(c => c.activo),
     rev: leer_('rev').filter(r => r.ciclo === cicloVis_()).map(revPublica_),
     ate: leer_('ate').filter(a => visible_(yo, a)),
@@ -3227,6 +3314,59 @@ function expedientes_(persona, anio, sin) {
 }
 // La visita la modifica quien la registró o el Supervisor
 function puedeCtv_(yo, o) { if (yo.rol !== 'admin' && o.visitoPor !== yo.id) throw new Error('Solo quien registró la visita o el Supervisor puede modificarla.'); }
+/* ---- Asistencia en contingencias ---- */
+const ASI_MOTIVOS = { lluvias: 'lluvias', frio: 'frío extremo', calor: 'calor extremo', otro: 'contingencia' };
+const ASI_AUSENCIA = ['incapacidad', 'economico', 'sininfo', 'otro'];
+// Escuelas con las que trabaja cada quien: la Supervisión, todas; el ATP, las suyas; la dirección, la suya
+function asiEscuelas_(yo) {
+  if (yo.rol === 'director') { const c = cctDe_(yo); return c ? [c] : []; }
+  soloMesa_(yo);
+  const todas = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false).map(c => c.cct);
+  if (yo.rol === 'admin') return todas;
+  const mias = escuelasDeAtp_(yo);
+  return todas.filter(c => mias.indexOf(c) >= 0);
+}
+function asiCct_(yo, cct) {
+  cct = String(cct || '').trim().toUpperCase();
+  const mias = asiEscuelas_(yo);
+  if (yo.rol === 'director') return mias[0] || (function () { throw new Error('Su usuario no está ligado a una escuela.'); })();
+  if (mias.indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'La escuela no está en el Directorio.' : 'Solo puede capturar la asistencia de las escuelas que tiene a su cargo.');
+  return cct;
+}
+const asiNum_ = v => { const n = Math.round(+v); return isFinite(n) && n >= 0 ? Math.min(n, 999) : 0; };
+function asiAusencia_(o, p) {
+  o.a = p.a === 1 || p.a === '1' || p.a === true ? 1 : 0;
+  o.mot = o.a ? '' : (ASI_AUSENCIA.indexOf(p.mot) >= 0 ? p.mot : 'sininfo');
+  o.otro = o.mot === 'otro' ? String(p.otro || '').trim().slice(0, 200) : '';
+  return o;
+}
+function asiLimpiarGrupos_(l, conAsistencia) {
+  const vistos = {};
+  return (Array.isArray(l) ? l : []).slice(0, 40).map((g, i) => {
+    const gr = /^[1-6M]$/.test(String(g.gr || '')) ? String(g.gr) : '';
+    if (!gr) throw new Error('Falta el grado en uno de los grupos.');
+    const gp0 = String(g.gp || '').trim().slice(0, 20), gp = gr === 'M' ? gp0 : gp0.toUpperCase(), k = gr + '|' + gp.toUpperCase();
+    if (vistos[k]) throw new Error('El grupo ' + (gr === 'M' ? 'multigrado ' : gr + '° ') + gp + ' aparece dos veces.');
+    vistos[k] = 1;
+    const o = { id: String(g.id || ('g' + (i + 1))).slice(0, 20), gr: gr, gp: gp, al: asiNum_(g.al), doc: String(g.doc || '').slice(0, 40), docN: String(g.docN || '').trim().slice(0, 120) };
+    if (!conAsistencia) return o;
+    o.as = Math.min(asiNum_(g.as), o.al);
+    if (g.docA === '' || g.docA == null) { o.docA = ''; o.mot = ''; o.otro = ''; }
+    else { const x = asiAusencia_({}, { a: g.docA, mot: g.mot, otro: g.otro }); o.docA = x.a; o.mot = x.mot; o.otro = x.otro; }
+    return o;
+  });
+}
+// Para la alerta al entrar: lo que se pidió para hoy y qué escuelas ya capturaron
+function asiResumen_(yo) {
+  try {
+    const hoy = hoy_(), mias = asiEscuelas_(yo);
+    const abiertas = leer_('asj').filter(j => j.estado === 'abierta' && j.fecha === hoy).map(j => ({ id: j.id, fecha: j.fecha, motivo: j.motivo, nota: j.nota,
+      escuelas: ((j.escuelas || []).length ? j.escuelas : mias).filter(c => mias.indexOf(c) >= 0) })).filter(j => j.escuelas.length);
+    const ids = abiertas.map(j => j.id);
+    return { abiertas: abiertas, hechas: leer_('asr').filter(r => ids.indexOf(r.jornada) >= 0 && mias.indexOf(r.cct) >= 0).map(r => r.id), conGrupos: leer_('agr').filter(g => mias.indexOf(g.cct) >= 0).map(g => g.cct) };
+  } catch (e) { return { abiertas: [], hechas: [], conGrupos: [] }; }
+}
+
 /* ---- Claves de la RELweb ---- */
 // Escuelas que cada ATP tiene a su cargo (las mismas que usa el informe semanal)
 function escuelasDeAtp_(u) {
@@ -3470,6 +3610,8 @@ function datosDirector_(yo) {
     acl: leer_('acl').filter(x => x.cct === cct),
     // las videollamadas de la Mesa Técnica a las que está invitada (solo para conectarse)
     vid: vidLista_(yo),
+    // si la Supervisión pidió hoy la asistencia por contingencia (para la alerta al entrar)
+    asi: asiResumen_(yo),
     // la escuela guarda su directorio y sus oficios en su dispositivo; el servidor solo le presta la lectura con IA
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION
