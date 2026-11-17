@@ -87,10 +87,7 @@ function siguienteSesion(gid) { const g = grDe(gid);
 function agendaDe(desde, hasta) { const out = [];
   D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasClase(g, p.ini, p.sesiones.length), dadas = sesionesDadas(g.id, p.id);
     p.sesiones.forEach((s, i) => { const f = fechas[i]; if (f && f >= desde && f <= hasta) out.push({ f, g, p, s, n: i + 1, dada: dadas.has(s.id) }); }); }));
-  return out.sort((a, b) => a.f.localeCompare(b.f) || horaDe(a.g, a.f) - horaDe(b.g, b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
-/* Hora de inicio del grupo ese día, leída del horario («Lun 8:00 a 8:50 · Mié 10:30 a 11:20»); de 1:00 a 6:59 se toma como de la tarde */
-function horaDe(g, f) { const h = String(g.horario || ""), dia = DSEM[dF(f).getDay()], m = h.match(new RegExp(dia + "\\.?\\s*(\\d{1,2}):(\\d{2})", "i")) || h.match(/(\d{1,2}):(\d{2})/);
-  if (!m) return 9999; let x = +m[1]; if (x >= 1 && x < 7) x += 12; return x * 60 + +m[2]; }
+  return out.sort((a, b) => a.f.localeCompare(b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
 
 /* ---------------- instrumentos ---------------- */
 const NIV_R = [[1, "Requiere apoyo"], [2, "En proceso"], [3, "Logrado"], [4, "Destacado"]];
@@ -108,48 +105,14 @@ function descriptores(c) { const t = minus(c.t.replace(/\.$/, ""));
 function normal(tipo, v) { v = Number(v); if (tipo === "cotejo") return v ? 1 : 0; return (v - 1) / 3; }
 
 /* ---------------- planeación ---------------- */
-/* Elementos de la planeación que usan los maestros de E. F. de la región (tomados de sus planeaciones): estrategia didáctica,
-   estilos de enseñanza, acciones de evaluación, interacción de capacidades, temas y criterios de valoración. */
-const EF_ESTRATEGIAS = ["Juegos motrices", "Circuitos de acción motriz", "Expresión corporal", "Juegos organizados", "Juegos cooperativos", "Juegos tradicionales", "Iniciación deportiva", "Cuento motor", "Rally"];
-const EF_ESTILOS = ["Mando directo", "Asignación de tareas", "Descubrimiento guiado", "Resolución de problemas", "Libre exploración"];
-const EF_EVAL_ACC = ["Observación", "Bitácora", "Lista de cotejo", "Lista de asistencia", "Rúbrica", "Escala estimativa"];
-const EF_CAPAC = ["Capacidades perceptivo-motrices", "Capacidades sociomotrices", "Capacidades físico-motrices", "Habilidades y destrezas"];
-const EF_TEMAS = { 3: "Patrones básicos de movimiento. Espacio, tiempo y relación con los objetos. Conocimiento de sí. Acciones motrices y expresivas. Equilibrio, orientación y coordinación. Vida activa y saludable.",
-  4: "Elementos básicos del juego. Habilidades motrices. Códigos de comunicación corporal. Toma de decisiones y acuerdos. Cooperación y oposición. Actividad física y salud.",
-  5: "Reconocer posibilidades y límites. Iniciación deportiva. Capacidades. Habilidades. Estrategias de juego. Actividad física. Convivencia." };
-const EF_VALOR = { 3: "Exploración de movimientos. Patrones básicos de movimiento. Adaptación corporal. Propuesta de acciones.", 4: "Adaptación de movimientos. Toma de decisiones. Establecimiento de acuerdos. Trabajo en equipo.", 5: "Desempeño motriz. Planificación de estrategias. Participación y convivencia. Propuestas de juego." };
-const PREF_PLAN = () => Object.assign({ estr: ["Juegos motrices", "Circuitos de acción motriz", "Expresión corporal"], estilos: ["Mando directo", "Descubrimiento guiado", "Libre exploración"], evalAcc: ["Bitácora", "Lista de cotejo", "Observación"], capac: EF_CAPAC.slice(), fuente: "ulama" }, D.cfg.prefPlan || {});
-const sinAc = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-const esComunidad = k => /^ep_/.test(k);
-const fasesJ = j => j.fases || [3, 4, 5];
-const PROP_EST = { "Persecución": "Que el alumno ajuste sus desplazamientos y tome decisiones rápidas al perseguir y evadir a sus compañeros.", "Relevos": "Que el alumno coordine sus movimientos con los de su equipo para cumplir un recorrido o reto en el menor tiempo.",
-  "Expresión corporal": "Que el alumno explore las posibilidades expresivas de su cuerpo al representar personajes, ritmos y situaciones.", "Manipulación de objetos": "Que el alumno controle objetos (pelotas, aros, conos) al lanzar, atrapar, botar y transportar en situaciones de juego.",
-  "Circuito de acción motriz": "Que el alumno ponga a prueba sus habilidades motrices al superar las estaciones de un circuito.", "Oposición y estrategia": "Que el alumno planifique estrategias con su equipo para superar al equipo contrario respetando las reglas.",
-  "Cooperativo": "Que el alumno colabore con sus compañeros para lograr una meta común.", "Equilibrio": "Que el alumno mejore su equilibrio y control postural en distintas situaciones de juego.",
-  "Cuento motor": "Que el alumno escuche, imagine y responda con movimiento a las acciones de un cuento.", "Juego motor": "Que el alumno participe en juegos motrices para explorar sus posibilidades de movimiento y convivir con sus compañeros." };
-const INICIO_COM = "Bienvenida. Calentamiento. Dialogar sobre lo trabajado en la sesión anterior. Explicación del trabajo a realizar.";
-/* Sesiones armadas con los juegos de la comunidad sugeridos para la fase: uno o dos juegos por sesión, sin repetir hasta agotar */
-function sesionesComunidad(n, fase, estr) { const pref = { "Juegos motrices": ["Persecución", "Juego motor", "Manipulación de objetos"], "Circuitos de acción motriz": ["Circuito de acción motriz", "Relevos"], "Expresión corporal": ["Expresión corporal", "Cuento motor"],
-    "Juegos cooperativos": ["Cooperativo"], "Juegos organizados": ["Relevos", "Oposición y estrategia"], "Juegos tradicionales": ["Persecución"], "Iniciación deportiva": ["Oposición y estrategia", "Manipulación de objetos"], "Cuento motor": ["Cuento motor"], "Rally": ["Circuito de acción motriz"] };
-  const ests = new Set((estr || []).flatMap(x => pref[x] || [])); let L = Object.entries(JUEGOS).filter(([k, j]) => esComunidad(k) && fasesJ(j).includes(fase));
-  if (ests.size) { const a = L.filter(([, j]) => ests.has(j.est)); if (a.length >= 3) L = a.concat(L.filter(x => !a.includes(x))); }
-  const calent = Object.entries(JUEGOS).filter(([k, j]) => j.est === "Persecución" && (esComunidad(k) ? fasesJ(j).includes(fase) : true)).map(([k]) => k);
-  const calma = JUEGOS.globo ? "globo" : Object.keys(JUEGOS)[0];
-  const out = []; let i = 0;
-  for (let s = 0; s < n; s++) { const a = L[i++ % L.length], b = (s % 2 === 1 && L.length > 2) ? L[i++ % L.length] : null, j = a[1];
-    out.push({ id: uid(), est: j.est, t: j.n + (b ? " y " + b[1].n : ""), para: PROP_EST[j.est] || PROP_EST["Juego motor"], act: calent.length ? calent[s % calent.length] : a[0], ppal: [a[0]].concat(b ? [b[0]] : []), calma, charla: INICIO_COM,
-      cierre: ["Relajación: preguntas y respuestas sobre la clase."], eval: "A través de la observación en la actividad 2.", planB: JUEGOS.espejo ? "espejo" : null, nota: "", ajustes: "", bitacora: "" }); }
-  return out; }
 function secuencia(n) { const B = EF_SESIONES.length; if (n <= 1) return [1]; if (n <= B) return Array.from({ length: n }, (_, i) => Math.round(i * (B - 1) / (n - 1)));
   const mid = [1, 2, 3, 4], s = [0]; for (let i = 0; s.length < n - 1; i++) s.push(mid[i % mid.length]); s.push(B - 1); return s; }
-function crearPlan(c) { const idx = secuencia(c.n), fase = Math.max(...Object.keys(c.pdas).map(Number).map(faseDe));
+function crearPlan(c) { const idx = secuencia(c.n);
   const vistas = {}; const sesiones = idx.map((i, k) => { const b = JSON.parse(JSON.stringify(EF_SESIONES[i])); const vez = vistas[i] = (vistas[i] || 0) + 1;
     if (vez > 1) { b.t += vez === 2 ? " · segunda vuelta" : ` · vuelta ${vez}`; b.charla = "Retomamos lo que aprendimos la vez pasada. " + b.charla; if (b.ppal.length > 1) b.ppal = b.ppal.slice(vez % b.ppal.length).concat(b.ppal.slice(0, vez % b.ppal.length)); }
-    return { id: uid(), est: b.est, t: b.t, para: b.para, act: b.act, ppal: b.ppal, calma: b.calma, charla: b.charla, cierre: b.cierre, eval: b.eval, planB: b.planB, mg: b.mg, nota: "", ajustes: "", bitacora: "" }; });
-  if (c.fuente === "comunidad") { const com = sesionesComunidad(c.n, fase, c.estr); if (com.length) sesiones.splice(0, sesiones.length, ...com); }
+    return { id: uid(), est: b.est, t: b.t, para: b.para, act: b.act, ppal: b.ppal, calma: b.calma, charla: b.charla, cierre: b.cierre, eval: b.eval, planB: b.planB, mg: b.mg, nota: "" }; });
   const crit = criteriosDePDA(c.pdas); crit.forEach(x => x.d = descriptores(x));
-  return { id: uid(), creado: hoy(), escId: c.escId, grupos: c.grupos, titulo: c.titulo, cont: c.cont, pdas: c.pdas, ini: c.ini, min: c.min, mat: c.mat, sesiones, criterios: crit, instr: c.instr || "rubrica", proposito: c.proposito,
-    estr: c.estr || [], estilos: c.estilos || [], evalAcc: c.evalAcc || [], capac: c.capac || [], temas: c.temas || EF_TEMAS[fase] || "", valor: c.valor || EF_VALOR[fase] || "", fuente: c.fuente || "ulama" }; }
+  return { id: uid(), creado: hoy(), escId: c.escId, grupos: c.grupos, titulo: c.titulo, cont: c.cont, pdas: c.pdas, ini: c.ini, min: c.min, mat: c.mat, sesiones, criterios: crit, instr: c.instr || "rubrica", proposito: c.proposito }; }
 
 /* ---------------- evaluación del periodo ---------------- */
 function clasesEn(gid, ini, fin) { return D.clases.filter(c => c.grupoId === gid && c.fecha >= ini && c.fecha <= fin).sort((a, b) => a.fecha.localeCompare(b.fecha)); }
@@ -202,13 +165,12 @@ ENLAZAR.bienvenida = () => { const p = S.paso || 1;
 /* ---------- inicio ---------- */
 VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agendaDe(k, k), dia = d.getDay();
   const hoyEsc = D.escuelas.filter(e => D.grupos.some(g => g.escId === e.id && diasGrupo(g).includes(dia)));
-  const gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia)).sort((a, b) => horaDe(a, k) - horaDe(b, k) || (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
-  const hTx = g => { const m = horaDe(g, k); if (m >= 9999) return ""; const h = Math.floor(m / 60), mi = String(m % 60).padStart(2, "0"); return `${h > 12 ? h - 12 : h}:${mi}`; };
+  const gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia)).sort((a, b) => (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
   return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt=""><div class="eb">Ulama · Educación Física</div></div>
   <h1>Hola, ${esc(corto(D.docente.nombre) || "maestro")}</h1><p>${DSEM_L[dia][0].toUpperCase() + DSEM_L[dia].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : hoyEsc.length ? ` · Hoy va a ${hoyEsc.map(e => esc(e.nombre)).join(" y ")}` : ""}</p>
   <div class="fila"><button class="btn m" id="bClase">${ic("silbato")} Iniciar clase</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button></div></section>
   ${gHoy.length && !sc ? `<h2 class="sec-t">Hoy<small>Grupos que le tocan según sus días de clase</small></h2><div class="hoy">${gHoy.map(g => { const s = siguienteSesion(g.id), e = escDe(g.escId), ya = D.clases.some(c => c.grupoId === g.id && c.fecha === k);
-    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${hTx(g) ? `<span class="hr">${hTx(g)}</span>` : ""}${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
+    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
   ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:var(--anil);--c-s:var(--anil-s)"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.length} planeaciones · juegos, sesiones e instrumentos</span></button>
@@ -320,18 +282,19 @@ async function pdfOCR(doc, prog) { const out = []; for (let i = 1; i <= Math.min
   await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; out.push(await ocr(c, p => prog(`página ${i} de ${doc.numPages}: ${p} %`))); } return out.join("\n"); }
 const CURP_RE = /[A-Z][AEIOUX][A-Z]{2}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d/;
 const nombreRel = raw => { const [ap, rest] = raw.split("*"); const [p, m] = (ap || "").split("/").map(x => x.trim()); return [p, m, (rest || "").trim()].filter(Boolean).join(" ").replace(/\s+/g, " "); };
-const titulo = t => t.toLowerCase().replace(/(^|\s|-)([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/(\s)(De|Del|La|Las|Los|Y)(?=\s)/g, (m, a, w) => a + w.toLowerCase());
+const titulo = t => t.toLowerCase().replace(/(^|\s|-)([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, w => w.toLowerCase());
 /* Encabezado de RELweb + renglones de alumnos con CURP */
 function parseRel(lines) { const txt = lines.join("\n"), g = { escuela: "", cct: "", grado: "", grupo: "", docente: "", alumnos: [] }; let m;
   if (m = /Escuela:\s*(.+)/.exec(txt)) g.escuela = m[1].replace(/\s*Clave.*$/, "").trim(); if (m = /Clave CT:\s*([0-9A-Z]{10})/.exec(txt)) g.cct = m[1];
-  if (m = /Grado:\s*(\d)/.exec(txt)) g.grado = m[1]; if (m = /Grupo:\s*([A-Z0-9])/.exec(txt)) g.grupo = m[1]; if (m = /(Docente|Maestr[oa]|Profesor[a]?):\s*([A-ZÁÉÍÓÚÑ][^\n]{4,60})/i.exec(txt)) g.docente = m[2].replace(/\s*(Grado|Grupo|Turno).*$/i, "").trim();
+  if (m = /Grado:\s*(\d)/.exec(txt)) g.grado = m[1]; if (m = /Grupo:\s*([A-Z0-9])/.exec(txt)) g.grupo = m[1]; if (m = /(Docente|Maestr[oa]|Profesor[a]?):[ \t]*([A-ZÁÉÍÓÚÑ][^\n]{4,60})/i.exec(txt)) { const d = m[2].replace(/\s*(Grado|Grupo|Turno|Ciclo|Mes|Clave|Escuela)\b.*$/i, "").trim(); if (d.length >= 5 && !/^(Ciclo|Mes|Turno)/i.test(m[2])) g.docente = d; }
+  if (m = /Turno:\s*([MVTC])\b/.exec(txt)) g.turno = { M: "Matutino", V: "Vespertino", T: "Tiempo completo", C: "Tiempo completo" }[m[1]];
   const re = /^(\d{1,3})\s+([A-Z][A-Z0-9]{17})\s+(.+?)\s+([HM])\s+\d{1,2}\/\d{1,2}\/\d{4}/;
   for (const l of lines) { const r = re.exec(l); if (r) { g.alumnos.push({ nombre: titulo(nombreRel(r[3])), curp: r[2] }); continue; }
+    /* lista de asistencia mensual de RELweb: «1  APELLIDO / APELLIDO * NOMBRES» (sin CURP) */
+    const ln = /^\s*(\d{1,3})\s+([A-ZÑÁÉÍÓÚÜ][A-ZÑÁÉÍÓÚÜ .'-]*\/[A-ZÑÁÉÍÓÚÜ .'-]*\*\s*[A-ZÑÁÉÍÓÚÜ][A-ZÑÁÉÍÓÚÜ .'-]*)/.exec(l);
+    if (ln && !CURP_RE.test(l.toUpperCase())) { const n = titulo(nombreRel(ln[2].trim())); if (n && !g.alumnos.some(a => a.nombre === n)) g.alumnos.push({ nombre: n }); continue; }
     const c = l.toUpperCase().match(CURP_RE); if (c) { let n = l.replace(new RegExp(c[0], "i"), " ").replace(/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/g, " ").replace(/\b(HOMBRE|MUJER|\d+)\b/gi, " ").replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ *\/'.-]/g, " ").replace(/\s+[HM]\s*$/, "").replace(/\s{2,}/g, " ").trim();
-      if (n.includes("*") || n.includes("/")) n = nombreRel(n); if (n && !g.alumnos.some(a => a.curp === c[0])) g.alumnos.push({ nombre: titulo(n), curp: c[0] }); continue; }
-    /* «Lista de asistencia mensual» de RELweb (sin CURP): «12  APELLIDO / APELLIDO * NOMBRES» */
-    const s = /^\s*\d{1,3}[\s.)-]+([A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .'-]*\/[A-ZÁÉÍÓÚÜÑ .'-]*\*\s*[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .'-]*)/.exec(l.toUpperCase());
-    if (s) { const n = titulo(nombreRel(s[1].replace(/\s{2,}.*$/, ""))); if (n && !g.alumnos.some(a => a.nombre === n)) g.alumnos.push({ nombre: n }); } }
+      if (n.includes("*") || n.includes("/")) n = nombreRel(n); if (n && !g.alumnos.some(a => a.curp === c[0])) g.alumnos.push({ nombre: titulo(n), curp: c[0] }); } }
   return g; }
 /* Sin CURP (foto de lista escrita): renglones que parecen nombres */
 function nombresDeTexto(t) { const NO = /^(escuela|clave|grado|grupo|turno|ciclo|lista|nombre|alumno|docente|maestr|profesor|zona|fecha|total|no\.?$|n[uú]m)/i;
@@ -371,6 +334,7 @@ async function importarGrupos(files, escId) { if (!files.length) return; const e
     v.querySelector("#iOk").onclick = () => { let n = 0, a = 0; res.forEach((x, i) => { if (!x.r.alumnos.length) return; const grado = +val("iG" + i), grupo = val("iP" + i).trim().toUpperCase();
       let g = D.grupos.find(y => y.escId === escId && y.grado === grado && (y.grupo || "") === grupo); if (!g) { g = { id: uid(), escId, grado, grupo, docente: val("iD" + i).trim(), correo: "", alumnos: [], dias: [] }; D.grupos.push(g); n++; }
       const ya = new Set(g.alumnos.map(z => z.nombre.toLowerCase())); x.r.alumnos.forEach(z => { if (ya.has(z.nombre.toLowerCase())) return; g.alumnos.push({ id: uid(), nombre: z.nombre, curp: z.curp || "", alta: CICLO.inicio }); a++; }); });
+      const r0 = res.find(x => x.r.cct) || {}; if (r0.r) { if (!e.cct) e.cct = r0.r.cct; if (!e.turno && r0.r.turno) e.turno = r0.r.turno; }
       guardar(); cerrarDlg(); pintar(); toast(`${n} grupos nuevos · ${a} alumnos agregados. Agregue el correo de cada docente.`, 4000); }; }); }
 
 /* ---------- planeación ---------- */
@@ -379,8 +343,7 @@ VISTAS.planes = () => barra("Planeación", "Mis planeaciones", `<button class="b
   <div class="lista mt">${D.planes.slice().sort((a, b) => b.ini.localeCompare(a.ini)).map(p => { const e = escDe(p.escId); return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:var(--anil-s);color:var(--anil)">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${esc(e ? e.nombre : "")} · ${p.grupos.map(id => grDe(id)).filter(Boolean).map(grNom).join(", ")} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small></span></button>`; }).join("") || `<div class="vacio">Aún no tiene planeaciones.</div>`}</div></main>`;
 ENLAZAR.planes = () => { $("#bNP").onclick = () => ir("planNueva", {}); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
 
-VISTAS.planNueva = () => { const P = S.f = S.f || Object.assign({ escId: (D.escuelas[0] || {}).id, grupos: [], cont: null, ini: proxLunes(), sem: 4, min: 50, instr: "rubrica" }, JSON.parse(JSON.stringify(PREF_PLAN()))); const e = escDe(P.escId);
-  { const d = PREF_PLAN(); ["estr", "estilos", "evalAcc", "capac", "fuente"].forEach(k => { if (P[k] == null) P[k] = JSON.parse(JSON.stringify(d[k])); }); }
+VISTAS.planNueva = () => { const P = S.f = S.f || { escId: (D.escuelas[0] || {}).id, grupos: [], cont: null, ini: proxLunes(), sem: 4, min: 50, instr: "rubrica" }; const e = escDe(P.escId);
   const gs = e ? gruposDe(e.id) : [], selG = P.grupos.map(grDe).filter(Boolean), grados = [...new Set(selG.map(g => g.grado))].sort(), fase = grados.length ? Math.max(...grados.map(faseDe)) : null;
   const conts = fase ? BANCO_EF[fase] || [] : []; const cont = conts.find(c => c.c === P.cont);
   const npor = selG.length ? Math.max(...selG.map(g => diasGrupo(g).length || 1)) : 1; const n = P.n || P.sem * npor;
@@ -397,21 +360,12 @@ VISTAS.planNueva = () => { const P = S.f = S.f || Object.assign({ escId: (D.escu
    <div class="dos"><label class="campo"><span>Número de sesiones</span><input type="number" id="pN" min="1" max="40" value="${n}"><small>Según los días de clase del grupo (${npor} por semana).</small></label><label class="campo"><span>Duración de la sesión (min)</span><select id="pM">${[30, 40, 45, 50, 60].map(x => `<option ${x == P.min ? "selected" : ""}>${x}</option>`).join("")}</select></label></div>
    <label class="campo"><span>Propósito (opcional)</span><textarea id="pP" placeholder="Qué quiere lograr con el grupo en estas semanas">${esc(P.proposito || "")}</textarea></label>
    <span style="font-size:14px;font-weight:700;color:var(--gris)">Instrumento principal (en la clase puede elegir cualquiera)</span><div class="chips mt" id="pIn">${Object.entries(TIPOS).map(([k, t]) => `<button class="chip" data-i="${k}" aria-pressed="${P.instr === k}">${t}</button>`).join("")}</div>
-   <h3 class="mt2">4. ¿Cómo lo va a trabajar?</h3><p class="small muted mb">Se guarda como su forma de planear y aparece así la próxima vez.</p>
-   ${["estr", "estilos", "evalAcc", "capac"].map(k => `<span style="font-size:14px;font-weight:700;color:var(--gris)">${{ estr: "Estrategia didáctica", estilos: "Estilos de enseñanza", evalAcc: "Evaluación (acciones)", capac: "Interacción de capacidades y habilidades" }[k]}</span>
-    <div class="chips mt mb" data-multi="${k}">${({ estr: EF_ESTRATEGIAS, estilos: EF_ESTILOS, evalAcc: EF_EVAL_ACC, capac: EF_CAPAC }[k]).map(x => `<button class="chip" data-v="${esc(x)}" aria-pressed="${P[k].includes(x)}">${esc(x)}</button>`).join("")}</div>`).join("")}
-   <label class="campo"><span>Temas</span><textarea id="pTe">${esc(P.temas ?? EF_TEMAS[fase] ?? "")}</textarea></label>
-   <label class="campo"><span>Criterios de valoración</span><input id="pVa" value="${esc(P.valor ?? EF_VALOR[fase] ?? "")}"></label>
-   <span style="font-size:14px;font-weight:700;color:var(--gris)">Armar las sesiones con</span><div class="chips mt" id="pFu"><button class="chip" data-f="ulama" aria-pressed="${P.fuente !== "comunidad"}">Secuencia de Ulama</button><button class="chip" data-f="comunidad" aria-pressed="${P.fuente === "comunidad"}">Juegos de la comunidad para el grado</button></div>
-   <p class="small muted mt">Los juegos de la comunidad son los que comparten maestros de Educación Física de la región. Después puede cambiar cualquier juego de cada sesión.</p>
    <div class="mt">${selG.map(g => { const f = fechasClase(g, P.ini, n); return `<p class="small muted">${grNom(g)}: ${f.length ? `${fCorta(f[0])} a ${fCorta(f[f.length - 1])}` : "sin días de clase registrados"}${f.length < n ? ` <span class="tag r">solo caben ${f.length}</span>` : ""}</p>`; }).join("")}</div>
    <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear planeación e instrumentos</button></div></section>` : ""}
   </main>`; };
 function proxLunes() { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 0)); return iso(d); }
 ENLAZAR.planNueva = () => { const P = S.f; const re = () => { const y = window.scrollY; pintar(); window.scrollTo(0, y); };
-  const lee = () => { if ($("#pT")) { P.titulo = val("pT"); P.ini = val("pI") || P.ini; P.sem = +val("pS"); P.min = +val("pM"); P.proposito = val("pP"); P.n = +val("pN") || null; P.temas = val("pTe"); P.valor = val("pVa"); } };
-  $$("[data-multi] .chip").forEach(b => b.onclick = () => { lee(); const k = b.parentElement.dataset.multi, v = b.dataset.v; P[k] = P[k].includes(v) ? P[k].filter(x => x !== v) : [...P[k], v]; re(); });
-  $$("#pFu .chip").forEach(b => b.onclick = () => { lee(); P.fuente = b.dataset.f; re(); });
+  const lee = () => { if ($("#pT")) { P.titulo = val("pT"); P.ini = val("pI") || P.ini; P.sem = +val("pS"); P.min = +val("pM"); P.proposito = val("pP"); P.n = +val("pN") || null; } };
   if ($("#pE")) $("#pE").onchange = ev => { P.escId = ev.target.value; P.grupos = []; P.cont = null; re(); };
   $$("#pG .chip").forEach(b => b.onclick = () => { lee(); const id = b.dataset.g; P.grupos = P.grupos.includes(id) ? P.grupos.filter(x => x !== id) : [...P.grupos, id]; P.n = null; re(); });
   $$("[data-c]").forEach(b => b.onclick = () => { lee(); P.cont = b.dataset.c; P.titulo = ""; re(); });
@@ -419,9 +373,7 @@ ENLAZAR.planNueva = () => { const P = S.f; const re = () => { const y = window.s
   $$("#pIn .chip").forEach(b => b.onclick = () => { lee(); P.instr = b.dataset.i; re(); });
   if ($("#pOk")) $("#pOk").onclick = () => { lee(); const selG = P.grupos.map(grDe), grados = [...new Set(selG.map(g => g.grado))], fase = Math.max(...grados.map(faseDe)), cont = BANCO_EF[fase].find(c => c.c === P.cont);
     const pdas = {}; grados.sort().forEach(gr => pdas[gr] = (cont.pda || {})[gr] || ""); const n = P.n || 8;
-    const p = crearPlan({ escId: P.escId, grupos: P.grupos, titulo: P.titulo || cont.c, cont: cont.c, pdas, ini: P.ini, min: P.min, n, instr: P.instr, proposito: P.proposito,
-      estr: P.estr, estilos: P.estilos, evalAcc: P.evalAcc, capac: P.capac, temas: P.temas, valor: P.valor, fuente: P.fuente });
-    D.cfg.prefPlan = { estr: P.estr, estilos: P.estilos, evalAcc: P.evalAcc, capac: P.capac, fuente: P.fuente };
+    const p = crearPlan({ escId: P.escId, grupos: P.grupos, titulo: P.titulo || cont.c, cont: cont.c, pdas, ini: P.ini, min: P.min, n, instr: P.instr, proposito: P.proposito });
     D.planes.push(p); guardar(); S.f = null; ir("plan", { id: p.id }, true); toast("Planeación creada con sus instrumentos de evaluación."); }; };
 
 VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), g0 = gs[0], fechas = g0 ? fechasClase(g0, p.ini, p.sesiones.length) : [];
@@ -429,35 +381,19 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
   return barra("Planeación", esc(p.titulo), `<button class="btn s" id="bImpP" aria-label="Imprimir">${ic("impr", 18)}</button>`) + `<main class="wrap">
   <section class="card mt"><p class="small muted">${esc(e ? e.nombre : "")} · ${gs.map(grNom).join(", ")} · ${p.sesiones.length} sesiones de ${p.min} min · desde ${fLarga(p.ini)}</p>
    <p class="mt"><b>Contenido:</b> ${esc(p.cont)}</p>${Object.entries(p.pdas).map(([gr, t]) => `<p class="small mt"><b>PDA ${gr}.°:</b> ${esc(t)}</p>`).join("")}
-   ${p.proposito ? `<p class="small mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${p.temas ? `<p class="small mt"><b>Temas:</b> ${esc(p.temas)}</p>` : ""}
-   ${(p.estr || []).length ? `<p class="small mt"><b>Estrategia didáctica:</b> ${p.estr.map(esc).join(", ")} · <b>Estilos de enseñanza:</b> ${(p.estilos || []).map(esc).join(", ") || "—"} · <b>Evaluación:</b> ${(p.evalAcc || []).map(esc).join(", ") || "—"}</p>` : ""}
-   ${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Supervisa: ${esc(e.supEF)}</p>` : ""}
+   ${p.proposito ? `<p class="small mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Supervisa: ${esc(e.supEF)}</p>` : ""}
    <div class="fila mt"><button class="btn s" id="bEnvP">${ic("correo", 16)} Enviar al supervisor(a)</button><button class="btn s r" id="bBorP">${ic("basura", 16)} Borrar</button></div></section>
   <div class="chips mt" role="tablist"><button class="chip" data-t="ses" aria-pressed="${tab === "ses"}">Sesiones</button><button class="chip" data-t="ins" aria-pressed="${tab === "ins"}">Instrumentos</button><button class="chip" data-t="jue" aria-pressed="${tab === "jue"}">Fichero de juegos</button></div>
   ${tab === "ses" ? `<div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i])).join("")}</div>` : ""}
   ${tab === "ins" ? instrumentosHTML(p) : ""}
-  ${tab === "jue" ? ficheroHTML(p) : ""}
+  ${tab === "jue" ? `<div class="puertas mt">${Object.entries(JUEGOS).map(([k, j]) => `<div class="card" style="margin:0">${plano(j.plano)}<h3 class="mt">${esc(j.n)}</h3><p class="small muted">${esc(j.est)} · ${j.min} min · ${(j.mat || []).map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]).join(", ") || "sin material"}</p><ol class="small" style="padding-left:18px;margin:8px 0 0">${j.reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol></div>`).join("")}</div>` : ""}
   </main>`; };
-/* Fichero de juegos con filtros: tipo, origen (Ulama o comunidad), grado de la planeación y búsqueda */
-function ficheroHTML(p) { const F = S.fj = S.fj || { q: "", est: "", ori: "", fase: "" }, fasesP = p ? [...new Set(Object.keys(p.pdas).map(Number).map(faseDe))] : [];
-  const ests = [...new Set(Object.values(JUEGOS).map(j => j.est))].sort((a, b) => a.localeCompare(b, "es")), q = sinAc(F.q || "");
-  const L = Object.entries(JUEGOS).filter(([k, j]) => (!F.est || j.est === F.est) && (!F.ori || (F.ori === "com") === esComunidad(k)) && (!F.fase || fasesJ(j).includes(+F.fase))
-    && (!q || sinAc(j.n + " " + j.est + " " + (j.reglas || []).join(" ")).includes(q)));
-  return `<section class="card mt"><div class="dos"><label class="campo"><span>Buscar</span><input id="fjQ" value="${esc(F.q)}" placeholder="Nombre o palabra (aros, relevos…)"></label>
-   <label class="campo"><span>Tipo de juego</span><select id="fjE"><option value="">Todos</option>${ests.map(x => `<option ${x === F.est ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label></div>
-   <div class="dos"><label class="campo"><span>Origen</span><select id="fjO"><option value="">Todos</option><option value="ulama" ${F.ori === "ulama" ? "selected" : ""}>Fichero de Ulama</option><option value="com" ${F.ori === "com" ? "selected" : ""}>De la comunidad</option></select></label>
-   <label class="campo"><span>Fase</span><select id="fjF"><option value="">Todas</option>${[3, 4, 5].map(x => `<option value="${x}" ${String(x) === String(F.fase) ? "selected" : ""}>Fase ${x}${fasesP.includes(x) ? " (esta planeación)" : ""}</option>`).join("")}</select></label></div>
-   <p class="small muted">${L.length} juegos</p></section>
-  <div class="puertas mt">${L.slice(0, 80).map(([k, j]) => `<div class="card" style="margin:0">${plano(j.plano || "dispersos")}<h3 class="mt">${esc(j.n)}</h3><p class="small muted">${esc(j.est)} · ${j.min} min · ${(j.mat || []).map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]).join(", ") || "sin material"}${j.gr ? ` · ${j.gr.map(g => g + ".°").join(", ")}` : ""}</p>
-    <ol class="small" style="padding-left:18px;margin:8px 0 0">${(j.reglas || []).map(r => `<li>${esc(r)}</li>`).join("")}</ol>${j.var ? `<p class="small mt"><b>Variante:</b> ${esc(j.var)}</p>` : ""}${j.de ? `<p class="small muted mt">Compartido por ${esc(j.de)}</p>` : ""}</div>`).join("")}</div>
-  ${L.length > 80 ? `<p class="small muted mt">Se muestran 80 de ${L.length}. Use la búsqueda o los filtros para encontrar más.</p>` : ""}`; }
 function sesionHTML(p, s, i, f) { const ab = S.ab === s.id, J = k => JUEGOS[k] || { n: k };
   return `<article class="ses"><button class="ses-cab" data-s="${s.id}"><span class="d">${f ? `<small>${DSEM[dF(f).getDay()]}</small><b>${dF(f).getDate()}</b><small>${MES[dF(f).getMonth()]}</small>` : `<b>${i + 1}</b>`}</span><span class="tx"><span class="tag" style="background:${EST_COL[s.est] || "#555"}22;color:${EST_COL[s.est] || "#555"}">${esc(s.est)}</span><b>${i + 1}. ${esc(s.t)}</b><small class="muted">${esc(s.para)}</small></span></button>
    ${ab ? `<div class="ses-cuerpo"><div class="mom"><b>Inicio</b><div><p class="small">${esc(s.charla)}</p><p class="small mt"><b>Activación:</b> ${esc(J(s.act).n)}</p></div></div>
     <div class="mom"><b>Desarrollo</b><div>${s.ppal.map(k => `<p class="small"><b>${esc(J(k).n)}</b> · ${esc((J(k).reglas || []).join(" "))}</p>`).join("")}${s.mg ? `<p class="small muted mt">${Object.entries(s.mg).map(([k, v]) => `Fase ${k}: ${esc(v)}`).join(" · ")}</p>` : ""}</div></div>
     <div class="mom"><b>Cierre</b><div><p class="small"><b>Vuelta a la calma:</b> ${esc(J(s.calma).n)}</p><p class="small">${s.cierre.map(esc).join(" ")}</p></div></div>
     <div class="mom"><b>Evaluación</b><div><p class="small">${esc(s.eval)}</p></div></div>
-    ${s.ajustes ? `<div class="mom"><b>Ajustes razonables</b><div><p class="small">${esc(s.ajustes)}</p></div></div>` : ""}${s.bitacora ? `<div class="mom"><b>Bitácora</b><div><p class="small">${esc(s.bitacora)}</p></div></div>` : ""}
     ${s.planB ? `<div class="mom"><b>Plan B</b><div><p class="small">Si llueve o hace mucho calor: ${esc(J(s.planB).n)} (bajo techo o a la sombra).</p></div></div>` : ""}
     <div class="fila"><button class="btn s" data-es="${s.id}">${ic("lapiz", 16)} Editar sesión</button></div></div>` : ""}</article>`; }
 function instrumentosHTML(p) { return `<section class="card mt"><h3>Criterios de evaluación</h3><p class="small muted mb">Se generaron a partir de los PDA. Edítelos si lo necesita: se usan en los tres instrumentos.</p>
@@ -469,23 +405,16 @@ function instrumentosHTML(p) { return `<section class="card mt"><h3>Criterios de
   <p class="small muted mt">Para la calificación: Destacado o Siempre = 10 · Logrado o Casi siempre ≈ 9 · En proceso o A veces ≈ 7 · Requiere apoyo o Nunca = 6; Sí = 10, No = 6. Se promedian todos los registros del trimestre.</p></section>`; }
 ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const re = () => { const y = window.scrollY; pintar(); window.scrollTo(0, y); };
   $$("[data-t]").forEach(b => b.onclick = () => { S.tab = b.dataset.t; re(); }); $$("[data-s]").forEach(b => b.onclick = () => { S.ab = S.ab === b.dataset.s ? null : b.dataset.s; re(); });
-  if ($("#fjQ")) { let t; $("#fjQ").oninput = ev => { clearTimeout(t); t = setTimeout(() => { S.fj.q = ev.target.value; re(); const x = $("#fjQ"); if (x) { x.focus(); x.setSelectionRange(x.value.length, x.value.length); } }, 350); };
-    $("#fjE").onchange = ev => { S.fj.est = ev.target.value; re(); }; $("#fjO").onchange = ev => { S.fj.ori = ev.target.value; re(); }; $("#fjF").onchange = ev => { S.fj.fase = ev.target.value; re(); }; }
-  $("#bImpP").onclick = () => dlg(`<h3>Imprimir la planeación</h3><div class="lista"><button class="it btnit" id="iU"><span class="av">${ic("plan", 18)}</span><span class="tx"><b>Formato Ulama</b><small>Secuencia de sesiones en una tabla e instrumentos de evaluación</small></span></button>
-    <button class="it btnit" id="iT"><span class="av">${ic("doc", 18)}</span><span class="tx"><b>Formato por sesión</b><small>Datos de la secuencia y un cuadro por cada sesión, con propósito, actividades, materiales, evaluación, ajustes razonables y observación</small></span></button></div>
-    <div class="fila fin mt"><button class="btn" id="iX">Cancelar</button></div>`, v => { v.querySelector("#iX").onclick = cerrarDlg; v.querySelector("#iU").onclick = () => { cerrarDlg(); imprimir(docPlan(p)); }; v.querySelector("#iT").onclick = () => { cerrarDlg(); imprimir(docPlanSesiones(p)); }; });
-  $("#bEnvP").onclick = () => enviarPlan(p);
+  $("#bImpP").onclick = () => imprimir(docPlan(p)); $("#bEnvP").onclick = () => enviarPlan(p);
   $("#bBorP").onclick = async () => { if (!(await confirmar("¿Borrar esta planeación? Las clases ya registradas se conservan."))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
-  $$("[data-es]").forEach(b => b.onclick = () => { const s = p.sesiones.find(x => x.id === b.dataset.es), opJ = sel => { const o = ([k, j]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(j.n)}</option>`, E = Object.entries(JUEGOS); return `<optgroup label="Fichero de Ulama">${E.filter(([k]) => !esComunidad(k)).map(o).join("")}</optgroup><optgroup label="De la comunidad">${E.filter(([k]) => esComunidad(k)).sort((a, b) => a[1].n.localeCompare(b[1].n, "es")).map(o).join("")}</optgroup>`; };
+  $$("[data-es]").forEach(b => b.onclick = () => { const s = p.sesiones.find(x => x.id === b.dataset.es), opJ = sel => Object.entries(JUEGOS).map(([k, j]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(j.n)}</option>`).join("");
     dlg(`<h3>Editar sesión</h3><label class="campo"><span>Título</span><input id="sT" value="${esc(s.t)}"></label><label class="campo"><span>Para qué</span><textarea id="sP">${esc(s.para)}</textarea></label>
      <label class="campo"><span>Plática inicial</span><textarea id="sC">${esc(s.charla)}</textarea></label>
      <div class="dos"><label class="campo"><span>Activación</span><select id="sA">${opJ(s.act)}</select></label><label class="campo"><span>Juego principal</span><select id="sJ">${opJ(s.ppal[0])}</select></label></div>
      <div class="dos"><label class="campo"><span>Segundo juego (opcional)</span><select id="sJ2"><option value="">—</option>${opJ(s.ppal[1])}</select></label><label class="campo"><span>Vuelta a la calma</span><select id="sK">${opJ(s.calma)}</select></label></div>
      <label class="campo"><span>Qué observar para evaluar</span><textarea id="sE">${esc(s.eval)}</textarea></label>
-     <label class="campo"><span>Ajustes razonables (opcional)</span><textarea id="sAj" placeholder="Para alumnos que lo requieran: adecuaciones de espacio, material, reglas o tiempos">${esc(s.ajustes || "")}</textarea></label>
-     <label class="campo"><span>Bitácora de observación (después de la clase)</span><textarea id="sBi" placeholder="Qué funcionó, qué ajustar la próxima vez">${esc(s.bitacora || "")}</textarea></label>
      <div class="fila fin"><button class="btn" id="sX">Cancelar</button><button class="btn p" id="sOk">Guardar</button></div>`, v => {
-      v.querySelector("#sX").onclick = cerrarDlg; v.querySelector("#sOk").onclick = () => { Object.assign(s, { t: val("sT"), para: val("sP"), charla: val("sC"), act: val("sA"), ppal: [val("sJ"), val("sJ2")].filter(Boolean), calma: val("sK"), eval: val("sE"), ajustes: val("sAj").trim(), bitacora: val("sBi").trim() }); guardar(); re(); }; }); });
+      v.querySelector("#sX").onclick = cerrarDlg; v.querySelector("#sOk").onclick = () => { Object.assign(s, { t: val("sT"), para: val("sP"), charla: val("sC"), act: val("sA"), ppal: [val("sJ"), val("sJ2")].filter(Boolean), calma: val("sK"), eval: val("sE") }); guardar(); re(); }; }); });
   const formC = c => { const n = !c; c = c || { id: uid(), gr: "todos" };
     dlg(`<h3>${n ? "Nuevo criterio" : "Editar criterio"}</h3><label class="campo"><span>Indicador completo</span><textarea id="cT">${esc(c.t || "")}</textarea></label><label class="campo"><span>Nombre corto (se ve en la clase)</span><input id="cC" value="${esc(c.c || "")}"></label>
      <div class="fila fin">${n ? "" : `<button class="btn r" id="cB">${ic("basura", 16)}</button>`}<button class="btn" id="cX">Cancelar</button><button class="btn p" id="cOk">Guardar</button></div>`, v => {
@@ -512,10 +441,10 @@ VISTAS.clase = () => { const c = S.c, p = S.paso, pasos = `<div class="pasos">${
   if (p === 3) { const cnt = k => al.filter(a => c.asis[a.id] === k).length, sin = al.filter(a => !c.asis[a.id]).length;
     return barra(`${esc(e.nombre)} · ${grNom(g)}`, "Pasar lista", `<input type="date" id="cF" value="${c.fecha}" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 8px;background:#fff;max-width:150px">`) + `<main class="wrap">${pasos}
     ${c.reabierta ? `<div class="aviso mt">Esta clase ya se había registrado hoy: puede corregirla.</div>` : ""}
-    <div class="resumen"><span><b>${cnt("P")}</b> presentes</span><span><b>${cnt("R")}</b> retardos</span><span><b>${cnt("F")}</b> faltas</span><span><b>${cnt("J")}</b> justificadas</span>${sin ? `<span class="tag m" style="align-self:center">${sin} sin marcar: contarán como falta</span>` : ""}</div>
-    <div class="fila mb"><button class="btn s" id="bTodos">${ic("check", 16)} Todos presentes</button><span class="small muted">P presente · R retardo · F falta · J justificada. Quien quede sin marcar se registra como falta.</span></div>
+    <div class="resumen"><span><b>${cnt("P")}</b> presentes</span><span><b>${cnt("R")}</b> retardos</span><span><b>${cnt("F")}</b> faltas</span><span><b>${cnt("J")}</b> justificadas</span>${sin ? `<span class="tag m" style="align-self:center">${sin} sin marcar</span>` : ""}</div>
+    <div class="fila mb"><button class="btn s" id="bTodos">${ic("check", 16)} Todos presentes</button><span class="small muted">P presente · R retardo · F falta · J justificada</span></div>
     <div class="asis">${al.map((a, i) => `<div class="al"><span class="no">${i + 1}</span><span class="n">${esc(a.nombre)}${c.asis[a.id] === "R" && c.ret[a.id] ? `<small>Llegó ${c.ret[a.id]}</small>` : ""}</span><div class="est">${["P", "R", "F", "J"].map(k => `<button class="${k}" data-a="${a.id}" data-k="${k}" aria-pressed="${c.asis[a.id] === k}" aria-label="${k}">${k}</button>`).join("")}</div></div>`).join("") || `<div class="vacio">El grupo no tiene alumnos. Agréguelos en Mis escuelas.</div>`}</div></main>
-    <div class="fijo"><div class="in"><button class="btn p" id="bSig" ${al.length ? "" : "disabled"}>${sin ? `Siguiente (${sin} ${sin === 1 ? "falta" : "faltas"} sin marcar)` : "Siguiente: elegir sesión"}</button></div></div>`; }
+    <div class="fijo"><div class="in"><button class="btn p" id="bSig" ${sin ? "disabled" : ""}>Siguiente: elegir sesión</button></div></div>`; }
   if (p === 4) { const sig = siguienteSesion(g.id), pls = planesDeGrupo(g.id);
     return barra(`${grNom(g)} · ${esc(e.nombre)}`, "¿Qué sesión toca?") + `<main class="wrap">${pasos}
     ${sig ? `<div class="card mt" style="border-color:var(--jade);box-shadow:0 0 0 2px var(--jade-s)"><span class="tag">La que sigue según su agenda${sig.fecha ? " · " + fCorta(sig.fecha) : ""}</span><h3 class="mt">${sig.n}. ${esc(sig.ses.t)}</h3><p class="small muted">${esc(sig.plan.titulo)} · ${esc(sig.ses.para)}</p><div class="fila mt"><button class="btn p" data-pl="${sig.plan.id}" data-se="${sig.ses.id}">${ic("play", 16)} Dar esta sesión</button></div></div>` : `<div class="aviso mt">Este grupo no tiene sesiones pendientes. Puede dar la clase sin planeación (solo lista y observaciones) o crear una.</div>`}
@@ -529,7 +458,7 @@ VISTAS.clase = () => { const c = S.c, p = S.paso, pasos = `<div class="pasos">${
   return barra(`${grNom(g)} · ${esc(e.nombre)}`, ses ? esc(ses.t) : "Clase sin planeación", `<span class="reloj" id="reloj"></span>`) + `<main class="wrap">${pasos}
    ${ses ? `<section class="guia"><h3>${esc(ses.t)}</h3><p>${esc(ses.para)}</p>
     <details><summary>Inicio · ${esc(J(ses.act).n)}</summary><p>${esc(ses.charla)}</p><ol>${J(ses.act).reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol></details>
-    ${ses.ppal.map(k => `<details><summary>Desarrollo · ${esc(J(k).n)}</summary>${plano(J(k).plano || "dispersos")}<ol>${J(k).reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol>${[["Variante", J(k).var], ["Más fácil", J(k).facil], ["Más difícil", J(k).dificil], ["Seguridad", J(k).seg]].filter(x => x[1]).map(x => `<p><b>${x[0]}:</b> ${esc(x[1])}</p>`).join("")}</details>`).join("")}
+    ${ses.ppal.map(k => `<details><summary>Desarrollo · ${esc(J(k).n)}</summary>${plano(J(k).plano || "dispersos")}<ol>${J(k).reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol><p><b>Más fácil:</b> ${esc(J(k).facil || "")}<br><b>Más difícil:</b> ${esc(J(k).dificil || "")}<br><b>Seguridad:</b> ${esc(J(k).seg || "")}</p></details>`).join("")}
     <details><summary>Cierre · ${esc(J(ses.calma).n)}</summary><ol>${J(ses.calma).reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol><p>${ses.cierre.map(esc).join(" ")}</p></details>
     <details><summary>Qué observar</summary><p>${esc(ses.eval)}</p></details></section>` : ""}
    <section class="card mt"><div class="fila" style="justify-content:space-between"><h3 style="margin:0">Evaluar</h3>${pl ? `<select id="cIns" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px;background:#fff">${Object.entries(TIPOS).map(([k, t]) => `<option value="${k}" ${k === tipo ? "selected" : ""}>${t}</option>`).join("")}<option value="obs" ${tipo === "obs" ? "selected" : ""}>Solo observaciones</option></select>` : ""}</div>
@@ -550,8 +479,7 @@ ENLAZAR.clase = () => { const c = S.c, p = S.paso, re = () => { const y = window
     $("#cF").onchange = ev => { const f = ev.target.value; if (!f) return; const id = c.id; c.fecha = f; const prev = D.clases.find(x => x.grupoId === c.grupoId && x.fecha === f); if (prev) { Object.assign(c, JSON.parse(JSON.stringify(prev))); c.reabierta = true; } else { c.id = c.reabierta ? uid() : id; c.reabierta = false; } re(); };
     $("#bTodos").onclick = () => { activos(g).forEach(a => { if (!c.asis[a.id]) c.asis[a.id] = "P"; }); re(); };
     $$(".est button").forEach(b => b.onclick = () => { const a = b.dataset.a, k = b.dataset.k; c.asis[a] = k; if (k === "R") c.ret[a] = c.ret[a] || hora(); else delete c.ret[a]; re(); });
-    $("#bSig") && ($("#bSig").onclick = () => { const sin = activos(g).filter(a => !c.asis[a.id]); sin.forEach(a => { c.asis[a.id] = "F"; delete c.ret[a.id]; });
-      if (sin.length) toast(`${sin.length} ${sin.length === 1 ? "alumno quedó" : "alumnos quedaron"} con falta.`); pasoClase(4); }); }
+    $("#bSig") && ($("#bSig").onclick = () => pasoClase(4)); }
   if (p === 4) { $$("[data-pl]").forEach(b => b.onclick = () => { c.planId = b.dataset.pl; c.sesId = b.dataset.se; const pl = plDe(c.planId); c.instr = c.instr || pl.instr; pasoClase(5); });
     $("#bSinPl").onclick = () => { c.planId = null; c.sesId = null; c.instr = "obs"; pasoClase(5); }; $("#bNuevaPl").onclick = () => ir("planNueva", { f: { escId: c.escId, grupos: [c.grupoId], cont: null, ini: c.fecha, sem: 4, min: 50, instr: "rubrica" } }); }
   if (p === 5) { const t0 = Date.now(), rl = $("#reloj"); const tick = () => { if (!document.body.contains(rl)) return clearInterval(tick.i); const [h, m] = c.ini.split(":").map(Number), d = new Date(); d.setHours(h, m, 0); const mn = Math.max(0, Math.floor((Date.now() - d) / 60000)); rl.textContent = mn < 600 ? mn + " min" : ""; };
@@ -653,7 +581,7 @@ ENLAZAR.ajustes = () => { $("#bDat").onclick = () => { Object.assign(D.docente, 
 function respaldo() { D.cfg.ultimoResp = hoy(); guardar(); const b = new Blob([JSON.stringify(D)], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `ulama-respaldo-${hoy()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("Respaldo descargado."); }
 async function restaurar(f) { if (!f) return; try { const x = typeof f.text === "function" ? JSON.parse(await f.text()) : f; if (!x || !x.v || !Array.isArray(x.escuelas)) throw 0; const g0 = D.cfg.google;
   if (D.escuelas.length && !(await confirmar(`Se reemplazarán los datos actuales por los del respaldo (${x.escuelas.length} escuelas, ${x.grupos.length} grupos, ${x.clases.length} clases). ¿Continuar?`))) return;
-  D = Object.assign(VACIO(), x); D.cfg.bienvenida = true; if (g0 && !D.cfg.google) D.cfg.google = g0; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
+  D = Object.assign(VACIO(), x); D.cfg.bienvenida = !!(D.docente && D.docente.nombre); if (g0 && !D.cfg.google) D.cfg.google = g0; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
 
 /* =================================================================== DOCUMENTOS */
 function logoEsc(e) { return e && e.cct ? `<img src="${IMG_T}escuelas/${esc(e.cct)}.jpg" onerror="if(!this.dataset.p){this.dataset.p=1;this.src='${IMG_T}escuelas/${esc(e.cct)}.png'}else{this.remove()}" alt="">` : ""; }
@@ -666,24 +594,6 @@ function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F 
    ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
    <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo. J = falta justificada.</p>
    <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</td></tr></table></div>`; }).join(""); }
-/* Formato por sesión: datos de la secuencia y un cuadro por sesión (propósito, actividades, materiales, evaluación, ajustes razonables y observación) */
-function docPlanSesiones(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasClase(gs[0], p.ini, p.sesiones.length) : [], J = k => JUEGOS[k] || { n: k, reglas: [], mat: [] };
-  const per = k => { const c = D.cortes.find(x => k >= x.ini && k <= x.fin); return c ? c.n : ""; }, mat = m => (EF_MAT.find(x => x[0] === m) || [m, m])[1];
-  const semana = k => { if (!k) return ""; const d = dF(k), l = new Date(d); l.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const v = new Date(l); v.setDate(l.getDate() + 4); return l.getMonth() === v.getMonth() ? `${l.getDate()} al ${v.getDate()} de ${MES_L[v.getMonth()]}` : `${l.getDate()} de ${MES_L[l.getMonth()]} al ${v.getDate()} de ${MES_L[v.getMonth()]}`; };
-  const lst = a => (a || []).length ? a.map(esc).join("<br>") : "—", grados = [...new Set(gs.map(g => g.grado))].sort().map(g => g + ".°").join(", "), fase = Math.max(...gs.map(g => faseDe(g.grado)), 3);
-  return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
-  <table><tbody><tr><th style="width:20%">Docente</th><td>${esc(docNombre())}</td><th style="width:10%">Grado</th><td>${esc(grados)}</td><th style="width:8%">Fase</th><td>${fase}</td></tr>
-   <tr><th>Campo formativo</th><td colspan="5">De lo Humano y lo Comunitario</td></tr>${p.proposito ? `<tr><th>Propósito de la secuencia</th><td colspan="5">${esc(p.proposito)}</td></tr>` : ""}</tbody></table>
-  <table style="margin-top:6px"><thead><tr><th style="width:26%">Contenido</th><th>PDA</th><th style="width:28%">Temas</th></tr></thead><tbody><tr><td>${esc(p.cont)}</td><td>${Object.entries(p.pdas).map(([g, t]) => `<b>${g}.°</b> ${esc(t)}`).join("<br>")}</td><td>${esc(p.temas || "")}</td></tr></tbody></table>
-  <table style="margin-top:6px"><thead><tr><th>Interacción de capacidades y habilidades</th><th>Criterios de valoración</th></tr></thead><tbody><tr><td>${lst(p.capac)}</td><td>${esc(p.valor || "")}</td></tr></tbody></table>
-  <table style="margin-top:6px"><thead><tr><th>Estrategia didáctica</th><th>Estilos de enseñanza</th><th>Evaluación</th></tr></thead><tbody><tr><td>${lst(p.estr)}</td><td>${lst(p.estilos)}</td><td>Se llevarán a cabo las siguientes acciones:<br>${lst(p.evalAcc)}</td></tr></tbody></table>
-  ${p.sesiones.map((s, i) => { const js = [s.act, ...s.ppal].filter(Boolean), mats = [...new Set(js.flatMap(k => J(k).mat || []))].map(mat);
-    const acts = [`${esc(s.charla || INICIO_COM)}${s.act ? ` Calentamiento: <b>${esc(J(s.act).n)}</b>.` : ""}`, ...s.ppal.map(k => `<b>«${esc(J(k).n)}»</b> ${esc((J(k).reglas || []).join(" "))}${J(k).var ? ` <i>Variante:</i> ${esc(J(k).var)}` : ""}`), `<b>Relajación:</b> ${esc(J(s.calma).n)}. ${(s.cierre || []).map(esc).join(" ")}`];
-    return `<table style="margin-top:10px;page-break-inside:avoid"><tbody><tr><th style="width:16%">Sesión ${i + 1}</th><td>${esc(per(f[i] || p.ini))}</td><th style="width:9%">Grado</th><td>${esc(grados)}</td><th style="width:9%">Fecha</th><td>${f[i] ? `${fCorta(f[i])}<br><span style="font-size:8.5pt">Semana del ${semana(f[i])}</span>` : ""}</td></tr>
-     <tr><th>Propósito de la sesión</th><td colspan="5">${esc(s.para || p.proposito || "")}</td></tr>
-     <tr><th>Actividades</th><td colspan="4">${acts.map((a, n) => `${n + 1}.- ${a}`).join("<br>")}</td><td><b>Materiales</b><br>${mats.map(m => "- " + esc(m)).join("<br>") || "—"}</td></tr>
-     <tr><th>Evaluación</th><td colspan="5">${esc(s.eval || "")}</td></tr><tr><th>Ajustes razonables</th><td colspan="5">${esc(s.ajustes || "")}</td></tr><tr><th>Observación</th><td colspan="5" style="height:34px">${esc(s.bitacora || "")}</td></tr></tbody></table>`; }).join("")}
-  <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc((e && e.supEF) || "")}<br>Supervisor(a) de Educación Física</td></tr></table></div>`; }
 function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasClase(gs[0], p.ini, p.sesiones.length) : [], J = k => JUEGOS[k] || { n: k, reglas: [] };
   return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
   <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${f.length ? fCorta(f[0]) + " al " + fCorta(f[f.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
