@@ -185,6 +185,9 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 select.cal{width:52px;height:46px;border:0;appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;cursor:pointer;font-family:var(--disp);font-size:21px}
 .evc textarea{width:100%;min-height:84px;border:1px solid var(--hilo);border-radius:12px;padding:8px 10px;font-size:14.5px;resize:vertical;background:#fff;margin-top:10px;line-height:1.4}
 @media(max-width:600px){.al.ev{flex-wrap:wrap}.al.ev .n{flex:1 1 100%}.al.ev .niv{flex:1}.al.ev .niv button{flex:1}}
+.calb{display:flex;align-items:center;gap:4px}.calb button{width:34px;height:40px;border-radius:10px;border:1px solid var(--hilo);background:#fff;font-size:20px;font-weight:700;cursor:pointer;color:var(--tinta)}.calb button:disabled{opacity:.35}
+.calb .cal{width:44px;height:44px}
+.lnk{border:0;background:none;color:var(--anil);text-decoration:underline;font-size:11.5px;padding:0;cursor:pointer}
 /* diálogo */
 .velo{position:fixed;inset:0;z-index:80;background:rgba(15,30,26,.5);display:flex;align-items:flex-end;justify-content:center;padding:0}
 .dlg{background:var(--papel2);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:var(--e3)}
@@ -205,10 +208,11 @@ select.cal{width:52px;height:46px;border:0;appearance:none;-webkit-appearance:no
   @page{size:letter;margin:12mm}
 }
 .doc{font:11.5pt/1.35 "Atkinson Hyperlegible",Arial,sans-serif;color:#111}
-.doc .enc{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0F3B33;padding-bottom:8px;margin-bottom:10px}
+.doc table.enc{width:100%;border-collapse:collapse;border-bottom:2px solid #0F3B33;margin-bottom:10px}
+.doc table.enc td{border:0;padding:0 0 8px;vertical-align:middle}
 .doc .enc img{height:54px}
-.doc .enc .t{flex:1;text-align:center}
-.doc .enc .t b{display:block;font-size:13pt}.doc .enc .t span{font-size:10pt;color:#333}
+.doc .enc .t{text-align:center}
+.doc .enc .t b{font-size:13pt}.doc .enc .t span{font-size:10pt;color:#333}.doc .enc .t b.tt{font-size:12pt;display:inline-block;margin-top:4px}
 .doc h2{font-family:Georgia,serif;font-size:15pt;margin:8px 0}
 .doc .datos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 14px;font-size:10pt;margin-bottom:10px}
 .doc table{width:100%;border-collapse:collapse;font-size:9.5pt;page-break-inside:auto}
@@ -216,8 +220,8 @@ select.cal{width:52px;height:46px;border:0;appearance:none;-webkit-appearance:no
 .doc th{background:#E8EFEC}
 .doc td.c,.doc th.c{text-align:center}
 .doc tr{page-break-inside:avoid}
-.doc .firmas{display:flex;justify-content:space-around;margin-top:46px;font-size:10pt;text-align:center}
-.doc .firmas div{border-top:1px solid #111;padding-top:4px;min-width:200px}
+.doc table.firmas{width:100%;margin-top:46px;border-collapse:separate;border-spacing:40px 0;font-size:10pt}
+.doc table.firmas td{border:0;border-top:1px solid #111;padding-top:4px;text-align:center;width:50%}
 .doc .salto{page-break-before:always}
 .doc .nota{font-size:9pt;color:#444;margin-top:8px}
 </style>
@@ -229,5 +233,6 @@ select.cal{width:52px;height:46px;border:0;appearance:none;-webkit-appearance:no
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="ef-datos.js"></script>
 <script src="app.js"></script>
+<script src="cuenta.js"></script>
 </body>
 </html>

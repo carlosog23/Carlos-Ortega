@@ -43,7 +43,7 @@ const VACIO = () => ({ v: 1, docente: { nombre: "", trato: "", correo: "", tel: 
   cfg: { bienvenida: false } });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
-function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) { toast("<b>No se pudo guardar.</b> El dispositivo no tiene espacio."); } }
+function guardar(sinMarca) { if (!sinMarca) { D.cfg.mod = new Date().toISOString(); if (typeof respaldoAuto === "function") respaldoAuto(); } try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) { toast("<b>No se pudo guardar.</b> El dispositivo no tiene espacio."); } }
 const escDe = id => D.escuelas.find(e => e.id === id), grDe = id => D.grupos.find(g => g.id === id), plDe = id => D.planes.find(p => p.id === id);
 const gruposDe = escId => D.grupos.filter(g => g.escId === escId).sort((a, b) => (a.grado - b.grado) || String(a.grupo).localeCompare(b.grupo));
 const activos = g => (g.alumnos || []).filter(a => !a.baja).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
@@ -59,7 +59,8 @@ function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(
 window.addEventListener("popstate", () => { if (PILA.length || S.v !== "inicio") atras(); });
 function pintar() {
   cerrarDlg();
-  if (!D.cfg.bienvenida && S.v !== "bienvenida") S = { v: "bienvenida", paso: 1 };
+  if (typeof ACCESO_OK !== "undefined" && !ACCESO_OK && S.v !== "acceso" && S.v !== "admin") S = { v: "acceso" };
+  else if (!D.cfg.bienvenida && !["bienvenida", "acceso", "admin"].includes(S.v)) S = { v: "bienvenida", paso: 1 };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = () => history.back();
 }
@@ -142,11 +143,11 @@ VISTAS.bienvenida = () => { const p = S.paso || 1;
   if (p === 1) return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt=""><div><div class="eb">Ulama · Educación Física</div></div></div>
     <h1>Su clase, en movimiento</h1><p>Planee, pase lista, evalúe mientras sus alumnos juegan y obtenga la evaluación del trimestre sin capturar dos veces. Funciona sin internet.</p></section>
     <div class="card mt"><h3>Para empezar</h3><p class="muted">Le haremos unas preguntas para dejar lista la app: sus datos, sus escuelas y su supervisor de Educación Física. Todo se puede cambiar después en <b>Mis escuelas</b> y <b>Ajustes</b>.</p>
-    <div class="fila mt"><button class="btn p" id="b1">Comenzar</button><button class="btn" id="bRes">${ic("subir")} Tengo un respaldo</button><input type="file" id="fRes" accept=".json,application/json" hidden></div></div></main>`;
+    <div class="fila mt"><button class="btn p" id="b1">Comenzar</button><button class="btn" id="bRes">${ic("subir")} Tengo un respaldo</button>${gClientId() ? `<button class="btn" id="bResD">${ic("subir")} Recuperar de mi Google Drive</button>` : ""}<input type="file" id="fRes" accept=".json,application/json" hidden></div></div></main>`;
   if (p === 2) return `<main class="wrap"><div class="pasos"><span class="on"></span><span></span></div><p class="paso-t">Paso 1 de 2 · Sus datos</p>
     <div class="card mt"><h3>¿Quién da la clase?</h3><p class="muted mb small">Aparecerá en sus planeaciones y reportes de evaluación.</p>
     <div class="dos"><label class="campo"><span>Tratamiento</span><select id="dTr">${["", "Mtro.", "Mtra.", "Profr.", "Profra.", "Lic."].map(x => `<option ${x === D.docente.trato ? "selected" : ""}>${x}</option>`).join("")}</select></label>
-    <label class="campo"><span>Nombre completo</span><input id="dNom" value="${esc(D.docente.nombre)}" autocomplete="name"></label></div>
+    <label class="campo"><span>Nombre completo</span><input id="dNom" value="${esc(D.docente.nombre || (YO && YO.nombre) || "")}" autocomplete="name"></label></div>
     <div class="dos"><label class="campo"><span>Correo institucional</span><input id="dCor" type="email" inputmode="email" value="${esc(D.docente.correo)}" placeholder="nombre@bcedu.mx"></label>
     <label class="campo"><span>Celular (opcional)</span><input id="dTel" inputmode="tel" value="${esc(D.docente.tel)}"></label></div>
     <div class="fila fin"><button class="btn p" id="b2">Siguiente</button></div></div></main>`;
@@ -157,7 +158,7 @@ VISTAS.bienvenida = () => { const p = S.paso || 1;
     <div class="fila fin mt"><button class="btn p" id="b3" ${D.escuelas.length ? "" : "disabled"}>Listo, entrar</button></div>
     <p class="small muted mt">Después, en cada escuela, dé de alta sus grupos subiendo la foto o el PDF de la lista (RELweb).</p></div></main>`; };
 ENLAZAR.bienvenida = () => { const p = S.paso || 1;
-  if (p === 1) { $("#b1").onclick = () => { S.paso = 2; pintar(); }; $("#bRes").onclick = () => $("#fRes").click(); $("#fRes").onchange = e => restaurar(e.target.files[0]); }
+  if (p === 1) { $("#b1").onclick = () => { S.paso = 2; pintar(); }; $("#bRes").onclick = () => $("#fRes").click(); $("#fRes").onchange = e => restaurar(e.target.files[0]); $("#bResD") && ($("#bResD").onclick = driveElegirRespaldo); }
   if (p === 2) $("#b2").onclick = () => { const n = val("dNom").trim(); if (!n) return toast("Escriba su nombre."); Object.assign(D.docente, { trato: val("dTr"), nombre: n, correo: val("dCor").trim(), tel: val("dTel").trim() }); guardar(); S.paso = 3; pintar(); };
   if (p === 3) { $("#bEsc").onclick = () => formEscuela(null, () => pintar()); $("#b3").onclick = () => { D.cfg.bienvenida = true; guardar(); S = { v: "inicio" }; pintar(); toast("¡Listo! Ahora dé de alta sus grupos en <b>Mis escuelas</b>."); }; } };
 
@@ -170,14 +171,16 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
   <div class="fila"><button class="btn m" id="bClase">${ic("silbato")} Iniciar clase</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button></div></section>
   ${gHoy.length && !sc ? `<h2 class="sec-t">Hoy<small>Grupos que le tocan según sus días de clase</small></h2><div class="hoy">${gHoy.map(g => { const s = siguienteSesion(g.id), e = escDe(g.escId), ya = D.clases.some(c => c.grupoId === g.id && c.fecha === k);
     return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
+  ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:var(--anil);--c-s:var(--anil-s)"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.length} planeaciones · juegos, sesiones e instrumentos</span></button>
    <button class="puerta" data-v="agenda" style="--c:var(--maiz-d);--c-s:var(--maiz-s)"><span class="ic">${ic("agenda")}</span><b>Agenda</b><span>Las sesiones que siguen en cada grupo</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:var(--ciruela);--c-s:var(--ciruela-s)"><span class="ic">${ic("eval")}</span><b>Evaluación del trimestre</b><span>Calificación 6 a 10, observaciones y faltas</span></button>
    <button class="puerta" data-v="escuelas"><span class="ic">${ic("escuela")}</span><b>Mis escuelas y grupos</b><span>${D.escuelas.length} escuelas · ${D.grupos.length} grupos · ${D.grupos.reduce((t, g) => t + activos(g).length, 0)} alumnos</span></button>
+   <button class="puerta" data-v="listas" style="--c:var(--barro);--c-s:var(--barro-s)"><span class="ic">${ic("impr")}</span><b>Listas de asistencia</b><span>Imprimir por mes, en blanco o con sus registros</span></button>
    <button class="puerta" data-v="ajustes" style="--c:var(--gris);--c-s:var(--hilo2)"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, trimestres, enlace y copia de seguridad</span></button>
   </div><p class="pie">Ulama · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p></main>`; };
-ENLAZAR.inicio = () => { $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {});
+ENLAZAR.inicio = () => { enlazarAvisoRespaldo(); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {});
   $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 
 /* ---------- escuelas ---------- */
@@ -238,7 +241,7 @@ function formGrupo(g, escId, listo) { const n = !g; g = g || { id: uid(), escId,
 VISTAS.grupo = () => { const g = grDe(S.id); if (!g) return VISTAS.escuelas(); const e = escDe(g.escId), act = activos(g), bajas = (g.alumnos || []).filter(a => a.baja);
   return barra(esc(e.nombre), `${grNom(g)} · ${act.length} alumnos`, `<button class="btn s" id="bEG">${ic("lapiz", 16)}</button>`) + `<main class="wrap">
   <div class="card mt"><p class="small muted">Docente: <b>${esc(g.docente || "—")}</b>${g.correo ? " · " + esc(g.correo) : ""} · Días: ${diasGrupo(g).map(d => DSEM[d]).join(", ") || "—"}${g.horario ? " · " + esc(g.horario) : ""}</p>
-  <div class="fila mt"><button class="btn p" id="bFoto">${ic("camara", 18)} Subir foto o PDF de la lista</button><button class="btn" id="bMan">${ic("mas", 18)} Agregar a mano</button></div>
+  <div class="fila mt"><button class="btn p" id="bFoto">${ic("camara", 18)} Subir foto o PDF de la lista</button><button class="btn" id="bMan">${ic("mas", 18)} Agregar a mano</button><button class="btn" id="bLisG">${ic("impr", 18)} Lista de asistencia</button></div>
   <input type="file" id="fLis" accept="application/pdf,image/*" capture="environment" hidden><input type="file" id="fLis2" accept="application/pdf,image/*" hidden>
   <p class="small muted mt">Sirve la lista de asistencia o el reporte de inscripción de RELweb (PDF), o una foto de la lista. Antes de guardar podrá revisar los nombres.</p></div>
   <h2 class="sec-t">Alumnos</h2><div class="lista">${act.map((a, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}</b><small>${a.curp ? esc(a.curp) + " · " : ""}Alta: ${a.alta ? fCorta(a.alta) : "—"}</small></span><button class="btn s" data-ed="${a.id}" aria-label="Editar">${ic("lapiz", 16)}</button><button class="btn s r" data-bj="${a.id}" aria-label="Dar de baja">${ic("baja", 16)}<span class="oc"> Baja</span></button></div>`).join("") || `<div class="vacio">Sin alumnos. Suba la foto o el PDF de la lista.</div>`}</div>
@@ -247,6 +250,7 @@ VISTAS.grupo = () => { const g = grDe(S.id); if (!g) return VISTAS.escuelas(); c
 ENLAZAR.grupo = () => { const g = grDe(S.id); if (!g) return; $("#bEG").onclick = () => formGrupo(g, g.escId, pintar);
   $("#bFoto").onclick = () => elegirFuente(); $("#fLis").onchange = $("#fLis2").onchange = ev => { const f = ev.target.files[0]; ev.target.value = ""; if (f) leerLista(f, g); };
   $("#bMan").onclick = () => revisarNombres(g, "", "Escriba un alumno por renglón.");
+  $("#bLisG").onclick = () => ir("listas", { L: { escId: g.escId, grupos: [g.id] } });
   $$("[data-bj]").forEach(b => b.onclick = () => { const a = g.alumnos.find(x => x.id === b.dataset.bj);
     dlg(`<h3>Baja de ${esc(a.nombre)}</h3><div class="dos"><label class="campo"><span>Fecha de baja</span><input type="date" id="bF" value="${hoy()}"></label><label class="campo"><span>Motivo (opcional)</span><input id="bM" placeholder="Cambio de escuela…"></label></div>
      <p class="small muted mb">Sus registros hasta esa fecha se conservan y ya no aparecerá en la lista.</p><div class="fila fin"><button class="btn" id="bX">Cancelar</button><button class="btn r" id="bOk">Dar de baja</button></div>`, v => {
@@ -501,10 +505,14 @@ VISTAS.evaluacion = () => { const k = hoy(), corteAct = D.cortes.find(x => k >= 
    <label class="campo"><span>Escuela</span><select id="eE">${D.escuelas.map(x => `<option value="${x.id}" ${x.id === E.escId ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</select></label>
    <div class="chips">${gs.map(x => `<button class="chip" data-gr="${x.id}" aria-pressed="${g && x.id === g.id}">${grNom(x)}</button>`).join("")}</div></section>
   ${g ? `<section class="card mt"><div class="fila" style="justify-content:space-between"><div><h3 style="margin:0">${grNom(g)} · ${esc(e.nombre)}</h3><p class="small muted">${clasesEn(g.id, E.ini, E.fin).length} clases registradas del ${fCorta(E.ini)} al ${fCorta(E.fin)} · Docente: ${esc(g.docente || "—")}</p></div></div>
-   <div class="fila mt"><button class="btn s" id="bImpG">${ic("impr", 16)} Imprimir o PDF</button><button class="btn s p" id="bEnvG">${ic("correo", 16)} Enviar al docente del grupo</button><button class="btn s o" id="bEnvE">${ic("correo", 16)} Enviar todos los grupos a la dirección</button></div></section>
+   <div class="chips mt"><button class="chip" data-al="g" aria-pressed="${E.alcance !== "e"}">Solo ${grNom(g)}</button><button class="chip" data-al="e" aria-pressed="${E.alcance === "e"}">Todos los grupos (${gs.length})</button></div>
+   <div class="fila mt"><button class="btn s" id="bImpG">${ic("impr", 16)} Imprimir</button><button class="btn s" id="bPdfG">${ic("bajar", 16)} PDF</button><button class="btn s" id="bDocG">${ic("doc", 16)} Word</button><button class="btn s p" id="bEnvG">${ic("correo", 16)} ${E.alcance === "e" ? "Enviar a la dirección" : "Enviar al docente del grupo"}</button></div>
+   <details class="mt"><summary class="small" style="cursor:pointer;font-weight:700;min-height:36px">Clases registradas del grupo (para corregir lista o evaluaciones)</summary><div class="lista mt">${clasesEn(g.id, E.ini, E.fin).slice().reverse().map(c => { const pl = plDe(c.planId), ss = pl && pl.sesiones.find(x => x.id === c.sesId), nev = Object.values(c.evals || {}).filter(v => Object.keys(v).length).length;
+     return `<div class="it"><span class="av" style="font-size:12px">${dF(c.fecha).getDate()}/${dF(c.fecha).getMonth() + 1}</span><span class="tx"><b>${esc(ss ? ss.t : "Clase sin planeación")}</b><small>${fCorta(c.fecha)} · ${nev} alumnos evaluados</small></span><button class="btn s" data-cl="${c.id}" data-pa="3">Lista</button><button class="btn s p" data-cl="${c.id}" data-pa="5">Evaluación</button></div>`; }).join("") || `<p class="small muted">Sin clases en el periodo.</p>`}</div></details></div></section>
    <div class="evl mt">${filas.map((f, k) => `<article class="evc"><div class="evc-c"><span class="no">${k + 1}</span><div class="tx"><b>${esc(f.a.nombre)}</b>${f.a.baja ? ` <span class="tag r">Baja ${fCorta(f.a.baja)}</span>` : ""}
     <div class="dat"><span>Asistió <b>${f.r.asis}/${f.r.total}</b></span><span>Faltas <b>${f.r.falt}</b>${f.r.just ? ` +${f.r.just} just.` : ""}</span><span>Retardos <b>${f.r.ret}</b></span><span>${f.r.nreg} registros</span></div></div>
-    <label class="calw"><select data-cal="${f.a.id}" class="cal ${f.cal == null ? "x" : f.cal >= 8 ? "" : f.cal >= 7 ? "b" : "r"}" aria-label="Calificación">${["", 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${String(v) === String(f.cal ?? "") ? "selected" : ""}>${v === "" ? "—" : v}</option>`).join("")}</select><small>${f.editCal ? "ajustada" : "calif."}</small></label></div>
+    <div class="calw"><div class="calb"><button data-menos="${f.a.id}" aria-label="Bajar calificación" ${f.cal == null || f.cal <= 6 ? "disabled" : ""}>−</button><span class="cal ${f.cal == null ? "x" : f.cal >= 8 ? "" : f.cal >= 7 ? "b" : "r"}">${f.cal ?? "—"}</span><button data-mas="${f.a.id}" aria-label="Subir calificación" ${f.cal != null && f.cal >= 10 ? "disabled" : ""}>+</button></div>
+     <small>${f.editCal ? `ajustada · era ${f.r.cal ?? "—"} <button class="lnk" data-rest="${f.a.id}">restablecer</button>` : "calculada"}</small></div></div>
     <textarea data-ob="${f.a.id}" aria-label="Valoración cualitativa">${esc(f.obs)}</textarea></article>`).join("") || `<div class="vacio">Sin alumnos.</div>`}</div>
    <p class="small muted mt">La calificación sale del promedio de todos los registros de los instrumentos en el periodo (6 a 10). Puede ajustarla y editar la valoración; sus cambios se guardan para este periodo.</p>` : `<div class="vacio mt">Registre grupos para evaluar.</div>`}</main>`; };
 function clavePer(E) { return `${E.ini}_${E.fin}`; }
@@ -516,38 +524,63 @@ ENLAZAR.evaluacion = () => { const E = S.e; if (!E) return; const re = () => { c
   $("#eI").onchange = ev => { E.ini = ev.target.value; E.corte = "libre"; re(); }; $("#eF").onchange = ev => { E.fin = ev.target.value; E.corte = "libre"; re(); };
   $("#eE") && ($("#eE").onchange = ev => { E.escId = ev.target.value; E.grupoId = null; re(); }); $$("[data-gr]").forEach(b => b.onclick = () => { E.grupoId = b.dataset.gr; re(); });
   const aj = () => { D.ajustes = D.ajustes || {}; return D.ajustes[clavePer(E)] = D.ajustes[clavePer(E)] || {}; };
-  $$("[data-cal]").forEach(s => s.onchange = () => { const o = aj()[s.dataset.cal] = aj()[s.dataset.cal] || {}; o.cal = s.value === "" ? null : +s.value; guardar(); re(); });
+  const fila = id => filasEval(grDe(E.grupoId), E).find(f => f.a.id === id);
+  const ajCal = (id, d) => { const f = fila(id), base = f.cal == null ? 8 : f.cal, n = Math.max(6, Math.min(10, base + d)), o = aj()[id] = aj()[id] || {}; if (n === f.r.cal) delete o.cal; else o.cal = n; guardar(); re(); };
+  $$("[data-mas]").forEach(b => b.onclick = () => ajCal(b.dataset.mas, 1)); $$("[data-menos]").forEach(b => b.onclick = () => ajCal(b.dataset.menos, -1));
+  $$("[data-rest]").forEach(b => b.onclick = ev => { ev.preventDefault(); const o = aj()[b.dataset.rest] || {}; delete o.cal; delete o.obs; guardar(); re(); toast("Se restableció la calificación y la valoración calculadas."); });
+  $$("[data-al]").forEach(b => b.onclick = () => { E.alcance = b.dataset.al; re(); });
+  $$("[data-cl]").forEach(b => b.onclick = () => { const c = JSON.parse(JSON.stringify(D.clases.find(x => x.id === b.dataset.cl))); c.reabierta = true; ir("clase", { paso: +b.dataset.pa, c }); });
   $$("[data-ob]").forEach(t => t.onchange = () => { const o = aj()[t.dataset.ob] = aj()[t.dataset.ob] || {}; o.obs = t.value; guardar(); });
   const g = grDe(E.grupoId); if (!g) return;
-  $("#bImpG").onclick = () => imprimir(docEval([g], E)); $("#bEnvG").onclick = () => enviarEval([g], E, "docente"); $("#bEnvE").onclick = () => enviarEval(gruposDe(E.escId), E, "escuela"); };
+  const gsR = () => E.alcance === "e" ? gruposDe(E.escId) : [g], nomR = () => E.alcance === "e" ? `concentrado-ef-${(escDe(E.escId).cct || "escuela")}-${E.fin}` : `evaluacion-ef-${g.grado}${g.grupo}-${E.fin}`;
+  $("#bImpG").onclick = () => imprimir(docEval(gsR(), E));
+  $("#bPdfG").onclick = async ev => { const b = ev.currentTarget; b.disabled = true; try { await pdfDescargar(docEval(gsR(), E), nomR() + ".pdf"); } catch (e) { toast("Sin internet no se puede generar el PDF: use Imprimir → Guardar como PDF."); imprimir(docEval(gsR(), E)); } b.disabled = false; };
+  $("#bDocG").onclick = () => wordDescargar(docEval(gsR(), E), nomR() + ".doc");
+  $("#bEnvG").onclick = () => E.alcance === "e" ? enviarEval(gruposDe(E.escId), E, "escuela") : enviarEval([g], E, "docente"); };
+/* Word: documento editable (.doc) con el mismo contenido; los logos se toman de la página publicada */
+function wordDescargar(html, archivo) { const tmp = document.createElement("div"); tmp.innerHTML = html;
+  /* Word no respeta el tamaño por CSS: se fija en atributos, con la proporción real de cada logo ya cargado en la página */
+  const med = {}; $$("img").forEach(i => { if (i.naturalWidth) med[i.src] = i.naturalWidth / i.naturalHeight; });
+  tmp.querySelectorAll("img").forEach(i => { i.removeAttribute("onerror"); i.src = new URL(i.getAttribute("src"), location.href).href; const r = med[i.src] || 1.2, h = 56, w = Math.round(h * r);
+    i.setAttribute("height", h); i.setAttribute("width", w); i.style.cssText = `width:${w}px;height:${h}px`; });
+  /* los datos del encabezado (rejilla) pasan a tabla de 3 columnas */
+  tmp.querySelectorAll(".datos").forEach(d => { const sp = [...d.children].map(x => x.innerHTML); let t = '<table class="datos">'; for (let k = 0; k < sp.length; k += 3) t += "<tr>" + [0, 1, 2].map(n => `<td>${sp[k + n] || ""}</td>`).join("") + "</tr>"; d.outerHTML = t + "</table>"; });
+  tmp.querySelectorAll("table").forEach(t => { t.setAttribute("width", "100%"); if (!t.matches(".enc,.firmas,.datos")) { t.setAttribute("border", "1"); t.setAttribute("cellpadding", "4"); t.setAttribute("cellspacing", "0"); } });
+  tmp.querySelectorAll("table.enc td.t").forEach(td => { td.setAttribute("align", "center"); td.setAttribute("width", "70%"); });
+  tmp.querySelectorAll("table.firmas td").forEach(td => { td.setAttribute("align", "center"); td.innerHTML = `<br><br><br>____________________________________<br>${td.innerHTML}`; });
+  tmp.querySelectorAll(".salto").forEach(x => x.insertAdjacentHTML("beforebegin", '<br clear="all" style="page-break-before:always">'));
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(archivo)}</title>
+   <style>@page WordSection1{size:8.5in 11in;margin:0.6in}div.WordSection1{page:WordSection1}body{font-family:Arial,sans-serif;font-size:10pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3pt 4pt;vertical-align:top;font-size:9pt}th{background:#E8EFEC}
+   .enc td{border:0}.enc{border-bottom:2px solid #0F3B33}.datos td{border:0;font-size:9.5pt}.firmas td{border:0;text-align:center;font-size:9.5pt}.nota{font-size:8.5pt;color:#444}h2{font-size:13pt}</style></head><body><div class="WordSection1">${tmp.innerHTML}</div></body></html>`;
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff", doc], { type: "application/msword" })); a.download = archivo; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast("Documento de Word descargado: puede abrirlo y editarlo."); }
 
 /* ---------- ajustes ---------- */
-VISTAS.ajustes = () => { const tok = tokAcceso();
+VISTAS.ajustes = () => {
   return barra("Ajustes", "Ajustes y respaldo") + `<main class="wrap">
   <section class="card mt"><h3>Sus datos</h3><div class="dos"><label class="campo"><span>Tratamiento</span><select id="dTr">${["", "Mtro.", "Mtra.", "Profr.", "Profra.", "Lic."].map(x => `<option ${x === D.docente.trato ? "selected" : ""}>${x}</option>`).join("")}</select></label><label class="campo"><span>Nombre</span><input id="dNom" value="${esc(D.docente.nombre)}"></label></div>
    <div class="dos"><label class="campo"><span>Correo institucional</span><input id="dCor" type="email" value="${esc(D.docente.correo)}"></label><label class="campo"><span>Celular</span><input id="dTel" value="${esc(D.docente.tel)}"></label></div><div class="fila fin"><button class="btn p s" id="bDat">Guardar</button></div></section>
   <section class="card mt"><h3>Trimestres</h3><p class="small muted mb">Fechas de corte para la evaluación. Ajústelas a las del calendario oficial del ciclo.</p>${D.cortes.map(x => `<div class="dos"><label class="campo"><span>${esc(x.n)} · inicia</span><input type="date" data-ci="${x.id}" value="${x.ini}"></label><label class="campo"><span>termina</span><input type="date" data-cf="${x.id}" value="${x.fin}"></label></div>`).join("")}</section>
-  <section class="card mt"><h3>Envío automático de correos</h3>${tok ? `<div class="aviso v">${ic("check", 18)} <span>Enlace de acceso de Tlamatini activo: los reportes se envían solos desde el servidor de la Supervisión.</span></div>` : `<p class="small muted mb">Con su enlace de acceso de Tlamatini, los reportes se envían por correo sin salir de la app. Sin enlace, se abre su correo para enviarlo usted.</p>`}
-   <label class="campo mt"><span>Pegue aquí su enlace de acceso de Tlamatini</span><input id="aTok" placeholder="https://…#acceso=…"></label><div class="fila fin"><button class="btn s" id="bTok">Guardar enlace</button></div></section>
-  <section class="card mt"><h3>Respaldo</h3><p class="small muted mb">Sus datos viven solo en este dispositivo. Guarde un respaldo seguido y úselo para pasar todo a otro celular o tableta.</p>
-   <div class="fila"><button class="btn p" id="bResp">${ic("bajar", 18)} Descargar respaldo</button><button class="btn" id="bRest">${ic("subir", 18)} Cargar respaldo</button><input type="file" id="fRes" accept=".json,application/json" hidden></div>
-   <p class="small muted mt">${D.escuelas.length} escuelas · ${D.grupos.length} grupos · ${D.planes.length} planeaciones · ${D.clases.length} clases registradas${D.cfg.ultimoResp ? ` · último respaldo: ${fCorta(D.cfg.ultimoResp)}` : ""}</p></section>
+  ${cuentaGoogleHTML()}
+  <section class="card mt"><h3>Respaldo en archivo</h3><p class="small muted mb">Además del respaldo en su Drive, puede guardar una copia como archivo para pasarla a otro dispositivo.</p>
+   <div class="fila"><button class="btn" id="bResp">${ic("bajar", 18)} Descargar respaldo</button><button class="btn" id="bRest">${ic("subir", 18)} Cargar respaldo</button><input type="file" id="fRes" accept=".json,application/json" hidden></div>
+   <p class="small muted mt">${D.escuelas.length} escuelas · ${D.grupos.length} grupos · ${D.planes.length} planeaciones · ${D.clases.length} clases registradas</p></section>
+  ${ghTok() ? `<section class="card mt" style="border-color:var(--anil)"><h3>Supervisión</h3><p class="small muted mb">Dar de alta a los maestros y entregarles su enlace de acceso.</p><button class="btn o" id="bAdm">${ic("sup", 18)} Accesos de maestros</button></section>` : ""}
   <section class="card mt"><h3>Instalar en su celular</h3><p class="small muted">En Android (Chrome): menú ⋮ → <b>Instalar aplicación</b>. En iPhone (Safari): botón Compartir → <b>Agregar a inicio</b>. Ya instalada, funciona sin internet.</p>${INSTALAR ? `<div class="fila mt"><button class="btn m" id="bInst">Instalar Ulama</button></div>` : ""}</section>
   <section class="card mt"><h3>Empezar de cero</h3><p class="small muted mb">Borra todos los datos de este dispositivo.</p><button class="btn r" id="bBor">${ic("basura", 16)} Borrar todo</button></section></main>`; };
 ENLAZAR.ajustes = () => { $("#bDat").onclick = () => { Object.assign(D.docente, { trato: val("dTr"), nombre: val("dNom").trim(), correo: val("dCor").trim(), tel: val("dTel").trim() }); guardar(); toast("Datos guardados."); };
   $$("[data-ci]").forEach(i => i.onchange = () => { D.cortes.find(x => x.id === i.dataset.ci).ini = i.value; guardar(); }); $$("[data-cf]").forEach(i => i.onchange = () => { D.cortes.find(x => x.id === i.dataset.cf).fin = i.value; guardar(); });
-  $("#bTok").onclick = () => { const m = val("aTok").match(/acceso=([A-Za-z0-9_-]{10,})/) || val("aTok").trim().match(/^([A-Za-z0-9_-]{10,})$/); if (!m) return toast("No se encontró el código de acceso en el enlace."); D.cfg.tok = m[1]; guardar(); pintar(); toast("Enlace guardado."); };
+  enlazarCuentaGoogle(); $("#bAdm") && ($("#bAdm").onclick = () => ir("admin"));
   $("#bResp").onclick = respaldo; $("#bRest").onclick = () => $("#fRes").click(); $("#fRes").onchange = e => restaurar(e.target.files[0]);
   $("#bInst") && ($("#bInst").onclick = async () => { INSTALAR.prompt(); await INSTALAR.userChoice; INSTALAR = null; pintar(); });
   $("#bBor").onclick = async () => { if (!(await confirmar("¿Borrar TODOS los datos de Ulama en este dispositivo? Descargue antes un respaldo."))) return; if (!(await confirmar("Última confirmación: se borrarán escuelas, grupos, planeaciones y clases."))) return; D = VACIO(); guardar(); S = { v: "bienvenida", paso: 1 }; pintar(); }; };
 function respaldo() { D.cfg.ultimoResp = hoy(); guardar(); const b = new Blob([JSON.stringify(D)], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `ulama-respaldo-${hoy()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("Respaldo descargado."); }
-async function restaurar(f) { if (!f) return; try { const x = JSON.parse(await f.text()); if (!x || !x.v || !Array.isArray(x.escuelas)) throw 0;
+async function restaurar(f) { if (!f) return; try { const x = typeof f.text === "function" ? JSON.parse(await f.text()) : f; if (!x || !x.v || !Array.isArray(x.escuelas)) throw 0; const g0 = D.cfg.google;
   if (D.escuelas.length && !(await confirmar(`Se reemplazarán los datos actuales por los del respaldo (${x.escuelas.length} escuelas, ${x.grupos.length} grupos, ${x.clases.length} clases). ¿Continuar?`))) return;
-  D = Object.assign(VACIO(), x); D.cfg.bienvenida = true; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
+  D = Object.assign(VACIO(), x); D.cfg.bienvenida = true; if (g0 && !D.cfg.google) D.cfg.google = g0; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
 
 /* =================================================================== DOCUMENTOS */
 function logoEsc(e) { return e && e.cct ? `<img src="${IMG_T}escuelas/${esc(e.cct)}.jpg" onerror="if(!this.dataset.p){this.dataset.p=1;this.src='${IMG_T}escuelas/${esc(e.cct)}.png'}else{this.remove()}" alt="">` : ""; }
-function encabezado(e, titulo) { return `<div class="enc"><img src="${IMG_T}isep.png" alt="ISEP"><div class="t"><b>${esc(e ? e.nombre : "")}</b><span>${e ? `C.C.T. ${esc(e.cct)}${e.turno ? " · Turno " + esc(e.turno) : ""}${e.zona ? " · Zona Escolar " + esc(e.zona) : ""}${e.localidad ? " · " + esc(e.localidad) : ""}` : ""}</span><br><b style="font-size:12pt;margin-top:4px">${titulo}</b></div>${logoEsc(e)}</div>`; }
+function encabezado(e, titulo) { return `<table class="enc"><tr><td style="width:90px"><img src="${IMG_T}isep.png" alt="ISEP"></td><td class="t"><b>${esc(e ? e.nombre : "")}</b><br><span>${e ? `C.C.T. ${esc(e.cct)}${e.turno ? " · Turno " + esc(e.turno) : ""}${e.zona ? " · Zona Escolar " + esc(e.zona) : ""}${e.localidad ? " · " + esc(e.localidad) : ""}` : ""}</span><br><b class="tt">${titulo}</b></td><td style="width:90px;text-align:right">${logoEsc(e)}</td></tr></table>`; }
 function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F = filasEval(g, E), con = F.filter(f => f.cal != null), prom = con.length ? (con.reduce((t, f) => t + f.cal, 0) / con.length).toFixed(1) : "—";
   return `<div class="doc ${i ? "salto" : ""}">${encabezado(e, "Evaluación de Educación Física")}
    <div class="datos"><span><b>Grupo:</b> ${grNom(g)}</span><span><b>Periodo:</b> ${fCorta(E.ini)} al ${fCorta(E.fin)}</span><span><b>Clases:</b> ${clasesEn(g.id, E.ini, E.fin).length}</span>
@@ -555,7 +588,7 @@ function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F 
    <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th><th class="c">Asist.</th><th class="c">Faltas</th><th class="c">Retardos</th><th class="c">Calif.</th><th>Valoración del desempeño</th></tr></thead><tbody>
    ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
    <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo. J = falta justificada.</p>
-   <div class="firmas"><div>${esc(docNombre())}<br>Docente de Educación Física</div><div>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</div></div></div>`; }).join(""); }
+   <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</td></tr></table></div>`; }).join(""); }
 function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasClase(gs[0], p.ini, p.sesiones.length) : [], J = k => JUEGOS[k] || { n: k, reglas: [] };
   return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
   <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${f.length ? fCorta(f[0]) + " al " + fCorta(f[f.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
@@ -564,11 +597,11 @@ function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(B
   <h2>Secuencia de sesiones</h2><table><thead><tr><th class="c">No.</th><th>Fecha</th><th>Sesión</th><th>Inicio</th><th>Desarrollo</th><th>Cierre</th><th>Evaluación</th></tr></thead><tbody>
   ${p.sesiones.map((s, i) => `<tr><td class="c">${i + 1}</td><td>${f[i] ? fCorta(f[i]) : ""}</td><td><b>${esc(s.t)}</b><br>${esc(s.est)}. ${esc(s.para)}</td><td>${esc(J(s.act).n)}. ${esc(s.charla)}</td><td>${s.ppal.map(k => `<b>${esc(J(k).n)}</b>`).join(", ")}</td><td>${esc(J(s.calma).n)}. ${s.cierre.map(esc).join(" ")}</td><td>${esc(s.eval)}</td></tr>`).join("")}</tbody></table>
   <h2>Rúbrica</h2><table><thead><tr><th>Criterio</th>${NIV_R.map(n => `<th>${n[1]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${esc(c.c)}</b></td>${[1, 2, 3, 4].map(k => `<td>${esc(c.d[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>
-  <div class="firmas"><div>${esc(docNombre())}<br>Docente de Educación Física</div><div>${esc((e && e.supEF) || "")}<br>Supervisor(a) de Educación Física · Vo. Bo.</div></div></div>`; }
-function imprimir(html) { $("#imprimir").innerHTML = html; const imgs = [...$("#imprimir").querySelectorAll("img")]; Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 2500); }))).then(() => setTimeout(() => window.print(), 100)); }
+  <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc((e && e.supEF) || "")}<br>Supervisor(a) de Educación Física · Vo. Bo.</td></tr></table></div>`; }
+function imprimir(html, horizontal) { $("#imprimir").innerHTML = (horizontal ? "<style>@page{size:letter landscape;margin:9mm}</style>" : "") + html; const imgs = [...$("#imprimir").querySelectorAll("img")]; Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 2500); }))).then(() => setTimeout(() => window.print(), 100)); }
 
 /* ---------- envío por correo: servidor de Tequio (con enlace) o el correo del dispositivo ---------- */
-function tokAcceso() { if (D.cfg.tok) return D.cfg.tok; try { return JSON.parse(localStorage.getItem("acc-token") || "null") || ""; } catch (e) { return ""; } }
+function tokAcceso() { try { const u = JSON.parse(localStorage.getItem("ulama-tok") || "null"); if (u) return u; } catch (e) {} if (D.cfg.tok) return D.cfg.tok; try { return JSON.parse(localStorage.getItem("acc-token") || "null") || ""; } catch (e) { return ""; } }
 async function servidor() { try { const r = await fetch(ACCESO + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j.tequio) { D.cfg.srv = j.tequio; guardar(); return j.tequio; } } } catch (e) {} return D.cfg.srv || TEQUIO_DEF; }
 /* Para el PDF del correo: los logos van incrustados (el servidor no descarga imágenes) */
 const aDataURL = async url => { const r = await fetch(url); if (!r.ok) throw 0; const bl = await r.blob(); return await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(bl); }); };
@@ -580,19 +613,21 @@ function cssDoc() { let t = ""; for (const sh of document.styleSheets) { try { f
 async function postServidor(datos) { const s = await servidor(), tok = tokAcceso(); if (!tok) throw new Error("sin-enlace"); if (navigator.onLine === false) throw new Error("sin-red");
   const r = await fetch(s, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "efEnviar", datos: Object.assign({ tok, quien: { nombre: D.docente.nombre, correo: D.docente.correo } }, datos) }) });
   const j = await r.json(); if (!j || !j.ok) throw new Error((j && (j.mensaje || j.error)) || "El servidor no respondió."); return j; }
-function dlgEnvio(titulo, para, cc, asunto, cuerpo, html, archivo, resumenTxt) {
+function dlgEnvio(titulo, para, cc, asunto, cuerpo, html, archivo, resumenTxt) { const G = D.cfg.google && D.cfg.google.correo;
   dlg(`<h3>${titulo}</h3><label class="campo"><span>Para</span><input id="mP" value="${esc(para.filter(Boolean).join(", "))}"></label><label class="campo"><span>Con copia</span><input id="mC" value="${esc(cc.filter(Boolean).join(", "))}"></label>
    <label class="campo"><span>Asunto</span><input id="mA" value="${esc(asunto)}"></label><label class="campo"><span>Mensaje</span><textarea id="mM">${esc(cuerpo)}</textarea></label>
-   <p class="small muted mb">${tokAcceso() ? "Se enviará con el reporte en PDF adjunto desde el servidor de la Supervisión." : "Sin enlace de acceso: se abrirá su correo con el mensaje y se descargará el PDF para que lo adjunte. Puede agregar su enlace en Ajustes."}</p>
-   <div class="fila fin"><button class="btn" id="mX">Cancelar</button><button class="btn p" id="mOk">${ic("correo", 18)} Enviar</button></div>`, v => {
+   <p class="small mb ${G ? "" : "muted"}">${G ? `${ic("correo", 16)} Se enviará <b>desde su correo ${esc(G)}</b> con el reporte en PDF adjunto.` : tokAcceso() ? "Se enviará con el PDF adjunto desde el servidor de la Supervisión. Para enviarlo desde su propio correo, conecte su cuenta de Google en Ajustes." : "Se abrirá su correo con el mensaje y se descargará el PDF para que lo adjunte. Para enviarlo directo, conecte su cuenta de Google en Ajustes."}</p>
+   <div class="fila fin"><button class="btn" id="mPdf">${ic("bajar", 16)} Solo PDF</button><button class="btn" id="mX">Cancelar</button><button class="btn p" id="mOk">${ic("correo", 18)} Enviar</button></div>`, v => {
     v.querySelector("#mX").onclick = cerrarDlg;
+    v.querySelector("#mPdf").onclick = async ev => { ev.currentTarget.disabled = true; try { await pdfDescargar(html, archivo); } catch (e) { imprimir(html); } cerrarDlg(); };
     v.querySelector("#mOk").onclick = async ev => { const b = ev.currentTarget, P = val("mP").split(/[,;\s]+/).filter(x => /@/.test(x)), C = val("mC").split(/[,;\s]+/).filter(x => /@/.test(x)); if (!P.length) return toast("Escriba al menos un correo en «Para».");
-      b.disabled = true; b.textContent = "Enviando…";
-      try { await postServidor({ para: P, cc: C, asunto: val("mA"), mensaje: val("mM"), html: await absolutizar(html), css: cssDoc(), archivo }); cerrarDlg(); toast(`Enviado a ${P.join(", ")}.`, 3500); }
-      catch (e) { cerrarDlg(); const texto = val("mM") || cuerpo;
-        if (e.message !== "sin-enlace" && e.message !== "sin-red") toast(`<b>No se pudo enviar desde el servidor</b> (${esc(e.message)}). Se abrirá su correo.`, 4000);
-        location.href = `mailto:${P.join(",")}?${C.length ? "cc=" + encodeURIComponent(C.join(",")) + "&" : ""}subject=${encodeURIComponent(val("mA") || asunto)}&body=${encodeURIComponent(texto + "\n\n" + (resumenTxt || ""))}`;
-        setTimeout(() => imprimir(html), 900); } }; }); }
+      const A = val("mA") || asunto, M = val("mM"); b.disabled = true; b.textContent = "Enviando…";
+      if (G) { try { b.textContent = "Preparando PDF…"; const pdf = await pdfBase64(html); b.textContent = "Enviando…"; await gmailEnviar({ para: P, cc: C, asunto: A, mensaje: M, pdf, archivo }); cerrarDlg(); toast(`Enviado desde ${esc(G)} a ${esc(P.join(", "))}.`, 4000); return; }
+        catch (e) { if (e.message === "cancelado") { b.disabled = false; b.innerHTML = `${ic("correo", 18)} Enviar`; return toast("No se dio permiso para enviar."); } toast(`<b>No se pudo enviar con Gmail</b> (${esc(e.message)}). Probando otra vía…`, 3500); } }
+      try { await postServidor({ para: P, cc: C, asunto: A, mensaje: M, html: await absolutizar(html), css: cssDoc(), archivo }); cerrarDlg(); toast(`Enviado a ${esc(P.join(", "))}.`, 3500); }
+      catch (e) { cerrarDlg(); if (e.message !== "sin-enlace" && e.message !== "sin-red") toast(`<b>No se pudo enviar desde el servidor</b> (${esc(e.message)}). Se abrirá su correo.`, 4000);
+        location.href = `mailto:${P.join(",")}?${C.length ? "cc=" + encodeURIComponent(C.join(",")) + "&" : ""}subject=${encodeURIComponent(A)}&body=${encodeURIComponent((M || cuerpo) + "\n\n" + (resumenTxt || ""))}`;
+        setTimeout(() => pdfDescargar(html, archivo).catch(() => imprimir(html)), 900); } }; }); }
 function enviarEval(gs, E, a) { const e = escDe(gs[0].escId), per = `${fCorta(E.ini)} al ${fCorta(E.fin)}`, corte = (D.cortes.find(x => x.id === E.corte) || { n: "Corte de evaluación" }).n;
   const resumen = gs.map(g => `${grNom(g)}\n` + filasEval(g, E).map((f, i) => `${i + 1}. ${f.a.nombre} — Calif. ${f.cal ?? "—"} · Faltas ${f.r.falt} · Retardos ${f.r.ret}`).join("\n")).join("\n\n");
   if (a === "docente") { const g = gs[0]; dlgEnvio(`Enviar a ${esc(g.docente || "docente")} · ${grNom(g)}`, [g.correo], [D.docente.correo], `Evaluación de Educación Física · ${grNom(g)} · ${corte}`,
@@ -602,9 +637,46 @@ function enviarEval(gs, E, a) { const e = escDe(gs[0].escId), per = `${fCorta(E.
 function enviarPlan(p) { const e = escDe(p.escId); dlgEnvio("Enviar planeación al supervisor(a)", [e && e.supCorreo], [D.docente.correo], `Planeación de Educación Física · ${p.titulo} · ${e ? e.nombre : ""}`,
   `${e && e.supEF ? e.supEF + "\nSupervisor(a) de Educación Física" : "Supervisión de Educación Física"}\n\nLe comparto para su revisión la planeación «${p.titulo}» (${p.grupos.map(grDe).filter(Boolean).map(grNom).join(", ")}, ${p.sesiones.length} sesiones desde el ${fLarga(p.ini)}).\n\nAtentamente,\n${docNombre()}\nDocente de Educación Física`, docPlan(p), `planeacion-ef-${p.ini}.pdf`, ""); }
 
-/* =================================================================== arranque */
-let INSTALAR = null;
-window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); INSTALAR = e; });
-(function () { const m = (location.hash || "").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/); if (m) { D.cfg.tok = m[1]; guardar(); history.replaceState(null, "", location.pathname + location.search); } })();
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-history.replaceState({ n: 0 }, ""); pintar();
+
+/* ---------- listas de asistencia por mes: en blanco o con los registros ---------- */
+function mesesCiclo() { const out = [], d = dF(CICLO.inicio); d.setDate(1); const fin = dF(CICLO.fin); while (d <= fin) { out.push(iso(d).slice(0, 7)); d.setMonth(d.getMonth() + 1); } return out; }
+const nomMes = m => { const [y, mm] = m.split("-").map(Number); return `${MES_L[mm - 1]} ${y}`; };
+function diasDelMes(g, mes, todos) { const [y, m] = mes.split("-").map(Number), out = [], d = new Date(y, m - 1, 1, 12), dias = diasGrupo(g);
+  for (; d.getMonth() === m - 1; d.setDate(d.getDate() + 1)) { const k = iso(d), w = d.getDay(); if (w === 0 || w === 6 || k < CICLO.inicio || k > CICLO.fin || sinClase(k)) continue; if (todos || !dias.length || dias.includes(w)) out.push(k); }
+  /* días con clase registrada aunque no sean sus días de siempre (reposiciones) */
+  D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === mes && !out.includes(c.fecha)).forEach(c => out.push(c.fecha)); return out.sort(); }
+const MARCA = { P: "/", R: "R", F: "F", J: "J" };
+function docLista(g, mes, o) { const e = escDe(g.escId), dias = diasDelMes(g, mes, o.todos), ini = mes + "-01", fin = mes + "-31";
+  const al = (g.alumnos || []).filter(a => !(a.baja && a.baja < ini) && !(a.alta && a.alta > fin)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const cl = {}; if (o.reg) D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === mes).forEach(c => cl[c.fecha] = c);
+  const celda = (a, k) => { if (!o.reg) return ""; if ((a.alta && k < a.alta) || (a.baja && k > a.baja)) return "—"; const c = cl[k]; return c && c.asis[a.id] ? MARCA[c.asis[a.id]] : ""; };
+  const tot = a => { let p = 0, r = 0, f = 0, j = 0; dias.forEach(k => { const c = cl[k], v = c && c.asis[a.id]; if (v === "P") p++; else if (v === "R") { p++; r++; } else if (v === "F") f++; else if (v === "J") j++; }); return [p, f, r, j]; };
+  const extra = Math.max(0, o.extra || 0), fs = dias.length > 20 ? "7.5pt" : dias.length > 14 ? "8.5pt" : "9.5pt";
+  return `<div class="doc lista-as">${encabezado(e, `Lista de asistencia de Educación Física · ${nomMes(mes)[0].toUpperCase() + nomMes(mes).slice(1)}`)}
+   <div class="datos"><span><b>Grupo:</b> ${grNom(g)}</span><span><b>Docente del grupo:</b> ${esc(g.docente || "—")}</span><span><b>Docente de E. F.:</b> ${esc(docNombre())}</span></div>
+   <table style="font-size:${fs}"><thead><tr><th class="c" rowspan="2" style="width:22px">No.</th><th rowspan="2">Alumno(a)</th>${dias.map(k => `<th class="c" style="padding:2px 1px">${DSEM[dF(k).getDay()][0]}</th>`).join("")}${o.reg ? `<th class="c" rowspan="2">A</th><th class="c" rowspan="2">F</th><th class="c" rowspan="2">R</th><th class="c" rowspan="2">J</th>` : `<th class="c" rowspan="2" style="width:60px">Observ.</th>`}</tr>
+   <tr>${dias.map(k => `<th class="c" style="padding:2px 1px">${dF(k).getDate()}</th>`).join("")}</tr></thead><tbody>
+   ${al.map((a, i) => `<tr><td class="c">${i + 1}</td><td style="white-space:nowrap">${esc(a.nombre)}${a.baja && a.baja <= fin ? ` <i>(baja ${dF(a.baja).getDate()}/${dF(a.baja).getMonth() + 1})</i>` : ""}</td>${dias.map(k => `<td class="c" style="padding:2px 1px;min-width:16px">${celda(a, k)}</td>`).join("")}${o.reg ? tot(a).map(n => `<td class="c">${n}</td>`).join("") : `<td></td>`}</tr>`).join("")}
+   ${Array.from({ length: extra }, (_, i) => `<tr><td class="c">${al.length + i + 1}</td><td>&nbsp;</td>${dias.map(() => "<td></td>").join("")}${o.reg ? "<td></td><td></td><td></td><td></td>" : "<td></td>"}</tr>`).join("")}</tbody></table>
+   <p class="nota">${o.reg ? "/ asistió · R retardo · F falta · J falta justificada · — aún no estaba inscrito o ya era baja. A incluye los retardos." : "Anote: / asistió · R retardo · F falta · J falta justificada."} ${o.todos ? "Se muestran todos los días hábiles del mes." : "Se muestran los días de clase de Educación Física del grupo."} Días sin clase según el calendario oficial de Baja California.</p>
+   <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela · Vo. Bo.</td></tr></table></div>`; }
+VISTAS.listas = () => { const k = hoy(), L = S.L = Object.assign({ escId: (D.escuelas[0] || {}).id, grupos: null, mes: k.slice(0, 7) >= CICLO.inicio.slice(0, 7) && k <= CICLO.fin ? k.slice(0, 7) : CICLO.inicio.slice(0, 7), reg: true, todos: false, extra: 2 }, S.L || {});
+  const e = escDe(L.escId), gs = e ? gruposDe(e.id) : []; if (!L.grupos) L.grupos = gs.map(g => g.id); const sel = L.grupos.map(grDe).filter(g => g && g.escId === L.escId);
+  const regMes = sel.reduce((t, g) => t + D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === L.mes).length, 0);
+  return barra("Listas de asistencia", "Imprimir listas") + `<main class="wrap"><section class="card mt">
+   <div class="chips mb"><button class="chip" data-r="1" aria-pressed="${L.reg}">Con mis registros</button><button class="chip" data-r="0" aria-pressed="${!L.reg}">En blanco</button></div>
+   <div class="dos"><label class="campo"><span>Mes</span><select id="lM">${mesesCiclo().map(m => `<option value="${m}" ${m === L.mes ? "selected" : ""}>${nomMes(m)}</option>`).join("")}</select></label>
+   <label class="campo"><span>Escuela</span><select id="lE">${D.escuelas.map(x => `<option value="${x.id}" ${x.id === L.escId ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</select></label></div>
+   <span style="font-size:14px;font-weight:700;color:var(--gris)">Grupos (una hoja por grupo)</span><div class="chips mt mb" id="lG">${gs.map(g => `<button class="chip" data-g="${g.id}" aria-pressed="${L.grupos.includes(g.id)}">${grNom(g)}</button>`).join("") || `<span class="small muted">Sin grupos.</span>`}</div>
+   <div class="dos"><label class="campo"><span>Días que aparecen</span><select id="lT"><option value="0" ${!L.todos ? "selected" : ""}>Solo mis días de clase con el grupo</option><option value="1" ${L.todos ? "selected" : ""}>Todos los días hábiles del mes</option></select></label>
+   <label class="campo"><span>Renglones en blanco al final</span><select id="lX">${[0, 1, 2, 3, 5].map(n => `<option ${n === L.extra ? "selected" : ""}>${n}</option>`).join("")}</select><small>Para alumnos que lleguen durante el mes.</small></label></div>
+   ${L.reg ? `<p class="small muted">${regMes ? `${regMes} clases registradas en ${nomMes(L.mes)} para los grupos elegidos.` : `Aún no hay clases registradas en ${nomMes(L.mes)}: la lista saldrá sin marcas.`}</p>` : ""}
+   <div class="fila mt"><button class="btn p" id="lImp" ${sel.length ? "" : "disabled"}>${ic("impr", 18)} Imprimir ${sel.length > 1 ? sel.length + " listas" : "lista"}</button><button class="btn" id="lPdf" ${sel.length ? "" : "disabled"}>${ic("bajar", 18)} Descargar PDF</button></div></section>
+   ${sel[0] ? `<h2 class="sec-t">Vista previa · ${grNom(sel[0])}</h2><div class="card" style="overflow:auto;padding:12px"><div style="min-width:760px">${docLista(sel[0], L.mes, L)}</div></div>` : ""}</main>`; };
+ENLAZAR.listas = () => { const L = S.L, re = () => { const y = window.scrollY; pintar(); window.scrollTo(0, y); };
+  $$("[data-r]").forEach(b => b.onclick = () => { L.reg = b.dataset.r === "1"; re(); }); $("#lM").onchange = ev => { L.mes = ev.target.value; re(); };
+  $("#lE") && ($("#lE").onchange = ev => { L.escId = ev.target.value; L.grupos = null; re(); }); $("#lT").onchange = ev => { L.todos = ev.target.value === "1"; re(); }; $("#lX").onchange = ev => { L.extra = +ev.target.value; re(); };
+  $$("#lG .chip").forEach(b => b.onclick = () => { const id = b.dataset.g; L.grupos = L.grupos.includes(id) ? L.grupos.filter(x => x !== id) : [...L.grupos, id]; re(); });
+  const html = () => L.grupos.map(grDe).filter(g => g && g.escId === L.escId).map((g, i) => docLista(g, L.mes, L).replace('class="doc lista-as"', `class="doc lista-as${i ? " salto" : ""}"`)).join("");
+  $("#lImp").onclick = () => imprimir(html(), true);
+  $("#lPdf").onclick = async ev => { const b = ev.currentTarget; b.disabled = true; try { await pdfDescargar(html(), `listas-asistencia-${L.mes}.pdf`, true); } catch (e) { imprimir(html(), true); } b.disabled = false; }; };
