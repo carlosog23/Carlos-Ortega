@@ -87,7 +87,10 @@ function siguienteSesion(gid) { const g = grDe(gid);
 function agendaDe(desde, hasta) { const out = [];
   D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasClase(g, p.ini, p.sesiones.length), dadas = sesionesDadas(g.id, p.id);
     p.sesiones.forEach((s, i) => { const f = fechas[i]; if (f && f >= desde && f <= hasta) out.push({ f, g, p, s, n: i + 1, dada: dadas.has(s.id) }); }); }));
-  return out.sort((a, b) => a.f.localeCompare(b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
+  return out.sort((a, b) => a.f.localeCompare(b.f) || horaDe(a.g, a.f) - horaDe(b.g, b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
+/* Hora de inicio del grupo ese día, leída del horario («Lun 8:00 a 8:50 · Mié 10:30 a 11:20»); de 1:00 a 6:59 se toma como de la tarde */
+function horaDe(g, f) { const h = String(g.horario || ""), dia = DSEM[dF(f).getDay()], m = h.match(new RegExp(dia + "\\.?\\s*(\\d{1,2}):(\\d{2})", "i")) || h.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return 9999; let x = +m[1]; if (x >= 1 && x < 7) x += 12; return x * 60 + +m[2]; }
 
 /* ---------------- instrumentos ---------------- */
 const NIV_R = [[1, "Requiere apoyo"], [2, "En proceso"], [3, "Logrado"], [4, "Destacado"]];
