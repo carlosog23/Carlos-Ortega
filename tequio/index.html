@@ -4686,8 +4686,13 @@ const clave = t => sinNum(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').to
 // «Visitas de supervisión» es de la Supervisión (fotos de las visitas): no es rubro de evidencia
 const EVI_IGNORAR = [/^contingencia/, /^oficio/, /^visitas de supervision/];
 const eviIgnorada = r => EVI_IGNORAR.some(x => x.test(clave(String(r).split('/')[0])));
+/* Rubros en espera: la carpeta existe en el Drive, pero no se ha solicitado. No sale como columna, ni con semáforo, ni cuenta
+   en el porcentaje hasta que un registro de Acuerdos la pida con su fecha de entrega («Requiere evidencia» en esa carpeta). */
+const EVI_EN_ESPERA = [/^ingresos propios/];
+const eviEnEspera = r => { const n1 = String(r).split('/')[0];
+  return EVI_EN_ESPERA.some(x => x.test(clave(n1))) && !(S.acu || []).some(x => x.activo !== false && x.evidencia && clave(String(x.evidencia).split('/')[0]) === clave(n1)); };
 function columnasEvi() {
-  const rows = (S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta));
+  const rows = (S.evi || []).filter(e => e.ruta && !eviIgnorada(e.ruta) && !eviEnEspera(e.ruta));
   const nivel1 = [...new Set(rows.filter(e => !e.ruta.includes('/')).map(e => e.ruta))];
   const cols = [];
   nivel1.sort((a, b) => a.localeCompare(b, 'es', { numeric: true })).forEach(r => {

@@ -4137,6 +4137,8 @@ function recorrer_(carpeta, ruta, cct, filas, ahora) {
   const it = carpeta.getFiles();
   while (it.hasNext()) {
     const a = it.next();
+    // un archivo en la papelera sigue «dentro» de su carpeta para el Drive: no se cuenta como evidencia
+    try { if (a.isTrashed()) continue; } catch (e) {}
     directos++;
     // quién lo subió se averigua después, solo para los más recientes (preguntarlo de cada archivo hacía que la revisión pasara de 6 minutos)
     recientes.push({ f: Utilities.formatDate(a.getLastUpdated(), TZ, "yyyy-MM-dd'T'HH:mm"), n: privada ? '' : a.getName(), id: privada ? '' : a.getId(), _a: a });
@@ -4757,8 +4759,12 @@ function enVacaciones_(f) {
 const clave_ = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const sinNum_ = t => String(t || '').replace(/^\s*\d+\s*[-.]\s*/, '');
 // Mismas columnas que la pantalla de Evidencias: cada carpeta del primer nivel, y las «Evidencias…» abiertas en sus subcarpetas
-function columnasEvi_(evi) {
-  const rows = evi.filter(e => e.ruta && !EVI_IGNORAR.some(x => x.test(clave_(String(e.ruta).split('/')[0]))));
+// Rubros en espera (no se han solicitado): no cuentan hasta que un registro de Acuerdos pida evidencia en esa carpeta. Igual que la página.
+const EVI_EN_ESPERA = [/^ingresos propios/];
+function columnasEvi_(evi, acu) {
+  const enEspera = r => { const n1 = clave_(String(r).split('/')[0]);
+    return EVI_EN_ESPERA.some(x => x.test(n1)) && !(acu || []).some(a => a.evidencia && clave_(String(a.evidencia).split('/')[0]) === n1); };
+  const rows = evi.filter(e => e.ruta && !EVI_IGNORAR.some(x => x.test(clave_(String(e.ruta).split('/')[0]))) && !enEspera(e.ruta));
   const nivel1 = Array.from(new Set(rows.filter(e => e.ruta.indexOf('/') < 0).map(e => e.ruta))).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
   const cols = [];
   nivel1.forEach(r => {
@@ -4827,7 +4833,7 @@ function datosSemanal_() {
   D.cte = leer_('cte').filter(x => x.ciclo === cicloCte); D.cta = leer_('cta').filter(x => x.ciclo === cicloCte && x.activo !== false); D.ctr = leer_('ctr').filter(x => x.ciclo === cicloCte);
   D.cteVig = cteVigente_(D, cicloCte);
   D.escuelas = D.dir.filter(c => c.tipo === 'director' && c.activo !== false).sort((a, b) => String(a.escuela).localeCompare(String(b.escuela), 'es'));
-  D.cols = columnasEvi_(D.evi);
+  D.cols = columnasEvi_(D.evi, D.acu);
   D.cumPor = {}; D.cum.forEach(m => { D.cumPor[m.id] = m; });
   D.reuPor = {}; D.reu.forEach(r => { D.reuPor[r.id] = r; });
   D.acu = D.acu.filter(a => D.reuPor[a.reunionId]).sort((a, b) => String(D.reuPor[a.reunionId].fecha).localeCompare(String(D.reuPor[b.reunionId].fecha)) || (+a.orden || 0) - (+b.orden || 0));
