@@ -202,12 +202,13 @@ ENLAZAR.bienvenida = () => { const p = S.paso || 1;
 /* ---------- inicio ---------- */
 VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agendaDe(k, k), dia = d.getDay();
   const hoyEsc = D.escuelas.filter(e => D.grupos.some(g => g.escId === e.id && diasGrupo(g).includes(dia)));
-  const gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia)).sort((a, b) => (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
+  const gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia)).sort((a, b) => horaDe(a, k) - horaDe(b, k) || (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
+  const hTx = g => { const m = horaDe(g, k); if (m >= 9999) return ""; const h = Math.floor(m / 60), mi = String(m % 60).padStart(2, "0"); return `${h > 12 ? h - 12 : h}:${mi}`; };
   return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt=""><div class="eb">Ulama · Educación Física</div></div>
   <h1>Hola, ${esc(corto(D.docente.nombre) || "maestro")}</h1><p>${DSEM_L[dia][0].toUpperCase() + DSEM_L[dia].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : hoyEsc.length ? ` · Hoy va a ${hoyEsc.map(e => esc(e.nombre)).join(" y ")}` : ""}</p>
   <div class="fila"><button class="btn m" id="bClase">${ic("silbato")} Iniciar clase</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button></div></section>
   ${gHoy.length && !sc ? `<h2 class="sec-t">Hoy<small>Grupos que le tocan según sus días de clase</small></h2><div class="hoy">${gHoy.map(g => { const s = siguienteSesion(g.id), e = escDe(g.escId), ya = D.clases.some(c => c.grupoId === g.id && c.fecha === k);
-    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
+    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${hTx(g) ? `<span class="hr">${hTx(g)}</span>` : ""}${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
   ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:var(--anil);--c-s:var(--anil-s)"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.length} planeaciones · juegos, sesiones e instrumentos</span></button>
@@ -379,6 +380,7 @@ VISTAS.planes = () => barra("Planeación", "Mis planeaciones", `<button class="b
 ENLAZAR.planes = () => { $("#bNP").onclick = () => ir("planNueva", {}); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
 
 VISTAS.planNueva = () => { const P = S.f = S.f || Object.assign({ escId: (D.escuelas[0] || {}).id, grupos: [], cont: null, ini: proxLunes(), sem: 4, min: 50, instr: "rubrica" }, JSON.parse(JSON.stringify(PREF_PLAN()))); const e = escDe(P.escId);
+  { const d = PREF_PLAN(); ["estr", "estilos", "evalAcc", "capac", "fuente"].forEach(k => { if (P[k] == null) P[k] = JSON.parse(JSON.stringify(d[k])); }); }
   const gs = e ? gruposDe(e.id) : [], selG = P.grupos.map(grDe).filter(Boolean), grados = [...new Set(selG.map(g => g.grado))].sort(), fase = grados.length ? Math.max(...grados.map(faseDe)) : null;
   const conts = fase ? BANCO_EF[fase] || [] : []; const cont = conts.find(c => c.c === P.cont);
   const npor = selG.length ? Math.max(...selG.map(g => diasGrupo(g).length || 1)) : 1; const n = P.n || P.sem * npor;
@@ -510,10 +512,10 @@ VISTAS.clase = () => { const c = S.c, p = S.paso, pasos = `<div class="pasos">${
   if (p === 3) { const cnt = k => al.filter(a => c.asis[a.id] === k).length, sin = al.filter(a => !c.asis[a.id]).length;
     return barra(`${esc(e.nombre)} · ${grNom(g)}`, "Pasar lista", `<input type="date" id="cF" value="${c.fecha}" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 8px;background:#fff;max-width:150px">`) + `<main class="wrap">${pasos}
     ${c.reabierta ? `<div class="aviso mt">Esta clase ya se había registrado hoy: puede corregirla.</div>` : ""}
-    <div class="resumen"><span><b>${cnt("P")}</b> presentes</span><span><b>${cnt("R")}</b> retardos</span><span><b>${cnt("F")}</b> faltas</span><span><b>${cnt("J")}</b> justificadas</span>${sin ? `<span class="tag m" style="align-self:center">${sin} sin marcar</span>` : ""}</div>
-    <div class="fila mb"><button class="btn s" id="bTodos">${ic("check", 16)} Todos presentes</button><span class="small muted">P presente · R retardo · F falta · J justificada</span></div>
+    <div class="resumen"><span><b>${cnt("P")}</b> presentes</span><span><b>${cnt("R")}</b> retardos</span><span><b>${cnt("F")}</b> faltas</span><span><b>${cnt("J")}</b> justificadas</span>${sin ? `<span class="tag m" style="align-self:center">${sin} sin marcar: contarán como falta</span>` : ""}</div>
+    <div class="fila mb"><button class="btn s" id="bTodos">${ic("check", 16)} Todos presentes</button><span class="small muted">P presente · R retardo · F falta · J justificada. Quien quede sin marcar se registra como falta.</span></div>
     <div class="asis">${al.map((a, i) => `<div class="al"><span class="no">${i + 1}</span><span class="n">${esc(a.nombre)}${c.asis[a.id] === "R" && c.ret[a.id] ? `<small>Llegó ${c.ret[a.id]}</small>` : ""}</span><div class="est">${["P", "R", "F", "J"].map(k => `<button class="${k}" data-a="${a.id}" data-k="${k}" aria-pressed="${c.asis[a.id] === k}" aria-label="${k}">${k}</button>`).join("")}</div></div>`).join("") || `<div class="vacio">El grupo no tiene alumnos. Agréguelos en Mis escuelas.</div>`}</div></main>
-    <div class="fijo"><div class="in"><button class="btn p" id="bSig" ${sin ? "disabled" : ""}>Siguiente: elegir sesión</button></div></div>`; }
+    <div class="fijo"><div class="in"><button class="btn p" id="bSig" ${al.length ? "" : "disabled"}>${sin ? `Siguiente (${sin} ${sin === 1 ? "falta" : "faltas"} sin marcar)` : "Siguiente: elegir sesión"}</button></div></div>`; }
   if (p === 4) { const sig = siguienteSesion(g.id), pls = planesDeGrupo(g.id);
     return barra(`${grNom(g)} · ${esc(e.nombre)}`, "¿Qué sesión toca?") + `<main class="wrap">${pasos}
     ${sig ? `<div class="card mt" style="border-color:var(--jade);box-shadow:0 0 0 2px var(--jade-s)"><span class="tag">La que sigue según su agenda${sig.fecha ? " · " + fCorta(sig.fecha) : ""}</span><h3 class="mt">${sig.n}. ${esc(sig.ses.t)}</h3><p class="small muted">${esc(sig.plan.titulo)} · ${esc(sig.ses.para)}</p><div class="fila mt"><button class="btn p" data-pl="${sig.plan.id}" data-se="${sig.ses.id}">${ic("play", 16)} Dar esta sesión</button></div></div>` : `<div class="aviso mt">Este grupo no tiene sesiones pendientes. Puede dar la clase sin planeación (solo lista y observaciones) o crear una.</div>`}
@@ -548,7 +550,8 @@ ENLAZAR.clase = () => { const c = S.c, p = S.paso, re = () => { const y = window
     $("#cF").onchange = ev => { const f = ev.target.value; if (!f) return; const id = c.id; c.fecha = f; const prev = D.clases.find(x => x.grupoId === c.grupoId && x.fecha === f); if (prev) { Object.assign(c, JSON.parse(JSON.stringify(prev))); c.reabierta = true; } else { c.id = c.reabierta ? uid() : id; c.reabierta = false; } re(); };
     $("#bTodos").onclick = () => { activos(g).forEach(a => { if (!c.asis[a.id]) c.asis[a.id] = "P"; }); re(); };
     $$(".est button").forEach(b => b.onclick = () => { const a = b.dataset.a, k = b.dataset.k; c.asis[a] = k; if (k === "R") c.ret[a] = c.ret[a] || hora(); else delete c.ret[a]; re(); });
-    $("#bSig") && ($("#bSig").onclick = () => pasoClase(4)); }
+    $("#bSig") && ($("#bSig").onclick = () => { const sin = activos(g).filter(a => !c.asis[a.id]); sin.forEach(a => { c.asis[a.id] = "F"; delete c.ret[a.id]; });
+      if (sin.length) toast(`${sin.length} ${sin.length === 1 ? "alumno quedó" : "alumnos quedaron"} con falta.`); pasoClase(4); }); }
   if (p === 4) { $$("[data-pl]").forEach(b => b.onclick = () => { c.planId = b.dataset.pl; c.sesId = b.dataset.se; const pl = plDe(c.planId); c.instr = c.instr || pl.instr; pasoClase(5); });
     $("#bSinPl").onclick = () => { c.planId = null; c.sesId = null; c.instr = "obs"; pasoClase(5); }; $("#bNuevaPl").onclick = () => ir("planNueva", { f: { escId: c.escId, grupos: [c.grupoId], cont: null, ini: c.fecha, sem: 4, min: 50, instr: "rubrica" } }); }
   if (p === 5) { const t0 = Date.now(), rl = $("#reloj"); const tick = () => { if (!document.body.contains(rl)) return clearInterval(tick.i); const [h, m] = c.ini.split(":").map(Number), d = new Date(); d.setHours(h, m, 0); const mn = Math.max(0, Math.floor((Date.now() - d) / 60000)); rl.textContent = mn < 600 ? mn + " min" : ""; };
