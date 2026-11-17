@@ -5239,7 +5239,7 @@ const JUEGOS_COMUNIDAD = {
 4,
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas, Profra. Elisa Paola Camacho Cruz"
+"de": "Profra. Elisa Paola Camacho Cruz"
 },
 "ep_carreras_de_velocidad": {
 "n": "Carreras de velocidad",
@@ -6460,7 +6460,7 @@ const JUEGOS_COMUNIDAD = {
 "fases": [
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas"
+"de": "Profra. Elisa Paola Camacho Cruz"
 },
 "ep_el_dragon": {
 "n": "El dragón",
@@ -6485,7 +6485,7 @@ const JUEGOS_COMUNIDAD = {
 4,
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas, Profra. Elisa Paola Camacho Cruz"
+"de": "Profra. Elisa Paola Camacho Cruz"
 },
 "ep_roba_pelota": {
 "n": "Roba pelota",
@@ -6512,7 +6512,7 @@ const JUEGOS_COMUNIDAD = {
 "fases": [
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas"
+"de": "Profra. Elisa Paola Camacho Cruz"
 },
 "ep_reacciona_a_la_pelota": {
 "n": "Reacciona a la pelota",
@@ -6536,7 +6536,7 @@ const JUEGOS_COMUNIDAD = {
 "fases": [
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas"
+"de": "Profra. Elisa Paola Camacho Cruz"
 },
 "ep_si_anoto_me_congelo": {
 "n": "Si anoto me congelo",
@@ -6559,7 +6559,7 @@ const JUEGOS_COMUNIDAD = {
 "fases": [
 5
 ],
-"de": "Profra. Arantza Evangelina Rincón Cuevas",
+"de": "Profra. Elisa Paola Camacho Cruz",
 "var": "Hacerlo por tiempo, y el equipo con mayor integrantes congelados será el ganador"
 },
 "ep_movilidad_articular": {
