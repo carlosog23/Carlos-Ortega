@@ -246,7 +246,7 @@ const NOMBRES = { rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas C
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela' };
-const VERSION = 62;
+const VERSION = 63;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -535,6 +535,10 @@ function doPost(e) {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try { return json_(Object.assign({ ok: true }, tlaUso_(q))); } finally { lock.releaseLock(); }
     }
+    // Ulama (Educación Física): envía por correo la evaluación o la planeación, con el PDF adjunto
+    if (q.accion === 'efEnviar') return json_(Object.assign({ ok: true }, efEnviar_(q)));
+    // Ulama: copia del registro de un maestro de Educación Física (se guarda en el Drive de la Supervisión y avisa por correo)
+    if (q.accion === 'ulamaRegistro') return json_(Object.assign({ ok: true }, ulamaRegistro_(q)));
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -5351,3 +5355,82 @@ function fechaLarga_(f) {
   return DIAS[d.getDay()] + ' ' + (+p[2]) + ' de ' + MESES[+p[1] - 1] + ' de ' + p[0];
 }
 function fechaCorta_(f) { if (!f) return ''; const p = f.split('-'); return (+p[2]) + ' ' + MESES[+p[1] - 1].slice(0, 3) + ' ' + p[0]; }
+
+/* ===================== Ulama · Educación Física ===================== */
+/** Ulama arma el reporte (evaluación del periodo o planeación) en el dispositivo del docente y aquí solo se envía:
+    entra con el enlace de acceso de Tlamatini, convierte el HTML a PDF y lo manda adjunto. No se guarda nada en Tequio. */
+function efEnviar_(q) {
+  const d = q.datos || {};
+  // Entra con el enlace de Ulama (lo da la Supervisión en el panel de accesos de Ulama), o con el de Tlamatini o Tequio
+  const ul = ulamaEnlace_(d.tok);
+  if (!ul && !usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
+  const quien = { nombre: String(((d.quien || {}).nombre) || (ul && ul.nombre) || '').replace(/\s+/g, ' ').trim().slice(0, 80) };
+  const cache = CacheService.getScriptCache(), kk = 'efEnv-' + sha_(String(q.k || d.tok)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 25) throw new Error('Ya envió muchos correos seguidos. Intente en una hora.');
+  cache.put(kk, String(n), 3600);
+  const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const correos = l => (Array.isArray(l) ? l : []).map(x => String(x).trim().toLowerCase()).filter(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)).slice(0, 15);
+  const para = correos(d.para), cc = correos(d.cc).filter(x => para.indexOf(x) < 0);
+  if (!para.length) throw new Error('Falta el correo del destinatario.');
+  if (MailApp.getRemainingDailyQuota() < para.length + cc.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana.');
+  const html = String(d.html || ''), css = String(d.css || '').slice(0, 20000);
+  if (!html || html.length > 4500000) throw new Error('El reporte está vacío o es demasiado grande.');
+  let archivo = (limpio(d.archivo, 80) || 'reporte-educacion-fisica').replace(/[^\w.-]/g, '-'); if (!/\.pdf$/i.test(archivo)) archivo += '.pdf';
+  const doc = '<html><head><meta charset="utf-8"><style>@page{size:letter;margin:12mm}' + css + '</style></head><body>' + html.replace(/<script[\s\S]*?<\/script>/gi, '') + '</body></html>';
+  const pdf = Utilities.newBlob(doc, 'text/html', 'reporte.html').getAs('application/pdf').setName(archivo);
+  const mensaje = String(d.mensaje || '').slice(0, 4000);
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const resp = correos([(d.quien || {}).correo])[0];
+  const pie = '<p style="font-size:12px;color:#777;margin-top:18px">Enviado con Ulama · Educación Física (familia Tlamatini) a nombre de ' + escH(quien.nombre || 'docente') + '.' + (resp ? ' Para responder, conteste este correo.' : '') + '</p>';
+  const op = { to: para.join(','), subject: limpio(d.asunto, 200) || 'Educación Física', body: mensaje, attachments: [pdf], name: limpio('Educación Física · ' + (quien.nombre || 'Ulama'), 70),
+    htmlBody: '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1B2740">' + escH(mensaje).replace(/\n/g, '<br>') + '</div>' + pie };
+  if (cc.length) op.cc = cc.join(',');
+  if (resp) op.replyTo = resp;
+  MailApp.sendEmail(op);
+  return { enviados: para.length + cc.length, cuota: MailApp.getRemainingDailyQuota() };
+}
+const ULAMA_REGISTROS_ID = '1tBjcThjqWCzEQG2j6GIAzik9YOQIqp5g', ULAMA_AVISO_A = 'carlosog23@gmail.com';
+const ULAMA_ACCESO_URL = 'https://raw.githubusercontent.com/carlosog23/carlos-ortega/main/educacion-fisica/acceso.json';
+/** Enlace vigente de Ulama (misma regla que Tlamatini: huella SHA-256, sin anular, de la generación vigente y sin vencer). */
+function ulamaEnlace_(tok) {
+  tok = String(tok || '');
+  if (tok.length < 10) return null;
+  const cache = CacheService.getScriptCache();
+  let txt = cache.get('ulama-acceso');
+  if (!txt) {
+    const r = UrlFetchApp.fetch(ULAMA_ACCESO_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return null;
+    txt = r.getContentText('UTF-8');
+    try { if (txt.length < 90000) cache.put('ulama-acceso', txt, 300); } catch (e) {}
+  }
+  let acc; try { acc = JSON.parse(txt); } catch (e) { return null; }
+  const e = (acc.enlaces || []).find(x => x.h === sha_(tok));
+  if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return null;
+  return e;
+}
+/** Copia del registro de un maestro en Ulama: el archivo (que también sirve como respaldo) se guarda en la carpeta
+    «Ulama · registros» del Drive de la Supervisión y llega un correo con el resumen y el archivo adjunto. */
+function ulamaRegistro_(q) {
+  const d = q.datos || {};
+  const ul = ulamaEnlace_(d.tok);
+  if (!ul && !usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
+  const cache = CacheService.getScriptCache(), kk = 'ulReg-' + sha_(String(d.tok || q.k)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 6) throw new Error('Ya envió su registro varias veces. Intente más tarde.');
+  cache.put(kk, String(n), 3600);
+  const reg = d.registro || {}, doc = reg.docente || {};
+  const json = JSON.stringify(reg);
+  if (json.length > 20000000) throw new Error('El registro es demasiado grande.');
+  const nombre = String(doc.nombre || (ul && ul.nombre) || 'maestro').replace(/\s+/g, ' ').trim().slice(0, 80);
+  // Carpeta «Ulama · registros» del Drive de carlosog23@gmail.com, compartida como editor con la cuenta de la Supervisión
+  let car; try { car = DriveApp.getFolderById(ULAMA_REGISTROS_ID); } catch (e) { const it = DriveApp.getFoldersByName('Ulama · registros'); car = it.hasNext() ? it.next() : DriveApp.createFolder('Ulama · registros'); }
+  const archivo = 'ulama-registro-' + nombre.toLowerCase().normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') + '-' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd') + '.json';
+  const f = car.createFile(Utilities.newBlob(json, 'application/json', archivo));
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const gmail = String((reg.cfg || {}).gmail || '').trim();
+  const html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#1B2740"><p><b>' + escH(nombre) + '</b> terminó su registro en Ulama · Educación Física.</p>' +
+    '<pre style="font-family:Arial,sans-serif;white-space:pre-wrap">' + escH(String(d.resumen || '').slice(0, 6000)) + '</pre>' +
+    (gmail ? '<p style="background:#FAEBCB;padding:10px;border-radius:8px">Para que pueda conectar su Gmail y su Drive, agregue <b>' + escH(gmail) + '</b> como usuario de prueba en Google Cloud (proyecto Ulama → Google Auth Platform → Público).</p>' : '') +
+    '<p>El archivo quedó en su Drive (carlosog23@gmail.com), carpeta «Ulama · registros»: <a href="' + f.getUrl() + '">' + escH(archivo) + '</a>. También sirve como respaldo: se carga en Ulama con «Tengo un respaldo».</p></div>';
+  MailApp.sendEmail({ to: ULAMA_AVISO_A, subject: 'Ulama · registro de ' + nombre, htmlBody: html, body: String(d.resumen || ''), name: 'Ulama · Educación Física' });
+  return { archivo: archivo };
+}
