@@ -92,6 +92,10 @@ function agendaDe(desde, hasta) { const out = [];
 /* ---------------- instrumentos ---------------- */
 const NIV_R = [[1, "Requiere apoyo"], [2, "En proceso"], [3, "Logrado"], [4, "Destacado"]];
 const NIV_E = [[1, "Nunca"], [2, "A veces"], [3, "Casi siempre"], [4, "Siempre"]];
+/* Inclusión: necesidad o situación del alumno (se registra una vez) y ajuste por planeación (opcional) */
+const NEE = ["Barreras para el aprendizaje y la participación (BAP)", "Discapacidad", "Condición del neurodesarrollo (TEA, TDAH u otra)", "Dificultad de aprendizaje", "Aptitudes sobresalientes", "Situación de salud", "Situación socioemocional o familiar", "Conducta", "Otra"];
+const AJUSTES = ["Ajuste razonable", "Adecuación curricular", "Adecuación de acceso", "Apoyo específico", "Seguimiento cercano"];
+const iniN = n => String(n || "").split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + ".").join(" ");
 const TIPOS = { rubrica: "Rúbrica", cotejo: "Lista de cotejo", escala: "Escala estimativa" };
 const minus = t => t ? t[0].toLowerCase() + t.slice(1) : t;
 function etiquetaCorta(t) { let x = String(t).replace(/\.$/, ""); const re = /,|\s(para|ante|que implican|con base|a fin de|al|a partir)\s/g; let m; while ((m = re.exec(x))) { if (m.index > 25) { x = x.slice(0, m.index); break; } } const w = x.split(/\s+/); return w.length > 11 ? w.slice(0, 11).join(" ") + "…" : x; }
@@ -112,7 +116,7 @@ function crearPlan(c) { const idx = secuencia(c.n);
     if (vez > 1) { b.t += vez === 2 ? " · segunda vuelta" : ` · vuelta ${vez}`; b.charla = "Retomamos lo que aprendimos la vez pasada. " + b.charla; if (b.ppal.length > 1) b.ppal = b.ppal.slice(vez % b.ppal.length).concat(b.ppal.slice(0, vez % b.ppal.length)); }
     return { id: uid(), est: b.est, t: b.t, para: b.para, act: b.act, ppal: b.ppal, calma: b.calma, charla: b.charla, cierre: b.cierre, eval: b.eval, planB: b.planB, mg: b.mg, nota: "" }; });
   const crit = criteriosDePDA(c.pdas); crit.forEach(x => x.d = descriptores(x));
-  return { id: uid(), creado: hoy(), escId: c.escId, grupos: c.grupos, titulo: c.titulo, cont: c.cont, pdas: c.pdas, ini: c.ini, min: c.min, mat: c.mat, sesiones, criterios: crit, instr: c.instr || "rubrica", proposito: c.proposito }; }
+  return { id: uid(), creado: hoy(), escId: c.escId, grupos: c.grupos, titulo: c.titulo, cont: c.cont, pdas: c.pdas, ini: c.ini, min: c.min, mat: c.mat, sesiones, criterios: crit, instr: c.instr || "rubrica", proposito: c.proposito, inclusion: c.inclusion || [], incIni: true }; }
 
 /* ---------------- evaluación del periodo ---------------- */
 function clasesEn(gid, ini, fin) { return D.clases.filter(c => c.grupoId === gid && c.fecha >= ini && c.fecha <= fin).sort((a, b) => a.fecha.localeCompare(b.fecha)); }
@@ -244,7 +248,7 @@ VISTAS.grupo = () => { const g = grDe(S.id); if (!g) return VISTAS.escuelas(); c
   <div class="fila mt"><button class="btn p" id="bFoto">${ic("camara", 18)} Subir foto o PDF de la lista</button><button class="btn" id="bMan">${ic("mas", 18)} Agregar a mano</button><button class="btn" id="bLisG">${ic("impr", 18)} Lista de asistencia</button></div>
   <input type="file" id="fLis" accept="application/pdf,image/*" capture="environment" hidden><input type="file" id="fLis2" accept="application/pdf,image/*" hidden>
   <p class="small muted mt">Sirve la lista de asistencia o el reporte de inscripción de RELweb (PDF), o una foto de la lista. Antes de guardar podrá revisar los nombres.</p></div>
-  <h2 class="sec-t">Alumnos</h2><div class="lista">${act.map((a, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}</b><small>${a.curp ? esc(a.curp) + " · " : ""}Alta: ${a.alta ? fCorta(a.alta) : "—"}</small></span><button class="btn s" data-ed="${a.id}" aria-label="Editar">${ic("lapiz", 16)}</button><button class="btn s r" data-bj="${a.id}" aria-label="Dar de baja">${ic("baja", 16)}<span class="oc"> Baja</span></button></div>`).join("") || `<div class="vacio">Sin alumnos. Suba la foto o el PDF de la lista.</div>`}</div>
+  <h2 class="sec-t">Alumnos</h2><div class="lista">${act.map((a, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}${a.nee ? ` <span class="tag m">Apoyo</span>` : ""}</b><small>${a.nee ? esc(a.nee.tipo) + " · " : ""}${a.curp ? esc(a.curp) + " · " : ""}Alta: ${a.alta ? fCorta(a.alta) : "—"}</small></span><button class="btn s" data-ed="${a.id}" aria-label="Editar">${ic("lapiz", 16)}</button><button class="btn s r" data-bj="${a.id}" aria-label="Dar de baja">${ic("baja", 16)}<span class="oc"> Baja</span></button></div>`).join("") || `<div class="vacio">Sin alumnos. Suba la foto o el PDF de la lista.</div>`}</div>
   ${bajas.length ? `<h2 class="sec-t">Bajas<small>Se conservan sus registros hasta la fecha de baja</small></h2><div class="lista">${bajas.map(a => `<div class="it" style="opacity:.75"><span class="av">${ic("baja", 16)}</span><span class="tx"><b>${esc(a.nombre)}</b><small>Baja: ${fCorta(a.baja)}${a.motivo ? " · " + esc(a.motivo) : ""}</small></span><button class="btn s" data-re="${a.id}">Reactivar</button></div>`).join("")}</div>` : ""}
   </main>`; };
 ENLAZAR.grupo = () => { const g = grDe(S.id); if (!g) return; $("#bEG").onclick = () => formGrupo(g, g.escId, pintar);
@@ -258,8 +262,12 @@ ENLAZAR.grupo = () => { const g = grDe(S.id); if (!g) return; $("#bEG").onclick 
   $$("[data-re]").forEach(b => b.onclick = () => { const a = g.alumnos.find(x => x.id === b.dataset.re); delete a.baja; delete a.motivo; guardar(); pintar(); });
   $$("[data-ed]").forEach(b => b.onclick = () => { const a = g.alumnos.find(x => x.id === b.dataset.ed);
     dlg(`<h3>Editar alumno</h3><label class="campo"><span>Nombre</span><input id="aN" value="${esc(a.nombre)}"></label><div class="dos"><label class="campo"><span>CURP (opcional)</span><input id="aC" value="${esc(a.curp || "")}" style="text-transform:uppercase"></label><label class="campo"><span>Fecha de alta</span><input type="date" id="aA" value="${a.alta || ""}"></label></div>
+     <div class="card" style="background:var(--papel2);padding:12px;margin-bottom:12px"><b>Necesidad específica o situación (opcional)</b><p class="small muted mb">Solo la ve usted en este dispositivo. Al planear podrá elegir si incluye un ajuste para este alumno.</p>
+      <label class="campo"><span>Tipo</span><select id="aNt"><option value="">Ninguna</option>${NEE.map(x => `<option ${a.nee && a.nee.tipo === x ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></label>
+      <label class="campo"><span>Descripción breve</span><textarea id="aNd" style="min-height:70px" placeholder="Qué observa o qué diagnóstico tiene (si lo hay)">${esc((a.nee && a.nee.desc) || "")}</textarea></label>
+      <label class="campo"><span>Apoyos que le funcionan</span><textarea id="aNa" style="min-height:70px" placeholder="Ej. instrucciones cortas con apoyo visual, compañero tutor, más tiempo…">${esc((a.nee && a.nee.apoyo) || "")}</textarea></label></div>
      <div class="fila fin"><button class="btn r" id="aB">${ic("basura", 16)} Borrar (error de captura)</button><button class="btn p" id="aOk">Guardar</button></div>`, v => {
-      v.querySelector("#aOk").onclick = () => { a.nombre = val("aN").trim() || a.nombre; a.curp = val("aC").trim().toUpperCase(); a.alta = val("aA"); guardar(); pintar(); };
+      v.querySelector("#aOk").onclick = () => { a.nombre = val("aN").trim() || a.nombre; a.curp = val("aC").trim().toUpperCase(); a.alta = val("aA"); const nt = val("aNt"); if (nt) a.nee = { tipo: nt, desc: val("aNd").trim(), apoyo: val("aNa").trim() }; else delete a.nee; guardar(); pintar(); };
       v.querySelector("#aB").onclick = async () => { if (!(await confirmar("Esto borra al alumno y sus registros. Si cambió de escuela, mejor use «Baja». ¿Borrar?"))) return; g.alumnos = g.alumnos.filter(x => x !== a); guardar(); pintar(); }; }); }); };
 function elegirFuente() { dlg(`<h3>Subir la lista</h3><div class="lista"><button class="it btnit" id="o1"><span class="av">${ic("camara", 18)}</span><span class="tx"><b>Tomar foto</b><small>Con la cámara, a la lista impresa o en el pizarrón</small></span></button>
   <button class="it btnit" id="o2"><span class="av">${ic("doc", 18)}</span><span class="tx"><b>Elegir archivo</b><small>PDF de RELweb o una foto guardada</small></span></button></div>`, v => {
@@ -360,6 +368,7 @@ VISTAS.planNueva = () => { const P = S.f = S.f || { escId: (D.escuelas[0] || {})
    <div class="dos"><label class="campo"><span>Número de sesiones</span><input type="number" id="pN" min="1" max="40" value="${n}"><small>Según los días de clase del grupo (${npor} por semana).</small></label><label class="campo"><span>Duración de la sesión (min)</span><select id="pM">${[30, 40, 45, 50, 60].map(x => `<option ${x == P.min ? "selected" : ""}>${x}</option>`).join("")}</select></label></div>
    <label class="campo"><span>Propósito (opcional)</span><textarea id="pP" placeholder="Qué quiere lograr con el grupo en estas semanas">${esc(P.proposito || "")}</textarea></label>
    <span style="font-size:14px;font-weight:700;color:var(--gris)">Instrumento principal (en la clase puede elegir cualquiera)</span><div class="chips mt" id="pIn">${Object.entries(TIPOS).map(([k, t]) => `<button class="chip" data-i="${k}" aria-pressed="${P.instr === k}">${t}</button>`).join("")}</div>
+   ${inclusionHTML(selG, P.inc = P.inc || {})}
    <div class="mt">${selG.map(g => { const f = fechasClase(g, P.ini, n); return `<p class="small muted">${grNom(g)}: ${f.length ? `${fCorta(f[0])} a ${fCorta(f[f.length - 1])}` : "sin días de clase registrados"}${f.length < n ? ` <span class="tag r">solo caben ${f.length}</span>` : ""}</p>`; }).join("")}</div>
    <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear planeación e instrumentos</button></div></section>` : ""}
   </main>`; };
@@ -371,9 +380,10 @@ ENLAZAR.planNueva = () => { const P = S.f; const re = () => { const y = window.s
   $$("[data-c]").forEach(b => b.onclick = () => { lee(); P.cont = b.dataset.c; P.titulo = ""; re(); });
   if ($("#pS")) { $("#pS").onchange = () => { lee(); P.n = null; re(); }; $("#pI").onchange = () => { lee(); re(); }; }
   $$("#pIn .chip").forEach(b => b.onclick = () => { lee(); P.instr = b.dataset.i; re(); });
+  enlazarInclusion(P.inc = P.inc || {}, () => { lee(); re(); });
   if ($("#pOk")) $("#pOk").onclick = () => { lee(); const selG = P.grupos.map(grDe), grados = [...new Set(selG.map(g => g.grado))], fase = Math.max(...grados.map(faseDe)), cont = BANCO_EF[fase].find(c => c.c === P.cont);
     const pdas = {}; grados.sort().forEach(gr => pdas[gr] = (cont.pda || {})[gr] || ""); const n = P.n || 8;
-    const p = crearPlan({ escId: P.escId, grupos: P.grupos, titulo: P.titulo || cont.c, cont: cont.c, pdas, ini: P.ini, min: P.min, n, instr: P.instr, proposito: P.proposito });
+    const p = crearPlan({ escId: P.escId, grupos: P.grupos, titulo: P.titulo || cont.c, cont: cont.c, pdas, ini: P.ini, min: P.min, n, instr: P.instr, proposito: P.proposito, inclusion: inclusionLista(P.inc || {}) });
     D.planes.push(p); guardar(); S.f = null; ir("plan", { id: p.id }, true); toast("Planeación creada con sus instrumentos de evaluación."); }; };
 
 VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), g0 = gs[0], fechas = g0 ? fechasClase(g0, p.ini, p.sesiones.length) : [];
@@ -383,6 +393,9 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
    <p class="mt"><b>Contenido:</b> ${esc(p.cont)}</p>${Object.entries(p.pdas).map(([gr, t]) => `<p class="small mt"><b>PDA ${gr}.°:</b> ${esc(t)}</p>`).join("")}
    ${p.proposito ? `<p class="small mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Supervisa: ${esc(e.supEF)}</p>` : ""}
    <div class="fila mt"><button class="btn s" id="bEnvP">${ic("correo", 16)} Enviar al supervisor(a)</button><button class="btn s r" id="bBorP">${ic("basura", 16)} Borrar</button></div></section>
+  <section class="card mt"><div class="fila" style="justify-content:space-between"><h3 style="margin:0">Inclusión</h3><button class="btn s" id="bInc">${ic("lapiz", 16)} ${(p.inclusion || []).length ? "Editar" : "Agregar"}</button></div>
+   ${(p.inclusion || []).length ? `<div class="lista mt">${p.inclusion.map(x => { const a = alDe(x.alId); return `<div class="it"><span class="av" style="background:var(--maiz-s);color:var(--maiz-d)">${iniciales(a ? a.nombre : "?")}</span><span class="tx"><b>${esc(a ? a.nombre : "Alumno")} · ${esc(x.ajuste)}</b><small>${esc(x.nee || "")}${x.desc ? " · " + esc(x.desc) : ""}</small></span></div>`; }).join("")}</div>
+    <label class="small mt" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="incIni" ${p.incIni !== false ? "checked" : ""}> En el documento impreso, mostrar solo las iniciales de estos alumnos</label>` : `<p class="small muted">Opcional: ajustes razonables o adecuaciones para alumnos con alguna necesidad específica o situación.</p>`}</section>
   <div class="chips mt" role="tablist"><button class="chip" data-t="ses" aria-pressed="${tab === "ses"}">Sesiones</button><button class="chip" data-t="ins" aria-pressed="${tab === "ins"}">Instrumentos</button><button class="chip" data-t="jue" aria-pressed="${tab === "jue"}">Fichero de juegos</button></div>
   ${tab === "ses" ? `<div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i])).join("")}</div>` : ""}
   ${tab === "ins" ? instrumentosHTML(p) : ""}
@@ -405,7 +418,13 @@ function instrumentosHTML(p) { return `<section class="card mt"><h3>Criterios de
   <p class="small muted mt">Para la calificación: Destacado o Siempre = 10 · Logrado o Casi siempre ≈ 9 · En proceso o A veces ≈ 7 · Requiere apoyo o Nunca = 6; Sí = 10, No = 6. Se promedian todos los registros del trimestre.</p></section>`; }
 ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const re = () => { const y = window.scrollY; pintar(); window.scrollTo(0, y); };
   $$("[data-t]").forEach(b => b.onclick = () => { S.tab = b.dataset.t; re(); }); $$("[data-s]").forEach(b => b.onclick = () => { S.ab = S.ab === b.dataset.s ? null : b.dataset.s; re(); });
-  $("#bImpP").onclick = () => imprimir(docPlan(p)); $("#bEnvP").onclick = () => enviarPlan(p);
+  $("#bImpP").onclick = () => imprimir(docPlan(p));
+  $("#incIni") && ($("#incIni").onchange = ev => { p.incIni = ev.target.checked; guardar(); });
+  $("#bInc").onclick = () => { const gs = p.grupos.map(grDe).filter(Boolean), inc = {}; (p.inclusion || []).forEach(x => inc[x.alId] = { on: true, ajuste: x.ajuste, desc: x.desc });
+    const abrir = () => dlg(`<h3>Inclusión en esta planeación</h3>${inclusionHTML(gs, inc, true)}<div class="fila fin mt"><button class="btn" id="iX">Cancelar</button><button class="btn p" id="iOk">Guardar</button></div>`, v => {
+      enlazarInclusion(inc, () => { leerInclusion(inc); abrir(); }); v.querySelector("#iX").onclick = cerrarDlg;
+      v.querySelector("#iOk").onclick = () => { leerInclusion(inc); p.inclusion = inclusionLista(inc); guardar(); pintar(); toast("Inclusión guardada en la planeación."); }; });
+    abrir(); }; $("#bEnvP").onclick = () => enviarPlan(p);
   $("#bBorP").onclick = async () => { if (!(await confirmar("¿Borrar esta planeación? Las clases ya registradas se conservan."))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
   $$("[data-es]").forEach(b => b.onclick = () => { const s = p.sesiones.find(x => x.id === b.dataset.es), opJ = sel => Object.entries(JUEGOS).map(([k, j]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(j.n)}</option>`).join("");
     dlg(`<h3>Editar sesión</h3><label class="campo"><span>Título</span><input id="sT" value="${esc(s.t)}"></label><label class="campo"><span>Para qué</span><textarea id="sP">${esc(s.para)}</textarea></label>
@@ -466,7 +485,7 @@ VISTAS.clase = () => { const c = S.c, p = S.paso, pasos = `<div class="pasos">${
     ${tipo !== "obs" && crits.length ? `<div class="crit-tabs mt">${crits.map((k, i) => { const hechos = presentes.filter(a => ((c.evals[a.id] || {})[k.id])).length; return `<button data-cr="${k.id}" aria-pressed="${crit && k.id === crit.id}"><i>Criterio ${i + 1} · ${hechos}/${presentes.length}</i>${esc(k.c)}</button>`; }).join("")}</div>
     ${tipo === "rubrica" && crit ? `<div class="leyenda">${NIV_R.map(([v, t]) => `<span title="${esc(crit.d[v])}"><i style="background:${["", "var(--rojo)", "var(--maiz)", "var(--jade)", "var(--anil)"][v]}"></i>${v} ${t}</span>`).join("")}</div>` : ""}` : ""}
    </section>
-   <div class="asis mt">${presentes.map(a => { const r = crit && (c.evals[a.id] || {})[crit.id]; return `<div class="al ev"><span class="n">${esc(a.nombre)}${c.asis[a.id] === "R" ? `<small>Retardo ${c.ret[a.id] || ""}</small>` : ""}</span>
+   <div class="asis mt">${presentes.map(a => { const r = crit && (c.evals[a.id] || {})[crit.id]; const aj = pl && (pl.inclusion || []).find(x => x.alId === a.id); return `<div class="al ev"><span class="n">${esc(a.nombre)}${aj ? ` <button class="tag m" data-aj="${a.id}" style="border:0;cursor:pointer">${esc(aj.ajuste)}</button>` : ""}${c.asis[a.id] === "R" ? `<small>Retardo ${c.ret[a.id] || ""}</small>` : ""}</span>
      ${tipo !== "obs" && crit ? `<div class="niv">${niveles.map(([v, t]) => `<button data-a="${a.id}" data-v="${v}" aria-pressed="${r && r.t === tipo && +r.v === v}" title="${esc(t)}">${tipo === "cotejo" ? t : tipo === "escala" ? t.split(" ").map(w => w[0]).join("").toUpperCase() : v}</button>`).join("")}</div>` : ""}
      <button class="obs-b ${c.obs[a.id] ? "on" : ""}" data-o="${a.id}" aria-label="Observación">${ic("nota", 18)}</button></div>`; }).join("") || `<div class="vacio">No hay alumnos presentes.</div>`}</div>
    ${ausentes.length ? `<div class="fila mt"><button class="btn s" id="bTarde">${ic("reloj", 16)} Llegó un alumno tarde</button></div>` : ""}
@@ -496,6 +515,8 @@ ENLAZAR.clase = () => { const c = S.c, p = S.paso, re = () => { const y = window
     $("#bTarde") && ($("#bTarde").onclick = () => { const g = grDe(c.grupoId), aus = activos(g).filter(a => ["F", "J"].includes(c.asis[a.id]));
       dlg(`<h3>¿Quién llegó?</h3><p class="small muted mb">Se marcará con retardo a las ${hora()} y aparecerá para evaluarlo.</p><div class="lista">${aus.map(a => `<button class="it btnit" data-t="${a.id}"><span class="av">${iniciales(a.nombre)}</span><span class="tx"><b>${esc(a.nombre)}</b></span></button>`).join("")}</div>`, v => {
         v.querySelectorAll("[data-t]").forEach(x => x.onclick = () => { c.asis[x.dataset.t] = "R"; c.ret[x.dataset.t] = hora(); guardarClase(c); cerrarDlg(); re(); toast("Retardo registrado."); }); }); });
+    $$("[data-aj]").forEach(b => b.onclick = () => { const pl = plDe(c.planId), x = pl.inclusion.find(y => y.alId === b.dataset.aj), a = alDe(x.alId);
+      dlg(`<h3>${esc(a.nombre)}</h3><p class="small muted">${esc(x.nee || "")}</p><p class="mt"><b>${esc(x.ajuste)}:</b> ${esc(x.desc || "—")}</p>${a.nee && a.nee.apoyo ? `<p class="small mt"><b>Apoyos que le funcionan:</b> ${esc(a.nee.apoyo)}</p>` : ""}<div class="fila fin mt"><button class="btn" id="ajX">Cerrar</button></div>`, v => v.querySelector("#ajX").onclick = cerrarDlg); });
     $("#cNota").onchange = ev => { c.nota = ev.target.value; guardarClase(c); };
     $("#bFin").onclick = () => { c.nota = val("cNota"); c.fin = hora(); guardarClase(c); const g = grDe(c.grupoId); const n = PILA.length; S = { v: "inicio" }; PILA.length = 0; if (n) history.go(-n); pintar(); toast(`Clase de ${grNom(g)} guardada.`); }; } };
 
@@ -599,6 +620,8 @@ function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(B
   <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${f.length ? fCorta(f[0]) + " al " + fCorta(f[f.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
   <span><b>Docente:</b> ${esc(docNombre())}</span><span><b>Supervisor(a) de E. F.:</b> ${esc((e && e.supEF) || "—")}</span><span><b>Campo formativo:</b> De lo Humano y lo Comunitario</span></div>
   <table><tbody><tr><th style="width:22%">Contenido</th><td>${esc(p.cont)}</td></tr>${Object.entries(p.pdas).map(([g, t]) => `<tr><th>PDA ${g}.°</th><td>${esc(t)}</td></tr>`).join("")}${p.proposito ? `<tr><th>Propósito</th><td>${esc(p.proposito)}</td></tr>` : ""}</tbody></table>
+  ${(p.inclusion || []).length ? `<h2>Atención a la diversidad: ajustes razonables y adecuaciones</h2><table><thead><tr><th>Alumno(a)</th><th>Grupo</th><th>Necesidad o situación</th><th>Tipo</th><th>Ajuste o adecuación en las sesiones</th></tr></thead><tbody>
+   ${p.inclusion.map(x => { const a = alDe(x.alId), g = a && D.grupos.find(y => (y.alumnos || []).includes(a)); return `<tr><td>${esc(a ? (p.incIni !== false ? iniN(a.nombre) : a.nombre) : "—")}</td><td>${g ? grNom(g) : ""}</td><td>${esc(x.nee || "")}</td><td>${esc(x.ajuste)}</td><td>${esc(x.desc || "")}</td></tr>`; }).join("")}</tbody></table>` : ""}
   <h2>Secuencia de sesiones</h2><table><thead><tr><th class="c">No.</th><th>Fecha</th><th>Sesión</th><th>Inicio</th><th>Desarrollo</th><th>Cierre</th><th>Evaluación</th></tr></thead><tbody>
   ${p.sesiones.map((s, i) => `<tr><td class="c">${i + 1}</td><td>${f[i] ? fCorta(f[i]) : ""}</td><td><b>${esc(s.t)}</b><br>${esc(s.est)}. ${esc(s.para)}</td><td>${esc(J(s.act).n)}. ${esc(s.charla)}</td><td>${s.ppal.map(k => `<b>${esc(J(k).n)}</b>`).join(", ")}</td><td>${esc(J(s.calma).n)}. ${s.cierre.map(esc).join(" ")}</td><td>${esc(s.eval)}</td></tr>`).join("")}</tbody></table>
   <h2>Rúbrica</h2><table><thead><tr><th>Criterio</th>${NIV_R.map(n => `<th>${n[1]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${esc(c.c)}</b></td>${[1, 2, 3, 4].map(k => `<td>${esc(c.d[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>
@@ -685,3 +708,22 @@ ENLAZAR.listas = () => { const L = S.L, re = () => { const y = window.scrollY; p
   const html = () => L.grupos.map(grDe).filter(g => g && g.escId === L.escId).map((g, i) => docLista(g, L.mes, L).replace('class="doc lista-as"', `class="doc lista-as${i ? " salto" : ""}"`)).join("");
   $("#lImp").onclick = () => imprimir(html(), true);
   $("#lPdf").onclick = async ev => { const b = ev.currentTarget; b.disabled = true; try { await pdfDescargar(html(), `listas-asistencia-${L.mes}.pdf`, true); } catch (e) { imprimir(html(), true); } b.disabled = false; }; };
+
+/* ---------- inclusión en la planeación (opcional) ---------- */
+function alDe(id) { for (const g of D.grupos) { const a = (g.alumnos || []).find(x => x.id === id); if (a) return a; } return null; }
+function inclusionHTML(gs, inc, abierto) { const conNee = [], otros = [];
+  gs.forEach(g => activos(g).forEach(a => (a.nee ? conNee : otros).push({ a, g })));
+  const extra = Object.keys(inc).filter(id => inc[id].on && !conNee.some(x => x.a.id === id)).map(id => otros.find(x => x.a.id === id)).filter(Boolean);
+  const lista = conNee.concat(extra), marcados = lista.filter(x => inc[x.a.id] && inc[x.a.id].on).length;
+  return `<details class="mt" ${abierto || marcados || conNee.length ? "open" : ""} style="border:1px solid var(--hilo);border-radius:16px;padding:10px 12px;background:var(--papel2)"><summary style="cursor:pointer;font-weight:700;min-height:36px">Inclusión (opcional)${marcados ? ` · ${marcados} alumno${marcados > 1 ? "s" : ""}` : ""}</summary>
+   <p class="small muted mb">Marque a los alumnos que tendrán un ajuste razonable, una adecuación curricular u otro apoyo en esta planeación.${conNee.length ? "" : " Ningún alumno de estos grupos tiene registrada una necesidad específica: puede registrarla en Mis escuelas → grupo → editar alumno, o agregar uno aquí."}</p>
+   ${lista.map(({ a, g }) => { const x = inc[a.id] || {}; return `<div style="border-top:1px solid var(--hilo2);padding:8px 0"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-inc="${a.id}" ${x.on ? "checked" : ""} style="width:22px;height:22px;margin-top:2px">
+     <span><b>${esc(a.nombre)}</b> <span class="small muted">· ${grNom(g)}</span><br><span class="small muted">${a.nee ? esc(a.nee.tipo) + (a.nee.desc ? " · " + esc(a.nee.desc) : "") : "Sin necesidad registrada"}</span></span></label>
+     ${x.on ? `<div class="dos mt"><label class="campo"><span>Tipo de ajuste</span><select data-incT="${a.id}">${AJUSTES.map(t => `<option ${t === (x.ajuste || AJUSTES[0]) ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <label class="campo"><span>Qué hará en las sesiones</span><textarea data-incD="${a.id}" style="min-height:70px">${esc(x.desc != null ? x.desc : (a.nee && a.nee.apoyo) || "")}</textarea></label></div>` : ""}</div>`; }).join("")}
+   ${otros.length ? `<label class="campo mt"><span>Agregar otro alumno</span><select data-incAdd="1"><option value="">Elegir…</option>${otros.filter(x => !(inc[x.a.id] && inc[x.a.id].on)).map(({ a, g }) => `<option value="${a.id}">${esc(a.nombre)} · ${grNom(g)}</option>`).join("")}</select></label>` : ""}</details>`; }
+function leerInclusion(inc) { $$("[data-incT]").forEach(s => { (inc[s.dataset.inct] = inc[s.dataset.inct] || {}).ajuste = s.value; }); $$("[data-incD]").forEach(t => { (inc[t.dataset.incd] = inc[t.dataset.incd] || {}).desc = t.value.trim(); }); }
+function enlazarInclusion(inc, re) { $$("[data-inc]").forEach(c => c.onchange = () => { leerInclusion(inc); const x = inc[c.dataset.inc] = inc[c.dataset.inc] || {}; x.on = c.checked; re(); });
+  $$("[data-incT],[data-incD]").forEach(e => e.addEventListener("change", () => leerInclusion(inc)));
+  $$("[data-incAdd]").forEach(s => s.onchange = () => { if (!s.value) return; leerInclusion(inc); inc[s.value] = { on: true, ajuste: AJUSTES[0], desc: "" }; re(); }); }
+function inclusionLista(inc) { leerInclusion(inc); return Object.entries(inc).filter(([, x]) => x.on).map(([id, x]) => { const a = alDe(id); return { alId: id, nee: a && a.nee ? a.nee.tipo : "", ajuste: x.ajuste || AJUSTES[0], desc: x.desc != null ? x.desc : (a && a.nee && a.nee.apoyo) || "" }; }); }
