@@ -139,7 +139,7 @@ const TIPOS = { rubrica: "Rúbrica", cotejo: "Lista de cotejo", escala: "Escala 
 const minus = t => t ? t[0].toLowerCase() + t.slice(1) : t;
 function etiquetaCorta(t) { let x = String(t).replace(/\.$/, ""); const re = /,|\s(para|ante|que implican|con base|a fin de|al|a partir)\s/g; let m; while ((m = re.exec(x))) { if (m.index > 25) { x = x.slice(0, m.index); break; } } const w = x.split(/\s+/); return w.length > 11 ? w.slice(0, 11).join(" ") + "…" : x; }
 function criteriosDePDA(pdas) { const out = [];
-  Object.entries(pdas).forEach(([gr, txt]) => { String(txt || "").split(/(?<=\.)\s+/).map(s => s.trim()).filter(s => s.length > 12).slice(0, 3)
+  Object.entries(pdas).forEach(([gr, txt]) => { String(txt || "").replace(/\.\s+/g, ".\n").split("\n").map(s => s.trim()).filter(s => s.length > 12).slice(0, 3)
     .forEach(s => out.push({ id: uid(), t: s, c: etiquetaCorta(s), gr })); });
   out.push({ id: uid(), t: "Participa con respeto, sigue los acuerdos del juego y cuida a sus compañeros.", c: "Respeta acuerdos y cuida a sus compañeros", gr: "todos" });
   return out; }

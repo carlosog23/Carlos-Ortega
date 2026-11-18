@@ -230,9 +230,37 @@ select.cal{width:52px;height:46px;border:0;appearance:none;-webkit-appearance:no
 </head>
 <body>
 <div class="proto"><b>Ulama · versión de prueba</b> en fase de pilotaje · Los datos se guardan solo en este dispositivo.</div>
-<div id="app"></div>
+<div id="app"><div id="arranque" style="max-width:520px;margin:18vh auto 0;padding:0 20px;text-align:center;font:17px/1.5 system-ui,sans-serif;color:#1B2740">
+ <img src="img/ulama-icono-192.png" alt="" width="72" height="72" style="border-radius:18px"><p style="margin:14px 0 0">Cargando Ulama…</p></div></div>
 <div id="imprimir"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+/* Red de seguridad: si algo impide arrancar (navegador muy viejo, copia guardada dañada), se muestra un aviso
+   con qué hacer en lugar de una pantalla en blanco o negra. Los datos del maestro no se tocan. */
+(function () {
+  var errores = [];
+  window.addEventListener("error", function (e) { errores.push((e.message || "error") + (e.filename ? " · " + String(e.filename).split("/").pop() + ":" + e.lineno : "")); });
+  function aviso() {
+    var a = document.getElementById("arranque"); if (!a) return;
+    var ua = navigator.userAgent, ios = (ua.match(/OS (\d+)_(\d+)/) || [])[0];
+    a.innerHTML = '<img src="img/ulama-icono-192.png" alt="" width="64" height="64" style="border-radius:16px">' +
+      '<h2 style="font:600 22px Georgia,serif;margin:12px 0 6px">Ulama no pudo arrancar</h2>' +
+      '<p style="margin:0 0 14px;color:#5E5446">Sus datos están a salvo en este dispositivo. Pruebe primero «Volver a cargar»; si sigue igual, toque «Reparar».' +
+      (ios && +ios.split(" ")[1].split("_")[0] < 16 ? '<br><b>Este iPad o iPhone tiene una versión vieja del sistema: actualícelo en Ajustes › General › Actualización de software.</b>' : "") + '</p>' +
+      '<p><button id="arrR" style="min-height:46px;padding:0 18px;border-radius:12px;border:0;background:#1B7560;color:#fff;font:700 16px system-ui">Volver a cargar</button> ' +
+      '<button id="arrX" style="min-height:46px;padding:0 18px;border-radius:12px;border:1px solid #E2D6C2;background:#fff;font:700 16px system-ui">Reparar</button></p>' +
+      '<p style="font-size:12px;color:#8a7f70;margin-top:18px;word-break:break-word">Para la Supervisión: ' + (ios ? ios.replace(/_/g, ".") : "") + " · " + (errores.slice(0, 3).join(" | ") || "sin error registrado") + "</p>";
+    document.getElementById("arrR").onclick = function () { location.reload(); };
+    document.getElementById("arrX").onclick = function () {
+      var hecho = function () { location.reload(); };
+      try { var p = [];
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) p.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister(); })); }));
+        if (window.caches) p.push(caches.keys().then(function (k) { return Promise.all(k.map(function (n) { return caches.delete(n); })); }));
+        Promise.all(p).then(hecho, hecho); } catch (e) { hecho(); } };
+  }
+  window.addEventListener("load", function () { setTimeout(aviso, errores.length ? 300 : 6000); });
+})();
+</script>
 <script src="ef-datos.js"></script>
 <script src="app.js"></script>
 <script src="registro.js"></script>

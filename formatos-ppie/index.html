@@ -4330,7 +4330,7 @@ function tqiPlaneacion(PAobj,D,G){const nivel=PAobj.nivel,C=PAobj[nivel];const X
   pl.formato="fases";pl.fases=tqiFasesTexto(met,{problema,cont:conts.map(c=>c.c.replace(/\.$/,"").toLowerCase()),act,producto});
   pl.recursos=["Libros de texto gratuitos (Proyectos de aula, escolares y comunitarios; Nuestros saberes; Múltiples lenguajes)",L.libros,"Materiales del entorno, papelógrafos, cuadernos y biblioteca de aula"].filter(Boolean).join(". ")+".";
   pl.evaluacion={instrumentos:["Lista de cotejo","Rúbrica","Portafolio de evidencias","Autoevaluación","Coevaluación"],
-    criterios:"Se valorará que la alumna o el alumno: "+conts.slice(0,4).map(c=>(c.pda||c.c).replace(/^\d°:\s*/,"").replace(/^Qué trabajar:\s*/i,"").split(/(?<=\.)\s/)[0]).join(" ")+(L.avance&&L.avance.length?"\nReferente de avance: "+L.avance.slice(0,2).join(" "):""),
+    criterios:"Se valorará que la alumna o el alumno: "+conts.slice(0,4).map(c=>(c.pda||c.c).replace(/^\d°:\s*/,"").replace(/^Qué trabajar:\s*/i,"").replace(/\.\s[\s\S]*$/,".")).join(" ")+(L.avance&&L.avance.length?"\nReferente de avance: "+L.avance.slice(0,2).join(" "):""),
     momentos:"Inicial: lo que saben al plantear la situación. De proceso: registro en la lista de cotejo en cada fase y retroalimentación. Final: presentación del producto, autoevaluación y coevaluación."+(X&&X.fuentes&&X.fuentes.sisat&&X.fuentes.sisat<3?` Comparar después con el Momento ${X.fuentes.sisat+1} del SisAT.`:""),notas:""};
   pl.ajustes=X&&X.atencion?tqiPunto(X.atencion)+" Para ellos: consignas breves y una a la vez, apoyo visual y material concreto, tutoría entre pares, más tiempo y revisión cercana de su avance.":"";
   pl.tequio={cct:D.cct,act:tqiFirma(D),fecha:today()};return pl}
