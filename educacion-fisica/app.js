@@ -693,8 +693,26 @@ ENLAZAR.ajustes = () => { $("#bDat").onclick = () => { Object.assign(D.docente, 
   $("#bInst") && ($("#bInst").onclick = async () => { INSTALAR.prompt(); await INSTALAR.userChoice; INSTALAR = null; pintar(); });
   $("#bBor").onclick = async () => { if (!(await confirmar("¿Borrar TODOS los datos de Ulama en este dispositivo? Descargue antes un respaldo."))) return; if (!(await confirmar("Última confirmación: se borrarán escuelas, grupos, planeaciones y clases."))) return; D = VACIO(); guardar(); S = { v: "bienvenida", paso: 1 }; pintar(); }; };
 function respaldo() { D.cfg.ultimoResp = hoy(); guardar(); const b = new Blob([JSON.stringify(D)], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `ulama-respaldo-${hoy()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("Respaldo descargado."); }
+/* Cargar respaldo sin perder lo que ya hay: solo agrega escuelas, grupos, alumnos, planeaciones, clases y eventos nuevos */
+function elegirCarga(x) { return new Promise(ok => { dlg(`<h3>¿Cómo cargar el respaldo?</h3><p class="mb">El archivo trae ${x.escuelas.length} escuelas, ${x.grupos.length} grupos y ${(x.clases || []).length} clases.</p>
+  <div class="lista"><button class="it btnit" id="cA"><span class="tx"><b>Solo agregar lo nuevo</b><small>Conserva todo lo que ya tiene en este dispositivo y suma lo que falte.</small></span></button>
+  <button class="it btnit" id="cR"><span class="tx"><b>Reemplazar todo</b><small>Borra lo de este dispositivo y deja exactamente lo del respaldo.</small></span></button></div>
+  <div class="fila fin mt"><button class="btn" id="cX">Cancelar</button></div>`, v => { v.querySelector("#cA").onclick = () => { cerrarDlg(); ok("agregar"); }; v.querySelector("#cX").onclick = () => { cerrarDlg(); ok(null); };
+  v.querySelector("#cR").onclick = async () => { cerrarDlg(); ok((await confirmar("Se borrará lo que hay en este dispositivo y quedará solo lo del respaldo.", "Sí, reemplazar")) ? "reemplazar" : null); }; }); }); }
+function combinar(x) { const n = { e: 0, g: 0, a: 0, o: 0 }, mapE = {}, mapG = {}, nrm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  (x.escuelas || []).forEach(e => { const y = D.escuelas.find(z => z.id === e.id || (e.cct && z.cct && z.cct.toUpperCase() === e.cct.toUpperCase()));
+    if (y) { mapE[e.id] = y.id; ["dias", "horario", "director", "correo", "supEF", "supCorreo", "turno", "zona", "localidad"].forEach(k => { if ((!y[k] || (Array.isArray(y[k]) && !y[k].length)) && e[k]) y[k] = e[k]; }); }
+    else { D.escuelas.push(e); mapE[e.id] = e.id; n.e++; } });
+  (x.grupos || []).forEach(g => { const escId = mapE[g.escId] || g.escId, y = D.grupos.find(z => z.id === g.id || (z.escId === escId && +z.grado === +g.grado && nrm(z.grupo) === nrm(g.grupo)));
+    if (y) { mapG[g.id] = y.id; (g.alumnos || []).forEach(a => { if (!y.alumnos.some(b => b.id === a.id || nrm(b.nombre) === nrm(a.nombre))) { y.alumnos.push(a); n.a++; } }); }
+    else { g.escId = escId; D.grupos.push(g); mapG[g.id] = g.id; n.g++; n.a += (g.alumnos || []).length; } });
+  (x.planes || []).forEach(p => { if (!D.planes.some(z => z.id === p.id)) { p.grupos = (p.grupos || []).map(i => mapG[i] || i); D.planes.push(p); n.o++; } });
+  (x.clases || []).forEach(c => { if (!D.clases.some(z => z.id === c.id)) { c.grupoId = mapG[c.grupoId] || c.grupoId; c.escId = mapE[c.escId] || c.escId; D.clases.push(c); n.o++; } });
+  (x.eventos || []).forEach(e => { D.eventos = D.eventos || []; if (!D.eventos.some(z => z.id === e.id)) { D.eventos.push(e); n.o++; } });
+  if (!D.docente.nombre && x.docente) D.docente = x.docente; return n; }
 async function restaurar(f) { if (!f) return; try { const x = typeof f.text === "function" ? JSON.parse(await f.text()) : f; if (!x || !x.v || !Array.isArray(x.escuelas)) throw 0; const g0 = D.cfg.google;
-  if (D.escuelas.length && !(await confirmar(`Se reemplazarán los datos actuales por los del respaldo (${x.escuelas.length} escuelas, ${x.grupos.length} grupos, ${x.clases.length} clases). ¿Continuar?`))) return;
+  if (D.escuelas.length) { const r = x.tipo === "complemento" ? "agregar" : await elegirCarga(x); if (!r) return;
+    if (r === "agregar") { const n = combinar(x); guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast(`Se agregó: ${n.e} escuelas, ${n.g} grupos, ${n.a} alumnos${n.o ? `, ${n.o} registros más` : ""}. Lo que ya tenía quedó igual.`, 5000); return; } }
   D = Object.assign(VACIO(), x); D.cfg.bienvenida = !!(D.docente && D.docente.nombre); if (g0 && !D.cfg.google) D.cfg.google = g0; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
 
 /* =================================================================== DOCUMENTOS */
