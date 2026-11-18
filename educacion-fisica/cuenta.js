@@ -15,11 +15,24 @@ const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256
 let ACC = null, ACCESO_OK = false, YO = null, MOTIVO = "";
 
 /* ---------------- control de acceso ---------------- */
+/* Saca el código de acceso de lo que el maestro pegue: el enlace completo (aunque WhatsApp o el teclado le agreguen
+   espacios, saltos de línea, %23 en lugar de # o texto alrededor) o solo el código. */
+function codigoDe(texto) { const t = String(texto || "").replace(/[\s\u200B-\u200D\uFEFF]+/g, "").replace(/%23/gi, "#").replace(/%3D/gi, "=");
+  const todos = [...t.matchAll(/acceso=([A-Za-z0-9_-]{10,})/gi)]; if (todos.length) return todos[todos.length - 1][1];
+  const solo = t.match(/^([A-Za-z0-9_-]{10,})$/); return solo ? solo[1] : ""; }
+/* iPhone y iPad: la app instalada no comparte datos con Safari y se abre en la dirección guardada al instalarla.
+   Para que entre sola, la dirección y el manifiesto llevan el enlace personal del maestro. */
+function recordarEnlaceAlInstalar(tok) { if (!tok) return; const base = location.origin + location.pathname, url = base + "#acceso=" + tok;
+  try { if (!/[#&]acceso=/.test(location.hash || "")) history.replaceState(history.state, "", url); } catch (e) {}
+  try { const l = document.querySelector('link[rel="manifest"]'); if (!l) return;
+    fetch("manifest.webmanifest").then(r => r.json()).then(mf => { const dir = new URL("./", location.href).href;
+      mf.start_url = url; mf.scope = dir; mf.id = dir; (mf.icons || []).forEach(i => { i.src = new URL(i.src, dir).href; });
+      l.href = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(mf)); }).catch(() => {}); } catch (e) {} }
 async function cargarAcceso() { try { const r = await fetch("acceso.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) throw 0; ACC = await r.json(); lsSet("ulama-acc-cache", ACC); } catch (e) { ACC = lsGet("ulama-acc-cache", null); } return ACC; }
 function estadoEnlace(e, gen) { if (!e) return "no"; if (e.anulado || e.gen !== gen) return "anulado"; if (e.vence < hoy()) return "vencido"; return "vigente"; }
 async function verificarAcceso() {
   const m = (location.hash || "").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/);
-  if (m) { lsSet("ulama-tok", m[1]); history.replaceState(null, "", location.pathname + location.search); }
+  if (m) lsSet("ulama-tok", m[1]);
   await cargarAcceso();
   if (ghTok()) { ACCESO_OK = true; YO = { nombre: "Supervisión", sup: true }; return; }
   if (!ACC) { MOTIVO = lsGet("ulama-tok", "") ? "sinred" : "sin"; ACCESO_OK = false; return; }
@@ -34,11 +47,14 @@ VISTAS.acceso = () => { const T = { sin: ["Ulama es de acceso por invitación", 
   no: ["Este enlace no está registrado", "Revise que lo haya copiado completo o pida uno nuevo a la Supervisión."],
   sinred: ["Necesita internet esta primera vez", "Conéctese a internet una vez para comprobar su enlace; después Ulama funciona sin conexión."] }[MOTIVO] || ["Acceso", ""];
   return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt=""><div class="eb">Ulama · Educación Física</div></div><h1>${T[0]}</h1><p>${T[1]}</p></section>
-  <div class="card mt"><label class="campo"><span>Su enlace de acceso</span><input id="xTok" placeholder="https://carlosog23.github.io/…#acceso=…"></label><div class="fila fin"><button class="btn p" id="xOk">Entrar</button></div></div>
+  <div class="card mt"><label class="campo"><span>Su enlace de acceso</span><input id="xTok" type="url" inputmode="url" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="https://carlosog23.github.io/…#acceso=…"></label><div class="fila fin">${navigator.clipboard && navigator.clipboard.readText ? '<button class="btn" id="xPeg">Pegar</button>' : ""}<button class="btn p" id="xOk">Entrar</button></div></div>
   <div class="card mt"><h3>¿No tiene enlace?</h3><p class="small muted">Solicítelo a la Supervisión Escolar Zona 050: <b>cortegagutierrez@bcedu.mx</b> o WhatsApp <b>661 850 1585</b>.</p>
   <p class="small mt"><button class="btn s" id="xSup">${ic("sup", 16)} Soy la Supervisión</button></p></div></main>`; };
-ENLAZAR.acceso = () => { $("#xOk").onclick = async () => { const v = val("xTok"), m = v.match(/acceso=([A-Za-z0-9_-]{10,})/) || v.trim().match(/^([A-Za-z0-9_-]{10,})$/);
-    if (!m) return toast("No se encontró el código de acceso en lo que pegó."); lsSet("ulama-tok", m[1]); await verificarAcceso(); if (ACCESO_OK) { S = { v: "inicio" }; pintar(); toast("¡Bienvenido(a) a Ulama!"); } else pintar(); };
+ENLAZAR.acceso = () => { const peg = $("#xPeg"); if (peg) peg.onclick = async () => { try { $("#xTok").value = await navigator.clipboard.readText(); $("#xOk").click(); } catch (e) { toast("Mantenga el dedo en el recuadro y elija «Pegar»."); } };
+  $("#xOk").onclick = async () => { const c = codigoDe(val("xTok"));
+    if (!c) return toast("No se encontró el código de acceso en lo que pegó. Copie el enlace completo, que termina en «#acceso=…»."); lsSet("ulama-tok", c); await verificarAcceso();
+    if (ACCESO_OK) { recordarEnlaceAlInstalar(c); S = { v: "inicio" }; pintar(); toast("¡Bienvenido(a) a Ulama!"); }
+    else { pintar(); toast({ no: "Ese enlace no está registrado: revise que sea el más reciente que le mandó la Supervisión.", anulado: "Ese enlace fue reemplazado por uno nuevo: use el más reciente.", vencido: "Ese enlace ya venció.", sinred: "Conéctese a internet para comprobar su enlace." }[MOTIVO] || "No se pudo comprobar el enlace."); } };
   $("#xSup").onclick = () => pedirClaveSup(async () => { await verificarAcceso(); S = { v: "admin" }; pintar(); }); };
 function pedirClaveSup(listo) { dlg(`<h3>Clave de la Supervisión</h3><label class="campo"><span>Clave de acceso (token de GitHub)</span><input type="password" id="kT" autocomplete="off" spellcheck="false"><small>La misma de Tlamatini. Se guarda solo en este equipo.</small></label>
   <div class="fila fin"><button class="btn" id="kX">Cancelar</button><button class="btn p" id="kOk">Entrar</button></div><div id="kM"></div>`, v => {
@@ -232,4 +248,5 @@ async function instalarApp() { if (INSTALAR) { INSTALAR.prompt(); const r = awai
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { const admin = /[#&]admin\b/.test(location.hash || ""); $("#app").innerHTML = `<main class="wrap"><p class="muted" style="margin-top:40vh;text-align:center">Abriendo Ulama…</p></main>`;
   await verificarAcceso(); gPrecargar(); history.replaceState({ n: 0 }, "", location.pathname + location.search);
+  if (ACCESO_OK && !enApp() && !ghTok()) recordarEnlaceAlInstalar(lsGet("ulama-tok", ""));
   if (admin) S = { v: "admin" }; pintar(); })();
