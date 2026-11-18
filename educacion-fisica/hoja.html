@@ -148,10 +148,12 @@ function faltas() { const F = [], d = H.doc;
     if (!e.nombre.trim()) F.push([p + "nombre", `Escuela ${i + 1}: nombre`]);
     if (!RE_CCT.test(e.cct)) F.push([p + "cct", `${n}: C.C.T. (como 02DPR0150B)`]);
     if (!e.turno) F.push([p + "turno", `${n}: turno`]);
+    if (!e.zona.trim()) F.push([p + "zona", `${n}: zona escolar`]);
     if (!e.dias.length) F.push([p + "dias", `${n}: días que asiste`]);
     if (!e.director.trim()) F.push([p + "director", `${n}: director(a)`]);
     if (!RE_MAIL.test(e.correo)) F.push([p + "correo", `${n}: correo de la escuela o dirección`]);
     if (!e.supEF.trim()) F.push([p + "supEF", `${n}: supervisor(a) de Educación Física`]);
+    if (!RE_MAIL.test(e.supCorreo)) F.push([p + "supCorreo", `${n}: correo del supervisor(a) de E. F.`]);
     if (!(+e.nGrupos > 0)) F.push([p + "nGrupos", `${n}: cuántos grupos atiende`]);
     if (!e.horario) F.push([p + "horario", `${n}: foto del horario`]); });
   H.grupos.forEach((g, i) => { const e = H.escs.find(x => x.id === g.escId), n = `Grupo ${g.grado ? g.grado + "° " : ""}${g.grupo || ""}${e && e.nombre ? " · " + e.nombre : ""}`.trim(), p = `grupos.${i}.`;
@@ -183,13 +185,13 @@ function pintar() { const d = H.doc;
     ${campo("Celular (10 dígitos)", "doc.tel", 'type="tel" inputmode="numeric"')}</div></section>
 
   <section class="card"><h2><span class="num">2</span>Escuelas que atiende</h2><p class="sub">Una tarjeta por escuela. Al poner cuántos grupos atiende, se crean sus renglones en la sección 3.</p>
-   <div class="rej" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">${H.escs.map((e, i) => `<div class="bloque" style="margin:0"><h3>${esc(escNom(e, i))}${H.escs.length > 1 ? `<button class="btn s r" data-qe="${i}">Quitar</button>` : ""}</h3>
+   <div class="rej" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">${H.escs.map((e, i) => `<div class="bloque" style="margin:0"><h3><span data-tit="${i}">${esc(escNom(e, i))}</span>${H.escs.length > 1 ? `<button class="btn s r" data-qe="${i}">Quitar</button>` : ""}</h3>
      ${campo("Nombre de la escuela", `escs.${i}.nombre`)}${campo("C.C.T.", `escs.${i}.cct`, 'placeholder="02DPR0150B" style="text-transform:uppercase"')}
-     ${sel("Turno", `escs.${i}.turno`, ["Matutino", "Vespertino", "Discontinuo", "Tiempo completo"])}${campo("Zona escolar", `escs.${i}.zona`, "", false)}${campo("Localidad y municipio", `escs.${i}.localidad`, "", false)}
+     ${sel("Turno", `escs.${i}.turno`, ["Matutino", "Vespertino", "Tiempo completo"])}${campo("Zona escolar", `escs.${i}.zona`)}${campo("Localidad y municipio", `escs.${i}.localidad`, "", false)}
      ${dias("Días que asiste", `escs.${i}.dias`)}
      <div class="rej" style="grid-template-columns:110px 1fr">${sel("Trato", `escs.${i}.dirTrato`, ["Mtro.", "Mtra."], false)}${campo("Director(a)", `escs.${i}.director`)}</div>
      ${campo("Correo de la escuela o dirección", `escs.${i}.correo`, 'type="email" inputmode="email"')}
-     ${campo("Supervisor(a) de Educación Física", `escs.${i}.supEF`)}${campo("Correo del supervisor(a) de E. F.", `escs.${i}.supCorreo`, 'type="email" inputmode="email"', false)}
+     ${campo("Supervisor(a) de Educación Física", `escs.${i}.supEF`)}${campo("Correo del supervisor(a) de E. F.", `escs.${i}.supCorreo`, 'type="email" inputmode="email"')}
      ${campo("¿Cuántos grupos atiende aquí?", `escs.${i}.nGrupos`, 'type="number" inputmode="numeric" min="1" max="30" data-ng="' + i + '"')}
      <div class="campo${malo(`escs.${i}.horario`)}"><span>Horario de E. F. (foto o PDF) <b class="req">*</b></span>${cajaArch(`escs.${i}.horario`, "Subir horario")}</div>
      <div class="campo"><span>Logo de la escuela (opcional)</span>${cajaArch(`escs.${i}.logo`, "Subir logo")}</div></div>`).join("")}</div>
@@ -225,7 +227,7 @@ const portada = () => `<section class="portada"><div class="marca"><img src="img
 
 function enlazar() {
   $$("[data-p]").forEach(i => { i.oninput = () => { let v = i.value; if (i.dataset.p.endsWith(".cct") || i.dataset.p.endsWith(".grupo")) v = v.toUpperCase().trim(); set(i.dataset.p, v); };
-    i.onchange = () => { if (i.tagName === "SELECT" || /escs\.\d+\.nombre|grupos\.\d+\.(grado|grupo)$/.test(i.dataset.p)) { if (i.dataset.ng == null) pintarConservando(); } }; });
+    i.onchange = () => { if (/escs\.\d+\.nombre|grupos\.\d+\.(grado|grupo|escId)$/.test(i.dataset.p)) refrescar(); }; });
   $$("[data-ng]").forEach(i => i.onchange = () => { const e = H.escs[+i.dataset.ng], n = Math.min(30, +i.value || 0), ya = H.grupos.filter(g => g.escId === e.id).length;
     for (let k = ya; k < n; k++) H.grupos.push(nuevoGr(e.id)); guardar(); pintarConservando(); if (n > ya) aviso(`Se agregaron ${n - ya} renglones de grupo para ${e.nombre || "esa escuela"}.`); });
   $$("[data-dd]").forEach(b => b.onclick = () => { const a = get(b.dataset.dd), d = +b.dataset.d, k = a.indexOf(d); k >= 0 ? a.splice(k, 1) : a.push(d); a.sort(); guardar(); b.setAttribute("aria-pressed", k < 0); });
@@ -239,6 +241,11 @@ function enlazar() {
   $("#masGr").onclick = () => { H.grupos.push(nuevoGr(H.escs.length === 1 ? H.escs[0].id : "")); guardar(); pintarConservando(); };
   $("#masNee").onclick = () => { H.nee.push(nuevaNee()); guardar(); pintarConservando(); };
   $("#extras").onchange = async ev => { for (const f of ev.target.files) { try { const id = uid(); ARCH[id] = await leerArchivo(f); H.extras.push(id); } catch (e) { aviso(`${f.name}: ${e.message}`); } } guardar(); pintarConservando(); }; }
+/* cambia nombres en títulos y listas sin volver a dibujar (no se pierde lo que se está escribiendo) */
+function refrescar() { H.escs.forEach((e, i) => { const t = document.querySelector(`[data-tit="${i}"]`); if (t) t.textContent = escNom(e, i); });
+  const ops = (sel, L) => { const v = sel.value; sel.innerHTML = `<option value="">—</option>` + L.map(([id, t]) => `<option value="${esc(id)}">${esc(t)}</option>`).join(""); sel.value = v; };
+  $$('select[data-p$=".escId"]').forEach(s => ops(s, H.escs.map((e, j) => [e.id, escNom(e, j)])));
+  $$('select[data-p$=".grupoId"]').forEach(s => ops(s, H.grupos.map(g => [g.id, grNom(g)]))); }
 function pintarConservando() { const y = scrollY; pintar(); scrollTo(0, y); }
 function aviso(t) { const el = $("#toast"); el.textContent = t; el.classList.remove("oculto"); clearTimeout(aviso._t); aviso._t = setTimeout(() => el.classList.add("oculto"), 3500); }
 
