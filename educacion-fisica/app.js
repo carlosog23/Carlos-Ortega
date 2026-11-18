@@ -38,7 +38,7 @@ const ICONOS = {
 };
 
 /* ---------------- datos ---------------- */
-const VACIO = () => ({ v: 1, docente: { nombre: "", trato: "", correo: "", tel: "" }, escuelas: [], grupos: [], planes: [], clases: [],
+const VACIO = () => ({ v: 1, docente: { nombre: "", trato: "", correo: "", tel: "" }, escuelas: [], grupos: [], planes: [], clases: [], eventos: [],
   cortes: [{ id: "t1", n: "Primer trimestre", ini: "2026-08-31", fin: "2026-11-27" }, { id: "t2", n: "Segundo trimestre", ini: "2026-11-30", fin: "2027-03-12" }, { id: "t3", n: "Tercer trimestre", ini: "2027-03-15", fin: "2027-07-06" }],
   cfg: { bienvenida: false } });
 let D = cargar();
@@ -76,7 +76,7 @@ const val = id => (document.getElementById(id) || {}).value || "";
 /* ---------------- agenda: fechas de clase por grupo ---------------- */
 function diasGrupo(g) { const e = escDe(g.escId); return (g.dias && g.dias.length ? g.dias : (e && e.dias) || []).map(Number); }
 function fechasClase(g, desde, n, omit) { const dias = diasGrupo(g), out = []; if (!dias.length) return out; const d = dF(desde);
-  for (let k = 0; k < 400 && out.length < n; k++, d.setDate(d.getDate() + 1)) { const x = iso(d); if (x > CICLO.fin) break; if (dias.includes(d.getDay()) && !sinClase(x) && !(omit && omit.includes(x))) out.push(x); } return out; }
+  for (let k = 0; k < 400 && out.length < n; k++, d.setDate(d.getDate() + 1)) { const x = iso(d); if (x > CICLO.fin) break; if (dias.includes(d.getDay()) && !sinClase(x) && !evSinClase(g.escId, x) && !(omit && omit.includes(x))) out.push(x); } return out; }
 /* Fechas de las sesiones de una planeación para un grupo: se saltan los días en que «no hubo clase» (se recorren) */
 const fechasPlan = (g, p) => fechasClase(g, p.ini, p.sesiones.length, (p.omit || {})[g.id] || []);
 function pendientesPlan(p, g) { const f = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id), k = hoy(); return p.sesiones.map((s, i) => ({ s, i, f: f[i] })).filter(x => x.f && x.f < k && !dadas.has(x.s.id)); }
@@ -93,6 +93,40 @@ function agendaDe(desde, hasta) { const out = [];
   D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id);
     p.sesiones.forEach((s, i) => { const f = fechas[i]; if (f && f >= desde && f <= hasta) out.push({ f, g, p, s, n: i + 1, dada: dadas.has(s.id) }); }); }));
   return out.sort((a, b) => a.f.localeCompare(b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
+
+/* ---------------- eventos propios del docente (agenda) ---------------- */
+const TIPOS_EV = [["Evento", "anil"], ["Cita", "ciruela"], ["Reunión", "jade"], ["Torneo", "maiz-d"], ["Capacitación", "barro"], ["Recordatorio", "rojo"], ["Otro", "gris"]];
+const colEv = t => { const x = (TIPOS_EV.find(y => y[0] === t) || TIPOS_EV[6])[1]; return x === "gris" ? "color:var(--gris);background:var(--hilo2)" : `color:var(--${x});background:var(--${x === "maiz-d" ? "maiz" : x}-s)`; };
+const eventos = () => (D.eventos = D.eventos || []);
+const evEn = (e, f) => f >= e.fecha && f <= (e.hasta && e.hasta > e.fecha ? e.hasta : e.fecha);
+function evSinClase(escId, f) { const e = (D.eventos || []).find(e => e.sinClase && evEn(e, f) && (e.sinClase === "todas" || e.sinClase === escId)); return e ? e.titulo : null; }
+const evDel = (desde, hasta) => eventos().filter(e => (e.hasta && e.hasta > e.fecha ? e.hasta : e.fecha) >= desde && e.fecha <= hasta).sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.hora || "99").localeCompare(b.hora || "99"));
+const h12 = h => { if (!h) return ""; const [H, M] = h.split(":").map(Number); return `${(H % 12) || 12}:${String(M).padStart(2, "0")} ${H < 12 ? "a. m." : "p. m."}`; };
+function evItem(e, f) { const es = e.escId ? escDe(e.escId) : null, dur = e.hasta && e.hasta > e.fecha;
+  const det = [e.hora ? h12(e.hora) + (e.horaFin ? " a " + h12(e.horaFin) : "") : "", e.tipo, es && es.nombre, e.lugar, dur ? `${fCorta(e.fecha)} a ${fCorta(e.hasta)}` : (f ? "" : fCorta(e.fecha))].filter(Boolean).map(esc).join(" · ");
+  return `<button class="it btnit" data-ev="${e.id}"><span class="av" style="${colEv(e.tipo)}">${ic(e.tipo === "Cita" || e.tipo === "Reunión" ? "reloj" : "agenda", 18)}</span><span class="tx"><b>${esc(e.titulo)}</b><small>${det}</small>${e.nota ? `<small style="display:block">${esc(e.nota)}</small>` : ""}</span>${e.sinClase ? `<span class="tag m">Sin clase</span>` : ""}</button>`; }
+function dlgEvento(id, fecha) { const n = !id, e = n ? { fecha: fecha || hoy(), tipo: "Evento" } : eventos().find(x => x.id === id); if (!e) return;
+  dlg(`<h3>${n ? "Agregar a la agenda" : "Editar"}</h3>
+   <label class="campo"><span>¿Qué es?</span><input id="vTit" value="${esc(e.titulo || "")}" placeholder="Ej. Reunión de academia, cita médica, torneo de fútbol…" maxlength="120"></label>
+   <span class="lbl small" style="font-weight:700;color:var(--gris)">Tipo</span><div class="chips mb" id="vTipo" style="margin-top:6px">${TIPOS_EV.map(([t]) => `<button type="button" class="chip" data-t="${t}" aria-pressed="${t === e.tipo}">${t}</button>`).join("")}</div>
+   <div class="dos"><label class="campo"><span>Fecha</span><input id="vF" type="date" value="${e.fecha}"></label><label class="campo"><span>Termina (si dura varios días)</span><input id="vH" type="date" value="${e.hasta || ""}"></label></div>
+   <div class="dos"><label class="campo"><span>Hora de inicio</span><input id="vHi" type="time" value="${e.hora || ""}"></label><label class="campo"><span>Hora de término</span><input id="vHf" type="time" value="${e.horaFin || ""}"></label></div>
+   <div class="dos"><label class="campo"><span>Escuela (opcional)</span><select id="vEsc"><option value="">— Ninguna en particular —</option>${D.escuelas.map(x => `<option value="${x.id}" ${x.id === e.escId ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</select></label>
+   <label class="campo"><span>Lugar (opcional)</span><input id="vLug" value="${esc(e.lugar || "")}"></label></div>
+   <label class="campo"><span>Nota (opcional)</span><textarea id="vNot" style="min-height:70px">${esc(e.nota || "")}</textarea></label>
+   <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="vSC" ${e.sinClase ? "checked" : ""} style="width:22px;height:22px;margin-top:2px"><span><b>Ese día no hay clase de Educación Física</b><br><small class="muted">Las sesiones planeadas se recorren a la siguiente clase.</small></span></label>
+   <label class="campo" id="vSCw" style="${e.sinClase ? "" : "display:none"}"><span>¿En qué escuelas no hay clase?</span><select id="vSCe"><option value="todas">En todas mis escuelas</option>${D.escuelas.map(x => `<option value="${x.id}" ${x.id === e.sinClase ? "selected" : ""}>Solo en ${esc(x.nombre)}</option>`).join("")}</select></label>
+   <div class="fila fin mt">${n ? "" : `<button class="btn r" id="vBor" style="margin-right:auto">${ic("basura", 18)} Eliminar</button>`}<button class="btn" id="vX">Cancelar</button><button class="btn m" id="vOk">Guardar</button></div>`, v => {
+    let tipo = e.tipo || "Evento";
+    v.querySelectorAll("#vTipo .chip").forEach(b => b.onclick = () => { tipo = b.dataset.t; v.querySelectorAll("#vTipo .chip").forEach(c => c.setAttribute("aria-pressed", c === b)); });
+    const sc = v.querySelector("#vSC"), w = v.querySelector("#vSCw"), sEsc = v.querySelector("#vEsc"), sSc = v.querySelector("#vSCe");
+    sc.onchange = () => { w.style.display = sc.checked ? "" : "none"; if (sc.checked && sEsc.value && !e.sinClase) sSc.value = sEsc.value; };
+    v.querySelector("#vX").onclick = cerrarDlg;
+    v.querySelector("#vOk").onclick = () => { const tit = val("vTit").trim(), f = val("vF"); if (!tit) return toast("<b>Escriba qué es.</b>"); if (!f) return toast("<b>Elija la fecha.</b>");
+      const hs = val("vH"), x = n ? { id: uid() } : e; const antes = n ? "" : e.sinClase;
+      Object.assign(x, { titulo: tit, tipo, fecha: f, hasta: hs && hs > f ? hs : "", hora: val("vHi"), horaFin: val("vHf"), escId: sEsc.value, lugar: val("vLug").trim(), nota: val("vNot").trim(), sinClase: sc.checked ? sSc.value : "" });
+      if (n) eventos().push(x); guardar(); cerrarDlg(); pintar(); toast(x.sinClase && x.sinClase !== antes ? "Guardado. Las sesiones de ese día se recorren a la siguiente clase." : "Guardado en su agenda."); };
+    const bb = v.querySelector("#vBor"); if (bb) bb.onclick = async () => { if (!(await confirmar(`¿Eliminar «${e.titulo}» de la agenda?`, "Sí, eliminar"))) return; D.eventos = eventos().filter(y => y.id !== e.id); guardar(); pintar(); toast("Eliminado."); }; }); }
 
 /* ---------------- instrumentos ---------------- */
 const NIV_R = [[1, "Requiere apoyo"], [2, "En proceso"], [3, "Logrado"], [4, "Destacado"]];
@@ -174,24 +208,25 @@ ENLAZAR.bienvenida = () => { const p = S.paso || 1;
 
 /* ---------- inicio ---------- */
 VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agendaDe(k, k), dia = d.getDay();
-  const hoyEsc = D.escuelas.filter(e => D.grupos.some(g => g.escId === e.id && diasGrupo(g).includes(dia)));
-  const gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia)).sort((a, b) => (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
+  const hoyEsc = D.escuelas.filter(e => !evSinClase(e.id, k) && D.grupos.some(g => g.escId === e.id && diasGrupo(g).includes(dia)));
+  const evHoy = evDel(k, k), gHoy = D.grupos.filter(g => diasGrupo(g).includes(dia) && !evSinClase(g.escId, k)).sort((a, b) => (escDe(a.escId).nombre || "").localeCompare(escDe(b.escId).nombre || "") || a.grado - b.grado);
   return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt=""><div class="eb">Ulama · Educación Física</div></div>
   <h1>Hola, ${esc(corto(D.docente.nombre) || "maestro")}</h1><p>${DSEM_L[dia][0].toUpperCase() + DSEM_L[dia].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : hoyEsc.length ? ` · Hoy va a ${hoyEsc.map(e => esc(e.nombre)).join(" y ")}` : ""}</p>
   <div class="fila"><button class="btn m" id="bClase">${ic("silbato")} Iniciar clase</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button></div></section>
   ${gHoy.length && !sc ? `<h2 class="sec-t">Hoy<small>Grupos que le tocan según sus días de clase</small></h2><div class="hoy">${gHoy.map(g => { const s = siguienteSesion(g.id), e = escDe(g.escId), ya = D.clases.some(c => c.grupoId === g.id && c.fecha === k);
     return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
+  ${evHoy.length ? `<h2 class="sec-t">En su agenda hoy</h2><div class="lista">${evHoy.map(e => evItem(e, k)).join("")}</div>` : ""}
   ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:var(--anil);--c-s:var(--anil-s)"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.length} planeaciones · juegos, sesiones e instrumentos</span></button>
-   <button class="puerta" data-v="agenda" style="--c:var(--maiz-d);--c-s:var(--maiz-s)"><span class="ic">${ic("agenda")}</span><b>Agenda</b><span>Las sesiones que siguen en cada grupo</span></button>
+   <button class="puerta" data-v="agenda" style="--c:var(--maiz-d);--c-s:var(--maiz-s)"><span class="ic">${ic("agenda")}</span><b>Agenda</b><span>Sesiones que siguen, eventos y citas</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:var(--ciruela);--c-s:var(--ciruela-s)"><span class="ic">${ic("eval")}</span><b>Evaluación del trimestre</b><span>Calificación 6 a 10, observaciones y faltas</span></button>
    <button class="puerta" data-v="escuelas"><span class="ic">${ic("escuela")}</span><b>Mis escuelas y grupos</b><span>${D.escuelas.length} escuelas · ${D.grupos.length} grupos · ${D.grupos.reduce((t, g) => t + activos(g).length, 0)} alumnos</span></button>
    <button class="puerta" data-v="listas" style="--c:var(--barro);--c-s:var(--barro-s)"><span class="ic">${ic("impr")}</span><b>Listas de asistencia</b><span>Imprimir por mes, en blanco o con sus registros</span></button>
    <button class="puerta" data-v="ajustes" style="--c:var(--gris);--c-s:var(--hilo2)"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, trimestres, enlace y copia de seguridad</span></button>
   </div><p class="pie">Ulama · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p></main>`; };
 ENLAZAR.inicio = () => { enlazarAvisoRespaldo(); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {});
-  $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
+  $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$("[data-ev]").forEach(b => b.onclick = () => dlgEvento(b.dataset.ev)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 
 /* ---------- escuelas ---------- */
 VISTAS.escuelas = () => barra("Mis escuelas y grupos", "Escuelas", `<button class="btn s p" id="bNE">${ic("mas")} Escuela</button>`) + `<main class="wrap">
@@ -491,10 +526,18 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const re = () => { 
   $$("[data-ec]").forEach(b => b.onclick = () => formC(p.criterios.find(x => x.id === b.dataset.ec))); if ($("#bNC")) $("#bNC").onclick = () => formC(null); };
 
 /* ---------- agenda ---------- */
-VISTAS.agenda = () => { const ini = hoy(), d = dF(ini); d.setDate(d.getDate() + 20); const L = agendaDe(ini, iso(d)), dias = [...new Set(L.map(x => x.f))];
-  return barra("Agenda", "Próximas sesiones") + `<main class="wrap">${dias.map(f => `<h2 class="sec-t">${fCorta(f)}${f === ini ? " · hoy" : ""}</h2><div class="lista">${L.filter(x => x.f === f).map(x => `<button class="it btnit" data-g="${x.g.id}"><span class="av">${x.g.grado}°${esc(x.g.grupo || "")}</span><span class="tx"><b>${x.n}. ${esc(x.s.t)}</b><small>${esc(escDe(x.g.escId).nombre)} · ${esc(x.p.titulo)}</small></span>${x.dada ? `<span class="tag">Dada</span>` : ""}</button>`).join("")}</div>`).join("") || `<div class="vacio mt">No hay sesiones en las próximas tres semanas. Cree una planeación para sus grupos.</div>`}
-  ${SIN_CLASE.filter(([a]) => a >= ini).slice(0, 3).length ? `<h2 class="sec-t">Sin clases (calendario oficial de BC)</h2><div class="lista">${SIN_CLASE.filter(([a]) => a >= ini).slice(0, 4).map(([a, b, t]) => `<div class="it"><span class="av" style="background:var(--maiz-s);color:var(--maiz-d)">${ic("agenda", 18)}</span><span class="tx"><b>${esc(t)}</b><small>${fCorta(a)}${b !== a ? " a " + fCorta(b) : ""}</small></span></div>`).join("")}</div>` : ""}</main>`; };
-ENLAZAR.agenda = () => $$("[data-g]").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); });
+VISTAS.agenda = () => { const ini = hoy(), d = dF(ini); d.setDate(d.getDate() + 20); const fin = iso(d), L = agendaDe(ini, fin), E = evDel(ini, fin);
+  const dias = [...new Set([...L.map(x => x.f), ...E.flatMap(e => { const o = []; for (let k = dF(e.fecha < ini ? ini : e.fecha); iso(k) <= fin && evEn(e, iso(k)); k.setDate(k.getDate() + 1)) o.push(iso(k)); return o; })])].sort();
+  const luego = eventos().filter(e => e.fecha > fin).sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(0, 15);
+  return barra("Agenda", "Sesiones y eventos", `<button class="btn m" id="bEvN">${ic("mas", 18)} Agregar</button>`) + `<main class="wrap">
+  <p class="muted mb">Agregue reuniones, citas, torneos, capacitaciones o recordatorios. Si ese día no hay clase, márquelo y las sesiones se recorren solas.</p>
+  ${dias.map(f => { const ev = E.filter(e => evEn(e, f)), se = L.filter(x => x.f === f);
+    return `<h2 class="sec-t">${fCorta(f)}${f === ini ? " · hoy" : ""}</h2><div class="lista">${ev.map(e => evItem(e, f)).join("")}${se.map(x => `<button class="it btnit" data-g="${x.g.id}"><span class="av">${x.g.grado}°${esc(x.g.grupo || "")}</span><span class="tx"><b>${x.n}. ${esc(x.s.t)}</b><small>${esc(escDe(x.g.escId).nombre)} · ${esc(x.p.titulo)}</small></span>${x.dada ? `<span class="tag">Dada</span>` : ""}</button>`).join("")}</div>`; }).join("") || `<div class="vacio mt">No hay sesiones ni eventos en las próximas tres semanas. Cree una planeación o agregue un evento.</div>`}
+  ${luego.length ? `<h2 class="sec-t">Más adelante</h2><div class="lista">${luego.map(e => evItem(e)).join("")}</div>` : ""}
+  ${SIN_CLASE.filter(([a]) => a >= ini).slice(0, 3).length ? `<h2 class="sec-t">Sin clases (calendario oficial de BC)</h2><div class="lista">${SIN_CLASE.filter(([a]) => a >= ini).slice(0, 4).map(([a, b, t]) => `<div class="it"><span class="av" style="background:var(--maiz-s);color:var(--maiz-d)">${ic("agenda", 18)}</span><span class="tx"><b>${esc(t)}</b><small>${fCorta(a)}${b !== a ? " a " + fCorta(b) : ""}</small></span></div>`).join("")}</div>` : ""}
+  ${(() => { const p = eventos().filter(e => (e.hasta || e.fecha) < ini).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 20); return p.length ? `<details class="mt"><summary class="muted" style="cursor:pointer;font-weight:700">Eventos pasados (${p.length})</summary><div class="lista mt">${p.map(e => evItem(e)).join("")}</div></details>` : ""; })()}</main>`; };
+ENLAZAR.agenda = () => { $("#bEvN").onclick = () => dlgEvento(null); $$("[data-ev]").forEach(b => b.onclick = () => dlgEvento(b.dataset.ev));
+  $$("[data-g]").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 
 /* ---------- la clase: escuela → grupo → lista → sesión → evaluar ---------- */
 function nuevaClase() { return { id: uid(), fecha: hoy(), ini: hora(), escId: null, grupoId: null, asis: {}, ret: {}, planId: null, sesId: null, instr: null, evals: {}, obs: {} }; }
