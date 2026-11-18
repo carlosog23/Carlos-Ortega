@@ -19,7 +19,7 @@ function faltaR(paso) { const r = REG(), F = [], f = (p, t) => { if (!paso || pa
   if (!r.escs.length) f(2, "Cuántas escuelas atiende");
   r.escs.forEach((e, i) => { const n = e.nombre || `Escuela ${i + 1}`;
     if (!e.nombre.trim()) f(2, `Escuela ${i + 1}: nombre`); if (!RE_CCT.test(e.cct)) f(2, `${n}: C.C.T. (10 caracteres, como 02DPR0150B)`);
-    if (!e.turno) f(2, `${n}: turno`); if (!e.zona.trim()) f(2, `${n}: zona escolar`); if (!e.dias.length) f(2, `${n}: días que asiste`);
+    if (!e.turno) f(2, `${n}: turno`); if (!e.zona.trim()) f(2, `${n}: zona escolar (número o clave)`); if (!e.dias.length) f(2, `${n}: días que asiste`);
     if (!e.director.trim()) f(2, `${n}: director(a)`); if (!RE_MAIL.test(e.correo)) f(2, `${n}: correo de la escuela o de la dirección`);
     if (!e.supEF.trim()) f(2, `${n}: supervisor(a) de Educación Física`); if (!RE_MAIL.test(e.supCorreo)) f(2, `${n}: correo del supervisor(a) de Educación Física`);
     if (!(+e.nGrupos > 0)) f(2, `${n}: cuántos grupos atiende`);
@@ -70,7 +70,7 @@ VISTAS.registro = () => { const r = REG(), p = r.paso;
     ${r.escs.map((e, i) => `<section class="card mt" data-esc="${e.id}"><h3>Escuela ${i + 1}${e.nombre ? " · " + esc(e.nombre) : ""}</h3>
      <label class="campo"><span>Buscar en las escuelas de la Zona 050 (o escriba los datos)</span><input data-bus="${e.id}" list="dl050r" placeholder="Nombre o C.C.T."></label>
      <div class="dos">${campo("Nombre de la escuela *", "eN" + i, e.nombre)}${campo("C.C.T. *", "eC" + i, e.cct, 'style="text-transform:uppercase" maxlength="10" placeholder="02DPR0000X"')}</div>
-     <div class="dos"><label class="campo"><span>Turno *</span><select id="eT${i}">${["", "Matutino", "Vespertino", "Tiempo completo"].map(x => `<option ${x === e.turno ? "selected" : ""}>${x}</option>`).join("")}</select></label>${campo("Zona escolar *", "eZ" + i, e.zona, 'inputmode="numeric" placeholder="050"')}</div>
+     <div class="dos"><label class="campo"><span>Turno *</span><select id="eT${i}">${["", "Matutino", "Vespertino", "Tiempo completo"].map(x => `<option ${x === e.turno ? "selected" : ""}>${x}</option>`).join("")}</select></label>${campo("Zona escolar (número o clave) *", "eZ" + i, e.zona, 'inputmode="text" autocapitalize="characters" maxlength="30" placeholder="Ej. 050 o 02FIZ0050O"')}</div>
      ${campo("Localidad", "eL" + i, e.localidad)}
      <span style="font-size:14px;font-weight:700;color:var(--gris)">Días que asiste a esta escuela *</span>${diasChips("e" + i, e.dias)}
      <div class="dos"><label class="campo"><span>Tratamiento</span><select id="eDT${i}">${["Mtro.", "Mtra.", "Profr.", "Profra.", "Lic."].map(x => `<option ${x === e.dirTrato ? "selected" : ""}>${x}</option>`).join("")}</select></label>${campo("Director(a) o encargado(a) *", "eD" + i, e.director)}</div>
