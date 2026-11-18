@@ -75,17 +75,22 @@ const val = id => (document.getElementById(id) || {}).value || "";
 
 /* ---------------- agenda: fechas de clase por grupo ---------------- */
 function diasGrupo(g) { const e = escDe(g.escId); return (g.dias && g.dias.length ? g.dias : (e && e.dias) || []).map(Number); }
-function fechasClase(g, desde, n) { const dias = diasGrupo(g), out = []; if (!dias.length) return out; const d = dF(desde);
-  for (let k = 0; k < 400 && out.length < n; k++, d.setDate(d.getDate() + 1)) { const x = iso(d); if (x > CICLO.fin) break; if (dias.includes(d.getDay()) && !sinClase(x)) out.push(x); } return out; }
+function fechasClase(g, desde, n, omit) { const dias = diasGrupo(g), out = []; if (!dias.length) return out; const d = dF(desde);
+  for (let k = 0; k < 400 && out.length < n; k++, d.setDate(d.getDate() + 1)) { const x = iso(d); if (x > CICLO.fin) break; if (dias.includes(d.getDay()) && !sinClase(x) && !(omit && omit.includes(x))) out.push(x); } return out; }
+/* Fechas de las sesiones de una planeación para un grupo: se saltan los días en que «no hubo clase» (se recorren) */
+const fechasPlan = (g, p) => fechasClase(g, p.ini, p.sesiones.length, (p.omit || {})[g.id] || []);
+function pendientesPlan(p, g) { const f = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id), k = hoy(); return p.sesiones.map((s, i) => ({ s, i, f: f[i] })).filter(x => x.f && x.f < k && !dadas.has(x.s.id)); }
+function recorrer(p, g, fecha) { p.omit = p.omit || {}; const L = p.omit[g.id] = p.omit[g.id] || []; if (!L.includes(fecha)) L.push(fecha); }
+function recorrerPendientes(p, g) { let n = 0; for (let k = 0; k < 200; k++) { const x = pendientesPlan(p, g)[0]; if (!x) break; recorrer(p, g, x.f); n++; } return n; }
 function planesDeGrupo(gid) { return D.planes.filter(p => (p.grupos || []).includes(gid)).sort((a, b) => a.ini.localeCompare(b.ini)); }
 function sesionesDadas(gid, pid) { return new Set(D.clases.filter(c => c.grupoId === gid && c.planId === pid && c.sesId).map(c => c.sesId)); }
 /* La sesión que sigue: la primera no dada del plan vigente del grupo; con su fecha de agenda */
 function siguienteSesion(gid) { const g = grDe(gid);
-  for (const p of planesDeGrupo(gid)) { const dadas = sesionesDadas(gid, p.id), fechas = fechasClase(g, p.ini, p.sesiones.length);
+  for (const p of planesDeGrupo(gid)) { const dadas = sesionesDadas(gid, p.id), fechas = fechasPlan(g, p);
     const i = p.sesiones.findIndex(s => !dadas.has(s.id)); if (i >= 0) return { plan: p, ses: p.sesiones[i], n: i + 1, fecha: fechas[i] || null }; }
   return null; }
 function agendaDe(desde, hasta) { const out = [];
-  D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasClase(g, p.ini, p.sesiones.length), dadas = sesionesDadas(g.id, p.id);
+  D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id);
     p.sesiones.forEach((s, i) => { const f = fechas[i]; if (f && f >= desde && f <= hasta) out.push({ f, g, p, s, n: i + 1, dada: dadas.has(s.id) }); }); }));
   return out.sort((a, b) => a.f.localeCompare(b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
 
@@ -348,8 +353,11 @@ async function importarGrupos(files, escId) { if (!files.length) return; const e
 /* ---------- planeación ---------- */
 VISTAS.planes = () => barra("Planeación", "Mis planeaciones", `<button class="btn s p" id="bNP">${ic("mas")} Nueva</button>`) + `<main class="wrap">
   <p class="muted mt small">La planeación usa los contenidos y PDA oficiales de Educación Física, el fichero de juegos y el calendario escolar de Baja California de Tlamatini. Al terminarla se generan los instrumentos para evaluar en la clase.</p>
-  <div class="lista mt">${D.planes.slice().sort((a, b) => b.ini.localeCompare(a.ini)).map(p => { const e = escDe(p.escId); return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:var(--anil-s);color:var(--anil)">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${esc(e ? e.nombre : "")} · ${p.grupos.map(id => grDe(id)).filter(Boolean).map(grNom).join(", ")} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small></span></button>`; }).join("") || `<div class="vacio">Aún no tiene planeaciones.</div>`}</div></main>`;
-ENLAZAR.planes = () => { $("#bNP").onclick = () => ir("planNueva", {}); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
+  <div class="lista mt">${D.planes.slice().sort((a, b) => b.ini.localeCompare(a.ini)).map(p => { const e = escDe(p.escId); const pd = p.grupos.map(grDe).filter(Boolean).reduce((t, g) => t + pendientesPlan(p, g).length, 0);
+    return `<div class="it" style="padding:0;overflow:hidden"><button class="btnit" data-p="${p.id}" style="flex:1;display:flex;gap:12px;align-items:center;background:none;border:0;padding:12px 14px;text-align:left;cursor:pointer;min-width:0"><span class="av" style="background:var(--anil-s);color:var(--anil)">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}${pd ? ` <span class="tag r">${pd} sin registrar</span>` : ""}</b><small>${esc(e ? e.nombre : "")} · ${p.grupos.map(id => grDe(id)).filter(Boolean).map(grNom).join(", ")} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small></span></button><button class="btn s r" data-bp="${p.id}" aria-label="Eliminar planeación" style="margin-right:10px">${ic("basura", 16)}</button></div>`; }).join("") || `<div class="vacio">Aún no tiene planeaciones.</div>`}</div></main>`;
+ENLAZAR.planes = () => { $("#bNP").onclick = () => ir("planNueva", {}); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p }));
+  $$("[data-bp]").forEach(b => b.onclick = async ev => { ev.stopPropagation(); const p = plDe(b.dataset.bp); if (!(await confirmar(`¿Eliminar la planeación «${p.titulo}»? Las clases y evaluaciones que ya registró se conservan.`, "Eliminar"))) return;
+    D.planes = D.planes.filter(x => x !== p); guardar(); pintar(); toast("Planeación eliminada."); }); };
 
 VISTAS.planNueva = () => { const P = S.f = S.f || { escId: (D.escuelas[0] || {}).id, grupos: [], cont: null, ini: proxLunes(), sem: 4, min: 50, instr: "rubrica" }; const e = escDe(P.escId);
   const gs = e ? gruposDe(e.id) : [], selG = P.grupos.map(grDe).filter(Boolean), grados = [...new Set(selG.map(g => g.grado))].sort(), fase = grados.length ? Math.max(...grados.map(faseDe)) : null;
@@ -386,29 +394,32 @@ ENLAZAR.planNueva = () => { const P = S.f; const re = () => { const y = window.s
     const p = crearPlan({ escId: P.escId, grupos: P.grupos, titulo: P.titulo || cont.c, cont: cont.c, pdas, ini: P.ini, min: P.min, n, instr: P.instr, proposito: P.proposito, inclusion: inclusionLista(P.inc || {}) });
     D.planes.push(p); guardar(); S.f = null; ir("plan", { id: p.id }, true); toast("Planeación creada con sus instrumentos de evaluación."); }; };
 
-VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), g0 = gs[0], fechas = g0 ? fechasClase(g0, p.ini, p.sesiones.length) : [];
+VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), g0 = gs.find(g => g.id === S.gv) || gs[0], fechas = g0 ? fechasPlan(g0, p) : [], dadasV = g0 ? sesionesDadas(g0.id, p.id) : new Set(), pend = g0 ? pendientesPlan(p, g0) : [];
   const tab = S.tab || "ses";
   return barra("Planeación", esc(p.titulo), `<button class="btn s" id="bImpP" aria-label="Imprimir">${ic("impr", 18)}</button>`) + `<main class="wrap">
   <section class="card mt"><p class="small muted">${esc(e ? e.nombre : "")} · ${gs.map(grNom).join(", ")} · ${p.sesiones.length} sesiones de ${p.min} min · desde ${fLarga(p.ini)}</p>
    <p class="mt"><b>Contenido:</b> ${esc(p.cont)}</p>${Object.entries(p.pdas).map(([gr, t]) => `<p class="small mt"><b>PDA ${gr}.°:</b> ${esc(t)}</p>`).join("")}
    ${p.proposito ? `<p class="small mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Supervisa: ${esc(e.supEF)}</p>` : ""}
-   <div class="fila mt"><button class="btn s" id="bEnvP">${ic("correo", 16)} Enviar al supervisor(a)</button><button class="btn s r" id="bBorP">${ic("basura", 16)} Borrar</button></div></section>
+   <div class="fila mt"><button class="btn s" id="bEnvP">${ic("correo", 16)} Enviar al supervisor(a)</button><button class="btn s r" id="bBorP">${ic("basura", 16)} Eliminar planeación</button></div></section>
   <section class="card mt"><div class="fila" style="justify-content:space-between"><h3 style="margin:0">Inclusión</h3><button class="btn s" id="bInc">${ic("lapiz", 16)} ${(p.inclusion || []).length ? "Editar" : "Agregar"}</button></div>
    ${(p.inclusion || []).length ? `<div class="lista mt">${p.inclusion.map(x => { const a = alDe(x.alId); return `<div class="it"><span class="av" style="background:var(--maiz-s);color:var(--maiz-d)">${iniciales(a ? a.nombre : "?")}</span><span class="tx"><b>${esc(a ? a.nombre : "Alumno")} · ${esc(x.ajuste)}</b><small>${esc(x.nee || "")}${x.desc ? " · " + esc(x.desc) : ""}</small></span></div>`; }).join("")}</div>
     <label class="small mt" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="incIni" ${p.incIni !== false ? "checked" : ""}> En el documento impreso, mostrar solo las iniciales de estos alumnos</label>` : `<p class="small muted">Opcional: ajustes razonables o adecuaciones para alumnos con alguna necesidad específica o situación.</p>`}</section>
   <div class="chips mt" role="tablist"><button class="chip" data-t="ses" aria-pressed="${tab === "ses"}">Sesiones</button><button class="chip" data-t="ins" aria-pressed="${tab === "ins"}">Instrumentos</button><button class="chip" data-t="jue" aria-pressed="${tab === "jue"}">Fichero de juegos</button></div>
-  ${tab === "ses" ? `<div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i])).join("")}</div>` : ""}
+  ${tab === "ses" ? `${gs.length > 1 ? `<div class="chips mt">${gs.map(g => `<button class="chip" data-gv="${g.id}" aria-pressed="${g === g0}">Fechas de ${grNom(g)}</button>`).join("")}</div>` : ""}
+   ${pend.length ? `<div class="aviso mt" style="background:var(--rojo-s);border-color:#E8C3BE;color:var(--rojo)"><span style="flex:1"><b>${pend.length} ${pend.length > 1 ? "sesiones ya pasaron" : "sesión ya pasó"} sin registrarse${gs.length > 1 ? " en " + grNom(g0) : ""}</b> (${pend.map(x => fCorta(x.f)).join(", ")}). Si no hubo clase, recorra las fechas: cada sesión pasa a la siguiente clase.</span><button class="btn s p" id="bRecAll">Recorrer</button></div>` : ""}
+   <div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i], dadasV.has(s.id))).join("")}</div>
+   ${p.sesiones.length && fechas.length < p.sesiones.length ? `<p class="small muted mt">${p.sesiones.length - fechas.length} sesiones ya no caben antes del fin del ciclo escolar.</p>` : ""}` : ""}
   ${tab === "ins" ? instrumentosHTML(p) : ""}
   ${tab === "jue" ? `<div class="puertas mt">${Object.entries(JUEGOS).map(([k, j]) => `<div class="card" style="margin:0">${plano(j.plano)}<h3 class="mt">${esc(j.n)}</h3><p class="small muted">${esc(j.est)} · ${j.min} min · ${(j.mat || []).map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]).join(", ") || "sin material"}</p><ol class="small" style="padding-left:18px;margin:8px 0 0">${j.reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol></div>`).join("")}</div>` : ""}
   </main>`; };
-function sesionHTML(p, s, i, f) { const ab = S.ab === s.id, J = k => JUEGOS[k] || { n: k };
-  return `<article class="ses"><button class="ses-cab" data-s="${s.id}"><span class="d">${f ? `<small>${DSEM[dF(f).getDay()]}</small><b>${dF(f).getDate()}</b><small>${MES[dF(f).getMonth()]}</small>` : `<b>${i + 1}</b>`}</span><span class="tx"><span class="tag" style="background:${EST_COL[s.est] || "#555"}22;color:${EST_COL[s.est] || "#555"}">${esc(s.est)}</span><b>${i + 1}. ${esc(s.t)}</b><small class="muted">${esc(s.para)}</small></span></button>
+function sesionHTML(p, s, i, f, dada) { const ab = S.ab === s.id, J = k => JUEGOS[k] || { n: k }, paso = f && f < hoy() && !dada;
+  return `<article class="ses"><button class="ses-cab" data-s="${s.id}"><span class="d">${f ? `<small>${DSEM[dF(f).getDay()]}</small><b>${dF(f).getDate()}</b><small>${MES[dF(f).getMonth()]}</small>` : `<b>${i + 1}</b>`}</span><span class="tx"><span class="tag" style="background:${EST_COL[s.est] || "#555"}22;color:${EST_COL[s.est] || "#555"}">${esc(s.est)}</span><b>${i + 1}. ${esc(s.t)}</b>${dada ? ` <span class="tag">Dada</span>` : paso ? ` <span class="tag r">No se registró</span>` : f === hoy() ? ` <span class="tag m">Hoy</span>` : ""}<small class="muted">${esc(s.para)}</small></span></button>
    ${ab ? `<div class="ses-cuerpo"><div class="mom"><b>Inicio</b><div><p class="small">${esc(s.charla)}</p><p class="small mt"><b>Activación:</b> ${esc(J(s.act).n)}</p></div></div>
     <div class="mom"><b>Desarrollo</b><div>${s.ppal.map(k => `<p class="small"><b>${esc(J(k).n)}</b> · ${esc((J(k).reglas || []).join(" "))}</p>`).join("")}${s.mg ? `<p class="small muted mt">${Object.entries(s.mg).map(([k, v]) => `Fase ${k}: ${esc(v)}`).join(" · ")}</p>` : ""}</div></div>
     <div class="mom"><b>Cierre</b><div><p class="small"><b>Vuelta a la calma:</b> ${esc(J(s.calma).n)}</p><p class="small">${s.cierre.map(esc).join(" ")}</p></div></div>
     <div class="mom"><b>Evaluación</b><div><p class="small">${esc(s.eval)}</p></div></div>
     ${s.planB ? `<div class="mom"><b>Plan B</b><div><p class="small">Si llueve o hace mucho calor: ${esc(J(s.planB).n)} (bajo techo o a la sombra).</p></div></div>` : ""}
-    <div class="fila"><button class="btn s" data-es="${s.id}">${ic("lapiz", 16)} Editar sesión</button></div></div>` : ""}</article>`; }
+    <div class="fila"><button class="btn s" data-es="${s.id}">${ic("lapiz", 16)} Editar sesión</button>${!dada && f ? `<button class="btn s" data-rec="${s.id}">${ic("reloj", 16)} No hubo clase: recorrer fechas</button>` : ""}<button class="btn s r" data-qs="${s.id}">${ic("basura", 16)} Quitar sesión</button></div></div>` : ""}</article>`; }
 function instrumentosHTML(p) { return `<section class="card mt"><h3>Criterios de evaluación</h3><p class="small muted mb">Se generaron a partir de los PDA. Edítelos si lo necesita: se usan en los tres instrumentos.</p>
   <div class="lista">${p.criterios.map((c, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(c.c)}</b><small>${esc(c.t)} · ${c.gr === "todos" ? "todos los grados" : c.gr + ".°"}</small></span><button class="btn s" data-ec="${c.id}">${ic("lapiz", 16)}</button></div>`).join("")}</div>
   <div class="fila mt"><button class="btn s" id="bNC">${ic("mas", 16)} Criterio</button></div></section>
@@ -425,7 +436,23 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const re = () => { 
       enlazarInclusion(inc, () => { leerInclusion(inc); abrir(); }); v.querySelector("#iX").onclick = cerrarDlg;
       v.querySelector("#iOk").onclick = () => { leerInclusion(inc); p.inclusion = inclusionLista(inc); guardar(); pintar(); toast("Inclusión guardada en la planeación."); }; });
     abrir(); }; $("#bEnvP").onclick = () => enviarPlan(p);
-  $("#bBorP").onclick = async () => { if (!(await confirmar("¿Borrar esta planeación? Las clases ya registradas se conservan."))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
+  $$("[data-gv]").forEach(b => b.onclick = () => { S.gv = b.dataset.gv; re(); });
+  const g0 = p.grupos.map(grDe).filter(Boolean).find(g => g.id === S.gv) || grDe(p.grupos[0]);
+  $("#bRecAll") && ($("#bRecAll").onclick = async () => { const gs = p.grupos.map(grDe).filter(Boolean), conP = gs.filter(g => pendientesPlan(p, g).length);
+    if (!(await confirmar(`Las sesiones que no se dieron pasarán a las siguientes clases${conP.length > 1 ? ` de ${conP.map(grNom).join(", ")}` : ""}. Las sesiones que ya se dieron no cambian.`, "Recorrer fechas"))) return;
+    let n = 0; conP.forEach(g => n += recorrerPendientes(p, g)); guardar(); re(); toast(`Fechas recorridas (${n} ${n === 1 ? "día" : "días"} sin clase).`); });
+  $$("[data-rec]").forEach(b => b.onclick = async () => { const i = p.sesiones.findIndex(x => x.id === b.dataset.rec), gs = p.grupos.map(grDe).filter(Boolean);
+    const sel = gs.length > 1 ? null : gs; const hacer = lista => { lista.forEach(g => { const f = fechasPlan(g, p)[i]; if (f && !sesionesDadas(g.id, p.id).has(p.sesiones[i].id)) recorrer(p, g, f); }); guardar(); cerrarDlg(); re(); toast("Listo: esta sesión y las siguientes pasan a la próxima clase."); };
+    if (sel) { if (!(await confirmar(`Esta sesión y las siguientes se recorren a la próxima clase de ${grNom(gs[0])}.`, "Recorrer"))) return; return hacer(gs); }
+    dlg(`<h3>¿En qué grupos no hubo clase?</h3><p class="small muted mb">En los grupos que marque, esta sesión y las siguientes pasan a su próxima clase.</p><div class="chips mb">${gs.map(g => `<button class="chip" data-rg="${g.id}" aria-pressed="${g === g0}">${grNom(g)} · ${fCorta(fechasPlan(g, p)[i] || p.ini)}</button>`).join("")}</div>
+     <div class="fila fin"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Recorrer fechas</button></div>`, v => {
+      v.querySelectorAll("[data-rg]").forEach(c => c.onclick = () => c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true")); v.querySelector("#rX").onclick = cerrarDlg;
+      v.querySelector("#rOk").onclick = () => hacer([...v.querySelectorAll("[data-rg][aria-pressed=true]")].map(c => grDe(c.dataset.rg))); }); });
+  $$("[data-qs]").forEach(b => b.onclick = async () => { const s = p.sesiones.find(x => x.id === b.dataset.qs);
+    if (p.sesiones.length === 1) return toast("Es la única sesión: mejor elimine la planeación completa.");
+    if (!(await confirmar(`¿Quitar la sesión «${s.t}»? Las siguientes se adelantan una clase. Si ya la había registrado en algún grupo, ese registro se conserva.`, "Quitar sesión"))) return;
+    p.sesiones = p.sesiones.filter(x => x !== s); S.ab = null; guardar(); re(); toast("Sesión quitada."); });
+  $("#bBorP").onclick = async () => { if (!(await confirmar(`¿Eliminar la planeación «${p.titulo}»? Las clases y evaluaciones que ya registró se conservan.`, "Eliminar"))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
   $$("[data-es]").forEach(b => b.onclick = () => { const s = p.sesiones.find(x => x.id === b.dataset.es), opJ = sel => Object.entries(JUEGOS).map(([k, j]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(j.n)}</option>`).join("");
     dlg(`<h3>Editar sesión</h3><label class="campo"><span>Título</span><input id="sT" value="${esc(s.t)}"></label><label class="campo"><span>Para qué</span><textarea id="sP">${esc(s.para)}</textarea></label>
      <label class="campo"><span>Plática inicial</span><textarea id="sC">${esc(s.charla)}</textarea></label>
@@ -615,7 +642,7 @@ function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F 
    ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
    <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo. J = falta justificada.</p>
    <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</td></tr></table></div>`; }).join(""); }
-function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasClase(gs[0], p.ini, p.sesiones.length) : [], J = k => JUEGOS[k] || { n: k, reglas: [] };
+function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasPlan(gs[0], p) : [], J = k => JUEGOS[k] || { n: k, reglas: [] };
   return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
   <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${f.length ? fCorta(f[0]) + " al " + fCorta(f[f.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
   <span><b>Docente:</b> ${esc(docNombre())}</span><span><b>Supervisor(a) de E. F.:</b> ${esc((e && e.supEF) || "—")}</span><span><b>Campo formativo:</b> De lo Humano y lo Comunitario</span></div>
