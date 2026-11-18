@@ -66,20 +66,24 @@ async function rkPDF(cfg,personas,env){
   const K=(pal.k||[pal.c2,pal.c1,"#F6AE2D","#76B041","#E4572E"]).map(h=>rgb(...rkHex(h)));
   const tinta=rgb(.16,.16,.19),gris=rgb(.38,.38,.43),blanco=rgb(1,1,1);
   const{PW,PH,vert}=rkPagina(cfg);const ink=!!cfg.ahorro;
+  /* ajustes de tamaño del maestro y modo «editable» (se anotan textos y logos en lugar de dibujarlos) */
+  const AJ=Object.assign({inst:1,zona:1,esc:1,tit:1,nom:1,txt:1,fir:0},cfg.aj||{});const REC=env.rec||null;
+  const fuenteDe=new Map(Object.entries(F).map(([k,v])=>[v,k]));const srcDe=new Map([[I.inst,env.inst],[I.zona,env.zona],[I.esc,env.esc],[I.firma,env.firma]].filter(x=>x[0]&&x[1]));
 
   const lista=(personas&&personas.length?personas:[{nombre:"Nombre de la alumna o el alumno"}]).slice(0,env.max||400);
   for(const per of lista){
-    const pg=doc.addPage([PW,PH]);
+    const pg=doc.addPage([PW,PH]);const els=REC?[]:null;if(REC)REC.push({els,nombre:per.nombre});
     const Y=t=>PH-t;
     const w=(t,f,s)=>f.widthOfTextAtSize(t,s);
     const fit=(t,f,s,maxW,min=6)=>{while(s>min&&w(t,f,s)>maxW)s-=0.5;return s};
-    const ctr=(t,cx,top,s,f,col)=>{if(!t)return 0;pg.drawText(t,{x:cx-w(t,f,s)/2,y:Y(top),size:s,font:f,color:col});return w(t,f,s)};
-    const espaciado=(t,cx,top,s,f,col,sp)=>{const ch=[...t];const tot=ch.reduce((a,c)=>a+w(c,f,s),0)+sp*(ch.length-1);let x=cx-tot/2;
+    const ctr=(t,cx,top,s,f,col)=>{if(!t)return 0;if(els){els.push({k:"t",t,cx,top,s,f:fuenteDe.get(f),col,w:w(t,f,s),asc:f.heightAtSize(s,{descender:false}),alto:f.heightAtSize(s)});return w(t,f,s)}pg.drawText(t,{x:cx-w(t,f,s)/2,y:Y(top),size:s,font:f,color:col});return w(t,f,s)};
+    const espaciado=(t,cx,top,s,f,col,sp)=>{const ch=[...t];const tot=ch.reduce((a,c)=>a+w(c,f,s),0)+sp*(ch.length-1);
+      if(els){els.push({k:"t",t,cx,top,s,f:fuenteDe.get(f),col,sp,w:tot,asc:f.heightAtSize(s,{descender:false}),alto:f.heightAtSize(s)});return tot}let x=cx-tot/2;
       ch.forEach(c=>{pg.drawText(c,{x,y:Y(top),size:s,font:f,color:col});x+=w(c,f,s)+sp});return tot};
     const svg=(p,o)=>pg.drawSvgPath(p,Object.assign({x:0,y:PH},o));
     const rect=(x,top,ww,hh,o)=>pg.drawRectangle(Object.assign({x,y:Y(top)-hh,width:ww,height:hh},o));
     const pic=(im,x,top,ww,hh,al="c")=>{if(!im)return 0;const k=Math.min(ww/im.width,hh/im.height),iw=im.width*k,ih=im.height*k;
-      const xx=al==="l"?x:al==="r"?x+ww-iw:x+(ww-iw)/2;pg.drawImage(im,{x:xx,y:Y(top)-hh+(hh-ih)/2,width:iw,height:ih});return iw};
+      const xx=al==="l"?x:al==="r"?x+ww-iw:x+(ww-iw)/2;if(els&&srcDe.has(im)){els.push({k:"i",src:srcDe.get(im),x:xx,top:top+(hh-ih)/2,w:iw,h:ih});return iw}pg.drawImage(im,{x:xx,y:Y(top)-hh+(hh-ih)/2,width:iw,height:ih});return iw};
     const star=(cx,cy,r,n=5,ri=.45)=>{let p="";for(let i=0;i<n*2;i++){const a=-Math.PI/2+i*Math.PI/n,rr=i%2?r*ri:r;p+=(i?"L":"M")+(cx+rr*Math.cos(a)).toFixed(2)+" "+(cy+rr*Math.sin(a)).toFixed(2)}return p+"Z"};
     const rrect=(x,y,ww,hh,r)=>`M${x+r} ${y}H${x+ww-r}A${r} ${r} 0 0 1 ${x+ww} ${y+r}V${y+hh-r}A${r} ${r} 0 0 1 ${x+ww-r} ${y+hh}H${x+r}A${r} ${r} 0 0 1 ${x} ${y+hh-r}V${y+r}A${r} ${r} 0 0 1 ${x+r} ${y}Z`;
 
@@ -226,7 +230,7 @@ async function rkPDF(cfg,personas,env){
     }
 
     /* ---------- contenido ---------- */
-    const B=box,cx=B.x+B.w/2,esF=cfg.diseno==="fondo";const dy=esF?(+cfg.fondo.dy||0):0,fdy=esF?(+cfg.fondo.fdy||0):0;let zz=esF?(+cfg.fondo.esc||1):1;
+    const B=box,cx=B.x+B.w/2,esF=cfg.diseno==="fondo";const dy=esF?(+cfg.fondo.dy||0):0,fdy=(esF?(+cfg.fondo.fdy||0):0)+(+AJ.fir||0);let zz=esF?(+cfg.fondo.esc||1):1;
     const mostrar=k=>!esF||cfg.fondo.ver[k]!==false;
     const fr=vert?{tit:.235,pre:.32,nom:.43,gr:.48,mot:.54,lug:.715,fec:.80}:{tit:.255,pre:.35,nom:.475,gr:.535,mot:.595,lug:.75,fec:.82};
     let T=k=>B.top+B.h*fr[k]+dy;
@@ -243,9 +247,11 @@ async function rkPDF(cfg,personas,env){
 
     /* encabezado */
     if(mostrar("encabezado")){const lh=vert?52:46;let xl=B.x;
-      if(I.inst)xl+=pic(I.inst,xl,B.top,vert?70:66,lh,"l")+8;if(I.zona)pic(I.zona,xl,B.top+2,lh-4,lh-4,"l");
-      if(I.esc)pic(I.esc,B.x+B.w-lh-6,B.top-2,lh+6,lh+4,"r");
-      const mw=vert?B.w*.92:B.w-300;const h0=vert?B.top+lh+4:B.top;const l1=cfg.inst||"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA";
+      const ki=AJ.inst,kz=AJ.zona,ke=AJ.esc;
+      if(I.inst)xl+=pic(I.inst,xl,B.top,(vert?70:66)*ki,lh*ki,"l")+8;let wz=0;if(I.zona)wz=pic(I.zona,xl,B.top+2,(lh-4)*kz,(lh-4)*kz,"l");const izq=xl+wz-B.x;
+      let de=0;if(I.esc)de=pic(I.esc,B.x+B.w-(lh+6)*ke,B.top-2,(lh+6)*ke,(lh+4)*ke,"r");
+      const lado=Math.max(150,izq+8,de+8);const mw=vert?B.w*.92:Math.max(140,B.w-2*lado);
+      const h0=vert?B.top+lh*Math.max(1,I.inst?ki:0,I.zona?kz:0,I.esc?ke:0)+4:B.top;const l1=cfg.inst||"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA";
       ctr(l1,cx,h0+12,fit(l1,fSB,7.2,mw),fSB,col.sub);
       const esc_=`${cfg.esc.tipo||"Escuela Primaria"} «${cfg.esc.nombre||""}»`.toLocaleUpperCase("es-MX");
       if(cfg.esc.nombre)ctr(esc_,cx,h0+27,fit(esc_,fT===F.pacifico?F.fredoka:F.cinzelB,12,mw),fT===F.pacifico?F.fredoka:F.cinzelB,col.tit);
@@ -253,7 +259,7 @@ async function rkPDF(cfg,personas,env){
       ctr(l3,cx,h0+39,fit(l3,fS,7,mw),fS,col.sub)}
 
     const fN=F[cfg.letra]||F.script;const nom=rkCaso(per.nombre,cfg.caso);
-    let sNom=(fN===F.script?(vert?48:54):fN===F.pacifico?(vert?36:40):(vert?32:36))*zz;sNom=fit(nom,fN,Math.min(sNom,hN),wN,AN?9:12);
+    let sNom=(fN===F.script?(vert?48:54):fN===F.pacifico?(vert?36:40):(vert?32:36))*zz*AJ.nom;sNom=fit(nom,fN,Math.min(sNom,hN),wN,AN?9:12);
     if(AN){const nt=AN.y*PH-(AN.banda?0:4)+dy;const P={nom:nt,tit:B.top+36*zz+dy,pre:nt-sNom*.95-8};
       const hayMot=A.mot&&!A.mot.ys;let r0=(hayMot?A.mot.top*PH:AN.y*PH+8)+dy,r1=(hayMot?A.mot.bottom*PH:AN.y*PH+8+PH*.09)+dy;
       if(A.mot&&A.mot.no)R={no:true,ys:[]};
@@ -279,7 +285,7 @@ async function rkPDF(cfg,personas,env){
 
     /* título */
     const tipo=(cfg.tipo==="Otro"?cfg.tipoOtro:cfg.tipo)||"Reconocimiento";
-    if(mostrar("titulo")){const tt=fT===F.pacifico?tipo:tipo.toLocaleUpperCase("es-MX");let s=(fT===F.pacifico?(vert?46:44):(vert?36:40))*zz;
+    if(mostrar("titulo")){const tt=fT===F.pacifico?tipo:tipo.toLocaleUpperCase("es-MX");let s=(fT===F.pacifico?(vert?46:44):(vert?36:40))*zz*AJ.tit;
       const ancho=t=>[...t].reduce((a,c)=>a+w(c,fT,s),0)+tituloSp*s/40*([...t].length-1);while(s>14&&ancho(tt)>B.w*.86)s-=1;
       const top=T("tit")+(cfg.diseno==="honor"?(vert?46:22):0);
       espaciado(tt,cx,top,s,fT,col.tit,tituloSp*s/40);
@@ -288,7 +294,7 @@ async function rkPDF(cfg,personas,env){
 
     /* preámbulo */
     const pre=(cfg.pre||"").trim()||rkPreDefault(cfg,tipo);
-    if(mostrar("preambulo")&&pre){const s=fit(pre,fP,13*zz,B.w*.9,8);ctr(pre,AN?cxN:cx,T("pre")+(cfg.diseno==="honor"?14:0),s,fP,col.pre)}
+    if(mostrar("preambulo")&&pre){const s=fit(pre,fP,13*zz*AJ.txt,B.w*.9,8);ctr(pre,AN?cxN:cx,T("pre")+(cfg.diseno==="honor"?14:0),s,fP,col.pre)}
 
     /* nombre */
     {const s=sNom;
@@ -303,17 +309,17 @@ async function rkPDF(cfg,personas,env){
 
     /* grado y grupo */
     const gg=cfg.verGrado&&(per.grado||per.grupo)?[per.grado?String(per.grado).replace(/[°º]/g,"")+"° grado":"",per.grupo?`grupo «${per.grupo}»`:""].filter(Boolean).join(", "):"";
-    if(gg&&!R)ctr(gg,cxB,T("gr")+(cfg.diseno==="honor"?8:0),10*zz,fS,col.sub);
+    if(gg&&!R)ctr(gg,cxB,T("gr")+(cfg.diseno==="honor"?8:0),10*zz*AJ.txt,fS,col.sub);
 
     /* motivo */
     const mot=String(per.motivo||"").trim()||String(cfg.motivo||"").trim();
     if(R){/* el modelo trae renglones: el texto se escribe sobre ellos */
       const txt=[lug,mot,gg].map(t=>String(t||"").trim()).filter(Boolean).map(t=>/[.!?»]$/.test(t)?t:t+".").join(" ");
-      if(txt&&!R.no){const n=R.ys.length,sep=n>1?(R.ys[n-1].y-R.ys[0].y)/(n-1):24;const ren=i=>i<n?R.ys[i]:{y:R.ys[n-1].y+sep*(i-n+1),cx:R.ys[n-1].cx,w:R.ys[n-1].w};let s=Math.min(14*zz,sep*.66),L;
+      if(txt&&!R.no){const n=R.ys.length,sep=n>1?(R.ys[n-1].y-R.ys[0].y)/(n-1):24;const ren=i=>i<n?R.ys[i]:{y:R.ys[n-1].y+sep*(i-n+1),cx:R.ys[n-1].cx,w:R.ys[n-1].w};let s=Math.min(14*zz*AJ.txt,sep*.66),L;
         const partir=sz=>{const out=[];let cur="";for(const pal of txt.split(/\s+/)){const t=cur?cur+" "+pal:pal;if(w(t,fM,sz)>ren(out.length).w&&cur){out.push(cur);cur=pal}else cur=t}if(cur)out.push(cur);return out};
         for(;;){L=partir(s);if(L.length<=n||s<=9)break;s-=.5}
         L.forEach((ln,i)=>ctr(ln,ren(i).cx,ren(i).y-3,s,fM,col.txt))}}
-    else if(mot){const maxW=AN?wB*.94:B.w*(vert?.86:.78),alto=motAlto!=null?motAlto:T("lug")-T("mot")-6;let s=15*zz,L;
+    else if(mot){const maxW=AN?wB*.94:B.w*(vert?.86:.78),alto=motAlto!=null?motAlto:T("lug")-T("mot")-6;let s=15*zz*AJ.txt,L;
       const partir=sz=>{const out=[];let cur="";for(const pal of mot.split(/\s+/)){const t=cur?cur+" "+pal:pal;if(w(t,fM,sz)>maxW&&cur){out.push(cur);cur=pal}else cur=t}if(cur)out.push(cur);return out};
       for(;;){L=partir(s);if(L.length*s*1.32<=alto||s<=9)break;s-=.5}
       const m0=motTop!=null?motTop+Math.max(0,(motAlto-L.length*s*1.32)/2)-s*.2:T("mot")+(cfg.diseno==="honor"?6:0);
@@ -321,15 +327,15 @@ async function rkPDF(cfg,personas,env){
 
     /* lugar obtenido */
     if(R){}
-    else if(lug&&cfg.diseno!=="honor"){const t=lug.toLocaleUpperCase("es-MX"),s=10.5*zz,tw=w(t,fSB,s)+30,h=20;const top=T("lug")-4;
+    else if(lug&&cfg.diseno!=="honor"){const t=lug.toLocaleUpperCase("es-MX"),s=10.5*zz*AJ.txt,tw=w(t,fSB,s)+30,h=20;const top=T("lug")-4;
       if(esF)ctr(t,cxB,top+14,s+2,fSB,col.tit);
       else{svg(rrect(cx-tw/2,top,tw,h,10),{color:cfg.diseno==="infantil"?(K[1]||c2):c2});ctr(t,cx,top+14,s,fSB,blanco)}}
     else if(lug&&cfg.diseno==="honor"){const t=lug.toLocaleUpperCase("es-MX");ctr(t,cx,T("lug")+10,fit(t,F.playB,13,B.w*.6),F.playB,c2)}
 
     /* lugar y fecha */
     const fe=[String(cfg.lugarFecha||"").trim(),rkFechaLarga(cfg.fecha)].filter(Boolean).join(", a ");
-    if(R){if(mostrar("fecha")&&fe&&A.fec)ctr(fe+".",A.fec.cx*PW,A.fec.y*PH+dy,fit(fe+".",F.loraI,11*zz,A.fec.w*PW),F.loraI,col.sub)}
-    else if(mostrar("fecha")&&fe)ctr(fe+".",cxB,T("fec")+(lug&&!AN?6:0),fit(fe+".",F.loraI,11*zz,(AN?wB:B.w)*.8),F.loraI,col.sub);
+    if(R){if(mostrar("fecha")&&fe&&A.fec)ctr(fe+".",A.fec.cx*PW,A.fec.y*PH+dy,fit(fe+".",F.loraI,11*zz*AJ.txt,A.fec.w*PW),F.loraI,col.sub)}
+    else if(mostrar("fecha")&&fe)ctr(fe+".",cxB,T("fec")+(lug&&!AN?6:0),fit(fe+".",F.loraI,11*zz*AJ.txt,(AN?wB:B.w)*.8),F.loraI,col.sub);
 
     /* firmas */
     const fs=(cfg.firmas||[]).filter(f=>f.on&&(f.nom||f.car));
@@ -432,6 +438,36 @@ async function rkEnv(){await rkAutoAsegura();await loadScript("lib/fontkit.min.j
     firma:typeof firmaGet==="function"?firmaGet():null,fondo:rkFondoGet()}}
 function rkCfg(extra){const c=Object.assign({},RK,extra||{});c.inst=perfil.subsis==="SEBS"?"SECRETARÍA DE EDUCACIÓN DE BAJA CALIFORNIA":"INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA";
   c.firmas=(c.firmas||[]).map(f=>Object.assign({},f,{firma:f.fijo==="doc"&&c.firmaDig}));return c}
+/* ---------- ajustes de tamaño ---------- */
+const RK_AJ=[{k:"inst",n:"Logo institucional",logo:"inst",min:.5,max:1.8,paso:.05,d:1},{k:"zona",n:"Logo de la zona",logo:"zona",min:.5,max:1.8,paso:.05,d:1},{k:"esc",n:"Logo de la escuela",logo:"esc",min:.5,max:1.8,paso:.05,d:1},
+  {k:"tit",n:"Título",min:.6,max:1.4,paso:.05,d:1},{k:"nom",n:"Nombre del alumno",min:.6,max:1.4,paso:.05,d:1},{k:"txt",n:"Textos (frase, motivo y fecha)",min:.7,max:1.4,paso:.05,d:1},{k:"fir",n:"Firmas: subir o bajar",min:-60,max:40,paso:2,d:0}];
+function rkAjTxt(a,v){return a.k==="fir"?(v===0?"igual":v<0?`${-v} pt más arriba`:`${v} pt más abajo`):Math.round(v*100)+" %"}
+
+/* ---------- editable en PowerPoint: el diseño de fondo y cada texto o logo como pieza suelta ---------- */
+const RK_PPT_FUENTE={script:["Great Vibes"],pacifico:["Pacifico"],cinzelB:["Cinzel",1],cinzel:["Cinzel"],playB:["Playfair Display",1],playI:["Playfair Display",0,1],lora:["Lora"],loraI:["Lora",0,1],fredoka:["Fredoka"],mont:["Montserrat"],montB:["Montserrat",1]};
+function rkB64(u){let b="";const n=0x8000;for(let i=0;i<u.length;i+=n)b+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(b)}
+function rkImgData(src){if(typeof src==="string")return src.replace(/^data:/,"");const u=new Uint8Array(src);return(u[0]===0x89?"image/png":"image/jpeg")+";base64,"+rkB64(u)}
+const rkHexDe=c=>c&&c.red!=null?[c.red,c.green,c.blue].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join("").toUpperCase():"222222";
+async function rkPPTX(prog){prog=prog||(()=>{});const env=await rkEnv();const cfg=rkCfg();const rec=[];
+  const bytes=await rkPDF(cfg,RK.personas,Object.assign({},env,{rec}));
+  if(!window.PptxGenJS){prog("Cargando el programa…");await loadScript("lib/pptxgen.bundle.js")}
+  const L=await pdfjs();const pdf=await L.getDocument({data:bytes}).promise;const{PW,PH}=rkPagina(cfg),IN=72;
+  /* el fondo cambia por alumno solo en los diseños que se acomodan al nombre (listón o laureles) */
+  const unico=!["mosaico","honor"].includes(cfg.diseno);const fondos=[];
+  const fondo=async i=>{if(unico&&fondos[0])return fondos[0];prog(`Preparando el fondo ${unico?"":i+1+" de "+rec.length}…`);const pg=await pdf.getPage(i+1),vp=pg.getViewport({scale:2.6}),c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;const d=c.toDataURL("image/jpeg",.92).replace(/^data:/,"");fondos[i]=d;return d};
+  const pp=new PptxGenJS();pp.defineLayout({name:"CARTA",width:PW/IN,height:PH/IN});pp.layout="CARTA";pp.title=(cfg.tipo==="Otro"?cfg.tipoOtro:cfg.tipo)||"Reconocimientos";pp.company="Tlamatini";
+  const cache=new Map();
+  for(let i=0;i<rec.length;i++){const sl=pp.addSlide();sl.background={data:await fondo(i)};
+    for(const e of rec[i].els){
+      if(e.k==="i"){let d=cache.get(e.src);if(!d){d=rkImgData(e.src);cache.set(e.src,d)}sl.addImage({data:d,x:e.x/IN,y:e.top/IN,w:e.w/IN,h:e.h/IN});continue}
+      const[fam,neg,cur]=RK_PPT_FUENTE[e.f]||["Montserrat"];const bw=Math.min(PW-8,e.w*1.35+24),alto=e.alto*1.25;
+      sl.addText(e.t,{x:Math.max(4,e.cx-bw/2)/IN,y:(e.top-e.asc)/IN,w:bw/IN,h:alto/IN,fontFace:fam,bold:!!neg,italic:!!cur,fontSize:Math.round(e.s*10)/10,color:rkHexDe(e.col),align:"center",valign:"top",margin:0,wrap:false,charSpacing:e.sp?Math.round(e.sp*10)/10:undefined})}}
+  prog("Guardando…");const blob=await pp.write({outputType:"blob"});
+  const tipo=(cfg.tipo==="Otro"?cfg.tipoOtro:cfg.tipo)||"Reconocimiento",quien=RK.personas.length===1?rkCaso(RK.personas[0].nombre,"titulo"):`${RK.personas.length} alumnos`;
+  const filename=`${tipo} - ${quien} - ${today()} (editable).pptx`.replace(/[\\/:*?"<>|«»°]/g,"").replace(/\s+/g," ");
+  anchorSave({filename,blob,file:new File([blob],filename,{type:blob.type})})}
+
 function rkProblemas(){const p=[];if(!RK.personas.length)p.push("Agregue al menos un nombre en «¿A quién se entrega?».");
   if(RK.diseno==="fondo"&&!rkFondoGet())p.push("Suba la imagen de fondo en «Diseño».");
   if(!RK.firmas.some(f=>f.on&&(f.nom||f.car)))p.push("Elija al menos una firma.");
@@ -488,6 +524,8 @@ function rkAgregar(lista,marca){let n=0,rep=0;const ya=new Set(RK.personas.map(p
 
 /* --- estilos propios del apartado --- */
 function rkCSS(){if(document.getElementById("rkcss"))return;const s=document.createElement("style");s.id="rkcss";s.textContent=`
+.rkaj{display:grid;gap:10px 18px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin:6px 0 4px}.rkajf{display:flex;flex-direction:column;gap:4px;font-size:15px}.rkajf b{color:var(--accent,#1F3A6B);font-weight:700}.rkajf input{width:100%;accent-color:#1F3A6B;min-height:30px}
+.rkedit{margin-top:14px;padding-top:12px;border-top:1px dashed #d9cfbf}
 .rkwrap [hidden]{display:none!important}
 .rkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 4px}
 .rkd{display:flex;flex-direction:column;gap:6px;padding:8px;border:2px solid var(--line,#ddd);border-radius:14px;background:var(--card,#fff);cursor:pointer;text-align:left;font:inherit;color:inherit}
@@ -617,18 +655,28 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
       ${v.personas.some(p=>p.rev)?`<div class="alert" style="margin-bottom:6px">Los nombres en amarillo se leyeron de una foto o PDF escaneado: <b>revíselos</b>, la lectura puede tener errores.</div>`:""}
       ${v.personas.map(perHTML).join("")}`:'<p class="rkmini">Todavía no hay nombres en la lista.</p>'}</div></section>
 
+   <section class="card"><h3>Ajustar tamaños</h3><p class="help">Agrande o achique los logos y las letras, o suba y baje las firmas. La vista previa cambia sola.</p>
+    <div class="rkaj">${RK_AJ.filter(a=>!a.logo||v.logos[a.logo]).map(a=>{const val=(v.aj&&v.aj[a.k]!=null)?v.aj[a.k]:a.d;return`<label class="rkajf"><span>${a.n} <b id="rk_ajv_${a.k}">${rkAjTxt(a,val)}</b></span><input type="range" min="${a.min}" max="${a.max}" step="${a.paso}" value="${val}" data-aj="${a.k}"></label>`}).join("")}</div>
+    <button type="button" class="btn link" id="rk_ajR">Volver a los tamaños originales</button></section>
    <section class="card"><h3>Vista previa</h3><p class="help">${v.personas.length>1?`Se muestra el de <b>${esc(rkCaso((v.personas[Math.min(v.verIdx||0,v.personas.length-1)]||{}).nombre,"titulo"))}</b>. Toque «Ver» en la lista para revisar otro.`:"Así se imprimirá cada hoja."}</p><div class="rkpv" id="rk_pv"><span class="rkmini">Preparando…</span></div></section>
    <section class="card"><h3>¿Qué desea hacer?</h3><p class="muted" style="font-size:15px">Hojas tamaño <b>Carta</b>, orientación <b>${v.orient==="vertical"?"vertical":"horizontal"}</b>, al <b>100 %</b>. Se genera uno por hoja${v.personas.length>1?`: <b>${v.personas.length} hojas</b>`:""}. Para que luzcan más, use opalina o cartulina delgada.</p>
     <div id="rk_res"></div>
     <div class="acts"><button class="btn primary act" data-act="print"><span class="ic" aria-hidden="true">${EI.print}</span>Imprimir</button>
      <button class="btn primary act" data-act="share"><span class="ic" aria-hidden="true">${EI.mail}</span>Enviar por correo o WhatsApp</button>
      <button class="btn ghost act" data-act="save"><span class="ic" aria-hidden="true">${EI.down}</span>Guardar en este dispositivo</button></div>
+    <div class="rkedit"><button type="button" class="btn ghost" id="rk_pptx"><span class="ic" aria-hidden="true">${EI.down}</span>Descargar editable (PowerPoint)</button>
+     <p class="help">Cada reconocimiento sale como una diapositiva: el diseño queda de fondo y los <b>logos, el nombre, los textos y las firmas</b> se pueden mover, agrandar o cambiar. Se abre en PowerPoint, en Google Presentaciones (ahí las letras se ven idénticas) o en la app del celular, y desde ahí se imprime o se guarda en PDF.</p><div id="rk_pptxMsg"></div></div>
     <button type="button" class="btn link" id="rk_misSave" style="margin-top:8px">Guardar este diseño en «Mis diseños»</button>
     <div id="msg"></div></section>
    <p class="foot">Los nombres, los diseños y las imágenes se guardan solo en este dispositivo.</p></div>`;
 
   const re=()=>{rkGuardar();rkView()};
   const cambio=(pv=true)=>{rkGuardar();resumen();if(pv)rkPrevia()};
+  app.querySelectorAll("[data-aj]").forEach(r=>r.oninput=()=>{const a=RK_AJ.find(x=>x.k===r.dataset.aj);v.aj=v.aj||{};v.aj[a.k]=+r.value;const l=g("rk_ajv_"+a.k);if(l)l.textContent=rkAjTxt(a,+r.value);cambio()});
+  g("rk_ajR")&&(g("rk_ajR").onclick=()=>{v.aj={};re()});
+  g("rk_pptx")&&(g("rk_pptx").onclick=async()=>{const b=g("rk_pptx"),m=g("rk_pptxMsg");const pr=rkProblemas();if(pr.length){m.innerHTML=`<div class="alert">${esc(pr[0])}</div>`;return}
+    b.disabled=true;const t0=b.innerHTML;b.textContent="Preparando el editable…";try{await rkPPTX(t=>b.textContent=t);m.innerHTML=`<div class="alert ok" style="margin-top:8px"><b>Listo.</b> Ábralo con PowerPoint o súbalo a Google Drive y ábralo con Presentaciones de Google.</div>`}
+    catch(e){console.error(e);m.innerHTML=`<div class="alert" style="margin-top:8px">No se pudo preparar el editable${navigator.onLine===false?" (revise su internet: la primera vez se descarga el programa)":""}. Intente de nuevo.</div>`}b.disabled=false;b.innerHTML=t0});
   const resumen=()=>{const p=rkProblemas();app.querySelectorAll(".act").forEach(b=>b.disabled=!!p.length);
     g("rk_res").innerHTML=p.length?`<div class="alert"><b>Falta:</b> ${p.map(esc).join(" ")}</div>`:"";
     const fs=v.firmas.filter(f=>f.on);g("rk_fwarn").innerHTML=fs.length>3?'<div class="alert">Caben hasta <b>3 firmas</b> por hoja; desmarque alguna.</div>':""};
