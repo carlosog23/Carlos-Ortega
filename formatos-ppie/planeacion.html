@@ -375,7 +375,7 @@ p.segu{display:flex;gap:6px;align-items:flex-start;font-size:13.5px;color:var(--
 </style>
 </head>
 <body>
-<div class="proto"><b>Nueva planeación · versión de prueba</b>: por ahora el borrador es un ejemplo; el calendario y los PDA son los oficiales.</div>
+<div class="proto"><b>Planeación didáctica · fase de pilotaje</b>: la IA arma el borrador con sus datos, el programa sintético oficial y el calendario de Baja California; revíselo siempre antes de usarlo.</div>
 <div id="app"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="planeacion-mia.js?v=2026-11-17a"></script>
@@ -706,7 +706,7 @@ function pDoc() {
   const P = E.plan, pdas = PDA_PLAN.map(c => BANCO4.find(x => x.c === c)).filter(Boolean);
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="btn pri" data-doc="word">${ic('descarga')}Word (editable)</button><button class="btn sec" data-doc="pdf">${ic('descarga')}PDF</button><button class="btn sec" data-doc="imp">${ic('imp')}Imprimir</button></div>
   <p style="color:var(--muted);font-size:14.5px;margin-bottom:12px">Así la recibe la dirección o la Supervisión. Incluye los cinco elementos que pide la SEP: tema (contenidos y PDA), propósito, secuencia con recursos, evaluación formativa y ajustes.</p>
-  <div class="hoja"><div class="enc"><div class="logo">Logo<br>ISEP</div><div style="text-align:center">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA<br>Esc. Prim. «Benito Juárez» · C.C.T. [CCT] · Zona Escolar 050 · Camalú, San Quintín</div><div class="logo">Logo<br>escuela</div></div>
+  <div class="hoja"><div class="enc">${plLogo('isep')}<div style="text-align:center">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA<br>${esc(plEscLinea())}</div>${plLogo('esc')}</div>
    <h1>Planeación didáctica</h1><p style="text-align:center;margin:2px 0 10px">${esc(P.titulo)}</p>
    <table><tr><th>Docente</th><td>Mtra. Laura Méndez</td><th>Grado y grupo</th><td>4.° A${E.multi ? ' (multigrado)' : ''}</td></tr><tr><th>Periodo</th><td>${esc(fCorta(P.ses[0].fecha))} al ${esc(fCorta(P.ses[P.ses.length - 1].fecha))}</td><th>Sesiones</th><td>${P.ses.length}</td></tr><tr><th>Metodología</th><td colspan="3">Aprendizaje basado en proyectos comunitarios</td></tr></table>
    <h3>Problema del contexto</h3><p>${esc(CONTEXTO)}</p>
@@ -916,7 +916,7 @@ function vInicioEF() {
    <div class="escena"><div>
     <section class="intro">${selectorModo()}<h1>Sus sesiones de Educación Física, listas para el patio</h1>
      <p>Elija grupos, contenidos y días. Tlamatini arma la unidad con juegos, organización en la cancha, variantes y cuidados, según el espacio y el material que de verdad tiene.</p>
-     <div class="quien"><span>${ic('diana', 'style="width:16px;height:16px"')}Prof. Jorge Ramírez</span><span>Educación Física</span><span>Esc. Prim. «Benito Juárez», Camalú</span></div></section>
+     ${plQuien(true)}</section>
     <div class="paso-t"><span class="n">1</span><h2>¿Con qué grupos?</h2></div>
     <div class="seg" role="group" aria-label="Grados">${[1, 2, 3, 4, 5, 6].map(g => `<button data-gr="${g}" aria-pressed="${E.efGr.has(String(g))}">${g}.°</button>`).join('')}</div>
     <p class="nota-ef">${gr.length ? `Fase ${fases.join(' y ')}${fases.length > 1 ? ': Tlamatini arma una unidad por fase, con actividades diferenciadas por grado.' : `: ${gr.map(g => g + '.°').join(' y ')}, con actividades diferenciadas por grado.`}` : 'Elija al menos un grado.'}</p>
@@ -942,7 +942,7 @@ function vInicioEF() {
      <div class="big"><b>${n}</b><span>${n === 1 ? 'sesión' : 'sesiones'} de ${E.efMin} min<br><span style="color:#AAB6CF;font-size:14px">${n ? esc(fCorta(r.dias[0])) + (n > 1 ? ' a ' + esc(fCorta(r.dias[n - 1])) : '') : 'Elija días de la semana'}</span></span></div>
      ${telar(r.dias, r.fuera, null, 'chico')}
      ${r.fuera.length ? `<p class="leyenda">Sin clases: ${r.fuera.map(([k, s]) => `${esc(fCorta(k))} (${motivo(s)})`).join(', ')}.</p>` : ''}
-     ${[...E.efGr].some(g => !['3', '4'].includes(g)) ? '<p class="leyenda" style="color:#F0C987">En el prototipo, el ejemplo de unidad siempre es de 3.° y 4.°.</p>' : ''}<dl><dt>Grupos</dt><dd>${gr.length ? gr.map(g => g + '.°').join(', ') : '—'}</dd><dt>Material</dt><dd>${faltan.length ? `faltan ${faltan.length}: se proponen sustitutos` : 'alcanza con lo que tiene'}</dd>${calor ? '<dt>Calor</dt><dd>plan B bajo sombra</dd>' : ''}</dl>
+     ${[...E.efGr].some(g => !['3', '4'].includes(g)) ? '' : ''}<dl><dt>Grupos</dt><dd>${gr.length ? gr.map(g => g + '.°').join(', ') : '—'}</dd><dt>Material</dt><dd>${faltan.length ? `faltan ${faltan.length}: se proponen sustitutos` : 'alcanza con lo que tiene'}</dd>${calor ? '<dt>Calor</dt><dd>plan B bajo sombra</dd>' : ''}</dl>
      <button class="btn maiz" id="armar" ${ok ? '' : 'disabled'}>${ic('chispa')}Armar mi unidad</button></aside>
    </div></main>
    <div class="fijo solo-movil"><div class="fijo-in"><div class="tx">${ok ? `<b>${gr.map(g => g + '.°').join(', ')}</b><br>${n} sesiones de ${E.efMin} min` : 'Complete grupos, contenido y días'}</div><button class="btn maiz" id="armar2" ${ok ? '' : 'disabled'}>${ic('chispa')}Armar</button></div></div>`;
@@ -1019,7 +1019,7 @@ function panelEF() { return ({ sesiones: () => { const P = E.plan; let h = '<div
 function pFichero() {
   const f = E.fFil || 'todos', cats = ['todos', ...new Set(Object.values(JUEGOS).map(j => j.est))];
   const lista = Object.entries(JUEGOS).filter(([, j]) => f === 'todos' || j.est === f || (f === 'Sin material' && !j.mat.length));
-  return `<p class="sub-f">Todos los juegos de la unidad con su organización en la cancha. En la versión final, el fichero crece con los juegos que agreguen los maestros de la zona, incluidos juegos tradicionales de la región.</p>
+  return `<p class="sub-f">Todos los juegos de la unidad con su organización en la cancha. El fichero crece con los juegos que agreguen los maestros de la zona, incluidos juegos tradicionales de la región.</p>
    <div class="filtros">${[...cats, 'Sin material'].map(c => `<button data-fil="${esc(c)}" aria-pressed="${f === c}">${c === 'todos' ? 'Todos' : esc(c)}</button>`).join('')}</div>
    <div class="fichero">${lista.map(([id, j]) => `<article class="ficha">${plano(j.plano)}<div class="ficha-tx"><div class="chips">${[j.est, ...j.hab].map((x, k) => `<span class="chip ${k ? '' : 'j'}">${esc(x)}</span>`).join('')}</div><h3>${esc(j.n)}</h3><p>${esc(j.reglas[0])}</p>
      <p class="meta-f">${j.min} min · ${j.mat.length ? j.mat.map(m => (EF_MAT.find(x => x[0] === m) || [, m])[1].toLowerCase()).join(', ') : 'sin material'}${j.sombra ? ' · funciona bajo sombra' : ''}</p></div></article>`).join('')}</div>`;
@@ -1028,7 +1028,7 @@ function pEvalEF() {
   return `<div class="grid2">
    <div class="card"><h3>Qué se observa</h3><p class="sub">Indicadores tomados de los PDA de ${[...E.efGr].sort().map(g => g + '.°').join(' y ')}. Se observan durante el juego, no con exámenes.</p>
     <div style="overflow:auto"><table class="lc"><thead><tr><th>Indicador</th><th class="c">Grado</th><th class="c">Logrado</th><th class="c">En proceso</th><th class="c">Necesita apoyo</th></tr></thead><tbody>${EF_CRIT.map(([c, g]) => `<tr><td>${esc(c)}</td><td class="c">${g}</td><td class="c">☐</td><td class="c">☐</td><td class="c">☐</td></tr>`).join('')}</tbody></table></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sec chico" data-proto>${ic('imp', 'style="width:16px;height:16px"')}Imprimir con mis grupos</button><button class="btn sec chico" data-proto>Registrar desde el celular en el patio</button></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sec chico" id="efImpLista">${ic('imp', 'style="width:16px;height:16px"')}Imprimir lista de cotejo</button><button class="btn sec chico" id="efUlama">Registrar desde el celular en el patio (Ulama)</button></div></div>
    <div class="card"><h3>Autoevaluación: semáforo de manos</h3><p class="sub">Al final de cada sesión, en el círculo. Rápida y sin papel.</p>
     <div class="semaforo"><div><span style="background:#1B7560">${ic('bien')}</span><b>Pulgar arriba</b><small>Lo logré y ayudé a mi equipo.</small></div><div><span style="background:#B07A14">${ic('medio')}</span><b>Pulgar de lado</b><small>Lo intenté, me falta un poco.</small></div><div><span style="background:#A3322A">${ic('no')}</span><b>Pulgar abajo</b><small>Necesito ayuda para lograrlo.</small></div></div>
     <p class="nota-ef" style="margin-top:12px"><b>No se evalúa</b> ganar los juegos ni traer ropa deportiva: se valora el proceso, la participación y los avances de cada quien.</p></div>
@@ -1043,14 +1043,14 @@ function pEvalEF() {
 function pDocEF() {
   const P = E.plan, gr = [...E.efGr].sort(), pdas = efContenidos().filter(c => E.efCont.has(c.c));
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="btn pri" data-doc="word">${ic('descarga')}Word (editable)</button><button class="btn sec" data-doc="pdf">${ic('descarga')}PDF</button><button class="btn sec" data-doc="imp">${ic('imp')}Imprimir</button></div>
-  <div class="hoja"><div class="enc"><div class="logo">Logo<br>ISEP</div><div style="text-align:center">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA<br>Esc. Prim. «Benito Juárez» · C.C.T. [CCT] · Zona Escolar 050 · Camalú, San Quintín</div><div class="logo">Logo<br>escuela</div></div>
+  <div class="hoja"><div class="enc">${plLogo('isep')}<div style="text-align:center">INSTITUTO DE SERVICIOS EDUCATIVOS Y PEDAGÓGICOS DE BAJA CALIFORNIA<br>${esc(plEscLinea())}</div>${plLogo('esc')}</div>
    <h1>Planeación didáctica de Educación Física</h1><p style="text-align:center;margin:2px 0 10px">${esc(P.titulo)}</p>
-   <table><tr><th>Docente</th><td>Prof. Jorge Ramírez</td><th>Grados</th><td>${gr.map(g => g + '.°').join(', ')}</td></tr><tr><th>Periodo</th><td>${esc(fCorta(P.ses[0].fecha))} al ${esc(fCorta(P.ses[P.ses.length - 1].fecha))}</td><th>Sesiones</th><td>${P.ses.length} de ${E.efMin} minutos</td></tr><tr><th>Estrategias</th><td colspan="3">${[...new Set(P.ses.flatMap(s => s.ppal.map(j => JUEGOS[j].est)))].join(', ')}</td></tr></table>
+   <table><tr><th>Docente</th><td>${esc(plNombre(true))}</td><th>Grados</th><td>${gr.map(g => g + '.°').join(', ')}</td></tr><tr><th>Periodo</th><td>${esc(fCorta(P.ses[0].fecha))} al ${esc(fCorta(P.ses[P.ses.length - 1].fecha))}</td><th>Sesiones</th><td>${P.ses.length} de ${E.efMin} minutos</td></tr><tr><th>Estrategias</th><td colspan="3">${[...new Set(P.ses.flatMap(s => s.ppal.map(j => JUEGOS[j].est)))].join(', ')}</td></tr></table>
    <h3>Contenidos y PDA (De lo Humano y lo Comunitario)</h3><table><tr><th style="width:30%">Contenido</th><th>PDA</th></tr>${pdas.map(x => `<tr><td>${esc(x.c)}</td><td>${gr.filter(g => x.pda[g]).map(g => `<b>${g}.°</b> ${esc(x.pda[g])}`).join('<br>')}</td></tr>`).join('')}</table>
    <h3>Secuencia de sesiones</h3><table><tr><th style="width:17%">Sesión</th><th>Activación · Parte principal · Vuelta a la calma</th><th style="width:24%">Evaluación</th></tr>${P.ses.map((s, i) => `<tr><td><b>${i + 1}. ${esc(s.t)}</b><br>${esc(fCorta(s.fecha))}</td><td>${esc(JUEGOS[s.act].n)} · ${s.ppal.map(j => esc(JUEGOS[j].n)).join(', ')} · ${esc(JUEGOS[s.calma].n)}. Reflexión: ${esc(s.cierre.join(' '))}</td><td>${esc(s.eval)}</td></tr>`).join('')}</table>
    <h3>Evaluación formativa</h3><p>Indicadores: ${EF_CRIT.map(x => esc(x[0])).join(' ')} Instrumentos: lista de cotejo, registro de observación y autoevaluación con semáforo de manos.</p>
    ${incDocHTML()}<h3>Inclusión y cuidados</h3><p>Juegos sin eliminación, versiones más fáciles y más difíciles de cada juego, roles alternativos con la misma participación, hidratación entre juegos y plan B bajo sombra en días de calor.</p>
-   <div class="firmas"><div>Prof. Jorge Ramírez<br>Docente de Educación Física</div><div>Vo. Bo. Director(a) de la escuela</div></div></div>`;
+   <div class="firmas"><div>${esc(plNombre(true))}<br>Docente de Educación Física</div><div>Vo. Bo. Director(a) de la escuela</div></div></div>`;
 }
 function cablearEF() {
   incCablear(repintaPanelEF);
@@ -1061,7 +1061,7 @@ function cablearEF() {
   $$('[data-planb]').forEach(b => b.onclick = () => { const i = +b.dataset.planb; E.planB[i] = !E.planB[i]; repintaPanelEF(); toast(E.planB[i] ? 'Plan B activo: juego bajo sombra, sin carreras.' : 'Se regresó al plan original.'); });
   $$('[data-fil]').forEach(b => b.onclick = () => { E.fFil = b.dataset.fil; repintaPanelEF(); });
   $$('[data-efaj]').forEach(b => b.onclick = () => { const i = +b.closest('.ses').dataset.i, s = E.plan.ses[i], t = b.dataset.efaj;
-    if (t === 'ia') { const x = prompt('¿Qué cambio quiere en esta sesión? (Ej.: «solo tengo una pelota», «agrega un juego tradicional»)'); if (x) toast('En la versión final, la IA rehace la sesión con: <b>' + esc(x) + '</b>'); return; }
+    if (t === 'ia') { const x = prompt('¿Qué cambio quiere en esta sesión? (Ej.: «solo tengo una pelota», «agrega un juego tradicional»)'); if (x && x.trim()) { s.cierre = (s.cierre || []).concat(['Ajuste del docente: ' + x.trim()]); if (!s.aj.includes('nota')) s.aj.push('nota'); toast(`Sesión ${i + 1}: se anotó su ajuste; aparece en la reflexión final y en el documento.`); repintaPanelEF(); } return; }
     if (t === 'cambiar') { const ops = Object.keys(JUEGOS).filter(k => !['globo', 'espejo', 'rally', 'encantados'].includes(k) && !s.ppal.includes(k)); const nuevo = ops[(ops.indexOf(s.ppal[0]) + 1 + i) % ops.length] || ops[0]; s.ppal[0] = nuevo; if (!s.aj.includes('cambio')) s.aj.push('cambio'); toast(`Sesión ${i + 1}: ahora el juego principal es <b>${esc(JUEGOS[nuevo].n)}</b>.`); }
     if (t === 'intensa') { s.aj = s.aj.filter(x => x !== 'tranquila'); if (!s.aj.includes('intensa')) s.aj.push('intensa'); s.act = 'cola'; toast(`Sesión ${i + 1}: activación más intensa (Atrapa la cola) y juegos en su versión difícil.`); }
     if (t === 'tranquila') { s.aj = s.aj.filter(x => x !== 'intensa'); if (!s.aj.includes('tranquila')) s.aj.push('tranquila'); s.act = 'pelotaAire'; toast(`Sesión ${i + 1}: activación tranquila (Pelota al aire) y juegos en su versión fácil.`); }
@@ -1125,13 +1125,13 @@ function vClaseEF() {
   let el = $('#clase'); if (!el) { el = document.createElement('section'); el.id = 'clase'; el.className = 'clase'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Mi clase de hoy'); document.body.appendChild(el); document.body.style.overflow = 'hidden'; }
   const mm = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
   const k = C.paso, tot = k >= 0 ? pasos[k][2] * 60 : 1, R = 88, L = 2 * Math.PI * R, frac = k >= 0 ? C.resta / tot : 1;
-  const nombres = [...EF_NOMBRES], cols = ['#2D5491', '#C2603A', '#1B7560', '#B07A14'];
+  const nombres = plNombresAlumnos() || [...EF_NOMBRES], cols = ['#2D5491', '#C2603A', '#1B7560', '#B07A14'];
   el.innerHTML = `<div class="clase-in"><div class="cab"><span>Educación Física. Sesión ${C.i + 1} de ${E.plan.ses.length}</span><button class="cerrar" id="cCerrar" aria-label="Cerrar">${ic('x')}</button></div>
    <h1>${esc(s.t)}</h1><p style="color:#C9D3E6">${esc(fCorta(s.fecha))}, ${T.tot} minutos${pb ? ', plan B bajo sombra' : ''}</p>
    <div class="di"><small>Plática inicial en círculo</small>${esc(s.charla)}</div>
    <div class="herr"><button class="btn maiz" id="silbar">${ic('chispa')}Silbato</button><button class="btn sec-osc" id="equipos">${ic('grupo')}Formar equipos al azar</button>
      <label class="sel-osc">Equipos <select id="nEq">${[2, 3, 4].map(x => `<option ${C.nEq === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label></div>
-   ${C.equipos ? `<div class="equipos">${C.equipos.map((e, j) => `<div style="--c:${cols[j]}"><b>Equipo ${j + 1}</b>${e.map(x => `<span>${esc(x)}</span>`).join('')}</div>`).join('')}</div><p style="color:#AAB6CF;font-size:13.5px;margin:6px 0 0">Nombres de ejemplo. En Tlamatini salen de la lista de cada grupo, solo en su dispositivo.</p>` : ''}
+   ${C.equipos ? `<div class="equipos">${C.equipos.map((e, j) => `<div style="--c:${cols[j]}"><b>Equipo ${j + 1}</b>${e.map(x => `<span>${esc(x)}</span>`).join('')}</div>`).join('')}</div><p style="color:#AAB6CF;font-size:13.5px;margin:6px 0 0">${plNombresAlumnos() ? 'Nombres de su base de alumnos de Tlamatini; solo se ven en su dispositivo.' : 'Nombres de ejemplo: dé de alta a sus alumnos en Tlamatini para que salgan los suyos.'}</p>` : ''}
    <div class="cronos" style="margin-top:16px"><div class="dial"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="${R}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="12"/><circle id="arco" cx="100" cy="100" r="${R}" fill="none" stroke="#E3A63B" stroke-width="12" stroke-linecap="round" stroke-dasharray="${L * frac} ${L}"/></svg>
      <div class="c"><b id="crono">${k >= 0 ? mm(C.resta) : T.tot + "'"}</b><span>${k >= 0 ? esc(pasos[k][0]) + (RELOJ ? '' : ', en pausa') : 'Toque «Iniciar»'}</span></div></div>
     <div>${pasos.map(([l, j, m], x) => { const J = j && JUEGOS[j]; return `<div class="paso ${k === x ? 'activo' : ''}"><div class="ph"><b>${esc(l)}${J ? `: ${esc(J.n)}` : ''}</b><small>${m} min</small><button class="go" data-go="${x}">${k === x ? (RELOJ ? 'Pausa' : 'Seguir') : 'Iniciar'}</button></div>
@@ -1157,6 +1157,9 @@ function vClaseEF() {
 /* ---------- Avisos ---------- */
 let tT = null;
 function toast(h, ms = 3200) { const t = $('#toast'); t.innerHTML = h; t.classList.add('ver'); clearTimeout(tT); tT = setTimeout(() => t.classList.remove('ver'), ms); }
+</script>
+<script src="planeacion-docente.js?v=2026-11-18a"></script>
+<script>
 if (/mia/.test(location.hash)) E.modo = 'mia';
 pintar();
 </script>
