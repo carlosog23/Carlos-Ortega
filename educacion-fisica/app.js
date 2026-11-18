@@ -60,7 +60,7 @@ window.addEventListener("popstate", () => { if (PILA.length || S.v !== "inicio")
 function pintar() {
   cerrarDlg();
   if (typeof ACCESO_OK !== "undefined" && !ACCESO_OK && S.v !== "acceso" && S.v !== "admin") S = { v: "acceso" };
-  else if (!D.cfg.bienvenida && !["bienvenida", "acceso", "admin"].includes(S.v)) S = { v: "bienvenida", paso: 1 };
+  else if (!D.cfg.bienvenida && !["registro", "registroListo", "acceso", "admin"].includes(S.v)) S = { v: "registro" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = () => history.back();
 }
@@ -187,11 +187,11 @@ ENLAZAR.inicio = () => { enlazarAvisoRespaldo(); $("#bClase").onclick = () => ir
 VISTAS.escuelas = () => barra("Mis escuelas y grupos", "Escuelas", `<button class="btn s p" id="bNE">${ic("mas")} Escuela</button>`) + `<main class="wrap">
   ${D.escuelas.map(e => { const gs = gruposDe(e.id); return `<section class="card mt"><div class="fila" style="align-items:flex-start"><div style="flex:1;min-width:0"><h3>${esc(e.nombre)}</h3>
    <p class="small muted">${esc(e.cct)}${e.turno ? " · " + esc(e.turno) : ""} · Días: ${(e.dias || []).map(d => DSEM[d]).join(", ") || "—"}<br>Dirección: ${esc(dirNombre(e) || "—")}${e.correo ? " · " + esc(e.correo) : ""}<br>Supervisor(a) de E. F.: ${esc(e.supEF || "—")}${e.supCorreo ? " · " + esc(e.supCorreo) : ""}</p></div>
-   <button class="btn s" data-ee="${e.id}">${ic("lapiz", 16)} Editar</button></div>
+   <span class="fila" style="gap:6px">${e.horario ? `<button class="btn s" data-hv="${e.id}">${ic("agenda", 16)} Horario</button>` : ""}<button class="btn s" data-ee="${e.id}">${ic("lapiz", 16)} Editar</button></span></div>
    <div class="lista mt">${gs.map(g => `<button class="it btnit" data-g="${g.id}"><span class="av">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${grNom(g)} · ${activos(g).length} alumnos</b><small>${esc(g.docente || "Docente sin registrar")}${g.correo ? " · " + esc(g.correo) : ""}</small></span>${ic("atras", 16).replace('d="M15 18l-6-6 6-6"', 'd="M9 18l6-6-6-6"')}</button>`).join("") || `<div class="vacio">Sin grupos todavía.</div>`}</div>
    <div class="fila mt"><button class="btn s p" data-ng="${e.id}">${ic("mas", 16)} Grupo</button><button class="btn s" data-imp="${e.id}">${ic("camara", 16)} Grupos desde foto o PDF</button></div></section>`; }).join("") || `<div class="vacio mt">Agregue su primera escuela.</div>`}
   <input type="file" id="fImp" accept="application/pdf,image/*" multiple hidden></main>`;
-ENLAZAR.escuelas = () => { $("#bNE").onclick = () => formEscuela(null, pintar); $$("[data-ee]").forEach(b => b.onclick = () => formEscuela(escDe(b.dataset.ee), pintar));
+ENLAZAR.escuelas = () => { $$("[data-hv]").forEach(b => b.onclick = () => { const e = escDe(b.dataset.hv); dlg(`<h3>Horario · ${esc(e.nombre)}</h3><img src="${e.horario}" alt="Horario" style="width:100%;border-radius:12px;border:1px solid var(--hilo)"><div class="fila fin mt"><button class="btn" id="hX">Cerrar</button></div>`, v => v.querySelector("#hX").onclick = cerrarDlg); }); $("#bNE").onclick = () => formEscuela(null, pintar); $$("[data-ee]").forEach(b => b.onclick = () => formEscuela(escDe(b.dataset.ee), pintar));
   $$("[data-ng]").forEach(b => b.onclick = () => formGrupo(null, b.dataset.ng, pintar)); $$("[data-g]").forEach(b => b.onclick = () => ir("grupo", { id: b.dataset.g }));
   $$("[data-imp]").forEach(b => b.onclick = () => { S.impEsc = b.dataset.imp; $("#fImp").click(); }); $("#fImp").onchange = e => importarGrupos([...e.target.files], S.impEsc); };
 
@@ -584,7 +584,7 @@ async function restaurar(f) { if (!f) return; try { const x = typeof f.text === 
   D = Object.assign(VACIO(), x); D.cfg.bienvenida = !!(D.docente && D.docente.nombre); if (g0 && !D.cfg.google) D.cfg.google = g0; guardar(); S = { v: "inicio" }; PILA.length = 0; pintar(); toast("Respaldo cargado."); } catch (e) { toast("<b>Ese archivo no es un respaldo de Ulama.</b>"); } }
 
 /* =================================================================== DOCUMENTOS */
-function logoEsc(e) { return e && e.cct ? `<img src="${IMG_T}escuelas/${esc(e.cct)}.jpg" onerror="if(!this.dataset.p){this.dataset.p=1;this.src='${IMG_T}escuelas/${esc(e.cct)}.png'}else{this.remove()}" alt="">` : ""; }
+function logoEsc(e) { if (e && e.logo) return `<img src="${e.logo}" alt="">`; return e && e.cct ? `<img src="${IMG_T}escuelas/${esc(e.cct)}.jpg" onerror="if(!this.dataset.p){this.dataset.p=1;this.src='${IMG_T}escuelas/${esc(e.cct)}.png'}else{this.remove()}" alt="">` : ""; }
 function encabezado(e, titulo) { return `<table class="enc"><tr><td style="width:90px"><img src="${IMG_T}isep.png" alt="ISEP"></td><td class="t"><b>${esc(e ? e.nombre : "")}</b><br><span>${e ? `C.C.T. ${esc(e.cct)}${e.turno ? " · Turno " + esc(e.turno) : ""}${e.zona ? " · Zona Escolar " + esc(e.zona) : ""}${e.localidad ? " · " + esc(e.localidad) : ""}` : ""}</span><br><b class="tt">${titulo}</b></td><td style="width:90px;text-align:right">${logoEsc(e)}</td></tr></table>`; }
 function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F = filasEval(g, E), con = F.filter(f => f.cal != null), prom = con.length ? (con.reduce((t, f) => t + f.cal, 0) / con.length).toFixed(1) : "—";
   return `<div class="doc ${i ? "salto" : ""}">${encabezado(e, "Evaluación de Educación Física")}
