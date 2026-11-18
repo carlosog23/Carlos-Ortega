@@ -5967,7 +5967,12 @@ async function minPdf(m) {
    El usuario de cada escuela es su clave de centro de trabajo; la contraseña cambia cada ciclo.
    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas.
    Las claves se piden al servidor al abrir la sección y no se guardan en el dispositivo. */
-const REL_VER = 52, REL_URL = 'https://rel.educacionbc.edu.mx/PRIM/';
+const REL_VER = 52, REL_USU_VER = 64, REL_URL = 'https://rel.educacionbc.edu.mx/PRIM/';
+/* Usuario de la RELweb: casi siempre es la CCT, pero a algunas escuelas les dan otro (p. ej. SUPERVISION050).
+   Con el servidor v64 se guarda en su campo; con uno anterior va al inicio de la nota como «[usuario:…]». */
+const REL_TAG = /^\[usuario:([^\]]+)\]\s*/i;
+const relUsuario = (cct, r) => (r && r.usuario && r.usuario !== cct ? r.usuario : (r && ((String(r.nota || '').match(REL_TAG) || [])[1] || '').trim())) || cct;
+const relNota = r => String((r && r.nota) || '').replace(REL_TAG, '');
 let REL = null;
 const relVistas = new Set();
 async function relCargar() {
@@ -6003,15 +6008,15 @@ function vRelweb() {
       <div class="nom">${esc(c.escuela)}</div>
       <div class="peq mudo">${c.sup ? 'Clave de la Supervisión · solo la ve usted' : esc(c.municipio) + (c.turno ? ' · ' + esc(c.turno) : '') + (esAdmin() && a ? ' · ATP: ' + esc(nombreCorto(a.nombre)) : '')}</div>
       <div>${estado}</div>
-      <div class="rel-dato"><span class="ayuda">Usuario</span><code>${esc(c.cct)}</code><button class="icono-btn" data-rlcu="${c.cct}" title="Copiar el usuario" aria-label="Copiar el usuario">${ico('i-copiar')}</button></div>
+      <div class="rel-dato"><span class="ayuda">Usuario</span><code>${esc(relUsuario(c.cct, r))}</code><button class="icono-btn" data-rlcu="${c.cct}" title="Copiar el usuario" aria-label="Copiar el usuario">${ico('i-copiar')}</button></div>
       <div class="rel-dato"><span class="ayuda">Contraseña</span>${r ? `<code>${ver ? esc(r.clave) : '••••••••'}</code><button class="boton sec chico" data-rlver="${c.cct}">${ver ? 'Ocultar' : 'Ver'}</button><button class="icono-btn" data-rlcc="${c.cct}" title="Copiar la contraseña" aria-label="Copiar la contraseña">${ico('i-copiar')}</button>` : '<span class="peq mudo" style="flex:1">Todavía no se captura</span>'}</div>
-      ${r && r.nota ? `<div class="peq">${esc(r.nota)}</div>` : ''}
+      ${r && relNota(r) ? `<div class="peq">${esc(relNota(r))}</div>` : ''}
       ${r ? `<div class="ayuda">Actualizó ${esc(nombreCorto(r.actualizadoNombre) || 'la Mesa Técnica')} · ${fechaCorta(String(r.actualizado).slice(0, 10))}</div>` : ''}
-      <div class="lnk"><button class="boton ${r && r.ciclo === REL.ciclo ? 'sec ' : ''}chico" data-rled="${c.cct}">${ico('i-lapiz')}${r ? 'Actualizar la contraseña' : 'Capturar la contraseña'}</button></div>
+      <div class="lnk"><button class="boton ${r && r.ciclo === REL.ciclo ? 'sec ' : ''}chico" data-rled="${c.cct}">${ico('i-lapiz')}${r ? 'Actualizar usuario o contraseña' : 'Capturar la clave'}</button></div>
     </div>`;
   };
   $('#vista').innerHTML = cab + `
-  <div class="aviso-caja">${esAdmin() ? 'Aquí están la clave de la RELweb de la Supervisión y las de todas las escuelas de la zona. Cada ATP captura y actualiza las de sus escuelas; usted también puede hacerlo.' : 'Aquí captura y actualiza las claves de la RELweb de las escuelas que tiene a su cargo. Solo usted y la Supervisión las ven.'} El usuario es la clave del centro de trabajo; la contraseña cambia cada ciclo escolar.</div>
+  <div class="aviso-caja">${esAdmin() ? 'Aquí están la clave de la RELweb de la Supervisión y las de todas las escuelas de la zona. Cada ATP captura y actualiza las de sus escuelas; usted también puede hacerlo.' : 'Aquí captura y actualiza las claves de la RELweb de las escuelas que tiene a su cargo. Solo usted y la Supervisión las ven.'} El usuario casi siempre es la clave del centro de trabajo (si a una escuela le dieron otro, se cambia al actualizar); la contraseña cambia cada ciclo escolar.</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     <span class="chip ok">${alDia} de ${lista.length} al día (${esc(REL.ciclo)})</span>
     ${viejas ? `<span class="chip aviso">${viejas} por actualizar</span>` : ''}${faltan ? `<span class="chip mal">${faltan} sin capturar</span>` : ''}
@@ -6019,7 +6024,7 @@ function vRelweb() {
   </div>
   ${lista.length ? `<div class="contactos">${lista.map(tarjeta).join('')}</div>` : `<div class="tarjeta vacio">${esAdmin() ? 'No hay escuelas en esta lista.' : 'Todavía no tiene escuelas asignadas. Pida a la Supervisión que se las asigne en el Directorio.'}</div>`}`;
   if ($('#rl-atp')) $('#rl-atp').onchange = e => { vista.relAtp = e.target.value; vRelweb(); };
-  $$('[data-rlcu]').forEach(b => b.onclick = () => copiar(b.dataset.rlcu, 'Usuario copiado'));
+  $$('[data-rlcu]').forEach(b => b.onclick = () => copiar(relUsuario(b.dataset.rlcu, de(b.dataset.rlcu)), 'Usuario copiado'));
   $$('[data-rlcc]').forEach(b => b.onclick = () => copiar(de(b.dataset.rlcc).clave, 'Contraseña copiada'));
   $$('[data-rlver]').forEach(b => b.onclick = () => { const c = b.dataset.rlver; relVistas.has(c) ? relVistas.delete(c) : relVistas.add(c); vRelweb(); });
   $$('[data-rled]').forEach(b => b.onclick = () => formRelweb(b.dataset.rled));
@@ -6029,17 +6034,20 @@ function formRelweb(cct) {
   const ciclos = [(y - 1) + '-' + y, REL.ciclo, (y + 1) + '-' + (y + 2)];
   modal(r ? 'Actualizar la clave de la RELweb' : 'Capturar la clave de la RELweb', `
     <div class="campo"><label>${c.sup ? 'Centro de trabajo' : 'Escuela'}</label><input value="${esc(c.escuela)}" disabled></div>
-    <div class="campo"><label>Usuario (clave del centro de trabajo)</label><input value="${esc(cct)}" disabled></div>
+    <div class="campo"><label for="rl-u">Usuario</label><input id="rl-u" maxlength="60" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" value="${esc(relUsuario(cct, r))}">
+      <div class="ayuda">Casi siempre es la clave del centro de trabajo (${esc(cct)}). Cámbielo solo si a la escuela le dieron otro usuario.</div></div>
     <div class="campo"><label for="rl-c">Contraseña</label><input id="rl-c" maxlength="80" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="${r ? esc(r.clave) : ''}" placeholder="Escríbala tal como se la dieron">
       <div class="ayuda">Respete mayúsculas, minúsculas y signos.</div></div>
     <div class="campo"><label for="rl-ci">Ciclo escolar</label><select id="rl-ci">${ciclos.map(x => `<option${x === REL.ciclo ? ' selected' : ''}>${x}</option>`).join('')}</select></div>
-    <div class="campo"><label for="rl-n">Nota (opcional)</label><input id="rl-n" maxlength="300" value="${r ? esc(r.nota || '') : ''}" placeholder="Ej. la entregó la dirección el 3 de septiembre"></div>`,
+    <div class="campo"><label for="rl-n">Nota (opcional)</label><input id="rl-n" maxlength="300" value="${r ? esc(relNota(r)) : ''}" placeholder="Ej. la entregó la dirección el 3 de septiembre"></div>`,
     `<button class="boton sec" id="rl-x">Cancelar</button><button class="boton" id="rl-ok">Guardar</button>`);
   $('#rl-x').onclick = cerrarModal;
   $('#rl-ok').onclick = async () => {
     const clave = $('#rl-c').value.trim();
     if (!clave) return aviso('Escriba la contraseña.', 'mal');
-    const res = await accion('relGuardar', { cct, clave, ciclo: $('#rl-ci').value, nota: $('#rl-n').value.trim() });
+    const usuario = $('#rl-u').value.trim() || cct, nota = $('#rl-n').value.trim();
+    const viejo = !(cfg && cfg.demo) && (S.version || 0) < REL_USU_VER && usuario !== cct;
+    const res = await accion('relGuardar', { cct, clave, usuario, ciclo: $('#rl-ci').value, nota: viejo ? ('[usuario:' + usuario + '] ' + nota).trim().slice(0, 300) : nota });
     if (!res) return;
     poner2(REL.rel, res.rel); cerrarModal(); vRelweb(); aviso('Clave guardada.', 'ok', 2500);
   };
@@ -15847,7 +15855,7 @@ function ayuDesc() {
     minutas: d ? 'Minutas de CTE: la minuta se elabora en Tlamatini (dictado e IA) y se envía a Tequio; aquí se da seguimiento a sus acuerdos con semáforo (cumplido, en proceso, pendiente) y se ven los acuerdos del CTZ que le tocan.'
       : 'Minutas de CTE y CTZ: elaborar la minuta del Consejo Técnico de Zona o del CTE agrupado multigrado con dictado y redacción con IA (desarrollo y acuerdos), PDF institucional con firma, llevar los acuerdos al checklist de las escuelas y dar seguimiento a las minutas de CTE que envían las direcciones desde Tlamatini.',
     asistencia: 'Asistencia en contingencias (lluvias, frío o calor extremo): la Supervisión la pide; cada dirección ve la alerta al entrar y captura por grupo los alumnos que asistieron, si el docente acudió y el resto del personal (incapacidad médica, permiso económico, sin información u otro motivo). La primera vez da de alta sus grupos. Los ATP capturan la de sus escuelas si falta la dirección.',
-    relweb: 'Claves de la RELweb de las escuelas (usuario = CCT, contraseña del ciclo): consultarlas, capturarlas y actualizarlas.',
+    relweb: 'Claves de la RELweb de las escuelas (usuario, casi siempre la CCT, y contraseña del ciclo): consultarlas, capturarlas y actualizarlas.',
     correos: 'Correo de la Supervisión: resumen y urgencia de cada mensaje y clasificación de las facturas (PIMMEE, Ingresos propios, CPE, La Escuela es Nuestra, Caja chica, Personal).',
     permisos: 'Permisos y facilidades que autoriza el Supervisor a ATP y directores: 9 días por persona en el año, máximo 3 al expediente; historial por año.',
     enlaces: 'Enlaces personales de acceso a Tequio para ATP y directores: crear, reenviar o anular.'

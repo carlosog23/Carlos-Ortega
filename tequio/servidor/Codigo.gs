@@ -246,7 +246,7 @@ const NOMBRES = { rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas C
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela' };
-const VERSION = 63;
+const VERSION = 64;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -686,7 +686,7 @@ const ACCIONES = {
     const mias = relEscuelas_(yo);
     return { ciclo: cicloActual_(), escuelas: mias, rel: leer_('rel').filter(x => mias.indexOf(x.cct) >= 0).map(relPublica_) };
   },
-  // Captura o actualiza la contraseña de una escuela (cada ciclo cambia). El usuario siempre es la clave del centro de trabajo.
+  // Captura o actualiza la contraseña de una escuela (cada ciclo cambia). El usuario casi siempre es la clave del centro de trabajo, pero se puede cambiar (v64).
   relGuardar: (yo, d) => {
     const cct = String(d.cct || '').trim().toUpperCase();
     if (relEscuelas_(yo).indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'El centro de trabajo no está en el Directorio.' : 'Solo puede capturar las claves de las escuelas que tiene a su cargo.');
@@ -694,7 +694,8 @@ const ACCIONES = {
     if (!clave) throw new Error('Escriba la contraseña de la RELweb.');
     if (clave.length > 80) throw new Error('La contraseña es demasiado larga (máximo 80 caracteres).');
     const ciclo = /^\d{4}-\d{4}$/.test(String(d.ciclo || '')) ? String(d.ciclo) : cicloActual_();
-    const o = { id: cct, cct: cct, usuario: cct, clave: relCifrar_(clave), ciclo: ciclo, nota: String(d.nota || '').trim().slice(0, 300),
+    const usuario = String(d.usuario == null ? '' : d.usuario).trim().slice(0, 60) || cct;
+    const o = { id: cct, cct: cct, usuario: usuario, clave: relCifrar_(clave), ciclo: ciclo, nota: String(d.nota || '').trim().slice(0, 300),
       actualizado: ahora_(), actualizadoPor: yo.id, actualizadoNombre: yo.nombre };
     guardar_('rel', o);
     return { rel: relPublica_(o) };
