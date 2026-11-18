@@ -240,19 +240,22 @@ const HOJAS = {
   agr: ['id', 'cct', 'grupos', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
   asj: ['id', 'fecha', 'motivo', 'nota', 'escuelas', 'estado', 'avisado', 'creadoPor', 'creadoNombre', 'creado', 'cerrada', 'cerradaPor'],
   asr: ['id', 'jornada', 'cct', 'grupos', 'equipo', 'alumnos', 'asistieron', 'docentes', 'docentesA', 'personal', 'personalA', 'capturoPor', 'capturoNombre', 'capturoRol', 'actualizado'],
+  // Consultas de la Supervisión (asistencia a eventos, menú, preguntas). Solo la Supervisión ve las respuestas. Nada se borra: se archiva.
+  cns: ['id', 'titulo', 'descripcion', 'fecha', 'hora', 'lugar', 'cierre', 'preguntas', 'participantes', 'estado', 'codigo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
+  cnr: ['id', 'consulta', 'persona', 'nombre', 'respuestas', 'datos', 'fecha', 'actualizado', 'veces'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
 const NOMBRES = { rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
-  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela' };
-const VERSION = 64;
+  eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
+const VERSION = 65;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo'];
+const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -509,6 +512,11 @@ function doPost(e) {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try { return json_(Object.assign({ ok: true }, REV_PUBLICAS[q.accion](q.datos || {}))); } finally { lock.releaseLock(); }
     }
+    // Consultas: cualquiera con el enlace contesta la suya (elige su nombre); no ve las respuestas de nadie más
+    if (CNS_PUBLICAS[q.accion]) {
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { return json_(Object.assign({ ok: true }, CNS_PUBLICAS[q.accion](q.datos || {}))); } finally { lock.releaseLock(); }
+    }
     // Tlamatini pide los insumos de una escuela: con el enlace de Tequio (k) o con el enlace de acceso de Tlamatini (tok)
     if (q.accion === 'tlaInsumos') return json_(Object.assign({ ok: true }, tlaInsumos_(q)));
     // Tlami, el guía de Tlamatini: conversa (sin bloqueo, porque Gemini tarda) y guarda solicitudes
@@ -568,7 +576,7 @@ const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'vidEstado', 'moverSueltos', 'revFo
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb', 'asistencia'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb', 'asistencia', 'consultas'];
 
 const ACCIONES = {
   // Ayudante de Tequio: conversa con Gemini sobre cómo usar Tequio (sin bloqueo, porque Gemini tarda)
@@ -4362,6 +4370,184 @@ const REV_PUBLICAS = {
     guardar_('rev', r);
     return { foto: x.foto }; }
 };
+
+/* ===================== Consultas (servidor v65) =====================
+   La Supervisión crea consultas (asistencia a un evento, elegir platillo de un menú, preguntas de opción o abiertas)
+   y comparte un enlace público. Cada persona elige su nombre de la lista y contesta; nadie ve lo que contestaron los demás.
+   Solo la Supervisión ve las respuestas. Las consultas no se borran: se cierran y se archivan.
+   cns: preguntas: [{ k, t, tipo: asistencia|opcion|varias|texto|sino|menu, op: [{ t, d, p }], req, serv, ant, antFecha, antNota }]
+        participantes: [{ id, n, d }]. estado: abierta | cerrada | archivada. codigo: el del enlace público.
+   cnr: id = consulta|persona. respuestas: { k: valor }. datos: { cuenta: {…}, pagado: bool, nota }. */
+const CNS_TIPOS = ['asistencia', 'opcion', 'varias', 'texto', 'sino', 'menu'];
+const cnsTxt_ = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+const cnsNum_ = (v, min, max) => { const n = Math.round(Number(v) * 100) / 100; return isFinite(n) ? Math.min(max, Math.max(min, n)) : min; };
+const cnsR2_ = n => Math.round(n * 100) / 100;
+
+function cnsLimpiarPreguntas_(l) {
+  const usadas = {};
+  return (Array.isArray(l) ? l : []).slice(0, 30).map((p, i) => {
+    const tipo = CNS_TIPOS.indexOf(p.tipo) >= 0 ? p.tipo : 'texto';
+    let k = cnsTxt_(p.k, 20).replace(/[^\w-]/g, '') || 'p' + (i + 1);
+    while (usadas[k]) k += 'x';
+    usadas[k] = 1;
+    const o = { k: k, t: cnsTxt_(p.t, 300), tipo: tipo, req: p.req !== false };
+    if (tipo === 'opcion' || tipo === 'varias' || tipo === 'menu')
+      o.op = (Array.isArray(p.op) ? p.op : []).slice(0, 40).map(x => ({ t: cnsTxt_(x.t, 160), d: cnsTxt_(x.d, 400), p: tipo === 'menu' ? cnsNum_(x.p, 0, 1e6) : 0 })).filter(x => x.t);
+    if (tipo === 'menu') {
+      o.serv = cnsNum_(p.serv, 0, 100); o.ant = cnsNum_(p.ant, 0, 100);
+      o.antFecha = /^\d{4}-\d{2}-\d{2}$/.test(String(p.antFecha || '')) ? p.antFecha : '';
+      o.antNota = cnsTxt_(p.antNota, 300);
+    }
+    if (!o.t) throw new Error('La pregunta ' + (i + 1) + ' no tiene texto.');
+    if (o.op && !o.op.length) throw new Error('La pregunta «' + o.t + '» necesita al menos una opción.');
+    return o;
+  });
+}
+function cnsLimpiarParticipantes_(l) {
+  const usados = {};
+  return (Array.isArray(l) ? l : []).slice(0, 300).map(x => {
+    const n = cnsTxt_(x.n, 120);
+    let id = cnsTxt_(x.id, 40).replace(/[^\w-]/g, '') || 'pp-' + Utilities.getUuid().slice(0, 8);
+    while (usados[id]) id += 'x';
+    usados[id] = 1;
+    return { id: id, n: n, d: cnsTxt_(x.d, 120) };
+  }).filter(x => x.n);
+}
+// La cuenta de quien eligió un platillo: precio + servicio; anticipo y resto
+function cnsCuenta_(p, i) {
+  const o = (p.op || [])[i];
+  if (!o) return null;
+  const serv = cnsR2_(o.p * (p.serv || 0) / 100), total = cnsR2_(o.p + serv), ant = cnsR2_(total * (p.ant || 0) / 100);
+  return { k: p.k, plato: o.t, precio: o.p, serv: serv, total: total, anticipo: ant, resto: cnsR2_(total - ant) };
+}
+function cnsAsiste_(c, resp) {
+  const a = (c.preguntas || []).find(p => p.tipo === 'asistencia');
+  return a ? resp[a.k] === 'Sí' : true;
+}
+function cnsCerradaPorFecha_(c) { return c.cierre && c.cierre < hoy_(); }
+
+/* ---- Lo público: cualquiera con el enlace (código de 10 caracteres) ---- */
+function cnsPorCodigo_(c) {
+  c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const o = c.length === 10 ? leer_('cns').find(x => x.codigo === c) : null;
+  if (!o || o.estado === 'archivada') throw new Error('Este enlace ya no está disponible. Consulte a la Supervisión.');
+  return o;
+}
+const CNS_PUBLICAS = {
+  cnsPub: d => {
+    const c = cnsPorCodigo_(d.codigo), z = zonaPublica_();
+    return { consulta: { titulo: c.titulo, descripcion: c.descripcion, fecha: c.fecha, hora: c.hora, lugar: c.lugar, cierre: c.cierre,
+      abierta: c.estado === 'abierta' && !cnsCerradaPorFecha_(c), preguntas: c.preguntas, participantes: c.participantes.map(p => ({ id: p.id, n: p.n, d: p.d })) },
+      zona: { numero: z.numero, logoZona: z.logoZona, lemaZona: z.lemaZona, supervisor: z.supervisor, nivel: z.nivel } };
+  },
+  // Guarda (o reemplaza) la respuesta de una persona. Solo le regresa su propia respuesta; nunca la de otros.
+  cnsPubGuardar: d => {
+    const c = cnsPorCodigo_(d.codigo);
+    if (c.estado !== 'abierta' || cnsCerradaPorFecha_(c)) throw new Error('Esta consulta ya cerró y no recibe respuestas.');
+    const per = c.participantes.find(p => p.id === d.persona);
+    if (!per) throw new Error('Elija su nombre de la lista.');
+    const ent = d.respuestas || {}, resp = {}, datos = {};
+    const asisteP = c.preguntas.find(p => p.tipo === 'asistencia');
+    if (asisteP) {
+      if (['Sí', 'No'].indexOf(ent[asisteP.k]) < 0) throw new Error('Indique si asistirá.');
+      resp[asisteP.k] = ent[asisteP.k];
+    }
+    const va = !asisteP || resp[asisteP.k] === 'Sí';
+    c.preguntas.forEach(p => {
+      if (p.tipo === 'asistencia' || !va) return;
+      const v = ent[p.k];
+      if (p.tipo === 'texto') resp[p.k] = cnsTxt_(v, 2000);
+      else if (p.tipo === 'sino') resp[p.k] = ['Sí', 'No'].indexOf(v) >= 0 ? v : '';
+      else if (p.tipo === 'opcion' || p.tipo === 'menu') resp[p.k] = Number.isInteger(v) && v >= 0 && v < p.op.length ? v : null;
+      else if (p.tipo === 'varias') resp[p.k] = (Array.isArray(v) ? v : []).filter((x, i, a) => Number.isInteger(x) && x >= 0 && x < p.op.length && a.indexOf(x) === i);
+      const vacio = resp[p.k] === '' || resp[p.k] == null || (Array.isArray(resp[p.k]) && !resp[p.k].length);
+      if (p.req && vacio) throw new Error('Falta contestar: «' + p.t + '».');
+      if (p.tipo === 'menu' && resp[p.k] != null) (datos.cuentas = datos.cuentas || []).push(cnsCuenta_(p, resp[p.k]));
+    });
+    const id = c.id + '|' + per.id, previa = buscar_('cnr', id);
+    if (previa && previa.datos && previa.datos.pagado) { datos.pagado = true; datos.pagadoMonto = previa.datos.pagadoMonto || 0; }   // lo que marcó la Supervisión no se pierde
+    if (previa && previa.datos && previa.datos.nota) datos.nota = previa.datos.nota;
+    guardar_('cnr', { id: id, consulta: c.id, persona: per.id, nombre: per.n, respuestas: resp, datos: datos, fecha: previa && previa.fecha ? previa.fecha : ahora_(), actualizado: ahora_(), veces: String((parseInt(previa && previa.veces, 10) || 0) + 1) });
+    return { nombre: per.n, respuestas: resp, cuentas: datos.cuentas || [], va: va };
+  }
+};
+
+/* ---- Lo de la Supervisión ---- */
+function cnsEnlace_(c) {
+  const s = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL') || ScriptApp.getService().getUrl();
+  return PAGINA + 'consulta.html#c=' + c.codigo + '&s=' + encodeURIComponent(s);
+}
+function cnsPublica_(c, todas) {
+  const r = todas.filter(x => x.consulta === c.id && x.fecha);
+  return Object.assign({}, c, { enlace: cnsEnlace_(c), respondieron: r.length });
+}
+Object.assign(ACCIONES, {
+  cnsDatos: (yo) => {
+    soloAdmin_(yo);
+    const todas = leer_('cnr');
+    return { cns: leer_('cns').map(c => cnsPublica_(c, todas)).sort((a, b) => String(b.creado).localeCompare(String(a.creado))) };
+  },
+  cnsGuardar: (yo, d) => {
+    soloAdmin_(yo);
+    const lista = leer_('cns');
+    let c = d.id ? lista.find(x => x.id === d.id) : null;
+    if (d.id && !c) throw new Error('No se encontró la consulta.');
+    if (!c) {
+      const usados = {}; lista.forEach(x => { usados[x.codigo] = 1; });
+      let cod = '';
+      while (!cod || usados[cod]) cod = Array.from({ length: 10 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+      c = { id: 'cns-' + Utilities.getUuid().slice(0, 8), codigo: cod, estado: 'abierta', creadoPor: yo.id, creadoNombre: yo.nombre, creado: ahora_() };
+    }
+    c.titulo = cnsTxt_(d.titulo, 160);
+    if (!c.titulo) throw new Error('Escriba el nombre de la consulta.');
+    c.descripcion = cnsTxt_(d.descripcion, 2000);
+    c.fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(d.fecha || '')) ? d.fecha : '';
+    c.hora = /^\d{2}:\d{2}$/.test(String(d.hora || '')) ? d.hora : '';
+    c.lugar = cnsTxt_(d.lugar, 200);
+    c.cierre = /^\d{4}-\d{2}-\d{2}$/.test(String(d.cierre || '')) ? d.cierre : '';
+    c.preguntas = cnsLimpiarPreguntas_(d.preguntas);
+    if (!c.preguntas.length) throw new Error('Agregue al menos una pregunta.');
+    if (c.preguntas.filter(p => p.tipo === 'asistencia').length > 1) throw new Error('Solo puede haber una pregunta de asistencia.');
+    c.participantes = cnsLimpiarParticipantes_(d.participantes);
+    if (!c.participantes.length) throw new Error('Agregue a las personas que van a contestar.');
+    c.actualizado = ahora_();
+    guardar_('cns', c);
+    return { consulta: cnsPublica_(c, leer_('cnr')) };
+  },
+  // abierta | cerrada | archivada (archivar no borra nada; se puede volver a abrir)
+  cnsEstado: (yo, d) => {
+    soloAdmin_(yo);
+    const c = buscar_('cns', d.id);
+    if (!c) throw new Error('No se encontró la consulta.');
+    if (['abierta', 'cerrada', 'archivada'].indexOf(d.estado) < 0) throw new Error('Estado no válido.');
+    c.estado = d.estado; c.actualizado = ahora_();
+    guardar_('cns', c);
+    return { consulta: cnsPublica_(c, leer_('cnr')) };
+  },
+  cnsRespuestas: (yo, d) => {
+    soloAdmin_(yo);
+    const c = buscar_('cns', d.id);
+    if (!c) throw new Error('No se encontró la consulta.');
+    return { consulta: cnsPublica_(c, leer_('cnr')), respuestas: leer_('cnr').filter(x => x.consulta === c.id) };
+  },
+  // La Supervisión marca el anticipo recibido o deja una nota en la respuesta de una persona
+  cnsMarcar: (yo, d) => {
+    soloAdmin_(yo);
+    const c = buscar_('cns', d.id);
+    if (!c) throw new Error('No se encontró la consulta.');
+    const per = c.participantes.find(p => p.id === d.persona);
+    if (!per) throw new Error('No se encontró a la persona.');
+    const id = c.id + '|' + per.id;
+    const r = buscar_('cnr', id) || { id: id, consulta: c.id, persona: per.id, nombre: per.n, respuestas: {}, datos: {}, fecha: '', veces: '0' };
+    r.datos = r.datos && typeof r.datos === 'object' && !Array.isArray(r.datos) ? r.datos : {};
+    // con el anticipo marcado se guarda cuánto era, por si después la persona cambia de platillo
+    if (d.pagado != null) { r.datos.pagado = !!d.pagado; r.datos.pagadoMonto = d.pagado ? Math.round((r.datos.cuentas || []).reduce((t, x) => t + (x.anticipo || 0), 0) * 100) / 100 : 0; }
+    if (d.nota != null) r.datos.nota = cnsTxt_(d.nota, 300);
+    r.actualizado = ahora_();
+    guardar_('cnr', r);
+    return { respuesta: r };
+  }
+});
 
 /* ===================== Videollamadas ===================== */
 

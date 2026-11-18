@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<script>/* Huella de autoría: solo funciona en el sitio oficial. */
+(function(){var O="https://carlosog23.github.io/Carlos-Ortega/",H=["carlosog23.github.io","localhost","127.0.0.1"],h=location.hostname;
+if(H.indexOf(h)>-1)return;window.__copiaNoAutorizada=true;
+try{new Image().src="https://tlamatini.goatcounter.com/count?p="+encodeURIComponent("/copia-no-autorizada/"+(h||"archivo-local")+location.pathname)+"&t="+encodeURIComponent("Copia no autorizada: "+location.href)+"&rnd="+Math.random()}catch(e){}
+function aviso(){document.title="Copia no autorizada";document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;padding:24px 16px;font:17px/1.55 system-ui,sans-serif;color:#1E2A40;text-align:center"><h1 style="font-size:24px">Copia no autorizada</h1><p>Esta herramienta es obra del Mtro. Carlos Gabriel Ortega Gutiérrez. Su copia o publicación en otro sitio no está permitida.</p><p><a href="'+O+'">Ir al sitio oficial</a></p></div>'}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",aviso);else aviso();})();</script>
+<title>Consulta · Tequio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+  :root{--indigo:#24427A;--tinta:#1E2A40;--terra:#C2603A;--terra-d:#A9512F;--crema:#FBF6EC;--arena-2:#F1E4CC;--papel:#FFFDF8;--borde:#E4D8C3;--gris:#6A5C4C;--ok:#2E7D4F;--ok-f:#E3F2E8;--alerta:#B23A2E;--alerta-f:#F9E3E0}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:17px/1.5 'Source Sans 3',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:640px;margin:0 auto;padding:18px 16px 48px}
+  header{text-align:center;padding:10px 8px 20px;border-bottom:2px solid var(--terra);margin-bottom:20px}
+  header img{max-width:96px;max-height:96px}
+  .zona{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gris);margin-top:6px}
+  h1{font-family:Fraunces,Georgia,serif;font-weight:600;color:var(--indigo);font-size:29px;line-height:1.15;margin:10px 0 6px}
+  .cuando{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;font-weight:600;color:var(--terra-d)}
+  .desc{white-space:pre-line;color:var(--gris);margin-top:10px}
+  .card{background:var(--papel);border:1px solid var(--borde);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(30,42,64,.05)}
+  .paso{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--terra);font-weight:700;margin-bottom:2px}
+  h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:20px;margin:0 0 12px}
+  select,textarea{width:100%;font:inherit;padding:12px;border:1px solid #CDBFA8;border-radius:10px;background:#fff;color:inherit}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-op{border:2px solid var(--borde);border-radius:12px;padding:13px;font:inherit;font-weight:600;background:#fff;color:inherit;cursor:pointer;text-align:center}
+  .btn-op.on{border-color:var(--indigo);background:#EEF2F9;color:var(--indigo)}
+  .btn-op.no.on{border-color:var(--alerta);background:var(--alerta-f);color:var(--alerta)}
+  .ops{display:grid;gap:9px}
+  .op{display:block;border:2px solid var(--borde);border-radius:12px;padding:11px 14px;cursor:pointer;background:#fff}
+  .op.on{border-color:var(--indigo);background:#F3F6FB}
+  .op input{position:absolute;opacity:0;pointer-events:none}
+  .fila{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .nom{font-weight:700}
+  .precio{font-weight:700;color:var(--terra-d);white-space:nowrap}
+  .det{font-size:15px;color:var(--gris);margin-top:2px}
+  .privado{font-size:14px;color:var(--gris);margin-top:10px}
+  .cuenta{border:2px solid var(--terra);background:#FFF8F2}
+  .cuenta table{width:100%;border-collapse:collapse}
+  .cuenta td{padding:5px 0}
+  .cuenta td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .cuenta .tot td{border-top:1px solid var(--borde);font-weight:700}
+  .ant{margin-top:12px;background:var(--indigo);color:#fff;border-radius:10px;padding:14px;text-align:center}
+  .ant .monto{font-family:Fraunces,Georgia,serif;font-size:32px;font-weight:600}
+  .ant small{display:block;opacity:.92;font-size:14px}
+  .resto{margin-top:10px;font-size:15px;color:var(--gris);text-align:center}
+  .enviar{width:100%;font:inherit;font-weight:700;font-size:18px;padding:15px;border:0;border-radius:12px;background:var(--terra);color:#fff;cursor:pointer}
+  .enviar:disabled{background:#D9B5A4;cursor:default}
+  .err{color:var(--alerta);font-size:15px;margin-top:8px;min-height:1em}
+  .hide{display:none!important}
+  .ok{text-align:center}
+  .ok .ico{font-size:44px}
+  .nota{font-size:14px;color:var(--gris);text-align:center;margin-top:18px}
+  .link{background:none;border:0;color:var(--indigo);text-decoration:underline;font:inherit;cursor:pointer;margin-top:8px}
+  .req{color:var(--terra)}
+  .msg{text-align:center;padding:40px 16px;color:var(--gris)}
+  .pie{text-align:center;font-size:13px;color:var(--gris);margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap" id="raiz"><div class="msg">Cargando…</div></div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pesos = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const r2 = n => Math.round(n * 100) / 100;
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const fLarga = f => { if (!f) return ''; const [y, m, d] = f.split('-').map(Number), x = new Date(y, m - 1, d); return DIAS[x.getDay()] + ' ' + d + ' de ' + MESES[m - 1]; };
+const hora12 = h => { if (!h) return ''; let [a, b] = h.split(':').map(Number); const pm = a >= 12; a = a % 12 || 12; return a + ':' + String(b).padStart(2, '0') + (pm ? ' p. m.' : ' a. m.'); };
+
+const H = new URLSearchParams(location.hash.slice(1));
+const CODIGO = (H.get('c') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const SERVIDOR = H.get('s') || '';
+let C = null, R = {};   // consulta y respuestas en curso
+
+async function api(accion, datos) {
+  let r;
+  try {
+    const res = await fetch(SERVIDOR, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion, datos }) });
+    r = await res.json();
+  } catch (e) { throw new Error('No hay conexión. Revise su internet e intente de nuevo.'); }
+  if (!r.ok) throw new Error(r.mensaje || 'Ocurrió un error.');
+  return r;
+}
+function mensaje(t) { $('#raiz').innerHTML = `<div class="msg">${t}</div>`; }
+
+async function iniciar() {
+  if (!CODIGO || !/^https:\/\/script\.google(usercontent)?\.com\//.test(SERVIDOR)) return mensaje('El enlace está incompleto. Pida el enlace de nuevo a la Supervisión.');
+  try { const r = await api('cnsPub', { codigo: CODIGO }); C = r.consulta; C.zona = r.zona || {}; }
+  catch (e) { return mensaje(esc(e.message)); }
+  document.title = C.titulo;
+  pintar();
+}
+
+const asisP = () => C.preguntas.find(p => p.tipo === 'asistencia');
+const va = () => { const a = asisP(); return !a || R[a.k] === 'Sí'; };
+
+function pintar() {
+  const z = C.zona, a = asisP();
+  let n = 1;
+  const cuando = [C.fecha ? '📅 ' + fLarga(C.fecha) : '', C.hora ? '🕐 ' + hora12(C.hora) : '', C.lugar ? '📍 ' + C.lugar : ''].filter(Boolean);
+  let h = `<header>${z.logoZona ? `<img src="${esc(z.logoZona)}" alt="">` : ''}
+    <div class="zona">Supervisión Escolar${z.numero ? ' · Zona ' + esc(z.numero) : ''}${z.lemaZona ? ' · ' + esc(z.lemaZona) : ''}</div>
+    <h1>${esc(C.titulo)}</h1>${cuando.length ? `<div class="cuando">${cuando.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+    ${C.descripcion ? `<div class="desc">${esc(C.descripcion)}</div>` : ''}</header>`;
+  if (!C.abierta) { $('#raiz').innerHTML = h + '<div class="card msg">Esta consulta ya cerró y no recibe respuestas.<br>Si necesita cambiar algo, comuníquese con la Supervisión.</div>'; return; }
+  h += `<div id="form"><div class="card"><div class="paso">Paso ${n++}</div><h2>¿Quién es usted?</h2>
+    <select id="persona"><option value="">Elija su nombre…</option>${C.participantes.map(p => `<option value="${esc(p.id)}">${esc(p.n)}${p.d ? ' — ' + esc(p.d) : ''}</option>`).join('')}</select>
+    <div class="privado">🔒 Su respuesta es privada: solo la ve la Supervisión. Nadie más ve lo que contestó.</div></div>`;
+  if (a) h += `<div class="card"><div class="paso">Paso ${n++}</div><h2>${esc(a.t)}</h2><div class="dos">
+    <button type="button" class="btn-op" data-asi="Sí">Sí, ahí estaré</button><button type="button" class="btn-op no" data-asi="No">No podré asistir</button></div></div>`;
+  h += `<div id="resto"${a ? ' class="hide"' : ''}>`;
+  C.preguntas.forEach((p, i) => {
+    if (p.tipo === 'asistencia') return;
+    h += `<div class="card"><div class="paso">Paso ${n++}</div><h2>${esc(p.t)}${p.req ? '' : ' <span class="det">(opcional)</span>'}</h2>`;
+    if (p.tipo === 'texto') h += `<textarea rows="3" maxlength="2000" data-txt="${esc(p.k)}"></textarea>`;
+    else if (p.tipo === 'sino') h += `<div class="dos"><button type="button" class="btn-op" data-sn="${esc(p.k)}" data-v="Sí">Sí</button><button type="button" class="btn-op" data-sn="${esc(p.k)}" data-v="No">No</button></div>`;
+    else {
+      const multi = p.tipo === 'varias';
+      h += (multi ? '<div class="det" style="margin:-6px 0 10px">Puede elegir varias.</div>' : '') + `<div class="ops">${p.op.map((o, j) => `<label class="op" data-pk="${esc(p.k)}" data-j="${j}">
+        <input type="${multi ? 'checkbox' : 'radio'}" name="q-${esc(p.k)}" value="${j}">
+        <div class="fila"><span class="nom">${p.tipo === 'menu' ? (j + 1) + '. ' : ''}${esc(o.t)}</span>${p.tipo === 'menu' ? `<span class="precio">${pesos(o.p)}</span>` : ''}</div>
+        ${o.d ? `<div class="det">${esc(o.d)}</div>` : ''}</label>`).join('')}</div>`;
+    }
+    h += '</div>';
+    if (p.tipo === 'menu') h += `<div class="card cuenta hide" id="cu-${esc(p.k)}"></div>`;
+  });
+  h += `</div><button class="enviar" id="enviar" disabled>Enviar mi respuesta</button><div class="err" id="err"></div></div>
+    <div class="card ok hide" id="listo"></div>
+    <div class="nota">Si se equivoca, vuelva a entrar a este enlace, elija su nombre y envíe de nuevo: se guarda su última respuesta.</div>
+    <div class="pie">Tequio · Supervisión Escolar${z.numero ? ' Zona ' + esc(z.numero) : ''}</div>`;
+  $('#raiz').innerHTML = h;
+  $('#persona').onchange = revisar;
+  $$('[data-asi]').forEach(b => b.onclick = () => { $$('[data-asi]').forEach(x => x.classList.toggle('on', x === b)); R[a.k] = b.dataset.asi; $('#resto').classList.toggle('hide', !va()); revisar(); });
+  $$('[data-sn]').forEach(b => b.onclick = () => { $$(`[data-sn="${b.dataset.sn}"]`).forEach(x => x.classList.toggle('on', x === b)); R[b.dataset.sn] = b.dataset.v; revisar(); });
+  $$('[data-txt]').forEach(t => t.oninput = () => { R[t.dataset.txt] = t.value; revisar(); });
+  $$('.op').forEach(l => l.querySelector('input').onchange = () => {
+    const p = C.preguntas.find(x => x.k === l.dataset.pk);
+    if (p.tipo === 'varias') R[p.k] = $$(`.op[data-pk="${p.k}"] input`).filter(i => i.checked).map(i => +i.value);
+    else R[p.k] = +l.dataset.j;
+    $$(`.op[data-pk="${p.k}"]`).forEach(x => x.classList.toggle('on', x.querySelector('input').checked));
+    if (p.tipo === 'menu') pintarCuenta(p);
+    revisar();
+  });
+  $('#enviar').onclick = enviar;
+}
+
+function cuenta(p, j) {
+  const o = p.op[j], serv = r2(o.p * (p.serv || 0) / 100), total = r2(o.p + serv), ant = r2(total * (p.ant || 0) / 100);
+  return { plato: o.t, precio: o.p, serv, total, anticipo: ant, resto: r2(total - ant) };
+}
+function htmlCuenta(p, c) {
+  return `<div class="paso">Su cuenta</div><table>
+    <tr><td>${esc(c.plato)}</td><td>${pesos(c.precio)}</td></tr>
+    ${p.serv ? `<tr><td>Servicio (${p.serv} %)</td><td>${pesos(c.serv)}</td></tr>` : ''}
+    <tr class="tot"><td>Total de su consumo</td><td>${pesos(c.total)}</td></tr></table>
+    ${p.ant ? `<div class="ant"><small>Anticipo (${p.ant} %)${p.antFecha ? ' a entregar el' : ''}</small>${p.antFecha ? `<small><b>${fLarga(p.antFecha)}</b></small>` : ''}
+      <div class="monto">${pesos(c.anticipo)}</div>${p.antNota ? `<small>${esc(p.antNota)}</small>` : ''}</div>
+      <div class="resto">El resto, <b>${pesos(c.resto)}</b>, se paga el día del evento.</div>` : ''}`;
+}
+function pintarCuenta(p) {
+  const el = $('#cu-' + p.k);
+  if (R[p.k] == null) return el.classList.add('hide');
+  el.innerHTML = htmlCuenta(p, cuenta(p, R[p.k])); el.classList.remove('hide');
+}
+function falta() {
+  if (!$('#persona').value) return 'Elija su nombre.';
+  const a = asisP();
+  if (a && !R[a.k]) return 'Indique si asistirá.';
+  if (!va()) return '';
+  const p = C.preguntas.find(p => p.tipo !== 'asistencia' && p.req && (R[p.k] == null || R[p.k] === '' || (Array.isArray(R[p.k]) && !R[p.k].length) || (p.tipo === 'texto' && !String(R[p.k]).trim())));
+  return p ? 'Falta: ' + p.t : '';
+}
+function revisar() { $('#enviar').disabled = !!falta(); $('#err').textContent = ''; }
+
+async function enviar() {
+  const f = falta(); if (f) return ($('#err').textContent = f);
+  const b = $('#enviar'); b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    const r = await api('cnsPubGuardar', { codigo: CODIGO, persona: $('#persona').value, respuestas: R });
+    const nom = String(r.nombre || '').replace(/^(Mtr[oa]\.|Profr?a?\.|Lic\.)\s*/i, '');
+    let h;
+    if (!r.va) h = `<div class="ico">✉️</div><h2>Gracias, ${esc(nom)}</h2><p>Quedó registrado que no podrá asistir. Si cambia de opinión, vuelva a entrar a este enlace.</p>`;
+    else {
+      h = `<div class="ico">✅</div><h2>¡Gracias, ${esc(nom)}! Su respuesta quedó registrada</h2>`;
+      (r.cuentas || []).forEach(c => { const p = C.preguntas.find(x => x.k === c.k); if (p) h += `<div class="card cuenta" style="text-align:left">${htmlCuenta(p, c)}</div>`; });
+      if ((r.cuentas || []).length) h += '<p class="det">Puede tomar captura de pantalla de su cuenta.</p>';
+    }
+    $('#listo').innerHTML = h + '<button class="link" id="otra">Corregir mi respuesta</button>';
+    $('#form').classList.add('hide'); $('#listo').classList.remove('hide');
+    $('#otra').onclick = () => { $('#listo').classList.add('hide'); $('#form').classList.remove('hide'); b.disabled = false; b.textContent = 'Enviar mi respuesta'; };
+    window.scrollTo(0, 0);
+  } catch (e) { b.disabled = false; b.textContent = 'Enviar mi respuesta'; $('#err').textContent = e.message; }
+}
+iniciar();
+</script>
+</body>
+</html>

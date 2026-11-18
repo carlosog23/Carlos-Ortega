@@ -758,6 +758,11 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .tla-ok{color:#2E7D4F;font-weight:600}.tla-med{color:#A0601A;font-weight:600}.tla-no{color:#9B2C2C}
 .tla-rev label{display:block;margin:0 0 10px}.tla-rev textarea{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--borde);border-radius:8px;margin-top:4px}
 .tla-prev h3{font-size:16px;margin:14px 0 4px}.tla-prev ul{margin:4px 0;padding-left:20px}
+.cns-t{width:100%;border-collapse:collapse;font-size:14px}
+.cns-t th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris);padding:9px 10px;border-bottom:1px solid var(--borde);white-space:nowrap}
+.cns-t td{padding:8px 10px;border-bottom:1px solid var(--borde);vertical-align:top}
+.cns-t .d{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cns-caja{overflow-x:auto}
 </style>
 </head>
 <body>
@@ -1170,6 +1175,7 @@ function pestanasTodas() {
   l.push(['relweb', 'Claves RELweb', 'i-candado']);
   if (esAdmin()) l.push(['correos', 'Correo de la Supervisión', 'i-correo']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
+  if (esAdmin()) l.push(['consultas', 'Consultas', 'i-chk']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -1177,7 +1183,7 @@ function pestanasTodas() {
    Las secciones se agrupan por para qué sirven. Un grupo con una sola sección
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
-  ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas']],
+  ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas', 'consultas']],
   ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'minutas', 'seguimiento', 'campo', 'visitas', 'asistencia']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
   ['documentos', 'Documentos', 'i-lapiz', ['correos', 'oficios', 'directorio', 'herramientas', 'relweb']],
@@ -1261,10 +1267,10 @@ function pintar() {
   $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
   $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
   $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
-  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; pintar(); window.scrollTo(0, 0); });
+  $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; if (vista.tab === 'consultas') { CNS = null; vista.cnsVer = null; vista.cnsRes = null; } pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas, consultas: vConsultas })[vista.tab]();
   pintarBandaVid(); vidVigilar(); pintarBandaAsi();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
@@ -5974,6 +5980,348 @@ async function minPdf(m) {
   if (m.tipo !== 'cte' && (m.datos || {}).firma && LA_FIRMA_AVISO) aviso(LA_FIRMA_AVISO, 'aviso', 6000);
 }
 
+/* ---------------- Vista: Consultas (solo la Supervisión) ----------------
+   La Supervisión crea una consulta (asistencia a un evento, elegir platillo de un menú con servicio y anticipo,
+   preguntas de opción o abiertas) y comparte su enlace. Cada persona elige su nombre y contesta en privado:
+   nadie ve las respuestas de los demás. Aquí se ven los resultados. Las consultas no se borran: se archivan.
+   Requiere el servidor versión 65. */
+const CNS_VER = 65;
+const CNS_TIPOS = { asistencia: 'Asistencia (Sí / No)', menu: 'Menú con precios (servicio y anticipo)', opcion: 'Opción única', varias: 'Varias opciones', sino: 'Sí o No', texto: 'Respuesta abierta' };
+const cnsPesos = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const cnsR2 = n => Math.round(n * 100) / 100;
+let CNS = null;
+// Plantillas para empezar rápido (se pueden cambiar antes de guardar)
+const CNS_PLANTILLAS = [
+  { id: 'posada', nombre: 'Posada o comida con menú', desc: 'Asistencia, platillo con precio, servicio y anticipo', base: () => ({ titulo: 'Posada', preguntas: [
+    { k: 'asiste', t: '¿Asistirá?', tipo: 'asistencia', req: true },
+    { k: 'menu', t: 'Elija su platillo', tipo: 'menu', req: true, op: [], serv: 10, ant: 50, antFecha: '', antNota: 'El anticipo es solo para reservar su lugar. El resto se paga el día del evento.' }] }) },
+  { id: 'posada050', zona: '050', nombre: 'Posada 2026 · Posada Don Diego', desc: 'Miércoles 9 de diciembre, 1:00 p. m. · 11 platillos, 12 % de servicio, anticipo del 50 % el 25 de noviembre', base: () => ({
+    titulo: 'Posada 2026 · Cuerpo directivo, ATP y Mesa Técnica', fecha: '2026-12-09', hora: '13:00', lugar: 'Posada Don Diego, Vicente Guerrero',
+    descripcion: 'Confirme si asistirá y elija su platillo. Todos incluyen agua fresca natural, ensalada verde, pan, totopos y salsa en la mesa, y mantelería.',
+    preguntas: [
+      { k: 'asiste', t: '¿Asistirá a la posada?', tipo: 'asistencia', req: true },
+      { k: 'menu', t: 'Elija su platillo', tipo: 'menu', req: true, serv: 12, ant: 50, antFecha: '2026-11-25', antNota: 'El anticipo es solo para reservar su lugar. El resto del consumo se paga el día de la posada.', op: [
+        { t: 'Pechuga de pollo rellena', p: 365, d: 'Rellena de rajas y queso, bañada con salsa de mango sobre espejo de salsa de jamaica. Con puré de papa y verduras al vapor.' },
+        { t: 'Pavo tradicional Posada Don Diego', p: 455, d: 'Pavo al horno con gravy, relleno de pavo, puré de papa, verduras al vapor, camote al horno y jalea de arándano.' },
+        { t: 'Pescado 3 Mares', p: 435, d: 'Filete relleno de pulpo, camarones y queso crema, bañado con crema de alcaparras. Con arroz y verduras al vapor.' },
+        { t: 'Camarones rellenos', p: 445, d: 'Rellenos de queso crema, tocino y espinacas, empanizados con panko. Con arroz y verduras al vapor.' },
+        { t: 'Filete miñón prime 350 g', p: 665, d: 'Con gravy y champiñones frescos. Con arroz y verduras al vapor.' },
+        { t: 'Carne arrachera', p: 435, d: 'Con arroz, frijoles, chile toreado, oreja de nopal asado, guacamole y tortillas.' },
+        { t: 'Rib Mare', p: 445, d: 'Rib eye de 300 g con camarones gratinados. Con puré de papa y verduras salteadas.' },
+        { t: 'Pechuga del Pacífico', p: 435, d: 'Rellena de chile poblano tatemado, elote tatemado y queso Oaxaca, sobre espejo de crema de chipotle, con camarones salteados y arroz con verduras.' },
+        { t: 'Pechuga Mar y Tierra', p: 445, d: 'Rellena de camarones salteados, espinacas y queso crema, sobre espejo de salsa de vino blanco con limón y perejil. Con puré de papa rústico y verduras al vapor.' },
+        { t: 'Pechuga del Valle', p: 445, d: 'Rellena de champiñones y cebolla caramelizada, sobre espejo de crema de ajo rostizado, con camarones salteados, puré de papa y verduras al vapor.' },
+        { t: 'Pechuga Toscana', p: 445, d: 'Rellena de verduras salteadas con tocino, bañada en salsa cremosa de queso parmesano. Con puré de papa y verduras al vapor.' }] }] }) },
+  { id: 'evento', nombre: 'Asistencia a un evento', desc: 'Solo confirmar si asiste', base: () => ({ titulo: '', preguntas: [{ k: 'asiste', t: '¿Asistirá?', tipo: 'asistencia', req: true }] }) },
+  { id: 'blanco', nombre: 'Consulta en blanco', desc: 'Usted arma las preguntas', base: () => ({ titulo: '', preguntas: [{ k: 'p1', t: '', tipo: 'opcion', req: true, op: [] }] }) }
+];
+
+async function cnsCargar() {
+  try { const r = await api('cnsDatos', {}); CNS = { lista: r.cns || [] }; }
+  catch (e) { CNS = { error: e.message }; }
+  if (vista.tab === 'consultas') vConsultas();
+}
+const cnsDe = id => (CNS && CNS.lista || []).find(c => c.id === id);
+function cnsPoner(c) { const i = CNS.lista.findIndex(x => x.id === c.id); if (i >= 0) CNS.lista[i] = c; else CNS.lista.unshift(c); }
+const cnsCuando = c => [c.fecha ? fechaLarga(c.fecha) : '', c.hora ? c.hora + ' h' : '', c.lugar || ''].filter(Boolean).join(' · ');
+function cnsMensajeWa(c) {
+  return `*${c.titulo}*${cnsCuando(c) ? '\n' + cnsCuando(c) : ''}\n\nPor favor, entre a este enlace, elija su nombre y conteste${c.cierre ? ' antes del ' + fechaLarga(c.cierre) : ''}. Su respuesta es privada: solo la ve la Supervisión.\n\n${c.enlace}`;
+}
+
+function vConsultas() {
+  if (!esAdmin()) { vista.tab = 'agenda'; return pintar(); }
+  const cab = `<div class="titulo-vista"><h1>Consultas</h1><div class="acciones">${CNS && !CNS.error && !(cfg && cfg.demo) ? `<button class="boton" id="cn-nueva">${ico('i-mas')}Nueva consulta</button>` : ''}</div></div>`;
+  if (cfg && cfg.demo) {
+    $('#vista').innerHTML = cab + '<div class="tarjeta pad"><p style="margin-top:0">Con <b>Consultas</b> la Supervisión arma una consulta (asistencia a un evento, elegir platillo de un menú con servicio y anticipo, o preguntas de opción o abiertas) y comparte un enlace por WhatsApp. Cada persona elige su nombre y contesta en privado; solo la Supervisión ve las respuestas. Las consultas no se borran: se archivan.</p><p class="peq mudo" style="margin-bottom:0">En la demostración no se crean consultas.</p></div>';
+    return;
+  }
+  if ((S.version || 0) < CNS_VER) {
+    $('#vista').innerHTML = cab + `<div class="tarjeta pad"><p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> (versión ${CNS_VER}) para usar las consultas. Toma unos 5 minutos y no se pierde nada.</p><a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a></div>`;
+    return;
+  }
+  if (!CNS) { $('#vista').innerHTML = cab + '<div class="tarjeta vacio">Cargando las consultas…</div>'; cnsCargar(); return; }
+  if (CNS.error) {
+    $('#vista').innerHTML = cab + `<div class="tarjeta pad"><p style="margin-top:0">${esc(CNS.error)}</p><button class="boton sec" id="cn-otra">Intentar de nuevo</button></div>`;
+    $('#cn-otra').onclick = () => { CNS = null; vConsultas(); };
+    return;
+  }
+  if (vista.cnsVer && cnsDe(vista.cnsVer)) return vConsultaRes(vista.cnsVer);
+  const archivo = !!vista.cnsArch;
+  const lista = CNS.lista.filter(c => archivo ? c.estado === 'archivada' : c.estado !== 'archivada');
+  const nArch = CNS.lista.filter(c => c.estado === 'archivada').length;
+  const tarjeta = c => {
+    const n = (c.participantes || []).length, abierta = c.estado === 'abierta' && !(c.cierre && c.cierre < hoy());
+    const est = c.estado === 'archivada' ? '<span class="chip">Archivada</span>' : abierta ? '<span class="chip ok">Abierta</span>' : '<span class="chip aviso">Cerrada</span>';
+    return `<div class="tarjeta pad" style="margin-bottom:12px">
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px"><div style="font-size:18px;font-weight:700">${esc(c.titulo)}</div>
+          <div class="peq mudo">${esc(cnsCuando(c)) || 'Sin fecha de evento'}${c.cierre ? ' · Recibe respuestas hasta el ' + esc(fechaCorta(c.cierre)) : ''}</div></div>
+        <div style="display:flex;gap:6px;align-items:center">${est}<span class="chip indigo">${c.respondieron} de ${n} respondieron</span></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="boton chico" data-cnver="${c.id}">${ico('i-graf')}Ver respuestas</button>
+        ${c.estado !== 'archivada' ? `<button class="boton sec chico" data-cncop="${c.id}">${ico('i-copiar')}Copiar enlace</button>
+        <a class="boton sec chico" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(cnsMensajeWa(c))}">${ico('i-wa')}Enviar por WhatsApp</a>
+        <button class="boton sec chico" data-cned="${c.id}">${ico('i-lapiz')}Editar</button>
+        <button class="boton sec chico" data-cnest="${c.id}" data-est="${c.estado === 'abierta' ? 'cerrada' : 'abierta'}">${c.estado === 'abierta' ? 'Cerrar' : 'Volver a abrir'}</button>
+        <button class="boton sec chico" data-cnest="${c.id}" data-est="archivada">Archivar</button>`
+        : `<button class="boton sec chico" data-cnest="${c.id}" data-est="cerrada">Sacar del archivo</button>`}
+        <button class="boton sec chico" data-cndup="${c.id}">Duplicar</button>
+      </div></div>`;
+  };
+  $('#vista').innerHTML = cab + `
+    <div class="aviso-caja">Cree una consulta y comparta su enlace (por ejemplo, en el grupo de WhatsApp). Cada persona elige su nombre y contesta; <b>nadie ve las respuestas de los demás</b>, solo usted. Si alguien se equivoca, vuelve a entrar y se guarda su última respuesta. Las consultas que ya no use se archivan; no se borran.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="boton ${archivo ? 'sec ' : ''}chico" id="cn-act">Activas (${CNS.lista.length - nArch})</button>
+      <button class="boton ${archivo ? '' : 'sec '}chico" id="cn-arc">Archivo (${nArch})</button>
+    </div>
+    ${lista.length ? lista.map(tarjeta).join('') : `<div class="tarjeta vacio">${archivo ? 'No hay consultas archivadas.' : 'Todavía no hay consultas. Pulse «Nueva consulta» para crear la primera.'}</div>`}`;
+  $('#cn-nueva').onclick = () => cnsElegirPlantilla();
+  $('#cn-act').onclick = () => { vista.cnsArch = false; vConsultas(); };
+  $('#cn-arc').onclick = () => { vista.cnsArch = true; vConsultas(); };
+  $$('[data-cnver]').forEach(b => b.onclick = () => { vista.cnsVer = b.dataset.cnver; vista.cnsRes = null; vConsultas(); window.scrollTo(0, 0); });
+  $$('[data-cncop]').forEach(b => b.onclick = () => copiar(cnsDe(b.dataset.cncop).enlace, 'Enlace copiado'));
+  $$('[data-cned]').forEach(b => b.onclick = () => formConsulta(cnsDe(b.dataset.cned)));
+  $$('[data-cndup]').forEach(b => b.onclick = () => { const c = JSON.parse(JSON.stringify(cnsDe(b.dataset.cndup))); ['id', 'codigo', 'enlace', 'estado', 'respondieron'].forEach(k => delete c[k]); c.titulo = c.titulo + ' (copia)'; formConsulta(null, c); });
+  $$('[data-cnest]').forEach(b => b.onclick = () => cnsCambiarEstado(b.dataset.cnest, b.dataset.est));
+}
+async function cnsCambiarEstado(id, estado) {
+  const c = cnsDe(id);
+  if (estado === 'cerrada' && c.estado === 'abierta' && !confirm('¿Cerrar «' + c.titulo + '»?\n\nYa no se recibirán respuestas. Puede volver a abrirla cuando quiera.')) return;
+  if (estado === 'archivada' && !confirm('¿Archivar «' + c.titulo + '»?\n\nSe cierra y pasa al Archivo con todas sus respuestas. No se borra nada.')) return;
+  try { const r = await api('cnsEstado', { id, estado }); cnsPoner(r.consulta); aviso(estado === 'archivada' ? 'Consulta archivada.' : estado === 'abierta' ? 'La consulta vuelve a recibir respuestas.' : 'Consulta cerrada.', 'ok', 2500); vConsultas(); }
+  catch (e) { aviso(e.message, 'mal', 6000); }
+}
+
+/* --- Nueva consulta: elegir plantilla --- */
+function cnsElegirPlantilla() {
+  const pl = CNS_PLANTILLAS.filter(p => !p.zona || String(ZONA.numero) === p.zona);
+  modal('Nueva consulta', `<p class="peq mudo" style="margin-top:0">Elija cómo empezar. Todo se puede cambiar antes de guardar.</p>
+    <div class="tlm-rejilla">${pl.map(p => `<button class="tarjeta tlm-sec" data-cnpl="${p.id}"><b>${esc(p.nombre)}</b><span>${esc(p.desc)}</span></button>`).join('')}</div>`);
+  $$('[data-cnpl]').forEach(b => b.onclick = () => { const p = CNS_PLANTILLAS.find(x => x.id === b.dataset.cnpl); formConsulta(null, Object.assign(p.base(), { participantes: cnsPersonasZona() })); });
+}
+// Directores (y encargados de despacho), ATP y la Supervisión, sin repetir nombres
+function cnsPersonasZona() {
+  const l = [], vistos = new Set();
+  const poner = (n, d) => { const k = String(n || '').toLowerCase().replace(/^(mtr[oa]\.|profr?a?\.|lic\.|dra?\.)\s*/, '').replace(/\s+/g, ' ').trim(); if (!k || vistos.has(k)) return; vistos.add(k); l.push({ n: n.trim(), d }); };
+  poner(S.yo.nombre, 'Supervisión');
+  S.dir.filter(c => c.tipo === 'atp' && c.activo !== false).forEach(c => poner(c.nombre, 'ATP'));
+  directores().filter(c => c.activo !== false && c.nombre).forEach(c => poner(c.nombre, c.escuela));
+  return l;
+}
+
+/* --- Formulario de la consulta --- */
+function formConsulta(c, base) {
+  const o = c || Object.assign({ titulo: '', descripcion: '', fecha: '', hora: '', lugar: '', cierre: '', preguntas: [], participantes: [] }, base || {});
+  let preg = JSON.parse(JSON.stringify(o.preguntas || []));
+  const yaResp = c && c.respondieron;
+  const lineasOp = p => (p.op || []).map(x => p.tipo === 'menu' ? [x.t, x.p, x.d].filter((v, i) => i < 2 || v).join(' | ') : x.t).join('\n');
+  const bloque = (p, i) => `<div class="tarjeta pad" style="margin-bottom:10px;box-shadow:none" data-cnp="${i}">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><b style="flex:1">Pregunta ${i + 1}</b>
+      ${i > 0 ? `<button class="icono-btn" data-cnsub="${i}" title="Subir" aria-label="Subir">${ico('i-izq')}</button>` : ''}
+      <button class="icono-btn" data-cnquita="${i}" title="Quitar" aria-label="Quitar la pregunta">${ico('i-x')}</button></div>
+    <div class="fila dos"><div class="campo"><label>Tipo</label><select data-f="tipo">${Object.entries(CNS_TIPOS).map(([k, v]) => `<option value="${k}"${p.tipo === k ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="campo"><label>Pregunta</label><input data-f="t" maxlength="300" value="${esc(p.t)}" placeholder="${p.tipo === 'asistencia' ? '¿Asistirá?' : 'Escriba la pregunta'}"></div></div>
+    ${['opcion', 'varias'].includes(p.tipo) ? `<div class="campo"><label>Opciones (una por renglón)</label><textarea data-f="op" rows="4">${esc(lineasOp(p))}</textarea></div>` : ''}
+    ${p.tipo === 'menu' ? `<div class="campo"><label>Platillos: uno por renglón, así: Nombre | precio | descripción</label><textarea data-f="op" rows="7" placeholder="Pechuga rellena | 365 | Con puré de papa y verduras">${esc(lineasOp(p))}</textarea></div>
+      <div class="fila"><div class="campo"><label>Servicio (%)</label><input data-f="serv" type="number" min="0" max="100" step="0.5" value="${p.serv == null ? 10 : p.serv}"></div>
+        <div class="campo"><label>Anticipo (% del total)</label><input data-f="ant" type="number" min="0" max="100" step="1" value="${p.ant == null ? 50 : p.ant}"></div>
+        <div class="campo"><label>Fecha para entregar el anticipo</label><input data-f="antFecha" type="date" value="${esc(p.antFecha || '')}"></div></div>
+      <div class="campo"><label>Nota del anticipo</label><input data-f="antNota" maxlength="300" value="${esc(p.antNota || '')}"></div>` : ''}
+    ${p.tipo === 'asistencia' ? '<div class="ayuda">Si la persona contesta que no asistirá, ya no se le hacen las demás preguntas.</div>' : `<label class="casilla"><input type="checkbox" data-f="req"${p.req !== false ? ' checked' : ''}>Obligatoria</label>`}
+  </div>`;
+  const leerPreg = () => {
+    $$('[data-cnp]').forEach(el => {
+      const p = preg[+el.dataset.cnp], v = f => el.querySelector(`[data-f="${f}"]`);
+      p.tipo = v('tipo').value; p.t = v('t').value.trim();
+      if (v('req')) p.req = v('req').checked; else p.req = true;
+      if (v('op')) p.op = v('op').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        if (p.tipo !== 'menu') return { t: l };
+        const [t, pr, ...d] = l.split('|').map(x => x.trim());
+        return { t, p: Number(String(pr || '').replace(/[$,\s]/g, '')) || 0, d: d.join(' | ') };
+      });
+      ['serv', 'ant'].forEach(f => { if (v(f)) p[f] = Number(v(f).value) || 0; });
+      ['antFecha', 'antNota'].forEach(f => { if (v(f)) p[f] = v(f).value.trim(); });
+    });
+  };
+  const personasTxt = (o.participantes || []).map(x => x.n + (x.d ? ' | ' + x.d : '')).join('\n');
+  modal(c ? 'Editar consulta' : 'Nueva consulta', `
+    ${yaResp ? `<div class="aviso-caja">Ya respondieron ${c.respondieron} persona(s). Si cambia las opciones de una pregunta, revise que sus respuestas sigan teniendo sentido.</div>` : ''}
+    <div class="campo"><label for="cn-tit">Nombre de la consulta</label><input id="cn-tit" maxlength="160" value="${esc(o.titulo)}" placeholder="Ej. Posada 2026"></div>
+    <div class="campo"><label for="cn-des">Indicaciones (las ve quien contesta)</label><textarea id="cn-des" rows="3" maxlength="2000">${esc(o.descripcion || '')}</textarea></div>
+    <div class="fila"><div class="campo"><label for="cn-fec">Fecha del evento</label><input id="cn-fec" type="date" value="${esc(o.fecha || '')}"></div>
+      <div class="campo"><label for="cn-hor">Hora</label><input id="cn-hor" type="time" value="${esc(o.hora || '')}"></div>
+      <div class="campo"><label for="cn-cie">Recibir respuestas hasta</label><input id="cn-cie" type="date" value="${esc(o.cierre || '')}"><div class="ayuda">Opcional. Después de ese día ya no se puede contestar.</div></div></div>
+    <div class="campo"><label for="cn-lug">Lugar</label><input id="cn-lug" maxlength="200" value="${esc(o.lugar || '')}"></div>
+    <h3 style="margin:18px 0 8px">Preguntas</h3>
+    <div id="cn-preg"></div>
+    <button class="boton sec chico" id="cn-addp">${ico('i-mas')}Agregar pregunta</button>
+    <h3 style="margin:18px 0 8px">Quiénes contestan</h3>
+    <div class="campo"><label for="cn-per">Una persona por renglón, así: Nombre | escuela o función</label><textarea id="cn-per" rows="9">${esc(personasTxt)}</textarea>
+      <div class="ayuda">Cada quien elige su nombre de esta lista al contestar. <span id="cn-nper"></span></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec chico" id="cn-zona">Agregar directores, ATP y Supervisión</button></div>`,
+    `<button class="boton sec" id="cn-cancel">Cancelar</button><button class="boton" id="cn-guardar">${c ? 'Guardar cambios' : 'Crear la consulta'}</button>`);
+  const pintarPreg = () => {
+    $('#cn-preg').innerHTML = preg.length ? preg.map(bloque).join('') : '<p class="peq mudo">Sin preguntas.</p>';
+    $$('[data-cnp] [data-f="tipo"]').forEach(s => s.onchange = () => { leerPreg(); const p = preg[+s.closest('[data-cnp]').dataset.cnp]; if (p.tipo === 'menu') { p.serv = p.serv == null ? 10 : p.serv; p.ant = p.ant == null ? 50 : p.ant; } pintarPreg(); });
+    $$('[data-cnquita]').forEach(b => b.onclick = () => { leerPreg(); preg.splice(+b.dataset.cnquita, 1); pintarPreg(); });
+    $$('[data-cnsub]').forEach(b => b.onclick = () => { leerPreg(); const i = +b.dataset.cnsub; [preg[i - 1], preg[i]] = [preg[i], preg[i - 1]]; pintarPreg(); });
+  };
+  const contar = () => { $('#cn-nper').textContent = $('#cn-per').value.split('\n').filter(l => l.trim()).length + ' persona(s).'; };
+  pintarPreg(); contar();
+  $('#cn-per').oninput = contar;
+  $('#cn-addp').onclick = () => { leerPreg(); preg.push({ k: 'p' + Date.now().toString(36), t: '', tipo: 'opcion', req: true, op: [] }); pintarPreg(); };
+  $('#cn-zona').onclick = () => {
+    const ya = new Set($('#cn-per').value.split('\n').map(l => l.split('|')[0].trim().toLowerCase()).filter(Boolean));
+    const nuevos = cnsPersonasZona().filter(x => !ya.has(x.n.toLowerCase()));
+    $('#cn-per').value = ($('#cn-per').value.trim() ? $('#cn-per').value.trim() + '\n' : '') + nuevos.map(x => x.n + ' | ' + x.d).join('\n');
+    contar(); aviso(nuevos.length ? 'Se agregaron ' + nuevos.length + ' persona(s).' : 'Ya estaban todas.', 'ok', 2500);
+  };
+  $('#cn-cancel').onclick = cerrarModal;
+  $('#cn-guardar').onclick = async () => {
+    leerPreg();
+    const viejos = (c && c.participantes) || [];
+    const participantes = $('#cn-per').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+      const [n, ...d] = l.split('|').map(x => x.trim());
+      const ant = viejos.find(x => x.n.toLowerCase() === n.toLowerCase());
+      return { id: ant ? ant.id : '', n, d: d.join(' | ') };
+    });
+    const datos = { id: c ? c.id : '', titulo: $('#cn-tit').value.trim(), descripcion: $('#cn-des').value.trim(), fecha: $('#cn-fec').value, hora: $('#cn-hor').value,
+      cierre: $('#cn-cie').value, lugar: $('#cn-lug').value.trim(), preguntas: preg, participantes };
+    if (!datos.titulo) return aviso('Escriba el nombre de la consulta.', 'mal');
+    const sinTexto = preg.findIndex(p => !p.t);
+    if (sinTexto >= 0) return aviso('Escriba el texto de la pregunta ' + (sinTexto + 1) + '.', 'mal');
+    const b = $('#cn-guardar'); b.disabled = true; b.textContent = 'Guardando…';
+    try {
+      const r = await api('cnsGuardar', datos);
+      cnsPoner(r.consulta); cerrarModal();
+      if (c) { aviso('Consulta guardada.', 'ok', 2500); vConsultas(); }
+      else cnsListo(r.consulta);
+    } catch (e) { aviso(e.message, 'mal', 7000); b.disabled = false; b.textContent = c ? 'Guardar cambios' : 'Crear la consulta'; }
+  };
+}
+function cnsListo(c) {
+  vista.cnsArch = false; vConsultas();
+  modal('La consulta está lista', `<p style="margin-top:0">Comparta este enlace. Cada persona elige su nombre y contesta; solo usted ve las respuestas.</p>
+    <div class="campo"><input value="${esc(c.enlace)}" readonly onclick="this.select()"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec" id="cn-l-cop">${ico('i-copiar')}Copiar enlace</button>
+      <a class="boton wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(cnsMensajeWa(c))}">${ico('i-wa')}Enviar por WhatsApp</a>
+      <a class="boton sec" target="_blank" rel="noopener" href="${esc(c.enlace)}">Ver cómo la ven</a></div>`);
+  $('#cn-l-cop').onclick = () => copiar(c.enlace, 'Enlace copiado');
+}
+
+/* --- Resultados de una consulta --- */
+async function cnsResCargar(id) {
+  try { const r = await api('cnsRespuestas', { id }); cnsPoner(r.consulta); vista.cnsRes = { id, resp: r.respuestas || [] }; }
+  catch (e) { vista.cnsRes = { id, error: e.message }; }
+  if (vista.tab === 'consultas' && vista.cnsVer === id) vConsultas();
+}
+function cnsTabla(c, resp) {
+  const asisP = c.preguntas.find(p => p.tipo === 'asistencia');
+  const filas = c.participantes.map(p => {
+    const r = resp.find(x => x.persona === p.id && x.fecha);
+    const va = r ? (asisP ? r.respuestas[asisP.k] === 'Sí' : true) : null;
+    const cuentas = r && va && r.datos && Array.isArray(r.datos.cuentas) ? r.datos.cuentas : [];
+    return { p, r, va, cuentas, total: cnsR2(cuentas.reduce((a, x) => a + x.total, 0)), anticipo: cnsR2(cuentas.reduce((a, x) => a + x.anticipo, 0)), pagado: !!(r && r.datos && r.datos.pagado), pagadoMonto: r && r.datos ? Number(r.datos.pagadoMonto) || 0 : 0 };
+  });
+  return { asisP, filas };
+}
+const cnsValor = (p, v) => v == null || v === '' ? '' : p.tipo === 'opcion' || p.tipo === 'menu' ? ((p.op || [])[v] || {}).t || '' : p.tipo === 'varias' ? (v || []).map(i => ((p.op || [])[i] || {}).t).filter(Boolean).join(', ') : String(v);
+function vConsultaRes(id) {
+  const c = cnsDe(id);
+  const volver = `<button class="boton sec chico" id="cn-volver">${ico('i-izq')}Consultas</button>`;
+  const cab = `<div style="margin-bottom:8px">${volver}</div><div class="titulo-vista"><h1>${esc(c.titulo)}</h1><div class="acciones">
+    <button class="boton sec" id="cn-rec">Actualizar</button>${c.estado !== 'archivada' ? `<button class="boton sec" id="cn-r-cop">${ico('i-copiar')}Copiar enlace</button>` : ''}<button class="boton sec" id="cn-xls">Descargar Excel</button></div></div>`;
+  const enlazarCab = () => {
+    $('#cn-volver').onclick = () => { vista.cnsVer = null; vista.cnsRes = null; vConsultas(); };
+    $('#cn-rec').onclick = () => { vista.cnsRes = null; vConsultas(); };
+    if ($('#cn-r-cop')) $('#cn-r-cop').onclick = () => copiar(c.enlace, 'Enlace copiado');
+    $('#cn-xls').onclick = () => vista.cnsRes && vista.cnsRes.resp ? cnsExcel(c, vista.cnsRes.resp) : null;
+  };
+  if (!vista.cnsRes || vista.cnsRes.id !== id) { $('#vista').innerHTML = cab + '<div class="tarjeta vacio">Cargando las respuestas…</div>'; enlazarCab(); cnsResCargar(id); return; }
+  if (vista.cnsRes.error) { $('#vista').innerHTML = cab + `<div class="tarjeta pad">${esc(vista.cnsRes.error)}</div>`; enlazarCab(); return; }
+  const { asisP, filas } = cnsTabla(c, vista.cnsRes.resp);
+  const resp = filas.filter(f => f.r), sin = filas.filter(f => !f.r), van = filas.filter(f => f.va === true), noVan = filas.filter(f => f.va === false);
+  const kpi = (v, l, cls) => `<div class="tarjeta pad" style="box-shadow:none"><div style="font-size:26px;font-weight:800;${cls || ''}">${v}</div><div class="peq mudo">${l}</div></div>`;
+  let h = `<div class="peq mudo" style="margin:-6px 0 12px">${esc(cnsCuando(c))}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+      ${kpi(resp.length + ' de ' + filas.length, 'respondieron')}
+      ${asisP ? kpi(van.length, 'asistirán', 'color:var(--ok)') + kpi(noVan.length, 'no asistirán', 'color:var(--alerta)') : ''}
+      ${kpi(sin.length, 'sin responder', 'color:var(--gris)')}
+    </div>`;
+  // Menú: pedido para el restaurante y dinero
+  c.preguntas.filter(p => p.tipo === 'menu').forEach(p => {
+    const cnt = (p.op || []).map(() => 0);
+    van.forEach(f => { const v = f.r.respuestas[p.k]; if (v != null && cnt[v] != null) cnt[v]++; });
+    const cuentas = van.map(f => f.cuentas.find(x => x.k === p.k)).filter(Boolean);
+    const tot = cnsR2(cuentas.reduce((a, x) => a + x.total, 0)), ant = cnsR2(cuentas.reduce((a, x) => a + x.anticipo, 0));
+    const rec = cnsR2(van.filter(f => f.pagado).reduce((a, f) => a + ((f.cuentas.find(x => x.k === p.k) || {}).anticipo || 0), 0));
+    const pedido = (p.op || []).map((o, i) => cnt[i] ? cnt[i] + ' × ' + o.t : '').filter(Boolean);
+    h += `<div class="tarjeta pad" style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><h2 style="flex:1;margin:0;font-size:19px">${esc(p.t)} · pedido</h2>
+      <button class="boton sec chico" id="cn-ped-${p.k}">${ico('i-copiar')}Copiar pedido para el restaurante</button></div>
+      <div class="cns-caja"><table class="cns-t"><tr><th>Platillo</th><th class="d">Precio</th><th class="d">Cantidad</th><th class="d">Subtotal</th></tr>
+      ${(p.op || []).map((o, i) => `<tr${cnt[i] ? '' : ' style="color:var(--gris)"'}><td>${esc(o.t)}</td><td class="d">${cnsPesos(o.p)}</td><td class="d"><b>${cnt[i]}</b></td><td class="d">${cnsPesos(o.p * cnt[i])}</td></tr>`).join('')}
+      </table></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px">
+        ${kpi(cnsPesos(tot), 'consumo total con ' + p.serv + ' % de servicio')}${kpi(cnsPesos(ant), 'anticipos esperados (' + p.ant + ' %)' + (p.antFecha ? ' · ' + fechaCorta(p.antFecha) : ''))}${kpi(cnsPesos(rec), 'anticipos recibidos', 'color:var(--ok)')}${kpi(cnsPesos(cnsR2(ant - rec)), 'anticipos por recibir', 'color:var(--alerta)')}
+      </div></div>`;
+    setTimeout(() => { const b = $('#cn-ped-' + p.k); if (b) b.onclick = () => copiar(`*${c.titulo}*\n${cnsCuando(c)}\n\nPedido (${cuentas.length} personas):\n${pedido.join('\n') || 'Sin platillos'}`, 'Pedido copiado'); });
+  });
+  // Opción, varias, sí/no: conteos
+  c.preguntas.filter(p => ['opcion', 'varias', 'sino'].includes(p.tipo)).forEach(p => {
+    const ops = p.tipo === 'sino' ? ['Sí', 'No'] : (p.op || []).map(o => o.t), cnt = ops.map(() => 0), quien = asisP ? van : resp;
+    quien.forEach(f => { const v = f.r.respuestas[p.k]; if (p.tipo === 'sino') { const i = ops.indexOf(v); if (i >= 0) cnt[i]++; } else if (p.tipo === 'varias') (v || []).forEach(i => { if (cnt[i] != null) cnt[i]++; }); else if (v != null && cnt[v] != null) cnt[v]++; });
+    const max = Math.max(1, ...cnt);
+    h += `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="margin:0 0 10px;font-size:19px">${esc(p.t)}</h2>
+      ${ops.map((o, i) => `<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(80px,2fr) 40px;gap:10px;align-items:center;padding:4px 0"><span>${esc(o)}</span><span style="height:10px;border-radius:5px;background:var(--arena-2)"><span style="display:block;height:10px;border-radius:5px;background:var(--indigo);width:${cnt[i] / max * 100}%"></span></span><b style="text-align:right">${cnt[i]}</b></div>`).join('')}</div>`;
+  });
+  // Respuestas por persona
+  const otras = c.preguntas.filter(p => p.tipo !== 'asistencia' && p.tipo !== 'menu');
+  const menus = c.preguntas.filter(p => p.tipo === 'menu');
+  h += `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="margin:0 0 10px;font-size:19px">Respuestas por persona</h2><div class="cns-caja"><table class="cns-t">
+    <tr><th>Nombre</th>${asisP ? '<th>¿Asiste?</th>' : ''}${menus.map(p => `<th>${esc(p.t)}</th>`).join('')}${otras.map(p => `<th>${esc(p.t)}</th>`).join('')}${menus.length ? '<th class="d">Total</th><th class="d">Anticipo</th><th>Anticipo recibido</th>' : ''}</tr>
+    ${filas.map(f => `<tr><td><b>${esc(f.p.n)}</b><div class="ayuda">${esc(f.p.d || '')}${f.r ? ' · ' + esc(fechaCorta(String(f.r.actualizado).slice(0, 10))) + ' ' + esc(String(f.r.actualizado).slice(11, 16)) : ''}</div></td>
+      ${asisP ? `<td>${!f.r ? '<span class="chip">Sin responder</span>' : f.va ? '<span class="chip ok">Sí</span>' : '<span class="chip mal">No</span>'}</td>` : ''}
+      ${menus.map(p => `<td>${f.va ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
+      ${otras.map(p => `<td>${f.r && (f.va || !asisP) ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
+      ${menus.length ? `<td class="d">${f.va ? cnsPesos(f.total) : ''}</td><td class="d">${f.va ? cnsPesos(f.anticipo) : ''}</td><td>${f.va ? `<label class="casilla" style="padding:0"><input type="checkbox" data-cnpag="${esc(f.p.id)}"${f.pagado ? ' checked' : ''}>${f.pagado ? 'Recibido' : ''}</label>${f.pagado && f.pagadoMonto && f.pagadoMonto !== f.anticipo ? `<div class="chip aviso" style="white-space:normal">Cambió su platillo después: entregó ${cnsPesos(f.pagadoMonto)}</div>` : ''}` : ''}</td>` : ''}</tr>`).join('')}
+    </table></div></div>`;
+  if (sin.length) h += `<div class="tarjeta pad"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1;margin:0;font-size:19px">Faltan por responder (${sin.length})</h2>
+    <button class="boton sec chico" id="cn-falt">${ico('i-copiar')}Copiar recordatorio</button></div><p class="peq" style="margin-bottom:0">${sin.map(f => esc(f.p.n)).join(' · ')}</p></div>`;
+  $('#vista').innerHTML = cab + h;
+  enlazarCab();
+  if ($('#cn-falt')) $('#cn-falt').onclick = () => copiar(`Recordatorio: *${c.titulo}*\nAún falta su respuesta de:\n${sin.map(f => '• ' + f.p.n).join('\n')}\n\nEntre aquí, elija su nombre y conteste:\n${c.enlace}`, 'Recordatorio copiado');
+  $$('[data-cnpag]').forEach(b => b.onchange = async () => {
+    b.disabled = true;
+    try { const r = await api('cnsMarcar', { id: c.id, persona: b.dataset.cnpag, pagado: b.checked }); const l = vista.cnsRes.resp, i = l.findIndex(x => x.id === r.respuesta.id); if (i >= 0) l[i] = r.respuesta; else l.push(r.respuesta); vConsultas(); }
+    catch (e) { aviso(e.message, 'mal', 6000); b.checked = !b.checked; b.disabled = false; }
+  });
+}
+async function cnsExcel(c, resp) {
+  await cargarScript('lib/xlsx.full.min.js');
+  const { asisP, filas } = cnsTabla(c, resp), menus = c.preguntas.filter(p => p.tipo === 'menu'), otras = c.preguntas.filter(p => p.tipo !== 'asistencia' && p.tipo !== 'menu');
+  const aoa = [[c.titulo], [cnsCuando(c)], [],
+    ['Nombre', 'Escuela / función'].concat(asisP ? ['¿Asiste?'] : [], menus.map(p => p.t), otras.map(p => p.t), menus.length ? ['Precio', 'Servicio', 'Total', 'Anticipo', 'Resto', 'Anticipo recibido'] : [], ['Última respuesta'])];
+  filas.forEach(f => {
+    const cu = f.cuentas;
+    aoa.push([f.p.n, f.p.d || ''].concat(asisP ? [f.r ? (f.va ? 'Sí' : 'No') : 'Sin responder'] : [], menus.map(p => f.va ? cnsValor(p, f.r.respuestas[p.k]) : ''),
+      otras.map(p => f.r && (f.va || !asisP) ? cnsValor(p, f.r.respuestas[p.k]) : ''),
+      menus.length ? (f.va ? [cnsR2(cu.reduce((a, x) => a + x.precio, 0)), cnsR2(cu.reduce((a, x) => a + x.serv, 0)), f.total, f.anticipo, cnsR2(cu.reduce((a, x) => a + x.resto, 0)), f.pagado ? 'Sí' : 'No'] : ['', '', '', '', '', '']) : [],
+      [f.r ? String(f.r.actualizado).replace('T', ' ').slice(0, 16) : '']));
+  });
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = aoa[3].map((x, i) => ({ wch: i === 0 ? 38 : i === 1 ? 30 : 18 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Respuestas');
+  menus.forEach((p, j) => {
+    const h = [[p.t], [], ['Platillo', 'Precio', 'Cantidad', 'Subtotal']];
+    (p.op || []).forEach((o, i) => { const n = filas.filter(f => f.va && f.r.respuestas[p.k] === i).length; h.push([o.t, o.p, n, o.p * n]); });
+    const w = XLSX.utils.aoa_to_sheet(h); w['!cols'] = [{ wch: 40 }, { wch: 12 }, { wch: 10 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, w, ('Pedido ' + (j + 1)).slice(0, 31));
+  });
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  descargarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), (c.titulo + ' ' + hoy() + '.xlsx').replace(/[\\/:*?"<>|]+/g, ' '));
+}
+
 /* ---------------- Vista: Claves de la RELweb (Supervisión y Mesa Técnica) ----------------
    El usuario de cada escuela es su clave de centro de trabajo; la contraseña cambia cada ciclo.
    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas.
@@ -6530,7 +6878,7 @@ function vEnlaces() {
 }
 // Módulos de la zona: el Supervisor enciende o apaga secciones (se guarda en el servidor, versión 27 o más nueva)
 const MODULOS_TQ = [['pendientes', 'Tablón de la Mesa Técnica'], ['acuerdos', 'Acuerdos y checklist'], ['evidencias', 'Evidencias'], ['sisat', 'SisAT'], ['eia', 'EIA'], ['cte', 'CTE'], ['minutas', 'Minutas de CTE y CTZ (con dictado y redacción con IA)'],
-  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)'], ['correos', 'Correo de la Supervisión (resumen, urgencia y facturas)'], ['asistencia', 'Asistencia en contingencias (lluvias, frío o calor extremo): alumnos por grupo y personal'], ['relweb', 'Claves de la RELweb (cada ATP las de sus escuelas; la Supervisión, todas)']];
+  ['seguimiento', 'Visitas y seguimiento'], ['personal', 'Personal y expedientes'], ['oficios', 'Oficios'], ['permisos', 'Permisos y facilidades'], ['finanzas', 'Recursos financieros (ingresos propios de las escuelas y actividades recaudatorias de la Supervisión)'], ['herramientas', 'Herramientas de Tlamatini (para ATP y directores)'], ['videollamadas', 'Videollamadas de la Mesa Técnica con las direcciones (Google Meet)'], ['campo', 'Revisión en campo (app para las visitas: dirección y docentes, sin internet)'], ['correos', 'Correo de la Supervisión (resumen, urgencia y facturas)'], ['asistencia', 'Asistencia en contingencias (lluvias, frío o calor extremo): alumnos por grupo y personal'], ['relweb', 'Claves de la RELweb (cada ATP las de sus escuelas; la Supervisión, todas)'], ['consultas', 'Consultas con enlace (asistencia a eventos, menú con servicio y anticipo, preguntas); solo la Supervisión ve las respuestas']];
 // Módulos que llegaron después de que el Supervisor eligió los suyos: se ven encendidos hasta que decida
 const MODULOS_V27 = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas'];
 const moduloNuevo = m => Array.isArray(ZONA.modulos) && MODULOS_TQ.some(x => x[0] === m) && !(Array.isArray(ZONA.modulosVistos) ? ZONA.modulosVistos : MODULOS_V27).includes(m);
