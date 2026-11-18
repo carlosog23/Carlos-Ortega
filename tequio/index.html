@@ -995,6 +995,17 @@ function leerCfg() {
 }
 
 async function api(accion, datos) {
+  // Gemini a veces está saturado (503): se reintenta solo, con una pausa, antes de mostrar el error
+  for (let n = 0; ; n++) {
+    try { return await apiUna(accion, datos); }
+    catch (e) {
+      if (n >= 3 || !/Gemini no respondió \((5\d\d)\)|saturad|overloaded|UNAVAILABLE/i.test(e.message)) throw e;
+      if (n === 0) aviso('Gemini está ocupado en este momento; Tequio lo vuelve a intentar…', '', 6000);
+      await new Promise(ok => setTimeout(ok, [3000, 7000, 12000][n]));
+    }
+  }
+}
+async function apiUna(accion, datos) {
   if (cfg.demo) return Demo.llamar(accion, datos || {});
   let r;
   try {

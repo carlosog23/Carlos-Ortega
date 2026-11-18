@@ -3577,9 +3577,11 @@ function gemini_(prompt, op) {
   op = op || {};
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!key) throw new Error('Falta configurar la clave de Gemini en Oficios → Configuración.');
-  let sinThink = false;
+  let sinThink = false, saturado = 0;
+  const RESPALDO = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
   for (let intento = 0; intento < 2; intento++) {
-    const modelo = modeloGemini_(key, intento > 0);
+    // Si el modelo está saturado (5xx), se espera un poco y se prueba con modelos de respaldo
+    const modelo = saturado ? RESPALDO[(saturado - 1) % RESPALDO.length] : modeloGemini_(key, intento > 0);
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ role: 'user', parts: (op.archivos ? op.archivos.map(x => ({ inline_data: { mime_type: x.tipo, data: x.data } })) : op.archivo ? [{ inline_data: { mime_type: op.tipo || 'application/pdf', data: op.archivo } }] : []).concat([{ text: prompt }]) }],
@@ -3593,6 +3595,7 @@ function gemini_(prompt, op) {
     try { j = JSON.parse(r.getContentText()); } catch (e) {}
     if (c === 429) throw new Error('Se alcanzó el límite gratuito de Gemini por ahora. Espere un minuto e intente de nuevo.');
     if (c === 400 || c === 403) throw new Error('Gemini rechazó la clave. Revísela en Oficios → Configuración.' + (j.error && j.error.message ? ' (' + j.error.message + ')' : ''));
+    if (c >= 500 && saturado < 4) { saturado++; Utilities.sleep(1500 * saturado); intento--; continue; }
     if (c !== 200) throw new Error('Gemini no respondió (' + c + '). Intente de nuevo.');
     const partes = (((j.candidates || [])[0] || {}).content || {}).parts || [];
     const texto = partes.map(x => x.text || '').join('').replace(/\*\*/g, '').trim();
