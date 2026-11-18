@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California.
+     Ulama · hoja de registro del maestro de Educación Física. Se llena en el celular o la computadora, sin instalar nada,
+     y se envía a la Supervisión (Drive «Ulama · registros» + correo), que da de alta la plataforma y luego instala la app. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0F3B33">
+<title>Hoja de registro · Ulama</title>
+<link rel="icon" href="img/ulama-icono.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<style>
+*{box-sizing:border-box}
+:root{--papel:#F3EBDD;--hoja:#FFFDF9;--tinta:#1B2740;--gris:#5E5446;--hilo:#E2D6C2;--hilo2:#EEE5D6;--noche:#0F3B33;--noche2:#12493F;
+  --jade:#1B7560;--jade-s:#DBEFE8;--maiz:#E3A63B;--maiz-s:#FAEBCB;--rojo:#A3322A;--rojo-s:#F7DEDA;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;--disp:"Fraunces",Georgia,serif;
+  --e1:0 1px 2px rgba(40,28,10,.06),0 3px 10px -4px rgba(40,28,10,.10);--e3:0 30px 60px -24px rgba(15,59,51,.55)}
+body{margin:0;color:var(--tinta);font:17px/1.5 var(--body);background:radial-gradient(1100px 560px at 100% -10%,#E4E6CF 0,transparent 60%),var(--papel);min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{font-family:var(--disp);font-weight:600;letter-spacing:-.015em;line-height:1.15}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px 130px}
+.portada{margin-top:16px;border-radius:26px;padding:24px 22px;color:#fff;background:radial-gradient(500px 260px at 90% 0,rgba(227,166,59,.35),transparent 70%),linear-gradient(150deg,var(--noche2),var(--noche) 70%);box-shadow:var(--e3)}
+.portada h1{font-size:30px;margin:6px 0 8px}.portada p{opacity:.92;max-width:62ch}
+.marca{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.9}
+.marca img{width:40px;height:40px;border-radius:11px}
+.card{background:var(--hoja);border:1px solid var(--hilo);border-radius:20px;padding:18px;box-shadow:var(--e1);margin-top:14px}
+.card>h2{font-size:23px;display:flex;align-items:center;gap:10px}
+.num{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--jade);color:#fff;font:700 16px var(--body);flex:none}
+.sub{color:var(--gris);font-size:15px;margin:6px 0 14px}
+.rej{display:grid;gap:0 14px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.campo{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;min-width:0}
+.campo>span{font-size:13.5px;font-weight:700;color:var(--gris)}
+.campo input,.campo select,.campo textarea{min-height:46px;border:1px solid var(--hilo);border-radius:12px;background:#fff;padding:8px 12px;font-size:16px;width:100%}
+.campo textarea{min-height:90px;resize:vertical}
+.campo.mal input,.campo.mal select{border-color:var(--rojo);background:var(--rojo-s)}
+.req{color:var(--rojo)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:13px;border:1px solid var(--hilo);background:var(--hoja);font-weight:700;cursor:pointer;box-shadow:var(--e1);color:var(--tinta);text-decoration:none}
+.btn.p{background:var(--jade);border-color:var(--jade);color:#fff}
+.btn.m{background:var(--maiz);border-color:var(--maiz);color:#2A1C04}
+.btn.r{color:var(--rojo);border-color:#E8C3BE}
+.btn.s{min-height:38px;padding:0 12px;font-size:14.5px;border-radius:11px}
+.btn:disabled{opacity:.5}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--hilo);background:#fff;border-radius:999px;padding:6px 12px;min-height:38px;cursor:pointer;font-weight:700;font-size:14.5px}
+.chip[aria-pressed="true"]{background:var(--jade);border-color:var(--jade);color:#fff}
+.chips.mal .chip{border-color:var(--rojo)}
+.bloque{border:1px solid var(--hilo2);border-radius:16px;padding:14px;margin-top:12px;background:#FFFEFB}
+.bloque h3{font-size:18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* grupos y alumnos: renglones de tabla en computadora, tarjetas en celular */
+.tabla{margin-top:6px}
+.ren{display:grid;gap:8px;border-top:1px solid var(--hilo2);padding:10px 0;align-items:start}
+.ren .campo{margin:0}
+.cab{display:none}
+.g-ren{grid-template-columns:1fr 1fr}
+.g-ren .ancho{grid-column:1/-1}
+.n-ren{grid-template-columns:1fr 1fr}
+.n-ren .ancho{grid-column:1/-1}
+@media (min-width:900px){
+  .g-ren{grid-template-columns:1.4fr .55fr .55fr 1.4fr 1.5fr 1.6fr .8fr 1.1fr 40px}.g-ren .ancho{grid-column:auto}
+  .n-ren{grid-template-columns:1.4fr 1.3fr 1.4fr 1.4fr 1fr 1.3fr 40px}.n-ren .ancho{grid-column:auto}
+  .cab{display:grid;font-size:12.5px;font-weight:700;color:var(--gris);border-top:0;padding-bottom:0}
+  .ren .campo>span{display:none}
+  .ren .chip{padding:4px 8px;min-height:34px;font-size:13px}
+}
+.quitar{width:38px;height:38px;border-radius:10px;border:1px solid #E8C3BE;background:#fff;color:var(--rojo);font-weight:700;cursor:pointer}
+.arch{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.arch .ok{color:var(--jade);font-weight:700;word-break:break-word}
+.arch img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--hilo)}
+.subir{position:relative;overflow:hidden}
+.subir input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.lista-arch{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pza{display:flex;align-items:center;gap:8px;border:1px solid var(--hilo);border-radius:12px;padding:6px 8px;background:#fff;font-size:14px;max-width:100%}
+.pza img{width:40px;height:40px;object-fit:cover;border-radius:6px}
+.aviso{border-radius:14px;padding:12px 14px;font-size:15px;margin-top:12px;background:var(--maiz-s);border:1px solid #F0DDB0}
+.aviso.v{background:var(--jade-s);border-color:#B9DCCF}
+.aviso.r{background:var(--rojo-s);border-color:#E8C3BE;color:var(--rojo)}
+.fijo{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(251,247,239,.94);backdrop-filter:blur(10px);border-top:1px solid var(--hilo);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.fijo .in{max-width:1100px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.fijo .est{flex:1;font-size:14px;color:var(--gris)}
+.oculto{display:none!important}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--noche);color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;z-index:50;max-width:92vw;box-shadow:var(--e3)}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<div class="fijo" id="barra"><div class="in"><span class="est" id="est">Se guarda solo en este dispositivo.</span><button class="btn p" id="enviar">Enviar a la Supervisión</button></div></div>
+<div id="toast" class="oculto"></div>
+<script>
+"use strict";
+const ACCESO = "../formatos-ppie/formatos/acceso.json";
+const TEQUIO_DEF = "https://script.google.com/macros/s/AKfycbyH4wcANu-w9zNKkVECYoRjF9DhJi6pKwLL2sK0jFxGqQwFKNs0yAJzcC0S3yX8yB4aLw/exec";
+const WA_SUP = "526618501585";
+const RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, RE_CCT = /^\d{2}[A-Z]{3}\d{4}[A-Z]$/;
+const DIAS = ["", "Lun", "Mar", "Mié", "Jue", "Vie"];
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+/* ---------- enlace de acceso (#acceso=…) ---------- */
+function token() { const m = (location.hash || "").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/);
+  if (m) { try { localStorage.setItem("ulama-hoja-tok", m[1]); } catch (e) {} return m[1]; }
+  try { return localStorage.getItem("ulama-hoja-tok") || ""; } catch (e) { return ""; } }
+const TOK = token();
+
+/* ---------- datos (borrador en el dispositivo) ---------- */
+const CLAVE = "ulama-hoja-" + (TOK ? TOK.slice(0, 8) : "x");
+const nuevaEsc = () => ({ id: uid(), nombre: "", cct: "", turno: "", zona: "", localidad: "", dias: [], dirTrato: "Mtro.", director: "", correo: "", supEF: "", supCorreo: "", nGrupos: "", horario: "", logo: "" });
+const nuevoGr = escId => ({ id: uid(), escId: escId || "", grado: "", grupo: "", docente: "", correo: "", dias: [], hora: "", lista: "" });
+const nuevaNee = () => ({ id: uid(), alumno: "", grupoId: "", necesidad: "", restriccion: "", justificante: "", ajuste: "" });
+let H, ARCH = {};
+function cargar() { try { H = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) {}
+  if (!H) H = { doc: { trato: "", nombre: "", correo: "", gmail: "", tel: "" }, escs: [nuevaEsc()], grupos: [], nee: [], extras: [], obs: "", enviado: null };
+  try { ARCH = JSON.parse(localStorage.getItem(CLAVE + "-arch")) || {}; } catch (e) { ARCH = {}; } }
+let _t; function guardar() { clearTimeout(_t); _t = setTimeout(() => {
+  try { localStorage.setItem(CLAVE, JSON.stringify(H)); } catch (e) {}
+  try { localStorage.setItem(CLAVE + "-arch", JSON.stringify(ARCH)); $("#est").textContent = "Guardado en este dispositivo."; }
+  catch (e) { $("#est").textContent = "Sus datos se guardan; los archivos son muchos para guardarlos aquí: no cierre la página antes de enviar."; } }, 400); }
+const get = p => p.split(".").reduce((o, k) => o == null ? o : o[k], H);
+function set(p, v) { const k = p.split("."), u = k.pop(), o = k.reduce((a, b) => a[b], H); o[u] = v; guardar(); }
+
+/* ---------- archivos: fotos comprimidas, PDF tal cual ---------- */
+async function leerArchivo(file) {
+  if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { if (file.size > 6e6) throw new Error("El PDF pesa más de 6 MB.");
+    return { nombre: file.name, tipo: "application/pdf", data: await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(file); }) }; }
+  if (!/^image\//.test(file.type)) throw new Error("Solo fotos o PDF.");
+  const src = URL.createObjectURL(file), im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
+  const k = Math.min(1, 1800 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+  const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(src);
+  return { nombre: file.name, tipo: "image/jpeg", data: c.toDataURL("image/jpeg", .78) }; }
+const vista = id => { const a = ARCH[id]; if (!a) return ""; return a.tipo === "image/jpeg" ? `<img src="${a.data}" alt="">` : ""; };
+function cajaArch(path, txt) { const id = get(path), a = id && ARCH[id];
+  return `<div class="arch">${a ? `<div class="fila" style="gap:8px">${vista(id)}<span class="ok">✓ ${esc(a.nombre)}</span></div><div class="fila" style="gap:6px"><label class="btn s subir">Cambiar<input type="file" accept="image/*,.pdf" data-f="${path}"></label><button class="btn s r" data-qf="${path}">Quitar</button></div>`
+    : `<label class="btn s subir">📷 ${txt}<input type="file" accept="image/*,.pdf" data-f="${path}"></label>`}</div>`; }
+
+/* ---------- qué falta ---------- */
+let MARCAR = false;
+function faltas() { const F = [], d = H.doc;
+  if (!d.nombre.trim()) F.push(["doc.nombre", "Su nombre completo"]);
+  if (!RE_MAIL.test(d.correo)) F.push(["doc.correo", "Su correo institucional"]);
+  if (!RE_MAIL.test(d.gmail)) F.push(["doc.gmail", "Su correo de Google (Gmail)"]);
+  if (String(d.tel).replace(/\D/g, "").length !== 10) F.push(["doc.tel", "Su celular a 10 dígitos"]);
+  H.escs.forEach((e, i) => { const n = e.nombre || `Escuela ${i + 1}`, p = `escs.${i}.`;
+    if (!e.nombre.trim()) F.push([p + "nombre", `Escuela ${i + 1}: nombre`]);
+    if (!RE_CCT.test(e.cct)) F.push([p + "cct", `${n}: C.C.T. (como 02DPR0150B)`]);
+    if (!e.turno) F.push([p + "turno", `${n}: turno`]);
+    if (!e.dias.length) F.push([p + "dias", `${n}: días que asiste`]);
+    if (!e.director.trim()) F.push([p + "director", `${n}: director(a)`]);
+    if (!RE_MAIL.test(e.correo)) F.push([p + "correo", `${n}: correo de la escuela o dirección`]);
+    if (!e.supEF.trim()) F.push([p + "supEF", `${n}: supervisor(a) de Educación Física`]);
+    if (!(+e.nGrupos > 0)) F.push([p + "nGrupos", `${n}: cuántos grupos atiende`]);
+    if (!e.horario) F.push([p + "horario", `${n}: foto del horario`]); });
+  H.grupos.forEach((g, i) => { const e = H.escs.find(x => x.id === g.escId), n = `Grupo ${g.grado ? g.grado + "° " : ""}${g.grupo || ""}${e && e.nombre ? " · " + e.nombre : ""}`.trim(), p = `grupos.${i}.`;
+    if (!e) F.push([p + "escId", `${n}: escuela`]); if (!g.grado) F.push([p + "grado", `${n}: grado`]); if (!g.grupo.trim()) F.push([p + "grupo", `${n}: letra del grupo`]);
+    if (!g.docente.trim()) F.push([p + "docente", `${n}: docente de grupo`]); if (!RE_MAIL.test(g.correo)) F.push([p + "correo", `${n}: correo del docente`]);
+    if (!g.dias.length) F.push([p + "dias", `${n}: día(s) de E. F.`]); if (!g.hora.trim()) F.push([p + "hora", `${n}: hora`]);
+    if (!g.lista && !H.extras.length) F.push([p + "lista", `${n}: lista de alumnos`]); });
+  if (!H.grupos.length) F.push(["", "Agregue sus grupos"]);
+  return F; }
+const malo = p => MARCAR && faltas().some(f => f[0] === p) ? " mal" : "";
+
+/* ---------- vista ---------- */
+const campo = (lbl, p, ex = "", req = true) => `<label class="campo${malo(p)}"><span>${lbl}${req ? ' <b class="req">*</b>' : ""}</span><input data-p="${p}" value="${esc(get(p))}" ${ex}></label>`;
+const sel = (lbl, p, ops, req = true) => `<label class="campo${malo(p)}"><span>${lbl}${req ? ' <b class="req">*</b>' : ""}</span><select data-p="${p}"><option value="">—</option>${ops.map(o => { const [v, t] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}" ${String(get(p)) === String(v) ? "selected" : ""}>${esc(t)}</option>`; }).join("")}</select></label>`;
+const dias = (lbl, p) => `<div class="campo"><span>${lbl} <b class="req">*</b></span><div class="chips${malo(p)}">${[1, 2, 3, 4, 5].map(d => `<button type="button" class="chip" data-dd="${p}" data-d="${d}" aria-pressed="${get(p).includes(d)}">${DIAS[d]}</button>`).join("")}</div></div>`;
+const escNom = (e, i) => e.nombre || `Escuela ${i + 1}`;
+const grNom = g => { const e = H.escs.find(x => x.id === g.escId); return `${g.grado ? g.grado + "° " : ""}${g.grupo || "?"}${e ? " · " + (e.nombre || "escuela") : ""}`; };
+
+function pintar() { const d = H.doc;
+  if (!TOK) { $("#app").innerHTML = `${portada()}<div class="card"><h2>Falta su enlace</h2><p class="sub">Abra esta hoja con el enlace que le mandó la Supervisión (termina en «#acceso=…»). Si no lo tiene, pídalo por WhatsApp.</p><a class="btn p" href="https://wa.me/${WA_SUP}?text=${encodeURIComponent("Hola, necesito mi enlace para la hoja de registro de Ulama.")}" target="_blank" rel="noopener">Pedir enlace por WhatsApp</a></div>`; $("#barra").classList.add("oculto"); return; }
+  if (H.enviado) { $("#app").innerHTML = `${portada()}<div class="card"><h2>✓ Su hoja se envió</h2><p class="sub">La Supervisión recibió su información el ${new Date(H.enviado).toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" })}. Le avisarán para instalarle Ulama con todo cargado.</p><div class="fila"><button class="btn" id="editar">Corregir algo y volver a enviar</button></div></div>`;
+    $("#barra").classList.add("oculto"); $("#editar").onclick = () => { H.enviado = null; guardar(); pintar(); }; return; }
+  $("#barra").classList.remove("oculto");
+  const F = MARCAR ? faltas() : [];
+  $("#app").innerHTML = portada() + (F.length ? `<div class="aviso r"><b>Le falta:</b><br>${F.slice(0, 15).map(f => "· " + esc(f[1])).join("<br>")}${F.length > 15 ? `<br>… y ${F.length - 15} más (marcados en rojo)` : ""}</div>` : "") +
+  `<section class="card"><h2><span class="num">1</span>Sus datos</h2><p class="sub">Los campos con <b class="req">*</b> son obligatorios.</p><div class="rej">
+    ${sel("Título", "doc.trato", ["Mtro.", "Mtra.", "Profr.", "Profra.", "Lic."], false)}${campo("Nombre completo", "doc.nombre", 'autocomplete="name"')}
+    ${campo("Correo institucional", "doc.correo", 'type="email" inputmode="email" placeholder="nombre@bcedu.mx"')}${campo("Correo de Google (Gmail)", "doc.gmail", 'type="email" inputmode="email" placeholder="nombre@gmail.com"')}
+    ${campo("Celular (10 dígitos)", "doc.tel", 'type="tel" inputmode="numeric"')}</div></section>
+
+  <section class="card"><h2><span class="num">2</span>Escuelas que atiende</h2><p class="sub">Una tarjeta por escuela. Al poner cuántos grupos atiende, se crean sus renglones en la sección 3.</p>
+   <div class="rej" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">${H.escs.map((e, i) => `<div class="bloque" style="margin:0"><h3>${esc(escNom(e, i))}${H.escs.length > 1 ? `<button class="btn s r" data-qe="${i}">Quitar</button>` : ""}</h3>
+     ${campo("Nombre de la escuela", `escs.${i}.nombre`)}${campo("C.C.T.", `escs.${i}.cct`, 'placeholder="02DPR0150B" style="text-transform:uppercase"')}
+     ${sel("Turno", `escs.${i}.turno`, ["Matutino", "Vespertino", "Discontinuo", "Tiempo completo"])}${campo("Zona escolar", `escs.${i}.zona`, "", false)}${campo("Localidad y municipio", `escs.${i}.localidad`, "", false)}
+     ${dias("Días que asiste", `escs.${i}.dias`)}
+     <div class="rej" style="grid-template-columns:110px 1fr">${sel("Trato", `escs.${i}.dirTrato`, ["Mtro.", "Mtra."], false)}${campo("Director(a)", `escs.${i}.director`)}</div>
+     ${campo("Correo de la escuela o dirección", `escs.${i}.correo`, 'type="email" inputmode="email"')}
+     ${campo("Supervisor(a) de Educación Física", `escs.${i}.supEF`)}${campo("Correo del supervisor(a) de E. F.", `escs.${i}.supCorreo`, 'type="email" inputmode="email"', false)}
+     ${campo("¿Cuántos grupos atiende aquí?", `escs.${i}.nGrupos`, 'type="number" inputmode="numeric" min="1" max="30" data-ng="' + i + '"')}
+     <div class="campo${malo(`escs.${i}.horario`)}"><span>Horario de E. F. (foto o PDF) <b class="req">*</b></span>${cajaArch(`escs.${i}.horario`, "Subir horario")}</div>
+     <div class="campo"><span>Logo de la escuela (opcional)</span>${cajaArch(`escs.${i}.logo`, "Subir logo")}</div></div>`).join("")}</div>
+   <div class="fila" style="margin-top:12px"><button class="btn" id="masEsc">＋ Agregar otra escuela</button></div></section>
+
+  <section class="card"><h2><span class="num">3</span>Grupos</h2><p class="sub">Un renglón por grupo. A cada uno súbale la foto o el PDF de su lista de alumnos (RELweb sirve). El docente de grupo recibirá ahí la evaluación de cada trimestre.</p>
+   <div class="tabla"><div class="ren g-ren cab"><span>Escuela</span><span>Grado</span><span>Grupo</span><span>Docente de grupo</span><span>Correo del docente</span><span>Día(s) de E. F.</span><span>Hora</span><span>Lista</span><span></span></div>
+   ${H.grupos.map((g, i) => `<div class="ren g-ren">
+     <div class="ancho">${sel("Escuela", `grupos.${i}.escId`, H.escs.map((e, j) => [e.id, escNom(e, j)]))}</div>
+     ${sel("Grado", `grupos.${i}.grado`, [1, 2, 3, 4, 5, 6].map(n => [n, n + "°"]))}${campo("Grupo", `grupos.${i}.grupo`, 'maxlength="3" placeholder="A" style="text-transform:uppercase"')}
+     <div class="ancho">${campo("Docente de grupo", `grupos.${i}.docente`)}</div><div class="ancho">${campo("Correo del docente", `grupos.${i}.correo`, 'type="email" inputmode="email"')}</div>
+     <div class="ancho">${dias("Día(s) de E. F.", `grupos.${i}.dias`)}</div>${campo("Hora", `grupos.${i}.hora`, 'placeholder="8:00"')}
+     <div class="campo${malo(`grupos.${i}.lista`)}"><span>Lista de alumnos <b class="req">*</b></span>${cajaArch(`grupos.${i}.lista`, "Lista")}</div>
+     <button class="quitar" data-qg="${i}" title="Quitar grupo" aria-label="Quitar grupo">✕</button></div>`).join("")}</div>
+   <div class="fila" style="margin-top:10px"><button class="btn" id="masGr">＋ Agregar grupo</button></div>
+   <div class="bloque"><h3>¿Tiene todas las listas juntas?</h3><p class="sub" style="margin-top:0">Si le es más fácil, súbalas aquí todas de una vez (fotos o PDF de RELweb) y la Supervisión las acomoda.</p>
+    <label class="btn s subir">📎 Subir varias listas<input type="file" accept="image/*,.pdf" multiple id="extras"></label>
+    <div class="lista-arch">${H.extras.map((id, k) => ARCH[id] ? `<span class="pza">${vista(id)}<span>${esc(ARCH[id].nombre)}</span><button class="quitar" style="width:30px;height:30px" data-qx="${k}" aria-label="Quitar">✕</button></span>` : "").join("")}</div></div></section>
+
+  <section class="card"><h2><span class="num">4</span>Alumnos con necesidad especial o restricción física <small style="font:400 15px var(--body);color:var(--gris)">(opcional)</small></h2>
+   <p class="sub">Anote solo a quien lo requiera: discapacidad, condición, barrera para el aprendizaje, o algo que no pueda hacer en la clase. Es información confidencial; anote solo lo necesario para su seguridad.</p>
+   <div class="tabla"><div class="ren n-ren cab"><span>Alumno(a)</span><span>Grupo</span><span>Necesidad o situación</span><span>Restricción en la actividad física</span><span>Justificante médico</span><span>Ajuste que requiere</span><span></span></div>
+   ${H.nee.map((a, i) => `<div class="ren n-ren">
+     <div class="ancho">${campo("Alumno(a)", `nee.${i}.alumno`)}</div><div class="ancho">${sel("Grupo", `nee.${i}.grupoId`, H.grupos.map(g => [g.id, grNom(g)]))}</div>
+     <div class="ancho">${campo("Necesidad o situación", `nee.${i}.necesidad`)}</div><div class="ancho">${campo("Restricción en la actividad física", `nee.${i}.restriccion`, 'placeholder="Ej. no correr; asma"', false)}</div>
+     ${campo("Justificante médico", `nee.${i}.justificante`, 'placeholder="Sí, hasta junio / No"', false)}${campo("Ajuste que requiere", `nee.${i}.ajuste`, "", false)}
+     <button class="quitar" data-qn="${i}" aria-label="Quitar">✕</button></div>`).join("")}</div>
+   <div class="fila" style="margin-top:10px"><button class="btn" id="masNee">＋ Agregar alumno(a)</button></div></section>
+
+  <section class="card"><h2><span class="num">5</span>Algo más para la Supervisión</h2><label class="campo" style="margin-top:12px"><span>Comentarios (opcional)</span><textarea data-p="obs" placeholder="Ej. en la escuela X atiendo dos grupos juntos…">${esc(H.obs)}</textarea></label></section>`;
+  enlazar(); }
+const portada = () => `<section class="portada"><div class="marca"><img src="img/ulama-icono.svg" alt="">Ulama · Educación Física</div><h1>Hoja de registro</h1><p>Llénela con calma: se guarda sola en este dispositivo y puede terminarla después. Al final toque <b>Enviar a la Supervisión</b>; ahí le dejan lista su plataforma y luego le instalan la app.</p></section>`;
+
+function enlazar() {
+  $$("[data-p]").forEach(i => { i.oninput = () => { let v = i.value; if (i.dataset.p.endsWith(".cct") || i.dataset.p.endsWith(".grupo")) v = v.toUpperCase().trim(); set(i.dataset.p, v); };
+    i.onchange = () => { if (i.tagName === "SELECT" || /escs\.\d+\.nombre|grupos\.\d+\.(grado|grupo)$/.test(i.dataset.p)) { if (i.dataset.ng == null) pintarConservando(); } }; });
+  $$("[data-ng]").forEach(i => i.onchange = () => { const e = H.escs[+i.dataset.ng], n = Math.min(30, +i.value || 0), ya = H.grupos.filter(g => g.escId === e.id).length;
+    for (let k = ya; k < n; k++) H.grupos.push(nuevoGr(e.id)); guardar(); pintarConservando(); if (n > ya) aviso(`Se agregaron ${n - ya} renglones de grupo para ${e.nombre || "esa escuela"}.`); });
+  $$("[data-dd]").forEach(b => b.onclick = () => { const a = get(b.dataset.dd), d = +b.dataset.d, k = a.indexOf(d); k >= 0 ? a.splice(k, 1) : a.push(d); a.sort(); guardar(); b.setAttribute("aria-pressed", k < 0); });
+  $$("[data-f]").forEach(i => i.onchange = async () => { const f = i.files[0]; if (!f) return; try { const a = await leerArchivo(f), id = uid(); const viejo = get(i.dataset.f); if (viejo) delete ARCH[viejo]; ARCH[id] = a; set(i.dataset.f, id); pintarConservando(); } catch (e) { aviso(e.message || "No se pudo leer el archivo."); } });
+  $$("[data-qf]").forEach(b => b.onclick = () => { delete ARCH[get(b.dataset.qf)]; set(b.dataset.qf, ""); pintarConservando(); });
+  $$("[data-qe]").forEach(b => b.onclick = () => { if (!confirm("¿Quitar esta escuela y sus grupos?")) return; const e = H.escs.splice(+b.dataset.qe, 1)[0]; H.grupos = H.grupos.filter(g => g.escId !== e.id); guardar(); pintarConservando(); });
+  $$("[data-qg]").forEach(b => b.onclick = () => { const g = H.grupos[+b.dataset.qg]; if ((g.docente || g.lista) && !confirm("¿Quitar este grupo?")) return; H.grupos.splice(+b.dataset.qg, 1); if (g.lista) delete ARCH[g.lista]; guardar(); pintarConservando(); });
+  $$("[data-qn]").forEach(b => b.onclick = () => { H.nee.splice(+b.dataset.qn, 1); guardar(); pintarConservando(); });
+  $$("[data-qx]").forEach(b => b.onclick = () => { const id = H.extras.splice(+b.dataset.qx, 1)[0]; delete ARCH[id]; guardar(); pintarConservando(); });
+  $("#masEsc").onclick = () => { H.escs.push(nuevaEsc()); guardar(); pintarConservando(); };
+  $("#masGr").onclick = () => { H.grupos.push(nuevoGr(H.escs.length === 1 ? H.escs[0].id : "")); guardar(); pintarConservando(); };
+  $("#masNee").onclick = () => { H.nee.push(nuevaNee()); guardar(); pintarConservando(); };
+  $("#extras").onchange = async ev => { for (const f of ev.target.files) { try { const id = uid(); ARCH[id] = await leerArchivo(f); H.extras.push(id); } catch (e) { aviso(`${f.name}: ${e.message}`); } } guardar(); pintarConservando(); }; }
+function pintarConservando() { const y = scrollY; pintar(); scrollTo(0, y); }
+function aviso(t) { const el = $("#toast"); el.textContent = t; el.classList.remove("oculto"); clearTimeout(aviso._t); aviso._t = setTimeout(() => el.classList.add("oculto"), 3500); }
+
+/* ---------- envío: misma ruta que el registro de Ulama (Drive «Ulama · registros» + correo a la Supervisión) ---------- */
+async function servidor() { try { const r = await fetch(ACCESO + "?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j.tequio) return j.tequio; } } catch (e) {} return TEQUIO_DEF; }
+function resumen() { const d = H.doc;
+  return `Hoja de registro de Ulama · ${[d.trato, d.nombre].filter(Boolean).join(" ")}\nCorreo: ${d.correo} · Gmail: ${d.gmail} · Cel. ${d.tel}\n` +
+    H.escs.map(e => `${e.nombre} (${e.cct}, ${e.turno}${e.zona ? ", zona " + e.zona : ""}) · Dir. ${e.dirTrato} ${e.director} · Sup. E. F. ${e.supEF}: ` + (H.grupos.filter(g => g.escId === e.id).map(g => `${g.grado}° ${g.grupo} (${g.docente})`).join(", ") || "sin grupos")).join("\n") +
+    `\nTotal: ${H.escs.length} escuelas, ${H.grupos.length} grupos, ${Object.keys(ARCH).length} archivos.` + (H.nee.length ? `\nAlumnos con necesidad especial o restricción: ${H.nee.length}.` : "") + (H.obs.trim() ? `\nComentarios: ${H.obs.trim()}` : ""); }
+async function enviar() { MARCAR = true; const F = faltas();
+  if (F.length) { pintar(); scrollTo(0, 0); if (!confirm(`Le faltan ${F.length} dato(s), marcados en rojo.\n\n¿Quiere enviarla así? La Supervisión le pedirá lo que falte.`)) return; }
+  const b = $("#enviar"); b.disabled = true; b.textContent = "Enviando…";
+  const usados = new Set([...H.escs.flatMap(e => [e.horario, e.logo]), ...H.grupos.map(g => g.lista), ...H.extras].filter(Boolean)), archivos = {};
+  usados.forEach(id => { if (ARCH[id]) archivos[id] = ARCH[id]; });
+  const registro = { tipo: "hojaRegistro", version: 1, fecha: new Date().toISOString(), docente: { trato: H.doc.trato, nombre: H.doc.nombre.trim(), correo: H.doc.correo.trim(), tel: H.doc.tel.trim() }, cfg: { gmail: H.doc.gmail.trim() },
+    escuelas: H.escs, grupos: H.grupos, nee: H.nee, listasJuntas: H.extras, obs: H.obs, archivos };
+  try { if (navigator.onLine === false) throw new Error("No hay internet en este momento.");
+    const r = await fetch(await servidor(), { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "ulamaRegistro", datos: { tok: TOK, accion: "ulamaRegistro", registro, resumen: resumen() } }) });
+    const j = await r.json(); if (!j || !j.ok) throw new Error((j && (j.mensaje || j.error)) || "El servidor no respondió.");
+    H.enviado = new Date().toISOString(); guardar(); MARCAR = false; scrollTo(0, 0); pintar(); }
+  catch (e) { b.disabled = false; b.textContent = "Enviar a la Supervisión";
+    if (confirm(`No se pudo enviar: ${e.message}\n\n¿Descargar su hoja como archivo para mandarla por WhatsApp a la Supervisión?`)) {
+      const bl = new Blob([JSON.stringify(registro)], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(bl);
+      a.download = `ulama-hoja-${(H.doc.nombre || "maestro").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-")}.json`; a.click();
+      setTimeout(() => open(`https://wa.me/${WA_SUP}?text=${encodeURIComponent(resumen() + "\n\n(Adjunto mi hoja de registro de Ulama.)")}`, "_blank"), 800); } } }
+
+cargar(); pintar(); $("#enviar").onclick = enviar;
+</script>
+</body>
+</html>

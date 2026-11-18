@@ -100,11 +100,15 @@ ENLAZAR.admin = () => { if (!ghTok()) { $("#aClave").onclick = () => pedirClaveS
   $("#aTodos").onclick = async () => { if (!(await confirmar("Se anularán TODOS los enlaces de los maestros. Tendrá que darles uno nuevo a cada quien.", "Anular todos"))) return;
     try { await accGuardar(d => { d.generacion = (d.generacion || 1) + 1; }, "Ulama: anula todos los enlaces"); pintar(); toast("Todos los enlaces quedaron anulados."); } catch (e) { fallo(e); } }; };
 function mostrarEnlace(nombre, url, vence, correo) { const txt = `Hola, ${nombre}. Este es su acceso personal a Ulama, la herramienta de Educación Física (vigente hasta el ${fLarga(vence)}). Ábralo en su celular o tableta y luego instálela: ${url}`;
+  const hoja = url.replace("#acceso=", "hoja.html#acceso="), txtH = `Hola, ${nombre}. Para dejarle lista su plataforma de Educación Física (Ulama), llene por favor esta hoja de registro con sus escuelas, grupos y listas de alumnos. Se abre en el celular o la computadora, se guarda sola y al final toca «Enviar a la Supervisión»: ${hoja}`;
   dlg(`<h3>Enlace de ${esc(nombre)}</h3><p class="small muted mb">Cópielo ahora: por seguridad no se vuelve a mostrar. Si se pierde, anúlelo y genere otro.</p>
    <label class="campo"><span>Enlace personal</span><textarea id="lU" readonly style="min-height:90px;font-size:14px">${esc(url)}</textarea></label>
    <div class="fila"><button class="btn p" id="lC">Copiar enlace</button><a class="btn" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">WhatsApp</a>${correo ? `<a class="btn" href="mailto:${esc(correo)}?subject=${encodeURIComponent("Su acceso a Ulama · Educación Física")}&body=${encodeURIComponent(txt)}">Correo</a>` : ""}</div>
+   <label class="campo mt"><span>Hoja de registro (el maestro la llena sin instalar nada y le llega a usted)</span><textarea id="lH" readonly style="min-height:90px;font-size:14px">${esc(hoja)}</textarea></label>
+   <div class="fila"><button class="btn" id="lHC">Copiar hoja</button><a class="btn" href="https://wa.me/?text=${encodeURIComponent(txtH)}" target="_blank" rel="noopener">WhatsApp</a></div>
    <div class="fila fin mt"><button class="btn" id="lX">Listo</button></div>`, v => {
     v.querySelector("#lC").onclick = async () => { try { await navigator.clipboard.writeText(url); toast("Enlace copiado."); } catch (e) { const t = $("#lU"); t.select(); toast("Selecciónelo y cópielo."); } };
+    v.querySelector("#lHC").onclick = async () => { try { await navigator.clipboard.writeText(hoja); toast("Enlace de la hoja copiado."); } catch (e) { $("#lH").select(); toast("Selecciónelo y cópielo."); } };
     v.querySelector("#lX").onclick = () => { cerrarDlg(); pintar(); }; }); }
 
 /* ---------------- cuenta de Google del maestro: Gmail (enviar) y Drive (respaldo) ---------------- */
