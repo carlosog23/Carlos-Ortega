@@ -692,7 +692,7 @@ function pEval() {
   </div>`;
 }
 function pInc() {
-  return `<div class="card"><h3>Ajustes razonables</h3><p class="sub">Tlamatini los propone con lo que sabe de su grupo. Usted decide cuáles aplicar.</p>
+  return incCard() + `<div class="card" style="margin-top:14px"><h3>Ajustes razonables para el grupo</h3><p class="sub">Tlamatini los propone con lo que sabe de su grupo. Usted decide cuáles aplicar.</p>
    <div class="inc"><span class="ic" style="background:var(--rojo-soft);color:var(--rojo)">${ic('libro')}</span><div><b>9 alumnos en rojo en comprensión lectora</b> <span class="chip t">SisAT</span>
      <ul><li>Lectura en parejas: un alumno que lee con fluidez acompaña a uno que va en rezago (sesión 2).</li><li>Versión del texto con más imágenes y párrafos más cortos; Tlamatini la imprime aparte.</li><li>Preguntas guía para localizar información: «¿Dónde dice…? ¿Qué subtítulo te ayuda?».</li></ul></div></div>
    <div class="inc"><span class="ic" style="background:var(--ambar-soft);color:var(--ambar)">${ic('prog')}</span><div><b>11 alumnos con dificultad para leer gráficas</b> <span class="chip a">EIA</span>
@@ -715,10 +715,11 @@ function pDoc() {
    <p style="margin-top:6px"><b>Ejes articuladores:</b> Pensamiento crítico · Vida saludable · Apropiación de las culturas a través de la lectura y la escritura.</p>
    <h3>Secuencia didáctica</h3><table><tr><th style="width:16%">Sesión</th><th>Actividades</th><th style="width:22%">Evaluación</th></tr>${P.ses.map((s, i) => `<tr><td><b>${i + 1}. ${esc(s.fase)}</b><br>${esc(fCorta(s.fecha))}</td><td><b>${esc(s.t)}.</b> Inicio: ${esc(s.inicio[1].join(' '))} Desarrollo: ${esc(s.des[1].join(' '))} Cierre: ${esc(s.cierre[1].join(' '))}<br><i>Material: ${esc(s.mat.join(', '))}.</i></td><td>${esc(s.sabre)}</td></tr>`).join('')}</table>
    <h3>Evaluación formativa</h3><p><b>Criterios:</b> ${CRITERIOS.map(esc).join(' · ')}</p><p><b>Instrumentos:</b> lista de cotejo, boletos de salida, coevaluación y autoevaluación (diana).</p>
-   <h3>Ajustes razonables</h3><p>Lectura en parejas con tutor y textos con apoyo visual para alumnos con rezago lector; plantilla de ejes para la gráfica; instrucciones en pasos cortos, más tiempo y productos orales o dibujados para alumnos con apoyo de USAER.</p>
+   ${incDocHTML()}<h3>Ajustes razonables para el grupo</h3><p>Lectura en parejas con tutor y textos con apoyo visual para alumnos con rezago lector; plantilla de ejes para la gráfica; instrucciones en pasos cortos, más tiempo y productos orales o dibujados para alumnos con apoyo de USAER.</p>
    <div class="firmas"><div>Mtra. Laura Méndez<br>Docente</div><div>Vo. Bo. Director(a) de la escuela</div></div></div>`;
 }
 function cablearPanel() {
+  incCablear(repintarPanel);
   $$('[data-proto]').forEach(b => b.onclick = () => toast('Esta opción estará disponible en la siguiente versión.')); docBotones();
   $$('.ses-cab').forEach(b => b.onclick = () => { const i = +b.closest('.ses').dataset.i; E.abierta = E.abierta === i ? -1 : i; repintarPanel(); });
   $$('[data-clase]').forEach(b => b.onclick = () => abrirClase(+b.dataset.clase));
@@ -986,7 +987,7 @@ function vPlanEF() {
   const P = E.plan, n = P.ses.length, hechas = P.ses.filter(s => s.hecha).length, gr = [...E.efGr].sort();
   const sig = P.ses.find(s => !s.hecha) || P.ses[n - 1], R = 30, L = 2 * Math.PI * R, ests = [...new Set(P.ses.map(s => s.est))];
   const pdas = efContenidos().filter(c => E.efCont.has(c.c)), usados = efMatUsado(P.ses), faltan = usados.filter(m => !E.efMat.has(m));
-  const tabs = [['sesiones', 'Sesiones'], ['fichero', 'Fichero de juegos'], ['evaluacion', 'Evaluación'], ['documento', 'Documento']];
+  const tabs = [['sesiones', 'Sesiones'], ['fichero', 'Fichero de juegos'], ['evaluacion', 'Evaluación'], ['inclusion', 'Inclusión'], ['documento', 'Documento']];
   const telarEF = (() => { const save = FASE_COL; return telar(P.ses.map(s => s.fecha), P.fuera, P.ses.map(s => ({ ...s, fase: s.est, col: EST_COL[s.est] })), 'grande'); })();
   $('#app').innerHTML = topBar('Tlamatini · Educación Física', 'Mi unidad', `<button class="btn sec chico" id="nueva">Nueva</button>`) + `<main class="wrap">
    <section class="portada"><div class="sup"><span class="pill">Educación Física</span><span class="pill">${gr.map(g => g + '.°').join(' y ')}</span><span class="pill">${n} sesiones de ${E.efMin} min</span></div>
@@ -1014,7 +1015,7 @@ function vPlanEF() {
 }
 function panelEF() { return ({ sesiones: () => { const P = E.plan; let h = '<div class="linea">'; const hueco = ([k, t]) => `<div class="sin-clase"><i></i><em>${esc(fCorta(k))}: sin clases (${motivo(t)})</em><i></i></div>`;
     P.ses.forEach((s, i) => { const prev = i ? P.ses[i - 1].fecha : null; P.fuera.filter(([k]) => (!prev || k > prev) && k < s.fecha).forEach(f => h += hueco(f)); h += sesEFHTML(s, i); }); return h + '</div>'; },
-  fichero: pFichero, evaluacion: pEvalEF, documento: pDocEF })[E.tab](); }
+  fichero: pFichero, evaluacion: pEvalEF, inclusion: incCard, documento: pDocEF })[E.tab](); }
 function pFichero() {
   const f = E.fFil || 'todos', cats = ['todos', ...new Set(Object.values(JUEGOS).map(j => j.est))];
   const lista = Object.entries(JUEGOS).filter(([, j]) => f === 'todos' || j.est === f || (f === 'Sin material' && !j.mat.length));
@@ -1048,10 +1049,11 @@ function pDocEF() {
    <h3>Contenidos y PDA (De lo Humano y lo Comunitario)</h3><table><tr><th style="width:30%">Contenido</th><th>PDA</th></tr>${pdas.map(x => `<tr><td>${esc(x.c)}</td><td>${gr.filter(g => x.pda[g]).map(g => `<b>${g}.°</b> ${esc(x.pda[g])}`).join('<br>')}</td></tr>`).join('')}</table>
    <h3>Secuencia de sesiones</h3><table><tr><th style="width:17%">Sesión</th><th>Activación · Parte principal · Vuelta a la calma</th><th style="width:24%">Evaluación</th></tr>${P.ses.map((s, i) => `<tr><td><b>${i + 1}. ${esc(s.t)}</b><br>${esc(fCorta(s.fecha))}</td><td>${esc(JUEGOS[s.act].n)} · ${s.ppal.map(j => esc(JUEGOS[j].n)).join(', ')} · ${esc(JUEGOS[s.calma].n)}. Reflexión: ${esc(s.cierre.join(' '))}</td><td>${esc(s.eval)}</td></tr>`).join('')}</table>
    <h3>Evaluación formativa</h3><p>Indicadores: ${EF_CRIT.map(x => esc(x[0])).join(' ')} Instrumentos: lista de cotejo, registro de observación y autoevaluación con semáforo de manos.</p>
-   <h3>Inclusión y cuidados</h3><p>Juegos sin eliminación, versiones más fáciles y más difíciles de cada juego, roles alternativos con la misma participación, hidratación entre juegos y plan B bajo sombra en días de calor.</p>
+   ${incDocHTML()}<h3>Inclusión y cuidados</h3><p>Juegos sin eliminación, versiones más fáciles y más difíciles de cada juego, roles alternativos con la misma participación, hidratación entre juegos y plan B bajo sombra en días de calor.</p>
    <div class="firmas"><div>Prof. Jorge Ramírez<br>Docente de Educación Física</div><div>Vo. Bo. Director(a) de la escuela</div></div></div>`;
 }
 function cablearEF() {
+  incCablear(repintaPanelEF);
   $$('[data-proto]').forEach(b => b.onclick = () => toast('Esta opción estará disponible en la siguiente versión.')); docBotones();
   $$('.ses-cab').forEach(b => b.onclick = () => { const i = +b.closest('.ses').dataset.i; E.abierta = E.abierta === i ? -1 : i; E.jAb = null; repintaPanelEF(); });
   $$('[data-jab]').forEach(b => b.onclick = () => { E.jAb = E.jAb === b.dataset.jab ? null : b.dataset.jab; repintaPanelEF(); });
@@ -1066,6 +1068,50 @@ function cablearEF() {
     repintaPanelEF(); });
 }
 function repintaPanelEF() { const y = scrollY; $('#panel').innerHTML = panelEF(); cablearEF(); scrollTo(0, y); }
+
+/* ---------- Inclusión por alumno (opcional) ----------
+   La necesidad o situación de cada alumno se registra en «Mis alumnos» de Tlamatini (BAP, USAER, otro apoyo, padecimientos)
+   o aquí mismo. En cada planeación el docente marca, si quiere, a quién incluye y con qué ajuste. Nada sale del dispositivo. */
+const INC_AJ = ['Ajuste razonable', 'Adecuación curricular', 'Adecuación de acceso', 'Apoyo específico', 'Seguimiento cercano'];
+const INC_NEE = ['Barreras para el aprendizaje y la participación (BAP)', 'Discapacidad', 'Condición del neurodesarrollo (TEA, TDAH u otra)', 'Dificultad de aprendizaje', 'Aptitudes sobresalientes', 'Situación de salud', 'Situación socioemocional o familiar', 'Conducta', 'Otra'];
+const incLS = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const incIni = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + '.').join(' ');
+function incNecesidad(a) { if (a.nee) return a.nee; const t = [a.bap ? 'BAP: ' + a.bap : '', a.usaer ? 'Recibe apoyo de USAER' : '', a.apoyo ? 'Apoyo: ' + a.apoyo : '', a.padec ? 'Condición: ' + a.padec : ''].filter(Boolean); return t.join(' · '); }
+function incAlumnos() { const dir = incLS.get('ppie-dir', {}) || {}, per = incLS.get('ppie-perfil', {}) || {}, al = (dir.alumnos || []).filter(a => !String(a.baja || '').trim());
+  const gr = String(per.grado || '').replace(/\D/g, ''), gp = String(per.grupo || '').trim().toUpperCase();
+  const mios = gr ? al.filter(a => String(a.grado || '').replace(/\D/g, '') === gr && (!gp || String(a.grupo || '').trim().toUpperCase() === gp)) : al;
+  return { todos: mios.length ? mios : al, dir }; }
+function incPlan() { const P = E.plan; if (!P.inc) P.inc = { sel: {}, extra: [], ini: true }; return P.inc; }
+function incLista() { const I = incPlan(), { todos } = incAlumnos();
+  const conNee = todos.filter(a => incNecesidad(a)), marcados = Object.keys(I.sel).filter(id => I.sel[id].on);
+  const otros = todos.filter(a => !incNecesidad(a) && marcados.includes(a.id));
+  return { I, todos, lista: conNee.concat(otros).map(a => ({ id: a.id, nombre: a.nombre, nee: incNecesidad(a), apoyo: a.apoyo || '' })).concat(I.extra.map(x => ({ id: x.id, nombre: x.nombre, nee: x.nee, extra: true }))) }; }
+function incCard() { const { I, todos, lista } = incLista(), sel = lista.filter(x => (I.sel[x.id] || {}).on).length;
+  return `<div class="card"><h3>Inclusión: alumnos con necesidad específica o situación</h3><p class="sub">Opcional. Marque a quién incluye en esta planeación y con qué ajuste. Las necesidades se registran una vez en <b>Mis alumnos</b> de Tlamatini (BAP, USAER, otro apoyo) o aquí abajo.</p>
+   ${lista.length ? lista.map(x => { const o = I.sel[x.id] || {}; return `<div style="border-top:1px solid var(--hilo);padding:10px 0"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-inc="${x.id}" ${o.on ? 'checked' : ''} style="width:22px;height:22px;margin-top:2px">
+     <span><b>${esc(x.nombre)}</b>${x.extra ? ' <span class="chip">agregado aquí</span>' : ''}<br><span style="color:var(--muted);font-size:14px">${esc(x.nee || 'Sin necesidad registrada')}</span></span></label>
+     ${o.on ? `<div style="display:grid;gap:8px;grid-template-columns:minmax(0,1fr);margin:8px 0 0 32px"><select data-inc-t="${x.id}" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px;background:#fff">${INC_AJ.map(t => `<option ${t === (o.ajuste || INC_AJ[0]) ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <textarea data-inc-d="${x.id}" placeholder="Qué hará en las sesiones: apoyos, cambios en la actividad, en la evaluación…" style="min-height:76px;border:1px solid var(--hilo);border-radius:12px;padding:8px 10px;font:inherit;font-size:15px">${esc(o.desc != null ? o.desc : (x.apoyo || ''))}</textarea></div>` : ''}</div>`; }).join('')
+    : `<p style="color:var(--muted)">Ningún alumno de su grupo tiene registrada una necesidad. Puede registrarla en Mis alumnos o agregar aquí a un alumno.</p>`}
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${todos.filter(a => !incNecesidad(a) && !(I.sel[a.id] || {}).on).length ? `<select data-inc-add style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px;background:#fff;max-width:100%"><option value="">+ Incluir a otro alumno de mi lista…</option>${todos.filter(a => !incNecesidad(a) && !(I.sel[a.id] || {}).on).map(a => `<option value="${a.id}">${esc(a.nombre)}</option>`).join('')}</select>` : ''}
+    <button class="btn sec chico" data-inc-nuevo>+ Agregar un alumno a mano</button></div>
+   ${sel ? `<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14.5px"><input type="checkbox" data-inc-ini ${I.ini !== false ? 'checked' : ''}> En el documento, mostrar solo las iniciales</label>` : ''}
+   <p class="privado">${ic('candado', 'style="width:16px;height:16px"')}Los nombres y las necesidades de los alumnos se ven solo en su dispositivo; no se envían a ningún lado.</p></div>`; }
+function incLeer() { const I = incPlan(); $$('[data-inc-t]').forEach(s => { (I.sel[s.dataset.incT] = I.sel[s.dataset.incT] || {}).ajuste = s.value; }); $$('[data-inc-d]').forEach(t => { (I.sel[t.dataset.incD] = I.sel[t.dataset.incD] || {}).desc = t.value.trim(); }); }
+function incCablear(re) { if (!E.plan || !$('[data-inc-nuevo]')) return; const I = incPlan();
+  $$('[data-inc]').forEach(c => c.onchange = () => { incLeer(); (I.sel[c.dataset.inc] = I.sel[c.dataset.inc] || {}).on = c.checked; re(); });
+  $$('[data-inc-t],[data-inc-d]').forEach(e => e.addEventListener('change', incLeer));
+  $$('[data-inc-add]').forEach(s => s.onchange = () => { if (!s.value) return; incLeer(); I.sel[s.value] = { on: true, ajuste: INC_AJ[0] }; re(); });
+  $$('[data-inc-ini]').forEach(c => c.onchange = () => { I.ini = c.checked; });
+  $('[data-inc-nuevo]').onclick = () => { const v = document.createElement('div'); v.style.cssText = 'position:fixed;inset:0;background:rgba(20,25,40,.5);z-index:90;display:flex;align-items:center;justify-content:center;padding:14px';
+    v.innerHTML = `<div style="background:var(--papel2,#fff);border-radius:20px;padding:18px;max-width:520px;width:100%"><h3 style="margin:0 0 10px">Agregar un alumno</h3>
+     <label style="display:block;margin-bottom:10px">Nombre<br><input id="incN" style="width:100%;min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px"></label>
+     <label style="display:block;margin-bottom:12px">Necesidad o situación<br><select id="incT" style="width:100%;min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px">${INC_NEE.map(t => `<option>${t}</option>`).join('')}</select></label>
+     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec chico" id="incX">Cancelar</button><button class="btn pri chico" id="incOk">Agregar</button></div></div>`;
+    document.body.appendChild(v); v.querySelector('#incX').onclick = () => v.remove();
+    v.querySelector('#incOk').onclick = () => { const n = v.querySelector('#incN').value.trim(); if (!n) return; incLeer(); const id = 'm' + Date.now().toString(36); I.extra.push({ id, nombre: n, nee: v.querySelector('#incT').value }); I.sel[id] = { on: true, ajuste: INC_AJ[0] }; v.remove(); re(); }; }; }
+function incDocHTML() { if (!E.plan || !E.plan.inc) return ''; const { I, lista } = incLista(), L = lista.filter(x => (I.sel[x.id] || {}).on); if (!L.length) return '';
+  return `<h3>Atención a la diversidad: ajustes razonables y adecuaciones</h3><table><tr><th style="width:22%">Alumno(a)</th><th style="width:26%">Necesidad o situación</th><th style="width:16%">Tipo</th><th>Ajuste o adecuación en las sesiones</th></tr>${L.map(x => { const o = I.sel[x.id]; return `<tr><td>${esc(I.ini !== false ? incIni(x.nombre) : x.nombre)}</td><td>${esc(x.nee || '')}</td><td>${esc(o.ajuste || INC_AJ[0])}</td><td>${esc(o.desc != null ? o.desc : (x.apoyo || ''))}</td></tr>`; }).join('')}</table>`; }
 
 /* ---------- Mi clase de hoy (EF): tarjeta por actividad, cronómetro, silbato y equipos al azar ---------- */
 function abrirClaseEF(i) { E.clase = { i, paso: -1, resta: 0, como: '', nota: '', equipos: null, nEq: 4 }; vClaseEF(); }
