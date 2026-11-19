@@ -86,8 +86,15 @@ function recorrer(p, g, fecha) { p.omit = p.omit || {}; const L = p.omit[g.id] =
 /* Clases que no se dieron: motivo y qué se hizo con la sesión (recorrer o mover a otra fecha) */
 const MOTIVOS_ND = ["Suspensión oficial de clases", "Consejo Técnico Escolar", "Festival, ceremonia o evento de la escuela", "Lluvia, viento o mucho calor", "Simulacro o contingencia", "Reunión o capacitación del docente", "Permiso o incapacidad del docente", "Paro o asamblea", "El grupo tenía otra actividad", "Cancha o espacio ocupado", "Otro motivo"];
 function sigClaseDe(g, f, p) { const d = dF(f); d.setDate(d.getDate() + 1); return fechasClase(g, iso(d), 1, (p.omit || {})[g.id] || [])[0] || null; }
-function noSeDio(p, g, i, o) { const s = p.sesiones[i], f = fechasPlan(g, p)[i]; if (!s || !f || sesionesDadas(g.id, p.id).has(s.id)) return false;
+function noSeDio(p, g, i, o) { const s = p.sesiones[i], f = fechasPlan(g, p)[i]; if (!s || (!f && !o.dia) || sesionesDadas(g.id, p.id).has(s.id)) return false;
   p.mov = p.mov || {}; const mv = p.mov[g.id] = p.mov[g.id] || {}, fija = mv[s.id];
+  /* La sesión que sigue no estaba programada para el día que no hubo clase (su fecha es posterior o no tiene fecha):
+     solo se guarda el motivo con la fecha del día; si se pidió moverla, se mueve. */
+  const dia = o.dia;   // solo lo manda «Hoy no se pudo dar alguna clase»
+  if (dia && (!f || f > dia)) {
+    if (o.acc === "mover" && o.a) { if (f && !fija) recorrer(p, g, f); mv[s.id] = o.a; }
+    p.nd = p.nd || {}; (p.nd[g.id] = p.nd[g.id] || []).push({ id: uid(), f: dia, ses: s.id, m: o.m, nota: o.nota || "", acc: o.acc === "mover" && o.a ? "mover" : "igual", a: fechasPlan(g, p)[i] || null, reg: hoy() });
+    return true; }
   if (o.acc === "mover") { if (!fija) recorrer(p, g, f); mv[s.id] = o.a; }
   else if (fija) { const nx = sigClaseDe(g, f, p); if (nx) mv[s.id] = nx; else delete mv[s.id]; }
   else recorrer(p, g, f);
@@ -95,7 +102,7 @@ function noSeDio(p, g, i, o) { const s = p.sesiones[i], f = fechasPlan(g, p)[i];
   return true; }
 function recorrerPendientes(p, g, o) { let n = 0; for (let k = 0; k < 200; k++) { const x = pendientesPlan(p, g)[0]; if (!x || !noSeDio(p, g, x.i, { ...o, acc: "recorrer" })) break; n++; } return n; }
 const ndTexto = x => `${x.m}${x.nota ? " — " + x.nota : ""}`;
-const ndAccion = x => x.acc === "mover" ? `Se movió al ${x.a ? fCorta(x.a) : "—"}` : `Se recorrió${x.a ? " al " + fCorta(x.a) : " a la siguiente clase"}`;
+const ndAccion = x => x.acc === "mover" ? `Se movió al ${x.a ? fCorta(x.a) : "—"}` : x.acc === "igual" ? `La sesión siguió en su fecha${x.a ? " (" + fCorta(x.a) + ")" : ""}` : `Se recorrió${x.a ? " al " + fCorta(x.a) : " a la siguiente clase"}`;
 /* Diálogo: elegir motivo y si la sesión se recorre o se mueve. items = [{p, i, g, et, on}] */
 function dlgNoSeDio(items, { titulo = "Esta clase no se dio", sub = "", soloRec = false, alGuardar } = {}) {
   if (!items.length) return toast("No hay sesiones pendientes para esa fecha.");
@@ -119,9 +126,9 @@ function dlgNoSeDio(items, { titulo = "Esta clase no se dio", sub = "", soloRec 
       if (!m) return toast("Elija el motivo por el que no se dio la clase.");
       if (m === "Otro motivo" && !nota) return toast("Escriba el motivo.");
       if (acc === "mover" && !a) return toast("Elija el día en que se dará la sesión.");
-      let n = 0; sel.forEach(x => { n += soloRec ? recorrerPendientes(x.p, x.g, { m, nota }) : (noSeDio(x.p, x.g, x.i, { m, nota, acc, a }) ? 1 : 0); });
+      let n = 0; sel.forEach(x => { n += soloRec ? recorrerPendientes(x.p, x.g, { m, nota }) : (noSeDio(x.p, x.g, x.i, { m, nota, acc, a, dia: x.dia }) ? 1 : 0); });
       guardar(); cerrarDlg(); alGuardar ? alGuardar() : pintar();
-      toast(!n ? "No había sesiones por cambiar." : acc === "mover" ? `Listo: la sesión se movió al ${fCorta(a)}. Motivo guardado.` : `Listo: ${soloRec ? n + (n === 1 ? " sesión recorrida" : " sesiones recorridas") : "la sesión y las siguientes pasan a la próxima clase"}. Motivo guardado.`, 3600); }; }); }
+      toast(!n ? "No había sesiones por cambiar." : acc === "mover" ? `Listo: la sesión se movió al ${fCorta(a)}. Motivo guardado.` : `Listo: ${soloRec ? n + (n === 1 ? " sesión recorrida" : " sesiones recorridas") : "la sesión queda para la siguiente clase del grupo"}. Motivo guardado.`, 3600); }; }); }
 function planesDeGrupo(gid) { return D.planes.filter(p => (p.grupos || []).includes(gid)).sort((a, b) => a.ini.localeCompare(b.ini)); }
 function sesionesDadas(gid, pid) { return new Set(D.clases.filter(c => c.grupoId === gid && c.planId === pid && c.sesId).map(c => c.sesId)); }
 /* La sesión que sigue: la primera no dada del plan vigente del grupo; con su fecha de agenda */
@@ -275,8 +282,9 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
 ENLAZAR.inicio = () => { enlazarAvisoRespaldo();
   $("#bNoDio") && ($("#bNoDio").onclick = () => { const k = hoy(), dia = dF(k).getDay();
     const items = D.grupos.filter(g => diasGrupo(g).includes(dia) && !evSinClase(g.escId, k) && !D.clases.some(c => c.grupoId === g.id && c.fecha === k))
-      .map(g => ({ g, s: siguienteSesion(g.id) })).filter(x => x.s && x.s.fecha && x.s.fecha <= k)
-      .map(({ g, s }) => ({ p: s.plan, i: s.n - 1, g, et: `${grNom(g)} · ${(escDe(g.escId) || {}).nombre || ""} · Sesión ${s.n}` }));
+      .map(g => ({ g, s: siguienteSesion(g.id) })).filter(x => x.s)
+      .map(({ g, s }) => ({ p: s.plan, i: s.n - 1, g, dia: k, et: `${grNom(g)} · ${(escDe(g.escId) || {}).nombre || ""} · Sesión ${s.n}` }));
+    if (!items.length) return toast("Los grupos de hoy no tienen sesiones pendientes en su planeación. Agregue o revise la planeación del grupo.", 4200);
     dlgNoSeDio(items, { titulo: "Hoy no se pudo dar clase", sub: "Marque los grupos, el motivo y qué hacer con la sesión que tocaba." }); }); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {}); $("#bInstI") && ($("#bInstI").onclick = instalarApp);
   $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$("[data-ev]").forEach(b => b.onclick = () => dlgEvento(b.dataset.ev)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 
