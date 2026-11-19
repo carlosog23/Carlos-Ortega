@@ -249,7 +249,7 @@ const NOMBRES = { rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas C
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 66;
+const VERSION = 67;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1690,6 +1690,24 @@ const ACCIONES = {
       const u = usr.find(x => x.rol === 'director' && x.contacto === c.id);
       if (!u) cambios.push({ id: 'u-d-' + c.cct, nombre: c.nombre, rol: 'director', contacto: c.id, correo: correo, whatsapp: c.whatsapp || '', tokenHash: '', activo: true, creado: ahora_() });
       else if (u.nombre !== c.nombre || u.correo !== correo || u.whatsapp !== (c.whatsapp || '')) cambios.push(Object.assign(u, { nombre: c.nombre, correo: correo, whatsapp: c.whatsapp || '' }));
+    });
+    guardarVarios_('usr', cambios);
+    return { usr: leer_('usr').map(publico_), cambios: cambios.length };
+  },
+
+  // Mesa Técnica: cada ATP de la Supervisión del Directorio (tipo «atp») tiene su usuario con rol ATP.
+  // Si esa persona había quedado con otro rol (p. ej. como directora), se corrige a ATP. Su enlace se genera aparte.
+  prepararAtps: (yo) => {
+    soloAdmin_(yo);
+    const usr = leer_('usr'), cambios = [];
+    const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    leer_('dir').filter(c => c.tipo === 'atp' && c.activo !== false).forEach(c => {
+      const correo = [c.correo1, c.correo2].filter(Boolean).join(',');
+      let u = usr.find(x => x.rol !== 'admin' && x.contacto === c.id)
+        || usr.find(x => x.rol !== 'admin' && x.rol !== 'atp' && norm(x.nombre) === norm(c.nombre));
+      if (!u) { cambios.push({ id: 'u-' + String(c.id).slice(2), nombre: c.nombre, rol: 'atp', contacto: c.id, correo: correo, whatsapp: c.whatsapp || '', tokenHash: '', activo: true, creado: ahora_() }); return; }
+      if (u.rol !== 'atp' || u.contacto !== c.id || u.nombre !== c.nombre || u.activo === false || u.correo !== correo)
+        cambios.push(Object.assign(u, { rol: 'atp', contacto: c.id, nombre: c.nombre, correo: correo, whatsapp: c.whatsapp || u.whatsapp || '', activo: true }));
     });
     guardarVarios_('usr', cambios);
     return { usr: leer_('usr').map(publico_), cambios: cambios.length };

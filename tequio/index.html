@@ -1954,6 +1954,18 @@ function tqPrepararIOS() {
     document.getElementById('l-manifest').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
   } catch (x) {}
 }
+// En la Agenda (lo primero que ve todo usuario): invitación a instalar; si la cierra, vuelve a aparecer a los 15 días
+function tqInstalarAgendaHTML() {
+  if (tqInstalada() || MODO_CAMPO) return '';
+  try { const o = localStorage.getItem('tequio.instOcultar'); if (o && sumarDias(o, 15) > hoy()) return ''; } catch (e) {}
+  const d = tqDispositivo(), que = d.movil ? (/ipad|tablet/i.test(navigator.userAgent) || (d.ios && navigator.maxTouchPoints > 1 && !/iphone/i.test(navigator.userAgent)) ? 'su tableta' : 'su celular') : 'su computadora';
+  return `<style>#ag-inst-caja .ag-i svg{width:30px;height:30px;display:block}#ag-inst-caja #ag-inst-x{position:absolute;top:8px;right:8px}</style>
+    <div class="tarjeta pad" id="ag-inst-caja" style="position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;border-left:4px solid #C2603A;padding-right:52px">
+    <span class="ag-i" style="color:#1F3A6B;flex:none">${ico('i-instalar')}</span>
+    <div style="flex:1;min-width:200px"><b>Instale Tequio en ${que}</b><div class="peq mudo">Quedará con su ícono, como una aplicación más, y entrará sin buscar el enlace.</div></div>
+    <button class="boton terra chico" id="ag-inst">${ico('i-instalar')}Instalar</button>
+    <button class="icono-btn" id="ag-inst-x" aria-label="Ocultar por ahora" title="Ocultar por ahora">${ico('i-x')}</button></div>`;
+}
 async function tqInstalar() {
   const d = tqDispositivo();
   if (cmpPromptInstalar && !d.ios) {
@@ -2670,6 +2682,7 @@ function vAgenda() {
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Agenda de la zona</h1>
     <div class="acciones"><button class="boton sec" id="b-recargar">${ico('i-act')}Actualizar</button>${esDirector() ? '' : `<button class="boton terra" id="b-nueva">${ico('i-mas')}Nueva actividad</button>`}</div></div>
+  ${tqInstalarAgendaHTML()}
   <div class="filtros">
     <select id="f-esc" aria-label="Filtrar por escuela"><option value="">Todas las escuelas</option>${directores().map(c => `<option value="${c.cct}" ${vista.filtroEsc === c.cct ? 'selected' : ''}>${esc(c.escuela)}</option>`).join('')}</select>
     <select id="f-resp" aria-label="Filtrar por responsable"><option value="">Toda la Mesa Técnica</option>${S.usr.filter(u => u.rol !== 'director').map(u => `<option value="${u.id}" ${vista.filtroResp === u.id ? 'selected' : ''}>${esc(nombreCorto(u.nombre))}</option>`).join('')}</select>
@@ -2707,6 +2720,8 @@ function vAgenda() {
   $('#m-ant').onclick = () => irMes(-1);
   $('#m-sig').onclick = () => irMes(1);
   $('#m-hoy').onclick = () => { vista.mes = hoy().slice(0, 7); vista.dia = hoy(); vAgenda(); };
+  if ($('#ag-inst')) $('#ag-inst').onclick = tqInstalar;
+  if ($('#ag-inst-x')) $('#ag-inst-x').onclick = () => { try { localStorage.setItem('tequio.instOcultar', hoy()); } catch (e) {} $('#ag-inst-caja').remove(); };
   $$('[data-dia]').forEach(b => b.onclick = () => { vista.dia = b.dataset.dia; if (vista.dia.slice(0, 7) !== vista.mes) vista.mes = vista.dia.slice(0, 7); vAgenda(); });
   $$('[data-act]').forEach(b => b.onclick = () => detalleActividad(b.dataset.act));
   $('#f-esc').onchange = e => { vista.filtroEsc = e.target.value; vAgenda(); };
@@ -6932,7 +6947,8 @@ function vEnlaces() {
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Enlaces de acceso</h1></div>
   <div class="aviso-caja">Cada persona entra con su propio enlace. Si genera uno nuevo, el anterior deja de funcionar. Si alguien pierde su teléfono o deja la zona, anule su enlace.</div>
-  <div class="seccion-t" style="padding:6px 0 8px">Supervisión y Mesa Técnica</div>
+  <div class="seccion-t" style="padding:6px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Supervisión y Mesa Técnica<button class="boton sec chico" id="b-atps" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}Actualizar ATP desde el Directorio</button></div>
+  <p class="peq mudo" style="margin:0 0 10px">Los ATP de la Supervisión registrados en el Directorio reciben aquí su usuario de Mesa Técnica (Tablón, acuerdos, visitas…). Después genere y envíe su enlace.</p>
   <div class="contactos">${mesa.map(tarjeta).join('')}</div>
   <div class="seccion-t" style="padding:22px 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Directores<button class="boton sec chico" id="b-dirs" style="margin-left:auto;text-transform:none;letter-spacing:0">${ico('i-dir')}${dirs.length ? 'Actualizar desde el Directorio' : 'Agregar a los directores'}</button></div>
   <p class="peq mudo" style="margin:0 0 10px">Con su enlace, cada director ve la agenda de la zona, el avance y los pendientes de su escuela, el avance general de la zona y las carpetas de su escuela, donde puede subir archivos. No ve visitas ni datos de otras escuelas ni lo confidencial, y no puede modificar nada.</p>
@@ -6945,6 +6961,8 @@ function vEnlaces() {
   ${esAdmin() ? tarjetaModulos() : ''}`;
   ligarModulos();
   if ($('#medtq')) medCargar();
+  $('#b-atps').onclick = () => { if (!(S.version >= 67) && !cfg.demo) return aviso('Para esto, actualice el servidor de Tequio (Código.gs) a la versión 67.', 'mal', 7000);
+    accion('prepararAtps', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'ATP actualizados: ' + r.cambios + '. Genere y envíe su enlace.' : 'Los ATP ya estaban al día.', 'ok', 4000); }); };
   $('#b-dirs').onclick = () => accion('prepararDirectores', {}, r => { if (r.usr) S.usr = r.usr; vEnlaces(); aviso(r.cambios ? 'Directores actualizados: ' + r.cambios + '.' : 'Los directores ya estaban al día.', 'ok', 3000); });
   $$('[data-genlace]').forEach(b => b.onclick = () => {
     const u = usuario(b.dataset.genlace);
@@ -11185,6 +11203,7 @@ const Demo = (() => {
         if (!o || !t) return; const k = +o.directos || 0; n += k; o.directos = '0'; t.directos = String((+t.directos || 0) + k); t.archivos = String((+t.archivos || 0) + k); if (!t.ultimo) t.ultimo = o.ultimo; });
       return { movidos: n, escuelas: d.ccts, evi: copia(D.evi) }; },
     prepararDirectores: () => ({ usr: copia(D.usr), cambios: 0 }),
+    prepararAtps: () => ({ usr: copia(D.usr), cambios: 0 }),
     sisatGuardar: d => {
       const fuera = x => !(x.ciclo === d.ciclo && +x.momento === +d.momento && x.cct === d.cct);
       D.sis = D.sis.filter(fuera).concat(d.grupos.map(g => ({ id: [d.ciclo, d.momento, d.cct, g.grado + '-' + g.grupo].join('|'),
