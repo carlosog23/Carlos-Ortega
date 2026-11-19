@@ -810,6 +810,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
   <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-pend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-.9 5.6 3.9 3.9H6l3.9-3.9z"/><path d="M12 13v7.5"/></symbol>
   <symbol id="i-tlm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h3v-3h3v-3h3v-3h2a5 5 0 0 0 0-10 3.5 3.5 0 0 0 0 7 2 2 0 0 0 0-4"/></symbol>
+  <symbol id="i-instalar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3M10 18h4"/></symbol>
   <symbol id="i-lapiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></symbol>
 </svg>
 
@@ -1219,7 +1220,8 @@ function lateralHTML(tabs) {
 function barraIconos(tabs) {
   const tit = { pendientes: 'Tablón', enlaces: 'Enlaces' };
   const b = LAT_ARRIBA.map(id => tabs.find(t => t[0] === id)).filter(Boolean);
-  return b.length ? `<div class="barra-ico">${b.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}" title="${tit[t[0]] || t[1]}" aria-label="${tit[t[0]] || t[1]}">${ico(t[2])}${insigniaPest(t[0])}</button>`).join('')}</div>` : '';
+  const inst = tqInstalada() ? '' : `<button id="b-instalar" title="Instalar Tequio en este dispositivo" aria-label="Instalar Tequio en este dispositivo">${ico('i-instalar')}</button>`;
+  return b.length || inst ? `<div class="barra-ico">${inst}${b.map(t => `<button data-tab="${t[0]}" aria-current="${vista.tab === t[0]}" title="${tit[t[0]] || t[1]}" aria-label="${tit[t[0]] || t[1]}">${ico(t[2])}${insigniaPest(t[0])}</button>`).join('')}</div>` : '';
 }
 function migasSec(tabs) {
   const g = gruposLat(tabs).find(x => x.items.length > 1 && x.items.some(t => t[0] === vista.tab));
@@ -1266,6 +1268,7 @@ function pintar() {
   </div></div>`;
   $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
   $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
+  if ($('#b-instalar')) $('#b-instalar').onclick = tqInstalar;
   $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; if (vista.tab === 'consultas') { CNS = null; vista.cnsVer = null; vista.cnsRes = null; } pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
@@ -1924,6 +1927,65 @@ function cmpInicioApp() {
 // «Instalar la app»: Android lo ofrece con un botón; en iPhone se explica cómo agregarla a la pantalla de inicio
 let cmpPromptInstalar = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); cmpPromptInstalar = e; const b = document.getElementById('ap-inst'); if (b) b.hidden = false; });
+/* «Instalar Tequio» (botón de la barra): en computadora, Android y tableta abre la instalación del navegador;
+   en iPhone/iPad, y donde el navegador no la ofrece, explica los pasos de ese dispositivo. */
+window.addEventListener('appinstalled', () => { cmpPromptInstalar = null; const b = document.getElementById('b-instalar'); if (b) b.remove(); cerrarModal(); aviso('Tequio quedó instalado. Ya puede abrirlo desde su ícono.', 'ok', 5000); });
+const tqInstalada = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function tqDispositivo() {
+  const ua = navigator.userAgent;
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return {
+    ios, android: /android/i.test(ua), movil: ios || /android|mobile/i.test(ua),
+    dentroApp: /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\//i.test(ua),
+    safariMac: !ios && /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua),
+    firefox: /Firefox|FxiOS/i.test(ua), iosNoSafari: ios && /CriOS|FxiOS|EdgiOS/i.test(ua)
+  };
+}
+const tqEnlacePropio = () => cfg && cfg.s && cfg.k ? location.origin + location.pathname + '#s=' + encodeURIComponent(cfg.s) + '&k=' + encodeURIComponent(cfg.k) : '';
+// En iPhone/iPad el ícono instalado no comparte lo guardado en Safari: se deja el enlace personal en la dirección
+// y en el manifiesto para que el ícono abra Tequio ya con su acceso.
+function tqPrepararIOS() {
+  const e = tqEnlacePropio(); if (!e) return;
+  try { history.replaceState(null, '', e.slice(location.origin.length)); } catch (x) {}
+  try {
+    const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    const m = { name: 'Tequio · Supervisión Escolar', short_name: 'Tequio', start_url: e, scope: base, display: 'standalone', background_color: '#FBF6EC', theme_color: '#1F3A6B', lang: 'es-MX',
+      icons: [{ src: base + 'img/tequio-logo-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'img/tequio-512.png', sizes: '512x512', type: 'image/png' }] };
+    document.getElementById('l-manifest').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
+  } catch (x) {}
+}
+async function tqInstalar() {
+  const d = tqDispositivo();
+  if (cmpPromptInstalar && !d.ios) {
+    cmpPromptInstalar.prompt();
+    const r = await cmpPromptInstalar.userChoice.catch(() => null);
+    cmpPromptInstalar = null;
+    if (r && r.outcome === 'accepted') { const b = $('#b-instalar'); if (b) b.remove(); }
+    return;
+  }
+  if (d.ios && !d.dentroApp && !d.iosNoSafari) tqPrepararIOS();
+  const enl = tqEnlacePropio();
+  const copiar = enl ? `<div class="peq mudo" style="margin-top:12px">Si al abrir el ícono le pide su enlace, ábralo una vez desde ahí con su enlace personal.</div>
+    <button class="boton chico" id="inst-copiar" style="margin-top:8px">${ico('i-copiar')}Copiar mi enlace personal</button>` : '';
+  let pasos;
+  if (d.dentroApp) pasos = `<p>Está viendo Tequio dentro de otra aplicación (WhatsApp, Facebook…), que no permite instalar.</p>
+    <ol><li>Copie su enlace con el botón de abajo.</li><li>Abra <b>${d.ios ? 'Safari' : 'Chrome'}</b>, pegue el enlace en la barra de direcciones y entre.</li><li>Vuelva a tocar el botón <b>Instalar</b> de Tequio.</li></ol>`;
+  else if (d.ios && d.iosNoSafari) pasos = `<p>En iPhone y iPad, Tequio se instala desde <b>Safari</b>.</p>
+    <ol><li>Copie su enlace con el botón de abajo.</li><li>Abra <b>Safari</b>, pegue el enlace y entre.</li><li>Toque <b>Compartir</b> (el cuadro con la flecha hacia arriba) y luego <b>«Agregar a inicio»</b>.</li></ol>`;
+  else if (d.ios) pasos = `<ol><li>Toque el botón <b>Compartir</b> de Safari (el cuadro con la flecha hacia arriba; en iPhone está abajo, en iPad arriba).</li>
+    <li>Deslice hacia abajo y toque <b>«Agregar a inicio»</b>.</li><li>Toque <b>«Agregar»</b>. Aparece el ícono de <b>Tequio</b> en su pantalla.</li></ol>`;
+  else if (d.android) pasos = `<ol><li>En Chrome, toque el menú <b>⋮</b> (arriba a la derecha).</li><li>Toque <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.</li><li>Confirme con <b>«Instalar»</b>. Aparece el ícono de <b>Tequio</b>.</li></ol>
+    <p class="peq mudo">Si no aparece la opción, abra Tequio en <b>Google Chrome</b>.</p>`;
+  else if (d.safariMac) pasos = `<ol><li>En la barra de menús de Safari, elija <b>Archivo</b>.</li><li>Elija <b>«Agregar al Dock»</b> y confirme.</li></ol><p class="peq mudo">Requiere macOS Sonoma o más reciente; si no aparece, use Google Chrome o Microsoft Edge.</p>`;
+  else if (d.firefox) pasos = `<p>Firefox no permite instalar páginas como aplicación. Abra Tequio en <b>Google Chrome</b> o <b>Microsoft Edge</b> y vuelva a tocar este botón.</p>`;
+  else pasos = `<ol><li>En la barra de direcciones, a la derecha, toque el ícono de <b>instalar</b> (una pantalla con una flecha) o abra el menú <b>⋮</b> / <b>…</b> del navegador.</li>
+    <li>Elija <b>«Instalar Tequio»</b> (en Edge: <b>Aplicaciones → Instalar este sitio como aplicación</b>).</li><li>Confirme. Tequio queda en el escritorio y en el menú de inicio.</li></ol>
+    <p class="peq mudo">Funciona en Google Chrome y Microsoft Edge.</p>`;
+  modal('Instalar Tequio en este dispositivo', `<p style="margin-top:0">Tendrá Tequio como una aplicación más: con su ícono, en ventana propia y sin buscar el enlace cada vez.</p>${pasos}${copiar}`,
+    '<button class="boton terra" id="inst-ok">Entendido</button>');
+  $('#inst-ok').onclick = cerrarModal;
+  if ($('#inst-copiar')) $('#inst-copiar').onclick = () => navigator.clipboard.writeText(enl).then(() => aviso('Enlace copiado. Péguelo en ' + (d.ios ? 'Safari' : 'Chrome') + '.', 'ok', 3500), () => prompt('Copie su enlace:', enl));
+}
 const cmpInstalada = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 function cmpInstalarHTML() {
   if (cmpInstalada()) return '';
