@@ -1175,7 +1175,7 @@ function pestanasTodas() {
   l.push(['relweb', 'Claves RELweb', 'i-candado']);
   if (esAdmin()) l.push(['correos', 'Correo de la Supervisión', 'i-correo']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
-  if (esAdmin()) l.push(['consultas', 'Consultas', 'i-chk']);
+  if (esMesa()) l.push(['consultas', 'Consultas', 'i-chk']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -5984,8 +5984,9 @@ async function minPdf(m) {
    La Supervisión crea una consulta (asistencia a un evento, elegir platillo de un menú con servicio y anticipo,
    preguntas de opción o abiertas) y comparte su enlace. Cada persona elige su nombre y contesta en privado:
    nadie ve las respuestas de los demás. Aquí se ven los resultados. Las consultas no se borran: se archivan.
-   Requiere el servidor versión 65. */
-const CNS_VER = 65;
+   La Supervisión elige en cada consulta qué ATP pueden verla y darle seguimiento, y cuáles además llevar el control
+   (editarla, cerrarla, archivarla y marcar anticipos). Requiere el servidor versión 66. */
+const CNS_VER = 66;
 const CNS_TIPOS = { asistencia: 'Asistencia (Sí / No)', menu: 'Menú con precios (servicio y anticipo)', opcion: 'Opción única', varias: 'Varias opciones', sino: 'Sí o No', texto: 'Respuesta abierta' };
 const cnsPesos = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cnsR2 = n => Math.round(n * 100) / 100;
@@ -6029,8 +6030,8 @@ function cnsMensajeWa(c) {
 }
 
 function vConsultas() {
-  if (!esAdmin()) { vista.tab = 'agenda'; return pintar(); }
-  const cab = `<div class="titulo-vista"><h1>Consultas</h1><div class="acciones">${CNS && !CNS.error && !(cfg && cfg.demo) ? `<button class="boton" id="cn-nueva">${ico('i-mas')}Nueva consulta</button>` : ''}</div></div>`;
+  if (!esMesa()) { vista.tab = 'agenda'; return pintar(); }
+  const cab = `<div class="titulo-vista"><h1>Consultas</h1><div class="acciones">${esAdmin() && CNS && !CNS.error && !(cfg && cfg.demo) ? `<button class="boton" id="cn-nueva">${ico('i-mas')}Nueva consulta</button>` : ''}</div></div>`;
   if (cfg && cfg.demo) {
     $('#vista').innerHTML = cab + '<div class="tarjeta pad"><p style="margin-top:0">Con <b>Consultas</b> la Supervisión arma una consulta (asistencia a un evento, elegir platillo de un menú con servicio y anticipo, o preguntas de opción o abiertas) y comparte un enlace por WhatsApp. Cada persona elige su nombre y contesta en privado; solo la Supervisión ve las respuestas. Las consultas no se borran: se archivan.</p><p class="peq mudo" style="margin-bottom:0">En la demostración no se crean consultas.</p></div>';
     return;
@@ -6051,6 +6052,7 @@ function vConsultas() {
   const nArch = CNS.lista.filter(c => c.estado === 'archivada').length;
   const tarjeta = c => {
     const n = (c.participantes || []).length, abierta = c.estado === 'abierta' && !(c.cierre && c.cierre < hoy());
+    const ctl = c.puedo === 'control';
     const est = c.estado === 'archivada' ? '<span class="chip">Archivada</span>' : abierta ? '<span class="chip ok">Abierta</span>' : '<span class="chip aviso">Cerrada</span>';
     return `<div class="tarjeta pad" style="margin-bottom:12px">
       <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
@@ -6062,27 +6064,30 @@ function vConsultas() {
         <button class="boton chico" data-cnver="${c.id}">${ico('i-graf')}Ver respuestas</button>
         ${c.estado !== 'archivada' ? `<button class="boton sec chico" data-cncop="${c.id}">${ico('i-copiar')}Copiar enlace</button>
         <a class="boton sec chico" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(cnsMensajeWa(c))}">${ico('i-wa')}Enviar por WhatsApp</a>
-        <button class="boton sec chico" data-cned="${c.id}">${ico('i-lapiz')}Editar</button>
+        ${ctl ? `<button class="boton sec chico" data-cned="${c.id}">${ico('i-lapiz')}Editar</button>
         <button class="boton sec chico" data-cnest="${c.id}" data-est="${c.estado === 'abierta' ? 'cerrada' : 'abierta'}">${c.estado === 'abierta' ? 'Cerrar' : 'Volver a abrir'}</button>
-        <button class="boton sec chico" data-cnest="${c.id}" data-est="archivada">Archivar</button>`
-        : `<button class="boton sec chico" data-cnest="${c.id}" data-est="cerrada">Sacar del archivo</button>`}
-        <button class="boton sec chico" data-cndup="${c.id}">Duplicar</button>
+        <button class="boton sec chico" data-cnest="${c.id}" data-est="archivada">Archivar</button>` : ''}`
+        : ctl ? `<button class="boton sec chico" data-cnest="${c.id}" data-est="cerrada">Sacar del archivo</button>` : ''}
+        ${esAdmin() ? `<button class="boton sec chico" data-cndup="${c.id}">Duplicar</button>` : ''}
+        ${esAdmin() && (c.acceso || []).length ? `<span class="peq mudo" style="align-self:center">ATP con acceso: ${esc(c.acceso.map(a => ((S.usr || []).find(u => u.id === a.id) || {}).nombre || 'ATP').map(n => n.split(' ')[0]).join(', '))}</span>` : ''}
+        ${!esAdmin() ? `<span class="peq mudo" style="align-self:center">${ctl ? 'Usted puede ver y llevar el control de esta consulta' : 'Usted puede ver y dar seguimiento a esta consulta'}</span>` : ''}
       </div></div>`;
   };
   $('#vista').innerHTML = cab + `
-    <div class="aviso-caja">Cree una consulta y comparta su enlace (por ejemplo, en el grupo de WhatsApp). Cada persona elige su nombre y contesta; <b>nadie ve las respuestas de los demás</b>, solo usted. Si alguien se equivoca, vuelve a entrar y se guarda su última respuesta. Las consultas que ya no use se archivan; no se borran.</div>
+    ${esAdmin() ? `<div class="aviso-caja">Cree una consulta y comparta su enlace (por ejemplo, en el grupo de WhatsApp). Cada persona elige su nombre y contesta; <b>nadie ve las respuestas de los demás</b>, solo usted y los ATP a quienes les dé acceso en cada consulta. Si alguien se equivoca, vuelve a entrar y se guarda su última respuesta. Las consultas que ya no use se archivan; no se borran.</div>`
+      : '<div class="aviso-caja">Aquí aparecen las consultas que la Supervisión compartió con usted. Las respuestas son privadas: no las comparta con quienes contestaron.</div>'}
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="boton ${archivo ? 'sec ' : ''}chico" id="cn-act">Activas (${CNS.lista.length - nArch})</button>
       <button class="boton ${archivo ? '' : 'sec '}chico" id="cn-arc">Archivo (${nArch})</button>
     </div>
-    ${lista.length ? lista.map(tarjeta).join('') : `<div class="tarjeta vacio">${archivo ? 'No hay consultas archivadas.' : 'Todavía no hay consultas. Pulse «Nueva consulta» para crear la primera.'}</div>`}`;
-  $('#cn-nueva').onclick = () => cnsElegirPlantilla();
+    ${lista.length ? lista.map(tarjeta).join('') : `<div class="tarjeta vacio">${archivo ? 'No hay consultas archivadas.' : esAdmin() ? 'Todavía no hay consultas. Pulse «Nueva consulta» para crear la primera.' : 'La Supervisión todavía no le ha compartido ninguna consulta.'}</div>`}`;
+  if ($('#cn-nueva')) $('#cn-nueva').onclick = () => cnsElegirPlantilla();
   $('#cn-act').onclick = () => { vista.cnsArch = false; vConsultas(); };
   $('#cn-arc').onclick = () => { vista.cnsArch = true; vConsultas(); };
   $$('[data-cnver]').forEach(b => b.onclick = () => { vista.cnsVer = b.dataset.cnver; vista.cnsRes = null; vConsultas(); window.scrollTo(0, 0); });
   $$('[data-cncop]').forEach(b => b.onclick = () => copiar(cnsDe(b.dataset.cncop).enlace, 'Enlace copiado'));
   $$('[data-cned]').forEach(b => b.onclick = () => formConsulta(cnsDe(b.dataset.cned)));
-  $$('[data-cndup]').forEach(b => b.onclick = () => { const c = JSON.parse(JSON.stringify(cnsDe(b.dataset.cndup))); ['id', 'codigo', 'enlace', 'estado', 'respondieron'].forEach(k => delete c[k]); c.titulo = c.titulo + ' (copia)'; formConsulta(null, c); });
+  $$('[data-cndup]').forEach(b => b.onclick = () => { const c = JSON.parse(JSON.stringify(cnsDe(b.dataset.cndup))); ['id', 'codigo', 'enlace', 'estado', 'respondieron', 'puedo'].forEach(k => delete c[k]); c.titulo = c.titulo + ' (copia)'; formConsulta(null, c); });
   $$('[data-cnest]').forEach(b => b.onclick = () => cnsCambiarEstado(b.dataset.cnest, b.dataset.est));
 }
 async function cnsCambiarEstado(id, estado) {
@@ -6159,7 +6164,14 @@ function formConsulta(c, base) {
     <h3 style="margin:18px 0 8px">Quiénes contestan</h3>
     <div class="campo"><label for="cn-per">Una persona por renglón, así: Nombre | escuela o función</label><textarea id="cn-per" rows="9">${esc(personasTxt)}</textarea>
       <div class="ayuda">Cada quien elige su nombre de esta lista al contestar. <span id="cn-nper"></span></div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec chico" id="cn-zona">Agregar directores, ATP y Supervisión</button></div>`,
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton sec chico" id="cn-zona">Agregar directores, ATP y Supervisión</button></div>
+    ${esAdmin() ? `<h3 style="margin:18px 0 4px">ATP que pueden ver esta consulta</h3>
+    <p class="peq mudo" style="margin-top:0">Si no palomea a nadie, solo usted la ve. «Llevar el control» permite además editarla, cerrarla, archivarla y marcar anticipos.</p>
+    <div class="cns-caja"><table class="cns-t"><tr><th>ATP</th><th>Ver y dar seguimiento</th><th>Llevar el control y modificarla</th></tr>
+    ${(S.usr || []).filter(u => u.rol === 'atp' && u.activo !== false).map(u => { const a = (o.acceso || []).find(x => x.id === u.id); return `<tr><td>${esc(u.nombre)}</td>
+      <td><input type="checkbox" data-cnac="${esc(u.id)}" data-niv="ver"${a ? ' checked' : ''} aria-label="${esc(u.nombre)} puede ver"></td>
+      <td><input type="checkbox" data-cnac="${esc(u.id)}" data-niv="control"${a && a.nivel === 'control' ? ' checked' : ''} aria-label="${esc(u.nombre)} puede llevar el control"></td></tr>`; }).join('') || '<tr><td colspan="3" class="mudo">No hay ATP dados de alta en Tequio.</td></tr>'}
+    </table></div>` : ''}`,
     `<button class="boton sec" id="cn-cancel">Cancelar</button><button class="boton" id="cn-guardar">${c ? 'Guardar cambios' : 'Crear la consulta'}</button>`);
   const pintarPreg = () => {
     $('#cn-preg').innerHTML = preg.length ? preg.map(bloque).join('') : '<p class="peq mudo">Sin preguntas.</p>';
@@ -6177,6 +6189,12 @@ function formConsulta(c, base) {
     $('#cn-per').value = ($('#cn-per').value.trim() ? $('#cn-per').value.trim() + '\n' : '') + nuevos.map(x => x.n + ' | ' + x.d).join('\n');
     contar(); aviso(nuevos.length ? 'Se agregaron ' + nuevos.length + ' persona(s).' : 'Ya estaban todas.', 'ok', 2500);
   };
+  // «Llevar el control» incluye «ver»; quitar «ver» quita también el control
+  $$('[data-cnac]').forEach(ch => ch.onchange = () => {
+    const otro = $(`[data-cnac="${ch.dataset.cnac}"][data-niv="${ch.dataset.niv === 'ver' ? 'control' : 'ver'}"]`);
+    if (ch.dataset.niv === 'control' && ch.checked) otro.checked = true;
+    if (ch.dataset.niv === 'ver' && !ch.checked) otro.checked = false;
+  });
   $('#cn-cancel').onclick = cerrarModal;
   $('#cn-guardar').onclick = async () => {
     leerPreg();
@@ -6187,7 +6205,8 @@ function formConsulta(c, base) {
       return { id: ant ? ant.id : '', n, d: d.join(' | ') };
     });
     const datos = { id: c ? c.id : '', titulo: $('#cn-tit').value.trim(), descripcion: $('#cn-des').value.trim(), fecha: $('#cn-fec').value, hora: $('#cn-hor').value,
-      cierre: $('#cn-cie').value, lugar: $('#cn-lug').value.trim(), preguntas: preg, participantes };
+      cierre: $('#cn-cie').value, lugar: $('#cn-lug').value.trim(), preguntas: preg, participantes,
+      acceso: $$('[data-cnac][data-niv="ver"]').filter(x => x.checked).map(x => ({ id: x.dataset.cnac, nivel: $(`[data-cnac="${x.dataset.cnac}"][data-niv="control"]`).checked ? 'control' : 'ver' })) };
     if (!datos.titulo) return aviso('Escriba el nombre de la consulta.', 'mal');
     const sinTexto = preg.findIndex(p => !p.t);
     if (sinTexto >= 0) return aviso('Escriba el texto de la pregunta ' + (sinTexto + 1) + '.', 'mal');
@@ -6284,7 +6303,7 @@ function vConsultaRes(id) {
       ${asisP ? `<td>${!f.r ? '<span class="chip">Sin responder</span>' : f.va ? '<span class="chip ok">Sí</span>' : '<span class="chip mal">No</span>'}</td>` : ''}
       ${menus.map(p => `<td>${f.va ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
       ${otras.map(p => `<td>${f.r && (f.va || !asisP) ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
-      ${menus.length ? `<td class="d">${f.va ? cnsPesos(f.total) : ''}</td><td class="d">${f.va ? cnsPesos(f.anticipo) : ''}</td><td>${f.va ? `<label class="casilla" style="padding:0"><input type="checkbox" data-cnpag="${esc(f.p.id)}"${f.pagado ? ' checked' : ''}>${f.pagado ? 'Recibido' : ''}</label>${f.pagado && f.pagadoMonto && f.pagadoMonto !== f.anticipo ? `<div class="chip aviso" style="white-space:normal">Cambió su platillo después: entregó ${cnsPesos(f.pagadoMonto)}</div>` : ''}` : ''}</td>` : ''}</tr>`).join('')}
+      ${menus.length ? `<td class="d">${f.va ? cnsPesos(f.total) : ''}</td><td class="d">${f.va ? cnsPesos(f.anticipo) : ''}</td><td>${f.va ? `<label class="casilla" style="padding:0"><input type="checkbox" data-cnpag="${esc(f.p.id)}"${f.pagado ? ' checked' : ''}${c.puedo === 'control' ? '' : ' disabled'}>${f.pagado ? 'Recibido' : ''}</label>${f.pagado && f.pagadoMonto && f.pagadoMonto !== f.anticipo ? `<div class="chip aviso" style="white-space:normal">Cambió su platillo después: entregó ${cnsPesos(f.pagadoMonto)}</div>` : ''}` : ''}</td>` : ''}</tr>`).join('')}
     </table></div></div>`;
   if (sin.length) h += `<div class="tarjeta pad"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1;margin:0;font-size:19px">Faltan por responder (${sin.length})</h2>
     <button class="boton sec chico" id="cn-falt">${ico('i-copiar')}Copiar recordatorio</button></div><p class="peq" style="margin-bottom:0">${sin.map(f => esc(f.p.n)).join(' · ')}</p></div>`;

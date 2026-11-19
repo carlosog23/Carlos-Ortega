@@ -240,8 +240,8 @@ const HOJAS = {
   agr: ['id', 'cct', 'grupos', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
   asj: ['id', 'fecha', 'motivo', 'nota', 'escuelas', 'estado', 'avisado', 'creadoPor', 'creadoNombre', 'creado', 'cerrada', 'cerradaPor'],
   asr: ['id', 'jornada', 'cct', 'grupos', 'equipo', 'alumnos', 'asistieron', 'docentes', 'docentesA', 'personal', 'personalA', 'capturoPor', 'capturoNombre', 'capturoRol', 'actualizado'],
-  // Consultas de la Supervisión (asistencia a eventos, menú, preguntas). Solo la Supervisión ve las respuestas. Nada se borra: se archiva.
-  cns: ['id', 'titulo', 'descripcion', 'fecha', 'hora', 'lugar', 'cierre', 'preguntas', 'participantes', 'estado', 'codigo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado'],
+  // Consultas de la Supervisión (asistencia a eventos, menú, preguntas). Las respuestas las ven la Supervisión y los ATP a quienes les dio acceso. Nada se borra: se archiva.
+  cns: ['id', 'titulo', 'descripcion', 'fecha', 'hora', 'lugar', 'cierre', 'preguntas', 'participantes', 'estado', 'codigo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'acceso'],
   cnr: ['id', 'consulta', 'persona', 'nombre', 'respuestas', 'datos', 'fecha', 'actualizado', 'veces'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
@@ -249,13 +249,13 @@ const NOMBRES = { rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas C
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 65;
+const VERSION = 66;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes'];
+const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes', 'acceso'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -4371,10 +4371,11 @@ const REV_PUBLICAS = {
     return { foto: x.foto }; }
 };
 
-/* ===================== Consultas (servidor v65) =====================
+/* ===================== Consultas (servidor v65; permisos por ATP desde v66) =====================
    La Supervisión crea consultas (asistencia a un evento, elegir platillo de un menú, preguntas de opción o abiertas)
    y comparte un enlace público. Cada persona elige su nombre de la lista y contesta; nadie ve lo que contestaron los demás.
-   Solo la Supervisión ve las respuestas. Las consultas no se borran: se cierran y se archivan.
+   Las respuestas las ven la Supervisión y los ATP que ella elige en cada consulta (ver, o además llevar el control).
+   Las consultas no se borran: se cierran y se archivan.
    cns: preguntas: [{ k, t, tipo: asistencia|opcion|varias|texto|sino|menu, op: [{ t, d, p }], req, serv, ant, antFecha, antNota }]
         participantes: [{ id, n, d }]. estado: abierta | cerrada | archivada. codigo: el del enlace público.
    cnr: id = consulta|persona. respuestas: { k: valor }. datos: { cuenta: {…}, pagado: bool, nota }. */
@@ -4477,21 +4478,42 @@ function cnsEnlace_(c) {
   const s = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL') || ScriptApp.getService().getUrl();
   return PAGINA + 'consulta.html#c=' + c.codigo + '&s=' + encodeURIComponent(s);
 }
-function cnsPublica_(c, todas) {
+// Permisos por consulta: la Supervisión ve y maneja todas; cada ATP solo las que la Supervisión le palomeó al crearla o editarla.
+// acceso: [{ id: usuario, nivel: 'ver' (ver y dar seguimiento) | 'control' (además, llevar el control y modificarla) }]
+function cnsNivel_(yo, c) {
+  if (yo.rol === 'admin') return 'control';
+  if (yo.rol !== 'atp') return '';
+  const a = (Array.isArray(c.acceso) ? c.acceso : []).find(x => x.id === yo.id);
+  return a ? (a.nivel === 'control' ? 'control' : 'ver') : '';
+}
+function cnsPuede_(yo, c, nivel) {
+  const n = cnsNivel_(yo, c);
+  if (!n || (nivel === 'control' && n !== 'control')) throw new Error(n ? 'Usted puede ver esta consulta, pero no modificarla.' : 'No tiene acceso a esta consulta.');
+}
+function cnsLimpiarAcceso_(l) {
+  const atps = {}; leer_('usr').forEach(u => { if (u.rol === 'atp') atps[u.id] = 1; });
+  const vistos = {};
+  return (Array.isArray(l) ? l : []).filter(x => x && atps[x.id] && !vistos[x.id] && (vistos[x.id] = 1)).map(x => ({ id: x.id, nivel: x.nivel === 'control' ? 'control' : 'ver' }));
+}
+function cnsPublica_(c, todas, yo) {
   const r = todas.filter(x => x.consulta === c.id && x.fecha);
-  return Object.assign({}, c, { enlace: cnsEnlace_(c), respondieron: r.length });
+  const o = Object.assign({}, c, { enlace: cnsEnlace_(c), respondieron: r.length, puedo: yo ? cnsNivel_(yo, c) : '' });
+  if (!yo || yo.rol !== 'admin') delete o.acceso;
+  return o;
 }
 Object.assign(ACCIONES, {
   cnsDatos: (yo) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const todas = leer_('cnr');
-    return { cns: leer_('cns').map(c => cnsPublica_(c, todas)).sort((a, b) => String(b.creado).localeCompare(String(a.creado))) };
+    return { cns: leer_('cns').filter(c => cnsNivel_(yo, c)).map(c => cnsPublica_(c, todas, yo)).sort((a, b) => String(b.creado).localeCompare(String(a.creado))) };
   },
   cnsGuardar: (yo, d) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const lista = leer_('cns');
     let c = d.id ? lista.find(x => x.id === d.id) : null;
     if (d.id && !c) throw new Error('No se encontró la consulta.');
+    if (c) cnsPuede_(yo, c, 'control'); else soloAdmin_(yo);   // solo la Supervisión crea consultas
+    const c_acceso = yo.rol === 'admin' ? cnsLimpiarAcceso_(d.acceso) : (c.acceso || []);   // los permisos solo los da la Supervisión
     if (!c) {
       const usados = {}; lista.forEach(x => { usados[x.codigo] = 1; });
       let cod = '';
@@ -4510,31 +4532,35 @@ Object.assign(ACCIONES, {
     if (c.preguntas.filter(p => p.tipo === 'asistencia').length > 1) throw new Error('Solo puede haber una pregunta de asistencia.');
     c.participantes = cnsLimpiarParticipantes_(d.participantes);
     if (!c.participantes.length) throw new Error('Agregue a las personas que van a contestar.');
+    c.acceso = c_acceso;
     c.actualizado = ahora_();
     guardar_('cns', c);
-    return { consulta: cnsPublica_(c, leer_('cnr')) };
+    return { consulta: cnsPublica_(c, leer_('cnr'), yo) };
   },
   // abierta | cerrada | archivada (archivar no borra nada; se puede volver a abrir)
   cnsEstado: (yo, d) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const c = buscar_('cns', d.id);
     if (!c) throw new Error('No se encontró la consulta.');
+    cnsPuede_(yo, c, 'control');
     if (['abierta', 'cerrada', 'archivada'].indexOf(d.estado) < 0) throw new Error('Estado no válido.');
     c.estado = d.estado; c.actualizado = ahora_();
     guardar_('cns', c);
-    return { consulta: cnsPublica_(c, leer_('cnr')) };
+    return { consulta: cnsPublica_(c, leer_('cnr'), yo) };
   },
   cnsRespuestas: (yo, d) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const c = buscar_('cns', d.id);
     if (!c) throw new Error('No se encontró la consulta.');
-    return { consulta: cnsPublica_(c, leer_('cnr')), respuestas: leer_('cnr').filter(x => x.consulta === c.id) };
+    cnsPuede_(yo, c, 'ver');
+    return { consulta: cnsPublica_(c, leer_('cnr'), yo), respuestas: leer_('cnr').filter(x => x.consulta === c.id) };
   },
   // La Supervisión marca el anticipo recibido o deja una nota en la respuesta de una persona
   cnsMarcar: (yo, d) => {
-    soloAdmin_(yo);
+    soloMesa_(yo);
     const c = buscar_('cns', d.id);
     if (!c) throw new Error('No se encontró la consulta.');
+    cnsPuede_(yo, c, 'control');
     const per = c.participantes.find(p => p.id === d.persona);
     if (!per) throw new Error('No se encontró a la persona.');
     const id = c.id + '|' + per.id;
