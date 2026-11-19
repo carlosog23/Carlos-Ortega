@@ -78,16 +78,57 @@ function diasGrupo(g) { const e = escDe(g.escId); return (g.dias && g.dias.lengt
 function fechasClase(g, desde, n, omit) { const dias = diasGrupo(g), out = []; if (!dias.length) return out; const d = dF(desde);
   for (let k = 0; k < 400 && out.length < n; k++, d.setDate(d.getDate() + 1)) { const x = iso(d); if (x > CICLO.fin) break; if (dias.includes(d.getDay()) && !sinClase(x) && !evSinClase(g.escId, x) && !(omit && omit.includes(x))) out.push(x); } return out; }
 /* Fechas de las sesiones de una planeación para un grupo: se saltan los días en que «no hubo clase» (se recorren) */
-const fechasPlan = (g, p) => fechasClase(g, p.ini, p.sesiones.length, (p.omit || {})[g.id] || []);
+/* Las sesiones «movidas» a otra fecha (p.mov[grupo][sesión] = fecha) salen de la secuencia y conservan su fecha fija */
+function fechasPlan(g, p) { const mv = (p.mov || {})[g.id] || {}, libres = p.sesiones.filter(s => !mv[s.id]).length, seq = fechasClase(g, p.ini, libres, (p.omit || {})[g.id] || []); let k = 0;
+  return p.sesiones.map(s => mv[s.id] || seq[k++] || null); }
 function pendientesPlan(p, g) { const f = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id), k = hoy(); return p.sesiones.map((s, i) => ({ s, i, f: f[i] })).filter(x => x.f && x.f < k && !dadas.has(x.s.id)); }
 function recorrer(p, g, fecha) { p.omit = p.omit || {}; const L = p.omit[g.id] = p.omit[g.id] || []; if (!L.includes(fecha)) L.push(fecha); }
-function recorrerPendientes(p, g) { let n = 0; for (let k = 0; k < 200; k++) { const x = pendientesPlan(p, g)[0]; if (!x) break; recorrer(p, g, x.f); n++; } return n; }
+/* Clases que no se dieron: motivo y qué se hizo con la sesión (recorrer o mover a otra fecha) */
+const MOTIVOS_ND = ["Suspensión oficial de clases", "Consejo Técnico Escolar", "Festival, ceremonia o evento de la escuela", "Lluvia, viento o mucho calor", "Simulacro o contingencia", "Reunión o capacitación del docente", "Permiso o incapacidad del docente", "Paro o asamblea", "El grupo tenía otra actividad", "Cancha o espacio ocupado", "Otro motivo"];
+function sigClaseDe(g, f, p) { const d = dF(f); d.setDate(d.getDate() + 1); return fechasClase(g, iso(d), 1, (p.omit || {})[g.id] || [])[0] || null; }
+function noSeDio(p, g, i, o) { const s = p.sesiones[i], f = fechasPlan(g, p)[i]; if (!s || !f || sesionesDadas(g.id, p.id).has(s.id)) return false;
+  p.mov = p.mov || {}; const mv = p.mov[g.id] = p.mov[g.id] || {}, fija = mv[s.id];
+  if (o.acc === "mover") { if (!fija) recorrer(p, g, f); mv[s.id] = o.a; }
+  else if (fija) { const nx = sigClaseDe(g, f, p); if (nx) mv[s.id] = nx; else delete mv[s.id]; }
+  else recorrer(p, g, f);
+  p.nd = p.nd || {}; (p.nd[g.id] = p.nd[g.id] || []).push({ id: uid(), f, ses: s.id, m: o.m, nota: o.nota || "", acc: o.acc, a: fechasPlan(g, p)[i] || null, reg: hoy() });
+  return true; }
+function recorrerPendientes(p, g, o) { let n = 0; for (let k = 0; k < 200; k++) { const x = pendientesPlan(p, g)[0]; if (!x || !noSeDio(p, g, x.i, { ...o, acc: "recorrer" })) break; n++; } return n; }
+const ndTexto = x => `${x.m}${x.nota ? " — " + x.nota : ""}`;
+const ndAccion = x => x.acc === "mover" ? `Se movió al ${x.a ? fCorta(x.a) : "—"}` : `Se recorrió${x.a ? " al " + fCorta(x.a) : " a la siguiente clase"}`;
+/* Diálogo: elegir motivo y si la sesión se recorre o se mueve. items = [{p, i, g, et, on}] */
+function dlgNoSeDio(items, { titulo = "Esta clase no se dio", sub = "", soloRec = false, alGuardar } = {}) {
+  if (!items.length) return toast("No hay sesiones pendientes para esa fecha.");
+  dlg(`<h3>${esc(titulo)}</h3>${sub ? `<p class="small muted mb">${esc(sub)}</p>` : ""}
+   ${items.length > 1 ? `<p class="small mb"><b>¿En qué grupos no se dio?</b></p><div class="chips mb">${items.map((x, k) => `<button class="chip" data-ng="${k}" aria-pressed="${x.on !== false}">${esc(x.et)}</button>`).join("")}</div>` : ""}
+   <label class="campo"><span>¿Por qué no se dio la clase?</span><select id="nM" data-nofoco="1"><option value="">Elija el motivo…</option>${MOTIVOS_ND.map(m => `<option>${esc(m)}</option>`).join("")}</select></label>
+   <label class="campo"><span id="nNt">Detalle (opcional)</span><input id="nN" data-nofoco="1" placeholder="Ej.: ensayo del desfile del 20 de noviembre"></label>
+   ${soloRec ? `<p class="small muted mb">Las sesiones pasan a las siguientes clases. Las que ya se dieron no cambian.</p>` : `<p class="small mb"><b>¿Qué pasa con la sesión?</b></p>
+   <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="radio" name="nA" value="recorrer" checked style="width:22px;height:22px;margin-top:2px"><span><b>Recorrer</b><br><small class="muted">Esta sesión y las siguientes pasan a la próxima clase.</small></span></label>
+   <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="radio" name="nA" value="mover" style="width:22px;height:22px;margin-top:2px"><span><b>Moverla a otra fecha</b><br><small class="muted">Solo esta sesión cambia de día; las demás se quedan en sus fechas.</small></span></label>
+   <label class="campo" id="nFw" style="display:none"><span>¿Qué día se dará?</span><input type="date" id="nF" min="${hoy()}" max="${CICLO.fin}"></label>`}
+   <div class="fila fin"><button class="btn" id="nX">Cancelar</button><button class="btn p" id="nOk">Guardar</button></div>`, v => {
+    const q = s => v.querySelector(s);
+    v.querySelectorAll("[data-ng]").forEach(c => c.onclick = () => c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true"));
+    q("#nM").onchange = () => { q("#nNt").textContent = q("#nM").value === "Otro motivo" ? "Escriba el motivo" : "Detalle (opcional)"; };
+    v.querySelectorAll("[name=nA]").forEach(r => r.onchange = () => { q("#nFw").style.display = q("[name=nA]:checked").value === "mover" ? "" : "none"; });
+    q("#nX").onclick = cerrarDlg;
+    q("#nOk").onclick = () => { const m = q("#nM").value, nota = q("#nN").value.trim(), acc = soloRec ? "recorrer" : q("[name=nA]:checked").value, a = acc === "mover" ? q("#nF").value : "";
+      const sel = items.length > 1 ? items.filter((x, k) => q(`[data-ng="${k}"]`).getAttribute("aria-pressed") === "true") : items;
+      if (!sel.length) return toast("Marque al menos un grupo.");
+      if (!m) return toast("Elija el motivo por el que no se dio la clase.");
+      if (m === "Otro motivo" && !nota) return toast("Escriba el motivo.");
+      if (acc === "mover" && !a) return toast("Elija el día en que se dará la sesión.");
+      let n = 0; sel.forEach(x => { n += soloRec ? recorrerPendientes(x.p, x.g, { m, nota }) : (noSeDio(x.p, x.g, x.i, { m, nota, acc, a }) ? 1 : 0); });
+      guardar(); cerrarDlg(); alGuardar ? alGuardar() : pintar();
+      toast(!n ? "No había sesiones por cambiar." : acc === "mover" ? `Listo: la sesión se movió al ${fCorta(a)}. Motivo guardado.` : `Listo: ${soloRec ? n + (n === 1 ? " sesión recorrida" : " sesiones recorridas") : "la sesión y las siguientes pasan a la próxima clase"}. Motivo guardado.`, 3600); }; }); }
 function planesDeGrupo(gid) { return D.planes.filter(p => (p.grupos || []).includes(gid)).sort((a, b) => a.ini.localeCompare(b.ini)); }
 function sesionesDadas(gid, pid) { return new Set(D.clases.filter(c => c.grupoId === gid && c.planId === pid && c.sesId).map(c => c.sesId)); }
 /* La sesión que sigue: la primera no dada del plan vigente del grupo; con su fecha de agenda */
 function siguienteSesion(gid) { const g = grDe(gid);
   for (const p of planesDeGrupo(gid)) { const dadas = sesionesDadas(gid, p.id), fechas = fechasPlan(g, p);
-    const i = p.sesiones.findIndex(s => !dadas.has(s.id)); if (i >= 0) return { plan: p, ses: p.sesiones[i], n: i + 1, fecha: fechas[i] || null }; }
+    const c = p.sesiones.map((s, i) => ({ s, i, f: fechas[i] })).filter(x => !dadas.has(x.s.id)).sort((a, b) => (a.f || "9999").localeCompare(b.f || "9999") || a.i - b.i)[0];
+    if (c) return { plan: p, ses: c.s, n: c.i + 1, fecha: c.f || null }; }
   return null; }
 function agendaDe(desde, hasta) { const out = [];
   D.grupos.forEach(g => planesDeGrupo(g.id).forEach(p => { const fechas = fechasPlan(g, p), dadas = sesionesDadas(g.id, p.id);
@@ -214,7 +255,8 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
   <h1>Hola, ${esc(corto(D.docente.nombre) || "maestro")}</h1><p>${DSEM_L[dia][0].toUpperCase() + DSEM_L[dia].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : hoyEsc.length ? ` · Hoy va a ${hoyEsc.map(e => esc(e.nombre)).join(" y ")}` : ""}</p>
   <div class="fila"><button class="btn m" id="bClase">${ic("silbato")} Iniciar clase</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button>${enApp() ? "" : `<button class="btn sec" id="bInstI">${ic("bajar")} Instalar app</button>`}</div></section>
   ${gHoy.length && !sc ? `<h2 class="sec-t">Hoy<small>Grupos que le tocan según sus días de clase</small></h2><div class="hoy">${gHoy.map(g => { const s = siguienteSesion(g.id), e = escDe(g.escId), ya = D.clases.some(c => c.grupoId === g.id && c.fecha === k);
-    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>` : ""}
+    return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>
+    <div class="fila mt"><button class="btn s" id="bNoDio">${ic("reloj", 16)} Hoy no se pudo dar alguna clase</button></div>` : ""}
   ${evHoy.length ? `<h2 class="sec-t">En su agenda hoy</h2><div class="lista">${evHoy.map(e => evItem(e, k)).join("")}</div>` : ""}
   ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
@@ -225,7 +267,12 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
    <button class="puerta" data-v="listas" style="--c:var(--barro);--c-s:var(--barro-s)"><span class="ic">${ic("impr")}</span><b>Listas de asistencia</b><span>Imprimir por mes, en blanco o con sus registros</span></button>
    <button class="puerta" data-v="ajustes" style="--c:var(--gris);--c-s:var(--hilo2)"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, trimestres, enlace y copia de seguridad</span></button>
   </div><p class="pie">Ulama · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p></main>`; };
-ENLAZAR.inicio = () => { enlazarAvisoRespaldo(); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {}); $("#bInstI") && ($("#bInstI").onclick = instalarApp);
+ENLAZAR.inicio = () => { enlazarAvisoRespaldo();
+  $("#bNoDio") && ($("#bNoDio").onclick = () => { const k = hoy(), dia = dF(k).getDay();
+    const items = D.grupos.filter(g => diasGrupo(g).includes(dia) && !evSinClase(g.escId, k) && !D.clases.some(c => c.grupoId === g.id && c.fecha === k))
+      .map(g => ({ g, s: siguienteSesion(g.id) })).filter(x => x.s && x.s.fecha && x.s.fecha <= k)
+      .map(({ g, s }) => ({ p: s.plan, i: s.n - 1, g, et: `${grNom(g)} · ${(escDe(g.escId) || {}).nombre || ""} · Sesión ${s.n}` }));
+    dlgNoSeDio(items, { titulo: "Hoy no se pudo dar clase", sub: "Marque los grupos, el motivo y qué hacer con la sesión que tocaba." }); }); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {}); $("#bInstI") && ($("#bInstI").onclick = instalarApp);
   $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$("[data-ev]").forEach(b => b.onclick = () => dlgEvento(b.dataset.ev)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 
 /* ---------- escuelas ---------- */
@@ -463,20 +510,26 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
     <label class="small mt" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="incIni" ${p.incIni !== false ? "checked" : ""}> En el documento impreso, mostrar solo las iniciales de estos alumnos</label>` : `<p class="small muted">Opcional: ajustes razonables o adecuaciones para alumnos con alguna necesidad específica o situación.</p>`}</section>
   <div class="chips mt" role="tablist"><button class="chip" data-t="ses" aria-pressed="${tab === "ses"}">Sesiones</button><button class="chip" data-t="ins" aria-pressed="${tab === "ins"}">Instrumentos</button><button class="chip" data-t="jue" aria-pressed="${tab === "jue"}">Fichero de juegos</button></div>
   ${tab === "ses" ? `${gs.length > 1 ? `<div class="chips mt">${gs.map(g => `<button class="chip" data-gv="${g.id}" aria-pressed="${g === g0}">Fechas de ${grNom(g)}</button>`).join("")}</div>` : ""}
-   ${pend.length ? `<div class="aviso mt" style="background:var(--rojo-s);border-color:#E8C3BE;color:var(--rojo)"><span style="flex:1"><b>${pend.length} ${pend.length > 1 ? "sesiones ya pasaron" : "sesión ya pasó"} sin registrarse${gs.length > 1 ? " en " + grNom(g0) : ""}</b> (${pend.map(x => fCorta(x.f)).join(", ")}). Si no hubo clase, recorra las fechas: cada sesión pasa a la siguiente clase.</span><button class="btn s p" id="bRecAll">Recorrer</button></div>` : ""}
-   <div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i], dadasV.has(s.id))).join("")}</div>
-   ${p.sesiones.length && fechas.length < p.sesiones.length ? `<p class="small muted mt">${p.sesiones.length - fechas.length} sesiones ya no caben antes del fin del ciclo escolar.</p>` : ""}` : ""}
+   ${pend.length ? `<div class="aviso mt" style="background:var(--rojo-s);border-color:#E8C3BE;color:var(--rojo)"><span style="flex:1"><b>${pend.length} ${pend.length > 1 ? "sesiones ya pasaron" : "sesión ya pasó"} sin registrarse${gs.length > 1 ? " en " + grNom(g0) : ""}</b> (${pend.map(x => fCorta(x.f)).join(", ")}). Si no hubo clase, anote el motivo y recorra las fechas: cada sesión pasa a la siguiente clase.</span><button class="btn s p" id="bRecAll">No se dieron</button></div>` : ""}
+   <div class="mt">${p.sesiones.map((s, i) => sesionHTML(p, s, i, fechas[i], dadasV.has(s.id), g0)).join("")}</div>
+   ${ndHTML(p, g0, gs.length > 1)}
+   ${p.sesiones.length && fechas.filter(Boolean).length < p.sesiones.length ? `<p class="small muted mt">${p.sesiones.length - fechas.filter(Boolean).length} sesiones ya no caben antes del fin del ciclo escolar.</p>` : ""}` : ""}
   ${tab === "ins" ? instrumentosHTML(p) : ""}
   ${tab === "jue" ? `<div class="puertas mt">${Object.entries(JUEGOS).map(([k, j]) => `<div class="card" style="margin:0">${plano(j.plano)}<h3 class="mt">${esc(j.n)}</h3><p class="small muted">${esc(j.est)} · ${j.min} min · ${(j.mat || []).map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]).join(", ") || "sin material"}</p><ol class="small" style="padding-left:18px;margin:8px 0 0">${j.reglas.map(r => `<li>${esc(r)}</li>`).join("")}</ol></div>`).join("")}</div>` : ""}
   </main>`; };
-function sesionHTML(p, s, i, f, dada) { const ab = S.ab === s.id, J = k => JUEGOS[k] || { n: k }, paso = f && f < hoy() && !dada;
-  return `<article class="ses"><button class="ses-cab" data-s="${s.id}"><span class="d">${f ? `<small>${DSEM[dF(f).getDay()]}</small><b>${dF(f).getDate()}</b><small>${MES[dF(f).getMonth()]}</small>` : `<b>${i + 1}</b>`}</span><span class="tx"><span class="tag" style="background:${EST_COL[s.est] || "#555"}22;color:${EST_COL[s.est] || "#555"}">${esc(s.est)}</span><b>${i + 1}. ${esc(s.t)}</b>${dada ? ` <span class="tag">Dada</span>` : paso ? ` <span class="tag r">No se registró</span>` : f === hoy() ? ` <span class="tag m">Hoy</span>` : ""}<small class="muted">${esc(s.para)}</small></span></button>
+function ndDe(p, g) { return g ? ((p.nd || {})[g.id] || []).slice().sort((a, b) => a.f.localeCompare(b.f)) : []; }
+function ndHTML(p, g, varios) { const L = ndDe(p, g); if (!L.length) return "";
+  return `<section class="card mt"><h3>Clases que no se dieron${varios ? " · " + grNom(g) : ""}</h3><div class="lista mt">${L.map(x => { const i = p.sesiones.findIndex(s => s.id === x.ses), s = p.sesiones[i];
+    return `<div class="it"><span class="av" style="background:var(--rojo-s);color:var(--rojo);font-size:12px">${dF(x.f).getDate()}/${dF(x.f).getMonth() + 1}</span><span class="tx"><b>${esc(ndTexto(x))}</b><small>${fCorta(x.f)} · ${s ? `Sesión ${i + 1}: ${esc(s.t)}` : "Sesión quitada"} · ${ndAccion(x)}</small></span></div>`; }).join("")}</div></section>`; }
+function sesionHTML(p, s, i, f, dada, g) { const ab = S.ab === s.id, J = k => JUEGOS[k] || { n: k }, paso = f && f < hoy() && !dada, movida = g && ((p.mov || {})[g.id] || {})[s.id], nds = ndDe(p, g).filter(x => x.ses === s.id);
+  return `<article class="ses"><button class="ses-cab" data-s="${s.id}"><span class="d">${f ? `<small>${DSEM[dF(f).getDay()]}</small><b>${dF(f).getDate()}</b><small>${MES[dF(f).getMonth()]}</small>` : `<b>${i + 1}</b>`}</span><span class="tx"><span class="tag" style="background:${EST_COL[s.est] || "#555"}22;color:${EST_COL[s.est] || "#555"}">${esc(s.est)}</span><b>${i + 1}. ${esc(s.t)}</b>${movida && !dada ? ` <span class="tag a">Reprogramada</span>` : ""}${dada ? ` <span class="tag">Dada</span>` : paso ? ` <span class="tag r">No se registró</span>` : f === hoy() ? ` <span class="tag m">Hoy</span>` : ""}<small class="muted">${esc(s.para)}</small></span></button>
    ${ab ? `<div class="ses-cuerpo"><div class="mom"><b>Inicio</b><div><p class="small">${esc(s.charla)}</p><p class="small mt"><b>Activación:</b> ${esc(J(s.act).n)}</p></div></div>
     <div class="mom"><b>Desarrollo</b><div>${s.ppal.map(k => `<p class="small"><b>${esc(J(k).n)}</b> · ${esc((J(k).reglas || []).join(" "))}</p>`).join("")}${s.mg ? `<p class="small muted mt">${Object.entries(s.mg).map(([k, v]) => `Fase ${k}: ${esc(v)}`).join(" · ")}</p>` : ""}</div></div>
     <div class="mom"><b>Cierre</b><div><p class="small"><b>Vuelta a la calma:</b> ${esc(J(s.calma).n)}</p><p class="small">${s.cierre.map(esc).join(" ")}</p></div></div>
     <div class="mom"><b>Evaluación</b><div><p class="small">${esc(s.eval)}</p></div></div>
     ${s.planB ? `<div class="mom"><b>Plan B</b><div><p class="small">Si llueve o hace mucho calor: ${esc(J(s.planB).n)} (bajo techo o a la sombra).</p></div></div>` : ""}
-    <div class="fila"><button class="btn s" data-es="${s.id}">${ic("lapiz", 16)} Editar sesión</button>${!dada && f ? `<button class="btn s" data-rec="${s.id}">${ic("reloj", 16)} No hubo clase: recorrer fechas</button>` : ""}<button class="btn s r" data-qs="${s.id}">${ic("basura", 16)} Quitar sesión</button></div></div>` : ""}</article>`; }
+    ${nds.length ? `<div class="mom"><b>No se dio</b><div>${nds.map(x => `<p class="small"><b>${fCorta(x.f)}:</b> ${esc(ndTexto(x))}. ${ndAccion(x)}.</p>`).join("")}</div></div>` : ""}
+    <div class="fila"><button class="btn s" data-es="${s.id}">${ic("lapiz", 16)} Editar sesión</button>${!dada && f ? `<button class="btn s" data-rec="${s.id}">${ic("reloj", 16)} No se dio: recorrer o mover</button>` : ""}<button class="btn s r" data-qs="${s.id}">${ic("basura", 16)} Quitar sesión</button></div></div>` : ""}</article>`; }
 function instrumentosHTML(p) { return `<section class="card mt"><h3>Criterios de evaluación</h3><p class="small muted mb">Se generaron a partir de los PDA. Edítelos si lo necesita: se usan en los tres instrumentos.</p>
   <div class="lista">${p.criterios.map((c, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(c.c)}</b><small>${esc(c.t)} · ${c.gr === "todos" ? "todos los grados" : c.gr + ".°"}</small></span><button class="btn s" data-ec="${c.id}">${ic("lapiz", 16)}</button></div>`).join("")}</div>
   <div class="fila mt"><button class="btn s" id="bNC">${ic("mas", 16)} Criterio</button></div></section>
@@ -495,16 +548,11 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const re = () => { 
     abrir(); }; $("#bEnvP").onclick = () => enviarPlan(p);
   $$("[data-gv]").forEach(b => b.onclick = () => { S.gv = b.dataset.gv; re(); });
   const g0 = p.grupos.map(grDe).filter(Boolean).find(g => g.id === S.gv) || grDe(p.grupos[0]);
-  $("#bRecAll") && ($("#bRecAll").onclick = async () => { const gs = p.grupos.map(grDe).filter(Boolean), conP = gs.filter(g => pendientesPlan(p, g).length);
-    if (!(await confirmar(`Las sesiones que no se dieron pasarán a las siguientes clases${conP.length > 1 ? ` de ${conP.map(grNom).join(", ")}` : ""}. Las sesiones que ya se dieron no cambian.`, "Recorrer fechas"))) return;
-    let n = 0; conP.forEach(g => n += recorrerPendientes(p, g)); guardar(); re(); toast(`Fechas recorridas (${n} ${n === 1 ? "día" : "días"} sin clase).`); });
-  $$("[data-rec]").forEach(b => b.onclick = async () => { const i = p.sesiones.findIndex(x => x.id === b.dataset.rec), gs = p.grupos.map(grDe).filter(Boolean);
-    const sel = gs.length > 1 ? null : gs; const hacer = lista => { lista.forEach(g => { const f = fechasPlan(g, p)[i]; if (f && !sesionesDadas(g.id, p.id).has(p.sesiones[i].id)) recorrer(p, g, f); }); guardar(); cerrarDlg(); re(); toast("Listo: esta sesión y las siguientes pasan a la próxima clase."); };
-    if (sel) { if (!(await confirmar(`Esta sesión y las siguientes se recorren a la próxima clase de ${grNom(gs[0])}.`, "Recorrer"))) return; return hacer(gs); }
-    dlg(`<h3>¿En qué grupos no hubo clase?</h3><p class="small muted mb">En los grupos que marque, esta sesión y las siguientes pasan a su próxima clase.</p><div class="chips mb">${gs.map(g => `<button class="chip" data-rg="${g.id}" aria-pressed="${g === g0}">${grNom(g)} · ${fCorta(fechasPlan(g, p)[i] || p.ini)}</button>`).join("")}</div>
-     <div class="fila fin"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Recorrer fechas</button></div>`, v => {
-      v.querySelectorAll("[data-rg]").forEach(c => c.onclick = () => c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true")); v.querySelector("#rX").onclick = cerrarDlg;
-      v.querySelector("#rOk").onclick = () => hacer([...v.querySelectorAll("[data-rg][aria-pressed=true]")].map(c => grDe(c.dataset.rg))); }); });
+  $("#bRecAll") && ($("#bRecAll").onclick = () => { const gs = p.grupos.map(grDe).filter(Boolean), conP = gs.filter(g => pendientesPlan(p, g).length);
+    dlgNoSeDio(conP.map(g => ({ p, g, i: 0, et: `${grNom(g)} · ${pendientesPlan(p, g).map(x => fCorta(x.f)).join(", ")}` })), { titulo: "Sesiones que no se dieron", sub: "Anote el motivo. Las sesiones pasarán a las siguientes clases.", soloRec: true, alGuardar: re }); });
+  $$("[data-rec]").forEach(b => b.onclick = () => { const i = p.sesiones.findIndex(x => x.id === b.dataset.rec), gs = p.grupos.map(grDe).filter(Boolean);
+    const items = gs.filter(g => fechasPlan(g, p)[i] && !sesionesDadas(g.id, p.id).has(p.sesiones[i].id)).map(g => ({ p, i, g, on: g === g0, et: `${grNom(g)} · ${fCorta(fechasPlan(g, p)[i])}` }));
+    dlgNoSeDio(items, { titulo: "Esta clase no se dio", sub: `Sesión ${i + 1}: ${p.sesiones[i].t}`, alGuardar: re }); });
   $$("[data-qs]").forEach(b => b.onclick = async () => { const s = p.sesiones.find(x => x.id === b.dataset.qs);
     if (p.sesiones.length === 1) return toast("Es la única sesión: mejor elimine la planeación completa.");
     if (!(await confirmar(`¿Quitar la sesión «${s.t}»? Las siguientes se adelantan una clase. Si ya la había registrado en algún grupo, ese registro se conserva.`, "Quitar sesión"))) return;
@@ -726,15 +774,16 @@ function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F 
    ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c">${f.r.sinU || 0}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
    <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo. J = falta justificada.</p>
    <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</td></tr></table></div>`; }).join(""); }
-function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasPlan(gs[0], p) : [], J = k => JUEGOS[k] || { n: k, reglas: [] };
+function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasPlan(gs[0], p) : [], fo = f.filter(Boolean).sort(), J = k => JUEGOS[k] || { n: k, reglas: [] }, nd = gs.flatMap(g => ndDe(p, g).map(x => ({ ...x, g })));
   return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
-  <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${f.length ? fCorta(f[0]) + " al " + fCorta(f[f.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
+  <div class="datos"><span><b>Grupos:</b> ${gs.map(grNom).join(", ")}</span><span><b>Periodo:</b> ${fo.length ? fCorta(fo[0]) + " al " + fCorta(fo[fo.length - 1]) : fCorta(p.ini)}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span>
   <span><b>Docente:</b> ${esc(docNombre())}</span><span><b>Supervisor(a) de E. F.:</b> ${esc((e && e.supEF) || "—")}</span><span><b>Campo formativo:</b> De lo Humano y lo Comunitario</span></div>
   <table><tbody><tr><th style="width:22%">Contenido</th><td>${esc(p.cont)}</td></tr>${Object.entries(p.pdas).map(([g, t]) => `<tr><th>PDA ${g}.°</th><td>${esc(t)}</td></tr>`).join("")}${p.proposito ? `<tr><th>Propósito</th><td>${esc(p.proposito)}</td></tr>` : ""}</tbody></table>
   ${(p.inclusion || []).length ? `<h2>Atención a la diversidad: ajustes razonables y adecuaciones</h2><table><thead><tr><th>Alumno(a)</th><th>Grupo</th><th>Necesidad o situación</th><th>Tipo</th><th>Ajuste o adecuación en las sesiones</th></tr></thead><tbody>
    ${p.inclusion.map(x => { const a = alDe(x.alId), g = a && D.grupos.find(y => (y.alumnos || []).includes(a)); return `<tr><td>${esc(a ? (p.incIni !== false ? iniN(a.nombre) : a.nombre) : "—")}</td><td>${g ? grNom(g) : ""}</td><td>${esc(x.nee || "")}</td><td>${esc(x.ajuste)}</td><td>${esc(x.desc || "")}</td></tr>`; }).join("")}</tbody></table>` : ""}
   <h2>Secuencia de sesiones</h2><table><thead><tr><th class="c">No.</th><th>Fecha</th><th>Sesión</th><th>Inicio</th><th>Desarrollo</th><th>Cierre</th><th>Evaluación</th></tr></thead><tbody>
   ${p.sesiones.map((s, i) => `<tr><td class="c">${i + 1}</td><td>${f[i] ? fCorta(f[i]) : ""}</td><td><b>${esc(s.t)}</b><br>${esc(s.est)}. ${esc(s.para)}</td><td>${esc(J(s.act).n)}. ${esc(s.charla)}</td><td>${s.ppal.map(k => `<b>${esc(J(k).n)}</b>`).join(", ")}</td><td>${esc(J(s.calma).n)}. ${s.cierre.map(esc).join(" ")}</td><td>${esc(s.eval)}</td></tr>`).join("")}</tbody></table>
+  ${nd.length ? `<h2>Clases que no se dieron</h2><table><thead><tr><th>Fecha</th><th>Grupo</th><th>Sesión</th><th>Motivo</th><th>Qué se hizo</th></tr></thead><tbody>${nd.sort((a, b) => a.f.localeCompare(b.f)).map(x => { const i = p.sesiones.findIndex(s => s.id === x.ses); return `<tr><td>${fCorta(x.f)}</td><td>${grNom(x.g)}</td><td>${i >= 0 ? (i + 1) + ". " + esc(p.sesiones[i].t) : "—"}</td><td>${esc(ndTexto(x))}</td><td>${ndAccion(x)}</td></tr>`; }).join("")}</tbody></table>` : ""}
   <h2>Rúbrica</h2><table><thead><tr><th>Criterio</th>${NIV_R.map(n => `<th>${n[1]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${esc(c.c)}</b></td>${[1, 2, 3, 4].map(k => `<td>${esc(c.d[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>
   <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc((e && e.supEF) || "")}<br>Supervisor(a) de Educación Física · Vo. Bo.</td></tr></table></div>`; }
 function imprimir(html, horizontal) { $("#imprimir").innerHTML = (horizontal ? "<style>@page{size:letter landscape;margin:9mm}</style>" : "") + html; const imgs = [...$("#imprimir").querySelectorAll("img")]; Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 2500); }))).then(() => setTimeout(() => window.print(), 100)); }
