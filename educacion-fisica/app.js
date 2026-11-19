@@ -200,16 +200,20 @@ function crearPlan(c) { const idx = secuencia(c.n);
 
 /* ---------------- evaluación del periodo ---------------- */
 function clasesEn(gid, ini, fin) { return D.clases.filter(c => c.grupoId === gid && c.fecha >= ini && c.fecha <= fin).sort((a, b) => a.fecha.localeCompare(b.fecha)); }
-function calcAlumno(a, clases) { let asis = 0, falt = 0, ret = 0, just = 0, total = 0, sinU = 0; const porCrit = {}, obs = [], sum = { s: 0, n: 0 }, mitad = [{ s: 0, n: 0 }, { s: 0, n: 0 }];
+/* Conducta: en cada clase el maestro marca solo a quienes no tuvieron buena conducta (c.cond[alumno] = 1).
+   Cada marca baja la calificación del periodo lo que diga Ajustes (0.5 puntos si no se ha cambiado); nunca baja de 6. */
+const descCond = () => D.cfg && D.cfg.descCond !== undefined ? +D.cfg.descCond : 0.5;
+function calcAlumno(a, clases) { let asis = 0, falt = 0, ret = 0, just = 0, total = 0, sinU = 0, mala = 0; const porCrit = {}, obs = [], sum = { s: 0, n: 0 }, mitad = [{ s: 0, n: 0 }, { s: 0, n: 0 }];
   clases.forEach((c, ci) => { if (a.alta && c.fecha < a.alta) return; if (a.baja && c.fecha > a.baja) return; total++;
     const e = (c.asis || {})[a.id]; if (e === "P") asis++; else if (e === "S") { asis++; sinU++; } else if (e === "R") { asis++; ret++; } else if (e === "J") just++; else if (e === "F") falt++;
     const ev = (c.evals || {})[a.id] || {}; const pl = plDe(c.planId);
     Object.entries(ev).forEach(([cid, r]) => { const x = normal(r.t, r.v); const cr = pl && pl.criterios.find(k => k.id === cid);
       const k = cr ? cr.c : cid; (porCrit[k] = porCrit[k] || { s: 0, n: 0 }); porCrit[k].s += x; porCrit[k].n++; sum.s += x; sum.n++; const m = mitad[ci < clases.length / 2 ? 0 : 1]; m.s += x; m.n++; });
+    if ((c.cond || {})[a.id] && ["P", "S", "R"].includes(e)) mala++;
     const o = (c.obs || {})[a.id]; if (o) obs.push(o); });
-  const prom = sum.n ? sum.s / sum.n : null; const cal = prom == null ? null : Math.max(6, Math.min(10, Math.round(6 + 4 * prom)));
+  const prom = sum.n ? sum.s / sum.n : null; const cal = prom == null ? null : Math.max(6, Math.min(10, Math.round(6 + 4 * prom - mala * descCond())));
   const tend = mitad[0].n && mitad[1].n ? (mitad[1].s / mitad[1].n) - (mitad[0].s / mitad[0].n) : 0;
-  return { asis, falt, ret, just, total, sinU, cal, prom, porCrit, obs, tend, nreg: sum.n }; }
+  return { asis, falt, ret, just, total, sinU, mala, cal, prom, porCrit, obs, tend, nreg: sum.n }; }
 function cualitativa(a, r) { if (r.cal == null) return r.total ? "Sin registros de evaluación en el periodo; se sugiere observar su desempeño en las próximas sesiones." : "";
   const F = { 10: "muestra un desempeño sobresaliente en las actividades motrices y de juego", 9: "muestra un muy buen desempeño en las actividades motrices y de juego", 8: "muestra un buen desempeño en las actividades motrices y de juego", 7: "muestra avances en las actividades motrices, con aspectos por fortalecer", 6: "requiere apoyo constante para lograr los aprendizajes de la clase" };
   const crit = Object.entries(r.porCrit).map(([k, v]) => [k, v.s / v.n]); const fuertes = crit.filter(x => x[1] >= .75).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => minus(x[0]));
@@ -218,6 +222,7 @@ function cualitativa(a, r) { if (r.cal == null) return r.total ? "Sin registros 
   if (r.tend > .15) t += " Mostró una mejora clara a lo largo del periodo."; else if (r.tend < -.15) t += " Su desempeño bajó en las últimas sesiones; conviene darle seguimiento.";
   if (r.falt >= 3) t += ` Sus ${r.falt} inasistencias limitaron su avance; se recomienda reforzar la asistencia.`; else if (r.ret >= 3) t += ` Llegó tarde en ${r.ret} ocasiones.`;
   if (r.sinU >= 3) t += ` Asistió sin uniforme deportivo en ${r.sinU} ocasiones.`;
+  if (r.mala >= 3) t += ` En ${r.mala} clases no mostró una buena conducta; es importante trabajar el respeto a las reglas y a sus compañeros.`; else if (r.mala) t += ` En ${r.mala === 1 ? "una clase" : "dos clases"} no mostró buena conducta.`;
   if (r.obs.length) t += ` Observaciones de clase: ${r.obs.slice(-2).join(" ").replace(/\s+/g, " ")}`; return t.trim(); }
 
 /* =================================================================== VISTAS */
@@ -659,7 +664,16 @@ ENLAZAR.clase = () => { const c = S.c, p = S.paso, re = () => { const y = window
     $$("[data-aj]").forEach(b => b.onclick = () => { const pl = plDe(c.planId), x = pl.inclusion.find(y => y.alId === b.dataset.aj), a = alDe(x.alId);
       dlg(`<h3>${esc(a.nombre)}</h3><p class="small muted">${esc(x.nee || "")}</p><p class="mt"><b>${esc(x.ajuste)}:</b> ${esc(x.desc || "—")}</p>${a.nee && a.nee.apoyo ? `<p class="small mt"><b>Apoyos que le funcionan:</b> ${esc(a.nee.apoyo)}</p>` : ""}<div class="fila fin mt"><button class="btn" id="ajX">Cerrar</button></div>`, v => v.querySelector("#ajX").onclick = cerrarDlg); });
     $("#cNota").onchange = ev => { c.nota = ev.target.value; guardarClase(c); };
-    $("#bFin").onclick = () => { c.nota = val("cNota"); c.fin = hora(); guardarClase(c); const g = grDe(c.grupoId); const n = PILA.length; S = { v: "inicio" }; PILA.length = 0; if (n) history.go(-n); pintar(); toast(`Clase de ${grNom(g)} guardada.`); }; } };
+    const cerrar = () => { c.fin = hora(); guardarClase(c); const g = grDe(c.grupoId); const n = PILA.length, m = Object.keys(c.cond || {}).length; S = { v: "inicio" }; PILA.length = 0; if (n) history.go(-n); pintar(); toast(`Clase de ${grNom(g)} guardada${m ? ` · ${m} con mala conducta` : ""}.`); };
+    $("#bFin").onclick = () => { c.nota = val("cNota"); const g = grDe(c.grupoId), pres = activos(g).filter(a => ["P", "S", "R"].includes(c.asis[a.id])); c.cond = c.cond || {};
+      Object.keys(c.cond).forEach(id => { if (!pres.some(a => a.id === id)) delete c.cond[id]; });
+      if (!pres.length) return cerrar();
+      dlg(`<h3>Conducta en la clase</h3><p class="small muted mb">Toque solo a los alumnos que <b>no</b> tuvieron buena conducta. Los demás quedan con buena conducta.</p>
+       <div class="asis" id="cdL">${pres.map((a, i) => `<button class="al" data-cd="${a.id}" style="width:100%;text-align:left;cursor:pointer"><span class="no">${i + 1}</span><span class="n">${esc(a.nombre)}</span><span class="tag ${c.cond[a.id] ? "r" : "g"}">${c.cond[a.id] ? "Mala conducta" : "Bien"}</span></button>`).join("")}</div>
+       <div class="fila fin mt"><button class="btn" id="cdX">Regresar</button><button class="btn p" id="cdOk">${ic("check", 18)} Guardar y terminar</button></div>`, v => {
+        const pinta = b => { const on = !!c.cond[b.dataset.cd], t = b.querySelector(".tag"); t.className = "tag " + (on ? "r" : "g"); t.textContent = on ? "Mala conducta" : "Bien"; b.style.borderColor = on ? "var(--rojo)" : ""; b.style.background = on ? "var(--rojo-s)" : ""; };
+        v.querySelectorAll("[data-cd]").forEach(b => { pinta(b); b.onclick = () => { const id = b.dataset.cd; if (c.cond[id]) delete c.cond[id]; else c.cond[id] = 1; pinta(b); }; });
+        v.querySelector("#cdX").onclick = cerrarDlg; v.querySelector("#cdOk").onclick = () => { cerrarDlg(); cerrar(); }; }); }; } };
 
 /* ---------- evaluación del trimestre ---------- */
 VISTAS.evaluacion = () => { const k = hoy(), corteAct = D.cortes.find(x => k >= x.ini && k <= x.fin) || D.cortes[0];
@@ -677,11 +691,11 @@ VISTAS.evaluacion = () => { const k = hoy(), corteAct = D.cortes.find(x => k >= 
    <details class="mt"><summary class="small" style="cursor:pointer;font-weight:700;min-height:36px">Clases registradas del grupo (para corregir lista o evaluaciones)</summary><div class="lista mt">${clasesEn(g.id, E.ini, E.fin).slice().reverse().map(c => { const pl = plDe(c.planId), ss = pl && pl.sesiones.find(x => x.id === c.sesId), nev = Object.values(c.evals || {}).filter(v => Object.keys(v).length).length;
      return `<div class="it"><span class="av" style="font-size:12px">${dF(c.fecha).getDate()}/${dF(c.fecha).getMonth() + 1}</span><span class="tx"><b>${esc(ss ? ss.t : "Clase sin planeación")}</b><small>${fCorta(c.fecha)} · ${nev} alumnos evaluados</small></span><button class="btn s" data-cl="${c.id}" data-pa="3">Lista</button><button class="btn s p" data-cl="${c.id}" data-pa="5">Evaluación</button></div>`; }).join("") || `<p class="small muted">Sin clases en el periodo.</p>`}</div></details></div></section>
    <div class="evl mt">${filas.map((f, k) => `<article class="evc"><div class="evc-c"><span class="no">${k + 1}</span><div class="tx"><b>${esc(f.a.nombre)}</b>${f.a.baja ? ` <span class="tag r">Baja ${fCorta(f.a.baja)}</span>` : ""}
-    <div class="dat"><span>Asistió <b>${f.r.asis}/${f.r.total}</b></span><span>Faltas <b>${f.r.falt}</b>${f.r.just ? ` +${f.r.just} just.` : ""}</span><span>Retardos <b>${f.r.ret}</b></span>${f.r.sinU ? `<span>Sin uniforme <b>${f.r.sinU}</b></span>` : ""}<span>${f.r.nreg} registros</span></div></div>
+    <div class="dat"><span>Asistió <b>${f.r.asis}/${f.r.total}</b></span><span>Faltas <b>${f.r.falt}</b>${f.r.just ? ` +${f.r.just} just.` : ""}</span><span>Retardos <b>${f.r.ret}</b></span>${f.r.sinU ? `<span>Sin uniforme <b>${f.r.sinU}</b></span>` : ""}${f.r.mala ? `<span style="color:var(--rojo)">Mala conducta <b>${f.r.mala}</b></span>` : ""}<span>${f.r.nreg} registros</span></div></div>
     <div class="calw"><div class="calb"><button data-menos="${f.a.id}" aria-label="Bajar calificación" ${f.cal == null || f.cal <= 6 ? "disabled" : ""}>−</button><span class="cal ${f.cal == null ? "x" : f.cal >= 8 ? "" : f.cal >= 7 ? "b" : "r"}">${f.cal ?? "—"}</span><button data-mas="${f.a.id}" aria-label="Subir calificación" ${f.cal != null && f.cal >= 10 ? "disabled" : ""}>+</button></div>
      <small>${f.editCal ? `ajustada · era ${f.r.cal ?? "—"} <button class="lnk" data-rest="${f.a.id}">restablecer</button>` : "calculada"}</small></div></div>
     <textarea data-ob="${f.a.id}" aria-label="Valoración cualitativa">${esc(f.obs)}</textarea></article>`).join("") || `<div class="vacio">Sin alumnos.</div>`}</div>
-   <p class="small muted mt">La calificación sale del promedio de todos los registros de los instrumentos en el periodo (6 a 10). Puede ajustarla y editar la valoración; sus cambios se guardan para este periodo.</p>` : `<div class="vacio mt">Registre grupos para evaluar.</div>`}</main>`; };
+   <p class="small muted mt">La calificación sale del promedio de todos los registros de los instrumentos en el periodo (6 a 10)${descCond() ? `; cada clase con mala conducta baja ${descCond()} punto${descCond() === 1 ? "" : "s"}` : ""}. Puede ajustarla y editar la valoración; sus cambios se guardan para este periodo.</p>` : `<div class="vacio mt">Registre grupos para evaluar.</div>`}</main>`; };
 function clavePer(E) { return `${E.ini}_${E.fin}`; }
 function filasEval(g, E) { const cl = clasesEn(g.id, E.ini, E.fin), ov = ((D.ajustes || {})[clavePer(E)] || {});
   return (g.alumnos || []).filter(a => !(a.baja && a.baja < E.ini) && !(a.alta && a.alta > E.fin)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")).map(a => { const r = calcAlumno(a, cl), o = ov[a.id] || {};
@@ -727,6 +741,8 @@ VISTAS.ajustes = () => {
   <section class="card mt"><h3>Sus datos</h3><div class="dos"><label class="campo"><span>Tratamiento</span><select id="dTr">${["", "Mtro.", "Mtra.", "Profr.", "Profra.", "Lic."].map(x => `<option ${x === D.docente.trato ? "selected" : ""}>${x}</option>`).join("")}</select></label><label class="campo"><span>Nombre</span><input id="dNom" value="${esc(D.docente.nombre)}"></label></div>
    <div class="dos"><label class="campo"><span>Correo institucional</span><input id="dCor" type="email" value="${esc(D.docente.correo)}"></label><label class="campo"><span>Celular</span><input id="dTel" value="${esc(D.docente.tel)}"></label></div><div class="fila fin"><button class="btn p s" id="bDat">Guardar</button></div></section>
   <section class="card mt"><h3>Trimestres</h3><p class="small muted mb">Fechas de corte para la evaluación. Ajústelas a las del calendario oficial del ciclo.</p>${D.cortes.map(x => `<div class="dos"><label class="campo"><span>${esc(x.n)} · inicia</span><input type="date" data-ci="${x.id}" value="${x.ini}"></label><label class="campo"><span>termina</span><input type="date" data-cf="${x.id}" value="${x.fin}"></label></div>`).join("")}</section>
+  <section class="card mt"><h3>Conducta en la calificación</h3><p class="small muted mb">Al terminar cada clase marca a los alumnos que no tuvieron buena conducta. ¿Cuánto baja la calificación del trimestre por cada vez?</p>
+   <label class="campo"><span>Cada clase con mala conducta baja</span><select id="dCond">${[[0, "No cuenta en la calificación (solo se anota)"], [0.25, "Un cuarto de punto"], [0.5, "Medio punto"], [1, "Un punto"]].map(([v, t]) => `<option value="${v}" ${descCond() === v ? "selected" : ""}>${t}</option>`).join("")}</select></label></section>
   ${cuentaGoogleHTML()}
   <section class="card mt"><h3>Respaldo en archivo</h3><p class="small muted mb">Además del respaldo en su Drive, puede guardar una copia como archivo para pasarla a otro dispositivo.</p>
    <div class="fila"><button class="btn" id="bResp">${ic("bajar", 18)} Descargar respaldo</button><button class="btn" id="bRest">${ic("subir", 18)} Cargar respaldo</button><input type="file" id="fRes" accept=".json,application/json" hidden></div>
@@ -736,6 +752,7 @@ VISTAS.ajustes = () => {
   <section class="card mt"><h3>Empezar de cero</h3><p class="small muted mb">Borra todos los datos de este dispositivo.</p><button class="btn r" id="bBor">${ic("basura", 16)} Borrar todo</button></section></main>`; };
 ENLAZAR.ajustes = () => { $("#bDat").onclick = () => { Object.assign(D.docente, { trato: val("dTr"), nombre: val("dNom").trim(), correo: val("dCor").trim(), tel: val("dTel").trim() }); guardar(); toast("Datos guardados."); };
   $$("[data-ci]").forEach(i => i.onchange = () => { D.cortes.find(x => x.id === i.dataset.ci).ini = i.value; guardar(); }); $$("[data-cf]").forEach(i => i.onchange = () => { D.cortes.find(x => x.id === i.dataset.cf).fin = i.value; guardar(); });
+  $("#dCond").onchange = ev => { D.cfg.descCond = +ev.target.value; guardar(); toast("Guardado. Se aplica en la evaluación del trimestre."); };
   enlazarCuentaGoogle(); $("#bAdm") && ($("#bAdm").onclick = () => ir("admin"));
   $("#bResp").onclick = respaldo; $("#bRest").onclick = () => $("#fRes").click(); $("#fRes").onchange = e => restaurar(e.target.files[0]);
   $("#bInst") && ($("#bInst").onclick = instalarApp);
@@ -770,9 +787,9 @@ function docEval(gs, E) { return gs.map((g, i) => { const e = escDe(g.escId), F 
   return `<div class="doc ${i ? "salto" : ""}">${encabezado(e, "Evaluación de Educación Física")}
    <div class="datos"><span><b>Grupo:</b> ${grNom(g)}</span><span><b>Periodo:</b> ${fCorta(E.ini)} al ${fCorta(E.fin)}</span><span><b>Clases:</b> ${clasesEn(g.id, E.ini, E.fin).length}</span>
    <span><b>Docente del grupo:</b> ${esc(g.docente || "—")}</span><span><b>Docente de E. F.:</b> ${esc(docNombre())}</span><span><b>Promedio del grupo:</b> ${prom}</span></div>
-   <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th><th class="c">Asist.</th><th class="c">Faltas</th><th class="c">Retardos</th><th class="c">Sin unif.</th><th class="c">Calif.</th><th>Valoración del desempeño</th></tr></thead><tbody>
-   ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c">${f.r.sinU || 0}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
-   <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo. J = falta justificada.</p>
+   <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th><th class="c">Asist.</th><th class="c">Faltas</th><th class="c">Retardos</th><th class="c">Sin unif.</th><th class="c">Mala cond.</th><th class="c">Calif.</th><th>Valoración del desempeño</th></tr></thead><tbody>
+   ${F.map((f, k) => `<tr><td class="c">${k + 1}</td><td>${esc(f.a.nombre)}${f.a.baja ? " (baja)" : ""}</td><td class="c">${f.r.asis}/${f.r.total}</td><td class="c">${f.r.falt}${f.r.just ? ` (+${f.r.just} J)` : ""}</td><td class="c">${f.r.ret}</td><td class="c">${f.r.sinU || 0}</td><td class="c">${f.r.mala || 0}</td><td class="c"><b>${f.cal ?? "—"}</b></td><td>${esc(f.obs)}</td></tr>`).join("")}</tbody></table>
+   <p class="nota">Calificación de 6 a 10 obtenida de los registros de evaluación formativa (rúbrica, lista de cotejo y escala estimativa) de las sesiones del periodo${descCond() ? `; cada clase con mala conducta baja ${descCond()} punto${descCond() === 1 ? "" : "s"}` : ""}. J = falta justificada.</p>
    <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela</td></tr></table></div>`; }).join(""); }
 function docPlan(p) { const e = escDe(p.escId), gs = p.grupos.map(grDe).filter(Boolean), f = gs[0] ? fechasPlan(gs[0], p) : [], fo = f.filter(Boolean).sort(), J = k => JUEGOS[k] || { n: k, reglas: [] }, nd = gs.flatMap(g => ndDe(p, g).map(x => ({ ...x, g })));
   return `<div class="doc">${encabezado(e, "Planeación didáctica de Educación Física")}
