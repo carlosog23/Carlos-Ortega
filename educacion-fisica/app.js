@@ -324,6 +324,7 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
    <button class="puerta" data-v="agenda" style="--c:var(--maiz-d);--c-s:var(--maiz-s)"><span class="ic">${ic("agenda")}</span><b>Agenda</b><span>Sesiones que siguen, eventos y citas</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:var(--ciruela);--c-s:var(--ciruela-s)"><span class="ic">${ic("eval")}</span><b>Evaluación del trimestre</b><span>Calificación 6 a 10, observaciones y faltas</span></button>
    <button class="puerta" data-v="escuelas"><span class="ic">${ic("escuela")}</span><b>Mis escuelas y grupos</b><span>${D.escuelas.length} escuelas · ${D.grupos.length} grupos · ${D.grupos.reduce((t, g) => t + activos(g).length, 0)} alumnos</span></button>
+   <button class="puerta" data-v="bitacora" style="--c:var(--rojo);--c-s:var(--rojo-s)"><span class="ic" style="font:800 24px/1 var(--disp)">!</span><b>Bitácora de incidentes</b><span>${(D.incidentes || []).length} registrados · lo que pasó en sus clases y los acuerdos</span></button>
    <button class="puerta" data-v="listas" style="--c:var(--barro);--c-s:var(--barro-s)"><span class="ic">${ic("impr")}</span><b>Listas de asistencia</b><span>Imprimir por mes, en blanco o con sus registros</span></button>
    <button class="puerta" data-v="ajustes" style="--c:var(--gris);--c-s:var(--hilo2)"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, trimestres, enlace y copia de seguridad</span></button>
   </div><p class="pie">Ulama · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p></main>`; };
@@ -826,6 +827,7 @@ function combinar(x) { const n = { e: 0, g: 0, a: 0, o: 0 }, mapE = {}, mapG = {
     else { g.escId = escId; D.grupos.push(g); mapG[g.id] = g.id; n.g++; n.a += (g.alumnos || []).length; } });
   (x.planes || []).forEach(p => { if (!D.planes.some(z => z.id === p.id)) { p.grupos = (p.grupos || []).map(i => mapG[i] || i); D.planes.push(p); n.o++; } });
   (x.clases || []).forEach(c => { if (!D.clases.some(z => z.id === c.id)) { c.grupoId = mapG[c.grupoId] || c.grupoId; c.escId = mapE[c.escId] || c.escId; D.clases.push(c); n.o++; } });
+  (x.incidentes || []).forEach(i => { D.incidentes = D.incidentes || []; if (!D.incidentes.some(z => z.id === i.id)) { i.grupoId = mapG[i.grupoId] || i.grupoId; i.escId = mapE[i.escId] || i.escId; D.incidentes.push(i); n.o++; } });
   (x.eventos || []).forEach(e => { D.eventos = D.eventos || []; if (!D.eventos.some(z => z.id === e.id)) { D.eventos.push(e); n.o++; } });
   if (!D.docente.nombre && x.docente) D.docente = x.docente; return n; }
 async function restaurar(f) { if (!f) return; try { const x = typeof f.text === "function" ? JSON.parse(await f.text()) : f; if (!x || !x.v || !Array.isArray(x.escuelas)) throw 0; const g0 = D.cfg.google;
