@@ -189,8 +189,8 @@ function agendaDe(desde, hasta) { const out = [];
   return out.sort((a, b) => a.f.localeCompare(b.f) || (escDe(a.g.escId) || {}).nombre?.localeCompare((escDe(b.g.escId) || {}).nombre || "") || a.g.grado - b.g.grado); }
 
 /* ---------------- eventos propios del docente (agenda) ---------------- */
-const TIPOS_EV = [["Evento", "anil"], ["Cita", "ciruela"], ["Reunión", "jade"], ["Torneo", "maiz-d"], ["Capacitación", "barro"], ["Recordatorio", "rojo"], ["Otro", "gris"]];
-const colEv = t => { const x = (TIPOS_EV.find(y => y[0] === t) || TIPOS_EV[6])[1]; return x === "gris" ? "color:var(--gris);background:var(--hilo2)" : `color:var(--${x});background:var(--${x === "maiz-d" ? "maiz" : x}-s)`; };
+const TIPOS_EV = [["Evento", "anil"], ["Cita", "ciruela"], ["Reunión", "jade"], ["Torneo", "maiz-d"], ["Capacitación", "barro"], ["Recordatorio", "rojo"], ["Suspensión", "rojo"], ["Otro", "gris"]];
+const colEv = t => { const x = (TIPOS_EV.find(y => y[0] === t) || TIPOS_EV[TIPOS_EV.length - 1])[1]; return x === "gris" ? "color:var(--gris);background:var(--hilo2)" : `color:var(--${x});background:var(--${x === "maiz-d" ? "maiz" : x}-s)`; };
 const eventos = () => (D.eventos = D.eventos || []);
 const evEn = (e, f) => f >= e.fecha && f <= (e.hasta && e.hasta > e.fecha ? e.hasta : e.fecha);
 function evSinClase(escId, f) { const e = (D.eventos || []).find(e => e.sinClase && evEn(e, f) && (e.sinClase === "todas" || e.sinClase === escId)); return e ? e.titulo : null; }
@@ -215,6 +215,8 @@ function dlgEvento(id, fecha) { const n = !id, e = n ? { fecha: fecha || hoy(), 
     v.querySelectorAll("#vTipo .chip").forEach(b => b.onclick = () => { tipo = b.dataset.t; v.querySelectorAll("#vTipo .chip").forEach(c => c.setAttribute("aria-pressed", c === b)); });
     const sc = v.querySelector("#vSC"), w = v.querySelector("#vSCw"), sEsc = v.querySelector("#vEsc"), sSc = v.querySelector("#vSCe");
     sc.onchange = () => { w.style.display = sc.checked ? "" : "none"; if (sc.checked && sEsc.value && !e.sinClase) sSc.value = sEsc.value; };
+    /* Una suspensión es un día sin clase: se marca sola (aparece así en la agenda y en la lista de asistencia) */
+    v.querySelectorAll('#vTipo .chip[data-t="Suspensión"]').forEach(b => b.addEventListener("click", () => { if (!sc.checked) { sc.checked = true; sc.onchange(); } }));
     v.querySelector("#vX").onclick = cerrarDlg;
     v.querySelector("#vOk").onclick = () => { const tit = val("vTit").trim(), f = val("vF"); if (!tit) return toast("<b>Escriba qué es.</b>"); if (!f) return toast("<b>Elija la fecha.</b>");
       const hs = val("vH"), x = n ? { id: uid() } : e; const antes = n ? "" : e.sinClase;
