@@ -783,7 +783,7 @@ function wordDescargar(html, archivo) { const tmp = document.createElement("div"
   tmp.querySelectorAll(".salto").forEach(x => x.insertAdjacentHTML("beforebegin", '<br clear="all" style="page-break-before:always">'));
   const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(archivo)}</title>
    <style>@page WordSection1{size:8.5in 11in;margin:0.6in}div.WordSection1{page:WordSection1}body{font-family:Arial,sans-serif;font-size:10pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3pt 4pt;vertical-align:top;font-size:9pt}th{background:#E8EFEC}
-   .enc td{border:0}.enc{border-bottom:2px solid #0F3B33}.datos td{border:0;font-size:9.5pt}.firmas td{border:0;text-align:center;font-size:9.5pt}.nota{font-size:8.5pt;color:#444}h2{font-size:13pt}</style></head><body><div class="WordSection1">${tmp.innerHTML}</div></body></html>`;
+   .enc td{border:0}.enc{border-bottom:2px solid #0F3B33}.datos td{border:0;font-size:9.5pt}.firmas td{border:0;text-align:center;font-size:9.5pt}.nota{font-size:8.5pt;color:#444}h2{font-size:13pt}td.motivo-v{layout-flow:vertical;mso-rotate:90;font-size:7pt;background:#f3f1ec;text-align:center}</style></head><body><div class="WordSection1">${tmp.innerHTML}</div></body></html>`;
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff", doc], { type: "application/msword" })); a.download = archivo; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast("Documento de Word descargado: puede abrirlo y editarlo."); }
 
 /* ---------- ajustes ---------- */
@@ -897,14 +897,22 @@ function enviarPlan(p) { const e = escDe(p.escId); dlgEnvio("Enviar planeación 
 /* ---------- listas de asistencia por mes: en blanco o con los registros ---------- */
 function mesesCiclo() { const out = [], d = dF(CICLO.inicio); d.setDate(1); const fin = dF(CICLO.fin); while (d <= fin) { out.push(iso(d).slice(0, 7)); d.setMonth(d.getMonth() + 1); } return out; }
 const nomMes = m => { const [y, mm] = m.split("-").map(Number); return `${MES_L[mm - 1]} ${y}`; };
+/* Días sin clase oficiales cortos (CTE, suspensiones): sí aparecen en la lista con su motivo; las vacaciones no */
+const sinClaseCorto = k => { const r = SIN_CLASE.find(([a, b]) => k >= a && k <= b); return r && (dF(r[1]) - dF(r[0])) / 864e5 < 3 ? r[2] : null; };
 function diasDelMes(g, mes, todos) { const [y, m] = mes.split("-").map(Number), out = [], d = new Date(y, m - 1, 1, 12), dias = diasGrupo(g);
-  for (; d.getMonth() === m - 1; d.setDate(d.getDate() + 1)) { const k = iso(d), w = d.getDay(); if (w === 0 || w === 6 || k < CICLO.inicio || k > CICLO.fin || sinClase(k)) continue; if (todos || !dias.length || dias.includes(w)) out.push(k); }
-  /* días con clase registrada aunque no sean sus días de siempre (reposiciones) */
+  for (; d.getMonth() === m - 1; d.setDate(d.getDate() + 1)) { const k = iso(d), w = d.getDay(); if (w === 0 || w === 6 || k < CICLO.inicio || k > CICLO.fin || (sinClase(k) && !sinClaseCorto(k))) continue; if (todos || !dias.length || dias.includes(w)) out.push(k); }
+  /* días con clase registrada o anotada como no dada aunque no sean sus días de siempre (reposiciones) */
+  D.planes.forEach(p => ((p.nd || {})[g.id] || []).filter(x => x.f.slice(0, 7) === mes && !out.includes(x.f)).forEach(x => out.push(x.f)));
   D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === mes && !out.includes(c.fecha)).forEach(c => out.push(c.fecha)); return out.sort(); }
 const MARCA = { P: "/", S: "S", R: "R", F: "F", J: "J" };
 function docLista(g, mes, o) { const e = escDe(g.escId), dias = diasDelMes(g, mes, o.todos), ini = mes + "-01", fin = mes + "-31";
   const al = (g.alumnos || []).filter(a => !(a.baja && a.baja < ini) && !(a.alta && a.alta > fin)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  const cl = {}; if (o.reg) D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === mes).forEach(c => cl[c.fecha] = c);
+  const cl = {}; D.clases.filter(c => c.grupoId === g.id && c.fecha.slice(0, 7) === mes).forEach(c => cl[c.fecha] = c);
+  /* Por qué no hubo clase ese día (si no se registró clase): calendario oficial, evento sin clase o motivo anotado */
+  const motivoDia = k => { if (cl[k]) return ""; const nd = D.planes.flatMap(p => ((p.nd || {})[g.id] || []).filter(x => x.f === k))[0];
+    return sinClaseCorto(k) || evSinClase(g.escId, k) || (nd ? nd.m + (nd.nota ? " — " + nd.nota : "") : ""); };
+  const mot = {}; dias.forEach(k => { const t = motivoDia(k); if (t) mot[k] = t; });
+  if (!o.reg) Object.keys(cl).forEach(k => delete cl[k]);
   const celda = (a, k) => { if (!o.reg) return ""; if ((a.alta && k < a.alta) || (a.baja && k > a.baja)) return "—"; const c = cl[k]; return c && c.asis[a.id] ? MARCA[c.asis[a.id]] : ""; };
   const tot = a => { let p = 0, r = 0, f = 0, j = 0, u = 0; dias.forEach(k => { const c = cl[k], v = c && c.asis[a.id]; if (v === "P") p++; else if (v === "S") { p++; u++; } else if (v === "R") { p++; r++; } else if (v === "F") f++; else if (v === "J") j++; }); return [p, f, r, j, u]; };
   const extra = Math.max(0, o.extra || 0), fs = dias.length > 20 ? "7.5pt" : dias.length > 14 ? "8.5pt" : "9.5pt";
@@ -912,9 +920,9 @@ function docLista(g, mes, o) { const e = escDe(g.escId), dias = diasDelMes(g, me
    <div class="datos"><span><b>Grupo:</b> ${grNom(g)}</span><span><b>Docente del grupo:</b> ${esc(g.docente || "—")}</span><span><b>Docente de E. F.:</b> ${esc(docNombre())}</span></div>
    <table style="font-size:${fs}"><thead><tr><th class="c" rowspan="2" style="width:22px">No.</th><th rowspan="2">Alumno(a)</th>${dias.map(k => `<th class="c" style="padding:2px 1px">${DSEM[dF(k).getDay()][0]}</th>`).join("")}${o.reg ? `<th class="c" rowspan="2">A</th><th class="c" rowspan="2">F</th><th class="c" rowspan="2">R</th><th class="c" rowspan="2">J</th><th class="c" rowspan="2">S</th>` : `<th class="c" rowspan="2" style="width:60px">Observ.</th>`}</tr>
    <tr>${dias.map(k => `<th class="c" style="padding:2px 1px">${dF(k).getDate()}</th>`).join("")}</tr></thead><tbody>
-   ${al.map((a, i) => `<tr><td class="c">${i + 1}</td><td style="white-space:nowrap">${esc(a.nombre)}${a.baja && a.baja <= fin ? ` <i>(baja ${dF(a.baja).getDate()}/${dF(a.baja).getMonth() + 1})</i>` : ""}</td>${dias.map(k => `<td class="c" style="padding:2px 1px;min-width:16px">${celda(a, k)}</td>`).join("")}${o.reg ? tot(a).map(n => `<td class="c">${n}</td>`).join("") : `<td></td>`}</tr>`).join("")}
-   ${Array.from({ length: extra }, (_, i) => `<tr><td class="c">${al.length + i + 1}</td><td>&nbsp;</td>${dias.map(() => "<td></td>").join("")}${o.reg ? "<td></td><td></td><td></td><td></td><td></td>" : "<td></td>"}</tr>`).join("")}</tbody></table>
-   <p class="nota">${o.reg ? "/ asistió con uniforme deportivo · S asistió sin uniforme · R retardo · F falta · J falta justificada · — aún no estaba inscrito o ya era baja. A incluye los retardos y a quienes vinieron sin uniforme." : "Anote: / asistió con uniforme · S sin uniforme · R retardo · F falta · J falta justificada."} ${o.todos ? "Se muestran todos los días hábiles del mes." : "Se muestran los días de clase de Educación Física del grupo."} Días sin clase según el calendario oficial de Baja California.</p>
+   ${al.map((a, i) => `<tr><td class="c">${i + 1}</td><td style="white-space:nowrap">${esc(a.nombre)}${a.baja && a.baja <= fin ? ` <i>(baja ${dF(a.baja).getDate()}/${dF(a.baja).getMonth() + 1})</i>` : ""}</td>${dias.map(k => mot[k] ? (i ? "" : `<td class="c motivo-v" rowspan="${al.length + extra}"><span>${esc(mot[k])}</span></td>`) : `<td class="c" style="padding:2px 1px;min-width:16px">${celda(a, k)}</td>`).join("")}${o.reg ? tot(a).map(n => `<td class="c">${n}</td>`).join("") : `<td></td>`}</tr>`).join("")}
+   ${Array.from({ length: extra }, (_, i) => `<tr><td class="c">${al.length + i + 1}</td><td>&nbsp;</td>${dias.map(k => mot[k] && (al.length || i) ? "" : mot[k] ? `<td class="c motivo-v" rowspan="${extra}"><span>${esc(mot[k])}</span></td>` : "<td></td>").join("")}${o.reg ? "<td></td><td></td><td></td><td></td><td></td>" : "<td></td>"}</tr>`).join("")}</tbody></table>
+   <p class="nota">${o.reg ? "/ asistió con uniforme deportivo · S asistió sin uniforme · R retardo · F falta · J falta justificada · — aún no estaba inscrito o ya era baja. A incluye los retardos y a quienes vinieron sin uniforme." : "Anote: / asistió con uniforme · S sin uniforme · R retardo · F falta · J falta justificada."} ${o.todos ? "Se muestran todos los días hábiles del mes." : "Se muestran los días de clase de Educación Física del grupo."} Días sin clase según el calendario oficial de Baja California${Object.keys(mot).length ? "; en los días que no hubo clase se anota el motivo" : ""}.</p>
    <table class="firmas"><tr><td>${esc(docNombre())}<br>Docente de Educación Física</td><td>${esc(dirNombre(e) || "")}<br>Director(a) de la escuela · Vo. Bo.</td></tr></table></div>`; }
 VISTAS.listas = () => { const k = hoy(), L = S.L = Object.assign({ escId: (D.escuelas[0] || {}).id, grupos: null, mes: k.slice(0, 7) >= CICLO.inicio.slice(0, 7) && k <= CICLO.fin ? k.slice(0, 7) : CICLO.inicio.slice(0, 7), reg: true, todos: false, extra: 2 }, S.L || {});
   const e = escDe(L.escId), gs = e ? gruposDe(e.id) : []; if (!L.grupos) L.grupos = gs.map(g => g.id); const sel = L.grupos.map(grDe).filter(g => g && g.escId === L.escId);
