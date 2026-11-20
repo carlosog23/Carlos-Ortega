@@ -175,6 +175,13 @@ dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--night);color:var(--night-ink);
   padding:10px 16px;border-radius:12px;font-size:.88rem;transition:.25s;pointer-events:none;z-index:20}
 .toast.on{opacity:1;transform:translateX(-50%)}
+.inst{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:16px 18px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.inst-ico img{width:54px;height:54px;border-radius:14px;display:block}
+.inst-t{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.inst-t b{font-family:var(--f-display);font-size:1.08rem}
+.inst-t>span{font-size:.87rem;color:var(--muted)}
+.inst-ayuda{margin-top:8px;font-size:.88rem;line-height:1.5;background:var(--panel-2);border-radius:10px;padding:10px 12px}
+.inst-b{display:flex;gap:8px;flex-wrap:wrap}
 .fade{animation:fd .3s ease both}
 @keyframes fd{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -190,7 +197,7 @@ dd{margin:0;min-width:0;overflow-wrap:anywhere}
 <div class="wrap">
   <header class="bar">
     <button class="brand" id="home" aria-label="Volver al inicio">
-      <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <img src="icon-192.png" alt="" width="40" height="40" style="border-radius:12px;display:block">
       <span><b>Centro de Apps</b><span>Mtro. Carlos Gabriel Ortega Gutiérrez</span></span>
     </button>
     <button class="btn" id="instalar" hidden style="padding:7px 12px">Instalar app</button>
@@ -291,6 +298,7 @@ function renderGate(){
   const avisos=APPS.filter(a=>a.tags.some(t=>t.w)).length;
   view.innerHTML=`
   <section class="hello fade"><span class="eyebrow">${APPS.length} apps en servicio</span><h1>${saludo()}, Carlos. <em>¿Cómo quieres entrar?</em></h1></section>
+  ${instHTML()}
   <section class="gate fade">
     <button class="door" id="dUse">
       <span class="eyebrow">Modo normal</span>
@@ -309,8 +317,34 @@ function renderGate(){
       <span class="go">Entrar con PIN →</span>
     </button>
   </section>`;
+  enlazarInst();
   document.getElementById("dUse").onclick=renderUse;
   document.getElementById("dAdm").onclick=()=>adminOk?renderAdmin():renderPin();
+}
+
+/* ---------- Tarjeta para instalar ---------- */
+let promptInst=null, instOculto=false;
+const esApp=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const plataforma=()=>{const u=navigator.userAgent;if(/iPhone|iPad|iPod/.test(u)||(/Macintosh/.test(u)&&"ontouchend" in document))return"ios";if(/Android/.test(u))return"android";return"pc"};
+function instHTML(){
+  if(esApp()||instOculto)return"";
+  return`<section class="inst fade" id="instCard"><span class="inst-ico"><img src="icon-192.png" alt=""></span>
+    <div class="inst-t"><b>Instala el Centro de Apps</b><span>Tenlo como app en tu celular o tu computadora, con su ícono y sin abrir el navegador.</span><div class="inst-ayuda" id="instAyuda" hidden></div></div>
+    <div class="inst-b"><button class="btn pri" id="instBtn">Instalar</button><button class="btn" id="instNo">Ahora no</button></div></section>`;
+}
+function enlazarInst(){
+  const b=document.getElementById("instBtn");if(!b)return;
+  b.onclick=async()=>{
+    if(promptInst){promptInst.prompt();const r=await promptInst.userChoice;promptInst=null;if(r.outcome==="accepted"){instOculto=true;document.getElementById("instCard")?.remove()}return}
+    const a=document.getElementById("instAyuda"),pl=plataforma();
+    a.innerHTML=pl==="ios"
+      ?"<b>En iPhone o iPad:</b> abre esta página en <b>Safari</b>, toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba) y elige <b>Agregar a inicio</b>."
+      :pl==="android"
+      ?"<b>En Android:</b> abre esta página en <b>Chrome</b>, toca el menú <b>⋮</b> de arriba a la derecha y elige <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>."
+      :"<b>En la computadora:</b> abre esta página en <b>Chrome</b> o <b>Edge</b> y haz clic en el ícono de instalar que aparece al final de la barra de direcciones, o en el menú <b>⋮</b> → <b>Transmitir, guardar y compartir</b> → <b>Instalar página como app</b>.";
+    a.hidden=false;
+  };
+  document.getElementById("instNo").onclick=()=>{instOculto=true;document.getElementById("instCard")?.remove()};
 }
 
 /* ---------- Usar ---------- */
@@ -437,10 +471,10 @@ function drawDetail(){
 
 renderGate();
 /* Instalar como app */
-let promptInst=null;const bInst=document.getElementById("instalar");
+const bInst=document.getElementById("instalar");
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();promptInst=e;bInst.hidden=false});
 bInst.onclick=async()=>{if(!promptInst)return;promptInst.prompt();await promptInst.userChoice;promptInst=null;bInst.hidden=true};
-window.addEventListener("appinstalled",()=>{bInst.hidden=true;toast("Centro de Apps instalado")});
+window.addEventListener("appinstalled",()=>{bInst.hidden=true;instOculto=true;document.getElementById("instCard")?.remove();toast("Centro de Apps instalado")});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
