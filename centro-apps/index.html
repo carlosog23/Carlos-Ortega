@@ -183,6 +183,16 @@ dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .inst-t>span{font-size:.87rem;color:var(--muted)}
 .inst-ayuda{margin-top:8px;font-size:.88rem;line-height:1.5;background:var(--panel-2);border-radius:10px;padding:10px 12px}
 .inst-b{display:flex;gap:8px;flex-wrap:wrap}
+.demos{display:flex;flex-direction:column;gap:10px}
+.demo{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);min-width:0}
+.blk .demo{background:var(--bg)}
+.demo-h{display:flex;align-items:center;gap:10px;min-width:0}
+.demo-h .ico{width:32px;height:32px}
+.demo-h b{font-size:.95rem}
+.demo-h small{display:block;font-size:.8rem;color:var(--muted)}
+.demo .mono{color:var(--muted);overflow-wrap:anywhere}
+.demo .actions .btn{padding:7px 12px;font-size:.84rem}
+.tag.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok);font-weight:600}
 .fade{animation:fd .3s ease both}
 @keyframes fd{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -283,6 +293,43 @@ const APPS=[
   tags:[{t:"Alerta «no hay sistema»"}],
   rel:[["Tarjeta de Gasolina","45a9780c-4aca-47b2-bda5-03cec0f367e8"]]},
 ];
+/* Enlaces de demostración para compartir (datos ficticios) */
+const DEMOS={
+ tlamatini:[{t:"Demostración de Tlamatini",u:GH+"formatos-ppie/#demo",n:"Entra con datos ficticios, sin enlace de acceso. Su vigencia la fija la Supervisión.",vig:true},
+            {t:"Recorrido de 2 minutos",u:GH+"formatos-ppie/tour.html",n:"Presentación animada de lo que hace Tlamatini."},
+            {t:"Conozca a Tlami",u:GH+"formatos-ppie/tlami.html",n:"El guía de Tlamatini se presenta."}],
+ tequio:[{t:"Demostración completa",u:GH+"tequio/#demo",n:"Como Supervisión, con datos de ejemplo. Se puede probar todo; nada se guarda."},
+         {t:"Consulta para otros supervisores",u:GH+"tequio/#consulta",n:"Todo Tequio con datos ficticios, solo para ver."},
+         {t:"Consulta como director",u:GH+"tequio/#consulta=director",n:"Lo que ve un director, con datos ficticios, solo para ver."}],
+ ulama:[{t:"Demostración de Ulama",u:GH+"educacion-fisica/demo.html",n:"Maestro, escuelas y alumnos ficticios. Se puede usar todo y tiene botón «Reiniciar demo»."}],
+ ingles:[{t:"Recorrido de prueba",u:"https://carlosog23.github.io/misioneros-del-ingles/demo.html",n:"Para posibles alumnos: exploran y contestan; sus respuestas solo quedan en su teléfono."}],
+ preescolar:[{t:"Enlace para docentes",u:GH+"evaluacion-preescolar/",n:"La app es abierta: cualquiera con el enlace puede usarla."}],
+ pagina:[{t:"Página pública de la zona",u:GH+"zona050/",n:"Abierta a familias, comunidad y personal."}]
+};
+let VIG_TLM=null;
+fetch("../formatos-ppie/formatos/acceso.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.demoVence){VIG_TLM=j.demoVence;if(mode==="use")renderUse();else if(mode==="admin")drawDetail()}}).catch(()=>{});
+function vigHTML(){
+  if(!VIG_TLM)return"";const f=new Date(VIG_TLM),txt=f.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+  return Date.now()<f.getTime()?`<span class="tag ok">Vigente hasta el ${txt}</span>`:`<span class="tag warn">Venció el ${txt}: no abrirá hasta que se renueve</span>`;
+}
+function demoHTML(a,d,conIco){
+  return`<div class="demo"><div class="demo-h">${conIco?`<span class="ico">${svg(a.id)}</span>`:""}<div style="min-width:0"><b>${d.t}</b><small>${d.n}</small></div></div>
+    ${d.vig?`<div class="tags">${vigHTML()}</div>`:""}
+    <span class="mono">${esc(d.u.replace("https://",""))}</span>
+    <div class="actions"><button class="btn pri" data-copiar="${esc(d.u)}">Copiar enlace</button><button class="btn" data-compartir="${esc(d.u)}" data-titulo="${esc(a.name+" · "+d.t)}">Compartir</button><a class="btn" href="${esc(d.u)}" target="_blank" rel="noopener">Abrir</a></div></div>`;
+}
+function demosSeccion(){
+  const filas=APPS.filter(a=>DEMOS[a.id]).flatMap(a=>DEMOS[a.id].map(d=>demoHTML(a,d,true)));
+  return`<section class="section fade"><div class="sec-h"><h2>Demostraciones para compartir</h2><span class="eyebrow">${filas.length}</span></div><div class="demos">${filas.join("")}</div></section>`;
+}
+document.addEventListener("click",async e=>{
+  const c=e.target.closest("[data-copiar]");
+  if(c){const u=c.dataset.copiar;try{await navigator.clipboard.writeText(u);toast("Enlace copiado")}catch(_){toast(u)}return}
+  const s=e.target.closest("[data-compartir]");
+  if(s){const u=s.dataset.compartir,t=s.dataset.titulo;
+    if(navigator.share){try{await navigator.share({title:t,text:t,url:u})}catch(_){}}
+    else window.open("https://wa.me/?text="+encodeURIComponent(t+"\n"+u),"_blank","noopener");}
+});
 const GROUPS={zona:"Zona Escolar 050",docentes:"Para docentes",otros:"Proyectos personales"};
 
 /* ---------- Estado en este dispositivo ---------- */
@@ -373,7 +420,8 @@ function renderUse(){
     <input id="q" placeholder="Buscar app… (escribe y presiona Enter)" autocomplete="off"><kbd>Ctrl K</kbd>
   </label>
   ${rec.length?`<section class="section fade"><div class="sec-h"><h2>Recientes</h2></div><div class="recent">${rec.map(a=>`<a class="chipapp" href="${esc(cfg(a).url)}" target="_blank" rel="noopener" data-open="${a.id}"><span class="ico" style="--c:${a.c}">${svg(a.id)}</span>${a.name}</a>`).join("")}</div></section>`:""}
-  <div id="groups"></div>`;
+  <div id="groups"></div>
+  ${demosSeccion()}`;
   const q=document.getElementById("q");
   const draw=()=>{const t=q.value.trim().toLowerCase();let i=0;
     const html=Object.entries(GROUPS).map(([g,title])=>{const list=APPS.filter(a=>a.g===g&&(!t||(a.name+" "+a.tag+" "+a.users).toLowerCase().includes(t)));
@@ -451,6 +499,7 @@ function drawDetail(){
       </div>
       <div class="tags">${a.tags.map(t=>`<span class="tag${t.w?" warn":""}">${t.t}</span>`).join("")}</div>
     </div>
+    ${DEMOS[a.id]?`<div class="blk full"><span class="eyebrow">Enlaces de demostración</span><div class="demos">${DEMOS[a.id].map(d=>demoHTML(a,d,false)).join("")}</div></div>`:""}
     <div class="blk">
       <span class="eyebrow">Ficha técnica</span>
       <dl><dt>Usuarios</dt><dd>${a.users}</dd><dt>Servicios</dt><dd>${a.stack}</dd><dt>Enlace</dt><dd class="mono">${esc(k.url.replace("https://",""))}</dd></dl>
