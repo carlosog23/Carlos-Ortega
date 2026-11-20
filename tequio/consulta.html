@@ -62,10 +62,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   .req{color:var(--terra)}
   .msg{text-align:center;padding:40px 16px;color:var(--gris)}
   .pie{text-align:center;font-size:13px;color:var(--gris);margin-top:26px}
+.banda-demo{background:#F4C25B;color:#3A2A08;text-align:center;font-size:14px;font-weight:700;padding:8px 12px;border-radius:12px;margin-bottom:12px}
 </style>
 </head>
 <body>
 <div class="wrap" id="raiz"><div class="msg">Cargando…</div></div>
+<script src="consulta-demo.js"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
@@ -80,9 +82,15 @@ const hora12 = h => { if (!h) return ''; let [a, b] = h.split(':').map(Number); 
 const H = new URLSearchParams(location.hash.slice(1));
 const CODIGO = (H.get('c') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const SERVIDOR = H.get('s') || '';
+const DEMO = H.has('demo') && !!window.CNS_DEMO;   // consulta.html#demo: ejemplo con datos ficticios, no se guarda nada
 let C = null, R = {};   // consulta y respuestas en curso
 
 async function api(accion, datos) {
+  if (DEMO) {   // demostración: se calcula aquí la cuenta, como lo haría el servidor, y no se guarda nada
+    await new Promise(ok => setTimeout(ok, 700));
+    const p = C.participantes.find(x => x.id === datos.persona) || {}, a = asisP(), va = !a || datos.respuestas[a.k] === 'Sí';
+    return { ok: true, nombre: p.n || '', va, cuentas: va ? C.preguntas.filter(q => q.tipo === 'menu' && datos.respuestas[q.k] != null).map(q => CNS_DEMO.cuenta(q, datos.respuestas[q.k])) : [] };
+  }
   let r;
   try {
     const res = await fetch(SERVIDOR, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion, datos }) });
@@ -94,6 +102,7 @@ async function api(accion, datos) {
 function mensaje(t) { $('#raiz').innerHTML = `<div class="msg">${t}</div>`; }
 
 async function iniciar() {
+  if (DEMO) { C = JSON.parse(JSON.stringify(CNS_DEMO.consulta)); C.abierta = true; C.zona = CNS_DEMO.zona; document.title = C.titulo + ' · demostración'; pintar(); return; }
   if (!CODIGO || !/^https:\/\/script\.google(usercontent)?\.com\//.test(SERVIDOR)) return mensaje('El enlace está incompleto. Pida el enlace de nuevo a la Supervisión.');
   try { const r = await api('cnsPub', { codigo: CODIGO }); C = r.consulta; C.zona = r.zona || {}; }
   catch (e) { return mensaje(esc(e.message)); }
@@ -138,6 +147,7 @@ function pintar() {
     <div class="card ok hide" id="listo"></div>
     <div class="nota">Si se equivoca, vuelva a entrar a este enlace, elija su nombre y envíe de nuevo: se guarda su última respuesta.</div>
     <div class="pie">Tequio · Supervisión Escolar${z.numero ? ' Zona ' + esc(z.numero) : ''}</div>`;
+  if (DEMO) h = `<div class="banda-demo">Demostración con datos ficticios · conteste libremente: no se guarda nada</div>` + h;
   $('#raiz').innerHTML = h;
   $('#persona').onchange = revisar;
   $$('[data-asi]').forEach(b => b.onclick = () => { $$('[data-asi]').forEach(x => x.classList.toggle('on', x === b)); R[a.k] = b.dataset.asi; $('#resto').classList.toggle('hide', !va()); revisar(); });

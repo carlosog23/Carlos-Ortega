@@ -817,6 +817,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 <div id="app"></div>
 <div id="avisos" role="status" aria-live="polite"></div>
 
+<script src="consulta-demo.js"></script>
 <script>
 'use strict';
 /* =========================================================
@@ -994,7 +995,7 @@ function leerCfg() {
     history.replaceState(null, '', location.pathname + location.search);
     return c;
   }
-  if (h.get('demo') !== null) { history.replaceState(null, '', location.pathname + location.search); return { demo: true }; }
+  if (h.get('demo') !== null) { if (h.get('ver')) vista.tab = h.get('ver'); history.replaceState(null, '', location.pathname + location.search); return { demo: true }; }
   if (h.get('consulta') !== null) return { demo: true, lectura: true, dir: h.get('consulta') === 'director' };
   try { const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); if (c && c.s && c.k) return c; } catch (e) {}
   return null;
@@ -6110,11 +6111,9 @@ function cnsMensajeWa(c) {
 function vConsultas() {
   if (!esMesa()) { vista.tab = 'agenda'; return pintar(); }
   const cab = `<div class="titulo-vista"><h1>Consultas</h1><div class="acciones">${esAdmin() && CNS && !CNS.error && !(cfg && cfg.demo) ? `<button class="boton" id="cn-nueva">${ico('i-mas')}Nueva consulta</button>` : ''}</div></div>`;
-  if (cfg && cfg.demo) {
-    $('#vista').innerHTML = cab + '<div class="tarjeta pad"><p style="margin-top:0">Con <b>Consultas</b> la Supervisión arma una consulta (asistencia a un evento, elegir platillo de un menú con servicio y anticipo, o preguntas de opción o abiertas) y comparte un enlace por WhatsApp. Cada persona elige su nombre y contesta en privado; solo la Supervisión ve las respuestas. Las consultas no se borran: se archivan.</p><p class="peq mudo" style="margin-bottom:0">En la demostración no se crean consultas.</p></div>';
-    return;
-  }
-  if ((S.version || 0) < CNS_VER) {
+  // Demostración: la posada con personas y respuestas ficticias (consulta-demo.js)
+  if (cfg && cfg.demo && !CNS && window.CNS_DEMO) { const c = JSON.parse(JSON.stringify(CNS_DEMO.consulta)); c.enlace = new URL('consulta.html#demo', location.href).href; c.respondieron = CNS_DEMO.respuestas().length; CNS = { lista: [c] }; }
+  if (!(cfg && cfg.demo) && (S.version || 0) < CNS_VER) {
     $('#vista').innerHTML = cab + `<div class="tarjeta pad"><p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> (versión ${CNS_VER}) para usar las consultas. Toma unos 5 minutos y no se pierde nada.</p><a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a></div>`;
     return;
   }
@@ -6146,7 +6145,7 @@ function vConsultas() {
         <button class="boton sec chico" data-cnest="${c.id}" data-est="${c.estado === 'abierta' ? 'cerrada' : 'abierta'}">${c.estado === 'abierta' ? 'Cerrar' : 'Volver a abrir'}</button>
         <button class="boton sec chico" data-cnest="${c.id}" data-est="archivada">Archivar</button>` : ''}`
         : ctl ? `<button class="boton sec chico" data-cnest="${c.id}" data-est="cerrada">Sacar del archivo</button>` : ''}
-        ${esAdmin() ? `<button class="boton sec chico" data-cndup="${c.id}">Duplicar</button>` : ''}
+        ${esAdmin() && !(cfg && cfg.demo) ? `<button class="boton sec chico" data-cndup="${c.id}">Duplicar</button>` : ''}
         ${esAdmin() && (c.acceso || []).length ? `<span class="peq mudo" style="align-self:center">ATP con acceso: ${esc(c.acceso.map(a => ((S.usr || []).find(u => u.id === a.id) || {}).nombre || 'ATP').map(n => n.split(' ')[0]).join(', '))}</span>` : ''}
         ${!esAdmin() ? `<span class="peq mudo" style="align-self:center">${ctl ? 'Usted puede ver y llevar el control de esta consulta' : 'Usted puede ver y dar seguimiento a esta consulta'}</span>` : ''}
       </div></div>`;
@@ -6309,6 +6308,7 @@ function cnsListo(c) {
 
 /* --- Resultados de una consulta --- */
 async function cnsResCargar(id) {
+  if (cfg && cfg.demo && window.CNS_DEMO) { vista.cnsRes = { id, resp: CNS_DEMO.respuestas() }; if (vista.tab === 'consultas' && vista.cnsVer === id) vConsultas(); return; }
   try { const r = await api('cnsRespuestas', { id }); cnsPoner(r.consulta); vista.cnsRes = { id, resp: r.respuestas || [] }; }
   catch (e) { vista.cnsRes = { id, error: e.message }; }
   if (vista.tab === 'consultas' && vista.cnsVer === id) vConsultas();
