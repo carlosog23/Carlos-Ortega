@@ -547,6 +547,9 @@ function doPost(e) {
     if (q.accion === 'efEnviar') return json_(Object.assign({ ok: true }, efEnviar_(q)));
     // Ulama: copia del registro de un maestro de Educación Física (se guarda en el Drive de la Supervisión y avisa por correo)
     if (q.accion === 'ulamaRegistro') return json_(Object.assign({ ok: true }, ulamaRegistro_(q)));
+    // Ulama · visita del supervisor: el docente sube su paquete de revisión (dura 6 h) y el supervisor lo baja con el código o el QR
+    if (q.accion === 'ulamaRevSubir') return json_(Object.assign({ ok: true }, ulamaRevSubir_(q)));
+    if (q.accion === 'ulamaRevBajar') return json_(Object.assign({ ok: true }, ulamaRevBajar_(q)));
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -5597,15 +5600,21 @@ function efEnviar_(q) {
   const d = q.datos || {};
   // Entra con el enlace de Ulama (lo da la Supervisión en el panel de accesos de Ulama), o con el de Tlamatini o Tequio
   const ul = ulamaEnlace_(d.tok);
-  if (!ul && !usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
+  // El supervisor que revisó con el código de un docente puede enviarle a ese docente el informe de la visita (hasta 3 días)
+  const rv = !ul && !usuario_(q.k) && !tlmEnlace_(d.tok) ? ulamaRevPermiso_(d.rev) : null;
+  if (!ul && !rv && !usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
   const quien = { nombre: String(((d.quien || {}).nombre) || (ul && ul.nombre) || '').replace(/\s+/g, ' ').trim().slice(0, 80) };
-  const cache = CacheService.getScriptCache(), kk = 'efEnv-' + sha_(String(q.k || d.tok)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  const cache = CacheService.getScriptCache(), kk = 'efEnv-' + sha_(String(q.k || d.tok || d.rev)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
   if (n > 25) throw new Error('Ya envió muchos correos seguidos. Intente en una hora.');
   cache.put(kk, String(n), 3600);
   const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const correos = l => (Array.isArray(l) ? l : []).map(x => String(x).trim().toLowerCase()).filter(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)).slice(0, 15);
   const para = correos(d.para), cc = correos(d.cc).filter(x => para.indexOf(x) < 0);
   if (!para.length) throw new Error('Falta el correo del destinatario.');
+  if (rv) {
+    if (para.some(x => rv.correos.indexOf(x) < 0)) throw new Error('Con el código de revisión, el informe solo se puede enviar al correo del docente revisado (' + rv.correos.join(', ') + ').');
+    if (cc.length > 3) throw new Error('Con el código de revisión se permiten hasta 3 correos con copia.');
+  }
   if (MailApp.getRemainingDailyQuota() < para.length + cc.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Intente mañana.');
   const html = String(d.html || ''), css = String(d.css || '').slice(0, 20000);
   if (!html || html.length > 4500000) throw new Error('El reporte está vacío o es demasiado grande.');
@@ -5641,6 +5650,50 @@ function ulamaEnlace_(tok) {
   const e = (acc.enlaces || []).find(x => x.h === sha_(tok));
   if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return null;
   return e;
+}
+/** Visita del supervisor (Ulama): el paquete de revisión que arma el docente en su dispositivo (comprimido, de solo lectura)
+    se guarda en la caché del servidor 6 horas con un código de 6 letras; el supervisor lo baja en «Ulama · Supervisión».
+    No se guarda en hojas ni en Drive. Queda un permiso de 3 días para que el supervisor le envíe al docente su informe. */
+const REV_LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', REV_TROZO = 90000;
+function ulamaRevSubir_(q) {
+  const d = q.datos || {};
+  const ul = ulamaEnlace_(d.tok);
+  if (!ul && !tlmEnlace_(d.tok)) throw new Error('El enlace de Ulama no está vigente. Pida uno nuevo a la Supervisión.');
+  const cache = CacheService.getScriptCache(), kk = 'ulRevS-' + sha_(String(d.tok)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 12) throw new Error('Ya generó muchos códigos seguidos. Intente en una hora.');
+  cache.put(kk, String(n), 3600);
+  const paq = String(d.paq || '');
+  if (!paq || paq.length > REV_TROZO * 24) throw new Error('El paquete de revisión está vacío o es demasiado grande. Compártalo como archivo.');
+  let cod = '';
+  for (let i = 0; i < 30; i++) { cod = ''; for (let k = 0; k < 6; k++) cod += REV_LETRAS.charAt(Math.floor(Math.random() * REV_LETRAS.length)); if (!cache.get('ulRev-' + cod + '-n')) break; }
+  const partes = []; for (let i = 0; i < paq.length; i += REV_TROZO) partes.push(paq.slice(i, i + REV_TROZO));
+  const nombre = String(d.nombre || (ul && ul.nombre) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const correos = [String(d.correo || ''), String((ul && ul.correo) || '')].map(x => x.trim().toLowerCase()).filter((x, i, a) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) && a.indexOf(x) === i);
+  const o = {}; partes.forEach((p, i) => { o['ulRev-' + cod + '-' + i] = p; });
+  o['ulRev-' + cod + '-n'] = JSON.stringify({ n: partes.length, z: d.z ? 1 : 0, nombre: nombre, gen: new Date().toISOString() });
+  cache.putAll(o, 21600);
+  const pr = PropertiesService.getScriptProperties(), ahora = Date.now();
+  pr.getKeys().filter(k => k.indexOf('ulRevM-') === 0).forEach(k => { try { if (JSON.parse(pr.getProperty(k)).vence < ahora) pr.deleteProperty(k); } catch (e) { pr.deleteProperty(k); } });
+  pr.setProperty('ulRevM-' + cod, JSON.stringify({ correos: correos, nombre: nombre, vence: ahora + 3 * 864e5 }));
+  return { codigo: cod, vence: new Date(ahora + 21600 * 1000).toISOString(), correos: correos };
+}
+function ulamaRevBajar_(q) {
+  const cod = String((q.datos || {}).codigo || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (cod.length !== 6) throw new Error('El código debe tener 6 letras o números.');
+  const cache = CacheService.getScriptCache(), kk = 'ulRevB-' + cod, n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 30) throw new Error('Este código ya se consultó muchas veces. Pida uno nuevo al docente.');
+  cache.put(kk, String(n), 21600);
+  const m = cache.get('ulRev-' + cod + '-n');
+  if (!m) throw new Error('El código no existe o ya venció (dura 6 horas). Pida al docente que genere uno nuevo.');
+  const meta = JSON.parse(m), ks = []; for (let i = 0; i < meta.n; i++) ks.push('ulRev-' + cod + '-' + i);
+  const got = cache.getAll(ks);
+  if (ks.some(k => !got[k])) throw new Error('El paquete de revisión ya no está completo. Pida al docente que genere un código nuevo.');
+  return { paq: ks.map(k => got[k]).join(''), z: meta.z, docente: meta.nombre, gen: meta.gen };
+}
+function ulamaRevPermiso_(cod) {
+  cod = String(cod || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (cod.length !== 6) return null;
+  try { const x = JSON.parse(PropertiesService.getScriptProperties().getProperty('ulRevM-' + cod) || 'null'); return x && x.vence > Date.now() && x.correos.length ? x : null; } catch (e) { return null; }
 }
 /** Copia del registro de un maestro en Ulama: el archivo (que también sirve como respaldo) se guarda en la carpeta
     «Ulama · registros» del Drive de la Supervisión y llega un correo con el resumen y el archivo adjunto. */
