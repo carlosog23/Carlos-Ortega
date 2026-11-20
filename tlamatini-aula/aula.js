@@ -31,13 +31,14 @@ const ICONOS = {
   estrella: '<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/>', impr: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
   bajar: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>', subir: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>', lapiz: '<path d="M4 20h4L20 8l-4-4L4 16z"/>',
   basura: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', agenda: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>', buscar: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
-  libro: '<path d="M4 4h6a3 3 0 013 3v13a2 2 0 00-2-2H4z"/><path d="M20 4h-6a3 3 0 00-3 3v13a2 2 0 012-2h7z"/>', doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>'
+  libro: '<path d="M4 4h6a3 3 0 013 3v13a2 2 0 00-2-2H4z"/><path d="M20 4h-6a3 3 0 00-3 3v13a2 2 0 012-2h7z"/>', doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+  eval: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>', camara: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>'
 };
 
 /* ---------------- datos ---------------- */
 const DEMO = (() => { let on = false; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
 const CLAVE = DEMO ? "aula-demo" : "aula-datos";
-const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], asis: {}, favs: [], mias: [], cfg: {} });
+const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) { toast("<b>No se pudo guardar.</b> El dispositivo no tiene espacio."); } }
@@ -194,6 +195,7 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <button class="puerta" data-v="planes" style="--c:#24427A;--c-s:#E6ECF6"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.filter(p => p.gid === (g && g.id)).length} proyectos · contenidos y PDA oficiales de su grado</span></button>
    <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${DINAMICAS.length + D.mias.length} actividades para iniciar, activar, jugar y cerrar</span></button>
    <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
+   <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por campo formativo, valoración e informes del trimestre</span></button>
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
@@ -213,7 +215,7 @@ VISTAS.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return VISTAS.ini
    <button class="it btnit" id="aPdf"><span class="av">${ic("subir", 18)}</span><span class="tx"><b>Subir la lista de RELweb (PDF)</b><small>La lista de asistencia o de inscripción que descarga de RELweb</small></span></button>
    <button class="it btnit" id="aPeg"><span class="av">${ic("lista", 18)}</span><span class="tx"><b>Pegar o escribir la lista</b><small>Un nombre por renglón</small></span></button></div></section>` : ""}
   <div class="fila mt" style="justify-content:space-between"><h2 class="sec-t" style="margin:0">${al.length} alumnos</h2><span class="fila" style="gap:6px"><button class="btn s" id="aMas">${ic("mas", 16)} Alumno</button>${al.length ? `<button class="btn s" id="aImp">${ic("subir", 16)} Importar</button>` : ""}</span></div>
-  <div class="lista mt">${al.map((a, i) => `<button class="it btnit" data-a="${a.id}"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}</b><small>${g.grados.length > 1 ? (a.g ? a.g + ".° grado" : "<span style='color:var(--rojo)'>Falta indicar su grado</span>") : ""}${a.nee ? (g.grados.length > 1 ? " · " : "") + "Requiere ajustes: " + esc(a.nee) : ""}</small></span>${ic("lapiz", 16)}</button>`).join("") || `<div class="vacio">Todavía no hay alumnos.</div>`}</div>
+  <div class="lista mt">${al.map((a, i) => `<button class="it btnit" data-a="${a.id}"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}</b><small>${g.grados.length > 1 ? (a.g ? a.g + ".° grado" : "<span style='color:var(--rojo)'>Falta indicar su grado</span>") : ""}${a.nee ? (g.grados.length > 1 ? " · " : "") + "Requiere ajustes: " + esc(a.nee) : ""}${(() => { const n = D.fotos.filter(f => f.al === a.id).length; return n ? ` · ${n} evidencia${n > 1 ? "s" : ""}` : ""; })()}</small></span>${ic("sig", 16)}</button>`).join("") || `<div class="vacio">Todavía no hay alumnos.</div>`}</div>
   ${bajas.length ? `<details class="mt"><summary class="small muted">Bajas (${bajas.length})</summary><div class="lista mt">${bajas.map(a => `<div class="it"><span class="tx"><b>${esc(a.nombre)}</b><small>Baja ${fCorta(a.baja)}</small></span><button class="btn s" data-re="${a.id}">Reactivar</button></div>`).join("")}</div></details>` : ""}
   <input type="file" id="fPdf" accept="application/pdf" hidden></main>`; };
 ENLAZAR.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return;
@@ -222,7 +224,7 @@ ENLAZAR.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return;
     v.querySelector("#iX").onclick = cerrarDlg; v.querySelector("#iDir") && (v.querySelector("#iDir").onclick = () => desdeDir(g)); v.querySelector("#iPdf").onclick = () => { cerrarDlg(); $("#fPdf").click(); }; v.querySelector("#iPeg").onclick = () => pegarLista(g); });
   $("#aImp") && ($("#aImp").onclick = imp); $("#aDir") && ($("#aDir").onclick = () => desdeDir(g)); $("#aPdf") && ($("#aPdf").onclick = () => $("#fPdf").click()); $("#aPeg") && ($("#aPeg").onclick = () => pegarLista(g));
   $("#fPdf").onchange = e => { leerPdf(g, e.target.files[0]); e.target.value = ""; };
-  $("#aMas").onclick = () => formAlumno(g, null); $$("[data-a]").forEach(b => b.onclick = () => formAlumno(g, g.alumnos.find(a => a.id === b.dataset.a)));
+  $("#aMas").onclick = () => formAlumno(g, null); $$("[data-a]").forEach(b => b.onclick = () => ir("alumno", { gid: g.id, id: b.dataset.a }));
   $$("[data-re]").forEach(b => b.onclick = () => { const a = g.alumnos.find(x => x.id === b.dataset.re); delete a.baja; guardar(); re(); }); };
 function agregarAlumnos(g, nombres, grado) { const ya = new Set(g.alumnos.map(a => nrm(a.nombre))); let n = 0;
   nombres.forEach(x => { const o = typeof x === "string" ? { nombre: x } : x; const k = nrm(o.nombre); if (!k || ya.has(k)) return; ya.add(k); g.alumnos.push({ id: uid(), nombre: o.nombre.trim(), g: o.g || grado || (g.grados.length === 1 ? g.grados[0] : 0), curp: o.curp || "" }); n++; });
@@ -412,7 +414,7 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
       <label class="campo"><span>Desarrollo</span><textarea class="area" data-sd="${i}">${esc(s.desarrollo)}</textarea></label>
       <div class="campo"><span>Cierre · dinámica</span><select data-sdc="${i}">${dinOpts(s.cierre.din, ["cierre"])}</select>${dc ? `<small>${esc(dc.prop)}</small>` : ""}</div>
       <label class="campo"><span>Evaluación</span><input data-se="${i}" value="${esc(s.eval)}"></label>
-      <div class="fila"><button class="btn m" data-dar="${i}">${ic("play", 16)} Dar la clase</button><button class="btn" data-hecho="${i}">${ic("check", 16)} ${s.hecho ? "Marcar como pendiente" : "Marcar como dada"}</button></div></div>` : ""}</section>`; }).join("")}
+      <div class="fila"><button class="btn m" data-dar="${i}">${ic("play", 16)} Dar la clase</button><button class="btn p" data-ev="${i}">${ic("eval", 16)} Evaluar${(() => { const n = D.reg.filter(r => r.pid === p.id && r.ses === i).length; return n ? " ✓" : ""; })()}</button><button class="btn" data-hecho="${i}">${ic("check", 16)} ${s.hecho ? "Marcar como pendiente" : "Marcar como dada"}</button></div></div>` : ""}</section>`; }).join("")}
   <h2 class="sec-t">Evaluación formativa<small>Rúbrica a partir de los PDA</small></h2><section class="card"><div class="tabla-c"><table class="tabla rub"><thead><tr><th>Criterio</th>${NIVELES.map(n => `<th>${n[0]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${c.gr}.°</b> ${esc(c.c)}</td>${NIVELES.map(n => `<td class="small">${n[1]}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section></main>`; };
 const NIVELES = [["Destacado", "Lo logra de forma autónoma y lo explica o aplica en otras situaciones."], ["Logrado", "Lo logra de forma autónoma."], ["En proceso", "Lo logra con apoyo del docente o de sus compañeros."], ["Requiere apoyo", "Aún no lo logra; necesita acompañamiento cercano."]];
 function dinOpts(sel, cats) { const g = gAct(), gmin = g ? Math.min(...g.grados) : 1, gmax = g ? Math.max(...g.grados) : 6;
@@ -425,6 +427,7 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const s = i => p.se
   $$("[data-se]").forEach(x => x.onchange = () => { s(x.dataset.se).eval = x.value; guardar(); });
   $$("[data-hecho]").forEach(b => b.onclick = () => { const x = s(b.dataset.hecho); x.hecho = !x.hecho; guardar(); re(); });
   $$("[data-dar]").forEach(b => b.onclick = () => abrirClase(p.id, +b.dataset.dar));
+  $$("[data-ev]").forEach(b => b.onclick = () => ir("evaluar", { pid: p.id, i: +b.dataset.ev }));
   $("#plB").onclick = async () => { if (!(await confirmar("Se borrará esta planeación.", "Borrar"))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
   $("#plRec").onclick = () => dlg(`<h3>Recorrer fechas</h3><p class="small muted mb">Si un día no hubo clase, las sesiones pendientes se acomodan de nuevo en días de clase desde la fecha que elija.</p><label class="campo"><span>Desde</span><input type="date" id="rD" value="${hoy()}"></label><div class="fila fin"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Recorrer</button></div>`, v => {
     v.querySelector("#rX").onclick = cerrarDlg; v.querySelector("#rOk").onclick = async () => { await calendario(); const pend = p.sesiones.filter(x => !x.hecho), f = diasHabiles(val("rD") || hoy(), pend.length); pend.forEach((x, i) => x.fecha = f[i] || ""); guardar(); cerrarDlg(); re(); toast("Fechas recorridas."); }; });
@@ -435,7 +438,8 @@ function abrirClase(pid, i) { const p = plDe(pid), s = p.sesiones[i], di = dinDe
   if (s.inicio.txt) pasos.push({ eb: "Inicio", t: "Para empezar", txt: s.inicio.txt });
   pasos.push({ eb: "Desarrollo", t: s.fase, txt: s.desarrollo, min: Math.max(5, p.min - (di ? di.min : 0) - (dc ? dc.min : 0)) });
   if (dc) pasos.push({ eb: "Cierre", t: dc.n, prop: dc.prop, lista: dc.pasos, min: dc.min });
-  modoClase(pasos, () => { s.hecho = true; guardar(); toast("Sesión marcada como dada."); if (S.v === "plan" || S.v === "inicio") re(); }); }
+  modoClase(pasos, () => { s.hecho = true; guardar(); setTimeout(() => dlg(`<h3>Sesión terminada</h3><p class="mb">Quedó marcada como dada. ¿Quiere registrar ahora la evaluación formativa de sus alumnos?</p><div class="fila fin"><button class="btn" id="eNo">Después</button><button class="btn p" id="eSi">${ic("eval", 16)} Evaluar ahora</button></div>`, v => {
+    v.querySelector("#eNo").onclick = () => { cerrarDlg(); if (S.v === "plan" || S.v === "inicio") re(); }; v.querySelector("#eSi").onclick = () => { cerrarDlg(); ir("evaluar", { pid, i }); }; }), 250); }); }
 
 /* ---------- documentos ---------- */
 const dirTxt = g => g && g.dir ? (/directora|encargada/i.test(g.cargoDir || "") ? "Mtra. " : "Mtro. ") + g.dir : "";
@@ -452,6 +456,131 @@ function docPlan(p) { const g = grDe(p.gid);
   <h2>Rúbrica</h2><table><thead><tr><th>Criterio</th>${NIVELES.map(n => `<th>${n[0]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${c.gr}.°</b> ${esc(c.c)}</td>${NIVELES.map(n => `<td>${n[1]}</td>`).join("")}</tr>`).join("")}</tbody></table>
   <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección de la escuela · Vo. Bo.</td></tr></table></div>`; }
 function imprimir(html, horizontal) { $("#imprimir").innerHTML = (horizontal ? "<style>@page{size:letter landscape;margin:9mm}</style>" : "") + html; const imgs = [...$("#imprimir").querySelectorAll("img")]; Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 2500); }))).then(() => setTimeout(() => window.print(), 120)); }
+
+/* =================================================================== EVALUACIÓN FORMATIVA (etapa 2) */
+const NIV4 = [[4, "Destacado", "D", "#1E8E5A"], [3, "Logrado", "L", "#5FA36B"], [2, "En proceso", "P", "#C98A0B"], [1, "Requiere apoyo", "R", "#C2362B"]];
+const nivDe = n => NIV4.find(x => x[0] === n) || [0, "", "", "#999"];
+const presentes = (g, k) => { const r = ((D.asis[g.id] || {})[k]) || {}; return activos(g).filter(a => r[a.id] === "P" || r[a.id] === "R"); };
+const critsDe = (p, a) => p.criterios.map((c, i) => Object.assign({ i }, c)).filter(c => !a || !a.g || c.gr === a.g || !p.criterios.some(x => x.gr === a.g));
+VISTAS.evaluar = () => { const p = plDe(S.pid); if (!p) return VISTAS.planes(); const g = grDe(p.gid), s = p.sesiones[S.i], k = s.fecha || hoy();
+  const pres = presentes(g, k), todos = S.todos || !pres.length, L = todos ? activos(g) : pres;
+  const r = D.reg.find(x => x.pid === p.id && x.ses === S.i) || { al: {}, obs: {} };
+  return barra(`Evaluar · sesión ${S.i + 1}`, esc(p.titulo)) + `<main class="wrap">
+  <p class="small muted mt">${fCorta(k)} · ${esc(s.fase)} · ${pres.length ? `${pres.length} presentes según su lista` : "No hay pase de lista de ese día: se muestran todos"}</p>
+  ${pres.length ? `<div class="fila mt"><button class="chip" id="evTod" aria-pressed="${!!S.todos}">Mostrar también a los ausentes</button></div>` : ""}
+  <section class="card mt"><p class="small"><b>Toque el nivel de cada alumno</b> en el criterio de su grado. Deje en blanco a quien no observó hoy.</p><div class="tags mt">${NIV4.map(n => `<span class="tag" style="background:${n[3]}22;color:${n[3]}">${n[2]} = ${n[1]}</span>`).join(" ")}</div></section>
+  <div class="lista mt">${L.map(a => { const cs = critsDe(p, a), nf = D.fotos.filter(f => f.al === a.id && f.pid === p.id && f.ses === S.i).length; return `<div class="ev-al card"><div class="fila" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><b>${esc(a.nombre)}${g.grados.length > 1 && a.g ? ` <small class="muted">${a.g}.°</small>` : ""}</b>
+      <span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-evf="${a.id}" title="Foto de evidencia">${ic("camara", 16)}${nf ? " " + nf : ""}</button><button class="btn s" data-evo="${a.id}" title="Observación">${ic("lapiz", 16)}</button></span></div>
+     ${cs.map(c => { const v = ((r.al || {})[a.id] || {})[c.i]; return `<p class="small mt" style="color:var(--gris)">${esc(c.c)}</p><div class="niv">${NIV4.map(n => `<button data-ev-al="${a.id}" data-ev-c="${c.i}" data-ev-n="${n[0]}" aria-pressed="${v === n[0]}" style="--c:${n[3]}" title="${n[1]}">${n[2]}<small>${n[1]}</small></button>`).join("")}</div>`; }).join("")}
+     ${(r.obs || {})[a.id] ? `<p class="small mt com-t">${esc(r.obs[a.id])}</p>` : ""}</div>`; }).join("") || `<div class="vacio">Primero agregue a sus alumnos.</div>`}</div>
+  <div class="fila fin mt2"><button class="btn o" id="evOk">${ic("check", 18)} Listo</button></div>
+  <input type="file" id="evCam" accept="image/*" capture="environment" hidden></main>`; };
+ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(p.gid), s = p.sesiones[S.i];
+  const reg = () => { let r = D.reg.find(x => x.pid === p.id && x.ses === S.i); if (!r) { r = { id: uid(), pid: p.id, gid: g.id, ses: S.i, fecha: s.fecha || hoy(), campo: p.campo, al: {}, obs: {} }; D.reg.push(r); } return r; };
+  $("#evTod") && ($("#evTod").onclick = () => { S.todos = !S.todos; re(); });
+  $$("[data-ev-al]").forEach(b => b.onclick = () => { const r = reg(), a = b.dataset.evAl, c = b.dataset.evC, n = +b.dataset.evN; r.al[a] = r.al[a] || {};
+    if (r.al[a][c] === n) delete r.al[a][c]; else r.al[a][c] = n; r.fecha = s.fecha || hoy(); guardar(); re(); });
+  $$("[data-evo]").forEach(b => b.onclick = () => { const r = reg(), a = activos(g).find(x => x.id === b.dataset.evo);
+    dlg(`<h3>Observación</h3><p class="small muted mb">${esc(a.nombre)} · lo que observó hoy (se toma en cuenta en su valoración del trimestre).</p><textarea id="oT" class="area">${esc((r.obs || {})[a.id] || "")}</textarea><div class="fila fin mt"><button class="btn" id="oX">Cancelar</button><button class="btn p" id="oOk">Guardar</button></div>`, v => {
+      v.querySelector("#oX").onclick = cerrarDlg; v.querySelector("#oOk").onclick = () => { const t = val("oT").trim(); r.obs = r.obs || {}; if (t) r.obs[a.id] = t; else delete r.obs[a.id]; guardar(); re(); }; }); });
+  let quien = null; $$("[data-evf]").forEach(b => b.onclick = () => { quien = b.dataset.evf; $("#evCam").click(); });
+  $("#evCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !quien) return; await nuevaFoto(f, { al: quien, pid: p.id, ses: S.i, campo: p.campo, t: s.fase }); re(); };
+  $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
+
+/* ---------- portafolio: fotos en IndexedDB ---------- */
+function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open(DEMO ? "aula-demo" : "aula", 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
+async function idbOp(modo, fn) { const db = await idb(); return new Promise((ok, no) => { const t = db.transaction("f", modo), q = fn(t.objectStore("f")); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }); }
+const FOTO = {}; const fotoGet = async id => FOTO[id] || (FOTO[id] = await idbOp("readonly", s => s.get(id)).catch(() => null));
+function comprimir(file, max = 1280, q = .72) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", q)); }; im.onerror = no; im.src = r.result; }; r.onerror = no; r.readAsDataURL(file); }); }
+async function nuevaFoto(file, meta) { try { const u = await comprimir(file), id = uid(); FOTO[id] = u; await idbOp("readwrite", s => s.put(u, id)); const f = Object.assign({ id, fecha: hoy(), t: "", bol: true }, meta); D.fotos.push(f); guardar(); toast("Evidencia guardada en su portafolio."); return f; } catch (e) { toast("No se pudo guardar la foto."); } }
+async function pintarFotos(sel, L) { const box = $(sel); if (!box) return; box.innerHTML = L.map(f => `<button class="foto" data-fo="${f.id}"><img alt="" data-src="${f.id}"><span>${esc(f.t || "Evidencia")}<small>${fCorta(f.fecha)}${f.bol ? " · en informe" : ""}</small></span></button>`).join("") || `<p class="small muted">Sin evidencias todavía.</p>`;
+  box.querySelectorAll("[data-fo]").forEach(b => b.onclick = () => verFoto(b.dataset.fo)); for (const i of box.querySelectorAll("img[data-src]")) i.src = await fotoGet(i.dataset.src) || ""; }
+function verFoto(id) { const f = D.fotos.find(x => x.id === id); if (!f) return;
+  dlg(`<h3>Evidencia</h3><img id="vfI" alt="" style="width:100%;max-height:52vh;object-fit:contain;border-radius:12px;background:#111"><label class="campo mt"><span>Descripción</span><input id="vfT" value="${esc(f.t)}"></label><label class="rev-chk"><input type="checkbox" id="vfB" ${f.bol ? "checked" : ""}> Incluir en su informe del trimestre</label>
+   <div class="fila fin mt"><button class="btn r" id="vfX" style="margin-right:auto">${ic("basura", 16)}</button><button class="btn p" id="vfOk">Listo</button></div>`, async v => { v.querySelector("#vfI").src = await fotoGet(id) || "";
+    v.querySelector("#vfOk").onclick = () => { f.t = val("vfT").trim(); f.bol = v.querySelector("#vfB").checked; guardar(); re(); };
+    v.querySelector("#vfX").onclick = async () => { if (!(await confirmar("Se quitará esta evidencia del portafolio.", "Quitar"))) return; D.fotos = D.fotos.filter(x => x !== f); delete FOTO[id]; idbOp("readwrite", s => s.delete(id)).catch(() => {}); guardar(); re(); }; }); }
+
+/* ---------- ficha del alumno: avance, asistencia y portafolio ---------- */
+VISTAS.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id === S.id); if (!a) return VISTAS.grupo(); const T = trimActual(), R = resumenAlumno(g, a, T);
+  return barra(esc(grNom(g)), esc(a.nombre), `<button class="btn s" id="alEd">${ic("lapiz", 16)} Editar</button>`) + `<main class="wrap">
+  <p class="small muted mt">${esc(T.n)} · ${fCorta(T.ini)} al ${fCorta(T.fin)}${a.nee ? " · Ajustes: " + esc(a.nee) : ""}</p>
+  <div class="kpis mt"><div class="kpi"><b>${R.asisP == null ? "—" : Math.round(R.asisP * 100) + "%"}</b><span>Asistencia</span></div><div class="kpi"><b>${R.falt}</b><span>Faltas</span></div><div class="kpi"><b>${R.nreg}</b><span>Registros</span></div><div class="kpi"><b>${D.fotos.filter(f => f.al === a.id).length}</b><span>Evidencias</span></div></div>
+  <h2 class="sec-t">Por campo formativo</h2><div class="lista">${CAMPOS.map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>
+  ${R.obs.length ? `<h2 class="sec-t">Observaciones</h2><section class="card">${R.obs.map(o => `<p class="small"><b>${fCorta(o.f)}:</b> ${esc(o.t)}</p>`).join("")}</section>` : ""}
+  <div class="fila mt2" style="justify-content:space-between"><h2 class="sec-t" style="margin:0">Portafolio</h2><button class="btn s p" id="alF">${ic("camara", 16)} Agregar evidencia</button></div><div class="fotos mt" id="alFotos"></div>
+  <input type="file" id="alCam" accept="image/*" capture="environment" hidden></main>`; };
+ENLAZAR.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id === S.id); if (!a) return;
+  $("#alEd").onclick = () => formAlumno(g, a); $("#alF").onclick = () => $("#alCam").click();
+  $("#alCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (f) { await nuevaFoto(f, { al: a.id, t: "" }); re(); } };
+  pintarFotos("#alFotos", D.fotos.filter(f => f.al === a.id).sort((x, y) => y.fecha.localeCompare(x.fecha))); };
+
+/* ---------- trimestres, calificación y valoración ---------- */
+const TRIMS = () => D.cfg.trims || [{ id: "t1", n: "Primer trimestre", ini: "2026-08-31", fin: "2026-11-27" }, { id: "t2", n: "Segundo trimestre", ini: "2026-11-30", fin: "2027-03-12" }, { id: "t3", n: "Tercer trimestre", ini: "2027-03-15", fin: "2027-07-06" }];
+const trimActual = () => { const k = hoy(), L = TRIMS(); return L.find(t => t.id === S.trim) || L.find(t => k >= t.ini && k <= t.fin) || L.filter(t => t.ini <= k).slice(-1)[0] || L[0]; };
+const calDe = prom => prom == null ? null : Math.max(5, Math.min(10, Math.round(5 + (prom - 1) * 5 / 3)));
+const campoKey = c => CAMPOS.find(x => nrm(x) === nrm(c)) || c;
+function resumenAlumno(g, a, T) { const regs = D.reg.filter(r => r.gid === g.id && r.fecha >= T.ini && r.fecha <= T.fin), campos = {}, obs = []; let nreg = 0;
+  regs.forEach(r => { const p = plDe(r.pid), v = (r.al || {})[a.id] || {}, ck = campoKey(r.campo); Object.entries(v).forEach(([ci, n]) => { const c = campos[ck] = campos[ck] || { s: 0, n: 0, crit: {}, serie: [] }; c.s += n; c.n++; nreg++; c.serie.push([r.fecha, n]);
+      const ct = p && p.criterios[ci] ? p.criterios[ci].c : ""; if (ct) { const x = c.crit[ct] = c.crit[ct] || { s: 0, n: 0 }; x.s += n; x.n++; } });
+    if ((r.obs || {})[a.id]) obs.push({ f: r.fecha, t: r.obs[a.id], campo: ck }); });
+  Object.values(campos).forEach(c => { c.prom = c.s / c.n; c.cal = calDe(c.prom); c.serie.sort((x, y) => x[0].localeCompare(y[0])); });
+  const A = D.asis[g.id] || {}; let as = 0, tot = 0, falt = 0; Object.keys(A).filter(k => k >= T.ini && k <= T.fin).forEach(k => { const v = A[k][a.id]; if (!v) return; tot++; if (v === "P" || v === "R") as++; if (v === "F") falt++; });
+  return { campos, obs: obs.sort((x, y) => x.f.localeCompare(y.f)), nreg, asisP: tot ? as / tot : null, falt }; }
+const minus = t => t ? t[0].toLowerCase() + t.slice(1) : t;
+function valoracion(a, campo, c, obs) { if (!c || !c.n) return "";
+  const nom = String(a.nombre || "").split(" ")[0], niv = Math.max(1, Math.min(4, Math.round(c.prom))), F = { 4: "muestra un desempeño destacado", 3: "logra los aprendizajes esperados", 2: "está en proceso de lograr los aprendizajes", 1: "requiere apoyo cercano para lograr los aprendizajes" };
+  const cr = Object.entries(c.crit).map(([k, v]) => [k, v.s / v.n]), fu = cr.filter(x => x[1] >= 3).sort((x, y) => y[1] - x[1]).slice(0, 1), de = cr.filter(x => x[1] < 2.5).sort((x, y) => x[1] - y[1]).slice(0, 1);
+  let t = `En ${campo}, ${nom} ${F[niv]}.`; if (fu.length) t += ` Logra con seguridad: ${minus(fu[0][0])}.`; if (de.length) t += ` Necesita fortalecer: ${minus(de[0][0])}.`;
+  const s = c.serie; if (s.length >= 4) { const m = Math.floor(s.length / 2), a1 = s.slice(0, m).reduce((x, y) => x + y[1], 0) / m, a2 = s.slice(m).reduce((x, y) => x + y[1], 0) / (s.length - m); if (a2 - a1 >= .5) t += " Mostró una mejora clara durante el trimestre."; else if (a1 - a2 >= .5) t += " Su desempeño bajó en las últimas sesiones; conviene darle seguimiento."; }
+  const o = (obs || []).filter(x => x.campo === campo).slice(-1)[0]; if (o) t += " " + o.t.replace(/\s+/g, " ").replace(/([^.])$/, "$1.");
+  return t; }
+function filasBoleta(g, T) { const B = (D.bol[g.id] || {})[T.id] || {};
+  return activos(g).map(a => { const R = resumenAlumno(g, a, T), o = B[a.id] || {}; const cal = {}, val = {};
+    CAMPOS.forEach(c => { cal[c] = o.cal && o.cal[c] != null ? o.cal[c] : (R.campos[c] ? R.campos[c].cal : null); val[c] = o.val && o.val[c] != null ? o.val[c] : valoracion(a, c, R.campos[c], R.obs); });
+    const cs = Object.values(cal).filter(x => x != null), prom = cs.length ? cs.reduce((x, y) => x + y, 0) / cs.length : null;
+    return { a, R, cal, val, prom, gen: o.gen || "", edit: o }; }); }
+const colCal = v => v == null ? "#999" : v >= 9 ? "#1E8E5A" : v >= 7 ? "#A87200" : "#C2362B";
+VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const T = trimActual(), F = filasBoleta(g, T), f = F.find(x => x.a.id === S.al);
+  return barra("Evaluación · " + esc(grNom(g)), esc(T.n), `<button class="btn s" id="bvI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
+  <div class="chips mt">${TRIMS().map(t => `<button class="chip" data-tr="${t.id}" aria-pressed="${t.id === T.id}">${esc(t.n)}</button>`).join("")}</div>
+  <p class="small muted mt">${fCorta(T.ini)} al ${fCorta(T.fin)}. La calificación (5 a 10) sale del promedio de los niveles que registró en cada campo formativo; la valoración, de los criterios y sus observaciones. Puede ajustar ambas.</p>
+  ${!f ? `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${CAMPOS.map(c => `<th class="c" title="${esc(c)}">${esc({ "Lenguajes": "Leng.", "Saberes y pensamiento científico": "Saberes", "Ética, naturaleza y sociedades": "Ética", "De lo humano y lo comunitario": "Humano" }[c])}</th>`).join("")}<th class="c">Prom.</th><th class="c">Faltas</th></tr></thead><tbody>
+    ${F.map(x => `<tr class="clic" data-bal="${x.a.id}"><td><b>${esc(x.a.nombre)}</b>${Object.keys(x.edit.cal || {}).length || Object.keys(x.edit.val || {}).length ? ' <small class="muted">· ajustada</small>' : ""}</td>${CAMPOS.map(c => `<td class="c"><b style="color:${colCal(x.cal[c])}">${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table></div>
+    <p class="small muted mt">Toque un alumno para ver y ajustar su valoración. «Imprimir» le da el concentrado del grupo y el informe de cada alumno para las familias.</p>`
+  : `<button class="btn s mt" id="bvV">${ic("atras", 16)} Todo el grupo</button>
+    <section class="card mt"><h3>${esc(f.a.nombre)}</h3><p class="small muted">${f.R.nreg} registros · ${f.R.falt} faltas${f.R.asisP != null ? " · asistencia " + Math.round(f.R.asisP * 100) + "%" : ""}</p>
+    ${CAMPOS.map(c => `<div class="bcampo"><div class="fila" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(c)}</b><span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-bm="${esc(c)}" data-d="-1">−</button><span class="cal-b" style="color:${colCal(f.cal[c])}">${f.cal[c] ?? "—"}</span><button class="btn s" data-bm="${esc(c)}" data-d="1">+</button></span></div>
+      <textarea class="area" style="min-height:80px" data-bv="${esc(c)}" placeholder="${f.R.campos[c] ? "" : "Sin registros en el trimestre: escriba su valoración"}">${esc(f.val[c])}</textarea></div>`).join("")}
+    <label class="campo mt"><span>Observaciones generales y recomendaciones para la familia</span><textarea class="area" id="bvG">${esc(f.gen)}</textarea></label>
+    <div class="fila">${f.edit.cal || f.edit.val ? `<button class="btn s r" id="bvR">Volver a lo calculado</button>` : ""}<button class="btn s" id="bvU">${ic("impr", 16)} Informe de este alumno</button></div></section>`}</main>`; };
+ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; const T = trimActual();
+  $$("[data-tr]").forEach(b => b.onclick = () => { S.trim = b.dataset.tr; S.al = null; re(); }); $$("[data-bal]").forEach(r => r.onclick = () => { S.al = r.dataset.bal; pintar(); scrollTo(0, 0); });
+  const ed = id => { const B = (D.bol[g.id] = D.bol[g.id] || {}), t = (B[T.id] = B[T.id] || {}); return t[id] = t[id] || {}; };
+  $("#bvV") && ($("#bvV").onclick = () => { S.al = null; re(); });
+  $$("[data-bm]").forEach(b => b.onclick = () => { const f = filasBoleta(g, T).find(x => x.a.id === S.al), c = b.dataset.bm, o = ed(S.al); o.cal = o.cal || {}; o.cal[c] = Math.max(5, Math.min(10, (f.cal[c] ?? 8) + +b.dataset.d)); guardar(); re(); });
+  $$("[data-bv]").forEach(t => t.onchange = () => { const o = ed(S.al); o.val = o.val || {}; o.val[t.dataset.bv] = t.value; guardar(); });
+  $("#bvG") && ($("#bvG").onchange = e => { ed(S.al).gen = e.target.value; guardar(); });
+  $("#bvR") && ($("#bvR").onclick = () => { const o = ed(S.al); delete o.cal; delete o.val; guardar(); re(); });
+  $("#bvU") && ($("#bvU").onclick = async () => imprimir(await docInformes(g, T, S.al)));
+  $("#bvI").onclick = () => dlg(`<h3>Imprimir</h3><div class="lista"><button class="it btnit" id="pC"><span class="tx"><b>Concentrado del grupo</b><small>Calificaciones por campo formativo y faltas</small></span></button><button class="it btnit" id="pA"><span class="tx"><b>Informe de cada alumno</b><small>Una hoja por alumno para la familia, con sus evidencias</small></span></button></div><div class="fila fin mt"><button class="btn" id="pX">Cancelar</button></div>`, v => {
+    v.querySelector("#pX").onclick = cerrarDlg; v.querySelector("#pC").onclick = () => { cerrarDlg(); imprimir(docConcentrado(g, T), true); }; v.querySelector("#pA").onclick = async () => { cerrarDlg(); imprimir(await docInformes(g, T)); }; }); };
+function docConcentrado(g, T) { const F = filasBoleta(g, T);
+  return `<div class="doc">${encabezado(g, "Concentrado de evaluación · " + esc(T.n))}<div class="datos"><span><b>Grupo:</b> ${esc(grNom(g))}</span><span><b>Periodo:</b> ${fCorta(T.ini)} al ${fCorta(T.fin)}</span><span><b>Docente:</b> ${esc(yo().nombre)}</span></div>
+  <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th>${g.grados.length > 1 ? '<th class="c">Grado</th>' : ""}${CAMPOS.map(c => `<th class="c">${esc(c)}</th>`).join("")}<th class="c">Promedio</th><th class="c">Faltas</th></tr></thead><tbody>
+  ${F.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.a.nombre)}</td>${g.grados.length > 1 ? `<td class="c">${x.a.g ? x.a.g + ".°" : ""}</td>` : ""}${CAMPOS.map(c => `<td class="c"><b>${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table>
+  <p class="nota">Calificaciones de 5 a 10 obtenidas de los registros de evaluación formativa del periodo (Destacado, Logrado, En proceso, Requiere apoyo), con los ajustes del docente.</p>
+  <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección de la escuela</td></tr></table></div>`; }
+async function docInformes(g, T, solo) { const F = filasBoleta(g, T).filter(x => !solo || x.a.id === solo); let out = "";
+  for (const [i, x] of F.entries()) { const fotos = D.fotos.filter(f => f.al === x.a.id && f.bol && f.fecha >= T.ini && f.fecha <= T.fin).slice(-3), imgs = [];
+    for (const f of fotos) imgs.push({ f, u: await fotoGet(f.id) });
+    out += `<div class="doc ${i ? "salto" : ""}">${encabezado(g, "Informe de evaluación formativa · " + esc(T.n))}
+    <div class="datos"><span><b>Alumno(a):</b> ${esc(x.a.nombre)}</span><span><b>Grado y grupo:</b> ${x.a.g ? x.a.g + ".°" : esc(grNom(g))}${g.grupo ? " " + esc(g.grupo) : ""}</span><span><b>Periodo:</b> ${fCorta(T.ini)} al ${fCorta(T.fin)}</span><span><b>Faltas:</b> ${x.R.falt}</span><span><b>Docente:</b> ${esc(yo().nombre)}</span></div>
+    <table><thead><tr><th style="width:24%">Campo formativo</th><th class="c" style="width:11%">Calificación</th><th>Valoración del desempeño</th></tr></thead><tbody>${CAMPOS.map(c => `<tr><td><b>${esc(c)}</b></td><td class="c"><b>${x.cal[c] ?? "—"}</b></td><td>${esc(x.val[c] || "")}</td></tr>`).join("")}</tbody></table>
+    ${x.gen ? `<h2>Observaciones y recomendaciones para la familia</h2><p>${esc(x.gen).replace(/\n/g, "<br>")}</p>` : ""}
+    ${imgs.length ? `<h2>Evidencias de su trabajo</h2><table class="ev-f"><tr>${imgs.map(o => `<td>${o.u ? `<img src="${o.u}">` : ""}<p>${esc(o.f.t || "")} · ${fCorta(o.f.fecha)}</p></td>`).join("")}</tr></table>` : ""}
+    <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección</td><td>Madre, padre o tutor(a)</td></tr></table></div>`; }
+  return out || `<div class="doc"><p>No hay alumnos.</p></div>`; }
 
 /* =================================================================== AJUSTES */
 VISTAS.ajustes = () => barra("Tlamatini Aula", "Ajustes y respaldo") + `<main class="wrap">
