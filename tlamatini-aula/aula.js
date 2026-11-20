@@ -22,6 +22,7 @@ const nrm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]
 const titulo = t => String(t || "").toLowerCase().replace(/(^|\s|-)([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, w => w.toLowerCase());
 const ic = (n, s = 20) => `<svg class="i" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${ICONOS[n] || ""}</svg>`;
 const ICONOS = {
+  chispa: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>', qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/>',
   atras: '<path d="M15 18l-6-6 6-6"/>', sig: '<path d="M9 18l6-6-6-6"/>', mas: '<path d="M12 5v14M5 12h14"/>', check: '<path d="M5 12l5 5 9-10"/>',
   grupo: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5c3 0 5.5 1.7 5.5 4.5"/>',
   plan: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/>', lista: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
@@ -121,7 +122,7 @@ function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(
 window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(); if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
-function pintar() { cerrarDlg(); if (!ACCESO_OK) S = { v: "bloqueo" }; else if (!D.grupos.length && !["grupoForm", "ajustes"].includes(S.v)) S = { v: "bienvenida" };
+function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar"].includes(S.v)) S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = () => history.back(); const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
@@ -144,8 +145,9 @@ VISTAS.bloqueo = () => `<main class="wrap"><section class="portada">${marca()}<h
   <section class="card mt"><h3>Entre con su enlace personal</h3><p class="muted mb">Tlamatini Aula usa el <b>mismo enlace personal de Tlamatini</b> que le llegó a su correo institucional. Ábralo una vez desde ese correo, o péguelo aquí.</p>
    <label class="campo"><span>Su enlace de Tlamatini</span><input id="bEnl" type="url" autocomplete="off" placeholder="https://carlosog23.github.io/…"></label>
    <div class="fila"><button class="btn p" id="bOk">Entrar</button><a class="btn" href="#demo" id="bDemo">${ic("play", 16)} Ver demostración</a></div>
-   <p class="small muted mt">¿No tiene enlace? Pídalo a la Supervisión Escolar Zona 050: supervision050sep@gmail.com</p></section>${pie()}</main>`;
-ENLAZAR.bloqueo = () => { $("#bOk").onclick = async () => { const v = val("bEnl"), m = v.match(/[#&](t|acceso)=([A-Za-z0-9_-]{10,})/); if (!m) return toast("Pegue el enlace completo que le llegó por correo.");
+   <p class="small muted mt">¿No tiene enlace? Pídalo a la Supervisión Escolar Zona 050: supervision050sep@gmail.com</p></section>
+  <section class="card mt"><h3>¿Viene a revisar a un docente?</h3><p class="small muted mb">Supervisión, dirección o ATP: abra el código que le muestra el docente.</p><button class="btn" id="bRev">${ic("qr", 16)} Revisar con código</button></section>${pie()}</main>`;
+ENLAZAR.bloqueo = () => { $("#bRev").onclick = () => ir("revisar"); $("#bOk").onclick = async () => { const v = val("bEnl"), m = v.match(/[#&](t|acceso)=([A-Za-z0-9_-]{10,})/); if (!m) return toast("Pegue el enlace completo que le llegó por correo.");
     localStorage.setItem(m[1] === "t" ? "tlp-token" : "acc-token", JSON.stringify(m[2])); toast("Revisando su enlace…"); ACCESO_OK = await acceso(); if (!ACCESO_OK) return toast("Ese enlace ya no es válido. Pida uno nuevo a la Supervisión.", 4000); arrancarDatos(); pintar(); };
   $("#bDemo").onclick = e => { e.preventDefault(); try { sessionStorage.setItem("aula-demo", "1"); } catch (er) {} location.reload(); }; };
 
@@ -197,6 +199,8 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por campo formativo, valoración e informes del trimestre</span></button>
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
+   <button class="puerta" data-v="libros" style="--c:#1F6F8B;--c-s:#DCEEF3"><span class="ic">${ic("libro")}</span><b>Libros de texto</b><span>Los libros gratuitos de ${g && g.grados.length > 1 ? "sus grados" : "su grado"}, ciclo 2026-2027</span></button>
+   <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
 ENLAZAR.inicio = () => { $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => ir("planNueva");
@@ -292,20 +296,23 @@ ENLAZAR.asistencia = () => { $("#asM").onchange = e => { S.m = e.target.value; r
 
 /* =================================================================== DINÁMICAS */
 const todasDin = () => DINAMICAS.concat(D.mias.map(d => Object.assign({ mia: true }, d)));
-const dinDe = id => todasDin().find(d => d.id === id);
+const dinDe = id => todasDin().find(d => d.id === id) || (ZONA || []).find(d => d.id === id);
 VISTAS.dinamicas = () => { const F = S.F = S.F || { cat: "", campo: "", q: "", g: "", fav: false }, g = gAct(), q = nrm(F.q);
-  const L = todasDin().filter(d => (!F.cat || d.cat === F.cat) && (!F.campo || d.campos.includes(F.campo)) && (!F.g || (d.g[0] <= +F.g && d.g[1] >= +F.g)) && (!F.fav || D.favs.includes(d.id)) && (!q || nrm(d.n + " " + d.prop + " " + d.mat).includes(q)));
+  const L = (F.zona ? (ZONA || []) : todasDin()).filter(d => (!F.cat || d.cat === F.cat) && (!F.campo || d.campos.includes(F.campo)) && (!F.g || (d.g[0] <= +F.g && d.g[1] >= +F.g)) && (!F.fav || D.favs.includes(d.id)) && (!q || nrm(d.n + " " + d.prop + " " + d.mat).includes(q)));
   return barra("Tlamatini Aula", "Dinámicas y juegos", `<button class="btn s p" id="dNueva">${ic("mas", 16)} Mía</button>`) + `<main class="wrap">
+  <div class="fila mt"><button class="btn tlami-b" id="dTlami">${ic("chispa", 16)} Crear con Tlami</button><button class="chip" id="dZona" aria-pressed="${!!F.zona}">${ic("grupo", 14)} De la zona${ZONA ? " (" + ZONA.length + ")" : ""}</button></div>
+  ${F.zona && !ZONA ? `<p class="small muted mt">Cargando las dinámicas que comparten los docentes de la zona…</p>` : F.zona && ZONA.err ? `<p class="small muted mt">Sin conexión con el servidor (${esc(ZONA.err)}). Se muestran las últimas que se descargaron.</p>` : F.zona ? `<p class="small muted mt">Dinámicas que comparten sus compañeros. Guárdelas en las suyas para usarlas en sus planeaciones.</p>` : ""}
   <label class="campo mt"><input id="dQ" type="search" placeholder="Buscar: tablas, lectura, calma, patio…" value="${esc(F.q)}"></label>
   <div class="chips">${[["", "Todas"]].concat(Object.entries(DIN_CATS).map(([k, v]) => [k, v[0]])).map(([k, t]) => `<button class="chip" data-fc="${k}" aria-pressed="${F.cat === k}">${t}</button>`).join("")}</div>
   <div class="fila mt" style="gap:8px"><select id="dCampo" class="sel"><option value="">Todos los campos</option>${Object.entries(DIN_CAMPOS).map(([k, t]) => `<option value="${k}" ${F.campo === k ? "selected" : ""}>${t}</option>`).join("")}</select>
    <select id="dG" class="sel"><option value="">Todos los grados</option>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${String(F.g) === String(n) ? "selected" : ""}>${n}.°</option>`).join("")}</select>
    <button class="chip" id="dFav" aria-pressed="${F.fav}">${ic("estrella", 14)} Favoritas</button></div>
   <div class="dins mt">${L.map(d => { const c = DIN_CATS[d.cat] || ["", "#666"]; return `<button class="din" data-d="${esc(d.id)}" style="--c:${c[1]}"><span class="din-cat">${c[0]}</span><b>${esc(d.n)}</b><span class="din-p">${esc(d.prop)}</span>
-     <span class="din-m">${ic("reloj", 14)} ${d.min} min · ${d.g[0] === d.g[1] ? d.g[0] + ".°" : d.g[0] + ".° a " + d.g[1] + ".°"} · ${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}${D.favs.includes(d.id) ? " · ★" : ""}${d.mia ? " · Mía" : ""}</span></button>`; }).join("") || `<div class="vacio">No hay dinámicas con estos filtros.</div>`}</div></main>`; };
+     <span class="din-m">${ic("reloj", 14)} ${d.min} min · ${d.g[0] === d.g[1] ? d.g[0] + ".°" : d.g[0] + ".° a " + d.g[1] + ".°"} · ${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}${D.favs.includes(d.id) ? " · ★" : ""}${d.mia && !d.zona ? " · Mía" : ""}${d.zona ? " · " + esc(d.autor || "") : ""}</span></button>`; }).join("") || `<div class="vacio">No hay dinámicas con estos filtros.</div>`}</div></main>`; };
 ENLAZAR.dinamicas = () => { const F = S.F; let t; $("#dQ").oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value; re(); const i = $("#dQ"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
   $$("[data-fc]").forEach(b => b.onclick = () => { F.cat = b.dataset.fc; re(); }); $("#dCampo").onchange = e => { F.campo = e.target.value; re(); }; $("#dG").onchange = e => { F.g = e.target.value; re(); };
-  $("#dFav").onclick = () => { F.fav = !F.fav; re(); }; $$("[data-d]").forEach(b => b.onclick = () => ir("dinamica", { id: b.dataset.d })); $("#dNueva").onclick = () => formDin(null); };
+  $("#dFav").onclick = () => { F.fav = !F.fav; re(); }; $$("[data-d]").forEach(b => b.onclick = () => ir("dinamica", { id: b.dataset.d })); $("#dNueva").onclick = () => formDin(null);
+  $("#dTlami").onclick = tlamiDinamica; $("#dZona").onclick = async () => { F.zona = !F.zona; re(); if (F.zona && !ZONA) { await cargarZona(); if (S.v === "dinamicas") re(); } }; };
 VISTAS.dinamica = () => { const d = dinDe(S.id); if (!d) return VISTAS.dinamicas(); const c = DIN_CATS[d.cat] || ["", "#666"], fav = D.favs.includes(d.id);
   return barra(c[0], esc(d.n), `<button class="btn s" id="dFv" aria-label="Favorita" style="${fav ? "color:#C98A0B" : ""}">${ic("estrella", 18)}</button>`) + `<main class="wrap">
   <section class="card mt" style="border-top:5px solid ${c[1]}"><p><b>Para qué:</b> ${esc(d.prop)}</p>
@@ -313,9 +320,14 @@ VISTAS.dinamica = () => { const d = dinDe(S.id); if (!d) return VISTAS.dinamicas
    ${d.mat ? `<p class="mt"><b>Material:</b> ${esc(d.mat)}</p>` : ""}</section>
   <section class="card mt"><h3>Cómo se hace</h3><ol class="pasos-l">${d.pasos.map(p => `<li>${esc(p)}</li>`).join("")}</ol></section>
   ${d.var || d.multi ? `<section class="card mt">${d.var ? `<p><b>Variante:</b> ${esc(d.var)}</p>` : ""}${d.multi ? `<p class="mt"><b>En multigrado:</b> ${esc(d.multi)}</p>` : ""}</section>` : ""}
-  <div class="fila mt2"><button class="btn p" id="dCl">${ic("play", 18)} Usar en clase</button>${d.mia ? `<button class="btn" id="dEd">${ic("lapiz", 16)} Editar</button>` : ""}</div></main>`; };
+  ${d.zona ? `<p class="small muted mt">Compartida por <b>${esc(d.autor || "un docente de la zona")}</b>${d.escuela ? " · " + esc(d.escuela) : ""}${d.creado ? " · " + fCorta(d.creado) : ""}</p>` : ""}
+  <div class="fila mt2"><button class="btn p" id="dCl">${ic("play", 18)} Usar en clase</button>${d.mia && !d.zona ? `<button class="btn" id="dEd">${ic("lapiz", 16)} Editar</button>` : ""}
+   ${d.zona ? `<button class="btn" id="dGu">${ic("bajar", 16)} ${D.mias.some(x => x.de === d.id) ? "Ya está en mis dinámicas" : "Guardar en mis dinámicas"}</button>${d.mia ? `<button class="btn r" id="dRe">Retirar del banco</button>` : ""}` : d.mia ? (d.pub ? `<button class="btn" id="dRe">Quitar de la zona</button>` : `<button class="btn" id="dCo">${ic("grupo", 16)} Compartir con la zona</button>`) : ""}</div>
+  ${d.mia && !d.zona && d.pub ? `<p class="small muted mt">Está compartida en el banco de dinámicas de la zona.</p>` : ""}</main>`; };
 ENLAZAR.dinamica = () => { const d = dinDe(S.id); if (!d) return; $("#dFv").onclick = () => { const i = D.favs.indexOf(d.id); i >= 0 ? D.favs.splice(i, 1) : D.favs.push(d.id); guardar(); re(); toast(i >= 0 ? "Quitada de favoritas." : "Agregada a favoritas."); };
-  $("#dCl").onclick = () => claseDin(d); $("#dEd") && ($("#dEd").onclick = () => formDin(D.mias.find(x => x.id === d.id))); };
+  $("#dCl").onclick = () => claseDin(d); $("#dEd") && ($("#dEd").onclick = () => formDin(D.mias.find(x => x.id === d.id)));
+  $("#dCo") && ($("#dCo").onclick = () => compartirDin(D.mias.find(x => x.id === d.id))); $("#dRe") && ($("#dRe").onclick = () => retirarDin(d.zona ? d : D.mias.find(x => x.id === d.id)));
+  $("#dGu") && ($("#dGu").onclick = () => { if (D.mias.some(x => x.de === d.id)) return toast("Ya la tiene en sus dinámicas."); const c = JSON.parse(JSON.stringify(d)); ["zona", "mia", "autor", "escuela", "creado", "pub"].forEach(k => delete c[k]); c.de = d.id; c.id = "mia-" + uid(); c.autor = d.autor; D.mias.push(c); guardar(); re(); toast("Guardada en sus dinámicas."); }); };
 function formDin(d) { const n = !d; d = d || { id: "mia-" + uid(), n: "", cat: "inicio", campos: [], g: [1, 6], min: 10, esp: "aula", mat: "", prop: "", pasos: [], var: "" };
   dlg(`<h3>${n ? "Agregar mi dinámica" : "Editar mi dinámica"}</h3><label class="campo"><span>Nombre</span><input id="fN" value="${esc(d.n)}"></label>
    <div class="dos"><label class="campo"><span>Tipo</span><select id="fC">${Object.entries(DIN_CATS).map(([k, v]) => `<option value="${k}" ${d.cat === k ? "selected" : ""}>${v[0]}</option>`).join("")}</select></label><label class="campo"><span>Minutos</span><input id="fM" type="number" min="1" value="${d.min}"></label></div>
@@ -413,8 +425,11 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
       <label class="campo"><span>Inicio · indicaciones</span><textarea class="area" style="min-height:70px" data-sit="${i}" placeholder="Pregunta detonadora, recuperación de saberes…">${esc(s.inicio.txt)}</textarea></label>
       <label class="campo"><span>Desarrollo</span><textarea class="area" data-sd="${i}">${esc(s.desarrollo)}</textarea></label>
       <div class="campo"><span>Cierre · dinámica</span><select data-sdc="${i}">${dinOpts(s.cierre.din, ["cierre"])}</select>${dc ? `<small>${esc(dc.prop)}</small>` : ""}</div>
+      <label class="campo"><span>Cierre · indicaciones</span><textarea class="area" style="min-height:60px" data-sct="${i}" placeholder="Cómo se socializa lo aprendido…">${esc(s.cierre.txt || "")}</textarea></label>
       <label class="campo"><span>Evaluación</span><input data-se="${i}" value="${esc(s.eval)}"></label>
+      <button class="btn tlami-b" data-tl="${i}">${ic("chispa", 16)} Pedir a Tlami que la detalle${s.ia ? " de nuevo" : ""}</button>
       <div class="fila"><button class="btn m" data-dar="${i}">${ic("play", 16)} Dar la clase</button><button class="btn p" data-ev="${i}">${ic("eval", 16)} Evaluar${(() => { const n = D.reg.filter(r => r.pid === p.id && r.ses === i).length; return n ? " ✓" : ""; })()}</button><button class="btn" data-hecho="${i}">${ic("check", 16)} ${s.hecho ? "Marcar como pendiente" : "Marcar como dada"}</button></div></div>` : ""}</section>`; }).join("")}
+  ${librosPlan(p)}
   <h2 class="sec-t">Evaluación formativa<small>Rúbrica a partir de los PDA</small></h2><section class="card"><div class="tabla-c"><table class="tabla rub"><thead><tr><th>Criterio</th>${NIVELES.map(n => `<th>${n[0]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${c.gr}.°</b> ${esc(c.c)}</td>${NIVELES.map(n => `<td class="small">${n[1]}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section></main>`; };
 const NIVELES = [["Destacado", "Lo logra de forma autónoma y lo explica o aplica en otras situaciones."], ["Logrado", "Lo logra de forma autónoma."], ["En proceso", "Lo logra con apoyo del docente o de sus compañeros."], ["Requiere apoyo", "Aún no lo logra; necesita acompañamiento cercano."]];
 function dinOpts(sel, cats) { const g = gAct(), gmin = g ? Math.min(...g.grados) : 1, gmax = g ? Math.max(...g.grados) : 6;
@@ -425,6 +440,7 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const s = i => p.se
   $$("[data-sdi]").forEach(x => x.onchange = () => { s(x.dataset.sdi).inicio.din = x.value; guardar(); re(); }); $$("[data-sdc]").forEach(x => x.onchange = () => { s(x.dataset.sdc).cierre.din = x.value; guardar(); re(); });
   $$("[data-sit]").forEach(x => x.onchange = () => { s(x.dataset.sit).inicio.txt = x.value; guardar(); }); $$("[data-sd]").forEach(x => x.onchange = () => { s(x.dataset.sd).desarrollo = x.value; guardar(); });
   $$("[data-se]").forEach(x => x.onchange = () => { s(x.dataset.se).eval = x.value; guardar(); });
+  $$("[data-sct]").forEach(x => x.onchange = () => { s(x.dataset.sct).cierre.txt = x.value; guardar(); }); $$("[data-tl]").forEach(b => b.onclick = () => tlamiSesion(p, +b.dataset.tl));
   $$("[data-hecho]").forEach(b => b.onclick = () => { const x = s(b.dataset.hecho); x.hecho = !x.hecho; guardar(); re(); });
   $$("[data-dar]").forEach(b => b.onclick = () => abrirClase(p.id, +b.dataset.dar));
   $$("[data-ev]").forEach(b => b.onclick = () => ir("evaluar", { pid: p.id, i: +b.dataset.ev }));
@@ -438,6 +454,7 @@ function abrirClase(pid, i) { const p = plDe(pid), s = p.sesiones[i], di = dinDe
   if (s.inicio.txt) pasos.push({ eb: "Inicio", t: "Para empezar", txt: s.inicio.txt });
   pasos.push({ eb: "Desarrollo", t: s.fase, txt: s.desarrollo, min: Math.max(5, p.min - (di ? di.min : 0) - (dc ? dc.min : 0)) });
   if (dc) pasos.push({ eb: "Cierre", t: dc.n, prop: dc.prop, lista: dc.pasos, min: dc.min });
+  if (s.cierre.txt) pasos.push({ eb: "Cierre", t: "Para terminar", txt: s.cierre.txt });
   modoClase(pasos, () => { s.hecho = true; guardar(); setTimeout(() => dlg(`<h3>Sesión terminada</h3><p class="mb">Quedó marcada como dada. ¿Quiere registrar ahora la evaluación formativa de sus alumnos?</p><div class="fila fin"><button class="btn" id="eNo">Después</button><button class="btn p" id="eSi">${ic("eval", 16)} Evaluar ahora</button></div>`, v => {
     v.querySelector("#eNo").onclick = () => { cerrarDlg(); if (S.v === "plan" || S.v === "inicio") re(); }; v.querySelector("#eSi").onclick = () => { cerrarDlg(); ir("evaluar", { pid, i }); }; }), 250); }); }
 
@@ -507,11 +524,12 @@ VISTAS.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id
   <p class="small muted mt">${esc(T.n)} · ${fCorta(T.ini)} al ${fCorta(T.fin)}${a.nee ? " · Ajustes: " + esc(a.nee) : ""}</p>
   <div class="kpis mt"><div class="kpi"><b>${R.asisP == null ? "—" : Math.round(R.asisP * 100) + "%"}</b><span>Asistencia</span></div><div class="kpi"><b>${R.falt}</b><span>Faltas</span></div><div class="kpi"><b>${R.nreg}</b><span>Registros</span></div><div class="kpi"><b>${D.fotos.filter(f => f.al === a.id).length}</b><span>Evidencias</span></div></div>
   <h2 class="sec-t">Por campo formativo</h2><div class="lista">${CAMPOS.map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>
+  <h2 class="sec-t">Ajustes razonables</h2><section class="card">${(a.ajustes || []).slice(-2).reverse().map(x => `<p class="small"><b>${fCorta(x.f)}</b> · ${esc(x.bar)}</p><ul class="tlami-l small">${x.l.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${x.fam ? `<p class="small"><b>Con la familia:</b> ${esc(x.fam)}</p>` : ""}`).join("") || `<p class="small muted">Si a este alumno algo le cuesta, Tlami le sugiere apoyos concretos.</p>`}<button class="btn s tlami-b mt" id="alTl">${ic("chispa", 16)} Pedir ajustes a Tlami</button></section>
   ${R.obs.length ? `<h2 class="sec-t">Observaciones</h2><section class="card">${R.obs.map(o => `<p class="small"><b>${fCorta(o.f)}:</b> ${esc(o.t)}</p>`).join("")}</section>` : ""}
   <div class="fila mt2" style="justify-content:space-between"><h2 class="sec-t" style="margin:0">Portafolio</h2><button class="btn s p" id="alF">${ic("camara", 16)} Agregar evidencia</button></div><div class="fotos mt" id="alFotos"></div>
   <input type="file" id="alCam" accept="image/*" capture="environment" hidden></main>`; };
 ENLAZAR.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id === S.id); if (!a) return;
-  $("#alEd").onclick = () => formAlumno(g, a); $("#alF").onclick = () => $("#alCam").click();
+  $("#alEd").onclick = () => formAlumno(g, a); $("#alTl").onclick = () => tlamiAjustes(g, a); $("#alF").onclick = () => $("#alCam").click();
   $("#alCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (f) { await nuevaFoto(f, { al: a.id, t: "" }); re(); } };
   pintarFotos("#alFotos", D.fotos.filter(f => f.al === a.id).sort((x, y) => y.fecha.localeCompare(x.fecha))); };
 
@@ -551,7 +569,7 @@ VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); co
   : `<button class="btn s mt" id="bvV">${ic("atras", 16)} Todo el grupo</button>
     <section class="card mt"><h3>${esc(f.a.nombre)}</h3><p class="small muted">${f.R.nreg} registros · ${f.R.falt} faltas${f.R.asisP != null ? " · asistencia " + Math.round(f.R.asisP * 100) + "%" : ""}</p>
     ${CAMPOS.map(c => `<div class="bcampo"><div class="fila" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(c)}</b><span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-bm="${esc(c)}" data-d="-1">−</button><span class="cal-b" style="color:${colCal(f.cal[c])}">${f.cal[c] ?? "—"}</span><button class="btn s" data-bm="${esc(c)}" data-d="1">+</button></span></div>
-      <textarea class="area" style="min-height:80px" data-bv="${esc(c)}" placeholder="${f.R.campos[c] ? "" : "Sin registros en el trimestre: escriba su valoración"}">${esc(f.val[c])}</textarea></div>`).join("")}
+      <button class="btn s tlami-b mt" data-btl="${esc(c)}">${ic("chispa", 14)} Mejorar redacción con Tlami</button><textarea class="area" style="min-height:80px" data-bv="${esc(c)}" placeholder="${f.R.campos[c] ? "" : "Sin registros en el trimestre: escriba su valoración"}">${esc(f.val[c])}</textarea></div>`).join("")}
     <label class="campo mt"><span>Observaciones generales y recomendaciones para la familia</span><textarea class="area" id="bvG">${esc(f.gen)}</textarea></label>
     <div class="fila">${f.edit.cal || f.edit.val ? `<button class="btn s r" id="bvR">Volver a lo calculado</button>` : ""}<button class="btn s" id="bvU">${ic("impr", 16)} Informe de este alumno</button></div></section>`}</main>`; };
 ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; const T = trimActual();
@@ -560,6 +578,8 @@ ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; const T = trimAct
   $("#bvV") && ($("#bvV").onclick = () => { S.al = null; re(); });
   $$("[data-bm]").forEach(b => b.onclick = () => { const f = filasBoleta(g, T).find(x => x.a.id === S.al), c = b.dataset.bm, o = ed(S.al); o.cal = o.cal || {}; o.cal[c] = Math.max(5, Math.min(10, (f.cal[c] ?? 8) + +b.dataset.d)); guardar(); re(); });
   $$("[data-bv]").forEach(t => t.onchange = () => { const o = ed(S.al); o.val = o.val || {}; o.val[t.dataset.bv] = t.value; guardar(); });
+  $$("[data-btl]").forEach(b => b.onclick = () => { const c = b.dataset.btl, t = $$("[data-bv]").find(x => x.dataset.bv === c), a = activos(g).find(x => x.id === S.al);
+    tlamiValoracion(g, a, c, t.value, nuevo => { const o = ed(S.al); o.val = o.val || {}; o.val[c] = nuevo; guardar(); re(); toast("Valoración mejorada. Revísela antes de imprimir."); }); });
   $("#bvG") && ($("#bvG").onchange = e => { ed(S.al).gen = e.target.value; guardar(); });
   $("#bvR") && ($("#bvR").onclick = () => { const o = ed(S.al); delete o.cal; delete o.val; guardar(); re(); });
   $("#bvU") && ($("#bvU").onclick = async () => imprimir(await docInformes(g, T, S.al)));
@@ -582,6 +602,251 @@ async function docInformes(g, T, solo) { const F = filasBoleta(g, T).filter(x =>
     <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección</td><td>Madre, padre o tutor(a)</td></tr></table></div>`; }
   return out || `<div class="doc"><p>No hay alumnos.</p></div>`; }
 
+/* =================================================================== ETAPA 3: SERVIDOR DE LA ZONA */
+function srvAula() { const s = (ACC && ACC.tequio) || (LS("acc-cache") || {}).tequio || ""; const cfg = LS("tequio.cfg") || {}, pase = LS("tequio-pase") || {};
+  return s ? { s, k: cfg.k || pase.k || "", tok: LS("tlp-token") || LS("acc-token") || "" } : null; }
+const quienAula = () => { const g = gAct(); return { nombre: yo().nombre, escuela: g ? String(g.escuela || "") + (g.cct ? " · " + g.cct : "") : "" }; };
+async function aulaPost(accion, datos, ms = 70000) {
+  if (DEMO) return demoPost(accion, datos);
+  const sv = srvAula(); if (!sv) throw new Error("Esta app no encontró el servidor de la zona. Abra Tlamatini Aula con su enlace personal.");
+  if (navigator.onLine === false) throw new Error("No hay internet en este momento.");
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(sv.s, { method: "POST", redirect: "follow", signal: ctl.signal, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ k: sv.k, accion, datos: Object.assign({ tok: sv.tok, quien: quienAula() }, datos) }) });
+    const j = await r.json(); if (!j || !j.ok) throw new Error((j && (j.mensaje || j.error)) || "El servidor no respondió."); return j; }
+  catch (e) { if (e.name === "AbortError") throw new Error("El servidor tardó demasiado. Intente de nuevo."); if (/Failed to fetch|NetworkError|Load failed/i.test(e.message)) throw new Error("No se pudo conectar con el servidor de la zona."); throw e; }
+  finally { clearTimeout(tm); } }
+
+/* ---------- respuestas de ejemplo para la demostración ---------- */
+const DEMO_ZONA = [
+  { id: "adn-demo1", n: "El tendedero de palabras", cat: "lengua", campos: ["L"], g: [1, 3], min: 15, esp: "aula", mat: "Cordón, pinzas, tarjetas", prop: "Formar palabras y oraciones colgando tarjetas en orden.", pasos: ["Cuelgue un cordón de lado a lado del salón.", "Reparta tarjetas con sílabas o palabras.", "Por turnos, cada equipo cuelga tarjetas para formar una palabra u oración.", "El grupo lee en voz alta y corrige si hace falta."], var: "Con oraciones desordenadas para 3.°", multi: "1.° con sílabas, 2.° con palabras y 3.° con oraciones.", autor: "Mtra. Rosa Ejemplo", escuela: "Esc. Prim. «Benito Juárez» (ejemplo)", creado: "2026-11-12" },
+  { id: "adn-demo2", n: "Mercadito de la comunidad", cat: "mate", campos: ["S", "H"], g: [2, 5], min: 25, esp: "aula", mat: "Billetes y monedas de papel, envases vacíos", prop: "Resolver problemas de suma, resta y cambio en una compra.", pasos: ["Organice puestos con envases y precios.", "La mitad del grupo vende y la otra compra con un presupuesto.", "Cada compra se registra en el cuaderno con la operación.", "Cambien de papel y comenten qué estrategias usaron."], var: "Con descuentos o fracciones en 5.°", multi: "Los mayores son cajeros y apoyan a los menores.", autor: "Mtro. Luis Muestra", escuela: "Esc. Prim. «Cuauhtémoc» (ejemplo)", creado: "2026-11-08" },
+  { id: "adn-demo3", n: "Semáforo de emociones", cat: "convive", campos: ["H", "E"], g: [1, 6], min: 10, esp: "aula", mat: "Tres círculos de papel: verde, amarillo y rojo", prop: "Reconocer cómo llegan al salón y acordar qué necesitan.", pasos: ["Muestre los tres colores y su significado.", "Cada alumno se acerca al color que describe cómo se siente.", "Quien quiera, comparte por qué.", "Acuerden una acción para ayudar a quien está en rojo."], var: "Con dibujos en lugar de colores para 1.°", multi: "Los mayores ayudan a nombrar emociones.", autor: "Mtra. Ana Ficticia", escuela: "Esc. Prim. «Revolución» (ejemplo)", creado: "2026-10-30" }];
+async function demoPost(accion, d) { await new Promise(r => setTimeout(r, 900));
+  if (accion === "aulaIA") { const m = d.modo;
+    if (m === "sesion") return { r: { inicio: "Pregunte: «¿De dónde viene el agua que tomamos en casa?». Escuche ideas y anótelas en el pizarrón para volver a ellas al final.", desarrollo: "1. (10 min) En equipos, dibujan el camino del agua desde el pozo o la pipa hasta su casa.\n2. (15 min) Cada equipo comparte su dibujo; el grupo identifica en qué puntos el agua puede ensuciarse.\n3. (15 min) Con su apoyo, escriben o dibujan dos cuidados para que el agua llegue limpia.\n4. (5 min) Peguen los trabajos en el muro del proyecto.", cierre: "Regresen a las ideas del inicio: ¿qué cambió de lo que pensábamos? Cada alumno dice un cuidado del agua que hará en casa.", evaluacion: "Observe si explican el recorrido del agua y proponen cuidados; registre en la lista de cotejo.", materiales: "Hojas, colores, cinta, pizarrón", ajustes: "Para quien aún no escribe, que dicte a un compañero o dibuje; ofrezca imágenes de apoyo." } };
+    if (m === "ajustes") return { r: { ajustes: ["Siente al alumno cerca del pizarrón y lejos de distracciones.", "Dé las indicaciones en pasos cortos y compruebe que las entendió.", "Ofrezca apoyos visuales (imágenes, tarjetas) para la actividad.", "Permita que muestre lo que sabe de forma oral o con dibujos.", "Forme pareja con un compañero tutor."], familia: "Lean juntos 10 minutos diarios y pídanle que cuente con sus palabras lo leído." } };
+    if (m === "dinamica") return { r: { n: "Detectives del agua", prop: "Recordar cuidados del agua mientras se activan.", mat: "Tarjetas con imágenes de acciones", pasos: ["Esconda tarjetas en el salón.", "Por equipos, las buscan durante 3 minutos.", "Clasifican cada acción: cuida o desperdicia el agua.", "Explican al grupo una de sus tarjetas."], var: "Con un tiempo límite para cada equipo.", multi: "Los mayores leen las tarjetas a los menores." } };
+    if (m === "valoracion") return { r: { texto: String(d.texto || "").replace(/^En [^,]+, /, "Durante este trimestre, ") + " Le recomendamos seguir practicando en casa con actividades sencillas del día a día." } }; }
+  if (accion === "aulaDinLista") return { lista: DEMO_ZONA.concat(D.mias.filter(x => x.pub).map(x => Object.assign({}, x, { id: x.pub, autor: yo().nombre, mia: true, creado: hoy() }))) };
+  if (accion === "aulaDinPublicar") return { id: "adn-" + uid() };
+  if (accion === "aulaDinRetirar") return { id: d.id };
+  if (accion === "ulamaRevSubir") return { codigo: "DEMO" + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + "7", vence: new Date(Date.now() + 216e5).toISOString(), correos: [] };
+  if (accion === "ulamaRevBajar") { const x = REV_DEMO; if (!x) throw new Error("El código no existe o ya venció."); return x; }
+  if (accion === "efEnviar") return { enviados: 1 };
+  throw new Error("No disponible en la demostración."); }
+let REV_DEMO = null;
+
+/* ---------- Tlami en el aula ---------- */
+function tlamiEspera(msg) { dlg(`<div class="tlami-esp"><span class="tlami-av">${ic("chispa", 30)}</span><h3>Tlami está pensando…</h3><p class="small muted">${esc(msg)}</p><div class="prog"><i style="width:100%" class="anim"></i></div></div>`); }
+function tlamiError(e) { dlg(`<h3>Tlami no pudo ayudar esta vez</h3><p class="mb">${esc(e.message || e)}</p><div class="fila fin"><button class="btn p" id="teX">Entendido</button></div>`, v => v.querySelector("#teX").onclick = cerrarDlg); }
+function tlamiSesion(p, i) { const g = grDe(p.gid), s = p.sesiones[i];
+  dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Tlami detalla su sesión ${i + 1}</h3><p class="small muted">${esc(s.fase)} · ${esc(p.titulo)}</p></div></div>
+   <label class="campo mt"><span>¿Algo que quiera pedirle? <small>(opcional)</small></span><textarea id="tsN" class="area" style="min-height:80px" placeholder="Ej.: que sea en el patio, que use material reciclado, tengo 3 alumnos que aún no leen…"></textarea></label>
+   <p class="small muted">Tlami usa el contenido, los PDA de ${g.grados.length > 1 ? "cada grado" : "su grado"} y la metodología del proyecto. No se envían nombres de alumnos.</p>
+   <div class="fila fin mt"><button class="btn" id="tsX">Cancelar</button><button class="btn p" id="tsOk">${ic("chispa", 16)} Pedir propuesta</button></div>`, v => {
+    v.querySelector("#tsX").onclick = cerrarDlg;
+    v.querySelector("#tsOk").onclick = async () => { const nota = val("tsN").trim(); tlamiEspera("Preparando inicio, desarrollo, cierre y evaluación de la sesión.");
+      try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, titulo: p.titulo, campo: p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
+          contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), nota });
+        const r = j.r || {}; dlg(`<h3>Propuesta de Tlami</h3><div class="tlami-r">${[["Inicio", r.inicio], ["Desarrollo", r.desarrollo], ["Cierre", r.cierre], ["Evaluación", r.evaluacion], ["Materiales", r.materiales], ["Ajustes", r.ajustes]].filter(x => x[1]).map(([t, x]) => `<p><b>${t}:</b> ${esc(x).replace(/\n/g, "<br>")}</p>`).join("")}</div>
+          <p class="small muted mt">Revísela y ajústela a su grupo: usted conoce a sus alumnos.</p><div class="fila fin mt"><button class="btn" id="trX">Descartar</button><button class="btn p" id="trOk">${ic("check", 16)} Usar en la sesión</button></div>`, w => {
+          w.querySelector("#trX").onclick = cerrarDlg;
+          w.querySelector("#trOk").onclick = () => { s.inicio.txt = r.inicio || s.inicio.txt; s.desarrollo = [r.desarrollo, r.materiales ? "Materiales: " + r.materiales : "", r.ajustes ? "Ajustes: " + r.ajustes : ""].filter(Boolean).join("\n\n") || s.desarrollo;
+            s.cierre.txt = r.cierre || s.cierre.txt; if (r.evaluacion) s.eval = r.evaluacion; s.ia = true; guardar(); cerrarDlg(); re(); toast("La sesión quedó con la propuesta de Tlami."); }; }); }
+      catch (e) { tlamiError(e); } }; }); }
+function tlamiAjustes(g, a) { const p = D.planes.filter(x => x.gid === g.id).sort((x, y) => y.ini.localeCompare(x.ini))[0];
+  dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Ajustes razonables con Tlami</h3><p class="small muted">Para ${esc(a.nombre.split(" ")[0])} · su nombre no se envía</p></div></div>
+   <label class="campo mt"><span>¿Qué le cuesta o qué observa?</span><textarea id="taB" class="area" style="min-height:80px" placeholder="Ej.: se distrae con facilidad, aún no lee de corrido, le cuesta trabajar en equipo…"></textarea></label>
+   <label class="campo"><span>Actividad o proyecto</span><input id="taA" value="${esc(p ? p.titulo + " (" + p.campo + ")" : "")}"></label>
+   <div class="fila fin mt"><button class="btn" id="taX">Cancelar</button><button class="btn p" id="taOk">${ic("chispa", 16)} Pedir ajustes</button></div>`, v => {
+    v.querySelector("#taX").onclick = cerrarDlg;
+    v.querySelector("#taOk").onclick = async () => { const bar = val("taB").trim(), act = val("taA").trim(); if (bar.length < 5) return toast("Describa un poco lo que observa."); tlamiEspera("Buscando apoyos concretos para que participe.");
+      try { const j = await aulaPost("aulaIA", { modo: "ajustes", grados: [a.g || g.grados[0]], actividad: act, campo: p ? p.campo : "", barrera: bar }), r = j.r || {};
+        dlg(`<h3>Ajustes sugeridos</h3><ul class="tlami-l">${(r.ajustes || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>${r.familia ? `<p class="mt"><b>Con la familia:</b> ${esc(r.familia)}</p>` : ""}
+          <div class="fila fin mt"><button class="btn" id="tjX">Cerrar</button><button class="btn p" id="tjOk">${ic("check", 16)} Guardar en su ficha</button></div>`, w => {
+          w.querySelector("#tjX").onclick = cerrarDlg;
+          w.querySelector("#tjOk").onclick = () => { a.ajustes = (a.ajustes || []).concat([{ f: hoy(), bar, l: r.ajustes || [], fam: r.familia || "" }]); guardar(); cerrarDlg(); re(); toast("Ajustes guardados en su ficha."); }; }); }
+      catch (e) { tlamiError(e); } }; }); }
+function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1];
+  dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Crear una dinámica con Tlami</h3><p class="small muted">Para ${esc(grNom(g))}</p></div></div>
+   <label class="campo mt"><span>¿Para qué la quiere?</span><textarea id="tdT" class="area" style="min-height:70px" placeholder="Ej.: repasar las tablas del 3, activarlos después del recreo, iniciar el proyecto del agua…"></textarea></label>
+   <div class="dos"><label class="campo"><span>Tipo</span><select id="tdC">${Object.entries(DIN_CATS).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select></label><label class="campo"><span>Minutos</span><input id="tdM" type="number" min="3" max="60" value="10"></label></div>
+   <label class="campo"><span>Espacio</span><select id="tdE"><option value="aula">Aula</option><option value="patio">Patio</option><option value="ambos">Aula o patio</option></select></label>
+   <div class="fila fin mt"><button class="btn" id="tdX">Cancelar</button><button class="btn p" id="tdOk">${ic("chispa", 16)} Crear</button></div>`, v => {
+    v.querySelector("#tdX").onclick = cerrarDlg;
+    v.querySelector("#tdOk").onclick = async () => { const tema = val("tdT").trim(), cat = val("tdC"), min = +val("tdM") || 10, esp = val("tdE"); if (tema.length < 5) return toast("Escriba para qué la quiere."); tlamiEspera("Inventando una dinámica para su grupo.");
+      try { const j = await aulaPost("aulaIA", { modo: "dinamica", grados: gr, tema, tipo: (DIN_CATS[cat] || [cat])[0], min, esp }), r = j.r || {};
+        const d = { id: "mia-" + uid(), n: r.n || "Dinámica de Tlami", cat, campos: ["L", "S", "E", "H"].filter(k => (cat === "lengua" && k === "L") || (cat === "mate" && k === "S") || (cat === "ciencia" && k === "S") || (cat === "convive" && k === "H")), g: [Math.min(...gr), Math.max(...gr)], min, esp, mat: r.mat || "", prop: r.prop || "", pasos: r.pasos || [], var: r.var || "", multi: r.multi || "", autor: yo().nombre, ia: true };
+        if (!d.campos.length) d.campos = ["L", "S", "E", "H"];
+        dlg(`<h3>${esc(d.n)}</h3><p>${esc(d.prop)}</p>${d.mat ? `<p class="small mt"><b>Material:</b> ${esc(d.mat)}</p>` : ""}<ol class="pasos-l mt">${d.pasos.map(x => `<li>${esc(x)}</li>`).join("")}</ol>${d.var ? `<p class="small"><b>Variante:</b> ${esc(d.var)}</p>` : ""}${d.multi ? `<p class="small"><b>Multigrado:</b> ${esc(d.multi)}</p>` : ""}
+          <div class="fila fin mt"><button class="btn" id="tgX">Descartar</button><button class="btn p" id="tgOk">${ic("check", 16)} Guardar en mis dinámicas</button></div>`, w => {
+          w.querySelector("#tgX").onclick = cerrarDlg; w.querySelector("#tgOk").onclick = () => { D.mias.push(d); guardar(); cerrarDlg(); ir("dinamica", { id: d.id }); toast("Dinámica guardada. Puede editarla o compartirla con la zona."); }; }); }
+      catch (e) { tlamiError(e); } }; }); }
+async function tlamiValoracion(g, a, campo, txt, alListo) { if (!txt || txt.length < 15) return toast("Escriba primero una valoración (o registre evaluaciones) para que Tlami la mejore.");
+  const nom = String(a.nombre || "").split(" ")[0], re0 = new RegExp("\\b" + nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+  tlamiEspera("Redactando la valoración para la familia.");
+  try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [a.g || g.grados[0]], campo, texto: txt.replace(re0, "[ALUMNO]") }); cerrarDlg(); const t = String((j.r || {}).texto || "").replace(/\[ALUMNO\]/g, nom); if (t) alListo(t); }
+  catch (e) { tlamiError(e); } }
+
+/* =================================================================== LIBROS DE TEXTO GRATUITOS */
+const LTG_URL = c => `https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=primaria&ciclo=2026&clave=${c}`;
+const ORD = ["Primer", "Segundo", "Tercer", "Cuarto", "Quinto", "Sexto"];
+function librosDe(gr) { const o = ORD[gr - 1] + " grado", L = [["PAA", "Proyectos de Aula", "aula"], ["PEA", "Proyectos Escolares", "escolar"], ["PCA", "Proyectos Comunitarios", "comunitario"], ["SDA", "Nuestros saberes: libro para alumnos, maestros y familia", "saberes"], ["MLA", "Múltiples lenguajes", "lenguajes"]]
+    .map(([c, n, t]) => ({ c: `P${gr}${c}`, n, sub: o, t }));
+  if (gr <= 2) L.push({ c: `P${gr}TPA`, n: "Múltiples lenguajes. Trazos y palabras", sub: o, t: "lenguajes" }, { c: `P${gr}TNA`, n: "Múltiples lenguajes. Trazos y números", sub: o, t: "lenguajes" });
+  if (gr >= 4) L.push({ c: "P0CMA", n: "Cartografía de México y el mundo", sub: "4.° a 6.° (multigrado)", t: "otros" }, { c: "P0SHA", n: "Nuestros saberes: México, grandeza y diversidad", sub: "4.° a 6.° (multigrado)", t: "otros" });
+  const f = gr <= 2 ? [1, 3] : gr <= 4 ? [3, 4] : [5, 5]; L.push({ c: `P${f[0]}LPM`, n: "Un libro sin recetas, para la maestra y el maestro", sub: "Fase " + f[1], t: "maestro" });
+  return L; }
+VISTAS.libros = () => { const g = gAct(), grs = g ? g.grados : [1, 2, 3, 4, 5, 6], sel = S.gr && grs.includes(S.gr) ? S.gr : grs[0];
+  return barra("Tlamatini Aula", "Libros de texto") + `<main class="wrap">
+  <p class="small muted mt">Libros de Texto Gratuitos de la SEP, ciclo 2026-2027. Se abren en el sitio oficial de la CONALITEG (requiere internet).</p>
+  ${grs.length > 1 ? `<div class="chips mt">${grs.map(x => `<button class="chip" data-lg="${x}" aria-pressed="${x === sel}">${x}.° grado</button>`).join("")}</div>` : ""}
+  <div class="lista mt">${librosDe(sel).map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${esc(l.sub)}</small></span>${ic("sig", 16)}</a>`).join("")}</div>
+  <section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small">El libro de proyectos va con el <b>escenario</b> de su planeación: <b>Aula</b> → Proyectos de Aula; <b>Escolar</b> → Proyectos Escolares; <b>Comunitario</b> → Proyectos Comunitarios. En el índice, busque los proyectos del campo formativo que trabaja. <b>Nuestros saberes</b> sirve para consultar los conceptos y <b>Múltiples lenguajes</b> para la lectura.</p></section>
+  <p class="small mt"><a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver todos los libros de primaria en la CONALITEG</a></p></main>`; };
+ENLAZAR.libros = () => { $$("[data-lg]").forEach(b => b.onclick = () => { S.gr = +b.dataset.lg; re(); }); };
+function librosPlan(p) { const g = grDe(p.gid), grs = g ? g.grados : [], t = p.escenario === "escolar" ? "escolar" : p.escenario === "comunitario" ? "comunitario" : "aula";
+  const L = grs.flatMap(gr => librosDe(gr).filter(l => l.t === t || l.t === "saberes").map(l => Object.assign({ gr }, l)));
+  return `<h2 class="sec-t">Libros de texto<small>Busque en el índice los proyectos de ${esc(p.campo)}</small></h2><div class="lista">${L.map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${l.gr}.° grado</small></span>${ic("sig", 16)}</a>`).join("")}</div>`; }
+
+/* =================================================================== DINÁMICAS DE LA ZONA */
+let ZONA = null;
+async function cargarZona(forzar) { if (ZONA && !forzar) return ZONA;
+  try { const j = await aulaPost("aulaDinLista", {}, 30000); ZONA = (j.lista || []).map(d => Object.assign({ zona: true }, d)); try { localStorage.setItem(DEMO ? "aula-zona-demo" : "aula-zona", JSON.stringify(ZONA)); } catch (e) {} }
+  catch (e) { ZONA = (LS(DEMO ? "aula-zona-demo" : "aula-zona") || []).map(d => Object.assign({ zona: true }, d)); ZONA.err = e.message; }
+  return ZONA; }
+async function compartirDin(d) { if (!(await confirmar(`«${d.n}» se publicará en el banco de dinámicas de la zona con su nombre, para que otros docentes la usen.`, "Compartir"))) return;
+  toast("Compartiendo…"); try { const j = await aulaPost("aulaDinPublicar", { din: d }); d.pub = j.id; guardar(); ZONA = null; re(); toast(j.actualizada ? "Se actualizó en el banco de la zona." : "<b>¡Gracias!</b> Su dinámica ya está en el banco de la zona.", 3500); }
+  catch (e) { toast(esc(e.message), 4000); } }
+async function retirarDin(d) { if (!(await confirmar("La dinámica dejará de verse en el banco de la zona. Quienes ya la guardaron la conservan.", "Retirar"))) return;
+  try { await aulaPost("aulaDinRetirar", { id: d.pub || d.id }); const m = D.mias.find(x => x.pub === (d.pub || d.id)); if (m) delete m.pub; guardar(); ZONA = null; toast("Retirada del banco de la zona."); if (d.zona) history.back(); else re(); }
+  catch (e) { toast(esc(e.message), 4000); } }
+
+/* =================================================================== VISITA DE ACOMPAÑAMIENTO */
+const pl = (n, a, b) => n + " " + (n === 1 ? a : b);
+const REV_URL = c => new URL("#rev=" + c, location.href.split("#")[0]).href;
+async function zip(txt) { if (!window.CompressionStream) return { z: 0, s: btoa(unescape(encodeURIComponent(txt))) };
+  const buf = new Uint8Array(await new Response(new Blob([txt]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()); let b = "";
+  for (let i = 0; i < buf.length; i += 0x8000) b += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000)); return { z: 1, s: btoa(b) }; }
+async function unzip(s, z) { if (!+z) return decodeURIComponent(escape(atob(s))); if (!window.DecompressionStream) throw new Error("Este navegador es muy antiguo para abrir la revisión. Use Chrome actualizado.");
+  const bin = Uint8Array.from(atob(s), c => c.charCodeAt(0)); return new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
+async function miniatura(u, max = 360) { return new Promise(ok => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", .6)); }; im.onerror = () => ok(""); im.src = u; }); }
+async function paqueteVisita(g, T, que) { const fin = hoy() < T.fin ? hoy() : T.fin, enP = k => k >= T.ini && k <= fin;
+  const planes = !que.plan ? [] : D.planes.filter(p => p.gid === g.id && p.sesiones.some(s => !s.fecha || s.fecha >= T.ini) && p.ini <= fin).map(p => ({ titulo: p.titulo, campo: p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, esc: ESCENARIOS[p.escenario] || "", ejes: p.ejes, ini: p.ini, min: p.min,
+    cont: Object.values(p.contenidos || {}), pdas: p.pdas, prop: p.proposito, prod: p.producto, crit: p.criterios.map(c => c.gr + ".° " + c.c),
+    ses: p.sesiones.map((s, i) => ({ f: s.fecha, fase: s.fase, ini: [dinDe(s.inicio.din) ? "Dinámica: " + dinDe(s.inicio.din).n : "", s.inicio.txt].filter(Boolean).join(". "), des: s.desarrollo, cie: [dinDe(s.cierre.din) ? "Dinámica: " + dinDe(s.cierre.din).n : "", s.cierre.txt].filter(Boolean).join(". "), ev: s.eval, h: s.hecho ? 1 : 0, r: D.reg.some(r => r.pid === p.id && r.ses === i) ? 1 : 0 })) }));
+  const A = D.asis[g.id] || {}, dias = Object.keys(A).filter(enP).sort(), al = activos(g);
+  const asis = !que.asis ? null : { dias, al: al.map(a => ({ n: a.nombre, g: a.g || "", m: dias.map(k => (A[k] || {})[a.id] || "-").join("") })) };
+  const F = filasBoleta(g, T), ev = !que.eval ? null : { campos: CAMPOS, al: F.map(x => ({ n: x.a.nombre, cal: CAMPOS.map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
+  const fotos = []; if (que.fotos) for (const f of D.fotos.filter(f => f.bol && enP(f.fecha) && al.some(a => a.id === f.al)).slice(-6)) { const u = await fotoGet(f.id); if (u) fotos.push({ t: f.t || "Evidencia", f: f.fecha, u: await miniatura(u) }); }
+  return { t: "aula-rev", v: 1, gen: new Date().toISOString(), per: { n: T.n, ini: T.ini, fin }, docente: { nombre: yo().nombre, correo: yo().correo },
+    escuela: { nombre: g.escuela, cct: g.cct || "", turno: g.turno || "", loc: g.loc || "", dir: dirTxt(g) }, grupo: { nom: grNom(g), grados: g.grados, n: al.length, nee: al.filter(a => a.nee || (a.ajustes || []).length).length },
+    planes, asis, ev, fotos, din: D.mias.length }; }
+VISTAS.visita = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const q = D.cfg.revQR, vig = q && new Date(q.vence) > new Date(), R = S.R = S.R || { plan: true, asis: true, eval: true, fotos: true };
+  return barra("Tlamatini Aula", "Visita de acompañamiento") + `<main class="wrap">
+  <section class="portada" style="background:radial-gradient(500px 260px at 90% 0,rgba(232,163,61,.35),transparent 70%),linear-gradient(150deg,#294A86,#13244A 70%)"><h1>Le visitan: comparta su trabajo con un código</h1>
+   <p>Su supervisor(a), director(a) o ATP abre con el código su planeación, su asistencia, su evaluación y sus evidencias del trimestre, <b>solo para consulta</b>: no puede cambiar nada de su app.</p></section>
+  ${vig ? `<section class="rev-qr mt"><div class="eb">Código vigente</div><div id="revQR"></div><div class="rev-cod">${esc(q.codigo.slice(0, 3) + " " + q.codigo.slice(3))}</div><p class="small muted">${esc(q.resumen || "")}<br>Válido hasta las ${new Date(q.vence).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" })}; después se borra solo.</p>
+   <p class="small">Quien le visita lo escanea con la cámara de su celular, o abre Tlamatini Aula → Visita de acompañamiento → «Revisar a un docente» y escribe el código.</p>
+   <div class="fila" style="justify-content:center"><button class="btn s" id="rvCop">${ic("doc", 16)} Copiar enlace</button><button class="btn s r" id="rvX">Quitar código</button></div></section>` : ""}
+  <section class="card mt"><h3>${vig ? "Generar otro código" : "¿Qué compartir?"}</h3><p class="small muted mb">${esc(grNom(g))} · ${esc(trimActual().n)}</p>
+   ${[["plan", "Planeaciones y sesiones"], ["asis", "Pase de lista"], ["eval", "Evaluación formativa y calificaciones"], ["fotos", "Evidencias marcadas para el informe (fotos pequeñas)"]].map(([k, t]) => `<label class="rev-chk"><input type="checkbox" data-rq="${k}" ${R[k] ? "checked" : ""}> ${t}</label>`).join("")}
+   <div class="fila mt"><button class="btn p" id="rvGen">${ic("qr", 18)} Generar código QR</button></div><p class="small muted mt">El código dura 6 horas. Los ajustes razonables de sus alumnos no se comparten: solo cuántos alumnos los tienen.</p></section>
+  <section class="card mt"><h3>¿Usted va a revisar?</h3><p class="small muted mb">Para supervisión, dirección y ATP: abra el código que le muestra el docente.</p><div class="fila"><button class="btn" id="rvAbrir">${ic("buscar", 16)} Revisar a un docente</button>${(LS("aula-visitas") || []).length ? `<button class="btn" id="rvMis">${ic("doc", 16)} Mis revisiones (${(LS("aula-visitas") || []).length})</button>` : ""}</div></section></main>`; };
+ENLAZAR.visita = () => { const g = gAct(), R = S.R, q = D.cfg.revQR;
+  if (q && $("#revQR")) cargarJS("qrcode.min.js").then(() => { $("#revQR").innerHTML = ""; new QRCode($("#revQR"), { text: REV_URL(q.codigo), width: 512, height: 512, colorDark: "#13244A", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }).catch(() => { $("#revQR").innerHTML = `<p class="small muted">Sin internet no se dibujó el QR: use el código.</p>`; });
+  $$("[data-rq]").forEach(c => c.onchange = () => R[c.dataset.rq] = c.checked);
+  $("#rvAbrir").onclick = () => ir("revisar"); $("#rvMis") && ($("#rvMis").onclick = () => ir("revisar", { lista: true }));
+  $("#rvGen").onclick = async ev => { const b = ev.currentTarget; b.disabled = true; b.textContent = "Preparando…";
+    try { const T = trimActual(), p = await paqueteVisita(g, T, R); p.resumen = `${grNom(g)} · ${pl(p.planes.length, "planeación", "planeaciones")} · ${p.grupo.n} alumnos · ${fCorta(p.per.ini)} al ${fCorta(p.per.fin)}`;
+      const z = await zip(JSON.stringify(p)); if (DEMO) REV_DEMO = { paq: z.s, z: z.z, docente: p.docente.nombre, gen: p.gen };
+      b.textContent = "Subiendo…"; const j = await aulaPost("ulamaRevSubir", { paq: z.s, z: z.z, nombre: yo().nombre, correo: yo().correo });
+      D.cfg.revQR = { codigo: j.codigo, vence: j.vence, resumen: p.resumen }; guardar(); re(); toast("<b>Código listo.</b> Muéstreselo a quien le visita.", 3500); }
+    catch (e) { b.disabled = false; b.innerHTML = `${ic("qr", 18)} Generar código QR`; dlg(`<h3>No se pudo generar el código</h3><p class="mb">${esc(e.message)}</p><div class="fila fin"><button class="btn p" id="rfX">Entendido</button></div>`, w => w.querySelector("#rfX").onclick = cerrarDlg); } };
+  if (q && $("#rvX")) { $("#rvX").onclick = () => { delete D.cfg.revQR; guardar(); re(); };
+    $("#rvCop").onclick = async () => { try { await navigator.clipboard.writeText(REV_URL(q.codigo)); toast("Enlace copiado."); } catch (e) { prompt("Copie el enlace:", REV_URL(q.codigo)); } }; } };
+
+/* ---------- quien revisa ---------- */
+const ASPECTOS = [["plan", "Planeación didáctica", "Contenidos y PDA del grado, metodología, secuencia de sesiones, producto y criterios de evaluación."],
+  ["clase", "Desarrollo de la clase", "Inicio, desarrollo y cierre; participación de los alumnos; manejo del tiempo y de los materiales."],
+  ["eval", "Evaluación formativa", "Registros en clase, retroalimentación, uso de criterios y calificaciones del trimestre."],
+  ["asis", "Asistencia y registro", "Pase de lista diario y seguimiento de faltas."],
+  ["incl", "Ambiente e inclusión", "Ambiente de respeto, ajustes razonables y atención a quienes requieren apoyo."]];
+const SEM = [["v", "Adecuado", "#1E8E5A"], ["a", "En proceso", "#C98A0B"], ["r", "Requiere atención", "#C2362B"]];
+let RV = null; const visitas = () => LS("aula-visitas") || [], guardarVisitas = L => { try { localStorage.setItem("aula-visitas", JSON.stringify(L.slice(-30))); } catch (e) { toast("No hay espacio para guardar la revisión."); } };
+const rvGuardar = () => { const L = visitas().filter(x => x.id !== RV.id); L.push(RV); guardarVisitas(L); };
+async function abrirCodigo(cod) { cod = String(cod || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (cod.length !== 6) return toast("El código tiene 6 letras o números.");
+  toast("Abriendo la revisión…", 6000);
+  try { const j = await aulaPost("ulamaRevBajar", { codigo: cod }), p = JSON.parse(await unzip(j.paq, j.z)); if (p.t !== "aula-rev") throw new Error("Ese código es de otra app (Ulama). Ábralo en Ulama · Supervisión.");
+    RV = visitas().find(x => x.codigo === cod) || { id: uid(), codigo: cod, abierta: new Date().toISOString(), fecha: hoy(), sem: {}, obs: {}, fort: "", opor: "", acu: "", rev: LS("aula-revisor") || { nombre: yo().nombre, cargo: "" }, firma: "" };
+    RV.p = p; rvGuardar(); ir("revisar", { id: RV.id, tab: "res" }, S.v === "revisar"); toast(`Revisión de <b>${esc(p.docente.nombre)}</b>.`); }
+  catch (e) { toast(esc(e.message), 4500); } }
+function barras(L) { const mx = 10; return `<div class="bars">${L.map(([t, v]) => `<div class="bar"><span>${esc(t)}</span><i style="width:${v == null ? 0 : Math.max(4, (v - 4) / (mx - 4) * 100)}%;background:${colCal(v)}"></i><b>${v == null ? "—" : v.toFixed(1)}</b></div>`).join("")}</div>`; }
+VISTAS.revisar = () => { if (S.id && (!RV || RV.id !== S.id)) RV = visitas().find(x => x.id === S.id) || null;
+  if (!RV || S.lista) { const L = visitas().slice().reverse();
+    return barra("Visita de acompañamiento", "Revisar a un docente") + `<main class="wrap"><section class="card mt"><h3>Escriba el código</h3><p class="small muted mb">El docente lo genera en su Tlamatini Aula (dura 6 horas). También puede escanear su QR con la cámara del celular.</p>
+     <div class="fila" style="flex-wrap:nowrap"><input id="rcC" maxlength="7" placeholder="ABC123" style="font:700 26px/1 inherit;letter-spacing:.2em;text-transform:uppercase;text-align:center;flex:1;min-width:0" autocomplete="off"><button class="btn p" id="rcOk">Abrir</button></div></section>
+     ${L.length ? `<h2 class="sec-t">Mis revisiones</h2><div class="lista">${L.map(v => `<button class="it btnit" data-rv="${v.id}"><span class="av">${ic("persona", 18)}</span><span class="tx"><b>${esc(v.p.docente.nombre)}</b><small>${esc(v.p.grupo.nom)} · ${esc(v.p.escuela.nombre)} · ${fCorta(v.fecha)}${v.cerrada ? " · Cerrada" : ""}${v.enviado ? " · Enviada" : ""}</small></span>${ic("sig", 16)}</button>`).join("")}</div>` : ""}</main>`; }
+  const p = RV.p, tab = S.tab || "res", TABS = [["res", "Resumen"], ["plan", "Planeación"], ["asis", "Asistencia"], ["eval", "Evaluación"], ["fotos", "Evidencias"], ["cierre", "Cierre"]];
+  let cuerpo = "";
+  if (tab === "res") { const ses = p.planes.flatMap(x => x.ses), dadas = ses.filter(s => s.h).length, ev = ses.filter(s => s.r).length;
+    let as = 0, tot = 0; (p.asis ? p.asis.al : []).forEach(a => [...a.m].forEach(c => { if (c === "-") return; tot++; if (c === "P" || c === "R") as++; }));
+    const prom = p.ev ? p.ev.campos.map((c, i) => { const v = p.ev.al.map(a => a.cal[i]).filter(x => x != null); return [c, v.length ? v.reduce((x, y) => x + y, 0) / v.length : null]; }) : [];
+    cuerpo = `<div class="kpis mt"><div class="kpi"><b>${p.planes.length}</b><span>Proyectos</span></div><div class="kpi"><b>${dadas}/${ses.length}</b><span>Sesiones dadas</span></div><div class="kpi"><b>${tot ? Math.round(100 * as / tot) + "%" : "—"}</b><span>Asistencia</span></div><div class="kpi"><b>${p.ev ? p.ev.reg : "—"}</b><span>Registros de evaluación</span></div></div>
+     <section class="card mt"><p><b>Escuela:</b> ${esc(p.escuela.nombre)}${p.escuela.cct ? " · " + esc(p.escuela.cct) : ""}${p.escuela.turno ? " · " + esc(p.escuela.turno) : ""}</p><p><b>Grupo:</b> ${esc(p.grupo.nom)} · ${p.grupo.n} alumnos${p.grupo.nee ? ` · ${p.grupo.nee} con ajustes razonables` : ""}</p><p><b>Periodo:</b> ${esc(p.per.n)}, ${fCorta(p.per.ini)} al ${fCorta(p.per.fin)}</p><p class="small muted mt">${pl(ev, "sesión", "sesiones")} con registro de evaluación · ${pl(p.fotos.length, "evidencia", "evidencias")} · ${pl(p.din, "dinámica propia", "dinámicas propias")}</p></section>
+     ${prom.length ? `<h2 class="sec-t">Promedio del grupo por campo formativo</h2><section class="card">${barras(prom)}</section>` : ""}`; }
+  if (tab === "plan") cuerpo = p.planes.map((x, i) => `<section class="card mt"><h3>${esc(x.titulo)}</h3><p class="small muted">${esc(x.campo)} · ${esc(x.metodo)} · Escenario ${esc(x.esc)} · ${x.ses.length} sesiones de ${x.min} min · desde ${fCorta(x.ini)}</p>
+      ${x.cont.map(c => `<p class="small mt"><b>Contenido:</b> ${esc(c)}</p>`).join("")}${Object.entries(x.pdas || {}).map(([k, t]) => `<p class="small"><b>PDA ${k}.°:</b> ${esc(t)}</p>`).join("")}${x.prop ? `<p class="small"><b>Propósito:</b> ${esc(x.prop)}</p>` : ""}${x.prod ? `<p class="small"><b>Producto:</b> ${esc(x.prod)}</p>` : ""}
+      <details class="mt"><summary><b>Sesiones</b> (${x.ses.filter(s => s.h).length} dadas, ${x.ses.filter(s => s.r).length} evaluadas)</summary>${x.ses.map((s, k) => `<div class="rv-ses"><b>${k + 1}. ${esc(s.fase)}</b> <small class="muted">${s.f ? fCorta(s.f) : ""}${s.h ? " · dada" : ""}${s.r ? " · evaluada" : ""}</small>${s.ini ? `<p class="small"><b>Inicio:</b> ${esc(s.ini)}</p>` : ""}<p class="small"><b>Desarrollo:</b> ${esc(s.des).replace(/\n/g, "<br>")}</p>${s.cie ? `<p class="small"><b>Cierre:</b> ${esc(s.cie)}</p>` : ""}<p class="small"><b>Evaluación:</b> ${esc(s.ev)}</p></div>`).join("")}</details></section>`).join("") || `<div class="vacio mt">No compartió planeaciones de este periodo.</div>`;
+  if (tab === "asis") cuerpo = !p.asis ? `<div class="vacio mt">No compartió el pase de lista.</div>` : !p.asis.dias.length ? `<div class="vacio mt">No hay pase de lista en el periodo.</div>` : `<div class="tabla-c mt"><table class="tabla asis-t"><thead><tr><th>Alumno(a)</th>${p.asis.dias.map(k => `<th class="c">${dF(k).getDate()}<br><small>${MES[dF(k).getMonth()]}</small></th>`).join("")}<th class="c">%</th></tr></thead><tbody>${p.asis.al.map(a => { const v = [...a.m].filter(c => c !== "-"), as = v.filter(c => c === "P" || c === "R").length;
+      return `<tr><td>${esc(a.n)}</td>${[...a.m].map(c => `<td class="c m-${c}">${c === "-" ? "" : c}</td>`).join("")}<td class="c"><b>${v.length ? Math.round(100 * as / v.length) : "—"}</b></td></tr>`; }).join("")}</tbody></table></div><p class="small muted mt">P asistió · R retardo · F falta · J justificada</p>`;
+  if (tab === "eval") cuerpo = !p.ev ? `<div class="vacio mt">No compartió la evaluación.</div>` : `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${p.ev.campos.map(c => `<th class="c">${esc(c.split(" ")[0])}</th>`).join("")}<th class="c">Reg.</th><th class="c">Faltas</th></tr></thead><tbody>${p.ev.al.map(a => `<tr><td>${esc(a.n)}</td>${a.cal.map(v => `<td class="c"><b style="color:${colCal(v)}">${v ?? "—"}</b></td>`).join("")}<td class="c">${a.nreg}</td><td class="c">${a.falt}</td></tr>`).join("")}</tbody></table></div>`;
+  if (tab === "fotos") cuerpo = p.fotos.length ? `<div class="fotos mt">${p.fotos.map(f => `<div class="foto"><img src="${f.u}" alt=""><span>${esc(f.t)}<small>${fCorta(f.f)}</small></span></div>`).join("")}</div>` : `<div class="vacio mt">No compartió evidencias.</div>`;
+  if (tab === "cierre") cuerpo = `<p class="small muted mt">Valore cada aspecto con el semáforo y anote lo observado. Al final firme y genere el informe para el docente.</p>
+    ${ASPECTOS.map(([k, t, d]) => `<section class="card mt"><h3>${t}</h3><p class="small muted">${d}</p><div class="sem mt">${SEM.map(([s, n, c]) => `<button data-sm="${k}" data-sv="${s}" style="--c:${c}" aria-pressed="${RV.sem[k] === s}">${n}</button>`).join("")}</div><textarea class="area mt" data-so="${k}" style="min-height:64px" placeholder="Observaciones">${esc(RV.obs[k] || "")}</textarea></section>`).join("")}
+    <section class="card mt"><label class="campo"><span>Fortalezas</span><textarea class="area" id="rcF">${esc(RV.fort)}</textarea></label><label class="campo"><span>Áreas de oportunidad</span><textarea class="area" id="rcO">${esc(RV.opor)}</textarea></label><label class="campo"><span>Acuerdos y recomendaciones</span><textarea class="area" id="rcA">${esc(RV.acu)}</textarea></label></section>
+    <section class="card mt"><h3>Quien revisa</h3><div class="dos"><label class="campo"><span>Nombre</span><input id="rcN" value="${esc(RV.rev.nombre)}"></label><label class="campo"><span>Cargo</span><input id="rcK" value="${esc(RV.rev.cargo)}" placeholder="Supervisor(a), Director(a), ATP"></label></div>
+     <div class="campo"><span>Firma</span><canvas id="rcFi" class="firma-c" width="600" height="200"></canvas><div class="fila"><button class="btn s" id="rcFl">Borrar firma</button></div></div></section>
+    <div class="fila mt2"><button class="btn p" id="rcInf">${ic("impr", 16)} Ver e imprimir el informe</button><button class="btn" id="rcEnv">${ic("doc", 16)} Enviar al docente</button></div>
+    <div class="fila mt"><button class="btn s r" id="rcDel">${ic("basura", 16)} Descartar esta revisión</button></div>`;
+  return barra("Revisión · " + esc(p.grupo.nom), esc(p.docente.nombre)) + `<main class="wrap"><div class="chips mt tabs-rv">${TABS.map(([k, t]) => `<button class="chip" data-tb="${k}" aria-pressed="${tab === k}">${t}</button>`).join("")}</div>${cuerpo}</main>`; };
+ENLAZAR.revisar = () => {
+  if (!RV || S.lista) { const go = () => abrirCodigo(val("rcC")); $("#rcOk").onclick = go; $("#rcC").onkeydown = e => { if (e.key === "Enter") go(); };
+    $$("[data-rv]").forEach(b => b.onclick = () => { RV = visitas().find(x => x.id === b.dataset.rv); ir("revisar", { id: RV.id, tab: "res" }); }); return; }
+  $$("[data-tb]").forEach(b => b.onclick = () => { S.tab = b.dataset.tb; pintar(); scrollTo(0, 0); });
+  if ((S.tab || "res") !== "cierre") return;
+  $$("[data-sm]").forEach(b => b.onclick = () => { RV.sem[b.dataset.sm] = RV.sem[b.dataset.sm] === b.dataset.sv ? "" : b.dataset.sv; rvGuardar(); re(); });
+  $$("[data-so]").forEach(t => t.onchange = () => { RV.obs[t.dataset.so] = t.value; rvGuardar(); });
+  [["rcF", "fort"], ["rcO", "opor"], ["rcA", "acu"]].forEach(([id, k]) => $("#" + id).onchange = e => { RV[k] = e.target.value; rvGuardar(); });
+  const rv = () => { RV.rev = { nombre: val("rcN").trim(), cargo: val("rcK").trim() }; try { localStorage.setItem("aula-revisor", JSON.stringify(RV.rev)); } catch (e) {} rvGuardar(); }; $("#rcN").onchange = rv; $("#rcK").onchange = rv;
+  firmaCanvas($("#rcFi"), RV.firma, u => { RV.firma = u; rvGuardar(); }); $("#rcFl").onclick = () => { RV.firma = ""; rvGuardar(); re(); };
+  $("#rcInf").onclick = () => { RV.cerrada = true; rvGuardar(); imprimir(docVisita(RV)); };
+  $("#rcEnv").onclick = () => enviarVisita(RV);
+  $("#rcDel").onclick = async () => { if (!(await confirmar("Se borrará esta revisión de este dispositivo.", "Descartar"))) return; guardarVisitas(visitas().filter(x => x.id !== RV.id)); RV = null; ir("revisar", { lista: true }, true); }; };
+function firmaCanvas(c, ini, alCambiar) { const x = c.getContext("2d"); x.lineWidth = 3.2; x.lineCap = "round"; x.strokeStyle = "#13244A"; let on = false, n = 0;
+  if (ini) { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0, c.width, c.height); im.src = ini; }
+  const pt = e => { const r = c.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return [(t.clientX - r.left) * c.width / r.width, (t.clientY - r.top) * c.height / r.height]; };
+  const ini_ = e => { e.preventDefault(); on = true; x.beginPath(); x.moveTo(...pt(e)); }, mov = e => { if (!on) return; e.preventDefault(); x.lineTo(...pt(e)); x.stroke(); n++; }, fin = () => { if (!on) return; on = false; if (n) alCambiar(c.toDataURL("image/png")); };
+  c.addEventListener("pointerdown", ini_); c.addEventListener("pointermove", mov); window.addEventListener("pointerup", fin, { once: false }); c.style.touchAction = "none"; }
+function docVisita(v) { const p = v.p, semDe = s => SEM.find(x => x[0] === s);
+  return `<div class="doc">${encabezado({ escuela: p.escuela.nombre, cct: p.escuela.cct, turno: p.escuela.turno, loc: p.escuela.loc }, "Informe de visita de acompañamiento")}
+  <div class="datos"><span><b>Docente:</b> ${esc(p.docente.nombre)}</span><span><b>Grupo:</b> ${esc(p.grupo.nom)} (${p.grupo.n} alumnos)</span><span><b>Fecha de la visita:</b> ${fCorta(v.fecha)} ${v.fecha.slice(0, 4)}</span><span><b>Periodo revisado:</b> ${esc(p.per.n)}, ${fCorta(p.per.ini)} al ${fCorta(p.per.fin)}</span><span><b>Revisó:</b> ${esc(v.rev.nombre)}${v.rev.cargo ? ", " + esc(v.rev.cargo) : ""}</span></div>
+  <table><thead><tr><th style="width:26%">Aspecto</th><th class="c" style="width:16%">Valoración</th><th>Observaciones</th></tr></thead><tbody>${ASPECTOS.map(([k, t]) => { const s = semDe(v.sem[k]); return `<tr><td><b>${t}</b></td><td class="c">${s ? `<span class="sem-p" style="background:${s[2]}"></span> ${s[1]}` : "—"}</td><td>${esc(v.obs[k] || "").replace(/\n/g, "<br>")}</td></tr>`; }).join("")}</tbody></table>
+  ${v.fort ? `<h2>Fortalezas</h2><p>${esc(v.fort).replace(/\n/g, "<br>")}</p>` : ""}${v.opor ? `<h2>Áreas de oportunidad</h2><p>${esc(v.opor).replace(/\n/g, "<br>")}</p>` : ""}${v.acu ? `<h2>Acuerdos y recomendaciones</h2><p>${esc(v.acu).replace(/\n/g, "<br>")}</p>` : ""}
+  <p class="nota">Revisión formativa con la información que el docente compartió desde Tlamatini Aula: ${pl(p.planes.length, "planeación", "planeaciones")}, ${p.asis ? pl(p.asis.dias.length, "día", "días") + " de pase de lista" : "sin pase de lista"}, ${p.ev ? pl(p.ev.reg, "registro", "registros") + " de evaluación" : "sin evaluación"} y ${pl(p.fotos.length, "evidencia", "evidencias")}.</p>
+  <table class="firmas"><tr><td>${v.firma ? `<img src="${v.firma}" style="height:60px;display:block;margin:-66px auto 6px">` : ""}${esc(v.rev.nombre)}<br>${esc(v.rev.cargo || "Quien revisa")}</td><td>${esc(p.docente.nombre)}<br>Docente</td></tr></table></div>`; }
+function cssDoc() { let t = ""; for (const sh of document.styleSheets) { try { for (const r of sh.cssRules) if (/\.doc\b|\.sem-p/.test(r.cssText)) t += r.cssText + "\n"; } catch (e) {} } return t.replace(/\.doc\b/g, ".doc"); }
+function enviarVisita(v) { const p = v.p, para = p.docente.correo || "";
+  dlg(`<h3>Enviar el informe al docente</h3><p class="small muted mb">Llega en PDF desde el correo de la Supervisión. Con el código de revisión solo se puede enviar al correo del docente revisado.</p>
+   <label class="campo"><span>Para</span><input id="evP" type="email" value="${esc(para)}"></label><label class="campo"><span>Con copia <small>(opcional, hasta 3, separados por coma)</small></span><input id="evC" placeholder="direccion@bcedu.mx"></label>
+   <label class="campo"><span>Mensaje</span><textarea id="evM" class="area">${esc(`${/^Mtra/.test(p.docente.nombre) ? "Estimada" : "Estimado(a)"} ${p.docente.nombre}:\n\nLe comparto el informe de la visita de acompañamiento del ${fCorta(v.fecha)}. Gracias por su disposición y por el trabajo con su grupo.\n\nAtentamente,\n${v.rev.nombre}${v.rev.cargo ? "\n" + v.rev.cargo : ""}`)}</textarea></label>
+   <div class="fila fin"><button class="btn" id="evX">Cancelar</button><button class="btn p" id="evOk">Enviar</button></div>`, w => {
+    w.querySelector("#evX").onclick = cerrarDlg;
+    w.querySelector("#evOk").onclick = async () => { const P = val("evP").split(/[,;\s]+/).filter(Boolean), C = val("evC").split(/[,;\s]+/).filter(Boolean); if (!P.length) return toast("Escriba el correo del docente.");
+      toast("Enviando…", 8000); try { await aulaPost("efEnviar", { app: "aula", rev: v.codigo, quien: { nombre: v.rev.nombre }, para: P, cc: C, asunto: "Informe de visita de acompañamiento · " + p.grupo.nom, mensaje: val("evM"), html: docVisita(v), css: cssDoc(), archivo: "informe-visita-" + v.fecha });
+        v.enviado = { a: P.join(", "), f: new Date().toISOString() }; v.cerrada = true; rvGuardar(); cerrarDlg(); re(); toast(`<b>Informe enviado</b> a ${esc(P.join(", "))}.`, 4000); }
+      catch (e) { toast(esc(e.message), 5000); } }; }); }
+
 /* =================================================================== AJUSTES */
 VISTAS.ajustes = () => barra("Tlamatini Aula", "Ajustes y respaldo") + `<main class="wrap">
   <section class="card mt"><h3>Sus datos</h3><label class="campo"><span>Nombre (como aparece en sus documentos)</span><input id="yN" value="${esc(yo().nombre)}"></label><label class="campo"><span>Correo</span><input id="yC" type="email" value="${esc(yo().correo)}"></label><div class="fila fin"><button class="btn p s" id="yOk">Guardar</button></div></section>
@@ -596,6 +861,7 @@ ENLAZAR.ajustes = () => { $("#yOk").onclick = () => { D.docente.nombre = val("yN
 function arrancarDatos() { if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz:1", "Bruno Muestra Díaz:1", "Camila Ficticia López:1", "Diego Prueba Soto:2", "Elena Ejemplo Cruz:2", "Fernando Demo Ríos:2", "Gabriela Muestra Peña:3", "Hugo Ficticio Lara:3", "Itzel Ejemplo Mora:3", "Joaquín Prueba Vega:3"].forEach(x => { const [n, gr] = x.split(":"); g.alumnos.push({ id: uid(), nombre: n, g: +gr }); });
     D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
-window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=)/.test(location.hash)) location.reload(); });
+window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-(async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); })();
+(async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1]; if (rv) history.replaceState(null, "", location.pathname);
+  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } })();
