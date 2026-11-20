@@ -68,6 +68,13 @@ async function adGenerar(v) {
   doc.setTitle("Anexo D - Registro de incidencias"); doc.setProducer("Ulama · Supervisión Escolar Zona 050");
   return { bytes: await doc.save(), avisos };
 }
+/* Imprime el formato tal cual: cada página del PDF ocupa una hoja carta completa */
+async function adImprimir(bytes) {
+  const L = await pdfjs(), pdf = await L.getDocument({ data: bytes.slice(0) }).promise, imgs = [];
+  for (let i = 1; i <= pdf.numPages; i++) { const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2.6 }), c = document.createElement("canvas");
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height); await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; imgs.push(c.toDataURL("image/png")); }
+  imprimir(`<style>@page{size:letter;margin:0}</style>${imgs.map(u => `<img src="${u}" alt="" style="display:block;width:215.9mm;height:279.4mm;page-break-after:always;break-after:page">`).join("")}`);
+}
 function adArchivo(v) { const n = String(v.alumno || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w ]+/g, "").trim(); return `Anexo D - Registro de incidencias${n ? " - " + n : ""}.pdf`; }
 
 /* ---------- llenar el formato ---------- */
@@ -105,7 +112,7 @@ function dlgAnexoD(incId) {
     ${D.cfg.firma ? `<label class="ad-firma"><input type="checkbox" id="adFi" ${v.firma ? "checked" : ""}><span>Poner mi firma digital</span><img src="${D.cfg.firma}" alt="Su firma"></label>`
       : `<p class="small muted">¿Quiere que aparezca su firma? Súbala una vez en <b>Ajustes → Mi firma digital</b>.</p>`}
     <div id="adAv"></div>
-    <div class="fila fin"><button class="btn" id="adNo">Cancelar</button>${navigator.canShare ? `<button class="btn" id="adCo">Compartir</button>` : ""}<button class="btn p" id="adSi">${ic("bajar", 18)} Descargar PDF</button></div>`, w => {
+    <div class="fila fin"><button class="btn" id="adNo" style="margin-right:auto">Cancelar</button>${navigator.canShare ? `<button class="btn" id="adCo">Compartir</button>` : ""}<button class="btn" id="adIm">${ic("impr", 18)} Imprimir</button><button class="btn p" id="adSi">${ic("bajar", 18)} Descargar PDF</button></div>`, w => {
     const leer = () => { v.fecha = w.querySelector("#adF").value || hoy(); v.alumno = w.querySelector("#adA").value.trim(); v.grado = w.querySelector("#adGr").value.trim();
       v.otro = w.querySelector("#adO").value.trim(); v.madre = w.querySelector("#adM").value.trim(); v.desc = w.querySelector("#adD").value.trim(); v.rec = w.querySelector("#adR").value.trim();
       v.obs = w.querySelector("#adOb").value.trim(); v.docente = w.querySelector("#adDo").value.trim(); v.testigo = w.querySelector("#adTe").value.trim();
@@ -114,22 +121,24 @@ function dlgAnexoD(incId) {
     w.querySelector("#adL").onchange = e => { if (e.target.value) w.querySelector("#adA").value = e.target.value; };
     w.querySelectorAll("[data-adt]").forEach(c => c.onclick = () => { const t = c.dataset.adt, i = v.tipos.indexOf(t); i < 0 ? v.tipos.push(t) : v.tipos.splice(i, 1); c.setAttribute("aria-pressed", i < 0); });
     w.querySelector("#adNo").onclick = cerrarDlg;
-    const hacer = async compartir => { leer();
+    const hacer = async modo => { leer(); const compartir = modo === "compartir";
       if (!v.alumno) { w.querySelector("#adA").focus(); return toast("Escriba o elija el nombre de la alumna o alumno."); }
       if (!v.tipos.length && !v.otro) return toast("Marque el tipo de incidencia.");
-      const b = w.querySelector(compartir ? "#adCo" : "#adSi"), txt = b.innerHTML; b.disabled = true; b.textContent = "Generando…";
+      const b = w.querySelector(modo === "compartir" ? "#adCo" : modo === "imprimir" ? "#adIm" : "#adSi"), txt = b.innerHTML; b.disabled = true; b.textContent = "Generando…";
       try { const r = await adGenerar(v);
         w.querySelector("#adAv").innerHTML = r.avisos.length ? `<div class="aviso small mt" style="background:var(--maiz-s);border-radius:12px;padding:10px 12px">${r.avisos.map(esc).join("<br>")}</div>` : "";
         if (inc) { inc.anexoD = JSON.parse(JSON.stringify(v)); inc.anexoD.hecho = new Date().toISOString(); guardar(); }
         const nombre = adArchivo(v), blob = new Blob([r.bytes], { type: "application/pdf" });
-        if (compartir) { const f = new File([blob], nombre, { type: "application/pdf" });
+        if (modo === "imprimir") { await adImprimir(r.bytes); }
+        else if (compartir) { const f = new File([blob], nombre, { type: "application/pdf" });
           if (navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: "Anexo D - Registro de incidencias" }); } catch (e) {} } else toast("Este dispositivo no permite compartir el archivo; use «Descargar PDF»."); }
         else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
           toast(r.avisos.length ? "PDF listo. Revise el aviso: algún texto es muy largo." : "<b>Anexo D listo.</b> Se descargó el PDF."); }
       } catch (e) { console.error(e); toast("No se pudo generar el PDF. Revise su conexión la primera vez que lo use."); }
       b.disabled = false; b.innerHTML = txt; };
-    w.querySelector("#adSi").onclick = () => hacer(false);
-    if (w.querySelector("#adCo")) w.querySelector("#adCo").onclick = () => hacer(true);
+    w.querySelector("#adSi").onclick = () => hacer("descargar");
+    w.querySelector("#adIm").onclick = () => hacer("imprimir");
+    if (w.querySelector("#adCo")) w.querySelector("#adCo").onclick = () => hacer("compartir");
   });
 }
 
