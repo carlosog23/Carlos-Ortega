@@ -528,11 +528,35 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;p
 window.addEventListener('appinstalled',()=>{instEvt=null;pintarInstalar();toast('App instalada')});
 function pintarInstalar(){
   const ya=instalada();
+  pintarAvisoInstalar(ya);
   $('#instCard').hidden=ya||(!instEvt&&!esIOS);
   $('#instBtn').hidden=!instEvt;
   if(esIOS&&!ya)$('#instTxt').textContent='En iPhone se instala desde Safari (pasos abajo).';
 }
 $('#instBtn').onclick=async()=>{if(!instEvt)return;instEvt.prompt();try{await instEvt.userChoice}catch(e){}instEvt=null;pintarInstalar()};
+/* Aviso al inicio (registro y Despacho): sigue saliendo cada vez que se abre mientras la app no esté instalada.
+   La «×» solo lo oculta hasta la próxima vez que se abra. */
+let instOculto=false;
+const esAndroid=/Android/i.test(navigator.userAgent);
+function pintarAvisoInstalar(ya){
+  const txt=esIOS?'Agrégala a tu pantalla de inicio: se abre como app y recibes los avisos.':'Tenla a la mano con su ícono, como una app, y recibe los avisos de tus compañeros.';
+  document.querySelectorAll('.inst-banner').forEach(b=>{
+    b.hidden=ya||instOculto;if(b.hidden)return;
+    b.innerHTML='<div class="ic"><svg><use href="#i-down"/></svg></div><div class="tx"><b>Instala la app en tu teléfono</b><small>'+txt+'</small></div><button class="ok" type="button">Instalar</button><button class="x" type="button" aria-label="Ocultar por ahora">×</button>';
+    b.querySelector('.ok').onclick=instalarAhora;
+    b.querySelector('.x').onclick=()=>{instOculto=true;pintarAvisoInstalar(ya)};
+  });
+}
+async function instalarAhora(){
+  if(instEvt){instEvt.prompt();try{await instEvt.userChoice}catch(e){}instEvt=null;pintarInstalar();return}
+  const pasos=esIOS?['Abre esta página en <b>Safari</b> (si estás en otro navegador, copia el enlace y pégalo en Safari).','Toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba).','Elige <b>«Agregar a pantalla de inicio»</b> y toca <b>Agregar</b>.','Abre la app desde su nuevo ícono.']
+    :esAndroid?['Abre esta página en <b>Chrome</b>.','Toca el menú <b>⋮</b> (arriba a la derecha).','Elige <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.','Abre la app desde su nuevo ícono.']
+    :['Abre esta página en <b>Chrome</b> o <b>Edge</b>.','Toca el ícono de <b>instalar</b> que aparece a la derecha de la barra de direcciones (o el menú ⋮ → «Instalar»).','Ábrela desde su ícono.'];
+  const v=document.createElement('div');v.className='inst-pasos';
+  v.innerHTML='<div class="hoja" role="dialog" aria-modal="true"><h3>Cómo instalarla</h3><ol>'+pasos.map(p=>'<li>'+p+'</li>').join('')+'</ol><button class="btn" type="button">Entendido</button></div>';
+  v.onclick=e=>{if(e.target===v||e.target.tagName==='BUTTON')v.remove()};document.body.appendChild(v);
+}
+matchMedia('(display-mode: standalone)').addEventListener?.('change',pintarInstalar);
 
 /* ================= Avisos de la supervisión y bienvenida ================= */
 const LSV='tarjetaGasolina.anunciosVistos';
@@ -593,7 +617,7 @@ let miUid=null,alertasPrevias=[];
 function repintar(){pintarEstado();pintarAlertas();pintarAvisos();pintarGasolineras();if(tabActual==='despacho')pintarMapa()}
 function iniciar(){
   if(!perfil){mostrarRegistro(false)}else{$('#app').hidden=false;pintarPerfil()}
-  pintarInstalar();repintar();
+  registrarSW();pintarInstalar();repintar();
   backend.ready.then(be=>{
     miUid=be.uid;
     if(perfil)be.guardarPerfil(perfil).catch(()=>{});

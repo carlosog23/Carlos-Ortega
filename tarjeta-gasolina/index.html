@@ -344,6 +344,19 @@ input.leido{border-color:var(--saldo);background:color-mix(in srgb,var(--saldo) 
 .viewer button{position:absolute;top:calc(14px + var(--sat));right:14px;font-weight:800;padding:10px 16px;border-radius:99px;border:0;background:#fff;color:#111;cursor:pointer}
 .leaflet-container{font-family:var(--body)}
 @media (prefers-reduced-motion:no-preference){.item{transition:background .15s}.item:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}}
+/* Aviso para instalar la app: sale al inicio mientras no esté instalada */
+.inst-banner{display:flex;gap:12px;align-items:center;padding:14px 16px;margin:0 0 14px;border-radius:var(--r);color:#fff;background:linear-gradient(135deg,var(--navy2),var(--navy));box-shadow:var(--shadow);position:relative}
+.inst-banner[hidden]{display:none}
+.reg .inst-banner{margin:14px 16px 0}
+.inst-banner .ic{width:44px;height:44px;border-radius:14px;flex:none;display:grid;place-items:center;background:var(--amber);color:var(--navy)}
+.inst-banner .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.inst-banner .tx{flex:1;min-width:0}.inst-banner b{display:block;font-size:16px}.inst-banner small{display:block;font-size:13.5px;opacity:.85;line-height:1.35}
+.inst-banner .ok{border:0;cursor:pointer;font-weight:800;font-size:14.5px;padding:11px 16px;border-radius:99px;background:var(--amber);color:var(--navy);white-space:nowrap}
+.inst-banner .x{position:absolute;top:4px;right:6px;border:0;background:transparent;color:#fff;opacity:.6;font-size:20px;line-height:1;cursor:pointer;padding:6px}
+.inst-pasos{position:fixed;inset:0;z-index:90;background:rgba(5,15,28,.55);display:flex;align-items:flex-end;justify-content:center}
+.inst-pasos .hoja{background:var(--card);color:var(--ink);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px 20px calc(20px + var(--sab))}
+@media(min-width:600px){.inst-pasos{align-items:center}.inst-pasos .hoja{border-radius:22px}}
+.inst-pasos h3{margin:0 0 8px;font-family:var(--display);font-size:20px}.inst-pasos ol{margin:8px 0 14px;padding-left:22px;line-height:1.6}
 </style>
 </head><body>
 
@@ -372,6 +385,7 @@ input.leido{border-color:var(--saldo);background:color-mix(in srgb,var(--saldo) 
     <h1>Control de combustible<br>y alertas de despacho</h1>
     <p>Lleva el saldo de tu tarjeta y avisa a tus compañeros cuando una gasolinera no tenga sistema.</p>
   </div>
+  <div class="inst-banner" hidden></div>
   <form id="fReg" autocomplete="on" novalidate>
     <h2 id="regTit">Regístrate para entrar</h2>
     <label>Nombre completo<input id="rNombre" name="name" autocomplete="name" placeholder="Ej. Mtra. Ana López Ruiz" required></label>
@@ -410,6 +424,7 @@ input.leido{border-color:var(--saldo);background:color-mix(in srgb,var(--saldo) 
   <main>
     <!-- ---------- DESPACHO ---------- -->
     <section class="tab" data-tab="despacho">
+      <div class="inst-banner" hidden></div>
       <div id="anuncios" class="alertas"></div>
       <div class="card estado" id="estado" data-s="off" aria-live="polite">
         <div class="dot"><svg class="i"><use href="#i-shield"/></svg></div>
