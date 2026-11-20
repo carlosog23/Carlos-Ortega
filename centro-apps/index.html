@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Mtro. Carlos Gabriel Ortega Gutiérrez">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#123a6b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Centro de Apps">
+<title>Centro de Apps · Carlos Ortega</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: consola de dos puertas → "Usar" (buscador + recientes + mosaicos por grupo) · "Administrar" (resumen + lista maestra / ficha de detalle) */
+:root{
+  --bg:#f2f4f7; --panel:#ffffff; --panel-2:#e9edf2; --ink:#0d1a2b; --muted:#5a6779; --line:#d9dfe7;
+  --accent:#1b4fb8; --accent-ink:#ffffff; --sun:#e8a400; --ok:#1f7a4d; --warn:#9a5b00; --warn-bg:#fdf0d9;
+  --night:#0d1a2b; --night-ink:#e9eef6; --night-muted:#93a3b8; --night-line:#22324a;
+  --f-display:"Schibsted Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"Inter","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:18px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a111b; --panel:#111b28; --panel-2:#172333; --ink:#e7edf5; --muted:#93a3b8; --line:#223146;
+  --accent:#6f9cff; --accent-ink:#071430; --sun:#f5c044; --ok:#5cc596; --warn:#f0b35a; --warn-bg:#2b2112;
+  --night:#060c14; --night-ink:#e9eef6; --night-muted:#93a3b8; --night-line:#1d2b3e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a111b; --panel:#111b28; --panel-2:#172333; --ink:#e7edf5; --muted:#93a3b8; --line:#223146;
+  --accent:#6f9cff; --accent-ink:#071430; --sun:#f5c044; --ok:#5cc596; --warn:#f0b35a; --warn-bg:#2b2112;
+  --night:#060c14; --night-ink:#e9eef6; --night-muted:#93a3b8; --night-line:#1d2b3e; color-scheme:dark}
+*{box-sizing:border-box}
+html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}
+body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 56px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+.mono{font-family:var(--f-mono);font-size:.76rem;letter-spacing:.02em}
+.eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- Barra superior ---------- */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left}
+.brand .logo{width:40px;height:40px;border-radius:12px;background:var(--night);display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:8px}
+.brand .logo i{border-radius:3px;background:#5d8bff}.brand .logo i:nth-child(2){background:var(--sun)}.brand .logo i:nth-child(3){background:#3fb68b}.brand .logo i:nth-child(4){background:#f4f6fa}
+.brand b{display:block;font-family:var(--f-display);font-size:1.12rem;line-height:1.1}
+.brand span{font-size:.8rem;color:var(--muted)}
+.seg{display:flex;background:var(--panel-2);border-radius:12px;padding:4px;gap:2px}
+.seg button{border:0;background:none;padding:7px 14px;border-radius:9px;font-size:.86rem;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0/.12)}
+
+/* ---------- Puertas ---------- */
+.hello{display:flex;flex-direction:column;gap:6px}
+.hello h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;line-height:1.05}
+.hello h1 em{font-style:normal;color:var(--muted);font-weight:500}
+.gate{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+@media (max-width:760px){.gate{grid-template-columns:1fr}}
+.door{position:relative;border-radius:24px;padding:26px;text-align:left;display:flex;flex-direction:column;gap:18px;border:1px solid var(--line);
+  background:var(--panel);transition:transform .2s ease,box-shadow .2s ease;overflow:hidden;min-width:0}
+.door:hover{transform:translateY(-3px);box-shadow:0 18px 40px -22px rgb(13 26 43/.45)}
+.door.night{background:var(--night);color:var(--night-ink);border-color:var(--night-line)}
+.door h2{font-size:1.6rem}
+.door p{margin:0;color:var(--muted);max-width:40ch}
+.door.night p{color:var(--night-muted)}
+.door .go{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem;color:var(--accent)}
+.door.night .go{color:var(--sun)}
+.mini{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;max-width:420px}
+.mini span{aspect-ratio:1;border-radius:28%;display:grid;place-items:center}
+.mini svg{width:55%;height:55%}
+.stat-lines{display:flex;flex-direction:column;gap:6px;font-family:var(--f-mono);font-size:.78rem;color:var(--night-muted)}
+.stat-lines div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--night-line);padding-bottom:6px}
+.stat-lines b{color:var(--night-ink);font-weight:500}
+
+/* ---------- Íconos de app ---------- */
+.ico{flex:none;width:54px;height:54px;border-radius:28%;display:grid;place-items:center;background:var(--c);
+  box-shadow:inset 0 -3px 0 rgb(0 0 0/.18),inset 0 1px 0 rgb(255 255 255/.18)}
+.ico svg{width:56%;height:56%;color:#fff}
+
+/* ---------- Modo usar ---------- */
+.search{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 6px 4px 14px}
+.search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:1rem;padding:9px 0;color:var(--ink);outline:none}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+kbd{font-family:var(--f-mono);font-size:.72rem;padding:3px 7px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted)}
+.section{display:flex;flex-direction:column;gap:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.sec-h h2{font-size:1.02rem}
+.recent{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.chipapp{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);text-decoration:none;white-space:nowrap;font-weight:600;font-size:.88rem}
+.chipapp .ico{width:30px;height:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{position:relative;display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);
+  text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s;min-width:0}
+.card:hover{border-color:var(--c);transform:translateY(-2px);box-shadow:0 12px 28px -20px var(--c)}
+.card .t{min-width:0}
+.card b{display:block;font-family:var(--f-display);font-size:1.08rem}
+.card .t span{display:block;font-size:.84rem;color:var(--muted)}
+.card .num{position:absolute;top:10px;right:12px}
+.card.off{opacity:.55;pointer-events:none}
+.empty{color:var(--muted);padding:20px;border:1px dashed var(--line);border-radius:var(--r);text-align:center}
+@media (hover:none){.card .num{display:none}}
+
+/* ---------- PIN ---------- */
+.pin{margin:0 auto;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 22px;border-radius:24px;background:var(--night);color:var(--night-ink)}
+.pin p{margin:0;color:var(--night-muted);font-size:.88rem;text-align:center}
+.dots{display:flex;gap:14px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--night-muted)}
+.dots i.on{background:var(--sun);border-color:var(--sun)}
+.dots.shake{animation:sh .35s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:12px}
+.pad button{height:64px;border-radius:50%;border:1px solid var(--night-line);background:rgb(255 255 255/.04);font-family:var(--f-display);font-size:1.4rem;color:var(--night-ink)}
+.pad button:hover{background:rgb(255 255 255/.1)}
+.pad .sm{font-family:var(--f-body);font-size:.8rem;color:var(--night-muted)}
+.pin .err{min-height:1.3em;color:var(--sun)}
+
+/* ---------- Modo administrar ---------- */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.kpi b{display:block;font-family:var(--f-display);font-size:1.8rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.8rem;color:var(--muted)}
+.console{display:grid;grid-template-columns:290px 1fr;gap:16px;align-items:start}
+@media (max-width:860px){.console{grid-template-columns:1fr}}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px;display:flex;flex-direction:column;gap:2px}
+@media (max-width:860px){.list{flex-direction:row;overflow-x:auto}}
+.li{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;border:0;background:none;text-align:left;width:100%;min-width:0}
+@media (max-width:860px){.li{width:auto;flex:none}}
+.li .ico{width:34px;height:34px}
+.li b{display:block;font-size:.9rem;font-weight:600}
+.li small{display:block;font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li[aria-current="true"]{background:var(--panel-2)}
+.li .dot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;min-width:0}
+.d-head{padding:22px;display:flex;gap:16px;align-items:center;background:linear-gradient(120deg,color-mix(in srgb,var(--c) 16%,var(--panel)),var(--panel) 70%);border-bottom:1px solid var(--line)}
+.d-head .ico{width:64px;height:64px}
+.d-head h2{font-size:1.6rem}
+.d-head p{margin:2px 0 0;color:var(--muted)}
+.d-body{padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:620px){.d-body{grid-template-columns:1fr}}
+.blk{display:flex;flex-direction:column;gap:10px;min-width:0}
+.blk.full{grid-column:1/-1}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;border:1px solid var(--line);background:var(--panel);text-decoration:none;font-size:.87rem;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.adm{background:var(--night);color:var(--night-ink);border-color:transparent}
+.btn[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.btn svg{width:16px;height:16px}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.88rem}
+dt{color:var(--muted)}
+dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.76rem;padding:4px 10px;border-radius:999px;background:var(--panel-2);color:var(--muted)}
+.tag.warn{background:var(--warn-bg);color:var(--warn);font-weight:600}
+.rel{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rel a{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:9px;text-decoration:none;font-size:.88rem}
+.rel a:hover{background:var(--panel-2)}
+.rel a span{color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--muted)}
+.field input,.field textarea{font:inherit;font-size:.88rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+.field textarea{min-height:96px;resize:vertical}
+.qrbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.qr{width:132px;height:132px;padding:8px;background:#fff;border-radius:12px;border:1px solid var(--line)}
+.qr img,.qr canvas{width:100%!important;height:auto!important}
+.foot{font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--night);color:var(--night-ink);
+  padding:10px 16px;border-radius:12px;font-size:.88rem;transition:.25s;pointer-events:none;z-index:20}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.fade{animation:fd .3s ease both}
+@keyframes fd{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.firma{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 0 6px}
+.firma span{font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.firma img{width:230px;height:auto}.firma .osc{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .firma .cla{display:none}:root:not([data-theme="light"]) .firma .osc{display:block}}
+:root[data-theme="dark"] .firma .cla{display:none}:root[data-theme="dark"] .firma .osc{display:block}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <button class="brand" id="home" aria-label="Volver al inicio">
+      <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span><b>Centro de Apps</b><span>Mtro. Carlos Gabriel Ortega Gutiérrez</span></span>
+    </button>
+    <button class="btn" id="instalar" hidden style="padding:7px 12px">Instalar app</button>
+    <div class="seg" id="seg" hidden>
+      <button data-m="use" aria-pressed="false">Usar</button>
+      <button data-m="admin" aria-pressed="false">Administrar</button>
+    </div>
+  </header>
+  <main id="view"></main>
+  <div class="firma"><span>Desarrollada por</span><img class="cla" src="firma-autor.svg" alt="Maestro Carlos Ortega"><img class="osc" src="firma-autor-blanca.svg" alt="Maestro Carlos Ortega"></div>
+  <footer class="foot"><span>Zona Escolar 050 · Camalú, Baja California</span><span id="today"></span></footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="qrcode.min.js"></script>
+<script>
+/* ---------- Íconos propios ---------- */
+const I={
+ tlamatini:'<path d="M12 12.5a1 1 0 1 1 1-1 3 3 0 1 1-3-3 5 5 0 1 1-5 5 7 7 0 0 1 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="11.5" r="1.4" fill="#ffd36b"/>',
+ tequio:'<g fill="currentColor"><circle cx="12" cy="4" r="2"/><circle cx="19" cy="8" r="2"/><circle cx="19" cy="16" r="2"/><circle cx="12" cy="20" r="2"/><circle cx="5" cy="16" r="2"/><circle cx="5" cy="8" r="2"/></g><circle cx="12" cy="12" r="2.6" fill="#ffd36b"/>',
+ pagina:'<text x="12" y="16.5" text-anchor="middle" font-family="Schibsted Grotesk,system-ui,sans-serif" font-weight="800" font-size="12" fill="currentColor">050</text>',
+ ulama:'<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 9c4 2 10 2 14 0M5 15c4-2 10-2 14 0" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+ preescolar:'<rect x="5" y="3.5" width="14" height="17" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 9l1.5 1.5 3-3M8.5 15h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+ ingles:'<path d="M6 13a6 6 0 0 1 12 0" fill="none" stroke="#ffd36b" stroke-width="2"/><path d="M3 16c2-1.4 4-1.4 6 0s4 1.4 6 0 4-1.4 6 0M3 20c2-1.4 4-1.4 6 0s4 1.4 6 0 4-1.4 6 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+ cherry:'<circle cx="8" cy="16" r="4" fill="currentColor"/><circle cx="16.5" cy="15" r="4" fill="currentColor"/><path d="M8 12c1-5 4-8 9-8M16.5 11c0-3-1-5-1-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+ gasolina:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5" fill="none" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>'
+};
+const svg=(id)=>`<svg viewBox="0 0 24 24" aria-hidden="true">${I[id]}</svg>`;
+
+/* ---------- Catálogo ---------- */
+const GH="https://carlosog23.github.io/Carlos-Ortega/", REPO="https://github.com/carlosog23/Carlos-Ortega/tree/main/";
+const ART=id=>"https://claude.ai/code/artifact/"+id;
+const APPS=[
+ {id:"tlamatini",name:"Tlamatini",tag:"Un camino para la labor docente",g:"zona",c:"#3b3fa0",
+  url:GH+"formatos-ppie/",admin:"",repo:REPO+"formatos-ppie",folder:"formatos-ppie",
+  users:"Docentes y directores · enlace por escuela",stack:"GitHub Pages · GoatCounter · Tlami con Gemini (servidor de Tequio)",
+  tags:[{t:"Libro de firmas cerrado por la Circular 40",w:1},{t:"Acceso con enlaces que caducan"}],
+  rel:[["Tlamatini · Nuevo diseño","5b325f3a-8144-416d-aac2-1bbd4dad3ed3"],["Formatos PPIE 2026","dad2645f-edcb-4987-9d23-ab8c8587b5e6"],["Gestión Escolar Zona 050","7424de28-7af1-462f-8650-5d80a2f3e41f"],["Instalar Tlamatini sin internet","7d576af2-5f3a-45f9-bd64-cbbda3b20a58"],["Grupo de desarrollo Tlamatini","15792352-8f5c-4f75-bc80-70864fb5f0f6"],["Logotipo Tlamatini","7d9e6efc-6bd2-4e0b-8b66-021d9dc375c8"]]},
+ {id:"tequio",name:"Tequio",tag:"Lo que acordamos juntos, lo caminamos juntos",g:"zona",c:"#b4532a",
+  url:GH+"tequio/",admin:"",repo:REPO+"tequio",folder:"tequio",
+  users:"Supervisión, ATP y directores",stack:"GitHub Pages · Apps Script (supervision050sep) · registro central (tequio023)",
+  tags:[{t:"Multizona"},{t:"Juntar cambios antes de actualizar el servidor"}],
+  rel:[["Asistente de instalación Tequio","d2df28db-cc8c-4084-ab51-702c8d9e6456"],["Requisitos para dar de alta una zona","364e21a2-e2f0-4b61-a976-a8857ad075c1"],["Tlamatini y Tequio · Reunión de trabajo","c6b0e575-23dc-4a1c-847c-f4dfaf608b59"],["Logotipo Tequio","3d5a19f5-03aa-4834-a476-54eb38e17efb"]]},
+ {id:"pagina",name:"Página Zona 050",tag:"Sitio público de la zona",g:"zona",c:"#1b4fb8",
+  url:GH+"zona050/",admin:"",repo:REPO+"zona050",folder:"zona050",
+  users:"Familias, comunidad y personal",stack:"GitHub Pages · Facebook «Supervisión Escolar Zona 050»",
+  tags:[{t:"Pública"},{t:"Faltan fotografías de la zona"}],rel:[]},
+ {id:"ulama",name:"Ulama",tag:"Educación Física",g:"docentes",c:"#c4501a",
+  url:GH+"educacion-fisica/",admin:GH+"educacion-fisica/#admin",repo:REPO+"educacion-fisica",folder:"educacion-fisica",
+  users:"Maestros de Educación Física · alta por la Supervisión",stack:"GitHub Pages · Google Cloud (carlosog23) · demo en demo.html",
+  tags:[{t:"Control de acceso activo"},{t:"Hoja de registro en línea"}],
+  rel:[["Ulama · Educación Física","f852e39d-966b-453c-a048-23194b306d50"],["Hoja de registro del maestro","2007d875-c13e-47a3-a430-5abb6be624fe"],["Directorio de docentes de EF","4a5aa529-6e32-42e5-b428-9eb1729a4efb"]]},
+ {id:"preescolar",name:"Evaluación Preescolar",tag:"Evaluación cualitativa por campos formativos",g:"docentes",c:"#a3306f",
+  url:GH+"evaluacion-preescolar/",admin:"",repo:REPO+"evaluacion-preescolar",folder:"evaluacion-preescolar",
+  users:"Docentes de preescolar · abierta con el enlace",stack:"GitHub Pages · Apps Script + Gemini (carlosog23)",
+  tags:[{t:"Sin control de acceso"}],
+  rel:[["Evaluación Cualitativa Preescolar","0d2e69d4-2ca6-47a0-97bc-49ec28423288"]]},
+ {id:"ingles",name:"Misioneros del Inglés",tag:"Misión Cultural 164 · Rosarito",g:"otros",c:"#18366b",
+  url:"https://carlosog23.github.io/misioneros-del-ingles/",admin:"",repo:"https://github.com/carlosog23/misioneros-del-ingles",folder:"misioneros-del-ingles",
+  users:"Alumnos de la Misión 164 · usuario y contraseña",stack:"GitHub Pages · Firebase (misioneros-del-ingles)",
+  tags:[{t:"Cuadernillo PDF en espera de revisión",w:1}],
+  rel:[["Misioneros del Inglés","6c4d8dc2-fd7c-443b-8a2a-861e777bd7be"],["Logo Misioneros del Inglés","8fe0ca6a-2caf-42cf-878f-2efc2fddeab0"]]},
+ {id:"cherry",name:"Cherry Nails",tag:"Agenda de citas de Melissa",g:"otros",c:"#b3123a",
+  url:GH+"cherry-nails/",admin:"",repo:REPO+"cherry-nails",folder:"cherry-nails",
+  users:"Melissa López",stack:"GitHub Pages · Apps Script (recordatorios)",
+  tags:[{t:"Instalable en el celular"}],
+  rel:[["Cherry Nails Agenda","f0287e91-0df6-4322-b032-8f5a2bf08145"]]},
+ {id:"gasolina",name:"Tarjeta de Gasolina",tag:"Cargas y alertas SiGGo",g:"otros",c:"#3f7a12",
+  url:GH+"tarjeta-gasolina/",admin:"",repo:REPO+"tarjeta-gasolina",folder:"tarjeta-gasolina",
+  users:"Supervisores e inspectores",stack:"GitHub Pages · Firebase (alertas)",
+  tags:[{t:"Alerta «no hay sistema»"}],
+  rel:[["Tarjeta de Gasolina","45a9780c-4aca-47b2-bda5-03cec0f367e8"]]},
+];
+const GROUPS={zona:"Zona Escolar 050",docentes:"Para docentes",otros:"Proyectos personales"};
+
+/* ---------- Estado en este dispositivo ---------- */
+const KEY="centroApps.v1";
+let S={};try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){S={}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const cfg=a=>{const o=(S.links||{})[a.id]||{};return{url:o.url??a.url,admin:o.admin??a.admin}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const byId=id=>APPS.find(a=>a.id===id);
+function touch(id){S.recent=[id,...(S.recent||[]).filter(x=>x!==id)].slice(0,4);save()}
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),1800)}
+
+const view=document.getElementById("view"), seg=document.getElementById("seg");
+let mode="gate", adminOk=false, sel="tlamatini";
+document.getElementById("today").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const saludo=()=>{const h=new Date().getHours();return h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"};
+
+function setSeg(){seg.hidden=mode==="gate"||mode==="pin";seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode))}
+seg.onclick=e=>{const m=e.target.dataset?.m;if(m==="use")renderUse();if(m==="admin")adminOk?renderAdmin():renderPin()};
+document.getElementById("home").onclick=renderGate;
+
+/* ---------- Inicio ---------- */
+function renderGate(){
+  mode="gate";setSeg();
+  const avisos=APPS.filter(a=>a.tags.some(t=>t.w)).length;
+  view.innerHTML=`
+  <section class="hello fade"><span class="eyebrow">${APPS.length} apps en servicio</span><h1>${saludo()}, Carlos. <em>¿Cómo quieres entrar?</em></h1></section>
+  <section class="gate fade">
+    <button class="door" id="dUse">
+      <span class="eyebrow">Modo normal</span>
+      <div><h2>Usar mis apps</h2><p>Entra a cada app como cualquier usuario. Busca, abre y regresa a lo último que usaste.</p></div>
+      <div class="mini">${APPS.map(a=>`<span style="background:${a.c}">${svg(a.id)}</span>`).join("")}</div>
+      <span class="go">Entrar →</span>
+    </button>
+    <button class="door night" id="dAdm">
+      <span class="eyebrow" style="color:var(--night-muted)">Supervisión</span>
+      <div><h2>Administrar</h2><p>Paneles de control, código en GitHub, artifacts, QR para compartir y notas de cada proyecto.</p></div>
+      <div class="stat-lines">
+        <div><span>Apps publicadas</span><b>${APPS.length}</b></div>
+        <div><span>Con avisos pendientes</span><b>${avisos}</b></div>
+        <div><span>Artifacts vinculados</span><b>${APPS.reduce((n,a)=>n+a.rel.length,0)}</b></div>
+      </div>
+      <span class="go">Entrar con PIN →</span>
+    </button>
+  </section>`;
+  document.getElementById("dUse").onclick=renderUse;
+  document.getElementById("dAdm").onclick=()=>adminOk?renderAdmin():renderPin();
+}
+
+/* ---------- Usar ---------- */
+function cardHTML(a,i){const u=cfg(a).url;
+  return u?`<a class="card" style="--c:${a.c}" href="${esc(u)}" target="_blank" rel="noopener" data-open="${a.id}">
+     <span class="ico">${svg(a.id)}</span><span class="t"><b>${a.name}</b><span>${a.tag}</span></span><kbd class="num">${i+1}</kbd></a>`
+   :`<div class="card off" style="--c:${a.c}"><span class="ico">${svg(a.id)}</span><span class="t"><b>${a.name}</b><span>Enlace pendiente</span></span></div>`}
+function renderUse(){
+  mode="use";setSeg();
+  const rec=(S.recent||[]).map(byId).filter(Boolean);
+  view.innerHTML=`
+  <label class="search fade" for="q">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="q" placeholder="Buscar app… (escribe y presiona Enter)" autocomplete="off"><kbd>Ctrl K</kbd>
+  </label>
+  ${rec.length?`<section class="section fade"><div class="sec-h"><h2>Recientes</h2></div><div class="recent">${rec.map(a=>`<a class="chipapp" href="${esc(cfg(a).url)}" target="_blank" rel="noopener" data-open="${a.id}"><span class="ico" style="--c:${a.c}">${svg(a.id)}</span>${a.name}</a>`).join("")}</div></section>`:""}
+  <div id="groups"></div>`;
+  const q=document.getElementById("q");
+  const draw=()=>{const t=q.value.trim().toLowerCase();let i=0;
+    const html=Object.entries(GROUPS).map(([g,title])=>{const list=APPS.filter(a=>a.g===g&&(!t||(a.name+" "+a.tag+" "+a.users).toLowerCase().includes(t)));
+      if(!list.length)return"";return`<section class="section fade"><div class="sec-h"><h2>${title}</h2><span class="eyebrow">${list.length}</span></div><div class="grid">${list.map(a=>cardHTML(a,APPS.indexOf(a))).join("")}</div></section>`}).join("");
+    document.getElementById("groups").innerHTML=html||`<p class="empty">Ninguna app coincide con «${esc(q.value)}».</p>`};
+  q.oninput=draw;
+  q.onkeydown=e=>{if(e.key==="Enter"){const first=document.querySelector("#groups a.card");if(first){first.click()}}};
+  draw();
+}
+document.addEventListener("click",e=>{const a=e.target.closest("[data-open]");if(a)touch(a.dataset.open)});
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(mode!=="use")renderUse();document.getElementById("q")?.focus()}
+  if(mode==="use"&&!e.ctrlKey&&!e.metaKey&&document.activeElement?.id!=="q"&&/^[1-8]$/.test(e.key)){const a=APPS[+e.key-1],u=cfg(a).url;if(u){touch(a.id);window.open(u,"_blank","noopener")||(location.href=u)}}
+});
+
+/* ---------- PIN ---------- */
+function renderPin(){
+  mode="pin";setSeg();
+  const nuevo=!S.pin;let v="";
+  view.innerHTML=`
+  <section class="pin fade">
+    <span class="eyebrow" style="color:var(--night-muted)">Administrar</span>
+    <h2 style="font-size:1.35rem">${nuevo?"Crea tu PIN":"Escribe tu PIN"}</h2>
+    <p>${nuevo?"Cuatro dígitos. Se guarda solo en este dispositivo.":"Para entrar al modo de administración."}</p>
+    <div class="dots" id="dots">${"<i></i>".repeat(4)}</div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join("")}<button class="sm" data-k="x">Cancelar</button><button data-k="0">0</button><button class="sm" data-k="b">Borrar</button></div>
+    <p class="err" id="err"></p>
+  </section>`;
+  const dots=document.getElementById("dots"),err=document.getElementById("err");
+  const paint=()=>[...dots.children].forEach((d,i)=>d.classList.toggle("on",i<v.length));
+  const press=k=>{
+    if(k==="x")return renderGate();
+    if(k==="b"){v=v.slice(0,-1);return paint()}
+    if(v.length<4){v+=k;paint()}
+    if(v.length===4){
+      if(nuevo||v===S.pin){if(nuevo){S.pin=v;save()}adminOk=true;setTimeout(renderAdmin,150)}
+      else{err.textContent="PIN incorrecto";dots.classList.add("shake");setTimeout(()=>{dots.classList.remove("shake");v="";paint()},380)}}
+  };
+  view.querySelector(".pad").onclick=e=>{const k=e.target.dataset?.k;if(k)press(k)};
+  view.onkeydown=null;
+  document.onkeydown=e=>{if(mode!=="pin")return;if(/^\d$/.test(e.key))press(e.key);if(e.key==="Backspace")press("b");if(e.key==="Escape")press("x")};
+}
+
+/* ---------- Administrar ---------- */
+function renderAdmin(){
+  mode="admin";setSeg();
+  const conAdmin=APPS.filter(a=>cfg(a).admin).length, avisos=APPS.filter(a=>a.tags.some(t=>t.w)).length;
+  view.innerHTML=`
+  <section class="kpis fade">
+    <div class="kpi"><b>${APPS.length}</b><span>Apps publicadas</span></div>
+    <div class="kpi"><b>${conAdmin}</b><span>Con panel de administrador</span></div>
+    <div class="kpi"><b>${avisos}</b><span>Con avisos</span></div>
+    <div class="kpi"><b>${APPS.reduce((n,a)=>n+a.rel.length,0)}</b><span>Artifacts vinculados</span></div>
+  </section>
+  <section class="console">
+    <nav class="list" id="list" aria-label="Apps">${APPS.map(a=>`<button class="li" data-sel="${a.id}" aria-current="${a.id===sel}"><span class="ico" style="--c:${a.c}">${svg(a.id)}</span><span style="min-width:0"><b>${a.name}</b><small>${a.folder}</small></span>${a.tags.some(t=>t.w)?'<i class="dot" title="Con avisos"></i>':""}</button>`).join("")}</nav>
+    <article class="detail" id="detail"></article>
+  </section>`;
+  document.getElementById("list").onclick=e=>{const b=e.target.closest("[data-sel]");if(!b)return;sel=b.dataset.sel;
+    document.querySelectorAll(".li").forEach(x=>x.setAttribute("aria-current",x.dataset.sel===sel));drawDetail()};
+  drawDetail();
+}
+function drawDetail(){
+  const a=byId(sel),k=cfg(a),notes=(S.notes||{})[a.id]||"";
+  const d=document.getElementById("detail");d.style.setProperty("--c",a.c);
+  d.innerHTML=`
+  <div class="d-head fade"><span class="ico">${svg(a.id)}</span><div style="min-width:0"><h2>${a.name}</h2><p>${a.tag}</p></div></div>
+  <div class="d-body fade">
+    <div class="blk full">
+      <div class="actions">
+        <a class="btn pri" href="${esc(k.url)}" target="_blank" rel="noopener" aria-disabled="${!k.url}" data-open="${a.id}">Abrir app</a>
+        <a class="btn adm" href="${esc(k.admin)}" target="_blank" rel="noopener" aria-disabled="${!k.admin}">${k.admin?"Panel de administrador":"Sin panel registrado"}</a>
+        <a class="btn" href="${esc(a.repo)}" target="_blank" rel="noopener">Código en GitHub</a>
+        <button class="btn" id="copy">Copiar enlace</button>
+      </div>
+      <div class="tags">${a.tags.map(t=>`<span class="tag${t.w?" warn":""}">${t.t}</span>`).join("")}</div>
+    </div>
+    <div class="blk">
+      <span class="eyebrow">Ficha técnica</span>
+      <dl><dt>Usuarios</dt><dd>${a.users}</dd><dt>Servicios</dt><dd>${a.stack}</dd><dt>Enlace</dt><dd class="mono">${esc(k.url.replace("https://",""))}</dd></dl>
+    </div>
+    <div class="blk">
+      <span class="eyebrow">QR para compartir</span>
+      <div class="qrbox"><div class="qr" id="qr" role="img" aria-label="Código QR de ${a.name}"></div><p style="margin:0;color:var(--muted);font-size:.84rem;max-width:22ch">Muéstralo en reuniones para que abran la app desde el celular.</p></div>
+    </div>
+    ${a.rel.length?`<div class="blk"><span class="eyebrow">Artifacts del proyecto</span><ul class="rel">${a.rel.map(([t,id])=>`<li><a href="${ART(id)}" target="_blank" rel="noopener">${t}<span>↗</span></a></li>`).join("")}</ul></div>`:""}
+    <div class="blk">
+      <span class="eyebrow">Notas y pendientes</span>
+      <label class="field" for="n-${a.id}">Solo se guardan en este dispositivo<textarea id="n-${a.id}" placeholder="Ideas, cambios por pedir, reportes de usuarios…">${esc(notes)}</textarea></label>
+    </div>
+    <div class="blk full">
+      <span class="eyebrow">Enlaces</span>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+        <label class="field" for="u-${a.id}">Enlace de la app<input id="u-${a.id}" value="${esc(k.url)}"></label>
+        <label class="field" for="a-${a.id}">Enlace de administrador<input id="a-${a.id}" value="${esc(k.admin)}" placeholder="Pega aquí tu enlace personal"></label>
+      </div>
+      <div class="actions"><button class="btn pri" id="saveL">Guardar enlaces</button><button class="btn" id="resetL">Restablecer</button><button class="btn" id="pinR">Cambiar PIN</button></div>
+    </div>
+  </div>`;
+  try{if(window.QRCode&&k.url)new QRCode(document.getElementById("qr"),{text:k.url,width:256,height:256,colorDark:"#0d1a2b",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M})}catch(e){}
+  document.getElementById("copy").onclick=()=>{navigator.clipboard?.writeText(k.url).then(()=>toast("Enlace copiado"),()=>toast(k.url))};
+  document.getElementById("n-"+a.id).oninput=e=>{S.notes=S.notes||{};S.notes[a.id]=e.target.value;save()};
+  document.getElementById("saveL").onclick=()=>{S.links=S.links||{};S.links[a.id]={url:document.getElementById("u-"+a.id).value.trim(),admin:document.getElementById("a-"+a.id).value.trim()};save();renderAdmin();toast("Enlaces guardados")};
+  document.getElementById("resetL").onclick=()=>{if(S.links)delete S.links[a.id];save();renderAdmin();toast("Enlaces restablecidos")};
+  document.getElementById("pinR").onclick=()=>{delete S.pin;save();adminOk=false;renderPin()};
+}
+
+renderGate();
+/* Instalar como app */
+let promptInst=null;const bInst=document.getElementById("instalar");
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();promptInst=e;bInst.hidden=false});
+bInst.onclick=async()=>{if(!promptInst)return;promptInst.prompt();await promptInst.userChoice;promptInst=null;bInst.hidden=true};
+window.addEventListener("appinstalled",()=>{bInst.hidden=true;toast("Centro de Apps instalado")});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
