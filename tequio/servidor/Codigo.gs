@@ -5690,8 +5690,10 @@ function tlpCorreoArmar_(t, tok) {
   const z = Z(), nombre = tlpNombre_(t), url = TLP_URL + '#t=' + tok, esc = escuelasTlp_(t), zn = z.numero ? ' Zona ' + z.numero : '';
   const html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#1E2A40;max-width:560px">' +
     '<p>' + esc_(tlpTrato_(t) + ' ' + nombre) + ':</p>' +
-    '<p>La Supervisión Escolar' + esc_(zn) + ' le comparte su <b>enlace personal a Tlamatini</b>, la herramienta de la zona para llenar formatos y documentos de la escuela. ' +
-    'Al abrirlo, Tlamatini ya trae sus datos y ' + (esc.length > 1 ? 'los de sus dos escuelas (' + esc_(esc.join(' y ')) + ')' : esc.length ? 'los de su escuela (' + esc_(esc[0]) + ')' : 'los de su escuela') + ', con sus logos.</p>' +
+    '<p>La Supervisión Escolar' + esc_(zn) + ' le comparte su <b>enlace personal a Tlamatini</b>, una herramienta creada para acompañarle en su práctica profesional: ' +
+    'le ayuda a <b>eficientizar</b> el trabajo administrativo, a <b>profesionalizar</b> la elaboración de formatos, planeaciones y documentos de la escuela, ' +
+    'y a <b>mejorar</b> la organización de su labor docente, para que dedique más tiempo a lo que más importa: el aprendizaje de sus alumnos.</p>' +
+    '<p>Al abrirlo, Tlamatini ya trae sus datos y ' + (esc.length > 1 ? 'los de sus dos escuelas (' + esc_(esc.join(' y ')) + ')' : esc.length ? 'los de su escuela (' + esc_(esc[0]) + ')' : 'los de su escuela') + ', con sus logos, listos para usarse.</p>' +
     '<p style="text-align:center;margin:26px 0"><a href="' + url + '" style="background:#1F3A6B;color:#fff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:bold;display:inline-block">Abrir mi Tlamatini</a></p>' +
     '<p style="background:#FDF1DC;border-radius:8px;padding:10px 12px;font-size:14px"><b>Este enlace es personal.</b> Por favor no lo comparta: con él se ven sus datos y los de su escuela. Guarde este correo: si cambia de teléfono, vuelva a abrir el enlace desde aquí.</p>' +
     '<p style="font-size:13px;color:#6A5C4C">Si el botón no funciona, copie esta dirección en su navegador:<br>' + esc_(url) + '</p>' +
