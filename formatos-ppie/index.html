@@ -2166,6 +2166,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
      <div class="ini-chips"><a href="tour.html">${ICON.play}Conozca Tlamatini en 2 minutos</a><a href="tlami.html">${ICON.spark}Conozca a Tlami</a><a href="mailto:tlamatini023@gmail.com?subject=Tlamatini%3A%20observaci%C3%B3n">Reportar un error o pedir un formato</a></div>
      ${TLM_SIGNIF}
      <p class="ini-piloto"><b>Versión de prueba · Fase de pilotaje.</b> Puede presentar ajustes o errores; sus observaciones nos ayudan a mejorarla.<br>Los datos y documentos se guardan solo en este dispositivo.<br>Para reconocer a quienes más usan Tlamatini, se registra su nombre, su escuela y cuántos documentos genera; nunca su contenido ni datos de alumnos.<br>${ZONA_TQ?`Supervisión Escolar Zona ${esc(ZONA_NUM)} · ${ZONA_TQ.estatal?"Secretaría de Educación":"ISEP"}${ZONA_TQ.lemaZona?" · «"+esc(ZONA_TQ.lemaZona)+"»":""}`:"Supervisión Escolar Zona 050 · ISEP · «Responsabilidad y superación»"}<br>© 2026 Tlamatini · Mtro. Carlos Gabriel Ortega Gutiérrez · Todos los derechos reservados<br>Contacto: ${CONTACTO}${accPie()}${DEMO?"":`<br><button class="btn link" id="demoHome" style="font-size:13px;padding:6px 0">Ver una demostración</button> · <button class="btn link" id="accAdm" style="font-size:13px;padding:6px 0">Supervisión: control de acceso</button>`}</p>
+     <div class="firma-autor" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 16px 22px"><span style="font:600 10.5px/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b7685">Desarrollada por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65" style="width:200px;height:auto"></div>
     </footer>
    </div></main>
   <nav class="t3-tab" aria-label="Navegación principal">
@@ -3901,7 +3902,7 @@ function bloqueoView(){S.view="bloqueo";setBar("");const e=ACC_YO,st=e?accEstado
      Para solicitar un enlace, escriba a ${CONTACTO}.</p>
     <div class="field"><label for="pegar">¿Ya tiene un enlace? Péguelo aquí</label><input type="url" id="pegar" autocomplete="off"></div>
     <button class="btn primary" id="usar">Entrar con este enlace</button><div id="msg"></div></section>
-   <button class="btn link adminlink" id="sup">Soy Supervisión</button>`;
+   <button class="btn link adminlink" id="sup">Soy Supervisión</button><div class="firma-autor" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 16px 22px"><span style="font:600 10.5px/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b7685">Desarrollada por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65" style="width:200px;height:auto"></div>`;
   document.getElementById("usar").onclick=async()=>{const v=document.getElementById("pegar").value.trim();const mm=v.match(/acceso=([A-Za-z0-9_-]{10,})/);
     if(!mm){document.getElementById("msg").innerHTML=`<div class="alert">Ese texto no parece un enlace de acceso. Copie el enlace completo que le enviaron.</div>`;return}
     store.set("acc-token",mm[1]);if(await accesoGate()){if(!irDirecto())home()}else bloqueoView()};

@@ -1,7 +1,7 @@
 /* Evaluación Cualitativa Preescolar · trabajador de servicio: permite instalar la app y abrirla sin internet.
    La página se pide primero a internet (para tener siempre la versión nueva); sin conexión se usa la copia guardada.
    La redacción con IA sí necesita internet. Al publicar cambios grandes, subir VERSION. */
-const VERSION = "evp-2026-11-14a";
+const VERSION = "evp-2026-11-19a";
 const NUCLEO = ["./", "index.html", "manifest.webmanifest", "img/icono-180.png", "img/icono-192.png", "img/icono-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(NUCLEO)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
