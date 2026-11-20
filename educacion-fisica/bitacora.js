@@ -65,7 +65,8 @@ function dlgIncidente(id) {
     <label class="campo"><span>Describa qué pasó</span><textarea id="iQ" data-nofoco="1" placeholder="Qué sucedió, cómo y quién estaba presente">${esc(x.que)}</textarea></label>
     <label class="campo"><span>¿Hubo algún acuerdo? <small>(opcional)</small></span><textarea id="iA" data-nofoco="1" style="min-height:80px" placeholder="Con el alumno, con el padre o madre, con la dirección…">${esc(x.acuerdos)}</textarea></label>
     <div class="fila fin">${ya ? `<button class="btn r" id="iDel" style="margin-right:auto">${ic("basura", 18)} Eliminar</button>` : `<button class="btn" id="iVer" style="margin-right:auto">Ver mi bitácora</button>`}
-      <button class="btn" id="iNo">Cancelar</button><button class="btn p" id="iSi">${ic("check", 18)} Guardar</button></div>`, v => {
+      <button class="btn" id="iNo">Cancelar</button><button class="btn o" id="iAD">${ic("doc", 18)} Anexo D</button><button class="btn p" id="iSi">${ic("check", 18)} Guardar</button></div>
+    <p class="small muted mt">«Anexo D» guarda el incidente y abre el <b>Registro de incidencias</b> del PPIE (formato oficial) ya llenado con estos datos.</p>`, v => {
     const al = () => v.querySelectorAll("[data-ia]").forEach(c => c.onclick = () => { const k = c.dataset.ia, i = x.alumnos.indexOf(k); i < 0 ? x.alumnos.push(k) : x.alumnos.splice(i, 1); c.setAttribute("aria-pressed", i < 0); });
     al();
     v.querySelector("#iG").onchange = e => { x.grupoId = e.target.value; x.alumnos = []; v.querySelector("#iAl").innerHTML = alumnosHTML(); al(); };
@@ -74,7 +75,7 @@ function dlgIncidente(id) {
     if (v.querySelector("#iVer")) v.querySelector("#iVer").onclick = () => { cerrarDlg(); if (S.v !== "bitacora") ir("bitacora", {}); };
     if (v.querySelector("#iDel")) v.querySelector("#iDel").onclick = async () => { if (!(await confirmar("Se eliminará este incidente de la bitácora.", "Sí, eliminar"))) return dlgIncidente(id);
       D.incidentes = incidentes().filter(z => z.id !== id); guardar(); pintar(); toast("Incidente eliminado."); };
-    v.querySelector("#iSi").onclick = () => {
+    const guardarX = anexo => {
       x.fecha = v.querySelector("#iF").value || hoy(); x.hora = v.querySelector("#iH").value || hora();
       x.otro = v.querySelector("#iO").value.trim(); x.que = v.querySelector("#iQ").value.trim(); x.acuerdos = v.querySelector("#iA").value.trim();
       if (!x.alumnos.length && !x.otro) return toast("Elija al alumno o escriba su nombre.");
@@ -83,8 +84,11 @@ function dlgIncidente(id) {
       if (x.grupoId) D.cfg.incG = x.grupoId;
       const L = incidentes(), i = L.findIndex(z => z.id === x.id); i < 0 ? L.push(x) : (L[i] = x);
       guardar(); cerrarDlg(); if (S.v === "bitacora") pintar(); else incFabVer();
+      if (anexo) return dlgAnexoD(x.id);
       toast(`<b>Incidente guardado</b> en su bitácora.`);
     };
+    v.querySelector("#iSi").onclick = () => guardarX(false);
+    v.querySelector("#iAD").onclick = () => guardarX(true);
   });
 }
 
@@ -104,12 +108,14 @@ VISTAS.bitacora = () => { const L = incFiltrados(), F = S.f, gs = [...new Set(in
       return `<div class="inc-it" role="button" tabindex="0" data-inc="${x.id}" style="cursor:pointer">
         <div class="cab"><b>${fCorta(x.fecha)} · ${esc(x.hora)}</b>${x.tipo ? `<span class="tag r">${esc(x.tipo)}</span>` : ""}<span class="tag g">${esc(g ? incNomGrupo(g) : "Fuera de clase")}</span></div>
         <p><b>${esc(incAlumnos(x).join(", "))}</b></p><p>${esc(x.que)}</p>
-        ${x.acuerdos ? `<div class="acu small"><b>Acuerdo:</b> ${esc(x.acuerdos)}</div>` : ""}</div>`; }).join("")
+        ${x.acuerdos ? `<div class="acu small"><b>Acuerdo:</b> ${esc(x.acuerdos)}</div>` : ""}
+        <div class="fila mt" style="gap:8px"><button class="btn s ${x.anexoD ? "" : "o"}" data-ad="${x.id}">${ic("doc", 16)} ${x.anexoD ? "Anexo D llenado · abrir" : "Llenar Anexo D"}</button></div></div>`; }).join("")
       || `<div class="vacio">${incidentes().length ? "No hay incidentes con ese filtro." : "Todavía no hay incidentes registrados. Cuando pase algo, toque el botón <b style='color:var(--rojo)'>!</b>."}</div>`}</div>
     <p class="pie">${incidentes().length} incidente${incidentes().length === 1 ? "" : "s"} en la bitácora</p></main>`; };
 ENLAZAR.bitacora = () => {
   $("#fIG").onchange = e => { S.f.g = e.target.value; pintar(); };
   $("#fIQ").onchange = e => { S.f.q = e.target.value; pintar(); $("#fIQ").focus(); };
+  $$("[data-ad]").forEach(b => b.onclick = e => { e.stopPropagation(); dlgAnexoD(b.dataset.ad); });
   $$("[data-inc]").forEach(b => { b.onclick = () => dlgIncidente(b.dataset.inc); b.onkeydown = e => { if (e.key === "Enter") dlgIncidente(b.dataset.inc); }; });
   $("#bIncP").onclick = () => { const L = incFiltrados(), g = grDe(S.f.g), e = g ? escDe(g.escId) : escDe((grDe((L[0] || {}).grupoId) || {}).escId) || D.escuelas[0];
     imprimir(`<div class="doc">${encabezado(e, "Bitácora de incidentes · Educación Física" + (g ? " · " + esc(grNom(g)) : ""))}
