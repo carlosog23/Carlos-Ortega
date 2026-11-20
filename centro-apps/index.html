@@ -122,6 +122,7 @@ kbd{font-family:var(--f-mono);font-size:.72rem;padding:3px 7px;border-radius:6px
 .pad button:hover{background:rgb(255 255 255/.1)}
 .pad .sm{font-family:var(--f-body);font-size:.8rem;color:var(--night-muted)}
 .pin .err{min-height:1.3em;color:var(--sun)}
+.pin .olvide{border:0;background:transparent;color:var(--night-muted);font:inherit;font-size:.88rem;text-decoration:underline;cursor:pointer;padding:6px}
 
 /* ---------- Modo administrar ---------- */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -438,29 +439,40 @@ document.addEventListener("keydown",e=>{
 });
 
 /* ---------- PIN ---------- */
-function renderPin(){
+function renderPin(paso,primero){
   mode="pin";setSeg();
-  const nuevo=!S.pin;let v="";
+  /* Crear PIN pide escribirlo dos veces (antes, cualquier número tecleado la primera vez quedaba como PIN) */
+  const nuevo=!S.pin,confirma=nuevo&&paso==="confirmar";let v="";
+  const titulo=!nuevo?"Escribe tu PIN":confirma?"Confirma tu PIN":"Crea tu PIN";
+  const texto=!nuevo?"Para entrar al modo de administración.":confirma?"Escribe otra vez los mismos cuatro dígitos.":"Cuatro dígitos que vas a recordar. Se guarda solo en este dispositivo.";
   view.innerHTML=`
   <section class="pin fade">
     <span class="eyebrow" style="color:var(--night-muted)">Administrar</span>
-    <h2 style="font-size:1.35rem">${nuevo?"Crea tu PIN":"Escribe tu PIN"}</h2>
-    <p>${nuevo?"Cuatro dígitos. Se guarda solo en este dispositivo.":"Para entrar al modo de administración."}</p>
+    <h2 style="font-size:1.35rem">${titulo}</h2>
+    <p>${texto}</p>
     <div class="dots" id="dots">${"<i></i>".repeat(4)}</div>
     <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join("")}<button class="sm" data-k="x">Cancelar</button><button data-k="0">0</button><button class="sm" data-k="b">Borrar</button></div>
     <p class="err" id="err"></p>
+    ${nuevo?"":`<button class="olvide" id="olvide" type="button">¿Olvidaste tu PIN?</button>`}
   </section>`;
   const dots=document.getElementById("dots"),err=document.getElementById("err");
   const paint=()=>[...dots.children].forEach((d,i)=>d.classList.toggle("on",i<v.length));
+  const mal=t=>{err.textContent=t;dots.classList.add("shake");setTimeout(()=>{dots.classList.remove("shake");v="";paint()},380)};
   const press=k=>{
     if(k==="x")return renderGate();
     if(k==="b"){v=v.slice(0,-1);return paint()}
     if(v.length<4){v+=k;paint()}
     if(v.length===4){
-      if(nuevo||v===S.pin){if(nuevo){S.pin=v;save()}adminOk=true;setTimeout(renderAdmin,150)}
-      else{err.textContent="PIN incorrecto";dots.classList.add("shake");setTimeout(()=>{dots.classList.remove("shake");v="";paint()},380)}}
+      if(nuevo&&!confirma)return setTimeout(()=>renderPin("confirmar",v),150);
+      if(confirma){if(v!==primero){renderPin();document.getElementById("err").textContent="No coincidieron. Créalo de nuevo.";return}S.pin=v;save();adminOk=true;return setTimeout(renderAdmin,150)}
+      if(v===S.pin){adminOk=true;setTimeout(renderAdmin,150)}else mal("PIN incorrecto")}
   };
   view.querySelector(".pad").onclick=e=>{const k=e.target.dataset?.k;if(k)press(k)};
+  const ol=document.getElementById("olvide");
+  if(ol)ol.onclick=()=>{
+    if(!confirm("Se borrará el PIN guardado en este dispositivo y crearás uno nuevo. Tus enlaces y ajustes se conservan.\n\n¿Continuar?"))return;
+    delete S.pin;save();adminOk=false;renderPin();
+  };
   view.onkeydown=null;
   document.onkeydown=e=>{if(mode!=="pin")return;if(/^\d$/.test(e.key))press(e.key);if(e.key==="Backspace")press("b");if(e.key==="Escape")press("x")};
 }
