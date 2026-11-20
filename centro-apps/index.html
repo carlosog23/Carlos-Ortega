@@ -74,16 +74,17 @@ a{color:inherit}
 .door .go{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem;color:var(--accent)}
 .door.night .go{color:var(--sun)}
 .mini{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;max-width:420px}
-.mini span{aspect-ratio:1;border-radius:28%;display:grid;place-items:center}
-.mini svg{width:55%;height:55%}
+.mini span{aspect-ratio:1;border-radius:24%;display:grid;place-items:center;background:#fff!important;overflow:hidden;box-shadow:0 0 0 1px rgb(13 26 43/.08)}
 .stat-lines{display:flex;flex-direction:column;gap:6px;font-family:var(--f-mono);font-size:.78rem;color:var(--night-muted)}
 .stat-lines div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--night-line);padding-bottom:6px}
 .stat-lines b{color:var(--night-ink);font-weight:500}
 
 /* ---------- Íconos de app ---------- */
-.ico{flex:none;width:54px;height:54px;border-radius:28%;display:grid;place-items:center;background:var(--c);
-  box-shadow:inset 0 -3px 0 rgb(0 0 0/.18),inset 0 1px 0 rgb(255 255 255/.18)}
-.ico svg{width:56%;height:56%;color:#fff}
+.ico{flex:none;width:54px;height:54px;border-radius:24%;display:grid;place-items:center;background:#fff;overflow:hidden;
+  box-shadow:0 0 0 1px rgb(13 26 43/.1),0 2px 6px -2px rgb(13 26 43/.25)}
+.ic-img{display:block}
+.ic-img.full{width:100%;height:100%;object-fit:cover}
+.ic-img.pad{width:84%;height:84%;object-fit:contain}
 
 /* ---------- Modo usar ---------- */
 .search{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 6px 4px 14px}
@@ -225,7 +226,18 @@ const I={
  cherry:'<circle cx="8" cy="16" r="4" fill="currentColor"/><circle cx="16.5" cy="15" r="4" fill="currentColor"/><path d="M8 12c1-5 4-8 9-8M16.5 11c0-3-1-5-1-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
  gasolina:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5" fill="none" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>'
 };
-const svg=(id)=>`<svg viewBox="0 0 24 24" aria-hidden="true">${I[id]}</svg>`;
+/* Íconos originales de cada app (full: llena el cuadro · pad: logo con margen sobre blanco) */
+const ICONO={
+ tlamatini:["../formatos-ppie/img/tlamatini-icono-192.png","full"],
+ tequio:["../tequio/img/tequio-logo-192.png","pad"],
+ pagina:["../zona050/img/icono-180.png","pad"],
+ ulama:["../educacion-fisica/img/ulama-icono-192.png","full"],
+ preescolar:["../evaluacion-preescolar/img/icono-192.png","full"],
+ ingles:["/misioneros-del-ingles/img/emblema-192.png","pad"],
+ cherry:["../cherry-nails/icon-192.png","full"],
+ gasolina:["../tarjeta-gasolina/icon-192.png","full"]
+};
+const svg=(id)=>{const [src,fit]=ICONO[id];return`<img class="ic-img ${fit}" src="${src}" alt="" loading="lazy" decoding="async">`};
 
 /* ---------- Catálogo ---------- */
 const GH="https://carlosog23.github.io/Carlos-Ortega/", REPO="https://github.com/carlosog23/Carlos-Ortega/tree/main/";
