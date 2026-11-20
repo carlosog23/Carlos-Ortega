@@ -122,7 +122,7 @@ function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(
 window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(); if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
-function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar"].includes(S.v)) S = { v: "bienvenida" };
+function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = () => history.back(); const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
@@ -847,12 +847,41 @@ function enviarVisita(v) { const p = v.p, para = p.docente.correo || "";
         v.enviado = { a: P.join(", "), f: new Date().toISOString() }; v.cerrada = true; rvGuardar(); cerrarDlg(); re(); toast(`<b>Informe enviado</b> a ${esc(P.join(", "))}.`, 4000); }
       catch (e) { toast(esc(e.message), 5000); } }; }); }
 
+/* =================================================================== ADMINISTRACIÓN (Supervisión) */
+const esAdmin = () => !!(LS("gh-token") || (LS("tequio-pase") || {}).rol === "admin" || (LS("tequio.cfg") || {}).k);
+VISTAS.admin = () => { if (!esAdmin()) return VISTAS.inicio(); const A = S.A = S.A || {}, L = A.lista;
+  return barra("Tlamatini Aula", "Administración") + `<main class="wrap">
+  <section class="portada">${marca()}<h1>Panel de la Supervisión</h1><p>Estado del servidor, banco de dinámicas de la zona y accesos de los docentes.</p></section>
+  <h2 class="sec-t">Servidor de la zona</h2><section class="card">${A.srv ? (A.srv.ok ? `<p><b style="color:${A.srv.version >= 68 ? "#1E8E5A" : "#C2362B"}">Versión ${A.srv.version}</b> · ${esc(A.srv.cuenta || "")}</p><p class="small mt">${A.srv.version >= 68 ? "Listo para Tlami, dinámicas compartidas y envío de informes de visita." : "<b>Falta actualizar a la versión 68</b> para que funcionen Tlami, las dinámicas compartidas y el envío de informes de visita."}</p>` : `<p class="small">No respondió: ${esc(A.srv.err)}</p>`) : `<p class="small muted">Revisando…</p>`}
+   <div class="fila mt"><button class="btn s" id="adR">Revisar de nuevo</button><button class="btn s tlami-b" id="adT">${ic("chispa", 14)} Probar Tlami</button></div></section>
+  <h2 class="sec-t">Dinámicas compartidas por la zona<small>Puede retirar las que no sean adecuadas</small></h2>
+  ${!L ? `<p class="small muted">Cargando…</p>` : L.err ? `<section class="card"><p class="small">${esc(L.err)}</p></section>` : L.length ? `<div class="lista">${L.map(d => `<div class="it"><span class="tx"><b>${esc(d.n)}</b><small>${esc(d.autor || "")}${d.escuela ? " · " + esc(d.escuela) : ""} · ${d.creado ? fCorta(d.creado) : ""} · ${(DIN_CATS[d.cat] || [""])[0]}</small></span><button class="btn s" data-adv="${esc(d.id)}">Ver</button><button class="btn s r" data-adx="${esc(d.id)}">Retirar</button></div>`).join("")}</div>` : `<section class="card"><p class="small muted">Todavía nadie comparte dinámicas.</p></section>`}
+  <h2 class="sec-t">Acceso de los docentes</h2><section class="card"><p class="small">Los docentes de la Zona 050 entran con el <b>mismo enlace personal de Tlamatini</b> que les llega por correo (en Tequio → Personal → «Enlaces de Tlamatini» puede reenviarlo o anularlo).</p>
+   <p class="small mt">Para otros docentes o una zona completa, genere un <b>enlace de acceso</b> en el panel de accesos de Tlamatini: también abre Tlamatini Aula. Los directores, ATP y supervisores pueden abrir códigos de visita sin enlace.</p>
+   <div class="fila mt"><a class="btn s" href="../tequio/" target="_blank" rel="noopener">${ic("grupo", 16)} Abrir Tequio</a><a class="btn s" href="${TLM}" target="_blank" rel="noopener">${ic("doc", 16)} Abrir Tlamatini</a><button class="btn s" id="adD">${ic("play", 16)} Copiar enlace de demostración</button></div></section>
+  <div class="fila mt2"><button class="btn" id="adI">${ic("atras", 16)} Ir a mi aula</button></div>${pie()}</main>`; };
+ENLAZAR.admin = () => { if (!esAdmin()) return; const A = S.A;
+  const srv = async () => { const s = srvAula(); if (!s) { A.srv = { ok: false, err: "no se encontró la dirección del servidor" }; return re(); }
+    try { const r = await fetch(s.s, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "estadoInstalacion" }) }); const j = await r.json(); A.srv = { ok: !!j.ok, version: +j.version || 0, cuenta: j.cuenta, err: j.mensaje }; }
+    catch (e) { A.srv = { ok: false, err: e.message }; } if (S.v === "admin") re(); };
+  const lista = async () => { try { const j = await aulaPost("aulaDinLista", {}, 30000); A.lista = j.lista || []; } catch (e) { A.lista = []; A.lista.err = e.message; } if (S.v === "admin") re(); };
+  if (!A.srv) { A.srv = null; srv(); } if (!A.lista) lista();
+  $("#adR").onclick = () => { A.srv = null; A.lista = null; re(); srv(); lista(); };
+  $("#adT").onclick = async () => { tlamiEspera("Probando la conexión con la IA."); try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [3], campo: "Lenguajes", texto: "En Lenguajes, [ALUMNO] lee con fluidez textos breves y comenta lo que entiende; necesita fortalecer la escritura de párrafos." });
+      dlg(`<h3>Tlami responde ✓</h3><p class="mb">${esc((j.r || {}).texto || "")}</p><div class="fila fin"><button class="btn p" id="okT">Listo</button></div>`, v => v.querySelector("#okT").onclick = cerrarDlg); } catch (e) { tlamiError(e); } };
+  $$("[data-adv]").forEach(b => b.onclick = () => { ZONA = (A.lista || []).map(d => Object.assign({ zona: true }, d)); ir("dinamica", { id: b.dataset.adv }); });
+  $$("[data-adx]").forEach(b => b.onclick = async () => { if (!(await confirmar("La dinámica dejará de verse en el banco de la zona.", "Retirar"))) return;
+    try { await aulaPost("aulaDinRetirar", { id: b.dataset.adx }); A.lista = A.lista.filter(d => d.id !== b.dataset.adx); ZONA = null; re(); toast("Dinámica retirada."); } catch (e) { toast(esc(e.message), 4000); } });
+  $("#adD").onclick = async () => { const u = new URL("#demo", location.href.split("#")[0]).href; try { await navigator.clipboard.writeText(u); toast("Enlace de demostración copiado."); } catch (e) { prompt("Copie el enlace:", u); } };
+  $("#adI").onclick = () => ir("inicio", {}, true); };
+
 /* =================================================================== AJUSTES */
 VISTAS.ajustes = () => barra("Tlamatini Aula", "Ajustes y respaldo") + `<main class="wrap">
   <section class="card mt"><h3>Sus datos</h3><label class="campo"><span>Nombre (como aparece en sus documentos)</span><input id="yN" value="${esc(yo().nombre)}"></label><label class="campo"><span>Correo</span><input id="yC" type="email" value="${esc(yo().correo)}"></label><div class="fila fin"><button class="btn p s" id="yOk">Guardar</button></div></section>
   <section class="card mt"><h3>Mis grupos</h3><div class="lista">${D.grupos.map(g => `<button class="it btnit" data-ge="${g.id}"><span class="av">${ic("grupo", 18)}</span><span class="tx"><b>${esc(grNom(g))}</b><small>${esc(g.escuela)} · ${activos(g).length} alumnos</small></span>${ic("lapiz", 16)}</button>`).join("")}</div><div class="fila mt"><button class="btn s" id="yG">${ic("mas", 16)} Agregar grupo</button></div></section>
+  ${esAdmin() ? `<section class="card mt"><h3>Supervisión</h3><p class="small muted mb">Servidor, banco de dinámicas de la zona y accesos.</p><button class="btn" id="yAdm">${ic("ajustes", 16)} Panel de administración</button></section>` : ""}
   <section class="card mt"><h3>Respaldo</h3><p class="small muted mb">Todo se guarda en este dispositivo. Descargue una copia de vez en cuando, por si se daña o cambia de teléfono.</p><div class="fila"><button class="btn" id="yR">${ic("bajar", 16)} Descargar respaldo</button><button class="btn" id="yL">${ic("subir", 16)} Cargar respaldo</button><input type="file" id="fR" accept=".json" hidden></div></section>${pie()}</main>`;
-ENLAZAR.ajustes = () => { $("#yOk").onclick = () => { D.docente.nombre = val("yN").trim(); D.docente.correo = val("yC").trim(); guardar(); toast("Datos guardados."); };
+ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin")); $("#yOk").onclick = () => { D.docente.nombre = val("yN").trim(); D.docente.correo = val("yC").trim(); guardar(); toast("Datos guardados."); };
   $$("[data-ge]").forEach(b => b.onclick = () => ir("grupoForm", { id: b.dataset.ge })); $("#yG").onclick = () => ir("grupoForm");
   $("#yR").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], { type: "application/json" })); a.download = `respaldo-tlamatini-aula-${hoy()}.json`; a.click(); };
   $("#yL").onclick = () => $("#fR").click(); $("#fR").onchange = async e => { try { const x = JSON.parse(await e.target.files[0].text()); if (!x.v || !Array.isArray(x.grupos)) throw 0; if (!(await confirmar("Se reemplazarán los datos de este dispositivo por los del respaldo.", "Cargar"))) return; D = Object.assign(VACIO(), x); guardar(); ir("inicio", {}, true); toast("Respaldo cargado."); } catch (er) { toast("Ese archivo no es un respaldo de Tlamatini Aula."); } }; };
@@ -861,7 +890,7 @@ ENLAZAR.ajustes = () => { $("#yOk").onclick = () => { D.docente.nombre = val("yN
 function arrancarDatos() { if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz:1", "Bruno Muestra Díaz:1", "Camila Ficticia López:1", "Diego Prueba Soto:2", "Elena Ejemplo Cruz:2", "Fernando Demo Ríos:2", "Gabriela Muestra Peña:3", "Hugo Ficticio Lara:3", "Itzel Ejemplo Mora:3", "Joaquín Prueba Vega:3"].forEach(x => { const [n, gr] = x.split(":"); g.alumnos.push({ id: uid(), nombre: n, g: +gr }); });
     D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
-window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=)/.test(location.hash)) location.reload(); });
+window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-(async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1]; if (rv) history.replaceState(null, "", location.pathname);
-  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } })();
+(async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
+  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();

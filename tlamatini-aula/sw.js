@@ -1,5 +1,5 @@
 /* Tlamatini Aula · trabajador de servicio: instalar la app y usarla sin internet. Al publicar cambios, subir VERSION. */
-const VERSION = "aula-2026-11-20c";
+const VERSION = "aula-2026-11-20d";
 const BASE = "aula-base-" + VERSION, EXTRA = "aula-extra";
 const NUCLEO = ["./", "index.html", "aula.js", "dinamicas.js", "qrcode.min.js", "manifest.webmanifest", "img/aula-icono.svg", "img/aula-icono-180.png", "img/aula-icono-192.png", "img/aula-icono-512.png",
   "../formatos-ppie/formatos/pda.json", "../formatos-ppie/formatos/calendario.json", "../formatos-ppie/img/isep.png", "../formatos-ppie/firma-autor.svg"];
