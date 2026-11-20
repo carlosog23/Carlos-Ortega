@@ -5210,6 +5210,66 @@ function detalleEvidencias(cct) {
   $$('[data-drev]').forEach(b => b.onclick = () => revisarEvi(cct, b.dataset.drev, () => detalleEvidencias(cct)));
 }
 
+/* ---------------- Enlaces personales de Tlamatini ----------------
+   Cada trabajador activo recibe por correo su enlace a Tlamatini, que ya trae sus datos y los de su escuela o escuelas
+   (doble plaza). Los datos de la zona ya no van en el código público de Tlamatini: el servidor solo entrega lo de cada quien. */
+async function vTlp() {
+  const T = vista.tlp; if (!T) return vPersonal();
+  const volver = `<button class="boton sec chico" id="tl-volver">${ico('i-izq')}Personal</button>`;
+  if (!T.d) {
+    $('#vista').innerHTML = `<div style="margin-bottom:8px">${volver}</div><div class="titulo-vista"><h1>Enlaces de Tlamatini</h1></div><div class="tarjeta pad"><span class="mudo">${T.error ? esc(T.error) : 'Revisando los enlaces…'}</span></div>`;
+    $('#tl-volver').onclick = () => { vista.tlp = null; vPersonal(); };
+    if (T.error) { if (/desconocida/i.test(T.error)) $('#vista').querySelector('.tarjeta').innerHTML = '<b>Falta actualizar el servidor de Tequio.</b> Pegue el Codigo.gs nuevo y vuelva a implementarlo; después regrese aquí.'; return; }
+    try { T.d = await api('tlpEstado'); } catch (e) { T.error = e.message; }
+    return vTlp();
+  }
+  const est = {}; T.d.enlaces.forEach(e => est[e.id] = e);
+  const act = (S.trb || []).filter(t => t.estado !== 'baja').sort((a, b) => perNombre(a).localeCompare(perNombre(b), 'es'));
+  const f = T.f || (T.f = 'todos'), q = (T.q || '').trim().toLowerCase();
+  const sinCorreo = t => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t.correoInst || '').trim());
+  const cuenta = k => act.filter(t => k === 'sinCorreo' ? sinCorreo(t) : ((est[t.id] || {}).estado || 'sin') === k).length;
+  const pasa = t => (f === 'todos' || (f === 'sinCorreo' ? sinCorreo(t) : ((est[t.id] || {}).estado || 'sin') === f)) && (!q || perNombre(t).toLowerCase().includes(q));
+  const lista = act.filter(pasa);
+  const chip = e => !e || e.estado === 'sin' ? '<span class="chip">Sin enlace</span>' : e.estado === 'enviado' ? `<span class="chip ok">Enviado ${esc(fechaCorta(e.enviado.slice(0, 10)))}</span>` : e.estado === 'pendiente' ? '<span class="chip aviso">Pendiente de enviar</span>' : '<span class="chip mal">Anulado</span>';
+  const nSel = Object.keys(T.sel).filter(k => T.sel[k]).length;
+  $('#vista').innerHTML = `<div style="margin-bottom:8px">${volver}</div><div class="titulo-vista"><h1>Enlaces de Tlamatini</h1><div class="acciones">
+    <button class="boton" id="tl-env" ${nSel ? '' : 'disabled'}>${ico('i-correo')}Enviar a ${nSel || 'los elegidos'}</button></div></div>
+  <div class="aviso-caja">Cada persona recibe en su <b>correo institucional</b> su enlace personal a Tlamatini, que ya trae <b>sus datos y los de su escuela</b> (o sus dos escuelas si tiene doble plaza) con sus logos. Los datos de la zona ya no están en la página pública: cada enlace solo abre lo de su dueño. Si alguien lo comparte o deja la zona, anúlelo. Hoy quedan <b>${T.d.cuota}</b> correos por enviar desde la cuenta de Tequio; los que no alcancen quedan «pendientes» para mañana.</div>
+  <div class="pen-cifras per-cifras">${[['todos', act.length, 'personas'], ['sin', cuenta('sin'), 'sin enlace'], ['pendiente', cuenta('pendiente'), 'pendientes'], ['enviado', cuenta('enviado'), 'enviados'], ['anulado', cuenta('anulado'), 'anulados'], ['sinCorreo', cuenta('sinCorreo'), 'sin correo institucional']]
+    .map(c => `<button class="tarjeta pen-cifra ${f === c[0] ? 'sel' : ''}" data-tlf="${c[0]}"><b>${c[1]}</b><span>${c[2]}</span></button>`).join('')}</div>
+  <div class="filtros"><input type="search" id="tl-q" placeholder="Buscar nombre…" value="${esc(T.q || '')}">
+    <button class="boton sec chico" id="tl-todos">Elegir los ${lista.length} de la lista</button><button class="boton sec chico" id="tl-ning">Quitar selección</button></div>
+  <div class="tarjeta"><div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th></th><th class="esc-col">Nombre</th><th>Escuela(s)</th><th>Correo institucional</th><th>Enlace</th><th></th></tr></thead><tbody>
+  ${lista.map(t => { const e = est[t.id], pl = perActivas(t), doble = perDoble(t);
+    return `<tr class="${doble ? 'per-doble' : ''}"><td><input type="checkbox" data-tls="${esc(t.id)}" ${T.sel[t.id] ? 'checked' : ''} ${sinCorreo(t) ? 'title="Sin correo: copie el enlace y mándelo por WhatsApp"' : ''}></td>
+      <th class="esc-col">${esc(perNombre(t))}${doble ? ' <span class="chip morado">Doble plaza</span>' : ''}</th>
+      <td style="text-align:left" class="peq">${pl.map(p => esc(perCentro(p.cct).escuela) + (p.turno ? ' <span class="mudo">(' + esc(p.turno.toLowerCase()) + ')</span>' : '')).join('<br>') || '—'}</td>
+      <td class="peq">${sinCorreo(t) ? '<span class="chip aviso">Sin correo</span>' : esc(t.correoInst)}</td>
+      <td>${chip(e)}${e && e.usado && e.estado !== 'anulado' ? `<div class="ayuda">Abierto ${esc(fechaCorta(e.usado.slice(0, 10)))}</div>` : ''}</td>
+      <td style="white-space:nowrap"><button class="boton sec chico" data-tlc="${esc(t.id)}" title="Copiar su enlace">${ico('i-copiar')}</button>${e && e.estado !== 'sin' && e.estado !== 'anulado' ? ` <button class="boton sec chico" data-tla="${esc(t.id)}">Anular</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="6" class="vacio">No hay personas con este filtro.</td></tr>'}
+  </tbody></table></div></div>
+  <p class="peq mudo">El morado marca a quienes tienen doble plaza: su Tlamatini trae sus dos escuelas para elegir. Para cambiar de quién es una plaza o un correo, corríjalo en Personal y vuelva a enviar.</p>`;
+  $('#tl-volver').onclick = () => { vista.tlp = null; vPersonal(); };
+  $$('[data-tlf]').forEach(b => b.onclick = () => { T.f = b.dataset.tlf; vTlp(); });
+  let tq; $('#tl-q').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { T.q = e.target.value; vTlp(); const i = $('#tl-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 300); };
+  $$('[data-tls]').forEach(c => c.onchange = () => { T.sel[c.dataset.tls] = c.checked; vTlp(); });
+  $('#tl-todos').onclick = () => { lista.forEach(t => { if (!sinCorreo(t)) T.sel[t.id] = true; }); vTlp(); };
+  $('#tl-ning').onclick = () => { T.sel = {}; vTlp(); };
+  $$('[data-tlc]').forEach(b => b.onclick = async () => { b.disabled = true; try { const r = await api('tlpEnlace', { id: b.dataset.tlc }); copiar(r.url, 'Enlace personal copiado: mándelo solo a esa persona'); T.d = null; } catch (e) { aviso(esc(e.message), 'mal'); } b.disabled = false; if (!T.d) vTlp(); });
+  $$('[data-tla]').forEach(b => b.onclick = async () => { const t = act.find(x => x.id === b.dataset.tla);
+    if (!confirm('¿Anular el enlace de ' + perNombre(t) + '?\n\nYa no podrá entrar con él. Después puede enviarle uno nuevo.')) return;
+    try { T.d = await api('tlpAnular', { ids: [t.id] }); aviso('Enlace anulado.', 'ok', 2500); vTlp(); } catch (e) { aviso(esc(e.message), 'mal'); } });
+  $('#tl-env').onclick = async () => { const ids = Object.keys(T.sel).filter(k => T.sel[k]); if (!ids.length) return;
+    const yaEnv = ids.filter(id => (est[id] || {}).estado === 'enviado').length;
+    if (!confirm(`Se enviará su enlace personal a ${ids.length} persona${ids.length > 1 ? 's' : ''} por correo.${yaEnv ? `\n\n${yaEnv} ya lo habían recibido: se les reenvía el mismo enlace.` : ''}`)) return;
+    const b = $('#tl-env'); b.disabled = true; let env = 0, pend = 0, sinC = 0; const err = [];
+    for (let i = 0; i < ids.length; i += 25) { b.textContent = `Enviando… ${Math.min(i + 25, ids.length)} de ${ids.length}`;
+      try { const r = await api('tlpEnviar', { ids: ids.slice(i, i + 25) }); env += r.enviados; pend += r.pendientes; sinC += r.sinCorreo; err.push(...(r.errores || [])); T.d = r; }
+      catch (e) { err.push(e.message); break; } }
+    T.sel = {}; vTlp();
+    aviso(`${env} enlace${env === 1 ? '' : 's'} enviado${env === 1 ? '' : 's'}.${pend ? ` ${pend} quedaron pendientes (se acabó la cuota de hoy): envíelos mañana.` : ''}${sinC ? ` ${sinC} sin correo institucional.` : ''}${err.length ? ' Errores: ' + esc(err.slice(0, 3).join(' · ')) : ''}`, err.length ? 'mal' : 'ok', 9000); };
+}
+
 /* ---------------- Personal de la zona ----------------
    Base de datos de los trabajadores: datos del expediente y sus plazas. Quien tiene dos plazas activas
    (dos escuelas o dos turnos) es «doble plaza» y se resalta en morado. La Supervisión y la Mesa Técnica ven y
@@ -5291,7 +5351,7 @@ function vPersonal() {
   }
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>${esDirector() ? 'Personal de su escuela' : 'Personal de la zona'}</h1>
-    <div class="acciones"><button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-inc">${ico('i-graf')}Informe de inconsistencias</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
+    <div class="acciones">${esAdmin() ? `<button class="boton" id="pe-tlp">${ico('i-correo')}Enlaces de Tlamatini</button>` : ''}<button class="boton sec" id="pe-xls">${ico('i-carpeta')}Descargar Excel</button>${esAdmin() ? `<button class="boton sec" id="pe-imp">${ico('i-mas')}Cargar expedientes</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-plant">${ico('i-act')}Plantilla oficial</button>` : ''}${perPuede() ? `<button class="boton sec" id="pe-inc">${ico('i-graf')}Informe de inconsistencias</button>` : ''}${perPuede() ? `<button class="boton terra" id="pe-alta">${ico('i-mas')}Alta de trabajador</button>` : ''}</div></div>
   <div class="aviso-caja peq">Datos personales confidenciales. ${esDirector() ? 'Usted ve solo al personal de su escuela.' : 'La Supervisión y la Mesa Técnica ven a todo el personal; cada dirección, solo al de su escuela.'} Úselos solo para trámites de la zona y no los comparta.</div>
   <div class="pen-cifras per-cifras">${cif.map(c => `<button class="tarjeta pen-cifra ${f.est === c[3] || (c[3] === 'doble' && f.doble) || (c[3] === 'sinclave' && f.sinClave) || (c[3] === 'inc' && f.inc) ? 'sel' : ''}" data-pcif="${c[3]}"><b class="${c[0] ? c[2] : ''}">${c[0]}</b><span>${c[1]}</span></button>`).join('')}</div>
   <div class="filtros">
@@ -5322,6 +5382,7 @@ function vPersonal() {
   $('#pe-xls').onclick = () => perExcel(lista);
   if ($('#pe-alta')) $('#pe-alta').onclick = () => perForm();
   if ($('#pe-imp')) $('#pe-imp').onclick = perImportar;
+  if ($('#pe-tlp')) $('#pe-tlp').onclick = () => { vista.tlp = { sel: {} }; vTlp(); };
   if ($('#pe-plant')) $('#pe-plant').onclick = perPlantilla;
   if ($('#pe-inc')) $('#pe-inc').onclick = perInformeInc;
 }

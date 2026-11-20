@@ -1084,21 +1084,19 @@ const INST_TXT2=()=>INST_SEBS()?["SECRETARÍA DE EDUCACIÓN","DE BAJA CALIFORNIA
 async function embedZonaLogo(doc){try{if(ZONA_TQ){const d=ZONA_TQ.logo||"";if(!d)return null;return d.startsWith("data:image/png")?await doc.embedPng(d):await doc.embedJpg(d)}
   if(typeof perfil!=="undefined"&&perfil.modo==="otra"&&perfil.zona&&perfil.zona!=="050")return null;
   return await doc.embedPng(new Uint8Array(await(await fetch("img/zona050.png")).arrayBuffer()))}catch(e){return null}}
-const ESCUELAS_050=[
- ["Belisario Domínguez","02DPR0210Z","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Luis Ángel Bandala Guerrero"],
- ["Josefa Ortiz de Domínguez","02DPR0150B","San Quintín","Camalú","Carretera Transpeninsular, Camalú, C.P. 22910","Carlos Gustavo Domínguez Figueroa"],
- ["Niños Héroes","02DPR0862Z","San Quintín","Camalú","Blvd. Cochimí, Ampliación Capricornio, Camalú, C.P. 22910","José Feliciano Gutiérrez Valdez"],
- ["13 de Septiembre","02DPR0077J","San Quintín","Camalú","Blvd. Cochimí, Ampliación Capricornio, Camalú, C.P. 22910","Cecilia Gómez Martínez"],
- ["Pdte. Adolfo López Mateos","02DPR0379E","San Quintín","Ej. Mesa de San Jacinto","Av. Fundadores, Ej. Mesa de San Jacinto, C.P. 22915","Gilberto Medina Araujo"],
- ["Emiliano Zapata","02DPR0425Z","San Quintín","Ej. Rubén Jaramillo","Av. Lázaro Cárdenas, Ej. Rubén Jaramillo, C.P. 22915","Juan Carlos Chávez Bermúdez"],
- ["Margarita Maza de Juárez","02DPR0378F","San Quintín","Hacienda Sinaloa","Hacienda Sinaloa, C.P. 22914","Adriana Valentina Zavala Cruz"],
- ["Maximino Virgen Flores","02DPR0684N","Ensenada","Lic. Gustavo Díaz Ordaz","Calle Diamante, Lic. Gustavo Díaz Ordaz, C.P. 22916","Citlali Shugey Nepita Anaya"],
- ["José Vasconcelos","02DPR0014Y","Ensenada","Héroes de Chapultepec","Av. Revolución, Pob. Héroes de Chapultepec, C.P. 22909","Jesús González Urdiano"],
- ["James S. Yglesias","02DPR0593W","Ensenada","Punta Colonet","Calle Benito Juárez, Punta Colonet, C.P. 22909","Lorena Valdez Rivera"],
- ["Luis Donaldo Colosio Murrieta","02DPR0882N","Ensenada","Punta Colonet","Calle Benito Juárez, Punta Colonet, C.P. 22909","Efraín López Alvarado"],
- ["Narciso Mendoza","02DPR0012Z","Ensenada","Ej. Benito Juárez","Calle Primera, Ej. Benito Juárez, C.P. 22907","Armando Calderón Hernández"],
- ["Ignacio Allende","02DPR0556S","Ensenada","Ej. Alfredo V. Bonfil","Carr. Transpeninsular km 120, Ej. Alfredo V. Bonfil, C.P. 22905","Jesús Aarón Montero Meléndrez"],
- ["José Ma. Pino Suárez","02DPR0382S","Ensenada","Ej. Gral. Rodolfo Sánchez Taboada, San Vicente","Ej. Gral. Rodolfo Sánchez Taboada, San Vicente, C.P. 22793","Armando Urzúa Osuna"]];
+/* Escuelas de la Zona 050: ya NO van escritas en este código público. Se cargan de:
+   1) Tequio (Supervisión, ATP y directores con sesión en este dispositivo), con todas las escuelas;
+   2) el enlace personal de Tlamatini de cada trabajador (solo su escuela o sus dos escuelas si tiene doble plaza);
+   3) en la demostración, escuelas ficticias. */
+const ESC050_DEMO=(()=>{if(/[#&]demo(?![\w-])/.test(location.hash))return true;try{return sessionStorage.getItem("tlm-demo")==="1"}catch(e){return false}})();
+const TLM_YO=(()=>{try{return JSON.parse(localStorage.getItem("tlm-yo")||"null")}catch(e){return null}})();
+const ESC050_FUENTE=(()=>{
+  if(ESC050_DEMO)return[{nombre:"«Cuauhtémoc» (ejemplo)",cct:"02DPR9999Z",mun:"San Quintín",loc:"Camalú",dom:"Calle Revolución s/n, Ejido Ejemplo, C.P. 22910",dir:"Ramón Ejemplo Torres",cargo:"Director"},
+    {nombre:"«Benito Juárez» (ejemplo)",cct:"02DPR9998Y",mun:"Ensenada",loc:"Punta Colonet",dom:"Av. Principal s/n, Punta Colonet, C.P. 22909",dir:"Lucía Muestra Pérez",cargo:"Directora"},
+    {nombre:"«Emiliano Zapata» (ejemplo)",cct:"02DPR9997X",mun:"San Quintín",loc:"Ej. Ejemplo",dom:"Calle Primera s/n, Ej. Ejemplo, C.P. 22915",dir:"Jorge Ficticio Soto",cargo:"Encargado de despacho"}];
+  try{const z=JSON.parse(localStorage.getItem("tequio-zona")||"null");if(z&&z.numero==="050"&&Array.isArray(z.escuelas)&&z.escuelas.length)return z.escuelas}catch(e){}
+  return TLM_YO&&Array.isArray(TLM_YO.escuelas)?TLM_YO.escuelas:[]})();
+const ESCUELAS_050=ESC050_FUENTE.map(e=>[e.nombre,e.cct,e.mun||"",e.loc||"",e.dom||"",e.dir||""]);
 const MUNIS=["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quintín","Tecate","Tijuana"];
 const PERFIL=[
  {id:"escuela",label:"Nombre de la escuela",ph:"Escuela Primaria Federal …"},
@@ -1224,7 +1222,7 @@ const ANEXOS={
 
 /* ---------- Licencia económica con goce de sueldo ---------- */
 const SUP_NOMBRE=ZONA_TQ?(ZONA_TQ.supervisor||""):"Mtro. Carlos Gabriel Ortega Gutiérrez";
-const CARGOS_050=["Director","Director","Director","Directora","Encargado de despacho","Director","Encargada de despacho","Directora","Director","Directora","Encargado de despacho","Encargado de despacho","Encargado de despacho","Encargado de despacho"];
+const CARGOS_050=ESC050_FUENTE.map(e=>/encargad/i.test(e.cargo||"")?(/encargada/i.test(e.cargo)?"Encargada de despacho":"Encargado de despacho"):/directora/i.test(e.cargo||"")?"Directora":"Director");
 if(ZONA_TQ&&Array.isArray(ZONA_TQ.escuelas)&&ZONA_TQ.escuelas.length){ // escuelas de la zona activa
   ESCUELAS_050.splice(0,ESCUELAS_050.length,...ZONA_TQ.escuelas.map(e=>[e.nombre,e.cct,e.mun,e.loc,e.dom,e.dir]));
   CARGOS_050.splice(0,CARGOS_050.length,...ZONA_TQ.escuelas.map(e=>/encargad/i.test(e.cargo)?(/encargada/i.test(e.cargo)?"Encargada de despacho":"Encargado de despacho"):/directora/i.test(e.cargo)?"Directora":"Director"))}
@@ -3848,6 +3846,10 @@ async function accesoGate(){
   const m=(location.hash||"").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/);
   if(m){store.set("acc-token",m[1]);history.replaceState(null,"",location.pathname+location.search)}
   try{const r=await fetch("formatos/acceso.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;ACC=await r.json();store.set("acc-cache",ACC)}catch(e){ACC=store.get("acc-cache",null)}
+  /* Enlace personal de la zona (#t=…): el servidor entrega solo los datos de la persona y de su escuela o escuelas */
+  const mt=(location.hash||"").match(/[#&]t=([A-Za-z0-9_-]{20,})/);
+  if(mt){store.set("tlp-token",mt[1]);history.replaceState(null,"",location.pathname+location.search)}
+  if(store.get("tlp-token","")&&await tlpValidar(store.get("tlp-token","")))return true;
   if(!ACC||!ACC.activo)return true;
   if(store.get("gh-token",""))return true; // la Supervisión siempre entra
   if(paseTequio())return true; // ATP y directores que vienen de Tequio con su enlace vigente
@@ -3855,7 +3857,30 @@ async function accesoGate(){
   const tok=store.get("acc-token","");if(!tok)return false;
   const h=await sha256(tok);const e=(ACC.enlaces||[]).find(x=>x.h===h);ACC_YO=e||null;
   return accEstado(e,ACC.generacion)==="vigente"}
-addEventListener("hashchange",()=>{if(/acceso=/.test(location.hash))accesoGate().then(ok=>ok?home():bloqueoView())});
+addEventListener("hashchange",()=>{if(/acceso=|[#&]t=/.test(location.hash))accesoGate().then(ok=>ok?home():bloqueoView())});
+async function tlpValidar(tok){
+  const srv=(ACC&&ACC.tequio)||"";let j=null;
+  if(srv&&navigator.onLine!==false){try{const r=await fetch(srv,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({accion:"tlpPerfil",datos:{tok}})});j=await r.json()}catch(e){j=null}}
+  if(j&&j.ok&&Array.isArray(j.escuelas)){
+    const antes=JSON.stringify((TLM_YO&&TLM_YO.escuelas)||[]),ahora=JSON.stringify(j.escuelas);
+    store.set("tlm-yo",{persona:j.persona,escuelas:j.escuelas,fecha:j.fecha});tlpAplicar(j);
+    // las listas de escuelas se arman al abrir: si cambiaron, se recarga una sola vez
+    let r="";try{r=sessionStorage.getItem("tlp-recarga")||""}catch(e){}
+    if(antes!==ahora&&!ESC050_FUENTE.length&&r!==ahora.length+""){try{sessionStorage.setItem("tlp-recarga",ahora.length+"")}catch(e){}location.reload()}
+    return true}
+  if(j&&!j.ok&&/anulado|no es v[aá]lido|vigente/i.test(j.mensaje||j.error||"")){store.del("tlp-token");store.del("tlm-yo");return false}
+  return !!store.get("tlm-yo",null)} // sin internet: se usa lo que ya trajo su enlace
+function tlpAplicar(j){const p=j.persona||{},E=j.escuelas||[];if(!E.length)return;
+  const mia=E.find(e=>e.cct===perfil.cct)||E[0];
+  if(perfil.modo!=="050"||!E.some(e=>e.cct===perfil.cct)){
+    Object.assign(perfil,{modo:"050",zona:"050",subsis:"ISEP",subsistema:"Federalizado",nivel:"Primaria",instLogo:"img/isep.png",
+      escuela:"Escuela Primaria "+mia.nombre,cct:mia.cct,municipio:mia.mun,localidad:mia.loc,domicilio:mia.dom,director:mia.dir,turno:mia.turno||perfil.turno||""});
+    if(typeof logoOficialCargar==="function"&&!store.get("logo-escuela",null))setTimeout(()=>logoOficialCargar(mia.cct),50)}
+  if(p.nombre&&!perfil.minombre)perfil.minombre=[p.trato,p.nombre].filter(Boolean).join(" ");
+  if(p.correo&&!perfil.micorreo)perfil.micorreo=p.correo;
+  if(mia.funcion&&!perfil.micargo)perfil.micargo=mia.funcion+(mia.grupo?" "+mia.grupo:"");
+  ["curp","rfc"].forEach(k=>{if(p[k]&&!perfil["mi"+k])perfil["mi"+k]=p[k]});
+  store.set("ppie-perfil",perfil)}
 /* Pase de Tequio: Tequio (mismo sitio, mismo almacenamiento) lo deja a ATP y directores con sesión real;
    vale 7 días y se renueva cada vez que entran a Tequio. La primera vez llena el perfil con su escuela. */
 function paseTequio(){const p=store.get("tequio-pase",null);
@@ -7192,7 +7217,7 @@ function irDirecto(){const k=window.IR_DEST;if(!k)return false;window.IR_DEST=""
   if(/^banxico|^dinero/i.test(k)){home();bxAbrir();return true}
   if(/^privacidad|^fotos|^datospersonales/i.test(k)){home();S.sec="familias";apView();return true}
   const sec=SECCIONES.find(x=>x.id===k.toLowerCase());if(sec){home();sectionView(sec.id);return true}return false}
-function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}setupView()}
+function inicioOK(){if(!DEMO&&window.IR_DEST&&irDirecto())return;if(!DEMO){let visto=true;try{visto=localStorage.getItem("tlm-tour-visto")==="1";if(!visto){localStorage.setItem("tlm-tour-visto","1");visto=localStorage.getItem("tlm-tour-visto")!=="1"}}catch(e){visto=true}if(!visto){location.replace("tour.html");return}}if(perfil.modo&&!perfil.instLogo){perfil.instLogo=perfil.subsis==="SEBS"?"img/se.png":"img/isep.png"}if(DEMO){demoBanda();home();const k=window.DEMO_DEST;if(k&&typeof DEMO_IR!=="undefined"&&DEMO_IR[k])DEMO_IR[k]();return}if(store.get("tlm-yo",null)&&store.get("tlp-token","")&&perfil.modo==="050"&&perfil.escuela&&perfil.minombre){home();return}setupView()}
 function setupView(){S.view="setup";S.sec=null;setBar("");
   const zBtn=ZONA_TQ?`<button type="button" class="bv-op p" id="suTq"><span class="bv-ic">${ICON.group}</span><span><b>Zona Escolar No. ${esc(ZONA_NUM)}</b><span>Sus escuelas ya están cargadas</span></span></button>`
     :`<button type="button" class="bv-op p" id="su050"><span class="bv-ic">${ICON.group}</span><span><b>Zona Escolar No. 050</b><span>Sus escuelas ya están cargadas</span></span></button>`;

@@ -550,6 +550,8 @@ function doPost(e) {
     // Ulama · visita del supervisor: el docente sube su paquete de revisión (dura 6 h) y el supervisor lo baja con el código o el QR
     if (q.accion === 'ulamaRevSubir') return json_(Object.assign({ ok: true }, ulamaRevSubir_(q)));
     if (q.accion === 'ulamaRevBajar') return json_(Object.assign({ ok: true }, ulamaRevBajar_(q)));
+    // Tlamatini · enlace personal de cada trabajador de la zona: entrega solo sus datos y los de su escuela o escuelas
+    if (q.accion === 'tlpPerfil') return json_(Object.assign({ ok: true }, tlpPerfil_(q.datos || {})));
     const yo = usuario_(q.k);
     if (!yo) return json_({ ok: false, error: 'acceso', mensaje: 'El enlace no es válido o fue anulado. Solicite uno nuevo a la Supervisión.' });
     const f = ACCIONES[q.accion];
@@ -5651,6 +5653,95 @@ function ulamaEnlace_(tok) {
   if (!e || e.anulado || e.gen !== acc.generacion || String(e.vence) < Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')) return null;
   return e;
 }
+/* ===================== Tlamatini · enlaces personales de la zona =====================
+   Cada trabajador activo del Personal de la zona recibe por correo su enlace a Tlamatini. Con él, Tlamatini pide aquí
+   SOLO sus datos y los de su escuela o escuelas (doble plaza): ya no van escritos en el código público de la página.
+   Los enlaces se guardan en las propiedades del script (privadas): «tlpT-<id del trabajador>» y el índice «tlpH-<huella>». */
+const TLP_URL = 'https://carlosog23.github.io/Carlos-Ortega/formatos-ppie/';
+const tlpProps_ = () => PropertiesService.getScriptProperties();
+function tlpDe_(id) { try { return JSON.parse(tlpProps_().getProperty('tlpT-' + id) || 'null'); } catch (e) { return null; } }
+function tlpTitulo_(t) { return String(t || '').toLowerCase().replace(/(^|[\s-])([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, w => w.toLowerCase()).trim(); }
+function tlpActivas_(t) { return (t.plazas || []).filter(p => p.activa !== false && p.cct); }
+function tlpTrato_(t) { const f = tlpActivas_(t).map(p => String(p.funcion || '')).join(' ');
+  if (/intendent|conserje|velador|secretari|administrativ|apoyo|vigilan|cocin/i.test(f) && !/docente|direct|atp|asesor|encargad/i.test(f)) return 'C.';
+  return t.sexo === 'H' ? 'Mtro.' : 'Mtra.'; }
+function tlpNombre_(t) { return [tlpTitulo_(t.nombre), tlpTitulo_(t.paterno), tlpTitulo_(t.materno)].filter(Boolean).join(' '); }
+/** Público: Tlamatini entra con el enlace personal y recibe solo lo de esa persona */
+function tlpPerfil_(d) {
+  const tok = String(d.tok || '');
+  if (tok.length < 20) throw new Error('El enlace está incompleto.');
+  const id = tlpProps_().getProperty('tlpH-' + sha_(tok));
+  const x = id ? tlpDe_(id) : null;
+  if (!x || x.anulado) throw new Error('anulado: Este enlace ya no es válido. Pida uno nuevo a la Supervisión.');
+  const t = leer_('trb').find(r => r.id === id);
+  if (!t || t.estado === 'baja') throw new Error('anulado: Su enlace ya no está vigente. Comuníquese con la Supervisión.');
+  const dir = leer_('dir').filter(c => c.tipo === 'director' && c.activo !== false);
+  const pl = tlpActivas_(t), vistos = {};
+  const escuelas = pl.filter(p => !vistos[p.cct + p.turno] && (vistos[p.cct + p.turno] = 1)).map(p => {
+    const c = dir.find(r => r.cct === p.cct && (!p.turno || !r.turno || r.turno === p.turno)) || dir.find(r => r.cct === p.cct) || {};
+    return { nombre: String(c.escuela || '').replace(/^(escuela\s+primaria|esc\.?\s*prim\.?)\s+/i, ''), cct: p.cct, mun: c.municipio || '', loc: c.localidad || '', dom: c.domicilio || '',
+      dir: c.nombre || '', cargo: c.cargo || '', turno: p.turno || c.turno || '', funcion: p.funcion || '', grupo: p.grupo || '', clave: p.clave || '' }; });
+  x.usado = new Date().toISOString(); tlpProps_().setProperty('tlpT-' + id, JSON.stringify(x));
+  return { persona: { nombre: tlpNombre_(t), trato: tlpTrato_(t), sexo: t.sexo || '', curp: t.curp || '', rfc: t.rfc || '', correo: t.correoInst || '', celular: t.celular || '',
+      fechaIngreso: t.fechaIngreso || '', estudios: t.estudios || '', afiliacion: t.afiliacion || '' }, escuelas: escuelas, zona: zonaPublica_().numero, fecha: new Date().toISOString() };
+}
+function tlpCorreo_(t, tok) {
+  const z = Z(), nombre = tlpNombre_(t), url = TLP_URL + '#t=' + tok, esc = escuelasTlp_(t);
+  const html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#1E2A40;max-width:560px">' +
+    '<p>' + esc_(tlpTrato_(t) + ' ' + nombre) + ':</p>' +
+    '<p>La Supervisión Escolar' + (z.numero ? ' Zona ' + esc_(z.numero) : '') + ' le comparte su <b>enlace personal a Tlamatini</b>, la herramienta de la zona para los formatos y documentos de la escuela. ' +
+    'Al abrirlo, Tlamatini ya trae sus datos y los de su escuela' + (esc.length > 1 ? 's (' + esc_(esc.join(' y ')) + ')' : esc.length ? ' (' + esc_(esc[0]) + ')' : '') + ', con sus logos.</p>' +
+    '<p style="text-align:center;margin:26px 0"><a href="' + url + '" style="background:#1F3A6B;color:#fff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:bold;display:inline-block">Abrir mi Tlamatini</a></p>' +
+    '<p style="background:#FDF1DC;border-radius:8px;padding:10px 12px;font-size:14px"><b>Este enlace es personal.</b> Por favor no lo comparta: con él se ven sus datos y los de su escuela. Si lo pierde o cambia de teléfono, vuelva a abrir este correo.</p>' +
+    '<p style="font-size:13px;color:#6A5C4C">Si el botón no funciona, copie esta dirección en su navegador:<br>' + esc_(url) + '</p>' +
+    '<p>Atentamente,<br>' + esc_(z.supervisor || 'Supervisión Escolar') + '<br>' + esc_(z.cargoSupervisor || 'Supervisor Escolar') + (z.numero ? ' · Zona ' + esc_(z.numero) : '') + '</p></div>';
+  MailApp.sendEmail({ to: t.correoInst, subject: 'Su enlace personal a Tlamatini · Supervisión Escolar' + (z.numero ? ' Zona ' + z.numero : ''), htmlBody: html,
+    body: 'Su enlace personal a Tlamatini (no lo comparta): ' + url, name: 'Supervisión Escolar' + (z.numero ? ' Zona ' + z.numero : '') });
+}
+function escuelasTlp_(t) { const dir = leer_('dir'); return tlpActivas_(t).map(p => { const c = dir.find(r => r.tipo === 'director' && r.cct === p.cct) || {}; return String(c.escuela || p.cct).replace(/^(escuela\s+primaria|esc\.?\s*prim\.?)\s+/i, 'Esc. Prim. '); }).filter((v, i, a) => a.indexOf(v) === i); }
+const TLP_ACCIONES = {
+  // Estado de los enlaces de todo el personal activo
+  tlpEstado: (yo) => {
+    soloAdmin_(yo);
+    const l = leer_('trb').filter(t => t.estado !== 'baja');
+    return { enlaces: l.map(t => { const x = tlpDe_(t.id); return { id: t.id, correo: t.correoInst || '', estado: !x ? 'sin' : x.anulado ? 'anulado' : x.enviado ? 'enviado' : 'pendiente', creado: x && x.creado || '', enviado: x && x.enviado || '', usado: x && x.usado || '' }; }),
+      cuota: MailApp.getRemainingDailyQuota(), url: TLP_URL };
+  },
+  // Genera (si no tiene) y envía el enlace a cada trabajador elegido; los que no alcancen la cuota del día quedan pendientes
+  tlpEnviar: (yo, d) => {
+    soloAdmin_(yo);
+    const ids = (Array.isArray(d.ids) ? d.ids : []).slice(0, 400), l = leer_('trb'), P = tlpProps_(), ahora = new Date().toISOString();
+    let enviados = 0, pendientes = 0, sinCorreo = 0; const errores = [];
+    ids.forEach(id => {
+      const t = l.find(r => r.id === id); if (!t || t.estado === 'baja') return;
+      let x = tlpDe_(id);
+      if (!x || x.anulado || d.nuevo) { if (x && x.h) P.deleteProperty('tlpH-' + x.h); const tok = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+        x = { tok: tok, h: sha_(tok), creado: ahora, por: yo.nombre || '' }; P.setProperty('tlpH-' + x.h, id); }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t.correoInst || '').trim())) { sinCorreo++; P.setProperty('tlpT-' + id, JSON.stringify(x)); return; }
+      if (MailApp.getRemainingDailyQuota() < 1) { pendientes++; P.setProperty('tlpT-' + id, JSON.stringify(x)); return; }
+      try { tlpCorreo_(Object.assign({}, t, { correoInst: String(t.correoInst).trim() }), x.tok); x.enviado = new Date().toISOString(); enviados++; }
+      catch (e) { errores.push(tlpNombre_(t) + ': ' + e.message); }
+      P.setProperty('tlpT-' + id, JSON.stringify(x));
+    });
+    return Object.assign({ enviados: enviados, pendientes: pendientes, sinCorreo: sinCorreo, errores: errores.slice(0, 10) }, TLP_ACCIONES.tlpEstado(yo));
+  },
+  // Copia el enlace de una persona (para mandarlo por WhatsApp si no tiene correo)
+  tlpEnlace: (yo, d) => {
+    soloAdmin_(yo);
+    const t = leer_('trb').find(r => r.id === d.id); if (!t) throw new Error('No se encontró al trabajador.');
+    let x = tlpDe_(t.id), P = tlpProps_();
+    if (!x || x.anulado) { const tok = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8); x = { tok: tok, h: sha_(tok), creado: new Date().toISOString(), por: yo.nombre || '' }; P.setProperty('tlpH-' + x.h, t.id); P.setProperty('tlpT-' + t.id, JSON.stringify(x)); }
+    return { url: TLP_URL + '#t=' + x.tok };
+  },
+  // Anula enlaces (por ejemplo, si alguien lo compartió o dejó la zona)
+  tlpAnular: (yo, d) => {
+    soloAdmin_(yo);
+    const P = tlpProps_(); (Array.isArray(d.ids) ? d.ids : []).forEach(id => { const x = tlpDe_(id); if (!x) return; if (x.h) P.deleteProperty('tlpH-' + x.h); x.anulado = new Date().toISOString(); P.setProperty('tlpT-' + id, JSON.stringify(x)); });
+    return TLP_ACCIONES.tlpEstado(yo);
+  }
+};
+Object.assign(ACCIONES, TLP_ACCIONES);
+
 /** Visita del supervisor (Ulama): el paquete de revisión que arma el docente en su dispositivo (comprimido, de solo lectura)
     se guarda en la caché del servidor 6 horas con un código de 6 letras; el supervisor lo baja en «Ulama · Supervisión».
     No se guarda en hojas ni en Drive. Queda un permiso de 3 días para que el supervisor le envíe al docente su informe. */
