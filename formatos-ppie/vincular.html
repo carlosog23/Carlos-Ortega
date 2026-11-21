@@ -136,7 +136,7 @@ async function escanear() {
   const leer = async () => {
     if (!CAM || !CAM.vivo) return; let txt = null;
     try { if (v.videoWidth) { if (det) { const r = await det.detect(v); txt = r[0] && r[0].rawValue; } else { const w = Math.min(720, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); c.width = w; c.height = h; x.drawImage(v, 0, 0, w, h); const r = jsQR(x.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" }); txt = r && r.data; } } } catch (e) {}
-    if (txt) { const o = leerCodigo(txt); if (o) { navigator.vibrate && navigator.vibrate(60); camStop(); return unirse(o.sala, o.k, o.app); } tx.innerHTML = `<span class="err">Ese código no es de vinculación.</span> Use el que aparece en la computadora.`; }
+    if (txt) { const o = leerCodigo(txt); if (o) { navigator.vibrate && navigator.vibrate(60); camStop(); return unirse(o.sala, o.k, /tlamatini-aula/.test(Q.get("volver") || "") ? "aula" : o.app); } tx.innerHTML = `<span class="err">Ese código no es de vinculación.</span> Use el que aparece en la computadora.`; }
     setTimeout(leer, 220);
   };
   leer();
