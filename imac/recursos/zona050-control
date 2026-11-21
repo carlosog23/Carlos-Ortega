@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+# =====================================================================
+#  Zona Escolar 050 · Control de apps de las iMac
+#  Lee la lista de apps autorizadas (apps.json en el GitHub de la zona)
+#  y deja en la iMac SOLO esas apps: menú, escritorio, página de control
+#  y marcadores de Firefox. Corre al encender y cada 30 minutos.
+#
+#  Uso manual:  sudo zona050-control          (actualiza ahora)
+#               zona050-control --estado      (muestra qué apps hay)
+# =====================================================================
+import html, json, os, re, shutil, sys, time, urllib.request
+
+BASE = "https://carlosog23.github.io/Carlos-Ortega/imac"
+DIR_ZONA = "/usr/share/zona050"
+DIR_ICONOS = DIR_ZONA + "/iconos"
+DIR_ACCESOS = DIR_ZONA + "/accesos"
+DIR_CONTROL = DIR_ZONA + "/control"
+LISTA_INCLUIDA = DIR_ZONA + "/apps.json"          # la que trae el instalador
+DIR_ESTADO = "/var/lib/zona050"
+LISTA_GUARDADA = DIR_ESTADO + "/apps.json"        # la última que se bajó bien
+APLICACIONES = "/usr/share/applications"
+POLITICAS = ["/etc/firefox/policies/policies.json", "/usr/lib/firefox/distribution/policies.json"]
+FIJOS = {"zona050-control.desktop", "zona050-impresoras.desktop"}  # no se borran nunca
+
+
+def bajar(url, segundos=20):
+    req = urllib.request.Request(url + ("&" if "?" in url else "?") + "v=%d" % time.time(),
+                                 headers={"User-Agent": "zona050-control"})
+    with urllib.request.urlopen(req, timeout=segundos) as r:
+        return r.read()
+
+
+def valida(lista):
+    """Revisa la lista y regresa solo lo que es seguro usar."""
+    apps, sitios = [], []
+    for a in lista.get("apps", []):
+        if not isinstance(a, dict) or not a.get("activa"):
+            continue
+        i, url = str(a.get("id", "")), str(a.get("url", ""))
+        if not re.fullmatch(r"[a-z0-9-]{1,40}", i) or not url.startswith("https://"):
+            continue
+        icono = str(a.get("icono", "") or "")
+        if icono and not re.fullmatch(r"[A-Za-z0-9._-]{1,60}\.png", icono):
+            icono = ""
+        apps.append({"id": i, "nombre": str(a.get("nombre", i))[:40],
+                     "descripcion": str(a.get("descripcion", ""))[:80], "url": url, "icono": icono})
+    for s in lista.get("sitios", []):
+        if isinstance(s, dict) and str(s.get("url", "")).startswith("https://"):
+            sitios.append({"nombre": str(s.get("nombre", ""))[:30], "url": str(s["url"])})
+    return apps, sitios
+
+
+def leer_lista():
+    os.makedirs(DIR_ESTADO, exist_ok=True)
+    try:
+        datos = json.loads(bajar(BASE + "/apps.json"))
+        valida(datos)  # si truena aquí, no se guarda
+        with open(LISTA_GUARDADA + ".tmp", "w") as f:
+            json.dump(datos, f, ensure_ascii=False, indent=1)
+        os.replace(LISTA_GUARDADA + ".tmp", LISTA_GUARDADA)
+        return datos, "en línea"
+    except Exception as e:
+        for ruta, origen in ((LISTA_GUARDADA, "guardada"), (LISTA_INCLUIDA, "del instalador")):
+            try:
+                with open(ruta) as f:
+                    return json.load(f), "%s (sin internet)" % origen
+            except Exception:
+                pass
+    return {"apps": [], "sitios": []}, "vacía"
+
+
+def icono_de(app):
+    if not app["icono"]:
+        return "applications-internet"
+    ruta = os.path.join(DIR_ICONOS, app["icono"])
+    if not os.path.exists(ruta):
+        try:
+            datos = bajar(BASE + "/recursos/iconos/" + app["icono"])
+            if datos[:8] == b"\x89PNG\r\n\x1a\n":
+                os.makedirs(DIR_ICONOS, exist_ok=True)
+                with open(ruta, "wb") as f:
+                    f.write(datos)
+        except Exception:
+            pass
+    return ruta if os.path.exists(ruta) else "applications-internet"
+
+
+def escribe(ruta, texto, modo=0o644):
+    tmp = ruta + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(texto)
+    os.chmod(tmp, modo)
+    os.replace(tmp, ruta)
+
+
+def accesos(apps):
+    os.makedirs(DIR_ACCESOS, exist_ok=True)
+    quedan = set(FIJOS)
+    for a in apps:
+        nombre = "zona050-%s.desktop" % a["id"]
+        quedan.add(nombre)
+        texto = ("[Desktop Entry]\nVersion=1.0\nType=Application\nName=%s\nComment=%s\n"
+                 "Exec=firefox --new-window %s\nIcon=%s\nTerminal=false\n"
+                 "Categories=Education;Network;\nStartupNotify=true\nX-Zona050-Escritorio=1\n"
+                 % (a["nombre"], a["descripcion"], a["url"], icono_de(a)))
+        escribe(os.path.join(DIR_ACCESOS, nombre), texto, 0o755)
+        shutil.copyfile(os.path.join(DIR_ACCESOS, nombre), os.path.join(APLICACIONES, nombre))
+    # Lo que ya no está autorizado se quita del menú
+    for d in (DIR_ACCESOS, APLICACIONES):
+        for f in os.listdir(d):
+            if f.startswith("zona050-") and f.endswith(".desktop") and f not in quedan:
+                os.remove(os.path.join(d, f))
+    os.system("update-desktop-database %s >/dev/null 2>&1" % APLICACIONES)
+
+
+def pagina(apps, sitios, origen):
+    e = html.escape
+    tarjetas = "".join(
+        '<a class="app" href="%s">%s<b>%s</b><span>%s</span></a>'
+        % (e(a["url"]), ('<img src="%s" alt="">' % e("file://" + a["icono_ruta"])) if a["icono_ruta"].startswith("/") else "",
+           e(a["nombre"]), e(a["descripcion"])) for a in apps) or \
+        '<p class="vacio">Por ahora no hay apps autorizadas en esta computadora.</p>'
+    ligas = "".join('<a href="%s">%s</a>' % (e(s["url"]), e(s["nombre"])) for s in sitios)
+    hoy = time.strftime("%d/%m/%Y %H:%M")
+    texto = """<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Control de apps · Zona 050</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--anil:#24427A;--terra:#B5532F;--ambar:#D99A2B;--crema:#FBF6EC;--tinta:#2A2A33}
+*{box-sizing:border-box}body{margin:0;font-family:"Montserrat","Ubuntu","Noto Sans",sans-serif;background:var(--crema);color:var(--tinta);min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:16px;padding:22px 40px;background:var(--anil);color:#fff}
+header img{width:54px;height:54px;border-radius:12px;background:#fff;padding:4px}
+header h1{margin:0;font-size:22px;letter-spacing:.3px}header p{margin:2px 0 0;opacity:.8;font-size:13px}
+.reloj{margin-left:auto;text-align:right;font-size:13px;opacity:.9}.reloj b{display:block;font-size:26px}
+main{flex:1;padding:40px;max-width:1100px;width:100%;margin:0 auto}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--terra);margin:0 0 18px}
+.apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px}
+.app{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:30px 20px;background:#fff;border-radius:18px;text-decoration:none;color:inherit;box-shadow:0 2px 10px rgba(36,66,122,.08);border:2px solid transparent;transition:.15s}
+.app:hover,.app:focus{border-color:var(--ambar);transform:translateY(-3px);box-shadow:0 8px 22px rgba(36,66,122,.15);outline:none}
+.app img{width:96px;height:96px;object-fit:contain}.app b{font-size:19px;color:var(--anil)}.app span{font-size:13px;opacity:.75}
+.sitios{margin-top:38px}.sitios a{display:inline-block;margin:0 10px 10px 0;padding:9px 18px;border-radius:30px;background:#fff;color:var(--anil);text-decoration:none;font-size:14px;border:1px solid #e3dccd}
+.sitios a:hover{border-color:var(--ambar)}.vacio{opacity:.7}
+footer{padding:16px 40px;font-size:12px;opacity:.6;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style></head><body>
+<header><img src="file://@@icono_zona@@" alt="" onerror="this.remove()">
+<div><h1>Control de apps</h1><p>Supervisión Escolar · Zona Escolar 050</p></div>
+<div class="reloj"><b id="h"></b><span id="f"></span></div></header>
+<main><h2>Apps autorizadas en esta computadora</h2><div class="apps">@@tarjetas@@</div>
+@@sitios@@</main>
+<footer><span>Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisor Escolar</span><span>Lista actualizada: @@hoy@@ · @@origen@@</span></footer>
+<script>
+function t(){var d=new Date();document.getElementById('h').textContent=d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+document.getElementById('f').textContent=d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});}t();setInterval(t,15000);
+</script></body></html>
+"""
+    for k, v in {"icono_zona": e(DIR_ICONOS + "/zona050.png"), "tarjetas": tarjetas, "hoy": hoy, "origen": e(origen),
+                 "sitios": ('<div class="sitios"><h2>Sitios</h2>%s</div>' % ligas) if ligas else ""}.items():
+        texto = texto.replace("@@%s@@" % k, v)
+    os.makedirs(DIR_CONTROL, exist_ok=True)
+    escribe(DIR_CONTROL + "/index.html", texto)
+
+
+def firefox(apps, sitios):
+    inicio = "file://" + DIR_CONTROL + "/index.html"
+    marcadores = [{"toplevel_name": "Zona 050"}, {"name": "Control de apps", "url": inicio}]
+    marcadores += [{"name": a["nombre"], "url": a["url"]} for a in apps]
+    marcadores += [{"name": s["nombre"], "url": s["url"]} for s in sitios]
+    for ruta in POLITICAS:
+        if not os.path.isdir(os.path.dirname(ruta)):
+            continue
+        try:
+            with open(ruta) as f:
+                pol = json.load(f)
+        except Exception:
+            pol = {"policies": {}}
+        p = pol.setdefault("policies", {})
+        p["Homepage"] = {"URL": inicio, "Locked": False, "StartPage": "homepage"}
+        p["ManagedBookmarks"] = marcadores
+        escribe(ruta, json.dumps(pol, ensure_ascii=False, indent=2))
+
+
+def main():
+    if "--estado" in sys.argv:
+        try:
+            with open(DIR_ESTADO + "/estado.json") as f:
+                print(json.dumps(json.load(f), ensure_ascii=False, indent=2))
+        except Exception:
+            print("Todavía no se ha corrido el control de apps.")
+        return
+    if os.geteuid() != 0:
+        sys.exit("Hay que correrlo con sudo:  sudo zona050-control")
+    lista, origen = leer_lista()
+    apps, sitios = valida(lista)
+    accesos(apps)
+    for a in apps:
+        a["icono_ruta"] = icono_de(a)
+    pagina(apps, sitios, origen)
+    firefox(apps, sitios)
+    estado = {"fecha": time.strftime("%Y-%m-%d %H:%M:%S"), "origen": origen,
+              "apps": [a["nombre"] for a in apps]}
+    escribe(DIR_ESTADO + "/estado.json", json.dumps(estado, ensure_ascii=False, indent=1))
+    print("Control de apps: %s · lista %s" % (", ".join(estado["apps"]) or "ninguna", origen))
+
+
+if __name__ == "__main__":
+    main()

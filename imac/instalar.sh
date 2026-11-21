@@ -10,12 +10,16 @@
 #                                                  impresora de la dirección
 #     sudo bash instalar.sh --solo-impresora 192.168.1.50
 #                                               -> solo agrega la impresora
+#     sudo bash instalar.sh --usuario-maestro CLAVE
+#                                               -> crea la cuenta "Maestro"
+#                                                  (sin permisos de admin) y
+#                                                  la iMac entra sola a ella
 #
 #  Se puede volver a correr sin problema: no duplica nada.
 # =====================================================================
 set -uo pipefail
 
-VERSION="1.0"
+VERSION="2.0"
 BASE_URL="https://carlosog23.github.io/Carlos-Ortega"
 DIR_ZONA="/usr/share/zona050"
 DIR_RECURSOS="$(cd "$(dirname "$0")" && pwd)/recursos"
@@ -24,6 +28,7 @@ LOG="/var/log/zona050-instalacion.log"
 
 IP_IMPRESORA=""
 SOLO_IMPRESORA=0
+CLAVE_MAESTRO=""
 
 # ---------- utilidades ----------
 verde() { printf '\033[1;32m%s\033[0m\n' "$*"; }
@@ -32,7 +37,7 @@ rojo() { printf '\033[1;31m%s\033[0m\n' "$*"; }
 paso() { echo; printf '\033[1;34m▶ %s\033[0m\n' "$*"; }
 
 uso() {
-  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -40,6 +45,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
     --solo-impresora) IP_IMPRESORA="${2:-}"; SOLO_IMPRESORA=1; shift 2 ;;
+    --usuario-maestro) CLAVE_MAESTRO="${2:-}"; shift 2
+      [ ${#CLAVE_MAESTRO} -ge 4 ] || { rojo "La clave de la cuenta Maestro debe tener al menos 4 caracteres."; exit 1; } ;;
     -h|--help|--ayuda) uso ;;
     *) rojo "Opción no reconocida: $1"; uso ;;
   esac
@@ -210,41 +217,28 @@ if [ -d /etc/lightdm ]; then
   sed -i "/^\[Greeter\]/a background=$DIR_ZONA/fondo-zona050.png" "$CONF"
 fi
 
-# ---------- accesos a las apps ----------
-paso "Creando accesos a las apps de la Zona 050"
+# ---------- control de apps ----------
+paso "Instalando el Control de apps"
 DIR_APPS="$DIR_ZONA/accesos"
-mkdir -p "$DIR_APPS"
+mkdir -p "$DIR_APPS" /var/lib/zona050
+# Se quitan los accesos fijos de la versión anterior; el control pone solo los autorizados
 rm -f "$DIR_APPS"/*.desktop /usr/share/applications/zona050-*.desktop
+cp -f "$DIR_RECURSOS/apps.json" "$DIR_ZONA/apps.json"
+install -m 755 "$DIR_RECURSOS/zona050-control" /usr/local/bin/zona050-control
 
-acceso() { # archivo  nombre  descripción  url  ícono  [en_escritorio=1]
-  local f="$DIR_APPS/zona050-$1.desktop"
-  cat > "$f" <<EOF
+# Acceso al Control de apps (siempre visible)
+cat > "$DIR_APPS/zona050-control.desktop" <<EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=$2
-Comment=$3
-Exec=firefox --new-window $4
-Icon=$5
+Name=Control de apps
+Comment=Apps autorizadas de la Zona 050
+Exec=firefox --new-window file://$DIR_ZONA/control/index.html
+Icon=$DIR_ZONA/iconos/zona050.png
 Terminal=false
-Categories=Education;Network;
-StartupNotify=true
-X-Zona050-Escritorio=${6:-1}
+Categories=Education;
+X-Zona050-Escritorio=1
 EOF
-  chmod 755 "$f"
-  cp -f "$f" /usr/share/applications/
-}
-
-acceso centro-apps     "Centro de Apps"      "Todas las apps de la Zona 050"            "$BASE_URL/centro-apps/"    "$DIR_ZONA/iconos/centro-apps.png"
-acceso tlamatini       "Tlamatini"           "Un camino para la labor docente"          "$BASE_URL/formatos-ppie/"  "$DIR_ZONA/iconos/tlamatini.png"
-acceso tlamatini-aula  "Tlamatini Aula"      "Planeación, dinámicas y juegos"           "$BASE_URL/tlamatini-aula/" "$DIR_ZONA/iconos/tlamatini-aula.png"
-acceso ulama           "Ulama"               "Educación Física"                         "$BASE_URL/educacion-fisica/" "$DIR_ZONA/iconos/ulama.png"
-acceso zona050         "Zona Escolar 050"    "Página de la zona"                        "$BASE_URL/zona050/"        "$DIR_ZONA/iconos/zona050.png"
-acceso red-de-apoyo    "Red de apoyo"        "¿A quién acudo? Instituciones y teléfonos" "$BASE_URL/red-de-apoyo/"  "help-contents"
-acceso relweb          "RELweb"              "Registros de primaria"                    "https://rel.educacionbc.edu.mx/" "x-office-spreadsheet"
-acceso meet            "Videollamada (Meet)" "Google Meet"                              "https://meet.google.com/"  "camera-web"
-acceso youtube         "YouTube"             "Videos"                                   "https://www.youtube.com/"  "multimedia-video-player"
-acceso tequio          "Tequio"              "Asesoría y seguimiento (directores y ATP)" "$BASE_URL/tequio/"        "$DIR_ZONA/iconos/tequio.png" 0
 
 # Acceso para configurar la impresora
 cat > "$DIR_APPS/zona050-impresoras.desktop" <<'EOF'
@@ -259,16 +253,41 @@ Terminal=false
 Categories=Settings;
 X-Zona050-Escritorio=1
 EOF
-chmod 755 "$DIR_APPS/zona050-impresoras.desktop"
-update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
-verde "Accesos creados en el menú (sección Educación)."
+chmod 755 "$DIR_APPS"/*.desktop
+cp -f "$DIR_APPS"/*.desktop /usr/share/applications/
+
+# Revisa la lista al encender y cada 30 minutos
+cat > /etc/systemd/system/zona050-control.service <<'EOF'
+[Unit]
+Description=Zona 050 · Control de apps
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zona050-control
+EOF
+cat > /etc/systemd/system/zona050-control.timer <<'EOF'
+[Unit]
+Description=Zona 050 · Revisar apps autorizadas
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now zona050-control.timer >/dev/null 2>&1 || true
 
 # ---------- Firefox: página de inicio, marcadores, YouTube y cámara ----------
 paso "Configurando Firefox"
 POLITICAS=$(cat <<EOF
 {
   "policies": {
-    "Homepage": { "URL": "$BASE_URL/centro-apps/", "Locked": false, "StartPage": "homepage" },
+    "Homepage": { "URL": "file://$DIR_ZONA/control/index.html", "Locked": false, "StartPage": "homepage" },
     "DisplayBookmarksToolbar": "always",
     "DontCheckDefaultBrowser": true,
     "DisableTelemetry": true,
@@ -276,18 +295,6 @@ POLITICAS=$(cat <<EOF
     "OverrideFirstRunPage": "",
     "OverridePostUpdatePage": "",
     "RequestedLocales": ["es-MX", "es-ES"],
-    "ManagedBookmarks": [
-      { "toplevel_name": "Zona 050" },
-      { "name": "Centro de Apps",   "url": "$BASE_URL/centro-apps/" },
-      { "name": "Tlamatini",        "url": "$BASE_URL/formatos-ppie/" },
-      { "name": "Tlamatini Aula",   "url": "$BASE_URL/tlamatini-aula/" },
-      { "name": "Ulama",            "url": "$BASE_URL/educacion-fisica/" },
-      { "name": "Tequio",           "url": "$BASE_URL/tequio/" },
-      { "name": "Página de la zona","url": "$BASE_URL/zona050/" },
-      { "name": "Red de apoyo",     "url": "$BASE_URL/red-de-apoyo/" },
-      { "name": "RELweb",           "url": "https://rel.educacionbc.edu.mx/" },
-      { "name": "Meet",             "url": "https://meet.google.com/" }
-    ],
     "Permissions": {
       "Camera":     { "Allow": ["https://meet.google.com", "https://zoom.us", "https://app.zoom.us", "https://teams.microsoft.com"] },
       "Microphone": { "Allow": ["https://meet.google.com", "https://zoom.us", "https://app.zoom.us", "https://teams.microsoft.com"] }
@@ -309,7 +316,8 @@ for d in /etc/firefox/policies /usr/lib/firefox/distribution; do
     echo "$POLITICAS" > "$d/policies.json"
   fi
 done
-verde "Firefox: inicia en el Centro de Apps, barra de marcadores 'Zona 050',"
+/usr/local/bin/zona050-control || amarillo "El Control de apps se completará en cuanto haya internet."
+verde "Firefox: inicia en el Control de apps, barra de marcadores 'Zona 050',"
 verde "YouTube en formato ligero (H.264) y cámara/micrófono permitidos en Meet, Zoom y Teams."
 
 # ---------- configuración de cada usuario al iniciar sesión ----------
@@ -318,12 +326,18 @@ cat > /usr/local/bin/zona050-sesion <<'EOF'
 #!/usr/bin/env bash
 # Se ejecuta al iniciar sesión: pone fondo y accesos en el escritorio.
 DIR_ZONA="/usr/share/zona050"
-VERSION_CONF="1"
+VERSION_CONF="2"
 MARCA="$HOME/.config/zona050/listo-v$VERSION_CONF"
 FONDO="$DIR_ZONA/fondo-zona050.png"
 ESCRITORIO="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Escritorio")"
 [ "$ESCRITORIO" = "$HOME" ] && ESCRITORIO="$HOME/Escritorio"
 mkdir -p "$ESCRITORIO" "$HOME/.config/zona050"
+
+# Se quitan del escritorio las apps que ya no están autorizadas
+for f in "$ESCRITORIO"/zona050-*.desktop; do
+  [ -e "$f" ] || continue
+  [ -f "$DIR_ZONA/accesos/$(basename "$f")" ] || rm -f "$f"
+done
 
 # Accesos en el escritorio (siempre se revisan, por si alguien los borró)
 for f in "$DIR_ZONA"/accesos/*.desktop; do
@@ -375,6 +389,27 @@ NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF
 verde "Al iniciar sesión, cada usuario tendrá el fondo y los accesos en su escritorio."
+
+# ---------- cuenta Maestro (opcional) ----------
+if [ -n "$CLAVE_MAESTRO" ]; then
+  paso "Cuenta Maestro"
+  if ! id maestro >/dev/null 2>&1; then
+    adduser --disabled-password --gecos "Maestro" maestro >/dev/null
+  fi
+  echo "maestro:$CLAVE_MAESTRO" | chpasswd
+  for g in sudo adm lpadmin; do gpasswd -d maestro "$g" >/dev/null 2>&1 || true; done
+  for g in audio video plugdev netdev; do getent group "$g" >/dev/null && usermod -aG "$g" maestro; done
+  if [ -d /etc/lightdm ]; then
+    mkdir -p /etc/lightdm/lightdm.conf.d
+    cat > /etc/lightdm/lightdm.conf.d/70-zona050-maestro.conf <<'EOF'
+[Seat:*]
+autologin-user=maestro
+autologin-user-timeout=0
+EOF
+  fi
+  verde "Cuenta 'Maestro' lista, sin permisos de administrador; la iMac entra sola a ella."
+  verde "Tu cuenta de administrador sigue igual (para entrar: Menú → Salir → Cambiar de usuario)."
+fi
 
 # ---------- impresora ----------
 configurar_impresora
