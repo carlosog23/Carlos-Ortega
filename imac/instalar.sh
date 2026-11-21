@@ -19,7 +19,7 @@
 # =====================================================================
 set -uo pipefail
 
-VERSION="2.0"
+VERSION="2.1"
 BASE_URL="https://carlosog23.github.io/Carlos-Ortega"
 DIR_ZONA="/usr/share/zona050"
 DIR_RECURSOS="$(cd "$(dirname "$0")" && pwd)/recursos"
@@ -139,6 +139,48 @@ if ! ping -c 2 -W 3 deb.debian.org >/dev/null 2>&1 && ! ping -c 2 -W 3 8.8.8.8 >
   exit 1
 fi
 verde "Internet OK."
+
+# ---------- fecha y hora (sin hora correcta, Firefox rechaza todas las páginas seguras) ----------
+paso "Ajustando la fecha y la hora"
+cat > /usr/local/bin/zona050-hora <<'HORA'
+#!/bin/bash
+# Pone la iMac en hora de Tijuana. Usa la hora de internet (NTP) y, si la red de la escuela la bloquea,
+# la toma del encabezado de una página web. La pila del reloj de las iMac viejas suele estar agotada.
+timedatectl set-timezone America/Tijuana 2>/dev/null
+timedatectl set-ntp true 2>/dev/null
+for i in 1 2 3 4 5 6; do
+  F=$(LC_ALL=C wget -S --spider -T 8 -t 1 http://www.google.com 2>&1 | sed -n 's/^ *[Dd]ate: *//p' | head -1)
+  [ -n "$F" ] && break; sleep 5
+done
+[ -z "$F" ] && exit 0
+RED=$(date -u -d "$F" +%s 2>/dev/null) || exit 0
+YA=$(date -u +%s)
+DIF=$(( RED > YA ? RED - YA : YA - RED ))
+if [ "$DIF" -gt 90 ]; then date -u -s "@$RED" >/dev/null && hwclock -w 2>/dev/null; echo "Hora corregida (diferencia de ${DIF} s)."; fi
+HORA
+chmod 755 /usr/local/bin/zona050-hora
+cat > /etc/systemd/system/zona050-hora.service <<'HORA'
+[Unit]
+Description=Zona 050: poner la iMac en hora
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zona050-hora
+HORA
+cat > /etc/systemd/system/zona050-hora.timer <<'HORA'
+[Unit]
+Description=Zona 050: revisar la hora al encender y cada 3 horas
+[Timer]
+OnBootSec=40s
+OnUnitActiveSec=3h
+[Install]
+WantedBy=timers.target
+HORA
+systemctl daemon-reload
+systemctl enable --now zona050-hora.timer >/dev/null 2>&1
+/usr/local/bin/zona050-hora
+verde "Fecha y hora: $(date '+%d/%m/%Y %H:%M')"
 
 export DEBIAN_FRONTEND=noninteractive
 APT="apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
