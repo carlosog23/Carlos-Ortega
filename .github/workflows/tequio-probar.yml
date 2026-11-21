@@ -1,0 +1,30 @@
+# Prueba que el servidor de Tequio responda (deja el resultado como aviso en GitHub).
+name: Probar servidor de Tequio
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tequio-probar.yml']
+  workflow_dispatch:
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Probar
+        env:
+          CLASPRC: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          U="https://script.google.com/macros/s/AKfycbyH4wcANu-w9zNKkVECYoRjF9DhJi6pKwLL2sK0jFxGqQwFKNs0yAJzcC0S3yX8yB4aLw/exec"
+          G=$(curl -s -L --max-time 60 "$U" | head -c 300 | tr '\n' ' ')
+          echo "::notice title=GET::$G"
+          P=$(curl -s -L --max-time 60 -H 'Content-Type: text/plain;charset=utf-8' -d '{"accion":"vinCrear","datos":{}}' "$U" | head -c 300 | tr '\n' ' ')
+          echo "::notice title=vinCrear::$P"
+          printf '%s' "$CLASPRC" > ~/.clasprc.json
+          mkdir p && cd p
+          printf '{"scriptId":"1clFSU8f45Jg_mQFqd6alXtcKgALI3Vo8XfyFIjesbFpgMLHUy59VnhMm","rootDir":".","fileExtension":"gs"}' > .clasp.json
+          npx -y @google/clasp@2.4.2 pull >/dev/null 2>&1 || true
+          echo "::notice title=manifest::$(tr '\n' ' ' < appsscript.json 2>/dev/null)"
+          D=$(npx -y @google/clasp@2.4.2 deployments 2>&1 | tr '\n' ' ' | head -c 900)
+          echo "::notice title=deployments::$D"
