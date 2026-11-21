@@ -21,7 +21,7 @@ LISTA_GUARDADA = DIR_ESTADO + "/apps.json"        # la última que se bajó bien
 APLICACIONES = "/usr/share/applications"
 POLITICAS = ["/etc/firefox/policies/policies.json", "/usr/lib/firefox/distribution/policies.json"]
 FIJOS = {"zona050-control.desktop", "zona050-impresoras.desktop", "zona050-word.desktop", "zona050-excel.desktop",
-         "zona050-powerpoint.desktop", "zona050-pdf-firmar.desktop", "zona050-pdf-unir.desktop", "zona050-youtube.desktop", "zona050-claude.desktop"}  # no se borran nunca
+         "zona050-powerpoint.desktop", "zona050-pdf-firmar.desktop", "zona050-pdf-unir.desktop", "zona050-youtube.desktop", "zona050-claude.desktop", "zona050-chrome.desktop"}  # no se borran nunca
 
 
 def bajar(url, segundos=20):
@@ -185,6 +185,20 @@ def firefox(apps, sitios):
         escribe(ruta, json.dumps(pol, ensure_ascii=False, indent=2))
 
 
+def chrome(apps, sitios):
+    """Google Chrome: página de inicio en el Control de apps y los mismos marcadores de la zona."""
+    d = "/etc/opt/chrome/policies/managed"
+    if not os.path.isdir(d):
+        return
+    inicio = "file://" + DIR_CONTROL + "/index.html"
+    marcadores = [{"toplevel_name": "Zona 050"}, {"name": "Control de apps", "url": inicio}]
+    marcadores += [{"name": a["nombre"], "url": a["url"]} for a in apps]
+    marcadores += [{"name": s["nombre"], "url": s["url"]} for s in sitios]
+    pol = {"HomepageLocation": inicio, "HomepageIsNewTabPage": False, "ShowHomeButton": True,
+           "RestoreOnStartup": 4, "RestoreOnStartupURLs": [inicio], "ManagedBookmarks": marcadores}
+    escribe(d + "/zona050-apps.json", json.dumps(pol, ensure_ascii=False, indent=2))
+
+
 def main():
     if "--estado" in sys.argv:
         try:
@@ -202,6 +216,7 @@ def main():
         a["icono_ruta"] = icono_de(a)
     pagina(apps, sitios, origen)
     firefox(apps, sitios)
+    chrome(apps, sitios)
     estado = {"fecha": time.strftime("%Y-%m-%d %H:%M:%S"), "origen": origen,
               "apps": [a["nombre"] for a in apps]}
     escribe(DIR_ESTADO + "/estado.json", json.dumps(estado, ensure_ascii=False, indent=1))

@@ -183,6 +183,37 @@ instalar firefox firefox-locale-es \
   xournalpp pdfarranger xreader
 verde "Programas instalados (oficina: Word, Excel y PowerPoint con LibreOffice; PDF: ver, firmar y unir)."
 
+# ---------- Google Chrome (cuentas institucionales de Google) ----------
+paso "Google Chrome"
+if dpkg -s google-chrome-stable >/dev/null 2>&1; then
+  echo "Ya estaba instalado."
+elif [ "$(dpkg --print-architecture)" = "amd64" ]; then
+  if wget -q --tries=3 -O /tmp/chrome-zona050.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+     && $APT install /tmp/chrome-zona050.deb >/dev/null 2>&1; then
+    verde "Google Chrome instalado (se actualiza solo)."
+  else
+    amarillo "No se pudo instalar Google Chrome. Vuelva a correr el instalador más tarde."
+  fi
+  rm -f /tmp/chrome-zona050.deb
+else
+  amarillo "Google Chrome no está disponible para este equipo."
+fi
+# Equipo compartido: al cerrar Chrome se borran sesiones y datos (cada maestro entra con su cuenta y no queda abierta)
+mkdir -p /etc/opt/chrome/policies/managed
+cat > /etc/opt/chrome/policies/managed/zona050-base.json <<EOF
+{
+  "ForceEphemeralProfiles": true,
+  "BrowserSignin": 1,
+  "SyncDisabled": true,
+  "PasswordManagerEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "MetricsReportingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "BookmarkBarEnabled": true,
+  "ApplicationLocaleValue": "es-419"
+}
+EOF
+
 # ---------- memoria: zram (ayuda mucho en las de 2 y 4 GB) ----------
 paso "Optimizando la memoria"
 if [ -f /etc/default/zramswap ]; then
@@ -283,6 +314,7 @@ oficina powerpoint "Presentaciones (PowerPoint)" "Abrir y editar .pptx con Libre
 oficina pdf-firmar "PDF: llenar y firmar"      "Escribir, subrayar y firmar sobre un PDF"          xournalpp               com.github.xournalpp.xournalpp
 oficina pdf-unir   "PDF: unir y ordenar"       "Unir, separar, girar y quitar páginas de PDF"      pdfarranger             com.github.jeromerobert.pdfarranger
 oficina youtube    "YouTube"                   "Videos"                                            "firefox --new-window https://www.youtube.com/" multimedia-video-player
+oficina chrome     "Google Chrome"             "Para usar la cuenta institucional de Google (Drive, Classroom, Gmail, Meet)" google-chrome-stable google-chrome
 oficina claude     "Claude (asistente de IA)"  "Asistente de inteligencia artificial (cuenta gratuita personal)" "firefox --new-window https://claude.ai/" help-browser
 
 # Revisa la lista al encender y cada 30 minutos
