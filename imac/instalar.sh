@@ -283,6 +283,7 @@ oficina powerpoint "Presentaciones (PowerPoint)" "Abrir y editar .pptx con Libre
 oficina pdf-firmar "PDF: llenar y firmar"      "Escribir, subrayar y firmar sobre un PDF"          xournalpp               com.github.xournalpp.xournalpp
 oficina pdf-unir   "PDF: unir y ordenar"       "Unir, separar, girar y quitar páginas de PDF"      pdfarranger             com.github.jeromerobert.pdfarranger
 oficina youtube    "YouTube"                   "Videos"                                            "firefox --new-window https://www.youtube.com/" multimedia-video-player
+oficina claude     "Claude (asistente de IA)"  "Asistente de inteligencia artificial (cuenta gratuita personal)" "firefox --new-window https://claude.ai/" help-browser
 
 # Revisa la lista al encender y cada 30 minutos
 cat > /etc/systemd/system/zona050-control.service <<'EOF'
