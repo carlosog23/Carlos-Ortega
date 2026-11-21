@@ -1,0 +1,48 @@
+# Publica automáticamente el servidor de Tequio (Google Apps Script) cada vez que cambia
+# tequio/servidor/ en GitHub. Actualiza la MISMA implementación: la dirección del servidor no cambia.
+# Requiere el secreto CLASPRC_JSON (credencial de clasp de la cuenta dueña de Tequio).
+name: Publicar servidor de Tequio
+on:
+  push:
+    branches: [main]
+    paths: ['tequio/servidor/**']
+  workflow_dispatch:
+concurrency: tequio-servidor
+env:
+  SCRIPT_ID: PENDIENTE
+  DEPLOYMENT_ID: AKfycbyH4wcANu-w9zNKkVECYoRjF9DhJi6pKwLL2sK0jFxGqQwFKNs0yAJzcC0S3yX8yB4aLw
+  CLASP: npx -y @google/clasp@2.4.2
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Credencial de Google
+        env:
+          CLASPRC: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC" ] || [ "$SCRIPT_ID" = "PENDIENTE" ]; then
+            echo "::warning::Falta configurar el secreto CLASPRC_JSON o el SCRIPT_ID; no se publicó el servidor."
+            echo "OMITIR=1" >> "$GITHUB_ENV"; exit 0
+          fi
+          printf '%s' "$CLASPRC" > ~/.clasprc.json
+      - name: Bajar el proyecto actual de Apps Script
+        if: env.OMITIR != '1'
+        run: |
+          mkdir proyecto && cd proyecto
+          printf '{"scriptId":"%s","rootDir":".","fileExtension":"gs"}' "$SCRIPT_ID" > .clasp.json
+          $CLASP pull
+          ls -la
+      - name: Poner el código del repositorio
+        if: env.OMITIR != '1'
+        run: cp tequio/servidor/*.gs proyecto/
+      - name: Subir y publicar en la misma implementación
+        if: env.OMITIR != '1'
+        run: |
+          cd proyecto
+          $CLASP push --force
+          $CLASP deploy -i "$DEPLOYMENT_ID" -d "GitHub ${GITHUB_SHA::7} · $(date -u +%Y-%m-%d)"
+          echo "Servidor de Tequio publicado."
