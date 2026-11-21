@@ -6004,7 +6004,10 @@ function vinCrear_(d) {
 }
 function vinUnir_(d) {
   const sala = vinSalaOk_(d.sala), tok = String(d.tok || '');
-  if (!tok || (!tlpVigente_(tok) && !tlmEnlace_(tok) && !ulamaEnlace_(tok))) throw new Error('Su enlace personal no está vigente. Ábralo de nuevo o pida uno a la Supervisión.');
+  // Misioneros del Inglés: el celular solo entrega, cifrado con la llave del QR, el acceso de quien ya inició sesión en él.
+  // La cuenta la valida Firebase en la computadora; aquí no hace falta enlace personal de Tlamatini.
+  const ingles = String(d.app || '') === 'misioneros';
+  if (!ingles && (!tok || (!tlpVigente_(tok) && !tlmEnlace_(tok) && !ulamaEnlace_(tok)))) throw new Error('Su enlace personal no está vigente. Ábralo de nuevo o pida uno a la Supervisión.');
   const cache = CacheService.getScriptCache(), m = vinMeta_(cache, sala);
   if (!m || m.fin) throw new Error('Ese código ya venció. En la computadora abra «Vincular mi celular» otra vez.');
   m.unida = true; m.quien = String(d.nombre || '').replace(/\s+/g, ' ').trim().slice(0, 80);
