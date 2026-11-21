@@ -38,7 +38,11 @@ jobs:
           ls -la
       - name: Poner el código del repositorio
         if: env.OMITIR != '1'
-        run: cp tequio/servidor/*.gs proyecto/
+        # Solo Codigo.gs: Registro.gs es OTRO proyecto (el registro central) y no va aquí
+        run: |
+          rm -f proyecto/Registro.gs
+          cp tequio/servidor/Codigo.gs proyecto/Codigo.gs
+          ls -la proyecto
       - name: Subir y publicar en la misma implementación
         if: env.OMITIR != '1'
         run: |

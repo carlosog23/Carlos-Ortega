@@ -17,9 +17,9 @@ jobs:
           CLASPRC: ${{ secrets.CLASPRC_JSON }}
         run: |
           U="https://script.google.com/macros/s/AKfycbyH4wcANu-w9zNKkVECYoRjF9DhJi6pKwLL2sK0jFxGqQwFKNs0yAJzcC0S3yX8yB4aLw/exec"
-          G=$(curl -s -L --max-time 60 "$U" | head -c 300 | tr '\n' ' ')
+          G=$(curl -s -L --max-time 60 "$U" | python3 -c "import sys,re,html;t=sys.stdin.read();m=re.search(r'<title>(.*?)</title>',t,re.S);b=re.sub(r'<script.*?</script>|<style.*?</style>','',t,flags=re.S);b=re.sub(r'<[^>]+>',' ',b);print((m.group(1) if m else '')+' || '+html.unescape(' '.join(b.split()))[:600])")
           echo "::notice title=GET::$G"
-          P=$(curl -s -L --max-time 60 -H 'Content-Type: text/plain;charset=utf-8' -d '{"accion":"vinCrear","datos":{}}' "$U" | head -c 300 | tr '\n' ' ')
+          P=$(curl -s -L --max-time 60 -H 'Content-Type: text/plain;charset=utf-8' -d '{"accion":"vinCrear","datos":{}}' "$U" | python3 -c "import sys,re,html;t=sys.stdin.read();m=re.search(r'<title>(.*?)</title>',t,re.S);b=re.sub(r'<script.*?</script>|<style.*?</style>','',t,flags=re.S);b=re.sub(r'<[^>]+>',' ',b);print((m.group(1) if m else '')+' || '+html.unescape(' '.join(b.split()))[:600])")
           echo "::notice title=vinCrear::$P"
           printf '%s' "$CLASPRC" > ~/.clasprc.json
           mkdir p && cd p
