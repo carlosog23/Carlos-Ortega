@@ -177,8 +177,11 @@ instalar firefox firefox-locale-es \
   cups cups-browsed cups-filters avahi-daemon ipp-usb system-config-printer \
   printer-driver-all hplip foomatic-db-compressed-ppds openprinting-ppds \
   zram-tools lm-sensors \
-  pavucontrol v4l-utils
-verde "Programas instalados."
+  pavucontrol v4l-utils \
+  libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw libreoffice-gtk3 \
+  fonts-crosextra-carlito fonts-crosextra-caladea fonts-liberation2 \
+  xournalpp pdfarranger xreader
+verde "Programas instalados (oficina: Word, Excel y PowerPoint con LibreOffice; PDF: ver, firmar y unir)."
 
 # ---------- memoria: zram (ayuda mucho en las de 2 y 4 GB) ----------
 paso "Optimizando la memoria"
@@ -256,6 +259,29 @@ X-Zona050-Escritorio=1
 EOF
 chmod 755 "$DIR_APPS"/*.desktop
 cp -f "$DIR_APPS"/*.desktop /usr/share/applications/
+
+# Accesos de oficina y PDF en el escritorio (solo si el programa está instalado)
+oficina() { # archivo  nombre  descripción  programa  ícono
+  command -v "$4" >/dev/null 2>&1 || [ -f "/usr/share/applications/$4.desktop" ] || return 0
+  cat > "$DIR_APPS/zona050-$1.desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$2
+Comment=$3
+Exec=$4 %U
+Icon=$5
+Terminal=false
+Categories=Office;
+X-Zona050-Escritorio=1
+EOF
+  chmod 755 "$DIR_APPS/zona050-$1.desktop"; cp -f "$DIR_APPS/zona050-$1.desktop" /usr/share/applications/
+}
+oficina word       "Documentos (Word)"         "Abrir y editar .docx con LibreOffice Writer"       "libreoffice --writer"  libreoffice-writer
+oficina excel      "Hojas de cálculo (Excel)"  "Abrir y editar .xlsx con LibreOffice Calc"         "libreoffice --calc"    libreoffice-calc
+oficina powerpoint "Presentaciones (PowerPoint)" "Abrir y editar .pptx con LibreOffice Impress"    "libreoffice --impress" libreoffice-impress
+oficina pdf-firmar "PDF: llenar y firmar"      "Escribir, subrayar y firmar sobre un PDF"          xournalpp               com.github.xournalpp.xournalpp
+oficina pdf-unir   "PDF: unir y ordenar"       "Unir, separar, girar y quitar páginas de PDF"      pdfarranger             com.github.jeromerobert.pdfarranger
 
 # Revisa la lista al encender y cada 30 minutos
 cat > /etc/systemd/system/zona050-control.service <<'EOF'
@@ -415,6 +441,28 @@ fi
 
 # ---------- impresora ----------
 configurar_impresora
+
+# ---------- LibreOffice: guardar en formato de Microsoft Office ----------
+paso "Oficina: guardar como Word, Excel y PowerPoint"
+mkdir -p /etc/libreoffice/registry
+cat > /etc/libreoffice/registry/zona050.xcd <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<oor:data xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:oor="http://openoffice.org/2001/registry">
+<dependency file="main"/>
+<oor:component-data oor:name="Setup" oor:package="org.openoffice">
+ <node oor:name="Office"><node oor:name="Factories">
+  <node oor:name="com.sun.star.text.TextDocument"><prop oor:name="ooSetupFactoryDefaultFilter"><value>MS Word 2007 XML</value></prop></node>
+  <node oor:name="com.sun.star.sheet.SpreadsheetDocument"><prop oor:name="ooSetupFactoryDefaultFilter"><value>Calc MS Excel 2007 XML</value></prop></node>
+  <node oor:name="com.sun.star.presentation.PresentationDocument"><prop oor:name="ooSetupFactoryDefaultFilter"><value>Impress MS PowerPoint 2007 XML</value></prop></node>
+ </node></node>
+</oor:component-data>
+<oor:component-data oor:name="Common" oor:package="org.openoffice.Office">
+ <node oor:name="Save"><node oor:name="Document"><prop oor:name="WarnAlienFormat"><value>false</value></prop></node></node>
+</oor:component-data>
+</oor:data>
+EOF
+[ -d /usr/lib/libreoffice/share/registry ] && cp -f /etc/libreoffice/registry/zona050.xcd /usr/lib/libreoffice/share/registry/zona050.xcd
+verde "LibreOffice guarda en .docx, .xlsx y .pptx sin preguntar."
 
 # ---------- actualizaciones automáticas ----------
 paso "Actualizaciones automáticas"
