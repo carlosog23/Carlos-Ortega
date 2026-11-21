@@ -17,6 +17,7 @@ bajar instalar.sh
 bajar recursos/zona050-control
 wget -q --tries=3 -O "$TMP/recursos/apps.json" "$BASE/apps.json?v=$(date +%s)"
 bajar recursos/fondo-zona050.png
+bajar recursos/firma-autor.svg
 for i in centro-apps tlamatini tlamatini-aula ulama tequio zona050; do
   bajar "recursos/iconos/$i.png"
 done

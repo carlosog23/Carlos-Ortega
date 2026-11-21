@@ -204,6 +204,7 @@ fi
 paso "Copiando fondo de pantalla e íconos"
 mkdir -p "$DIR_ZONA/iconos"
 cp -f "$DIR_RECURSOS/fondo-zona050.png" "$DIR_ZONA/"
+cp -f "$DIR_RECURSOS/firma-autor.svg" "$DIR_ZONA/" 2>/dev/null || true
 cp -f "$DIR_RECURSOS"/iconos/*.png "$DIR_ZONA/iconos/"
 chmod -R a+rX "$DIR_ZONA"
 
