@@ -262,14 +262,14 @@ cp -f "$DIR_APPS"/*.desktop /usr/share/applications/
 
 # Accesos de oficina y PDF en el escritorio (solo si el programa está instalado)
 oficina() { # archivo  nombre  descripción  programa  ícono
-  command -v "$4" >/dev/null 2>&1 || [ -f "/usr/share/applications/$4.desktop" ] || return 0
+  command -v "${4%% *}" >/dev/null 2>&1 || [ -f "/usr/share/applications/$4.desktop" ] || return 0
   cat > "$DIR_APPS/zona050-$1.desktop" <<EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=$2
 Comment=$3
-Exec=$4 %U
+Exec=$4
 Icon=$5
 Terminal=false
 Categories=Office;
@@ -282,6 +282,7 @@ oficina excel      "Hojas de cálculo (Excel)"  "Abrir y editar .xlsx con LibreO
 oficina powerpoint "Presentaciones (PowerPoint)" "Abrir y editar .pptx con LibreOffice Impress"    "libreoffice --impress" libreoffice-impress
 oficina pdf-firmar "PDF: llenar y firmar"      "Escribir, subrayar y firmar sobre un PDF"          xournalpp               com.github.xournalpp.xournalpp
 oficina pdf-unir   "PDF: unir y ordenar"       "Unir, separar, girar y quitar páginas de PDF"      pdfarranger             com.github.jeromerobert.pdfarranger
+oficina youtube    "YouTube"                   "Videos"                                            "firefox --new-window https://www.youtube.com/" multimedia-video-player
 
 # Revisa la lista al encender y cada 30 minutos
 cat > /etc/systemd/system/zona050-control.service <<'EOF'
