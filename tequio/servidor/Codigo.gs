@@ -251,7 +251,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 68;
+const VERSION = 69;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -559,6 +559,8 @@ function doPost(e) {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try { return json_(Object.assign({ ok: true }, q.accion === 'aulaDinPublicar' ? aulaDinPublicar_(q) : aulaDinRetirar_(q))); } finally { lock.releaseLock(); }
     }
+    // Vincular celular ↔ computadora (iMac de la escuela): sala con datos cifrados en el dispositivo; el servidor no puede leerlos
+    if (VIN_ACCIONES[q.accion]) return json_(Object.assign({ ok: true }, VIN_ACCIONES[q.accion](q.datos || {})));
     // Tlamatini · enlace personal de cada trabajador de la zona: entrega solo sus datos y los de su escuela o escuelas
     if (q.accion === 'tlpPerfil') return json_(Object.assign({ ok: true }, tlpPerfil_(q.datos || {})));
     const yo = usuario_(q.k);
@@ -5976,3 +5978,77 @@ function aulaDinRetirar_(q) {
   o.activo = false; guardar_('adn', o);
   return { id: id };
 }
+
+
+/* ===================== Vincular celular ↔ computadora =====================
+   La computadora (iMac de la escuela) abre una sala y muestra un QR con el número de sala y una llave.
+   La llave nunca llega al servidor: los datos viajan cifrados (AES-GCM) y aquí solo se guardan en la caché
+   (máximo 6 horas, sin hojas ni Drive). El celular se une con su enlace personal vigente; desde ese momento
+   cada dispositivo sube sus cambios y baja los del otro. Al desvincular, la computadora borra todo. */
+const VIN_TTL = 21600, VIN_TROZO = 90000, VIN_MAX_EV = 400;
+function vinSalaOk_(sala) {
+  sala = String(sala || '');
+  if (!/^[A-Za-z0-9_-]{20,40}$/.test(sala)) throw new Error('El código de vinculación no es válido.');
+  return sala;
+}
+function vinMeta_(cache, sala) { try { return JSON.parse(cache.get('vin-' + sala + '-m') || 'null'); } catch (e) { return null; } }
+function vinPonMeta_(cache, sala, m) { m.ult = Date.now(); cache.put('vin-' + sala + '-m', JSON.stringify(m), VIN_TTL); }
+function vinCrear_(d) {
+  const cache = CacheService.getScriptCache(), min = 'vinC-' + Math.floor(Date.now() / 60000), n = (parseInt(cache.get(min), 10) || 0) + 1;
+  if (n > 120) throw new Error('Hay muchas vinculaciones al mismo tiempo. Intente en un minuto.');
+  cache.put(min, String(n), 120);
+  const sala = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 6);
+  vinPonMeta_(cache, sala, { seq: 0, unida: false, fin: false, quien: '', creada: Date.now() });
+  return { sala: sala, vence: VIN_TTL };
+}
+function vinUnir_(d) {
+  const sala = vinSalaOk_(d.sala), tok = String(d.tok || '');
+  if (!tok || (!tlpVigente_(tok) && !tlmEnlace_(tok) && !ulamaEnlace_(tok))) throw new Error('Su enlace personal no está vigente. Ábralo de nuevo o pida uno a la Supervisión.');
+  const cache = CacheService.getScriptCache(), m = vinMeta_(cache, sala);
+  if (!m || m.fin) throw new Error('Ese código ya venció. En la computadora abra «Vincular mi celular» otra vez.');
+  m.unida = true; m.quien = String(d.nombre || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  vinPonMeta_(cache, sala, m);
+  return { unida: true };
+}
+function vinSubir_(d) {
+  const sala = vinSalaOk_(d.sala), dev = String(d.dev || '').slice(0, 24), datos = String(d.datos || '');
+  if (!datos) throw new Error('No hay datos para enviar.');
+  if (datos.length > VIN_TROZO * 30) throw new Error('Los datos son demasiado grandes para pasarlos por vinculación.');
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const cache = CacheService.getScriptCache(), m = vinMeta_(cache, sala);
+    if (!m || m.fin) throw new Error('fin: La vinculación terminó.');
+    if (!m.unida) throw new Error('Todavía no se une ningún celular.');
+    if (m.seq >= VIN_MAX_EV) throw new Error('fin: La vinculación llegó a su límite. Vuelva a vincular.');
+    const seq = m.seq + 1, o = {}, partes = [];
+    for (let i = 0; i < datos.length; i += VIN_TROZO) partes.push(datos.slice(i, i + VIN_TROZO));
+    partes.forEach((x, i) => { o['vin-' + sala + '-e' + seq + '-' + i] = x; });
+    o['vin-' + sala + '-e' + seq] = JSON.stringify({ n: partes.length, dev: dev, t: Date.now() });
+    cache.putAll(o, VIN_TTL);
+    m.seq = seq; vinPonMeta_(cache, sala, m);
+    return { seq: seq };
+  } finally { lock.releaseLock(); }
+}
+function vinBajar_(d) {
+  const sala = vinSalaOk_(d.sala), dev = String(d.dev || '').slice(0, 24), desde = Math.max(0, parseInt(d.desde, 10) || 0);
+  const cache = CacheService.getScriptCache(), m = vinMeta_(cache, sala);
+  if (!m) return { existe: false, fin: true, seq: 0, eventos: [] };
+  const eventos = []; let hasta = desde;
+  for (let s = desde + 1; s <= m.seq && eventos.length < 6; s++) {
+    let e = null; try { e = JSON.parse(cache.get('vin-' + sala + '-e' + s) || 'null'); } catch (x) {}
+    hasta = s;
+    if (!e || e.dev === dev) continue;
+    const ks = []; for (let i = 0; i < e.n; i++) ks.push('vin-' + sala + '-e' + s + '-' + i);
+    const got = cache.getAll(ks);
+    if (ks.some(k => !got[k])) continue;
+    eventos.push({ seq: s, datos: ks.map(k => got[k]).join('') });
+  }
+  if (d.vivo) vinPonMeta_(cache, sala, m);
+  return { existe: true, unida: m.unida, fin: m.fin, quien: m.quien, seq: m.seq, hasta: hasta, eventos: eventos };
+}
+function vinFin_(d) {
+  const sala = vinSalaOk_(d.sala), cache = CacheService.getScriptCache(), m = vinMeta_(cache, sala);
+  if (m) { m.fin = true; vinPonMeta_(cache, sala, m); }
+  return { fin: true };
+}
+const VIN_ACCIONES = { vinCrear: vinCrear_, vinUnir: vinUnir_, vinSubir: vinSubir_, vinBajar: vinBajar_, vinFin: vinFin_ };

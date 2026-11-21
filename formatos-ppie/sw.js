@@ -4,12 +4,12 @@
      se use el nuevo de inmediato; sin conexión se usa la copia guardada.
    - Librerías e imágenes se guardan la primera vez y después se sirven desde el equipo.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "tlm-2026-11-20t";
+const VERSION = "tlm-2026-11-21a";
 const BASE = "tlm-base-" + VERSION;
 const EXTRA = "tlm-extra";            // lo que se guarda al usarse (no se borra entre versiones)
 
 const NUCLEO = [
-  "./", "index.html", "tour.html", "planeacion.html", "manifest.webmanifest",
+  "./", "index.html", "tour.html", "planeacion.html", "manifest.webmanifest", "vincular.html", "vinculo.js?v=2026-11-21a",
   "img/tlamatini-icono.svg", "img/tlamatini-icono-180.png", "img/tlamatini-icono-192.png", "img/tlamatini-icono-512.png",
   "img/isep.png", "img/se.png", "img/zona050.png",
   "formatos/calendario.json", "formatos/seguro.json", "formatos/acceso.json", "formatos/normatividad.json", "formatos/pda.json", "formatos/inventarios.json",

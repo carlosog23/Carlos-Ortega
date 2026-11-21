@@ -296,6 +296,7 @@ POLITICAS=$(cat <<EOF
     "OverrideFirstRunPage": "",
     "OverridePostUpdatePage": "",
     "RequestedLocales": ["es-MX", "es-ES"],
+    "SanitizeOnShutdown": { "Cookies": true, "Cache": true, "OfflineApps": true, "Sessions": true, "Locked": true },
     "Permissions": {
       "Camera":     { "Allow": ["https://meet.google.com", "https://zoom.us", "https://app.zoom.us", "https://teams.microsoft.com"] },
       "Microphone": { "Allow": ["https://meet.google.com", "https://zoom.us", "https://app.zoom.us", "https://teams.microsoft.com"] }

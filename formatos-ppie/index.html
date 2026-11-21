@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8">
+<html lang="es"><head><meta charset="utf-8"><script src="vinculo.js?v=2026-11-21a"></script>
 <!-- © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California.
      Todos los derechos reservados. Prohibida su copia, reproducción, modificación o publicación sin autorización escrita del autor. -->
 <meta name="author" content="Mtro. Carlos Gabriel Ortega Gutiérrez">
@@ -7367,11 +7367,13 @@ function respHoja(){if(document.getElementById("respHoja"))return;const d=respDi
    <div class="resp-cab"><h2 id="respT">Respaldo de mis datos</h2><button type="button" class="resp-x" id="respX" aria-label="Cerrar">✕</button></div>
    <p class="help">${d===null?"Todavía no ha hecho un respaldo en este equipo.":d===0?"Último respaldo: hoy.":`Último respaldo: hace ${d} día${d===1?"":"s"}.`} Sus datos (escuela, mis datos, alumnos, firma, logos y documentos) viven solo en este equipo.</p>
    ${DEMO?`<p class="help"><i>No disponible en la demostración.</i></p>`:`<button type="button" class="btn primary resp-b" id="respG">Guardar respaldo<small>${tlmMovil()?"Envíelo a su WhatsApp, correo o Drive":"Se descarga un archivo; guárdelo en su Drive o correo"}</small></button>
-   <label class="btn ghost resp-b">Cargar respaldo o archivo recibido<small>Respaldo de otro equipo o directorio que le enviaron</small><input type="file" accept=".json,application/json" id="respC" hidden></label>`}
+   <label class="btn ghost resp-b">Cargar respaldo o archivo recibido<small>Respaldo de otro equipo o directorio que le enviaron</small><input type="file" accept=".json,application/json" id="respC" hidden></label>
+   <button type="button" class="btn ghost resp-b" id="respV">${window.TLMVIN&&TLMVIN.activo()?"Vinculación activa":"Vincular con una computadora"}<small>${tlmMovil()?"Escanee el código de la computadora de la escuela y trabaje allá con sus datos":"Muestre un código para trabajar aquí con los datos de su celular"}</small></button>`}
    <p class="help" id="respMsg" role="status"></p></div>`;
   document.body.appendChild(o);const cerrar=()=>{o.remove();document.removeEventListener("keydown",k)};const k=e=>{if(e.key==="Escape")cerrar()};document.addEventListener("keydown",k);
   o.onclick=e=>{if(e.target===o)cerrar()};document.getElementById("respX").onclick=cerrar;
   const gb=document.getElementById("respG");if(gb)gb.onclick=async()=>{const r=await respaldoDescargar();if(r){document.getElementById("respMsg").innerHTML=r;const a=document.getElementById("respAvisoBtn");if(a)a.remove()}};
+  const vb=document.getElementById("respV");if(vb)vb.onclick=()=>{if(window.TLMVIN)TLMVIN.abrir();else location.href="vincular.html"};
   const c=document.getElementById("respC");if(c)c.onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;cerrar();dirImportarArchivo(f)};
   (gb||document.getElementById("respX")).focus()}
 const tlmMovil=()=>/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
