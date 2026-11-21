@@ -38,11 +38,18 @@ jobs:
           ls -la
       - name: Poner el código del repositorio
         if: env.OMITIR != '1'
-        # Solo Codigo.gs: Registro.gs es OTRO proyecto (el registro central) y no va aquí
+        # Reemplaza el archivo principal del proyecto (el que tiene doPost, se llame «Código» o «Codigo»).
+        # Registro.gs es OTRO proyecto (el registro central) y nunca va aquí.
         run: |
-          rm -f proyecto/Registro.gs
-          cp tequio/servidor/Codigo.gs proyecto/Codigo.gs
-          ls -la proyecto
+          cd proyecto
+          rm -f Registro.gs
+          principal=""
+          for f in *.gs; do
+            if grep -q "function doPost(" "$f" && grep -q "VIN_ACCIONES\|tlpPerfil_" "$f"; then [ -z "$principal" ] && principal="$f" || rm -f "$f"; fi
+          done
+          [ -n "$principal" ] || principal="Código.gs"
+          cp ../tequio/servidor/Codigo.gs "$principal"
+          echo "Archivo principal: $principal"; ls -la
       - name: Subir y publicar en la misma implementación
         if: env.OMITIR != '1'
         run: |
@@ -50,3 +57,11 @@ jobs:
           $CLASP push --force
           $CLASP deploy -i "$DEPLOYMENT_ID" -d "GitHub ${GITHUB_SHA::7} · $(date -u +%Y-%m-%d)"
           echo "Servidor de Tequio publicado."
+      - name: Comprobar que el servidor responde
+        if: env.OMITIR != '1'
+        run: |
+          sleep 5
+          U="https://script.google.com/macros/s/$DEPLOYMENT_ID/exec"
+          R=$(curl -s -L --max-time 60 "$U" | head -c 400 | tr '\n' ' ')
+          echo "::notice title=Respuesta del servidor::$R"
+          echo "$R" | grep -q '"ok":true' || { echo "::error title=El servidor no responde bien::$R"; exit 1; }

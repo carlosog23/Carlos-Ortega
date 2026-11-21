@@ -1,4 +1,4 @@
-// Servidor de Tequio (zona) · se publica automáticamente desde GitHub: solo este archivo, en la misma implementación.
+// Servidor de Tequio (zona) · se publica automáticamente desde GitHub en el archivo «Código» del proyecto, misma implementación.
 /**
  * TEQUIO · Asesoría y seguimiento · Supervisiones escolares
  * «Lo que acordamos juntos, lo caminamos juntos»
