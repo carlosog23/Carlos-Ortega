@@ -235,6 +235,7 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <p>${DSEM_L[d.getDay()][0].toUpperCase() + DSEM_L[d.getDay()].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : ""}</p>
    ${D.grupos.length > 1 ? `<div class="chips mt">${D.grupos.map(x => `<button class="chip osc" data-ga="${x.id}" aria-pressed="${x === g}">${esc(grNom(x))} · ${esc(String(x.escuela).replace(/^Escuela Primaria\s*/i, ""))}</button>`).join("")}</div>` : `<p class="small" style="margin-top:6px;opacity:.85">${esc(grNom(g))} · ${esc(g.escuela)} · ${activos(g).length} alumnos</p>`}
    <div class="fila"><button class="btn m" id="bLista">${ic("lista")} Pasar lista</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button>${enApp() ? "" : `<button class="btn sec" id="bInst">${ic("bajar")} Instalar app</button>`}</div></section>
+  ${typeof estTarjeta === "function" ? estTarjeta() : ""}
   ${hoySes.length ? `<h2 class="sec-t">Hoy en clase</h2><div class="lista">${hoySes.map(x => `<button class="hoy-i" data-ses="${x.p.id}|${x.i}"><span class="gr">${x.i + 1}</span><span class="tx"><b>${esc(x.p.titulo)}</b><small>Sesión ${x.i + 1} de ${x.p.sesiones.length} · ${esc(x.s.fase)}</small></span><span class="tag ${x.s.hecho ? "" : "m"}">${x.s.hecho ? "Dada" : "Dar la clase"}</span></button>`).join("")}</div>` : ""}
   ${!hoySes.length && prox.length ? `<h2 class="sec-t">Lo que sigue</h2><div class="lista">${prox.slice(0, 3).map(x => `<button class="hoy-i" data-ses="${x.p.id}|${x.i}"><span class="gr">${x.i + 1}</span><span class="tx"><b>${esc(x.p.titulo)}</b><small>${fCorta(x.s.fecha)} · ${esc(x.s.fase)}</small></span>${ic("sig", 18)}</button>`).join("")}</div>` : ""}
   <h2 class="sec-t">Su aula</h2><div class="puertas">
@@ -245,12 +246,14 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    ${esPre(g) ? "" : `<button class="puerta" data-v="examenes" style="--c:#A94C2A;--c-s:#F7E3D8"><span class="ic">${ic("doc")}</span><b>Exámenes</b><span>${(D.exams || []).filter(e => e.gid === (g && g.id)).length} · diagnósticos, parciales, trimestrales, finales y por contenido</span></button>`}
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
    <button class="puerta" data-v="libros" style="--c:#1F6F8B;--c-s:#DCEEF3"><span class="ic">${ic("libro")}</span><b>Libros de texto</b><span>Los libros gratuitos de ${g && g.grados.length > 1 ? "sus grados" : "su grado"}, ciclo 2026-2027</span></button>
+   ${VISTAS.estudio ? `<button class="puerta" data-v="estudio" style="--c:#294A86;--c-s:#FAEBCB"><span class="ic">${ic("libro")}</span><b>Mi actualización profesional</b><span>${(D.est || {}).on ? `${D.est.n} ${D.est.n === 1 ? "pregunta" : "preguntas"} diarias rumbo a USICAMM` : "Opcional: de 1 a 5 preguntas diarias de art. 3o, LGE, Plan 2022, inclusión…"}</span></button>` : ""}
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
 ENLAZAR.inicio = () => { $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => ir("planNueva");
   $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
-  $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); }); };
+  $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); });
+  typeof estEnlazar === "function" && estEnlazar(); };
 let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; });
 function instalar() { if (PROMPT_INST) { PROMPT_INST.prompt(); PROMPT_INST = null; return; }
   dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
@@ -400,7 +403,7 @@ function modoClase(pasos, alTerminar) { cerrarClase(); const c = document.create
   const ver = () => { clearInterval(RELOJ); c.innerHTML = claseHTML(pasos, i); const p = pasos[i];
     c.querySelector("#clX").onclick = () => history.back();
     c.querySelector("#clAnt") && (c.querySelector("#clAnt").onclick = () => { i--; ver(); }); c.querySelector("#clSig") && (c.querySelector("#clSig").onclick = () => { i++; ver(); });
-    c.querySelector("#clFin") && (c.querySelector("#clFin").onclick = () => { history.back(); alTerminar && alTerminar(); });
+    c.querySelector("#clFin") && (c.querySelector("#clFin").onclick = () => { history.back(); typeof estCerrar === "function" && estCerrar(); alTerminar && alTerminar(); });
     if (p.min) { let s = p.min * 60, corre = false; const t = c.querySelector("#clT"), pin = () => t.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
       c.querySelector("#clP").onclick = e => { corre = !corre; e.currentTarget.innerHTML = ic(corre ? "pausa" : "play", 22); clearInterval(RELOJ); if (corre) RELOJ = setInterval(() => { if (s > 0) { s--; pin(); } if (!s) { clearInterval(RELOJ); t.classList.add("fin"); navigator.vibrate && navigator.vibrate([200, 100, 200]); } }, 1000); };
       c.querySelector("#clR").onclick = () => { s = p.min * 60; t.classList.remove("fin"); pin(); }; } };
@@ -720,6 +723,9 @@ async function demoPost(accion, d) { await new Promise(r => setTimeout(r, 900));
       for (let i = 0; i < (C.corta || 0); i++) out.push({ tipo: "corta", cont: 1 + (k++ % n), txt: `Pregunta breve de ejemplo ${i + 1}.`, ok: "Respuesta esperada" });
       for (let i = 0; i < (C.abierta || 0); i++) out.push({ tipo: "abierta", cont: 1 + (k++ % n), txt: `Problema o pregunta de desarrollo de ejemplo ${i + 1}.`, ok: "Criterios: plantea, resuelve y explica." });
       return { r: { reactivos: out } }; }
+    if (m === "estudio") return { r: { reactivos: [
+      { area: "Inclusión, convivencia y protección", f: "d", p: "Un alumno de nuevo ingreso usa silla de ruedas y el salón está en planta alta. ¿Qué acción corresponde a la escuela?", o: ["Reubicar el grupo en planta baja y revisar la accesibilidad de los espacios que usará", "Pedir a la familia que lo inscriba en otra escuela", "Que asista solo a las clases que se den en el patio"], k: 0, e: "Eliminar barreras físicas es un ajuste razonable que garantiza su participación en igualdad de condiciones.", fu: "CPEUM, art. 3o, fracción II, inciso f); LGE, capítulo VIII." },
+      { area: "Plan de Estudio 2022 y práctica docente", f: "c", p: "El programa sintético es elaborado por…", o: ["…la Secretaría de Educación Pública, con alcance nacional.", "…cada colectivo docente en su CTE.", "…la supervisión escolar de cada zona."], k: 0, e: "El programa sintético es nacional; el programa analítico lo construye el colectivo.", fu: "SEP (2022). Plan de Estudio." } ] } };
     if (m === "valoracion") return { r: { texto: String(d.texto || "").replace(/^En [^,]+, /, "Durante este trimestre, ") + " Le recomendamos seguir practicando en casa con actividades sencillas del día a día." } }; }
   if (accion === "aulaDinLista") return { lista: DEMO_ZONA.concat(D.mias.filter(x => x.pub).map(x => Object.assign({}, x, { id: x.pub, autor: yo().nombre, mia: true, creado: hoy() }))) };
   if (accion === "aulaDinPublicar") return { id: "adn-" + uid() };
