@@ -5964,6 +5964,26 @@ function aulaIA_(q) {
     const j = aulaJSON_(p.join('\n'), 0.8);
     return { r: { n: L(j.n, 80), prop: L(j.prop, 300), mat: L(j.mat, 200), pasos: (Array.isArray(j.pasos) ? j.pasos : []).map(x => L(x, 300)).filter(String).slice(0, 10), 'var': L(j['var'], 300), multi: L(j.multi, 300) } };
   }
+  if (modo === 'examen') {
+    const C = d.cuantos || {}, nn = (k, m) => Math.max(0, Math.min(m, parseInt(C[k], 10) || 0)), cu = { om: nn('om', 15), vf: nn('vf', 15), rel: nn('rel', 3), corta: nn('corta', 15), abierta: nn('abierta', 6) };
+    const p = [].concat(base, [
+      'Elabora reactivos para un examen ' + L(d.tipo, 40) + ' de ' + gtxt + '. ' + (sec ? 'Disciplina: ' : 'Campo formativo: ') + L(d.area, 80) + '. Dificultad: ' + L(d.dificultad, 40) + '.',
+      'Contenidos y PDA que evalúa (numerados):', L(d.contenidos, 6000),
+      'Cantidad EXACTA por tipo: ' + JSON.stringify(cu) + '. om = opción múltiple con 4 opciones y una sola correcta; vf = verdadero o falso; rel = relación de columnas con 4 a 6 pares; corta = respuesta breve (palabra, número o frase); abierta = pregunta de desarrollo o problema, con criterios de corrección.',
+      'Reparte los reactivos entre todos los contenidos. Evalúa lo que pide cada PDA (comprender, aplicar, analizar, argumentar), con situaciones de la vida cotidiana y de la comunidad cuando se pueda, no solo memoria. Lenguaje claro para la edad. Distractores plausibles. Varía la posición de la respuesta correcta. En matemáticas y ciencias verifica que la respuesta sea exacta.',
+      d.evitar ? 'No repitas estos reactivos que ya tiene el examen: ' + L(d.evitar, 1500) : '', '',
+      'Responde SOLO con JSON: {"reactivos": [{"tipo": "om|vf|rel|corta|abierta", "cont": número del contenido, "txt": "enunciado", "ops": ["solo en om: 4 opciones sin letra"], "ok": "om: índice 0-3 de la correcta; vf: true o false; corta: respuesta esperada; abierta: respuesta modelo o criterios", "pares": [["solo en rel: concepto", "su pareja"]]}]}']).filter(x => x !== '');
+    const j = aulaJSON_(p.join('\n'), 0.6), T = ['om', 'vf', 'rel', 'corta', 'abierta'];
+    const R = (Array.isArray(j.reactivos) ? j.reactivos : []).map(x => {
+      const t = T.indexOf(x.tipo) >= 0 ? x.tipo : '', o = { tipo: t, cont: parseInt(x.cont, 10) || 1, txt: L(x.txt, 700) };
+      if (!t || !o.txt) return null;
+      if (t === 'om') { o.ops = (Array.isArray(x.ops) ? x.ops : []).map(y => L(y, 250)).filter(String).slice(0, 6); if (o.ops.length < 2) return null; o.ok = Math.max(0, Math.min(o.ops.length - 1, parseInt(x.ok, 10) || 0)); }
+      if (t === 'vf') o.ok = x.ok === true || /^(true|v|verdadero)$/i.test(String(x.ok));
+      if (t === 'rel') { o.pares = (Array.isArray(x.pares) ? x.pares : []).filter(y => Array.isArray(y) && y[0] && y[1]).map(y => [L(y[0], 160), L(y[1], 160)]).slice(0, 8); if (o.pares.length < 2) return null; }
+      if (t === 'corta' || t === 'abierta') o.ok = L(x.ok, 900);
+      return o; }).filter(Boolean).slice(0, 60);
+    return { r: { reactivos: R } };
+  }
   if (modo === 'valoracion') {
     const p = [].concat(base, [
       'Mejora la redacción de esta valoración del desempeño de un alumno de ' + gtxt + ' en el campo formativo ' + L(d.campo, 60) + ', para el informe trimestral a la familia.',

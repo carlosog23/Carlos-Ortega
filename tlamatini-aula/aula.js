@@ -55,7 +55,7 @@ const ICONOS = {
 /* ---------------- datos ---------------- */
 const DEMO = (() => { let on = false; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
 const CLAVE = DEMO ? "aula-demo" : "aula-datos";
-const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
+const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], exams: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) { toast("<b>No se pudo guardar.</b> El dispositivo no tiene espacio."); } }
@@ -236,6 +236,7 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${todasDin().filter(d => nivelOK(g, d)).length} actividades para iniciar, activar, jugar y cerrar</span></button>
    <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por ${areaTxt(g)}, valoración e informes del trimestre</span></button>
+   <button class="puerta" data-v="examenes" style="--c:#A94C2A;--c-s:#F7E3D8"><span class="ic">${ic("doc")}</span><b>Exámenes</b><span>${(D.exams || []).filter(e => e.gid === (g && g.id)).length} · diagnósticos, parciales, trimestrales, finales y por contenido</span></button>
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
    <button class="puerta" data-v="libros" style="--c:#1F6F8B;--c-s:#DCEEF3"><span class="ic">${ic("libro")}</span><b>Libros de texto</b><span>Los libros gratuitos de ${g && g.grados.length > 1 ? "sus grados" : "su grado"}, ciclo 2026-2027</span></button>
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
@@ -633,7 +634,7 @@ function valoracion(a, campo, c, obs) { if (!c || !c.n) return "";
   return t; }
 function filasBoleta(g, T) { const B = (D.bol[g.id] || {})[T.id] || {};
   return activos(g).map(a => { const R = resumenAlumno(g, a, T), o = B[a.id] || {}; const cal = {}, val = {};
-    areasDe(g).forEach(c => { cal[c] = o.cal && o.cal[c] != null ? o.cal[c] : (R.campos[c] ? R.campos[c].cal : null); val[c] = o.val && o.val[c] != null ? o.val[c] : valoracion(a, c, R.campos[c], R.obs); });
+    areasDe(g).forEach(c => { cal[c] = o.cal && o.cal[c] != null ? o.cal[c] : (typeof mezclaEx === "function" ? mezclaEx(g, a, c, T, R.campos[c] ? R.campos[c].cal : null) : (R.campos[c] ? R.campos[c].cal : null)); val[c] = o.val && o.val[c] != null ? o.val[c] : valoracion(a, c, R.campos[c], R.obs); });
     const cs = Object.values(cal).filter(x => x != null), prom = cs.length ? cs.reduce((x, y) => x + y, 0) / cs.length : null;
     return { a, R, cal, val, prom, gen: o.gen || "", edit: o }; }); }
 const colCal = v => v == null ? "#999" : v >= 9 ? "#1E8E5A" : v >= 7 ? "#A87200" : "#C2362B";
@@ -704,6 +705,13 @@ async function demoPost(accion, d) { await new Promise(r => setTimeout(r, 900));
     if (m === "sesion") return { r: { inicio: "Pregunte: «¿De dónde viene el agua que tomamos en casa?». Escuche ideas y anótelas en el pizarrón para volver a ellas al final.", desarrollo: "1. (10 min) En equipos, dibujan el camino del agua desde el pozo o la pipa hasta su casa.\n2. (15 min) Cada equipo comparte su dibujo; el grupo identifica en qué puntos el agua puede ensuciarse.\n3. (15 min) Con su apoyo, escriben o dibujan dos cuidados para que el agua llegue limpia.\n4. (5 min) Peguen los trabajos en el muro del proyecto.", cierre: "Regresen a las ideas del inicio: ¿qué cambió de lo que pensábamos? Cada alumno dice un cuidado del agua que hará en casa.", evaluacion: "Observe si explican el recorrido del agua y proponen cuidados; registre en la lista de cotejo.", materiales: "Hojas, colores, cinta, pizarrón", ajustes: "Para quien aún no escribe, que dicte a un compañero o dibuje; ofrezca imágenes de apoyo." } };
     if (m === "ajustes") return { r: { ajustes: ["Siente al alumno cerca del pizarrón y lejos de distracciones.", "Dé las indicaciones en pasos cortos y compruebe que las entendió.", "Ofrezca apoyos visuales (imágenes, tarjetas) para la actividad.", "Permita que muestre lo que sabe de forma oral o con dibujos.", "Forme pareja con un compañero tutor."], familia: "Lean juntos 10 minutos diarios y pídanle que cuente con sus palabras lo leído." } };
     if (m === "dinamica") return { r: { n: "Detectives del agua", prop: "Recordar cuidados del agua mientras se activan.", mat: "Tarjetas con imágenes de acciones", pasos: ["Esconda tarjetas en el salón.", "Por equipos, las buscan durante 3 minutos.", "Clasifican cada acción: cuida o desperdicia el agua.", "Explican al grupo una de sus tarjetas."], var: "Con un tiempo límite para cada equipo.", multi: "Los mayores leen las tarjetas a los menores." } };
+    if (m === "examen") { const C = d.cuantos || {}, out = [], n = String(d.contenidos || "").split("\n").length || 1; let k = 0;
+      for (let i = 0; i < (C.om || 0); i++) out.push({ tipo: "om", cont: 1 + (k++ % n), txt: `Reactivo de ejemplo ${i + 1}: ¿cuál de las siguientes opciones es correcta?`, ops: ["Opción correcta", "Opción incorrecta", "Otra opción incorrecta", "Una más incorrecta"], ok: 0 });
+      for (let i = 0; i < (C.vf || 0); i++) out.push({ tipo: "vf", cont: 1 + (k++ % n), txt: `Afirmación de ejemplo ${i + 1} sobre el contenido.`, ok: i % 2 === 0 });
+      for (let i = 0; i < (C.rel || 0); i++) out.push({ tipo: "rel", cont: 1 + (k++ % n), txt: "Relacione cada concepto con su descripción.", pares: [["Concepto A", "Descripción A"], ["Concepto B", "Descripción B"], ["Concepto C", "Descripción C"], ["Concepto D", "Descripción D"]] });
+      for (let i = 0; i < (C.corta || 0); i++) out.push({ tipo: "corta", cont: 1 + (k++ % n), txt: `Pregunta breve de ejemplo ${i + 1}.`, ok: "Respuesta esperada" });
+      for (let i = 0; i < (C.abierta || 0); i++) out.push({ tipo: "abierta", cont: 1 + (k++ % n), txt: `Problema o pregunta de desarrollo de ejemplo ${i + 1}.`, ok: "Criterios: plantea, resuelve y explica." });
+      return { r: { reactivos: out } }; }
     if (m === "valoracion") return { r: { texto: String(d.texto || "").replace(/^En [^,]+, /, "Durante este trimestre, ") + " Le recomendamos seguir practicando en casa con actividades sencillas del día a día." } }; }
   if (accion === "aulaDinLista") return { lista: DEMO_ZONA.concat(D.mias.filter(x => x.pub).map(x => Object.assign({}, x, { id: x.pub, autor: yo().nombre, mia: true, creado: hoy() }))) };
   if (accion === "aulaDinPublicar") return { id: "adn-" + uid() };
