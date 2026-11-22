@@ -127,13 +127,21 @@ const CALENTAR = ["Marcha en tu lugar subiendo rodillas: 1 minuto", "Círculos d
 const CLAVE = "mi-fuerza-v1";
 const hoyISO = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 function nuevoEstado() {
-  const e = { inicio: hoyISO(), ejercicios: {}, sesiones: {}, caminatas: {}, basquet: {}, pesos: [], descanso: 75 };
+  const e = { inicio: hoyISO(), ejercicios: {}, sesiones: {}, caminatas: {}, basquet: {}, pasos: {}, pesos: [], descanso: 75 };
   for (const k in EJ) e.ejercicios[k] = { nivel: EJ[k].tipo === "una" || EJ[k].tipo === "par" ? EJ[k].ini : 0, reps: EJ[k].tipo === "peso" || EJ[k].tipo === "tiempo" ? EJ[k].ini : EJ[k].min, subio: null };
   return e;
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(CLAVE)) || nuevoEstado(); } catch (e) { S = nuevoEstado(); }
 for (const k in EJ) if (!S.ejercicios[k]) S.ejercicios[k] = nuevoEstado().ejercicios[k];
+if (!S.pasos) S.pasos = {};
+const PASOS_MIN = 110;   // pasos por minuto caminando a paso normal (aproximado)
+const fmt = n => Number(n).toLocaleString("es-MX");
+function ponerPasos(f, n) {   // guarda los pasos y estima los minutos de caminata
+  S.pasos[f] = n;
+  const est = Math.round(n / PASOS_MIN);
+  if (!S.caminatas[f] || S.caminatas[f] < est) S.caminatas[f] = est;
+}
 const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {} };
 
 /* ================= Progresión ================= */
@@ -189,6 +197,8 @@ function vHoy() {
   // caminata
   h += `<div class="tarjeta"><div class="fila"><h3>🚶 Caminar hoy</h3><span class="chip ${cam >= meta && meta ? "v" : ""}">${dia === 5 ? "Hoy cuenta el básquetbol" : cam + " de " + meta + " min"}</span></div>
     ${meta ? `<div class="barra"><div style="width:${Math.min(100, cam / meta * 100)}%"></div></div>` : ""}
+    <div class="fila" style="margin-bottom:8px"><span>👣</span><input type="number" id="pasosHoy" inputmode="numeric" min="0" max="100000" placeholder="Pasos de hoy" value="${S.pasos[f] || ""}"><button class="btn" data-pasos>Guardar pasos</button></div>
+    ${S.pasos[f] ? `<p class="sub">${fmt(S.pasos[f])} pasos ≈ ${Math.round(S.pasos[f] / PASOS_MIN)} min caminando.</p>` : `<p class="sub">Copia el número de tu reloj o de Samsung Health, o suma minutos:</p>`}
     <div class="fila"><button class="btn sec" data-cam="15">+15 min</button><button class="btn sec" data-cam="30">+30 min</button><button class="btn sec" data-cam="60">+60 min</button><button class="btn sec" data-basq>${basq ? "🏀 Jugué ✓" : "🏀 Jugué básquetbol"}</button></div></div>`;
   if (p.descanso) {
     h += `<div class="tarjeta"><h2>😌 ${p.n}</h2><p>${p.nota}</p><p class="sub">Descansar también es entrenar: ahí el músculo se recupera y crece.</p></div>`;
@@ -218,11 +228,21 @@ function vCaminar() {
   const f = hoyISO();
   let filas = "";
   for (let i = 0; i < 14; i++) { const d = new Date(); d.setDate(d.getDate() - i); const k = hoyISO(d); const m = S.caminatas[k] || 0;
-    filas += `<tr><td>${fechaLarga(d)}</td><td>${m ? m + " min" : "—"}</td><td>${S.basquet[k] ? "🏀" : ""}</td></tr>`; }
+    filas += `<tr><td>${fechaLarga(d)}</td><td>${S.pasos[k] ? fmt(S.pasos[k]) : "—"}</td><td>${m ? m + " min" : "—"}</td><td>${S.basquet[k] ? "🏀" : ""}</td></tr>`; }
   $app.innerHTML = `<div class="tarjeta"><h2>🚶 Hoy</h2><p class="sub">Minutos caminados hoy (cambia el número si te equivocaste):</p>
     <div class="fila"><input type="number" id="minutos" min="0" max="600" value="${S.caminatas[f] || 0}"><button class="btn" id="guardarCam">Guardar</button></div>
     <p class="sub">Meta: 90 min entre semana, 90 a 120 el sábado, 60 el domingo. El viernes cuenta el básquetbol.</p></div>
-    <div class="tarjeta"><h2>Últimos 14 días</h2><table><tr><th>Día</th><th>Caminata</th><th></th></tr>${filas}</table></div>`;
+    <div class="tarjeta"><h2>Últimos 14 días</h2><table><tr><th>Día</th><th>Pasos</th><th>Caminata</th><th></th></tr>${filas}</table></div>
+    <div class="tarjeta"><h2>⌚ Importar de Samsung Health</h2>
+      <p class="sub">Para llenar varios días de golpe:</p>
+      <ol class="sub" style="padding-left:18px;margin:6px 0">
+        <li>Abre <b>Samsung Health</b> → menú <b>☰</b> o <b>⋮</b> → <b>Ajustes</b> → <b>Descargar datos personales</b> → <b>Descargar</b>.</li>
+        <li>Se guarda en <b>Mis archivos → Descargas → Samsung Health</b>, en una carpeta con la fecha.</li>
+        <li>Aquí toca <b>Elegir archivos</b>, entra a esa carpeta y elige el archivo que empieza con <b>com.samsung.shealth.tracker.pedometer_day_summary</b> (o el <b>.zip</b> completo, si te lo dio así).</li>
+      </ol>
+      <label class="btn ancho" style="display:block;text-align:center">Elegir archivos<input type="file" id="impSH" accept=".csv,.zip,text/csv,application/zip" multiple hidden></label>
+      <p class="sub" id="impRes"></p></div>`;
+  document.getElementById("impSH").onchange = ev => importarSamsung([...ev.target.files]);
 }
 
 function vProgreso() {
@@ -234,8 +254,12 @@ function vProgreso() {
     sem += `<div class="dia ${k === hoyISO() ? "hoy" : ""}">${"LMMJVSD"[i]}<b>${s && s.terminada ? "💪" : PLAN[d.getDay()].descanso ? "😌" : "·"}</b>${S.caminatas[k] ? S.caminatas[k] + "′" : S.basquet[k] ? "🏀" : ""}</div>`; }
   const total = Object.values(S.sesiones).filter(s => s.terminada).length;
   const minTot = Object.values(S.caminatas).reduce((a, b) => a + b, 0);
+  const ult7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); ult7.push({ d, n: S.pasos[hoyISO(d)] || 0 }); }
+  const conPasos = ult7.filter(x => x.n), prom = conPasos.length ? Math.round(conPasos.reduce((a, x) => a + x.n, 0) / conPasos.length) : 0;
+  const maxP = Math.max(10000, ...ult7.map(x => x.n));
+  const barrasPasos = `<div style="display:flex;gap:6px;align-items:flex-end;height:110px;margin-top:8px">${ult7.map(x => `<div style="flex:1;text-align:center;font-size:11px;color:#5F6B76"><div style="height:${Math.round(x.n / maxP * 80)}px;background:${x.n >= 10000 ? "#2E8B57" : "#E8772E"};border-radius:6px 6px 0 0"></div>${"DLMMJVS"[x.d.getDay()]}</div>`).join("")}</div>`;
   let tabla = "";
-  for (const k in EJ) tabla += `<tr><td>${EJ[k].e} ${EJ[k].n}</td><td>${EJ[k].tipo === "una" ? UNA[S.ejercicios[k].nivel].lb + " lb" : EJ[k].tipo === "par" ? PAR[S.ejercicios[k].nivel].lb + " lb c/u" : "—"}</td><td>${objetivoTxt(k)}</td></tr>`;
+  for (const k in EJ) tabla += `<tr><td>${EJ[k].e} ${EJ[k].n}</td><td>${EJ[k].tipo === "una" ? (UNA[S.ejercicios[k].nivel].lb ? UNA[S.ejercicios[k].nivel].lb + " lb" : "Barra sola") : EJ[k].tipo === "par" ? (PAR[S.ejercicios[k].nivel].lb ? PAR[S.ejercicios[k].nivel].lb + " lb c/u" : "Barras solas") : "—"}</td><td>${objetivoTxt(k)}</td></tr>`;
   // peso corporal
   const pesos = S.pesos.slice(-12);
   let graf = "";
@@ -246,6 +270,7 @@ function vProgreso() {
   }
   $app.innerHTML = `<div class="tarjeta"><h2>Esta semana</h2><div class="semana">${sem}</div></div>
     <div class="tarjeta"><div class="fila"><span class="chip v">💪 ${total} sesiones de fuerza</span><span class="chip m">🚶 ${Math.round(minTot / 60)} horas caminadas</span></div></div>
+    <div class="tarjeta"><h2>👣 Pasos de los últimos 7 días</h2>${conPasos.length ? `<p class="sub">Promedio: <b>${fmt(prom)}</b> pasos al día. En verde, los días de 10,000 o más.</p>${barrasPasos}` : `<p class="sub">Anota tus pasos en Hoy o impórtalos de Samsung Health en Caminar.</p>`}</div>
     <div class="tarjeta"><h2>Mi peso corporal</h2><div class="fila"><input type="number" id="kg" step="0.1" min="40" max="250" placeholder="kg"><button class="btn" id="guardarKg">Anotar</button></div>
       ${graf}${pesos.length ? `<p class="sub">Último: ${pesos[pesos.length - 1].kg} kg (${pesos[pesos.length - 1].f}). Anótalo una vez por semana, en ayunas.</p>` : `<p class="sub">Anótalo una vez por semana, en ayunas. Ojo: al ganar músculo la báscula puede bajar más lento; fíjate también en tu ropa y en tu fuerza.</p>`}</div>
     <div class="tarjeta"><h2>Mis cargas actuales</h2><table><tr><th>Ejercicio</th><th>Peso</th><th>Meta</th></tr>${tabla}</table></div>`;
@@ -265,6 +290,70 @@ function vAjustes() {
   document.getElementById("exp").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: "application/json" })); a.download = "mi-fuerza-respaldo-" + hoyISO() + ".json"; a.click(); };
   document.getElementById("imp").onchange = ev => { const f = ev.target.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.ejercicios) throw 0; S = d; guardar(); toast("Respaldo restaurado"); vAjustes(); } catch (e) { toast("Ese archivo no es un respaldo"); } }); };
   document.getElementById("reiniciar").onclick = () => { if (confirm("¿Borrar todo y empezar de nuevo?")) { S = nuevoEstado(); guardar(); ir("hoy"); } };
+}
+
+/* ================= Importar de Samsung Health ================= */
+function filasCSV(texto) {
+  const filas = []; let fila = [], campo = "", q = false;
+  for (let i = 0; i < texto.length; i++) { const c = texto[i];
+    if (q) { if (c === '"') { if (texto[i + 1] === '"') { campo += '"'; i++; } else q = false; } else campo += c; }
+    else if (c === '"') q = true; else if (c === ",") { fila.push(campo); campo = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && texto[i + 1] === "\n") i++; fila.push(campo); filas.push(fila); fila = []; campo = ""; }
+    else campo += c; }
+  if (campo || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
+}
+// Devuelve {fecha: pasos} de un CSV de Samsung Health (resumen diario de pasos)
+function pasosDeCSV(nombre, texto) {
+  const filas = filasCSV(texto); if (filas.length < 3) return {};
+  let h = 0; while (h < filas.length && !filas[h].some(c => /(^|\.)day_time$/.test(c.trim()))) h++;
+  if (h >= filas.length) return {};
+  const cab = filas[h].map(c => c.trim()), col = re => cab.findIndex(c => re.test(c));
+  const iDia = col(/(^|\.)day_time$/), iPasos = col(/(^|\.)(step_count|count)$/), iFuente = col(/(^|\.)source_type$/);
+  if (iPasos < 0) return {};
+  const out = {}, tendencia = /step_daily_trend/.test(nombre);
+  for (const f of filas.slice(h + 1)) {
+    const ms = Number(f[iDia]), n = Math.round(Number(f[iPasos]));
+    if (!(ms > 1e12) || !(n >= 0)) continue;
+    if (tendencia && iFuente >= 0 && f[iFuente] !== "-2") continue;   // -2 = suma de todos los dispositivos
+    const fecha = new Date(ms).toISOString().slice(0, 10);
+    out[fecha] = Math.max(out[fecha] || 0, n);
+  }
+  return out;
+}
+// Lector mínimo de .zip (sin librerías)
+async function archivosDeZip(buf) {
+  const v = new DataView(buf), u8 = new Uint8Array(buf), salida = [];
+  let e = buf.byteLength - 22; while (e >= 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) return salida;
+  let p = v.getUint32(e + 16, true); const total = v.getUint16(e + 10, true);
+  for (let i = 0; i < total; i++) {
+    const metodo = v.getUint16(p + 10, true), tam = v.getUint32(p + 20, true), ln = v.getUint16(p + 28, true), le = v.getUint16(p + 30, true), lc = v.getUint16(p + 32, true), loc = v.getUint32(p + 42, true);
+    const nombre = new TextDecoder().decode(u8.slice(p + 46, p + 46 + ln)); p += 46 + ln + le + lc;
+    if (!/(pedometer_day_summary|step_daily_trend)[^/]*\.csv$/.test(nombre)) continue;
+    const ini = loc + 30 + v.getUint16(loc + 26, true) + v.getUint16(loc + 28, true), datos = u8.slice(ini, ini + tam);
+    let texto;
+    if (metodo === 0) texto = new TextDecoder().decode(datos);
+    else if (metodo === 8 && "DecompressionStream" in window) texto = await new Response(new Blob([datos]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
+    else continue;
+    salida.push({ nombre, texto });
+  }
+  return salida;
+}
+async function importarSamsung(archivos) {
+  const res = document.getElementById("impRes"); res.textContent = "Leyendo…";
+  try {
+    let todos = {};
+    for (const a of archivos) {
+      const lista = /\.zip$/i.test(a.name) ? await archivosDeZip(await a.arrayBuffer()) : [{ nombre: a.name, texto: await a.text() }];
+      for (const x of lista) { const d = pasosDeCSV(x.nombre, x.texto); for (const k in d) todos[k] = Math.max(todos[k] || 0, d[k]); }
+    }
+    const dias = Object.keys(todos).sort();
+    if (!dias.length) { res.textContent = "No encontré pasos en ese archivo. Elige el que empieza con com.samsung.shealth.tracker.pedometer_day_summary."; return; }
+    for (const k of dias) ponerPasos(k, Math.max(S.pasos[k] || 0, todos[k]));   // no baja lo que ya anotaste
+    guardar(); toast("Pasos importados");
+    vCaminar(); document.getElementById("impRes").textContent = `Listo: ${dias.length} días importados (del ${dias[0]} al ${dias[dias.length - 1]}).`;
+  } catch (e) { console.error(e); res.textContent = "No se pudo leer el archivo."; }
 }
 
 /* ================= Reloj de descanso ================= */
@@ -287,6 +376,7 @@ $app.addEventListener("click", ev => {
   const b = ev.target.closest("button"); if (!b) return;
   const f = hoyISO();
   if (b.dataset.cam) { S.caminatas[f] = (S.caminatas[f] || 0) + +b.dataset.cam; guardar(); toast("+" + b.dataset.cam + " min de caminata"); return vHoy(); }
+  if ("pasos" in b.dataset) { const v = parseInt(document.getElementById("pasosHoy").value); if (!(v >= 0 && v <= 100000)) return toast("Escribe tus pasos"); ponerPasos(f, v); guardar(); toast(fmt(v) + " pasos guardados"); return vHoy(); }
   if ("basq" in b.dataset) { S.basquet[f] = !S.basquet[f]; guardar(); return vHoy(); }
   if (b.dataset.serie) {
     const s = sesionHoy(), k = b.dataset.serie, i = +b.dataset.i; if (s.terminada) return;

@@ -1,5 +1,5 @@
 /* Mi Fuerza: funciona sin internet. Al publicar cambios, subir VERSION. */
-const VERSION = "mi-fuerza-2026-11-21a";
+const VERSION = "mi-fuerza-2026-11-21b";
 const ARCH = ["./", "index.html", "manifest.webmanifest", "icono-192.png", "icono-512.png", "icono-180.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCH))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(n => n !== VERSION).map(n => caches.delete(n)))).then(() => self.clients.claim())); });
