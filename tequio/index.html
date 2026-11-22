@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-21-2330';
+const PUBLICACION = '2026-11-21-2340';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -2261,13 +2261,13 @@ function cmpObs() {
       <div class="acciones">${O.ini ? `<button class="boton sec chico" id="ob-borrar">Empezar de nuevo</button>` : ''}${res ? `<button class="boton terra" id="ob-retro">Ir a la retroalimentación →</button>` : ''}</div></div>`;
     const volver = () => cmpIr({ pant: 'persona', sid: s.id, pk: per.persona });
     $('#ob-volver').onclick = $('#ob-volver2').onclick = volver;
-    if ($('#ob-ini')) $('#ob-ini').onclick = () => { O.cada = +$('#ob-cada').value; O.ini = Date.now(); O.fin = null; O.regs = []; guardar(); pintar(); };
+    if ($('#ob-ini')) $('#ob-ini').onclick = async () => { O.cada = +$('#ob-cada').value; O.ini = Date.now(); O.fin = null; O.regs = []; guardar(); pintar(); try { if (navigator.wakeLock) window.OB_LOCK = await navigator.wakeLock.request('screen'); } catch (e) {} };
     $$('[data-ob]').forEach(b => b.onclick = () => { cur.nota = ($('#ob-nota') || {}).value || ''; const k = b.dataset.ob; cur[k] = cur[k] === b.dataset.v ? '' : b.dataset.v; pintar(); });
     if ($('#ob-reg')) $('#ob-reg').onclick = () => { cur.nota = $('#ob-nota').value.trim();
       if (!cur.act) return aviso('Marque al menos qué se está haciendo.', 'mal');
       O.regs.push({ m: Math.round((Date.now() - O.ini) / 60000), act: cur.act, tarea: cur.tarea, habla: cur.habla, mat: cur.mat, nota: cur.nota });
       cur.nota = ''; guardar(); aviso('Registrado: minuto ' + O.regs[O.regs.length - 1].m, 'ok', 2000); pintar(); };
-    if ($('#ob-fin')) $('#ob-fin').onclick = () => { if (!O.regs.length && !confirm('Aún no hay registros. ¿Terminar de todos modos?')) return; O.fin = Date.now(); guardar(); pintar(); };
+    if ($('#ob-fin')) $('#ob-fin').onclick = () => { if (!O.regs.length && !confirm('Aún no hay registros. ¿Terminar de todos modos?')) return; O.fin = Date.now(); guardar(); try { window.OB_LOCK && window.OB_LOCK.release(); } catch (e) {} pintar(); };
     if ($('#ob-borrar')) $('#ob-borrar').onclick = () => { if (!confirm('¿Borrar esta observación y empezar de nuevo?')) return; O.ini = null; O.fin = null; O.regs = []; guardar(); pintar(); };
     $$('[data-obq]').forEach(b => b.onclick = () => { O.regs.splice(+b.dataset.obq, 1); guardar(); pintar(); });
     if ($('#ob-retro')) $('#ob-retro').onclick = () => cmpIr({ pant: 'retro', sid: s.id, pk: per.persona });
@@ -2275,6 +2275,9 @@ function cmpObs() {
   };
   pintar();
   clearInterval(OB_TIMER); OB_TIMER = setInterval(tic, 1000);
+  // mientras se observa, la pantalla no se apaga (si se apagara, el celular no podría avisar con la vibración)
+  const pedir = async () => { try { if (O.ini && !O.fin && navigator.wakeLock && (!window.OB_LOCK || window.OB_LOCK.released)) window.OB_LOCK = await navigator.wakeLock.request('screen'); } catch (e) {} };
+  pedir(); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && vista.cmp && vista.cmp.pant === 'obs') pedir(); });
 }
 
 /* --- Retroalimentación para el docente: carta breve con logos, fortalezas, 1 o 2 aspectos con semáforo y firma --- */
