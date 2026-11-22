@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F3B5F">
+<meta name="robots" content="noindex">
+<title>Mi Fuerza</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-180.png">
+<style>
+:root { --marino:#0F3B5F; --marino2:#174E7A; --naranja:#E8772E; --naranja2:#FFF1E6; --fondo:#F2F6F9; --texto:#14222F; --gris:#5F6B76; --borde:#D8E3EB; --verde:#2E8B57; --verde2:#E5F4EC; --rojo:#B3261E; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; background:var(--fondo); color:var(--texto); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:16px; }
+header { background:var(--marino); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 18px 14px; }
+header h1 { margin:0; font-size:22px; } header p { margin:2px 0 0; color:#BFD3E2; font-size:14px; }
+main { padding:14px 14px 96px; max-width:640px; margin:0 auto; }
+nav { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--borde); display:flex; padding-bottom:env(safe-area-inset-bottom); z-index:5; }
+nav button { flex:1; border:0; background:none; padding:10px 4px 8px; font:inherit; font-size:12px; color:var(--gris); display:flex; flex-direction:column; align-items:center; gap:2px; }
+nav button b { font-size:22px; } nav button.sel { color:var(--marino); font-weight:700; }
+.tarjeta { background:#fff; border:1px solid var(--borde); border-radius:16px; padding:14px; margin-bottom:12px; }
+h2 { font-size:18px; margin:4px 0 8px; color:var(--marino); }
+h3 { font-size:16px; margin:0; color:var(--marino); }
+.sub { color:var(--gris); font-size:14px; margin:2px 0 0; }
+.chip { display:inline-block; background:var(--naranja2); color:#9A4A14; border-radius:999px; padding:3px 10px; font-size:13px; font-weight:600; margin:2px 4px 2px 0; }
+.chip.v { background:var(--verde2); color:#1F6B42; } .chip.m { background:#E6EEF5; color:var(--marino); }
+.btn { border:0; border-radius:12px; padding:12px 16px; font:inherit; font-weight:700; background:var(--naranja); color:#fff; cursor:pointer; }
+.btn.sec { background:#fff; color:var(--marino); border:2px solid var(--borde); }
+.btn.ancho { width:100%; } .btn:disabled { opacity:.5; }
+.fila { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.ej { border:1px solid var(--borde); border-radius:14px; padding:12px; margin-bottom:10px; background:#fff; }
+.ej.listo { border-color:#9ED1B5; background:#F6FBF8; }
+.ej .tit { display:flex; gap:10px; align-items:flex-start; }
+.ej .emo { font-size:30px; line-height:1; }
+.ej .peso { margin:8px 0 4px; font-weight:700; color:var(--marino); }
+.series { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.serie { min-width:64px; border:2px solid var(--borde); background:#fff; border-radius:12px; padding:8px 10px; font:inherit; font-weight:700; color:var(--marino); }
+.serie.ok { background:var(--verde); border-color:var(--verde); color:#fff; }
+details summary { cursor:pointer; color:var(--marino2); font-size:14px; margin-top:6px; }
+details p, details li { font-size:14px; color:#33424F; margin:6px 0; }
+.reloj { position:fixed; left:12px; right:12px; bottom:calc(74px + env(safe-area-inset-bottom)); background:var(--marino); color:#fff; border-radius:16px; padding:12px 16px; display:flex; align-items:center; gap:12px; z-index:6; box-shadow:0 8px 24px rgba(0,0,0,.25); max-width:616px; margin:0 auto; }
+.reloj .t { font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; }
+.reloj button { margin-left:auto; }
+.sens { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+.sens button { border:2px solid var(--borde); background:#fff; border-radius:12px; padding:12px 4px; font:inherit; font-weight:700; color:var(--marino); }
+.sens button span { display:block; font-size:26px; }
+input[type=number], input[type=date] { font:inherit; padding:10px 12px; border:2px solid var(--borde); border-radius:12px; width:110px; }
+.semana { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; }
+.dia { border-radius:12px; padding:6px 2px; background:#fff; border:1px solid var(--borde); font-size:12px; color:var(--gris); }
+.dia b { display:block; font-size:18px; }
+.dia.hoy { border:2px solid var(--naranja); }
+.barra { height:10px; background:#E3EBF1; border-radius:8px; overflow:hidden; margin:6px 0; }
+.barra div { height:100%; background:var(--verde); }
+.aviso { background:var(--naranja2); border-radius:12px; padding:10px 12px; font-size:14px; color:#6B3410; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+td, th { padding:7px 4px; border-bottom:1px solid var(--borde); text-align:left; }
+.toast { position:fixed; top:calc(12px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); background:var(--verde); color:#fff; padding:10px 16px; border-radius:12px; font-weight:700; z-index:9; }
+</style>
+</head>
+<body>
+<header><h1 id="titulo">💪 Mi Fuerza</h1><p id="subtitulo"></p></header>
+<main id="app"></main>
+<nav id="nav">
+  <button data-v="hoy" class="sel"><b>🏋️</b>Hoy</button>
+  <button data-v="caminar"><b>🚶</b>Caminar</button>
+  <button data-v="progreso"><b>📈</b>Progreso</button>
+  <button data-v="ajustes"><b>⚙️</b>Más</button>
+</nav>
+<script>
+"use strict";
+/* ================= Equipo: 2 mancuernas cortas, 4 discos de 7.5 lb y 2 de 2.5 lb ================= */
+// Una sola mancuerna (los discos van por pares, uno de cada lado)
+const UNA = [
+  { lb: 0,  txt: "Barra sola" },
+  { lb: 5,  txt: "2 discos de 2.5 (5 lb + barra)" },
+  { lb: 15, txt: "2 discos de 7.5 (15 lb + barra)" },
+  { lb: 20, txt: "2 de 7.5 y 2 de 2.5 (20 lb + barra)" },
+  { lb: 30, txt: "4 discos de 7.5 (30 lb + barra)" },
+  { lb: 35, txt: "Todos los discos (35 lb + barra)" },
+];
+// Las dos mancuernas iguales
+const PAR = [
+  { lb: 0,  txt: "Las dos barras solas" },
+  { lb: 15, txt: "Cada una con 2 discos de 7.5 (15 lb + barra c/u)" },
+];
+
+/* ================= Ejercicios ================= */
+// tipo: una | par | peso (repeticiones con tu cuerpo) | tiempo (segundos)
+const EJ = {
+  goblet:   { n:"Sentadilla goblet", e:"🏋️", tipo:"una", min:8, max:12, ini:2, desc:"Sostén una mancuerna parada junto al pecho, con las dos manos. Pies al ancho de hombros. Baja como si te sentaras, con el pecho alto y los talones en el piso, y sube.", tip:"Si cuesta, baja a tocar una silla con los glúteos y vuelve a subir.", q:"sentadilla goblet mancuerna técnica" },
+  rumano:   { n:"Peso muerto rumano", e:"🦵", tipo:"par", min:8, max:12, ini:1, desc:"Una mancuerna en cada mano, rodillas apenas dobladas. Echa la cadera hacia atrás bajando las mancuernas pegadas a las piernas hasta media espinilla, con la espalda recta, y sube apretando glúteos.", tip:"La espalda nunca se encorva. Se siente atrás del muslo.", q:"peso muerto rumano mancuernas técnica" },
+  zancada:  { n:"Zancada estática", e:"🚶", tipo:"peso", min:6, max:12, ini:6, lado:true, desc:"Un pie adelante y otro atrás, separados. Baja la rodilla de atrás hacia el piso y sube. Haz todas con una pierna y luego cambia.", tip:"Apóyate en una pared o silla para el equilibrio si lo necesitas.", q:"zancada estática split squat técnica" },
+  puente:   { n:"Puente de glúteo", e:"🌉", tipo:"una", min:10, max:15, ini:2, desc:"Acostado boca arriba, rodillas dobladas y pies en el piso. Pon la mancuerna sobre la cadera, sosténla y sube la cadera apretando glúteos; baja despacio.", tip:"Empuja con los talones.", q:"puente de glúteo con mancuerna" },
+  plancha:  { n:"Plancha", e:"🧱", tipo:"tiempo", min:20, max:45, ini:20, desc:"Apoya antebrazos y puntas de los pies, con el cuerpo recto como tabla y el abdomen apretado.", tip:"Si cuesta, apoya las rodillas en lugar de los pies.", q:"plancha abdominal principiantes" },
+  sumo:     { n:"Sentadilla sumo", e:"🤼", tipo:"una", min:8, max:12, ini:3, desc:"Pies más abiertos que los hombros y puntas hacia afuera. Sostén una mancuerna colgando con las dos manos entre las piernas. Baja recto y sube.", tip:"Rodillas en dirección de las puntas de los pies.", q:"sentadilla sumo mancuerna" },
+  escalon:  { n:"Subir al escalón", e:"🪜", tipo:"peso", min:6, max:12, ini:6, lado:true, desc:"Sube a un escalón firme o banca baja con un pie, empuja con ese pie hasta quedar parado arriba y baja despacio. Haz todas con una pierna y cambia.", tip:"Empieza con un escalón de unos 20 cm.", q:"step up escalón ejercicio técnica" },
+  talones:  { n:"Elevación de talones", e:"🦶", tipo:"peso", min:12, max:20, ini:12, desc:"De pie, sube en puntas lo más alto que puedas y baja despacio. Puedes apoyarte en la pared.", tip:"Sube rápido y baja contando 3.", q:"elevación de talones pantorrilla" },
+  lateral:  { n:"Plancha lateral", e:"📐", tipo:"tiempo", min:15, max:35, ini:15, lado:true, desc:"De lado, apoyado en un antebrazo y en las rodillas (o los pies), sube la cadera y mantén el cuerpo recto. Luego del otro lado.", tip:"Empieza con las rodillas apoyadas.", q:"plancha lateral principiantes" },
+  pressPiso:{ n:"Press de pecho en el piso", e:"🛏️", tipo:"par", min:8, max:12, ini:1, desc:"Acostado boca arriba con rodillas dobladas, una mancuerna en cada mano a la altura del pecho y codos apoyados. Empuja hacia arriba hasta estirar los brazos y baja hasta tocar el piso con los codos.", tip:"Baja despacio, en 2 o 3 segundos.", q:"press de pecho en el piso mancuernas" },
+  remo:     { n:"Remo a una mano", e:"🚣", tipo:"una", min:8, max:12, ini:2, lado:true, desc:"Apoya una mano y una rodilla en una silla o banca. Con la otra mano jala la mancuerna hacia la cadera, con el codo pegado, y baja despacio. Luego del otro lado.", tip:"Espalda recta, como mesa.", q:"remo a una mano con mancuerna técnica" },
+  pressHom: { n:"Press de hombro sentado", e:"🙌", tipo:"par", min:6, max:10, ini:1, desc:"Sentado con la espalda recta, una mancuerna en cada mano a la altura de los hombros. Empuja hacia arriba y baja despacio.", tip:"No arquees la espalda; aprieta el abdomen.", q:"press de hombro sentado mancuernas" },
+  curl:     { n:"Curl de bíceps", e:"💪", tipo:"par", min:8, max:12, ini:1, desc:"De pie, una mancuerna en cada mano con las palmas al frente. Dobla los codos subiendo las mancuernas sin mover los hombros y baja despacio.", tip:"Codos pegados al cuerpo; sin columpiarte.", q:"curl de bíceps mancuernas técnica" },
+  bicho:    { n:"Bicho muerto (dead bug)", e:"🐞", tipo:"peso", min:6, max:12, ini:6, lado:true, desc:"Boca arriba, brazos al techo y rodillas dobladas en el aire. Estira un brazo hacia atrás y la pierna contraria hacia el frente sin despegar la espalda baja del piso. Regresa y cambia.", tip:"Lento y con la espalda baja pegada al piso.", q:"dead bug ejercicio abdomen" },
+  lagartija:{ n:"Lagartija inclinada", e:"🤲", tipo:"peso", min:6, max:15, ini:6, desc:"Manos en una mesa firme o en la pared, cuerpo recto. Baja el pecho hacia la mesa y empuja de regreso.", tip:"Mientras más baja la superficie, más difícil.", q:"lagartija inclinada principiantes" },
+  granjero: { n:"Caminata de granjero", e:"🧳", tipo:"tiempo", min:30, max:60, ini:30, par:true, desc:"Una mancuerna en cada mano, con todos los discos que aguantes. Camina erguido, con hombros atrás y abdomen apretado.", tip:"Usa las dos mancuernas con 2 discos de 7.5 cada una.", q:"caminata de granjero farmer walk" },
+  perro:    { n:"Perro de caza (bird dog)", e:"🐕", tipo:"peso", min:6, max:12, ini:6, lado:true, desc:"En cuatro apoyos, estira un brazo al frente y la pierna contraria hacia atrás, mantén 2 segundos y regresa. Cambia de lado.", tip:"Que la cadera no se gire.", q:"bird dog ejercicio" },
+  elevLat:  { n:"Elevación lateral", e:"🕊️", tipo:"par", min:10, max:15, ini:0, desc:"De pie, una mancuerna en cada mano a los lados. Sube los brazos abiertos hasta la altura de los hombros y baja despacio.", tip:"Peso ligero: es un músculo pequeño.", q:"elevación lateral mancuernas técnica" },
+  triceps:  { n:"Extensión de tríceps", e:"🔧", tipo:"una", min:8, max:12, ini:2, desc:"Sentado, sostén una mancuerna con las dos manos sobre la cabeza. Dobla los codos bajándola detrás de la cabeza y sube estirando los brazos.", tip:"Codos apuntando al frente, cerca de la cabeza.", q:"extensión de tríceps con mancuerna sentado" },
+};
+
+/* ================= Semana ================= */
+const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const PLAN = {
+  1: { n:"Piernas y abdomen A", ej:["goblet","rumano","zancada","puente","plancha"] },
+  2: { n:"Pecho, espalda y brazos A", ej:["pressPiso","remo","pressHom","curl","bicho"] },
+  3: { n:"Cuerpo completo ligero", ej:["goblet","lagartija","remo","granjero","perro"], ligero:true },
+  4: { n:"Piernas y abdomen B", ej:["sumo","escalon","rumano","talones","lateral"] },
+  5: { n:"Pecho, espalda y brazos B · corto", ej:["lagartija","remo","elevLat","triceps"], ligero:true, nota:"Hoy juegas básquetbol: rutina corta. Hazla antes de jugar o en otro momento del día; si llegas muy cansado, sáltala sin pendiente." },
+  6: { descanso:true, n:"Descanso de fuerza", nota:"Caminata larga (90 a 120 min) a tu paso y 5 minutos de estiramientos." },
+  0: { descanso:true, n:"Descanso", nota:"Caminata tranquila de 60 min o descanso total si lo necesitas." },
+};
+const META_CAMINAR = { 0:60, 1:90, 2:90, 3:90, 4:90, 5:0, 6:90 };   // viernes: el básquetbol cuenta
+const CALENTAR = ["Marcha en tu lugar subiendo rodillas: 1 minuto", "Círculos de brazos: 10 hacia adelante y 10 hacia atrás", "Sentadillas sin peso, lentas: 10", "Bisagra de cadera (manos en la cintura, cadera atrás): 10", "Giros de tronco: 10 por lado"];
+
+/* ================= Datos (solo en este celular) ================= */
+const CLAVE = "mi-fuerza-v1";
+const hoyISO = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function nuevoEstado() {
+  const e = { inicio: hoyISO(), ejercicios: {}, sesiones: {}, caminatas: {}, basquet: {}, pesos: [], descanso: 75 };
+  for (const k in EJ) e.ejercicios[k] = { nivel: EJ[k].tipo === "una" || EJ[k].tipo === "par" ? EJ[k].ini : 0, reps: EJ[k].tipo === "peso" || EJ[k].tipo === "tiempo" ? EJ[k].ini : EJ[k].min, subio: null };
+  return e;
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(CLAVE)) || nuevoEstado(); } catch (e) { S = nuevoEstado(); }
+for (const k in EJ) if (!S.ejercicios[k]) S.ejercicios[k] = nuevoEstado().ejercicios[k];
+const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {} };
+
+/* ================= Progresión ================= */
+function semanaN(fecha = hoyISO()) { return Math.floor((new Date(fecha) - new Date(S.inicio)) / 864e5 / 7) + 1; }
+const semanaLigera = n => n % 6 === 0;
+function seriesDe(dia, fecha) { const n = semanaN(fecha); if (semanaLigera(n) || PLAN[dia].ligero) return 2; return n <= 2 ? 2 : 3; }
+function cargaTxt(k) {
+  const x = EJ[k], st = S.ejercicios[k];
+  if (x.tipo === "una") return "🏋️ " + UNA[st.nivel].txt;
+  if (x.tipo === "par") return "🏋️🏋️ " + PAR[st.nivel].txt;
+  if (x.par) return "🏋️🏋️ Las dos mancuernas, 2 discos de 7.5 cada una";
+  return "🙂 Con tu propio peso";
+}
+function objetivoTxt(k) {
+  const x = EJ[k], st = S.ejercicios[k];
+  if (x.tipo === "tiempo") return st.reps + " segundos" + (x.lado ? " por lado" : "");
+  return st.reps + " repeticiones" + (x.lado ? " por lado" : "");
+}
+function avanzar(k, sens, completo, ligera) {
+  const x = EJ[k], st = S.ejercicios[k], hoy = hoyISO();
+  if (ligera || !completo || sens === "pesado") return null;
+  if (st.subio && (new Date(hoy) - new Date(st.subio)) / 864e5 < 5) return null;   // sube como máximo una vez por semana
+  let cambio = null;
+  if (x.tipo === "tiempo") { if (st.reps < x.max) { st.reps = Math.min(x.max, st.reps + 5); cambio = objetivoTxt(k); } }
+  else if (x.tipo === "peso") { if (st.reps < x.max) { st.reps = Math.min(x.max, st.reps + (sens === "facil" ? 2 : 1)); cambio = objetivoTxt(k); } }
+  else {
+    const lista = x.tipo === "una" ? UNA : PAR;
+    if (st.reps < x.max) { st.reps = Math.min(x.max, st.reps + 2); cambio = objetivoTxt(k); }
+    else if (st.nivel < lista.length - 1) { st.nivel++; st.reps = x.min; cambio = "más peso: " + lista[st.nivel].txt; }
+  }
+  if (cambio) st.subio = hoy;
+  return cambio;
+}
+
+/* ================= Vistas ================= */
+const $app = document.getElementById("app");
+let vista = "hoy", relojT = null, relojFin = 0;
+const fechaLarga = d => { const m = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"]; return DIAS[d.getDay()][0].toUpperCase() + DIAS[d.getDay()].slice(1) + " " + d.getDate() + " de " + m[d.getMonth()]; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+
+function sesionHoy() {
+  const f = hoyISO(), dia = new Date().getDay();
+  if (!S.sesiones[f]) S.sesiones[f] = { dia, hechas: {}, terminada: false };
+  return S.sesiones[f];
+}
+
+function vHoy() {
+  const d = new Date(), dia = d.getDay(), p = PLAN[dia], f = hoyISO(), n = semanaN();
+  document.getElementById("subtitulo").textContent = fechaLarga(d) + " · semana " + n + (semanaLigera(n) ? " (semana ligera)" : "");
+  const cam = S.caminatas[f] || 0, meta = META_CAMINAR[dia], basq = !!S.basquet[f];
+  let h = "";
+  // caminata
+  h += `<div class="tarjeta"><div class="fila"><h3>🚶 Caminar hoy</h3><span class="chip ${cam >= meta && meta ? "v" : ""}">${dia === 5 ? "Hoy cuenta el básquetbol" : cam + " de " + meta + " min"}</span></div>
+    ${meta ? `<div class="barra"><div style="width:${Math.min(100, cam / meta * 100)}%"></div></div>` : ""}
+    <div class="fila"><button class="btn sec" data-cam="15">+15 min</button><button class="btn sec" data-cam="30">+30 min</button><button class="btn sec" data-cam="60">+60 min</button><button class="btn sec" data-basq>${basq ? "🏀 Jugué ✓" : "🏀 Jugué básquetbol"}</button></div></div>`;
+  if (p.descanso) {
+    h += `<div class="tarjeta"><h2>😌 ${p.n}</h2><p>${p.nota}</p><p class="sub">Descansar también es entrenar: ahí el músculo se recupera y crece.</p></div>`;
+    h += saludTxt();
+    $app.innerHTML = h; return;
+  }
+  const s = sesionHoy(), series = seriesDe(dia);
+  h += `<div class="tarjeta"><h2>🏋️ ${p.n}</h2><p class="sub">${series} series de cada ejercicio · descanso de ${S.descanso} s entre series${semanaLigera(n) ? " · semana ligera: mismo peso, menos series" : ""}</p>${p.nota ? `<p class="aviso">${p.nota}</p>` : ""}
+    <details><summary>🔥 Calentamiento (5 minutos, antes de empezar)</summary><ul>${CALENTAR.map(x => `<li>${x}</li>`).join("")}</ul></details></div>`;
+  for (const k of p.ej) {
+    const x = EJ[k], hechas = s.hechas[k] || [], listo = hechas.filter(Boolean).length >= series;
+    h += `<div class="ej ${listo ? "listo" : ""}"><div class="tit"><span class="emo">${x.e}</span><div><h3>${x.n}</h3><span class="chip m">${objetivoTxt(k)}</span></div></div>
+      <div class="peso">${cargaTxt(k)}</div>
+      <div class="series">${Array.from({ length: series }, (_, i) => `<button class="serie ${hechas[i] ? "ok" : ""}" data-serie="${k}" data-i="${i}">${hechas[i] ? "✓" : "Serie " + (i + 1)}</button>`).join("")}</div>
+      <details><summary>¿Cómo se hace?</summary><p>${x.desc}</p><p><b>Tip:</b> ${x.tip}</p><p><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(x.q)}" target="_blank" rel="noopener">▶ Ver videos de ejemplo</a></p></details></div>`;
+  }
+  if (s.terminada) h += `<div class="tarjeta"><h2>✅ ¡Sesión terminada!</h2><p>${s.cambios && s.cambios.length ? "Para la próxima vez:<br>• " + s.cambios.map(esc).join("<br>• ") : "La próxima vez, mismos pesos: sigue así."}</p></div>`;
+  else h += `<div class="tarjeta"><h2>¿Cómo te sentiste?</h2><p class="sub">Al terminar, elige una opción. Con eso la app decide si la próxima vez sube.</p>
+      <div class="sens"><button data-sens="facil"><span>😀</span>Fácil</button><button data-sens="bien"><span>🙂</span>Bien</button><button data-sens="pesado"><span>😓</span>Pesado</button></div></div>`;
+  h += saludTxt();
+  $app.innerHTML = h;
+}
+const saludTxt = () => `<div class="tarjeta"><h3>❤️ Cuídate</h3><p class="sub">Toma agua a sorbos durante el día. Para y descansa si sientes mareo, dolor en el pecho, falta de aire fuera de lo normal o dolor en una articulación. La proteína que te indique tu médico o nutrióloga es la que construye el músculo.</p></div>`;
+
+function vCaminar() {
+  document.getElementById("subtitulo").textContent = "Tus caminatas y básquetbol";
+  const f = hoyISO();
+  let filas = "";
+  for (let i = 0; i < 14; i++) { const d = new Date(); d.setDate(d.getDate() - i); const k = hoyISO(d); const m = S.caminatas[k] || 0;
+    filas += `<tr><td>${fechaLarga(d)}</td><td>${m ? m + " min" : "—"}</td><td>${S.basquet[k] ? "🏀" : ""}</td></tr>`; }
+  $app.innerHTML = `<div class="tarjeta"><h2>🚶 Hoy</h2><p class="sub">Minutos caminados hoy (cambia el número si te equivocaste):</p>
+    <div class="fila"><input type="number" id="minutos" min="0" max="600" value="${S.caminatas[f] || 0}"><button class="btn" id="guardarCam">Guardar</button></div>
+    <p class="sub">Meta: 90 min entre semana, 90 a 120 el sábado, 60 el domingo. El viernes cuenta el básquetbol.</p></div>
+    <div class="tarjeta"><h2>Últimos 14 días</h2><table><tr><th>Día</th><th>Caminata</th><th></th></tr>${filas}</table></div>`;
+}
+
+function vProgreso() {
+  document.getElementById("subtitulo").textContent = "Semana " + semanaN() + " desde que empezaste";
+  // semana actual (lunes a domingo)
+  const hoy = new Date(), lun = new Date(hoy); lun.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+  let sem = "";
+  for (let i = 0; i < 7; i++) { const d = new Date(lun); d.setDate(lun.getDate() + i); const k = hoyISO(d), s = S.sesiones[k];
+    sem += `<div class="dia ${k === hoyISO() ? "hoy" : ""}">${"LMMJVSD"[i]}<b>${s && s.terminada ? "💪" : PLAN[d.getDay()].descanso ? "😌" : "·"}</b>${S.caminatas[k] ? S.caminatas[k] + "′" : S.basquet[k] ? "🏀" : ""}</div>`; }
+  const total = Object.values(S.sesiones).filter(s => s.terminada).length;
+  const minTot = Object.values(S.caminatas).reduce((a, b) => a + b, 0);
+  let tabla = "";
+  for (const k in EJ) tabla += `<tr><td>${EJ[k].e} ${EJ[k].n}</td><td>${EJ[k].tipo === "una" ? UNA[S.ejercicios[k].nivel].lb + " lb" : EJ[k].tipo === "par" ? PAR[S.ejercicios[k].nivel].lb + " lb c/u" : "—"}</td><td>${objetivoTxt(k)}</td></tr>`;
+  // peso corporal
+  const pesos = S.pesos.slice(-12);
+  let graf = "";
+  if (pesos.length > 1) {
+    const v = pesos.map(p => p.kg), mn = Math.min(...v) - 1, mx = Math.max(...v) + 1, W = 300, H = 90;
+    const pts = pesos.map((p, i) => `${(i / (pesos.length - 1) * (W - 20) + 10).toFixed(1)},${(H - 10 - (p.kg - mn) / (mx - mn) * (H - 20)).toFixed(1)}`).join(" ");
+    graf = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><polyline points="${pts}" fill="none" stroke="#E8772E" stroke-width="3"/></svg>`;
+  }
+  $app.innerHTML = `<div class="tarjeta"><h2>Esta semana</h2><div class="semana">${sem}</div></div>
+    <div class="tarjeta"><div class="fila"><span class="chip v">💪 ${total} sesiones de fuerza</span><span class="chip m">🚶 ${Math.round(minTot / 60)} horas caminadas</span></div></div>
+    <div class="tarjeta"><h2>Mi peso corporal</h2><div class="fila"><input type="number" id="kg" step="0.1" min="40" max="250" placeholder="kg"><button class="btn" id="guardarKg">Anotar</button></div>
+      ${graf}${pesos.length ? `<p class="sub">Último: ${pesos[pesos.length - 1].kg} kg (${pesos[pesos.length - 1].f}). Anótalo una vez por semana, en ayunas.</p>` : `<p class="sub">Anótalo una vez por semana, en ayunas. Ojo: al ganar músculo la báscula puede bajar más lento; fíjate también en tu ropa y en tu fuerza.</p>`}</div>
+    <div class="tarjeta"><h2>Mis cargas actuales</h2><table><tr><th>Ejercicio</th><th>Peso</th><th>Meta</th></tr>${tabla}</table></div>`;
+  document.getElementById("guardarKg").onclick = () => { const v = parseFloat(document.getElementById("kg").value); if (!(v > 40 && v < 250)) return toast("Escribe tu peso en kg");
+    S.pesos = S.pesos.filter(p => p.f !== hoyISO()); S.pesos.push({ f: hoyISO(), kg: v }); guardar(); toast("Peso anotado"); vProgreso(); };
+}
+
+function vAjustes() {
+  document.getElementById("subtitulo").textContent = "Ajustes y respaldo";
+  $app.innerHTML = `<div class="tarjeta"><h2>⏱️ Descanso entre series</h2><div class="fila">${[60, 75, 90, 120].map(s => `<button class="btn ${S.descanso === s ? "" : "sec"}" data-desc="${s}">${s} s</button>`).join("")}</div></div>
+    <div class="tarjeta"><h2>📅 Mi plan</h2><table>${[1,2,3,4,5,6,0].map(d => `<tr><td>${DIAS[d][0].toUpperCase() + DIAS[d].slice(1)}</td><td>${PLAN[d].n}</td></tr>`).join("")}</table>
+      <p class="sub">Semanas 1 y 2: 2 series. Desde la 3: 3 series. Cada 6 semanas toca una semana ligera para recuperarte. Cada ejercicio sube como máximo una vez por semana: primero repeticiones y luego peso.</p></div>
+    <div class="tarjeta"><h2>💾 Respaldo</h2><p class="sub">Tus datos se guardan solo en este celular. Descarga un respaldo de vez en cuando por si cambias de teléfono.</p>
+      <div class="fila"><button class="btn sec" id="exp">Descargar respaldo</button><label class="btn sec">Restaurar<input type="file" id="imp" accept=".json" hidden></label></div></div>
+    <div class="tarjeta"><h2>📲 Instalar en el celular</h2><p class="sub">Android (Chrome): menú ⋮ → <b>Agregar a la pantalla principal</b>. iPhone (Safari): botón Compartir → <b>Agregar a inicio</b>. Funciona sin internet.</p></div>
+    <div class="tarjeta"><button class="btn sec ancho" id="reiniciar">Empezar de nuevo (borra todo)</button></div>`;
+  document.getElementById("exp").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: "application/json" })); a.download = "mi-fuerza-respaldo-" + hoyISO() + ".json"; a.click(); };
+  document.getElementById("imp").onchange = ev => { const f = ev.target.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.ejercicios) throw 0; S = d; guardar(); toast("Respaldo restaurado"); vAjustes(); } catch (e) { toast("Ese archivo no es un respaldo"); } }); };
+  document.getElementById("reiniciar").onclick = () => { if (confirm("¿Borrar todo y empezar de nuevo?")) { S = nuevoEstado(); guardar(); ir("hoy"); } };
+}
+
+/* ================= Reloj de descanso ================= */
+function iniciarReloj(seg) {
+  pararReloj(); relojFin = Date.now() + seg * 1000;
+  const r = document.createElement("div"); r.className = "reloj"; r.id = "reloj";
+  r.innerHTML = `<span>⏱️ Descanso</span><span class="t" id="relojT"></span><button class="btn sec" id="relojX">Saltar</button>`;
+  document.body.appendChild(r); document.getElementById("relojX").onclick = pararReloj;
+  const tic = () => { const s = Math.max(0, Math.ceil((relojFin - Date.now()) / 1000)); const t = document.getElementById("relojT"); if (t) t.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    if (s <= 0) { pararReloj(); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {} pitido(); toast("¡Siguiente serie!"); } };
+  tic(); relojT = setInterval(tic, 250);
+}
+function pararReloj() { clearInterval(relojT); relojT = null; const r = document.getElementById("reloj"); if (r) r.remove(); }
+function pitido() { try { const c = new (window.AudioContext || window.webkitAudioContext)(); const o = c.createOscillator(); o.frequency.value = 880; o.connect(c.destination); o.start(); o.stop(c.currentTime + 0.3); } catch (e) {} }
+
+/* ================= Eventos ================= */
+function ir(v) { vista = v; document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("sel", b.dataset.v === v)); ({ hoy: vHoy, caminar: vCaminar, progreso: vProgreso, ajustes: vAjustes })[v](); window.scrollTo(0, 0); }
+document.getElementById("nav").onclick = ev => { const b = ev.target.closest("button"); if (b) ir(b.dataset.v); };
+$app.addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const f = hoyISO();
+  if (b.dataset.cam) { S.caminatas[f] = (S.caminatas[f] || 0) + +b.dataset.cam; guardar(); toast("+" + b.dataset.cam + " min de caminata"); return vHoy(); }
+  if ("basq" in b.dataset) { S.basquet[f] = !S.basquet[f]; guardar(); return vHoy(); }
+  if (b.dataset.serie) {
+    const s = sesionHoy(), k = b.dataset.serie, i = +b.dataset.i; if (s.terminada) return;
+    s.hechas[k] = s.hechas[k] || []; s.hechas[k][i] = !s.hechas[k][i]; guardar();
+    const y = window.scrollY; vHoy(); window.scrollTo(0, y);
+    if (s.hechas[k][i]) iniciarReloj(S.descanso);
+    return;
+  }
+  if (b.dataset.sens) {
+    const s = sesionHoy(), dia = new Date().getDay(), p = PLAN[dia], series = seriesDe(dia), lig = semanaLigera(semanaN()) || p.ligero;
+    const faltan = p.ej.filter(k => (s.hechas[k] || []).filter(Boolean).length < series);
+    if (faltan.length && !confirm("Te faltan series en " + faltan.length + " ejercicio(s). Esos no subirán la próxima vez. ¿Terminar así?")) return;
+    s.cambios = [];
+    for (const k of p.ej) { const c = avanzar(k, b.dataset.sens, !faltan.includes(k), lig); if (c) s.cambios.push(EJ[k].n + ": " + c); }
+    s.sens = b.dataset.sens; s.terminada = true; guardar(); pararReloj(); toast("¡Bien hecho!"); return vHoy();
+  }
+  if (b.dataset.desc) { S.descanso = +b.dataset.desc; guardar(); return vAjustes(); }
+  if (b.id === "guardarCam") { const v = Math.max(0, Math.min(600, parseInt(document.getElementById("minutos").value) || 0)); S.caminatas[f] = v; guardar(); toast("Caminata guardada"); return vCaminar(); }
+});
+ir("hoy");
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
