@@ -135,7 +135,7 @@ fi
 RAM_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
 echo "Memoria RAM: ${RAM_MB} MB"
 if ! ping -c 2 -W 3 deb.debian.org >/dev/null 2>&1 && ! ping -c 2 -W 3 8.8.8.8 >/dev/null 2>&1; then
-  rojo "No hay internet. Conecta la iMac por cable de red y vuelve a correr el script."
+  rojo "No hay internet. Conecta la computadora por cable de red y vuelve a correr el script."
   exit 1
 fi
 verde "Internet OK."
@@ -161,7 +161,7 @@ HORA
 chmod 755 /usr/local/bin/zona050-hora
 cat > /etc/systemd/system/zona050-hora.service <<'HORA'
 [Unit]
-Description=Zona 050: poner la iMac en hora
+Description=Zona 050: poner la computadora en hora
 Wants=network-online.target
 After=network-online.target
 [Service]
@@ -200,7 +200,7 @@ instalar() {
 }
 
 # ---------- WiFi Broadcom (casi todas las iMac) ----------
-paso "WiFi de la iMac"
+paso "WiFi (tarjeta Broadcom de las iMac)"
 if lspci -nn 2>/dev/null | grep -iE 'network|wireless' | grep -qi '14e4'; then
   echo "Tarjeta WiFi Broadcom detectada."
   instalar dkms "linux-headers-$(uname -r)" bcmwl-kernel-source
@@ -511,7 +511,7 @@ autologin-user=maestro
 autologin-user-timeout=0
 EOF
   fi
-  verde "Cuenta 'Maestro' lista, sin permisos de administrador; la iMac entra sola a ella."
+  verde "Cuenta 'Maestro' lista, sin permisos de administrador; la computadora entra sola a ella."
   verde "Tu cuenta de administrador sigue igual (para entrar: Menú → Salir → Cambiar de usuario)."
 fi
 
@@ -553,11 +553,11 @@ fi
 # ---------- resumen ----------
 echo
 verde "=============================================================="
-verde "  Listo. Reinicia la iMac para terminar:   sudo reboot"
+verde "  Listo. Reinicia la computadora para terminar:   sudo reboot"
 verde "=============================================================="
 echo "Memoria RAM: ${RAM_MB} MB"
 if [ "$RAM_MB" -lt 3500 ]; then
-  amarillo "Esta iMac tiene poca memoria: sirve para las apps e internet, pero"
+  amarillo "Esta computadora tiene poca memoria: sirve para las apps e internet, pero"
   amarillo "las videollamadas irán lentas. Se recomienda subirla a 4 GB o más."
 fi
 lsusb 2>/dev/null | grep -qiE '05ac:8300' && amarillo "Cámara iSight antigua detectada: puede requerir configuración adicional."

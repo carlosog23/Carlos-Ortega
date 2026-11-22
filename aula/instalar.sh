@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  Aula Zona 050 · Computadoras Dell y HP (Core 2 Duo) con Linux Mint XFCE
+#  Aula Zona 050 · Computadora de ALUMNOS (Dell, HP, iMac…) con Linux Mint XFCE
 #  Supervisión Escolar Zona 050 · Primaria Federalizada · Camalú, B.C.
 #
 #  Convierte una computadora antigua en una estación para alumnos:
@@ -117,6 +117,14 @@ instalar() {
     fi
   done
 }
+
+# ---------- WiFi Broadcom (iMac y algunas laptops) ----------
+if lspci -nn 2>/dev/null | grep -iE 'network|wireless' | grep -qi '14e4'; then
+  paso "WiFi (tarjeta Broadcom)"
+  instalar dkms "linux-headers-$(uname -r)" bcmwl-kernel-source
+  modprobe -r b43 bcma ssb >/dev/null 2>&1 || true
+  modprobe wl >/dev/null 2>&1 && verde "Controlador WiFi activado." || amarillo "El WiFi quedará listo después de reiniciar."
+fi
 
 # ---------- programas ----------
 paso "Instalando programas educativos y de oficina (puede tardar 15 a 30 minutos)"
