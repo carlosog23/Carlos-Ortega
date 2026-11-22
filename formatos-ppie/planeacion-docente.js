@@ -2,7 +2,8 @@
    Tlamatini · Planeación didáctica con los datos reales del docente.
    - Toma su nombre, grado, grupo y escuela de «Mis datos» de Tlamatini, y sus alumnos de su base.
    - La planeación la redacta la IA (Gemini, por el servidor de Tequio, acción planIA «nueva») con el programa
-     sintético oficial del grado, el calendario de Baja California y la lectura de la realidad del grupo.
+     sintético oficial del grado, el calendario de Baja California y la lectura de la realidad del grupo
+     (la de Tequio o la que el docente sube en PDF, Word o fotos; es opcional).
    - Todo es editable y se guarda en este dispositivo («Mis planeaciones»). */
 "use strict";
 
@@ -50,6 +51,48 @@ function plLectura() {
   return null;
 }
 
+/* ---------- lectura de la realidad que sube el docente (opcional: PDF, Word o fotos) ----------
+   Si la sube, la IA contextualiza la planeación con ella; si no, la planeación se arma igual.
+   Se guarda en este dispositivo para las siguientes planeaciones (si cabe). */
+const PL_LEC = 'plan-lectura-subida';
+let PL_LECA = (function () { const v = incLS.get(PL_LEC, null); return Array.isArray(v) ? v : []; })();
+function plLecGuardar() { try { localStorage.setItem(PL_LEC, JSON.stringify(PL_LECA)); return true; } catch (e) { try { localStorage.setItem(PL_LEC, JSON.stringify(PL_LECA.filter(a => a.clase === 'word'))); } catch (e2) {} return false; } }
+async function plLecAgregar(files) {
+  let guardo = true;
+  for (const f of files) {
+    const n = f.name || 'archivo', ext = (n.split('.').pop() || '').toLowerCase();
+    try {
+      if (PL_LECA.length >= 8) throw new Error('Máximo 8 archivos. Quite alguno para agregar otro.');
+      if (f.type === 'application/pdf' || ext === 'pdf') { if (f.size > 12e6) throw new Error('«' + n + '» pesa más de 12 MB. Súbalo en partes o como fotos.'); PL_LECA.push({ nombre: n, clase: 'pdf', tipo: 'application/pdf', data: await miaB64(f), kb: f.size / 1024 }); }
+      else if (ext === 'docx') { const t = await miaWord(f); if (t.replace(/\s/g, '').length < 20) throw new Error('«' + n + '» no tiene texto que se pueda leer.'); PL_LECA.push({ nombre: n, clase: 'word', texto: t.slice(0, 40000), kb: f.size / 1024 }); }
+      else if (ext === 'doc' || ext === 'odt' || ext === 'pages') throw new Error('«' + n + '» es de un formato que no se puede leer. En Word use «Guardar como» → Word (.docx) o PDF.');
+      else if (/^image\//.test(f.type) || /^(jpe?g|png|webp|heic|heif|gif)$/.test(ext)) { const x = await miaFoto(f); PL_LECA.push({ nombre: n, clase: 'foto', tipo: x.tipo, data: x.data, prev: x.prev, kb: x.data.length * .75 / 1024 }); }
+      else throw new Error('«' + n + '» no es PDF, Word ni foto.');
+      PL_LECA.forEach(a => { if (!a.fecha) a.fecha = new Date().toISOString().slice(0, 10); });
+      if (!plLecGuardar()) guardo = false;
+    } catch (e) { toast('<b>No se agregó.</b> ' + esc(e.message || e), 5200); }
+  }
+  if (!guardo) toast('Su lectura se usará en esta planeación, pero pesa mucho para guardarse en el dispositivo. La próxima vez tendrá que subirla de nuevo.', 6500);
+  repinta();
+}
+function plLecHTML() {
+  const L = PL_LECA, kb = L.reduce((t, a) => t + (a.kb || 0), 0);
+  const icono = a => a.clase === 'foto' && a.prev ? `<img src="${esc(a.prev)}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex:none">` : `<span style="width:40px;height:40px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:${a.clase === 'pdf' ? '#A94C2A' : '#2D5491'}">${a.clase === 'pdf' ? 'PDF' : 'W'}</span>`;
+  return `<div class="bandeja" id="lecBox"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+     <div style="flex:1;min-width:220px"><b style="font-size:16px;color:var(--tinta)">Lectura de la realidad de su grupo</b> <span class="chip" style="margin-left:4px">Opcional</span>
+     <p style="font-size:14px;color:var(--gris);margin:6px 0 0">Súbala y Tlamatini <b>contextualiza</b> la planeación con ella: el problema, las actividades y los ajustes parten de lo que usted conoce de su grupo y su comunidad. Si no la sube, la planeación se arma igual.</p></div>
+     <label class="btn sec chico" style="cursor:pointer;flex:none">${ic('descarga', 'style="width:16px;height:16px;transform:rotate(180deg)"')} ${L.length ? 'Agregar otra' : 'Subir'}<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label></div>
+    <p style="font-size:13px;color:var(--gris);margin:8px 0 0">PDF, Word (.docx) o fotos de las hojas. No hace falta que tenga un formato especial.</p>
+    ${L.length ? `<div style="display:grid;gap:8px;margin-top:12px">${L.map((a, i) => `<div style="display:flex;align-items:center;gap:10px;background:var(--papel,#fff);border:1px solid var(--hilo);border-radius:12px;padding:8px 10px">${icono(a)}<span style="flex:1;min-width:0"><b style="display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.nombre)}</b><small style="color:var(--gris)">${a.clase === 'word' ? 'Word' : a.clase === 'pdf' ? 'PDF' : 'Foto'} · ${Math.max(1, Math.round(a.kb || 0))} KB${a.fecha ? ' · subida el ' + esc(fCorta(a.fecha)) : ''}</small></span><button class="btn sec chico" data-lecq="${i}" aria-label="Quitar ${esc(a.nombre)}">${ic('x', 'style="width:14px;height:14px"')}</button></div>`).join('')}</div>
+      <p style="font-size:13px;color:var(--verde,#1B7560);margin:10px 2px 0"><b>✓ Se usará para contextualizar esta planeación</b>${kb > 0 ? ' y se queda guardada en este dispositivo para las siguientes.' : '.'} Quítela cuando cambie de ciclo o de grupo.</p>` : ''}</div>`;
+}
+function plLecCablear() {
+  const f = $('#lecF'); if (f) f.onchange = async () => { const L = [...f.files]; f.value = ''; if (L.length) { toast('Leyendo su lectura de la realidad…', 1800); await plLecAgregar(L); } };
+  $$('[data-lecq]').forEach(b => b.onclick = () => { PL_LECA.splice(+b.dataset.lecq, 1); plLecGuardar(); repinta(); });
+  const box = $('#lecBox'); if (box) { box.ondragover = e => { e.preventDefault(); box.style.outline = '2px dashed var(--maiz)'; }; box.ondragleave = () => { box.style.outline = ''; };
+    box.ondrop = async e => { e.preventDefault(); box.style.outline = ''; const L = [...(e.dataTransfer.files || [])]; if (L.length) await plLecAgregar(L); }; }
+}
+
 /* ---------- programa sintético oficial ---------- */
 let PL_PDA = null;
 async function plProgramaCargar() { if (PL_PDA) return PL_PDA; try { const r = await fetch('formatos/pda.json'); if (r.ok) PL_PDA = await r.json(); } catch (e) {} if (!PL_PDA) PL_PDA = incLS.get('pda-cache', null); return PL_PDA; }
@@ -88,7 +131,7 @@ function vInicio() {
     ${E.puerta === 'grupo' ? `<div class="bandeja"><label class="lbl" for="nec" style="display:block;margin:0 2px 8px">¿Qué es lo que más necesita su grupo?</label>
       <textarea class="nota" id="nec" placeholder="Ej.: 9 alumnos no localizan información en un texto; se distraen al trabajar en equipo.">${esc(E.necesidad)}</textarea>
       <div class="chips" style="margin-top:10px">${NEC_SUG.map(s => `<button type="button" class="chip" data-sug="${esc(s)}" style="cursor:pointer">${esc(s)}</button>`).join('')}</div>
-      <p class="contexto">${lec ? `<b style="color:var(--tinta)">Tlamatini usará ${esc(lec.quien)}.</b> ${esc(lec.txt.slice(0, 260))}${lec.txt.length > 260 ? '…' : ''}` : 'No hay una lectura de la realidad guardada para su grupo. Escriba arriba lo que observa en sus alumnos y Tlamatini partirá de ahí.'}</p></div>` : ''}
+      <p class="contexto">${PL_LECA.length ? `<b style="color:var(--tinta)">Tlamatini usará la lectura de la realidad que usted subió${lec ? ' y ' + esc(lec.quien) : ''}.</b>` : lec ? `<b style="color:var(--tinta)">Tlamatini usará ${esc(lec.quien)}.</b> ${esc(lec.txt.slice(0, 260))}${lec.txt.length > 260 ? '…' : ''}` : 'No hay una lectura de la realidad guardada para su grupo. Súbala abajo o escriba arriba lo que observa en sus alumnos y Tlamatini partirá de ahí.'}</p></div>` : ''}
     ${E.puerta === 'libro' ? `<div class="bandeja"><label class="lbl" for="libT" style="display:block;margin:0 2px 8px">Libro</label>
       <select id="libT" class="nota" style="min-height:0;height:48px">${['Proyectos de Aula', 'Proyectos Escolares', 'Proyectos Comunitarios', 'Nuestros saberes', 'Múltiples lenguajes'].map(x => `<option ${E.libroTipo === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
       <label class="lbl" for="lib" style="display:block;margin:12px 2px 8px">Nombre del proyecto (y página, si la tiene a la mano)</label>
@@ -96,6 +139,7 @@ function vInicio() {
     ${E.puerta === 'prog' ? `<div class="bandeja"><label class="buscar">${ic('lupa')}<span class="sr">Buscar contenido</span><input id="q" type="search" placeholder="Busque: agua, gráficas, entrevista, fracciones…" value="${esc(E.q)}" autocomplete="off"></label>
       <p style="font-size:13.5px;color:var(--gris);margin:8px 4px 0">${!gr.length ? 'Primero elija el grado abajo.' : !PL_PDA ? 'Cargando el programa sintético…' : `Programa sintético oficial de ${gr.map(plGr).join(' y ')}: ${conts.length} contenidos. ${E.contsK.size ? `<b style="color:var(--anil)">${E.contsK.size} elegido${E.contsK.size === 1 ? '' : 's'}.</b>` : 'Elija uno o varios.'}`}</p>
       <div class="resultados" id="res">${lista.slice(0, 80).map(x => `<button class="cont" data-cont="${esc(x.k)}" aria-pressed="${E.contsK.has(x.k)}"><span class="ck">${E.contsK.has(x.k) ? ic('check', 'style="width:14px;height:14px"') : ''}</span><span><b style="font-size:15.5px">${esc(x.c)}</b><small>${esc(x.campo)}</small></span></button>`).join('') || (gr.length && PL_PDA ? '<p style="padding:12px;color:var(--gris)">No hay contenidos con esa palabra.</p>' : '')}</div></div>` : ''}
+    ${plLecHTML()}
     <div class="paso-t"><span class="n">2</span><h2>¿Para qué grado y por cuánto tiempo?</h2></div>
     <div class="seg" role="group" aria-label="Grado">${['1', '2', '3', '4', '5', '6'].map(g => `<button data-gr="${g}" aria-pressed="${E.grados.has(g)}">${g}.°</button>`).join('')}</div>
     <p style="font-size:13.5px;color:var(--gris);margin:6px 4px 12px">${gr.length > 1 ? 'Grupo multigrado: actividades diferenciadas por grado.' : 'Si su grupo es multigrado, toque también los otros grados.'}</p>
@@ -115,7 +159,7 @@ function vInicio() {
    </div></main>
    <div class="fijo solo-movil"><div class="fijo-in"><div class="tx">${okElegir ? `<b>${esc(resumen.slice(0, 60))}</b><br>${n} ${n === 1 ? 'sesión' : 'sesiones'}${gr.length > 1 ? ', multigrado' : ''}` : 'Elija qué va a trabajar'}</div>
     <button class="btn maiz" id="armar2" ${okElegir && n ? '' : 'disabled'}>${ic('chispa')}Armar</button></div></div>`;
-  cablearModo();
+  cablearModo(); plLecCablear();
   $('#atras').onclick = () => { location.href = 'index.html#ir=pedagogico'; };
   $$('[data-puerta]').forEach(b => b.onclick = () => { E.puerta = b.dataset.puerta; repinta(); });
   const nec = $('#nec'); if (nec) { nec.oninput = () => { const o = !!E.necesidad.trim(); E.necesidad = nec.value; if (o !== !!E.necesidad.trim()) { repinta(); const z = $('#nec'); z.focus(); z.setSelectionRange(z.value.length, z.value.length); } }; }
@@ -191,7 +235,7 @@ incLS.set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return
 function vArmando() {
   if (E.modo === 'ef') return vArmandoEF();
   const gr = [...E.grados].sort(), y = plYo(), r = diasClase(E.ini, E.dur);
-  const pasos = ['Leyendo la lectura de la realidad de su grupo', 'Eligiendo contenidos y PDA del programa oficial', 'Repartiendo las sesiones en el calendario de Baja California', 'Escribiendo la secuencia, sesión por sesión', 'Preparando criterios de éxito y evaluación', 'Agregando ajustes para quienes van en rezago'];
+  const pasos = [PL_LECA.length ? 'Leyendo la lectura de la realidad que usted subió' : 'Leyendo la lectura de la realidad de su grupo', 'Eligiendo contenidos y PDA del programa oficial', 'Repartiendo las sesiones en el calendario de Baja California', 'Escribiendo la secuencia, sesión por sesión', 'Preparando criterios de éxito y evaluación', 'Agregando ajustes para quienes van en rezago'];
   const cols = r.dias.map((_, i) => Object.values(FASE_COL)[i % 7]);
   $('#app').innerHTML = `<main class="wrap"><div class="armando"><div>
     <div class="tejiendo" aria-hidden="true">${cols.map((c, i) => `<i style="--c:${c};--h:${44 + (i % 3) * 18 + i * 3}px;animation-delay:${i * .28}s"></i>`).join('')}</div>
@@ -209,8 +253,9 @@ function vArmando() {
       else { programa = await miaPrograma(gr, false); tema = E.puerta === 'libro' ? `Proyecto del libro de texto «${E.libroTipo}» (${gr.map(plGr).join(' y ')}): ${E.libro.trim()}. Respeta el nombre y la intención del proyecto del libro.` : 'Lo que más necesita el grupo: ' + E.necesidad.trim(); }
       const nota = [lec ? 'Lectura de la realidad (' + lec.fuente + '): ' + lec.txt : '', E.nota.trim() ? 'Indicaciones del docente: ' + E.nota.trim() : '', gr.length > 1 ? 'Grupo multigrado: ' + gr.map(plGr).join(' y ') + '.' : ''].filter(Boolean).join('\n').slice(0, 1990);
       const durTxt = ({ dia: '1 día', semana: '1 semana', '2semanas': '2 semanas', '3semanas': '3 semanas', mes: '1 mes' })[E.dur] + ` (${r.dias.length} días de clase)`;
-      const j = await miaPost({ modo: 'nueva', formato: PL_FORMATO, nota, programa, datos: { docente: y.nombre, escuela: [y.escuela, y.cct, y.loc].filter(Boolean).join(' · '), grados: gr.map(plGr), grupo: plGrupoTxt(y), tema: tema.slice(0, 890), duracion: durTxt, fechas: r.dias.map(fCorta) } });
-      E.plan = plDesdeIA(j.documento || {}, r, gr); plGuardar();
+      const lecArch = PL_LECA.filter(a => a.data && a.tipo).map(a => ({ tipo: a.tipo, data: a.data })), lecTxt = PL_LECA.filter(a => a.texto).map(a => a.texto).join('\n\n').slice(0, 60000);
+      const j = await miaPost({ modo: 'nueva', formato: PL_FORMATO, nota, programa, lecturaArchivos: lecArch, lectura: lecTxt, datos: { docente: y.nombre, escuela: [y.escuela, y.cct, y.loc].filter(Boolean).join(' · '), grados: gr.map(plGr), grupo: plGrupoTxt(y), tema: tema.slice(0, 890), duracion: durTxt, fechas: r.dias.map(fCorta) } });
+      E.plan = plDesdeIA(j.documento || {}, r, gr); if (PL_LECA.length) E.plan.meta.lectura = PL_LECA.map(a => a.nombre); plGuardar();
       E.vista = 'plan'; E.tab = 'sesiones'; E.abierta = 0; pintar(); scrollTo(0, 0); toast('<b>Lista.</b> Revise, ajuste lo que quiera y dé su clase.');
     } catch (e) {
       const m = miaError(e), el = $('#armErr'); if (!el) return;

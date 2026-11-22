@@ -252,7 +252,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 72;
+const VERSION = 73;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -2984,6 +2984,12 @@ function planIA_(d) {
   const archivos = (Array.isArray(d.archivos) ? d.archivos : []).slice(0, 10)
     .filter(a => a && TIPOS.indexOf(a.tipo) >= 0 && typeof a.data === 'string' && a.data.length > 100)
     .map(a => ({ tipo: a.tipo, data: a.data }));
+  // Lectura de la realidad que sube el docente (opcional, solo al hacer una planeación nueva): PDF/fotos y texto de Word
+  const lecArch = modo === 'nueva' ? (Array.isArray(d.lecturaArchivos) ? d.lecturaArchivos : []).slice(0, 8)
+    .filter(a => a && TIPOS.indexOf(a.tipo) >= 0 && typeof a.data === 'string' && a.data.length > 100)
+    .map(a => ({ tipo: a.tipo, data: a.data })) : [];
+  const lectura = modo === 'nueva' ? String(d.lectura || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 60000) : '';
+  if (archivos.concat(lecArch).reduce((t, a) => t + a.data.length, 0) > 19000000) throw new Error('La lectura de la realidad pesa mucho. Súbala en menos páginas o como fotos.');
   if (archivos.reduce((t, a) => t + a.data.length, 0) > 19000000) throw new Error('Los archivos son muy pesados. Suba menos páginas o fotos más ligeras.');
   const texto = limpio(d.texto, 80000), nota = limpio(d.nota, 2000), programa = limpio(d.programa, 120000);
   const pedidos = (Array.isArray(d.pedidos) ? d.pedidos : []).slice(0, 10).map(x => limpio(x, 120)).filter(String);
@@ -3009,7 +3015,8 @@ function planIA_(d) {
       'En «cambios» explica, apartado por apartado, qué mejoraste y por qué, en frases breves. En «observaciones» señala lo que ya estaba bien (fortalezas) y lo que el docente debería revisar o completar él mismo.'],
     revisar: ['TAREA: Transcribe la planeación del docente TAL CUAL en «documento» (mismo formato y mismo texto; solo pasa a limpio lo que esté en fotos o escaneado y corrige errores de dedo evidentes). NO la reescribas.',
       'En «observaciones» da una revisión pedagógica útil, apartado por apartado: fortalezas y sugerencias concretas de mejora (qué cambiar y cómo), como lo haría un buen asesor técnico.' + (pedidos.length ? ' Pon especial atención en: ' + pedidos.join('; ') + '.' : '') + ' Deja «cambios» vacío.'],
-    nueva: ['TAREA: Haz una planeación NUEVA usando exactamente el FORMATO DEL DOCENTE que se da abajo (sus apartados, títulos, orden, columnas y datos de encabezado; ver «notas» del formato para su estilo), con los datos que se dan.',
+    nueva: ['TAREA: Haz una planeación NUEVA usando exactamente el FORMATO DEL DOCENTE que se da abajo (sus apartados, títulos, orden, columnas y datos de encabezado; ver «notas» del formato para su estilo), con los datos que se dan.'
+        + (lecArch.length || lectura ? ' CONTEXTUALIZA: el docente subió la LECTURA DE LA REALIDAD de su grupo (diagnóstico socioeducativo de la Nueva Escuela Mexicana). Léela con cuidado y úsala como punto de partida: el problema del contexto, el título, las actividades, los ejemplos, los materiales y los ajustes razonables deben responder a lo que ahí se describe del grupo, de la escuela, de las familias y de la comunidad (intereses, necesidades, rezagos, fortalezas, recursos y problemáticas). Si esa lectura y otra información del grupo no coinciden, da prioridad a la que subió el docente. No copies nombres ni datos personales (regla 5).' : ''),
       'Ajusta el número de sesiones o días a la duración y a las fechas indicadas. En «cambios» deja una lista vacía; en «observaciones» indica qué debe revisar o completar el docente.']
   };
   const esquema = '{"formato": {"titulo": "título del documento", "orientacion": "vertical u horizontal", "encabezado": ["etiqueta 1", "etiqueta 2"], "secciones": [{"titulo": "título del apartado", "tipo": "texto | lista | tabla", "columnas": ["solo si es tabla"]}], "notas": "rasgos del estilo del docente: cómo organiza las sesiones, extensión, tono, lo que nunca le falta"},'
@@ -3022,13 +3029,15 @@ function planIA_(d) {
     programa ? '\nPROGRAMA SINTÉTICO OFICIAL (contenidos y PDA del grado que se pueden usar):\n' + programa : '',
     texto ? '\nTEXTO DE LA PLANEACIÓN DEL DOCENTE (las tablas vienen con columnas separadas por « | »):\n' + texto : '',
     archivos.length ? '\nLa planeación del docente viene en los archivos adjuntos (' + archivos.length + ').' : '',
+    lectura ? '\nLECTURA DE LA REALIDAD DEL GRUPO (texto del documento de Word que subió el docente):\n' + lectura : '',
+    lecArch.length ? '\nLa LECTURA DE LA REALIDAD del grupo viene en los archivos adjuntos (' + lecArch.length + '; PDF o fotos de las hojas). Léelos completos antes de planear.' : '',
     '\n«formato» describe la estructura (sin contenido) para reutilizarla después. En las tablas, cada fila de «filas» debe tener tantas celdas como «columnas».',
     'Responde SOLO con un JSON así: ' + esquema
   ]).filter(x => x !== '').join('\n');
 
   let crudo = '';
   for (let n = 0; ; n++) {
-    try { crudo = gemini_(prompt, { archivos: archivos, json: true, temperatura: modo === 'revisar' ? 0.1 : 0.35, max: 32000, sinPensar: true }); break; }
+    try { crudo = gemini_(prompt, { archivos: archivos.concat(lecArch), json: true, temperatura: modo === 'revisar' ? 0.1 : 0.35, max: 32000, sinPensar: true }); break; }
     catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(2000 * (n + 1)); }
   }
   let j;
