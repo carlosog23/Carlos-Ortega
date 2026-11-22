@@ -19,7 +19,7 @@ const fLarga = k => { if (!k) return ""; const d = dF(k); return `${d.getDate()}
 const corto = n => String(n || "").trim().split(/\s+/).slice(0, 2).join(" ");
 const faseDe = g => g <= 2 ? 3 : g <= 4 ? 4 : 5;
 /* ---------- nivel: primaria o secundaria (Fase 6) ---------- */
-const APP_PRE = window.NIVEL_APP === "pre";
+const APP_PRE = window.NIVEL_APP === "pre", APP_ESP = window.NIVEL_APP === "esp";
 const esSec = g => !!(g && g.nivel === "sec");
 const esPre = g => !!(g && g.nivel === "pre");
 const nivelTxt = g => esPre(g) ? "preescolar" : esSec(g) ? "secundaria" : "primaria";
@@ -57,7 +57,7 @@ const ICONOS = {
 
 /* ---------------- datos ---------------- */
 const DEMO = (() => { let on = false; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
-const CLAVE = (APP_PRE ? "aula-pre-" : "aula-") + (DEMO ? "demo" : "datos");
+const CLAVE = (APP_PRE ? "aula-pre-" : APP_ESP ? "aula-esp-" : "aula-") + (DEMO ? "demo" : "datos");
 const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], exams: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
@@ -148,7 +148,8 @@ function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(
 window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(); if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
-function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
+function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
+  else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = () => history.back(); const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
@@ -163,7 +164,7 @@ const val = id => (document.getElementById(id) || {}).value || "";
 const _libs = {};
 function cargarJS(src) { return _libs[src] || (_libs[src] = new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => { delete _libs[src]; no(new Error("No se pudo cargar " + src)); }; document.head.appendChild(s); })); }
 const enApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-const marca = (claro) => `<div class="marca"><img src="img/aula-icono.svg" alt=""><div><div class="mk-n">Tlamatini <b>Aula</b>${APP_PRE ? ' <small style="font-size:.6em;letter-spacing:.06em;text-transform:uppercase;opacity:.85">Preescolar</small>' : ""}</div><div class="mk-l">El saber, en acción</div></div></div>`;
+const marca = (claro) => `<div class="marca"><img src="img/aula-icono.svg" alt=""><div><div class="mk-n">Tlamatini <b>Aula</b>${APP_PRE || APP_ESP ? ` <small style="font-size:.6em;letter-spacing:.06em;text-transform:uppercase;opacity:.85">${APP_PRE ? "Preescolar" : "Especial"}</small>` : ""}</div><div class="mk-l">El saber, en acción</div></div></div>`;
 const pie = () => `<p class="pie">Tlamatini Aula · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p><div class="firma-autor"><span>Desarrollada por</span><img src="${TLM}firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65"></div>`;
 
 /* =================================================================== BLOQUEO */
@@ -178,7 +179,7 @@ ENLAZAR.bloqueo = () => { $("#bRev").onclick = () => ir("revisar"); $("#bOk").on
   $("#bDemo").onclick = e => { e.preventDefault(); try { sessionStorage.setItem("aula-demo", "1"); } catch (er) {} location.reload(); }; };
 
 /* =================================================================== BIENVENIDA Y GRUPO */
-function escuelasMias() { if (APP_PRE) return DEMO ? [{ cct: "02DJN9999Z", nombre: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", mun: "San Quintín" }] : [];
+function escuelasMias() { if (APP_ESP && typeof espEscuelasGrupo === "function") return espEscuelasGrupo(); if (APP_PRE) return DEMO ? [{ cct: "02DJN9999Z", nombre: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", mun: "San Quintín" }] : [];
   const t = LS("tlm-yo"), p = LS("ppie-perfil") || {}, out = [];
   if (t && Array.isArray(t.escuelas)) t.escuelas.forEach(e => out.push({ cct: e.cct, nombre: "Escuela Primaria " + e.nombre, turno: e.turno || "", dir: e.dir || "", cargoDir: e.cargo || "", loc: e.loc || "", mun: e.mun || "", dom: e.dom || "" }));
   if (p.cct && !out.some(e => e.cct === p.cct)) out.push({ cct: p.cct, nombre: p.escuela || "", turno: p.turno || "", dir: p.director || "", loc: p.localidad || "", mun: p.municipio || "", dom: p.domicilio || "" });
@@ -188,14 +189,14 @@ VISTAS.bienvenida = () => { const y = yo(); return `<main class="wrap"><section 
   <p>Para empezar, registre su grupo. Si tiene doble plaza o más de un grupo, después puede agregar los demás.</p></section>
   <div class="mt">${formGrupoHTML({})}</div>${pie()}</main>`; };
 ENLAZAR.bienvenida = () => enlazarFormGrupo({}, true);
-function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [], sec = !APP_PRE && (g.id ? esSec(g) : S.nivelNuevo === "sec"), otra = (g.cct && !escs.some(e => e.cct === g.cct)) || (!g.id && sec) || !escs.length;
+function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [], sec = !APP_PRE && (g.id ? esSec(g) : S.nivelNuevo === "sec"), preE = APP_ESP && (g.id ? esPre(g) : S.nivelNuevo === "pre"), otra = (g.cct && !escs.some(e => e.cct === g.cct)) || (!g.id && sec) || !escs.length;
   const ds = new Set(g.discs || []), CAMP_N = { L: "Lenguajes", S: "Saberes y pensamiento científico", E: "Ética, naturaleza y sociedades", H: "De lo humano y lo comunitario" };
   return `<section class="card"><h3>${g.id ? "Editar grupo" : "Mi grupo"}</h3>
-   ${APP_PRE ? `<p class="small muted mb">Preescolar · Fase 2</p>` : g.id ? `<p class="small muted mb">${sec ? "Secundaria" : "Primaria"}</p>` : `<div class="campo"><span>Nivel</span><div class="chips" id="gNv"><button type="button" class="chip" data-nv="prim" aria-pressed="${!sec}">Primaria</button><button type="button" class="chip" data-nv="sec" aria-pressed="${sec}">Secundaria</button></div></div>`}
+   ${APP_PRE ? `<p class="small muted mb">Preescolar · Fase 2</p>` : g.id ? `<p class="small muted mb">${preE ? "Preescolar" : sec ? "Secundaria" : "Primaria"}</p>` : `<div class="campo"><span>Nivel</span><div class="chips" id="gNv">${APP_ESP ? `<button type="button" class="chip" data-nv="pre" aria-pressed="${preE}">Preescolar</button>` : ""}<button type="button" class="chip" data-nv="prim" aria-pressed="${!sec && !preE}">Primaria</button><button type="button" class="chip" data-nv="sec" aria-pressed="${sec}">Secundaria</button></div></div>`}
    <label class="campo"><span>Escuela</span><select id="gE">${escs.map(e => `<option value="${esc(e.cct)}" ${!otra && e.cct === g.cct ? "selected" : ""}>${esc(e.nombre)}${e.turno ? " · " + esc(e.turno) : ""}</option>`).join("")}<option value="otra" ${otra ? "selected" : ""}>Otra escuela…</option></select></label>
    <div id="gOtra" ${otra ? "" : "hidden"}><div class="dos"><label class="campo"><span>Nombre de la escuela</span><input id="gEN" value="${esc(g.escuela || "")}" placeholder="${APP_PRE ? "Jardín de Niños …" : sec ? "Escuela Secundaria General No. …" : ""}"></label><label class="campo"><span>C.C.T.</span><input id="gEC" value="${esc(g.cct || "")}" style="text-transform:uppercase" placeholder="${APP_PRE ? "02DJN…, 02EJN…" : sec ? "02DES…, 02DST…, 02ETV…" : ""}"></label></div></div>
    ${sec ? `<label class="campo"><span>Modalidad</span><select id="gMo">${Object.entries(MODS).map(([k, t]) => `<option value="${k}" ${(g.mod || "general") === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>` : ""}
-   <div class="campo"><span>Grado(s) <small>· ${sec ? "si atiende varios grados con este grupo, tóquelos todos" : "si es multigrado, toque todos los grados de su grupo"}</small></span><div class="chips" id="gG">${(sec || APP_PRE ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
+   <div class="campo"><span>Grado(s) <small>· ${sec ? "si atiende varios grados con este grupo, tóquelos todos" : "si es multigrado, toque todos los grados de su grupo"}</small></span><div class="chips" id="gG">${(sec || APP_PRE || preE ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
    ${sec ? `<div class="campo"><span>Disciplinas que imparte a este grupo <small>· en telesecundaria, todas</small></span>
      <div id="gDs">${["L", "S", "E", "H"].map(k => `<p class="small muted" style="margin:8px 0 4px">${CAMP_N[k]}</p><div class="chips">${DISC_SEC.filter(x => x[1] === k).map(x => `<button type="button" class="chip" data-ds="${esc(x[0])}" aria-pressed="${ds.has(x[0])}">${esc(x[0])}${DISC_GR[x[0]] ? ` <small>(${DISC_GR[x[0]].join(", ")}.°)</small>` : ""}</button>`).join("")}</div>`).join("")}</div>
      <p class="small muted mt">Biología y Geografía se imparten en 1.°, Física en 2.° y Química en 3.°, como marca el Programa Sintético de la Fase 6.</p></div>` : ""}
@@ -217,7 +218,7 @@ function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec =
       if (!L.length && val("gMo") === "tele") L = [...new Set(datos.grados.flatMap(TELE))];
       if (!L.length) return toast(ds.size ? "Esas disciplinas no se imparten en el grado elegido." : "Elija la disciplina (o las disciplinas) que imparte.");
       Object.assign(datos, { nivel: "sec", mod: val("gMo") || "general", discs: DISC_SEC.map(x => x[0]).filter(n => L.includes(n)) }); }
-    if (APP_PRE) datos.nivel = "pre";
+    if (APP_PRE || (APP_ESP && (g.id ? esPre(g) : S.nivelNuevo === "pre"))) datos.nivel = "pre";
     if (g.id) { Object.assign(g, datos); guardar(); history.back(); toast("Grupo guardado."); return; }
     const letras = sec ? [...new Set(datos.grupo.split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean))] : [datos.grupo];
     const nuevos = (letras.length ? letras : [""]).map(l => Object.assign({ id: uid(), alumnos: [] }, datos, { grupo: l }));
@@ -228,7 +229,7 @@ VISTAS.grupoForm = () => barra("Mi grupo", S.id ? "Editar grupo" : "Agregar grup
 ENLAZAR.grupoForm = () => enlazarFormGrupo(grDe(S.id) || {}, false);
 
 /* =================================================================== INICIO */
-VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), sc = sinClase(k), hoySes = [];
+VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio() : `<main class="wrap"><p class="mt">Cargando…</p></main>`; const g = gAct(), y = yo(), k = hoy(), d = new Date(), sc = sinClase(k), hoySes = [];
   D.planes.filter(p => p.gid === (g && g.id)).forEach(p => p.sesiones.forEach((s, i) => { if (s.fecha === k) hoySes.push({ p, s, i }); }));
   const prox = []; D.planes.filter(p => p.gid === (g && g.id)).forEach(p => p.sesiones.forEach((s, i) => { if (s.fecha > k && !s.hecho) prox.push({ p, s, i }); })); prox.sort((a, b) => a.s.fecha.localeCompare(b.s.fecha));
   return `<main class="wrap"><section class="portada">${marca()}<h1>Hola, ${esc(corto(y.nombre.replace(/^(Mtr[oa]\.|C\.)\s*/, "")) || "maestro(a)")}</h1>
@@ -250,13 +251,13 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
-ENLAZAR.inicio = () => { $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => ir("planNueva");
+ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espInicio(); $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => ir("planNueva");
   $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
   $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); });
   typeof estEnlazar === "function" && estEnlazar(); };
 let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; });
 function instalar() { if (PROMPT_INST) { PROMPT_INST.prompt(); PROMPT_INST = null; return; }
-  dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
+  dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : APP_ESP ? " Especial" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
 
 /* =================================================================== MI GRUPO */
 VISTAS.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return VISTAS.inicio(); const al = activos(g), bajas = (g.alumnos || []).filter(a => a.baja);
@@ -595,7 +596,7 @@ ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(
   $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
 
 /* ---------- portafolio: fotos en IndexedDB ---------- */
-function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : "aula") + (DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
+function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + (DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
 async function idbOp(modo, fn) { const db = await idb(); return new Promise((ok, no) => { const t = db.transaction("f", modo), q = fn(t.objectStore("f")); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }); }
 const FOTO = {}; const fotoGet = async id => FOTO[id] || (FOTO[id] = await idbOp("readonly", s => s.get(id)).catch(() => null));
 function comprimir(file, max = 1280, q = .72) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", q)); }; im.onerror = no; im.src = r.result; }; r.onerror = no; r.readAsDataURL(file); }); }
@@ -1006,6 +1007,7 @@ ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin"))
 function arrancarDatos() { if (DEMO && APP_PRE && !D.grupos.length) { const g = { id: "gdemop", nivel: "pre", cct: "02DJN9999Z", escuela: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", grados: [3], grupo: "A", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz", "Bruno Muestra Díaz", "Camila Ficticia López", "Diego Prueba Soto", "Elena Ejemplo Cruz", "Fernando Demo Ríos", "Gabriela Muestra Peña", "Hugo Ficticio Lara", "Itzel Ejemplo Mora", "Joaquín Prueba Vega"].forEach(n => g.alumnos.push({ id: uid(), nombre: n, g: 3 }));
     D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); return; }
+  if (DEMO && APP_ESP) { if (!D.docente.nombre) { D.docente.nombre = "Mtra. Sofía Ejemplo Vega"; guardar(); } return; }
   if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz:1", "Bruno Muestra Díaz:1", "Camila Ficticia López:1", "Diego Prueba Soto:2", "Elena Ejemplo Cruz:2", "Fernando Demo Ríos:2", "Gabriela Muestra Peña:3", "Hugo Ficticio Lara:3", "Itzel Ejemplo Mora:3", "Joaquín Prueba Vega:3"].forEach(x => { const [n, gr] = x.split(":"); g.alumnos.push({ id: uid(), nombre: n, g: +gr }); });
     const g2 = { id: "gdemo2", nivel: "sec", mod: "general", discs: ["Matemáticas", "Formación Cívica y Ética"], cct: "02DES9999Z", escuela: "Escuela Secundaria General «Benito Juárez» (ejemplo)", turno: "Matutino", grados: [2], grupo: "B", dir: "Rosa Ejemplo Valdez", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
