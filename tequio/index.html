@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-17-0830';
+const PUBLICACION = '2026-11-21-2230';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1241,7 +1241,9 @@ function campoShell(offline) {
   $('#app').innerHTML = `${offline ? `<div class="banda-demo" style="background:#5B6475;color:#fff">Sin conexión · trabajando con lo guardado en este dispositivo${CMP.paq ? ' (' + esc(fechaHora(CMP.paq.fecha)) + ')' : ''}</div>` : cfg && cfg.demo ? '<div class="banda-demo">Demostración: nada se envía ni se guarda en Tequio.</div>' : ''}
     <header class="barra"><div class="envoltura"><a class="marca" href="#" id="ap-inicio"><svg aria-hidden="true"><use href="#logo"/></svg><div><b>Visitas</b><small>Tequio · ${esc(ZONA.nombreNo || '')}</small></div></a>
     <div class="yo"><b>${esc(nombreCorto(S.yo.nombre))}</b><span>${S.yo.rol === 'admin' ? 'Supervisión Escolar' : 'Mesa Técnica'}</span></div></div></header>
-    <main><div class="envoltura" style="max-width:760px;margin:0 auto;padding:14px 16px 28px"><div id="vista"></div></div></main>`;
+    <main><div class="envoltura" style="max-width:760px;margin:0 auto;padding:14px 16px 28px"><div id="vista"></div></div></main>
+    <footer style="text-align:center;color:#6A5C4C;font-size:13px;line-height:1.5;padding:6px 16px 0">${ZONA.logoZona && (!/^data:/.test(ZONA.logoZona) || ZONA.logoZona.length > 300) ? `<img src="${esc(ZONA.logoZona)}" alt="" style="height:44px;width:auto;display:block;margin:0 auto 6px">` : ''}<b style="color:var(--indigo)">${esc(ZONA.nombreNo)}</b><br>${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${ZONA.lemaZona ? ' · «' + esc(ZONA.lemaZona) + '»' : ''}</footer>
+    <div class="firma-autor" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 16px 26px"><span style="font:600 10.5px/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b7685">Desarrollada por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65" style="width:200px;height:auto"></div>`;
   $('#ap-inicio').onclick = e => { e.preventDefault(); cmpIr({ pant: 'inicio' }); };
   vista.tab = 'campo'; if (!vista.cmp) vista.cmp = { pant: 'inicio' };
   vCampo();
@@ -2439,42 +2441,144 @@ function cmpRegistro() {
     cmpIr({ pant: 'atencion', aid: loc.id }); });
 }
 
-/* --- página del docente: contesta su parte con el código que le dio la Mesa Técnica --- */
+/* --- página del docente: contesta su parte con el código que le dio la Mesa Técnica ---
+   Es lo que ven los docentes de la zona: lleva la identidad de la Supervisión (logos, nombre, lema) y la firma del autor.
+   Una pregunta por tarjeta, avance visible, borrador guardado en el teléfono y pantalla de agradecimiento al enviar. */
+const DZ_CSS = `
+body.dz{background:#F4F1EA}
+.dz-cab{background:linear-gradient(135deg,#1F3A6B 0%,#24427A 60%,#2C5390 100%);color:#fff;padding:18px 16px 54px;position:relative;overflow:hidden}
+.dz-cab::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.06)}
+.dz-cab .dz-in{max-width:680px;margin:0 auto;position:relative;z-index:1}
+.dz-logos{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dz-logos .dz-l{background:#fff;border-radius:14px;padding:6px 10px;height:58px;display:flex;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.dz-logos img{height:46px;width:auto;display:block}
+.dz-zona{margin-top:14px}
+.dz-zona b{display:block;font:600 22px/1.15 Fraunces,Georgia,serif;letter-spacing:.2px}
+.dz-zona span{display:block;color:#CFDCF0;font-size:14px;margin-top:3px}
+.dz-zona i{display:inline-block;margin-top:8px;font-style:normal;font-size:13px;color:#FFE2B8;border:1px solid rgba(255,226,184,.45);border-radius:999px;padding:3px 10px}
+.dz-cuerpo{max-width:680px;margin:-38px auto 0;padding:0 14px 30px;position:relative;z-index:2}
+.dz-t{background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(30,42,64,.06),0 8px 24px rgba(30,42,64,.08);padding:18px;margin-bottom:12px;border:1px solid #ECE4D4}
+.dz-et{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#C2603A;margin:0 0 4px}
+.dz-t h1{font-size:23px;line-height:1.2;margin:0 0 10px}
+.dz-datos{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px;margin:0}
+.dz-datos dt{color:#7A6B58}.dz-datos dd{margin:0;font-weight:600;color:#1E2A40}
+.dz-msj{font-size:15px;color:#3A4658;line-height:1.5;margin:12px 0 0;padding-top:12px;border-top:1px dashed #E4D8C3}
+.dz-barra{position:sticky;top:0;z-index:5;background:rgba(244,241,234,.96);backdrop-filter:blur(6px);padding:10px 2px 8px;margin:0 -2px 10px}
+.dz-barra .dz-fila{display:flex;justify-content:space-between;font-size:14px;color:#3A4658;margin-bottom:6px}
+.dz-barra .dz-fila b{color:#1F3A6B}
+.dz-prog{height:9px;background:#E4DCCB;border-radius:9px;overflow:hidden}
+.dz-prog div{height:100%;background:linear-gradient(90deg,#2E7D4F,#3FA567);border-radius:9px;transition:width .3s}
+.dz-q{background:#fff;border-radius:16px;border:1.5px solid #ECE4D4;padding:16px;margin-bottom:12px;transition:border-color .2s,box-shadow .2s}
+.dz-q.ok{border-color:#9FD3B2}.dz-q.falta{border-color:#D23B2E;box-shadow:0 0 0 3px rgba(210,59,46,.12)}
+.dz-q .dz-n{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#7A6B58;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.dz-q .dz-n .dz-ck{width:22px;height:22px;border-radius:50%;background:#E4DCCB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.dz-q.ok .dz-n .dz-ck{background:#2E7D4F}
+.dz-q .dz-pt{font-weight:700;font-size:17px;line-height:1.35;color:#1E2A40;margin:0 0 4px}
+.dz-q .dz-ay{font-size:14px;color:#6A5C4C;margin:0 0 8px}
+.dz-ops{display:grid;gap:8px;margin:10px 0 4px}
+.dz-op{display:flex;align-items:center;gap:10px;border:1.5px solid #E4D8C3;border-radius:12px;padding:12px 14px;cursor:pointer;background:#FFFDF8;font-size:16px;font-weight:600;color:#1E2A40;min-height:50px}
+.dz-op input{position:absolute;opacity:0;pointer-events:none}
+.dz-op::before{content:"";width:20px;height:20px;border-radius:50%;border:2px solid #C9BBA3;flex:none;box-sizing:border-box}
+.dz-op.on{border-color:#1F3A6B;background:#EAF0FA}.dz-op.on::before{border:6px solid #1F3A6B}
+.dz-op.s-si.on{border-color:#2E9E4F;background:#E3F4E8}.dz-op.s-si.on::before{border-color:#2E9E4F}
+.dz-op.s-pr.on{border-color:#D99A00;background:#FDF3D7}.dz-op.s-pr.on::before{border-color:#D99A00}
+.dz-op.s-no.on{border-color:#C0392B;background:#FBE7E5}.dz-op.s-no.on::before{border-color:#C0392B}
+.dz-q textarea{width:100%;min-height:84px;border:1.5px solid #E4D8C3;border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;background:#FFFDF8;resize:vertical;box-sizing:border-box}
+.dz-q textarea.dz-obs{min-height:58px;margin-top:6px;font-size:15px}
+.dz-q textarea:focus{outline:none;border-color:#1F3A6B;box-shadow:0 0 0 3px rgba(31,58,107,.12)}
+.dz-foto{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.dz-foto .dz-fok{background:#E3F4E8;color:#17602D;border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700}
+.dz-btnf{display:inline-flex;align-items:center;gap:6px;border:1.5px dashed #9FB2CC;border-radius:12px;padding:10px 14px;color:#1F3A6B;font-weight:700;cursor:pointer;background:#F6F8FC}
+.dz-btnf.obl{border-color:#C0392B;color:#9B2C22;background:#FDF2F1}
+.dz-pie-env{position:sticky;bottom:0;z-index:5;background:linear-gradient(180deg,rgba(244,241,234,0),#F4F1EA 30%);padding:18px 0 calc(10px + env(safe-area-inset-bottom))}
+.dz-env{width:100%;border:0;border-radius:14px;padding:16px;font:700 17px/1 'Source Sans 3',system-ui,sans-serif;background:#C2603A;color:#fff;box-shadow:0 6px 18px rgba(194,96,58,.35);cursor:pointer}
+.dz-env:disabled{opacity:.6}
+.dz-guard{text-align:center;font-size:13px;color:#7A6B58;margin-top:8px}
+.dz-gracias{text-align:center;padding:26px 18px}
+.dz-gracias .dz-ok{width:78px;height:78px;border-radius:50%;background:#E3F4E8;color:#2E7D4F;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;margin:0 auto 10px}
+.dz-res{text-align:left;margin-top:14px;border-top:1px solid #ECE4D4}
+.dz-res div{padding:9px 0;border-bottom:1px solid #F1EBDF;font-size:14.5px}
+.dz-res b{display:block;color:#1E2A40}.dz-res span{color:#5A6878}
+.dz-sec2{background:#fff;color:#1F3A6B;border:1.5px solid #D5DEEC;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;font:inherit;font-weight:700}
+.dz-final{text-align:center;color:#6A5C4C;font-size:13px;line-height:1.5;padding:18px 10px 4px}
+.dz-final b{color:#1F3A6B}
+`;
 async function docentePagina() {
-  document.title = 'Tequio · Revisión';
-  $('#app').innerHTML = `<div class="envoltura" style="max-width:640px;margin:0 auto;padding:18px 16px"><div id="vista"><p class="mudo">Cargando…</p></div></div>`;
+  document.title = 'Revisión de la Supervisión · ' + (ZONA.nombre || 'Supervisión Escolar');
+  if (!document.getElementById('dz-css')) { const st = document.createElement('style'); st.id = 'dz-css'; st.textContent = DZ_CSS; document.head.appendChild(st); }
+  document.body.classList.add('dz');
+  const firma = `<div class="firma-autor" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 16px 26px"><span style="font:600 10.5px/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b7685">Desarrollada por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65" style="width:200px;height:auto"></div>`;
+  const cabecera = () => `<header class="dz-cab"><div class="dz-in">
+      <div class="dz-logos"><span class="dz-l"><img src="${esc(ZONA.logoInst)}" alt="${esc(ZONA.inst)}"></span>${ZONA.logoZona && (!/^data:/.test(ZONA.logoZona) || ZONA.logoZona.length > 300) ? `<span class="dz-l"><img src="${esc(ZONA.logoZona)}" alt="Logo de la ${esc(ZONA.nombre)}"></span>` : ''}</div>
+      <div class="dz-zona"><b>${esc(ZONA.nombreNo)}</b><span>${esc(ZONA.nivelSost)} · ${esc(ZONA.lugar)}</span>${ZONA.lemaZona ? `<i>«${esc(ZONA.lemaZona)}»</i>` : ''}</div></div></header>`;
+  const pie = () => `<p class="dz-final"><b>${esc(ZONA.nombreNo)}</b><br>${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}<br>${esc(ZONA.lugar)}</p>${firma}`;
+  const marco = cuerpo => { $('#app').innerHTML = cabecera() + `<main class="dz-cuerpo">${cuerpo}${pie()}</main>`; };
+  marco('<div class="dz-t"><p class="dz-et">Revisión de la Supervisión</p><p style="margin:0">Cargando…</p></div>');
   let d;
   try { d = await api('revPub', { codigo: cfg.docente }); }
-  catch (e) { $('#vista').innerHTML = `<div class="tarjeta pad"><h1 style="font-size:22px">Revisión de la Supervisión</h1><p>${esc(e.message)}</p></div>`; return; }
-  if (d.zona) zonaAplicar(d.zona);
-  const res = d.respuestas || {};
-  const pintarD = () => {
-    $('#vista').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><svg style="width:42px;height:42px" aria-hidden="true"><use href="#logo"/></svg><div><b>Tequio</b><div class="peq mudo">${esc(ZONA.nombreNo || 'Supervisión Escolar')}</div></div></div>
-    <div class="tarjeta pad"><h1 style="font-size:22px;margin:0 0 4px">${esc(d.guia)}</h1><p class="peq mudo" style="margin:0">${esc(d.escuela)} · ${esc(d.persona)}</p>
-      ${d.enviado ? `<div class="aviso-caja" style="margin:10px 0 0">Ya envió sus respuestas el ${esc(fechaHora(d.enviado))}. Puede corregirlas y volver a enviarlas mientras el código esté vigente.</div>` : ''}</div>
-    ${d.preguntas.map(p => { const x = res[p.k] || {}, ops = p.tipo === 'snp' ? CMP_SNP : p.op;
-      return `<div class="tarjeta pad cmp-q" style="margin-top:12px"><div class="cmp-qt">${esc(p.t)}</div>${p.ayuda ? `<div class="ayuda">${esc(p.ayuda)}</div>` : ''}
-        ${p.tipo === 'texto' ? `<textarea data-dv="${esc(p.k)}">${esc(x.v || '')}</textarea>` : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${x.v === o ? ' on' : ''}"><input type="radio" name="d-${esc(p.k)}" value="${esc(o)}" data-dv="${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>
-          <textarea class="cmp-obs" data-do="${esc(p.k)}" placeholder="Comentario (opcional)">${esc(x.obs || '')}</textarea>`}
-        ${p.foto ? `<div class="cmp-fotos">${(x.fotos || []).map(() => '<span class="chip ok">📷 foto enviada</span>').join('')}<label class="boton sec chico">${ico('i-cam')}${p.foto === 2 ? 'Tomar foto (obligatoria)' : 'Tomar o elegir foto'}<input type="file" accept="image/*" capture="environment" hidden data-dp="${esc(p.k)}"></label></div>` : ''}</div>`; }).join('')}
-    <div class="acciones" style="margin-top:14px;justify-content:flex-end"><button class="boton terra" id="dc-env">Enviar mis respuestas</button></div>
-    <p class="peq mudo">Sus respuestas llegan a la Supervisión Escolar. El código vence el ${esc(fechaHora(d.vence))}.</p>`;
-    $$('[data-dv]').forEach(el => el.onchange = () => { (res[el.dataset.dv] = res[el.dataset.dv] || {}).v = el.value; if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); });
-    $$('[data-do]').forEach(el => el.onchange = () => { (res[el.dataset.do] = res[el.dataset.do] || {}).obs = el.value; });
+  catch (e) { marco(`<div class="dz-t"><p class="dz-et">Revisión de la Supervisión</p><h1>No se pudo abrir</h1><p style="margin:0">${esc(e.message)}</p><p class="dz-msj">Si el código ya venció, pida uno nuevo a quien le visitó.</p></div>`); return; }
+  if (d.zona) { zonaAplicar(d.zona); document.title = 'Revisión de la Supervisión · ' + ZONA.nombre; }
+  // borrador en el teléfono: si se cierra la página, no se pierde lo contestado
+  const LB = 'tq-dz-' + cfg.docente;
+  let res = d.respuestas || {};
+  try { const b = JSON.parse(localStorage.getItem(LB) || 'null'); if (b && b.r && (!d.enviado || b.f > d.enviado)) res = Object.assign({}, res, b.r); } catch (e) {}
+  const guardarB = () => { try { localStorage.setItem(LB, JSON.stringify({ f: ahora(), r: res })); } catch (e) {} };
+  const P = d.preguntas || [], hecha = p => String((res[p.k] || {}).v || '').trim() !== '';
+  const quien = /dirección|direccion/i.test(d.persona || '') ? 'Estimada dirección' : 'Estimado(a) maestro(a)';
+  const minutos = Math.max(2, Math.round(P.length * 0.6));
+  const visita = d.visita ? (() => { try { return cmpNomVisita(d.visita); } catch (e) { return ''; } })() : '';
+  const opClase = o => /^s[ií]$/i.test(o) || /^logrado$/i.test(o) ? ' s-si' : /^en proceso$|^en desarrollo$/i.test(o) ? ' s-pr' : /^no$|^requiere/i.test(o) ? ' s-no' : '';
+  let vista2 = d.enviado ? 'gracias' : 'form';
+
+  const pintarForm = (marcarFaltas) => {
+    const n = P.filter(hecha).length;
+    marco(`<div class="dz-t"><p class="dz-et">Revisión de la Supervisión${visita ? ' · ' + esc(visita) : ''}</p><h1>${esc(d.guia)}</h1>
+      <dl class="dz-datos"><dt>Escuela</dt><dd>${esc(d.escuela)}${d.cct ? ' · ' + esc(d.cct) : ''}</dd><dt>Responde</dt><dd>${esc(d.persona)}${d.funcion || d.grupo ? ' · ' + esc([d.funcion, d.grupo].filter(Boolean).join(' ')) : ''}</dd><dt>Tiempo</dt><dd>Unos ${minutos} minutos · ${P.length} preguntas</dd></dl>
+      <p class="dz-msj">${quien}: gracias por su tiempo. Sus respuestas forman parte del acompañamiento de la Supervisión a su escuela y nos ayudan a saber en qué podemos apoyarle mejor. Conteste con toda confianza; puede corregir hasta el ${esc(fechaHora(d.vence))}.</p>
+      ${d.enviado ? `<p class="dz-msj" style="color:#17602D"><b>Ya envió sus respuestas el ${esc(fechaHora(d.enviado))}.</b> Si corrige algo, vuelva a enviarlas.</p>` : ''}</div>
+    <div class="dz-barra"><div class="dz-fila"><span>Su avance</span><b id="dz-cnt">${n} de ${P.length} contestadas</b></div><div class="dz-prog"><div id="dz-pb" style="width:${P.length ? n / P.length * 100 : 0}%"></div></div></div>
+    ${P.map((p, i) => { const x = res[p.k] || {}, ops = p.tipo === 'snp' ? CMP_SNP : p.op || [];
+      return `<section class="dz-q${hecha(p) ? ' ok' : marcarFaltas ? ' falta' : ''}" id="dzq-${esc(p.k)}">
+        <div class="dz-n"><span class="dz-ck">✓</span>Pregunta ${i + 1} de ${P.length}${p.sec ? ' · ' + esc(p.sec) : ''}</div>
+        <p class="dz-pt">${esc(p.t)}</p>${p.ayuda ? `<p class="dz-ay">${esc(p.ayuda)}</p>` : ''}
+        ${p.tipo === 'texto' ? `<textarea data-dv="${esc(p.k)}" placeholder="Escriba aquí su respuesta">${esc(x.v || '')}</textarea>`
+          : `<div class="dz-ops" role="radiogroup">${ops.map(o => `<label class="dz-op${opClase(o)}${x.v === o ? ' on' : ''}"><input type="radio" name="d-${esc(p.k)}" value="${esc(o)}" data-dv="${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>
+             <textarea class="dz-obs" data-do="${esc(p.k)}" placeholder="Comentario (opcional)">${esc(x.obs || '')}</textarea>`}
+        ${p.foto ? `<div class="dz-foto">${(x.fotos || []).map((f, j) => `<span class="dz-fok">📷 Foto ${j + 1} enviada</span>`).join('')}<label class="dz-btnf${p.foto === 2 && !(x.fotos || []).length ? ' obl' : ''}">📷 ${p.foto === 2 ? 'Tomar foto (obligatoria)' : 'Agregar foto (opcional)'}<input type="file" accept="image/*" capture="environment" hidden data-dp="${esc(p.k)}"></label></div>` : ''}
+      </section>`; }).join('')}
+    <div class="dz-pie-env"><button class="dz-env" id="dc-env">${d.enviado ? 'Volver a enviar mis respuestas' : 'Enviar mis respuestas'}</button><div class="dz-guard" id="dz-guard">Lo que contesta se guarda en este teléfono mientras termina.</div></div>`);
+    const contar = () => { const m = P.filter(hecha).length; $('#dz-cnt').textContent = m + ' de ' + P.length + ' contestadas'; $('#dz-pb').style.width = (P.length ? m / P.length * 100 : 0) + '%';
+      P.forEach(p => { const el = document.getElementById('dzq-' + p.k); if (el) { el.classList.toggle('ok', !!hecha(p)); if (hecha(p)) el.classList.remove('falta'); } }); };
+    $$('[data-dv]').forEach(el => el.addEventListener(el.tagName === 'TEXTAREA' ? 'input' : 'change', () => { (res[el.dataset.dv] = res[el.dataset.dv] || {}).v = el.value; guardarB();
+      if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.dz-op').classList.toggle('on', i.checked)); contar(); }));
+    $$('[data-do]').forEach(el => el.addEventListener('input', () => { (res[el.dataset.do] = res[el.dataset.do] || {}).obs = el.value; guardarB(); }));
     $$('[data-dp]').forEach(el => el.onchange = async () => { const f = el.files[0]; if (!f) return; cargando(true);
       try { const b = await cmpComprimir(f), r = await api('revPubFoto', { codigo: cfg.docente, k: el.dataset.dp, datos: await cmpB64(b), tipo: 'image/jpeg', nombre: d.persona + ' - ' + el.dataset.dp + '.jpg' });
-        const x = res[el.dataset.dp] = res[el.dataset.dp] || {}; x.fotos = (x.fotos || []).concat([r.foto]); aviso('Foto enviada.', 'ok'); pintarD(); }
+        const x = res[el.dataset.dp] = res[el.dataset.dp] || {}; x.fotos = (x.fotos || []).concat([r.foto]); guardarB(); aviso('Foto enviada.', 'ok'); const y = scrollY; pintarForm(); scrollTo(0, y); }
       catch (e) { aviso(esc(e.message), 'mal'); } finally { cargando(false); } });
     $('#dc-env').onclick = async () => {
-      const falta = d.preguntas.filter(p => p.foto === 2 && !((res[p.k] || {}).fotos || []).length);
-      if (falta.length && !confirm('Falta la foto obligatoria en ' + falta.length + ' pregunta(s). ¿Enviar de todos modos?')) return;
-      cargando(true);
-      try { const r = await api('revPubGuardar', { codigo: cfg.docente, respuestas: res }); d.enviado = r.enviado; aviso('¡Listo! Sus respuestas se enviaron a la Supervisión.', 'ok', 6000); pintarD(); window.scrollTo(0, 0); }
-      catch (e) { aviso(esc(e.message), 'mal', 8000); } finally { cargando(false); }
+      const sinResp = P.filter(p => !hecha(p)), sinFoto = P.filter(p => p.foto === 2 && !((res[p.k] || {}).fotos || []).length);
+      if (sinResp.length || sinFoto.length) {
+        const msg = (sinResp.length ? `Le falta contestar ${sinResp.length} pregunta(s)` : '') + (sinResp.length && sinFoto.length ? ' y ' : '') + (sinFoto.length ? `${sinFoto.length} foto(s) obligatoria(s)` : '') + '. ¿Enviar de todos modos?';
+        if (!confirm(msg)) { const y = scrollY; pintarForm(true); const prim = document.getElementById('dzq-' + (sinResp[0] || sinFoto[0]).k); if (prim) prim.scrollIntoView({ behavior: 'smooth', block: 'center' }); else scrollTo(0, y); return; }
+      }
+      const btn = $('#dc-env'); btn.disabled = true; btn.textContent = 'Enviando…'; cargando(true);
+      try { const r = await api('revPubGuardar', { codigo: cfg.docente, respuestas: res }); d.enviado = r.enviado; try { localStorage.removeItem(LB); } catch (e) {} vista2 = 'gracias'; pintarGracias(); scrollTo(0, 0); }
+      catch (e) { aviso(esc(e.message) + ' Sus respuestas siguen guardadas en este teléfono; intente de nuevo.', 'mal', 9000); btn.disabled = false; btn.textContent = 'Enviar mis respuestas'; }
+      finally { cargando(false); }
     };
   };
-  pintarD();
+
+  const pintarGracias = () => {
+    marco(`<div class="dz-t dz-gracias"><div class="dz-ok">✓</div><p class="dz-et">Respuestas recibidas</p><h1 style="margin-bottom:6px">¡Muchas gracias!</h1>
+      <p style="margin:0;color:#3A4658">Sus respuestas de <b>${esc(d.guia)}</b> llegaron a la ${esc(ZONA.nombreNo)} el ${esc(fechaHora(d.enviado))}.</p>
+      <p class="dz-msj">Su trabajo diario es lo que hace grande a nuestra zona. Con esta información, la Supervisión y su ATP le acompañarán en lo que su escuela necesita.</p>
+      <div class="dz-res">${P.map((p, i) => { const x = res[p.k] || {}; return `<div><b>${i + 1}. ${esc(p.t)}</b><span>${x.v ? esc(x.v) : '<i>Sin respuesta</i>'}${x.obs ? ' · ' + esc(x.obs) : ''}${(x.fotos || []).length ? ' · 📷 ' + x.fotos.length : ''}</span></div>`; }).join('')}</div>
+      <div style="margin-top:16px;display:flex;justify-content:center"><button class="dz-sec2" id="dz-corr">Corregir mis respuestas</button></div>
+      <p class="dz-guard" style="margin-top:10px">Puede corregirlas hasta el ${esc(fechaHora(d.vence))}.</p></div>`);
+    $('#dz-corr').onclick = () => { vista2 = 'form'; pintarForm(); scrollTo(0, 0); };
+  };
+  vista2 === 'gracias' ? pintarGracias() : pintarForm();
 }
 
 /* ---------------- Vista: Herramientas (Tlamatini) ----------------

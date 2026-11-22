@@ -4389,7 +4389,7 @@ function revPorCodigo_(c) {
 const REV_PUBLICAS = {
   revPub: d => { const o = revPorCodigo_(d.codigo), esc = leer_('dir').find(c => c.tipo === 'director' && c.cct === o.r.cct) || {};
     const res = {}; o.pr.forEach(p => { if (o.r.respuestas && o.r.respuestas[p.k]) res[p.k] = o.r.respuestas[p.k]; });
-    return { zona: zonaPublica_(), escuela: esc.escuela || '', cct: o.r.cct, persona: o.r.personaNombre, guia: o.cue.titulo, preguntas: o.pr, respuestas: res, vence: o.r.codigoVence, enviado: o.r.docenteEnvio }; },
+    return { zona: zonaPublica_(), escuela: esc.escuela || '', cct: o.r.cct, persona: o.r.personaNombre, funcion: o.r.funcion || '', grupo: o.r.grupo || '', visita: o.r.visita || '', guia: o.cue.titulo, descripcion: o.cue.descripcion || '', preguntas: o.pr, respuestas: res, vence: o.r.codigoVence, enviado: o.r.docenteEnvio }; },
   revPubGuardar: d => { const o = revPorCodigo_(d.codigo), r = o.r, ks = {}; o.pr.forEach(p => { ks[p.k] = 1; });
     r.respuestas = r.respuestas || {};
     Object.keys(d.respuestas || {}).forEach(k => { if (!ks[k]) return; const n = d.respuestas[k] || {}, v0 = r.respuestas[k] || {};
