@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-21-2300';
+const PUBLICACION = '2026-11-21-2330';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1863,7 +1863,7 @@ async function vCampo() {
   if (!vista.cmp) vista.cmp = { pant: 'inicio' };
   if (!CMP.cargado) { await cmpCargarLocal(); CMP.cargado = true; if (!S.offline) cmpPreparar(true).then(() => { if (vista.tab === 'campo' && vista.cmp.pant === 'inicio') cmpInicio(); }); }
   if (CMP.err) { $('#vista').innerHTML = `<div class="tarjeta pad"><p style="margin:0">${esc(CMP.err)}</p></div>`; return; }
-  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, retro: cmpRetro, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro, programar: cmpProgramar })[vista.cmp.pant || 'inicio']();
+  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, retro: cmpRetro, obs: cmpObs, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro, programar: cmpProgramar })[vista.cmp.pant || 'inicio']();
 }
 function cmpIr(o) { vista.cmp = Object.assign({}, o); vCampo(); window.scrollTo(0, 0); }
 
@@ -2153,9 +2153,10 @@ function cmpPersona() {
     ${cues.map((c, i) => `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 4px">${esc(c.titulo)}</h2>${c.descripcion ? `<p class="peq mudo" style="margin:0 0 8px">${esc(c.descripcion)}</p>` : ''}
       ${cmpPreg(c, per.persona).filter(p => !modoDoc || p.quien === 'docente').map(p => campo(c, revs[i], p)).join('')}</div>`).join('')}
     <div class="cmp-pie"><button class="boton sec" id="cp-volver2">← Volver</button>
-      <div class="acciones">${modoDoc ? '' : `<button class="boton sec" id="cp-retro">Retroalimentación</button>`}${(() => { const i = s.personas.findIndex(p => p.persona === per.persona), sig = s.personas[i + 1]; return sig ? `<button class="boton terra" id="cp-sig">Siguiente: ${esc(nombreCorto(sig.nombre))} →</button>` : ''; })()}</div></div>
+      <div class="acciones">${modoDoc || per.persona === 'direccion' ? '' : `<button class="boton sec" id="cp-obs">Observar clase</button>`}${modoDoc ? '' : `<button class="boton sec" id="cp-retro">Retroalimentación</button>`}${(() => { const i = s.personas.findIndex(p => p.persona === per.persona), sig = s.personas[i + 1]; return sig ? `<button class="boton terra" id="cp-sig">Siguiente: ${esc(nombreCorto(sig.nombre))} →</button>` : ''; })()}</div></div>
     <p class="peq mudo" style="text-align:center">Las respuestas se guardan en este dispositivo al momento. Súbalas con «Subir a Tequio».</p>`;
     $('#cp-volver').onclick = $('#cp-volver2').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'sesion', sid: s.id }); };
+    if ($('#cp-obs')) $('#cp-obs').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'obs', sid: s.id, pk: per.persona }); };
     if ($('#cp-retro')) $('#cp-retro').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'retro', sid: s.id, pk: per.persona }); };
     if ($('#cp-sig')) $('#cp-sig').onclick = () => { const i = s.personas.findIndex(p => p.persona === per.persona); cmpIr({ pant: 'persona', sid: s.id, pk: s.personas[i + 1].persona }); };
     if ($('#cp-mdoc')) $('#cp-mdoc').onchange = e => { vista.cmp.docente = e.target.checked; cmpPersona(); };
@@ -2174,6 +2175,108 @@ function cmpPersona() {
   };
   pintar2();
 }
+/* --- Observación de clase: registro por intervalos (inspirado en el «snapshot» de Stallings) ---
+   Cada cierto tiempo el celular vibra y el visitante marca con un toque qué pasa en el aula en ese momento.
+   Al final salen solos el tiempo dedicado al aprendizaje, los alumnos en tarea y quién habla. */
+const OB_ACT = ['Explicación del docente', 'Diálogo grupal', 'Trabajo en equipo', 'Trabajo individual', 'Lectura o escritura', 'Juego o actividad física', 'Revisión y retroalimentación', 'Organización o transición', 'Tiempo sin actividad'];
+const OB_NOAPR = ['Organización o transición', 'Tiempo sin actividad'];
+const OB_TAREA = [['Todos', 100], ['La mayoría', 75], ['La mitad', 50], ['Pocos', 20]];
+const OB_HABLA = ['Docente', 'Alumnos', 'Ambos', 'Nadie'];
+const OB_MAT = ['Libros de texto', 'Cuaderno', 'Pizarrón', 'Material concreto', 'Digital', 'Ninguno'];
+const obClave = (s, per) => 'tq-obs-' + s.id + '-' + per.persona;
+const obLeer = (s, per) => { try { return JSON.parse(localStorage.getItem(obClave(s, per)) || 'null'); } catch (e) { return null; } };
+const OB_CSS = `
+.ob-reloj{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#1F3A6B;color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px;position:sticky;top:74px;z-index:6;box-shadow:0 6px 18px rgba(31,58,107,.25)}
+.ob-reloj .t{font:700 34px/1 ui-monospace,Menlo,monospace;letter-spacing:.02em}.ob-reloj .s{font-size:12.5px;opacity:.85;margin-top:4px}
+.ob-reloj.toca{background:#B4532A;animation:obP 1s infinite}@keyframes obP{50%{box-shadow:0 0 0 8px rgba(180,83,42,.25)}}
+.ob-g{margin-bottom:12px}.ob-g .et{font-weight:700;font-size:13.5px;margin-bottom:6px;display:block}
+.ob-ops{display:flex;flex-wrap:wrap;gap:6px}.ob-ops button{border:1.5px solid var(--borde);background:#fff;border-radius:12px;padding:9px 12px;font-size:14px;cursor:pointer;min-height:42px}
+.ob-ops button.on{border-color:#1F3A6B;background:#E4EBF7;color:#1F3A6B;font-weight:700}
+.ob-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}.ob-kpi{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:10px;text-align:center}.ob-kpi b{display:block;font-size:24px;color:#1F3A6B}.ob-kpi span{font-size:12px;color:var(--gris)}
+.ob-bar{display:grid;grid-template-columns:150px 1fr 38px;gap:8px;align-items:center;font-size:13px;margin:4px 0}.ob-bar i{display:block;height:12px;border-radius:6px;background:#1F3A6B}.ob-bar i.no{background:#D9A400}
+.ob-lin{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:2px;margin:6px 0 2px}.ob-lin span{height:16px;border-radius:3px;background:#2E9E4F}.ob-lin span.no{background:#E8B004}.ob-lin span.baja{background:#D23B2E}
+.ob-reg{font-size:13px;border-top:1px solid var(--borde);padding:6px 0;display:flex;gap:8px;justify-content:space-between}
+`;
+function obResumen(O) {
+  const R = (O && O.regs) || []; if (!R.length) return null;
+  const n = R.length, apr = R.filter(r => r.act && !OB_NOAPR.includes(r.act)).length;
+  const tv = R.map(r => (OB_TAREA.find(t => t[0] === r.tarea) || [0, null])[1]).filter(v => v != null);
+  const prom = tv.length ? Math.round(tv.reduce((a, b) => a + b, 0) / tv.length) : null;
+  const cuenta = (k, lista) => lista.map(x => [x, R.filter(r => r[k] === x).length]).filter(x => x[1]);
+  const acts = cuenta('act', OB_ACT), habla = cuenta('habla', OB_HABLA), mat = cuenta('mat', OB_MAT);
+  const min = O.ini ? Math.round(((O.fin || Date.now()) - O.ini) / 60000) : 0;
+  const pct = v => Math.round(v * 100 / n);
+  const texto = `Duración observada: ${min} min, ${n} registros cada ${O.cada} min. Tiempo dedicado al aprendizaje: ${pct(apr)}%. Alumnos en tarea (promedio): ${prom == null ? 's/d' : prom + '%'}.
+Actividades: ${acts.map(([x, c]) => x + ' ' + pct(c) + '%').join('; ')}.
+Quién habla: ${habla.map(([x, c]) => x + ' ' + pct(c) + '%').join('; ') || 's/d'}. Materiales: ${mat.map(([x, c]) => x + ' ' + pct(c) + '%').join('; ') || 's/d'}.` + (R.some(r => r.nota) ? '\nNotas: ' + R.filter(r => r.nota).map(r => 'min ' + r.m + ': ' + r.nota).join(' | ') : '');
+  return { n, min, apr: pct(apr), prom, acts: acts.map(([x, c]) => [x, pct(c)]), habla: habla.map(([x, c]) => [x, pct(c)]), mat: mat.map(([x, c]) => [x, pct(c)]), texto, regs: R };
+}
+function obResumenHTML(r) {
+  if (!r) return '';
+  return `<div class="ob-kpis"><div class="ob-kpi"><b>${r.apr}%</b><span>tiempo de aprendizaje</span></div><div class="ob-kpi"><b>${r.prom == null ? '—' : r.prom + '%'}</b><span>alumnos en tarea</span></div><div class="ob-kpi"><b>${r.min}′</b><span>${r.n} registros</span></div></div>
+  <div class="peq mudo">Línea de la clase (verde: aprendizaje · amarillo: organización o sin actividad · rojo: pocos alumnos en tarea)</div>
+  <div class="ob-lin" style="--n:${r.regs.length}">${r.regs.map(x => `<span class="${OB_NOAPR.includes(x.act) ? 'no' : x.tarea === 'Pocos' ? 'baja' : ''}" title="min ${x.m}: ${esc(x.act || '')}"></span>`).join('')}</div>
+  <div style="margin-top:10px">${r.acts.map(([x, p]) => `<div class="ob-bar"><span>${esc(x)}</span><i class="${OB_NOAPR.includes(x) ? 'no' : ''}" style="width:${Math.max(p, 2)}%"></i><b>${p}%</b></div>`).join('')}</div>
+  ${r.habla.length ? `<p class="peq" style="margin:8px 0 0"><b>Quién habla:</b> ${r.habla.map(([x, p]) => esc(x) + ' ' + p + '%').join(' · ')}</p>` : ''}`;
+}
+let OB_TIMER = null;
+function cmpObs() {
+  const s = CMP.ses.find(x => x.id === vista.cmp.sid); if (!s) return cmpIr({ pant: 'inicio' });
+  const per = s.personas.find(p => p.persona === vista.cmp.pk); if (!per) return cmpIr({ pant: 'sesion', sid: s.id });
+  const O = obLeer(s, per) || { ini: null, fin: null, cada: 5, regs: [] };
+  const cur = { act: '', tarea: '', habla: '', mat: '', nota: '' };
+  const guardar = () => { try { localStorage.setItem(obClave(s, per), JSON.stringify(O)); } catch (e) {} };
+  const mmss = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  let avisado = -1;
+  const tic = () => {
+    if (!vista.cmp || vista.cmp.pant !== 'obs' || !$('#ob-t')) { clearInterval(OB_TIMER); OB_TIMER = null; return; }
+    if (!O.ini || O.fin) return;
+    const tr = Date.now() - O.ini, sig = (O.regs.length + 1) * O.cada * 60000 - tr;
+    $('#ob-t').textContent = mmss(tr);
+    const toca = sig <= 0; $('#ob-rel').classList.toggle('toca', toca);
+    $('#ob-s').textContent = toca ? '¡Es momento de registrar!' : 'Siguiente registro en ' + mmss(sig);
+    if (toca && avisado !== O.regs.length) { avisado = O.regs.length; try { navigator.vibrate && navigator.vibrate([250, 120, 250]); } catch (e) {} }
+  };
+  const grupo = (k, et, ops) => `<div class="ob-g"><span class="et">${et}</span><div class="ob-ops">${ops.map(o => `<button type="button" data-ob="${k}" data-v="${esc(o)}" class="${cur[k] === o ? 'on' : ''}">${esc(o)}</button>`).join('')}</div></div>`;
+  const pintar = () => {
+    const res = obResumen(O);
+    $('#vista').innerHTML = `<style>${OB_CSS}</style>
+    <div class="titulo-vista"><div><button class="enlace" id="ob-volver">← ${esc(per.nombre)}</button><h1 style="margin-top:4px">Observación de clase</h1>
+      <div class="peq mudo">${esc([per.funcion, per.grupo].filter(Boolean).join(' · '))} · ${esc(nombreEscuela(s.cct))}</div></div></div>
+    ${!O.ini ? `<div class="tarjeta pad" style="margin-bottom:14px"><p style="margin-top:0">Mientras observa la clase, el celular <b>vibra cada cierto tiempo</b> y usted marca con un toque qué está pasando en ese momento. Al terminar, Tequio calcula el <b>tiempo dedicado al aprendizaje</b>, los <b>alumnos en tarea</b> y <b>quién habla</b>, y lo agrega a la retroalimentación.</p>
+      <div class="campo"><label for="ob-cada">Registrar cada</label><select id="ob-cada">${[3, 5, 10].map(m => `<option value="${m}" ${O.cada === m ? 'selected' : ''}>${m} minutos</option>`).join('')}</select></div>
+      <button class="boton terra" id="ob-ini">▶ Iniciar observación</button></div>`
+    : `<div class="ob-rel ob-reloj" id="ob-rel"><div><div class="t" id="ob-t">${mmss((O.fin || Date.now()) - O.ini)}</div><div class="s" id="ob-s">${O.fin ? 'Observación terminada' : ''}</div></div>
+        <div style="text-align:right"><div style="font-size:26px;font-weight:700">${O.regs.length}</div><div class="s">registros</div></div></div>
+      ${!O.fin ? `<div class="tarjeta pad" style="margin-bottom:14px">
+        ${grupo('act', '¿Qué se está haciendo?', OB_ACT)}
+        ${grupo('tarea', '¿Cuántos alumnos están en la tarea?', OB_TAREA.map(t => t[0]))}
+        ${grupo('habla', '¿Quién habla?', OB_HABLA)}
+        ${grupo('mat', 'Material en uso', OB_MAT)}
+        <div class="campo" style="margin-bottom:8px"><label for="ob-nota">Nota rápida (opcional)</label><input id="ob-nota" placeholder="Algo que llamó la atención" value="${esc(cur.nota)}"></div>
+        <div class="acciones"><button class="boton terra" id="ob-reg">Registrar este momento</button><button class="boton sec" id="ob-fin">Terminar</button></div></div>` : ''}`}
+    ${res ? `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 6px">Así va la clase</h2>${obResumenHTML(res)}
+      <details style="margin-top:10px"><summary class="peq">Ver los ${O.regs.length} registros</summary>${O.regs.map((r, i) => `<div class="ob-reg"><span><b>min ${r.m}</b> · ${esc([r.act, r.tarea && 'en tarea: ' + r.tarea, r.habla && 'habla: ' + r.habla, r.mat].filter(Boolean).join(' · '))}${r.nota ? '<br><i>' + esc(r.nota) + '</i>' : ''}</span><button class="enlace" data-obq="${i}">Quitar</button></div>`).join('')}</details></div>` : ''}
+    <div class="cmp-pie"><button class="boton sec" id="ob-volver2">← Volver</button>
+      <div class="acciones">${O.ini ? `<button class="boton sec chico" id="ob-borrar">Empezar de nuevo</button>` : ''}${res ? `<button class="boton terra" id="ob-retro">Ir a la retroalimentación →</button>` : ''}</div></div>`;
+    const volver = () => cmpIr({ pant: 'persona', sid: s.id, pk: per.persona });
+    $('#ob-volver').onclick = $('#ob-volver2').onclick = volver;
+    if ($('#ob-ini')) $('#ob-ini').onclick = () => { O.cada = +$('#ob-cada').value; O.ini = Date.now(); O.fin = null; O.regs = []; guardar(); pintar(); };
+    $$('[data-ob]').forEach(b => b.onclick = () => { cur.nota = ($('#ob-nota') || {}).value || ''; const k = b.dataset.ob; cur[k] = cur[k] === b.dataset.v ? '' : b.dataset.v; pintar(); });
+    if ($('#ob-reg')) $('#ob-reg').onclick = () => { cur.nota = $('#ob-nota').value.trim();
+      if (!cur.act) return aviso('Marque al menos qué se está haciendo.', 'mal');
+      O.regs.push({ m: Math.round((Date.now() - O.ini) / 60000), act: cur.act, tarea: cur.tarea, habla: cur.habla, mat: cur.mat, nota: cur.nota });
+      cur.nota = ''; guardar(); aviso('Registrado: minuto ' + O.regs[O.regs.length - 1].m, 'ok', 2000); pintar(); };
+    if ($('#ob-fin')) $('#ob-fin').onclick = () => { if (!O.regs.length && !confirm('Aún no hay registros. ¿Terminar de todos modos?')) return; O.fin = Date.now(); guardar(); pintar(); };
+    if ($('#ob-borrar')) $('#ob-borrar').onclick = () => { if (!confirm('¿Borrar esta observación y empezar de nuevo?')) return; O.ini = null; O.fin = null; O.regs = []; guardar(); pintar(); };
+    $$('[data-obq]').forEach(b => b.onclick = () => { O.regs.splice(+b.dataset.obq, 1); guardar(); pintar(); });
+    if ($('#ob-retro')) $('#ob-retro').onclick = () => cmpIr({ pant: 'retro', sid: s.id, pk: per.persona });
+    tic();
+  };
+  pintar();
+  clearInterval(OB_TIMER); OB_TIMER = setInterval(tic, 1000);
+}
+
 /* --- Retroalimentación para el docente: carta breve con logos, fortalezas, 1 o 2 aspectos con semáforo y firma --- */
 const RT_CSS = `
 .rt-sem{display:inline-block;width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:6px;flex:none}
@@ -2207,6 +2310,7 @@ function rtBorrador(s, per, items) {
     tabla: items.length <= 20
   };
 }
+let RT_IA = false;
 function cmpRetro() {
   const s = CMP.ses.find(x => x.id === vista.cmp.sid); if (!s) return cmpIr({ pant: 'inicio' });
   const per = s.personas.find(p => p.persona === vista.cmp.pk); if (!per) return cmpIr({ pant: 'sesion', sid: s.id });
@@ -2214,11 +2318,19 @@ function cmpRetro() {
   const B = rtBorrador(s, per, items);
   const guardar = () => { try { localStorage.setItem(rtClave(s, per), JSON.stringify(B)); } catch (e) {} };
   const cands = items.filter(x => x.sem !== 'verde');
+  const OBR = obResumen(obLeer(s, per));
   const nV = items.filter(x => x.sem === 'verde').length, nA = items.filter(x => x.sem === 'amarillo').length, nR = items.filter(x => x.sem === 'rojo').length;
   const pintar = () => {
     $('#vista').innerHTML = `<style>${RT_CSS}</style>
     <div class="titulo-vista"><div><button class="enlace" id="rt-volver">← ${esc(per.nombre)}</button><h1 style="margin-top:4px">Retroalimentación</h1>
       <div class="peq mudo">${esc(nombreEscuela(s.cct))} · ${esc(cmpNomVisita(s.visita))}</div></div></div>
+    <div class="tarjeta pad rt-tlami" style="margin-bottom:14px">
+      <h2 style="font-size:18px;margin:0 0 4px">✨ Tlami le ayuda a redactarla</h2>
+      <p class="peq mudo" style="margin:0 0 8px">Dicte con el micrófono lo que observó (lo bueno, lo que preocupa, lo que platicaron). Tlami junta eso con la guía${OBR ? ' y la observación de clase' : ''} y redacta fortalezas, 1 o 2 aspectos con sugerencias concretas, acuerdos y el cierre. Usted revisa y ajusta.</p>
+      <div class="campo" style="margin-bottom:8px"><textarea id="rt-notas" placeholder="Ej. La maestra trabajó el proyecto de la huerta con buena participación; le cuesta cerrar la clase; los cuadernos no tienen fecha…" style="min-height:90px">${esc(B.notas || '')}</textarea></div>
+      <div class="acciones"><button class="boton terra" id="rt-ia" ${RT_IA ? 'disabled' : ''}>${RT_IA ? 'Tlami está redactando…' : '✨ Redactar con Tlami'}</button>${B.prev ? `<button class="boton sec chico" id="rt-desh">Deshacer lo de Tlami</button>` : ''}</div>
+    </div>
+    ${OBR ? `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 6px">Observación de clase</h2>${obResumenHTML(OBR)}<label class="casilla" style="margin-top:8px"><input type="checkbox" id="rt-obs" ${B.conObs !== false ? 'checked' : ''}> Incluirla en el reporte</label></div>` : ''}
     <div class="aviso-caja" style="margin-bottom:14px">Se llenó con lo que se contestó en la revisión: <span class="rt-sem verde"></span>${nV} logrado · <span class="rt-sem amarillo"></span>${nA} en proceso · <span class="rt-sem rojo"></span>${nR} por atender. Revíselo y ajústelo antes de entregarlo; se guarda en este dispositivo.</div>
     <div class="tarjeta pad" style="margin-bottom:14px">
       <h2 style="font-size:18px;margin:0 0 6px">Fortalezas observadas</h2>
@@ -2250,11 +2362,26 @@ function cmpRetro() {
     $$('[data-rq]').forEach(b => b.onclick = () => { leer(); B.asp.splice(+b.dataset.rq, 1); guardar(); pintar(); });
     if ($('#rt-mas')) $('#rt-mas').onclick = () => { leer(); B.asp.push({ t: '', sem: 'amarillo', obs: '', sug: '' }); guardar(); pintar(); };
     $$('#vista textarea, #vista input, #vista select').forEach(el => el.addEventListener('change', () => { leer(); guardar(); }));
-    $('#rt-imp').onclick = () => { leer(); guardar(); rtImprimir(s, per, B, items); };
+    $('#rt-imp').onclick = () => { leer(); guardar(); rtImprimir(s, per, B, items, B.conObs !== false ? OBR : null); };
+    $('#rt-ia').onclick = async () => { leer(); guardar();
+      if (!navigator.onLine || S.offline) return aviso('Tlami necesita internet. Puede dejar dictadas sus notas y redactar cuando tenga señal.', 'mal', 7000);
+      RT_IA = true; pintar();
+      try { const r = await api('minutaIA', { modo: 'retro', funcion: per.funcion || '', grupo: per.grupo || '', visita: cmpNomVisita(s.visita), notas: B.notas || '',
+          obsClase: OBR && B.conObs !== false ? OBR.texto : '', items: items.map(x => ({ t: x.t, sem: x.sem, obs: x.obs })) });
+        B.prev = { fort: B.fort, asp: B.asp, acu: B.acu, cierre: B.cierre };
+        if ((r.fortalezas || []).length) B.fort = r.fortalezas.join('\n');
+        if ((r.aspectos || []).length) B.asp = r.aspectos.slice(0, 2);
+        if ((r.acuerdos || []).length) B.acu = r.acuerdos.join('\n');
+        if (r.cierre) B.cierre = r.cierre;
+        guardar(); aviso('Listo. Revise lo que redactó Tlami y ajústelo si hace falta.', 'ok', 6000);
+      } catch (e) { aviso(esc(e.message), 'mal', 8000); }
+      finally { RT_IA = false; if (vista.cmp && vista.cmp.pant === 'retro') pintar(); } };
+    if ($('#rt-desh')) $('#rt-desh').onclick = () => { leer(); Object.assign(B, B.prev); delete B.prev; guardar(); pintar(); };
     $('#rt-wa').onclick = () => { leer(); guardar(); rtWhatsApp(s, per, B); };
   };
   const leer = () => {
     if (!$('#rt-fort')) return;
+    B.notas = $('#rt-notas').value; if ($('#rt-obs')) B.conObs = $('#rt-obs').checked;
     B.fort = $('#rt-fort').value; B.acu = $('#rt-acu').value; B.cierre = $('#rt-cie').value; if ($('#rt-tab')) B.tabla = $('#rt-tab').checked;
     $$('[data-ra]').forEach(el => { const [i, k] = el.dataset.ra.split('|'); if (B.asp[+i]) B.asp[+i][k] = el.value; });
   };
@@ -2271,7 +2398,7 @@ function rtWhatsApp(s, per, B) {
     B.cierre.trim(), '', ZONA.supervisor, ZONA.cargoSupervisor + ' · Zona ' + ZONA.numero, `«${ZONA.lemaZona}»`].join('\n');
   window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
 }
-async function rtImprimir(s, per, B, items) {
+async function rtImprimir(s, per, B, items, OBR) {
   const w = window.open('', '_blank');
   if (!w) return aviso('El navegador bloqueó la pestaña nueva. Permita las ventanas emergentes para este sitio.', 'mal', 8000);
   w.document.write('<p style="font:16px system-ui;padding:24px">Preparando la retroalimentación…</p>');
@@ -2297,7 +2424,10 @@ h1{font-size:15pt;margin:4px 0 2px;color:#1F3A6B;letter-spacing:.01em}
 .datos{display:grid;grid-template-columns:1fr 1fr;gap:3px 18px;font-size:10pt;background:#F6F2E9;border-radius:8px;padding:9px 12px;margin:8px 0 14px}.datos b{color:#555;font-weight:600}
 h2{font-size:11.5pt;margin:14px 0 6px;color:#691C32;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2d8c6;padding-bottom:3px}
 ul{margin:0;padding-left:0;list-style:none}li{padding:3px 0 3px 22px;position:relative}
-li.f::before{content:"✓";position:absolute;left:3px;color:#2E9E4F;font-weight:700}
+li.f::before{content:"✓";position:absolute;left:3px;color:#2E9E4F;font-weight:700}li.a::before{content:"→";position:absolute;left:3px;color:#1F3A6B;font-weight:700}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.kp div{border:1px solid #e2d8c6;border-radius:8px;padding:6px;text-align:center;font-size:8.5pt;color:#555}.kp b{display:block;font-size:15pt;color:#1F3A6B}
+.lin{display:flex;gap:2px;margin:2px 0}.lin span{flex:1;height:12px;border-radius:2px;background:#2E9E4F}.lin span.no{background:#E8B004}.lin span.baja{background:#D23B2E}
+.peq{font-size:8pt;color:#777;margin-bottom:6px}.obb{display:grid;grid-template-columns:52mm 1fr 12mm;gap:6px;align-items:center;font-size:9pt;margin:2px 0}.obb i{display:block;height:9px;border-radius:5px;background:#1F3A6B}.obb i.no{background:#D9A400}.obb b{text-align:right}
 .sem{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px}.sem.verde{background:#2E9E4F}.sem.amarillo{background:#E8B004}.sem.rojo{background:#D23B2E}
 .asp{border:1px solid #e2d8c6;border-left:5px solid #E8B004;border-radius:6px;padding:8px 11px;margin-bottom:8px;break-inside:avoid}.asp.rojo{border-left-color:#D23B2E}
 .asp .t{font-weight:700}.asp .e{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:6px;color:#8a6d00}.asp.rojo .e{color:#a3241a}
@@ -2323,7 +2453,12 @@ td.s{width:118px;white-space:nowrap}
 <p style="margin:0">Estimado(a) maestro(a): como parte del acompañamiento de la Supervisión, le compartimos lo que observamos en su trabajo, con el propósito de reconocer sus logros y seguir creciendo juntos.</p>
 ${fort.length ? `<h2>Fortalezas</h2><ul>${fort.map(f => `<li class="f">${x(f)}</li>`).join('')}</ul>` : ''}
 ${asp.length ? `<h2>Aspectos para mejorar</h2>${asp.map(a => `<div class="asp ${a.sem === 'rojo' ? 'rojo' : ''}"><span class="sem ${a.sem === 'rojo' ? 'rojo' : 'amarillo'}"></span> <span class="t">${x(a.t)}</span><span class="e">${a.sem === 'rojo' ? 'Requiere atención' : 'En proceso'}</span>${a.obs ? `<p><b>Lo que se observó:</b> ${x(a.obs)}</p>` : ''}${a.sug ? `<p><b>Sugerencia:</b> ${x(a.sug)}</p>` : ''}</div>`).join('')}` : ''}
-${B.acu.trim() ? `<h2>Acuerdos y compromisos</h2><p style="margin:0;white-space:pre-line">${x(B.acu.trim())}</p>` : ''}
+${OBR ? `<h2>Observación de clase</h2><div class="kp"><div><b>${OBR.apr}%</b>tiempo dedicado al aprendizaje</div><div><b>${OBR.prom == null ? '—' : OBR.prom + '%'}</b>alumnos en tarea (promedio)</div><div><b>${OBR.min} min</b>${OBR.n} registros</div></div>
+<div class="lin">${OBR.regs.map(r => `<span class="${OB_NOAPR.includes(r.act) ? 'no' : r.tarea === 'Pocos' ? 'baja' : ''}"></span>`).join('')}</div>
+<div class="peq">Línea de la clase · verde: aprendizaje · amarillo: organización o sin actividad · rojo: pocos alumnos en tarea</div>
+${OBR.acts.map(([a, p]) => `<div class="obb"><span>${x(a)}</span><i class="${OB_NOAPR.includes(a) ? 'no' : ''}" style="width:${Math.max(p, 2)}%"></i><b>${p}%</b></div>`).join('')}
+${OBR.habla.length ? `<p style="margin:6px 0 0;font-size:10pt"><b>Quién habla:</b> ${OBR.habla.map(([a, p]) => x(a) + ' ' + p + '%').join(' · ')}</p>` : ''}` : ''}
+${B.acu.trim() ? `<h2>Acuerdos y compromisos</h2><ul>${rtLineas(B.acu).map(a => `<li class="a">${x(a)}</li>`).join('')}</ul>` : ''}
 ${B.tabla && items.length ? `<h2>Resumen de la observación</h2><table><thead><tr><th>Aspecto revisado</th><th>Semáforo</th></tr></thead><tbody>${items.map(i => `<tr><td>${x(i.t)}</td><td class="s"><span class="sem ${i.sem}"></span> ${nomSem[i.sem]}</td></tr>`).join('')}</tbody></table>` : ''}
 ${B.cierre.trim() ? `<p class="cierre" style="white-space:pre-line">${x(B.cierre.trim())}</p>` : ''}
 <p style="margin:10px 0 0">Atentamente</p>
@@ -11632,7 +11767,10 @@ const Demo = (() => {
       if (prev) Object.assign(prev, o); else D.min.push(o); return { minuta: copia(o) }; },
     minutaAcuerdo: d => { const m = D.min.find(x => x.id === d.id), a = m.acuerdos.find(x => x.id === d.acuerdo); if (d.est) a.est = d.est; if (d.nota != null) a.nota = d.nota; m.actualizado = ahora(); return { minuta: copia(m) }; },
     minutaEliminar: d => { const m = D.min.find(x => x.id === d.id); if (m) m.activo = false; return { id: d.id }; },
-    minutaIA: d => d.modo === 'redactar' ? { puntos: d.puntos.map(p => 'Demostración: aquí la IA redactaría formalmente lo que se anotó. ' + p.nota) }
+    minutaIA: d => d.modo === 'retro' ? { fortalezas: ['Demostración: Tlami redactaría aquí las fortalezas a partir de la guía y de sus notas.'].concat(d.items.filter(i => i.sem === 'verde').slice(0, 3).map(i => i.t.replace(/^¿\s*|\s*\?$/g, '') + ': se observó trabajo consistente.')),
+        aspectos: d.items.filter(i => i.sem !== 'verde').slice(0, 2).map(i => ({ t: i.t, sem: i.sem, obs: i.obs || 'Se observó que aún está en construcción.', sug: 'Demostración: aquí Tlami propondría una sugerencia concreta ligada a la NEM.' })),
+        acuerdos: ['Revisar juntos los avances en la próxima visita.'], cierre: 'Gracias por su compromiso con sus alumnos; seguimos acompañándole.' }
+      : d.modo === 'redactar' ? { puntos: d.puntos.map(p => 'Demostración: aquí la IA redactaría formalmente lo que se anotó. ' + p.nota) }
       : { acuerdos: String(d.texto || '').split(/\.\s+|\n+/).map(t => t.trim()).filter(t => t.length > 8).map(t => ({ a: t.replace(/\.$/, '') + '.', r: /director/i.test(t) ? 'Directores de la zona' : '', f: '', ev: '' })) },
     relDatos: () => { if (!D.rel) D.rel = [['02DPR0210Z', 'Ejemplo#2026', cicloActual()], ['02DPR0862Z', 'Demo.4521', cicloActual()], ['02DPR0684N', 'Clave-vieja1', (+cicloActual().slice(0, 4) - 1) + '-' + cicloActual().slice(0, 4)]]
         .map(([cct, clave, ciclo]) => ({ cct, usuario: cct, clave, ciclo, nota: '', actualizado: ahora(), actualizadoNombre: 'Isidra Analy Arce Aviña' }));
