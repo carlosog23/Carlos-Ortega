@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-21-2230';
+const PUBLICACION = '2026-11-21-2300';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1863,7 +1863,7 @@ async function vCampo() {
   if (!vista.cmp) vista.cmp = { pant: 'inicio' };
   if (!CMP.cargado) { await cmpCargarLocal(); CMP.cargado = true; if (!S.offline) cmpPreparar(true).then(() => { if (vista.tab === 'campo' && vista.cmp.pant === 'inicio') cmpInicio(); }); }
   if (CMP.err) { $('#vista').innerHTML = `<div class="tarjeta pad"><p style="margin:0">${esc(CMP.err)}</p></div>`; return; }
-  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro, programar: cmpProgramar })[vista.cmp.pant || 'inicio']();
+  ({ inicio: cmpInicio, sesion: cmpSesion, persona: cmpPersona, retro: cmpRetro, guias: cmpGuias, resultados: cmpResultados, atencion: cmpAtencion, registro: cmpRegistro, programar: cmpProgramar })[vista.cmp.pant || 'inicio']();
 }
 function cmpIr(o) { vista.cmp = Object.assign({}, o); vCampo(); window.scrollTo(0, 0); }
 
@@ -2153,9 +2153,10 @@ function cmpPersona() {
     ${cues.map((c, i) => `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="font-size:18px;margin:0 0 4px">${esc(c.titulo)}</h2>${c.descripcion ? `<p class="peq mudo" style="margin:0 0 8px">${esc(c.descripcion)}</p>` : ''}
       ${cmpPreg(c, per.persona).filter(p => !modoDoc || p.quien === 'docente').map(p => campo(c, revs[i], p)).join('')}</div>`).join('')}
     <div class="cmp-pie"><button class="boton sec" id="cp-volver2">← Volver</button>
-      <div>${(() => { const i = s.personas.findIndex(p => p.persona === per.persona), sig = s.personas[i + 1]; return sig ? `<button class="boton terra" id="cp-sig">Siguiente: ${esc(nombreCorto(sig.nombre))} →</button>` : ''; })()}</div></div>
+      <div class="acciones">${modoDoc ? '' : `<button class="boton sec" id="cp-retro">Retroalimentación</button>`}${(() => { const i = s.personas.findIndex(p => p.persona === per.persona), sig = s.personas[i + 1]; return sig ? `<button class="boton terra" id="cp-sig">Siguiente: ${esc(nombreCorto(sig.nombre))} →</button>` : ''; })()}</div></div>
     <p class="peq mudo" style="text-align:center">Las respuestas se guardan en este dispositivo al momento. Súbalas con «Subir a Tequio».</p>`;
     $('#cp-volver').onclick = $('#cp-volver2').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'sesion', sid: s.id }); };
+    if ($('#cp-retro')) $('#cp-retro').onclick = () => { urls.forEach(u => URL.revokeObjectURL(u)); cmpIr({ pant: 'retro', sid: s.id, pk: per.persona }); };
     if ($('#cp-sig')) $('#cp-sig').onclick = () => { const i = s.personas.findIndex(p => p.persona === per.persona); cmpIr({ pant: 'persona', sid: s.id, pk: s.personas[i + 1].persona }); };
     if ($('#cp-mdoc')) $('#cp-mdoc').onchange = e => { vista.cmp.docente = e.target.checked; cmpPersona(); };
     if ($('#cp-cod')) $('#cp-cod').onclick = () => cmpCodigo(s, per, cues);
@@ -2173,6 +2174,166 @@ function cmpPersona() {
   };
   pintar2();
 }
+/* --- Retroalimentación para el docente: carta breve con logos, fortalezas, 1 o 2 aspectos con semáforo y firma --- */
+const RT_CSS = `
+.rt-sem{display:inline-block;width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:6px;flex:none}
+.rt-sem.verde{background:#2E9E4F}.rt-sem.amarillo{background:#E8B004}.rt-sem.rojo{background:#D23B2E}
+.rt-cand{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.rt-cand button{border:1px solid var(--borde);background:#fff;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;text-align:left}
+.rt-cand button:hover{border-color:var(--ambar)}
+.rt-asp{border:1px solid var(--borde);border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
+.rt-asp .fila{display:grid;grid-template-columns:150px 1fr;gap:10px}@media (max-width:620px){.rt-asp .fila{grid-template-columns:1fr}}
+`;
+const rtSem = v => { const t = String(v || ''); if (/^no aplica/i.test(t)) return ''; if (/^(sí|logrado)$|^verde/i.test(t)) return 'verde'; if (/^(no|requiere|rojo)/i.test(t)) return 'rojo'; if (/proceso|desarrollo|^amarillo/i.test(t)) return 'amarillo'; return ''; };
+const rtClave = (s, per) => 'tq-retro-' + s.id + '-' + per.persona;
+function rtDatos(s, per) {
+  const cues = s.cueIds.map(cmpCue).filter(Boolean).filter(c => cmpPreg(c, per.persona).length);
+  const revs = cues.map(c => cmpRevLocal(s, c, per));
+  const items = [];
+  cues.forEach((c, i) => cmpPreg(c, per.persona).forEach(p => {
+    if (p.tipo === 'texto') return;
+    const x = (revs[i].respuestas || {})[p.k] || {}, sem = rtSem(x.v);
+    if (sem) items.push({ t: p.t, sec: p.sec || '', v: x.v, obs: String(x.obs || '').trim(), sem });
+  }));
+  return { cues, items };
+}
+function rtBorrador(s, per, items) {
+  try { const g = JSON.parse(localStorage.getItem(rtClave(s, per)) || 'null'); if (g) return g; } catch (e) {}
+  const buenos = items.filter(x => x.sem === 'verde'), malos = items.filter(x => x.sem === 'rojo').concat(items.filter(x => x.sem === 'amarillo'));
+  return {
+    fort: buenos.slice(0, 4).map(x => x.t.replace(/^¿\s*|\s*\?$/g, '') + (x.obs ? ' — ' + x.obs : '')).join('\n'),
+    asp: malos.slice(0, 2).map(x => ({ t: x.t, sem: x.sem, obs: x.obs, sug: '' })),
+    acu: '', cierre: 'Agradecemos su disposición y el trabajo que realiza con sus alumnos. La Supervisión y el equipo técnico quedamos a sus órdenes para acompañarle en lo que necesite.',
+    tabla: items.length <= 20
+  };
+}
+function cmpRetro() {
+  const s = CMP.ses.find(x => x.id === vista.cmp.sid); if (!s) return cmpIr({ pant: 'inicio' });
+  const per = s.personas.find(p => p.persona === vista.cmp.pk); if (!per) return cmpIr({ pant: 'sesion', sid: s.id });
+  const { items } = rtDatos(s, per);
+  const B = rtBorrador(s, per, items);
+  const guardar = () => { try { localStorage.setItem(rtClave(s, per), JSON.stringify(B)); } catch (e) {} };
+  const cands = items.filter(x => x.sem !== 'verde');
+  const nV = items.filter(x => x.sem === 'verde').length, nA = items.filter(x => x.sem === 'amarillo').length, nR = items.filter(x => x.sem === 'rojo').length;
+  const pintar = () => {
+    $('#vista').innerHTML = `<style>${RT_CSS}</style>
+    <div class="titulo-vista"><div><button class="enlace" id="rt-volver">← ${esc(per.nombre)}</button><h1 style="margin-top:4px">Retroalimentación</h1>
+      <div class="peq mudo">${esc(nombreEscuela(s.cct))} · ${esc(cmpNomVisita(s.visita))}</div></div></div>
+    <div class="aviso-caja" style="margin-bottom:14px">Se llenó con lo que se contestó en la revisión: <span class="rt-sem verde"></span>${nV} logrado · <span class="rt-sem amarillo"></span>${nA} en proceso · <span class="rt-sem rojo"></span>${nR} por atender. Revíselo y ajústelo antes de entregarlo; se guarda en este dispositivo.</div>
+    <div class="tarjeta pad" style="margin-bottom:14px">
+      <h2 style="font-size:18px;margin:0 0 6px">Fortalezas observadas</h2>
+      <p class="peq mudo" style="margin:0 0 8px">Una por renglón. Reconozca lo que hace bien.</p>
+      <div class="campo"><textarea id="rt-fort" style="min-height:120px">${esc(B.fort)}</textarea></div>
+    </div>
+    <div class="tarjeta pad" style="margin-bottom:14px">
+      <h2 style="font-size:18px;margin:0 0 6px">Aspectos para mejorar (1 o 2)</h2>
+      ${cands.length ? `<p class="peq mudo" style="margin:0">Toque uno de lo detectado para usarlo:</p><div class="rt-cand">${cands.map((x, i) => `<button type="button" data-rc="${i}"><span class="rt-sem ${x.sem}"></span>${esc(x.t.length > 80 ? x.t.slice(0, 78) + '…' : x.t)}</button>`).join('')}</div>` : '<p class="peq mudo">En la revisión no salió ningún aspecto en amarillo o rojo. Puede escribir uno si lo considera.</p>'}
+      ${B.asp.map((a, i) => `<div class="rt-asp"><div class="fila">
+        <div class="campo" style="margin:0"><span class="et">Semáforo</span><select data-ra="${i}|sem"><option value="amarillo" ${a.sem === 'amarillo' ? 'selected' : ''}>🟡 Amarillo</option><option value="rojo" ${a.sem === 'rojo' ? 'selected' : ''}>🔴 Rojo</option></select></div>
+        <div class="campo" style="margin:0"><span class="et">Aspecto ${i + 1}</span><input data-ra="${i}|t" value="${esc(a.t)}"></div></div>
+        <div class="campo" style="margin:8px 0 0"><span class="et">Lo que se observó</span><textarea data-ra="${i}|obs" style="min-height:60px">${esc(a.obs)}</textarea></div>
+        <div class="campo" style="margin:8px 0 0"><span class="et">Sugerencia concreta</span><textarea data-ra="${i}|sug" style="min-height:60px" placeholder="Qué puede hacer, con qué apoyo y para cuándo">${esc(a.sug)}</textarea></div>
+        <button class="enlace" data-rq="${i}" style="margin-top:6px">Quitar este aspecto</button></div>`).join('')}
+      ${B.asp.length < 2 ? `<button class="boton sec chico" id="rt-mas">+ Agregar aspecto</button>` : ''}
+    </div>
+    <div class="tarjeta pad" style="margin-bottom:14px">
+      <div class="campo"><label for="rt-acu">Acuerdos y compromisos</label><textarea id="rt-acu" placeholder="Ej. Revisar juntos la planeación en la próxima visita.">${esc(B.acu)}</textarea></div>
+      <div class="campo"><label for="rt-cie">Mensaje final</label><textarea id="rt-cie">${esc(B.cierre)}</textarea></div>
+      ${items.length ? `<label class="casilla"><input type="checkbox" id="rt-tab" ${B.tabla ? 'checked' : ''}> Incluir el resumen de todos los aspectos revisados (${items.length}) con su semáforo</label>` : ''}
+    </div>
+    <div class="cmp-pie"><button class="boton sec" id="rt-volver2">← Volver</button>
+      <div class="acciones"><button class="boton sec" id="rt-wa">${ico('i-wa')}WhatsApp</button><button class="boton terra" id="rt-imp">Ver e imprimir / PDF</button></div></div>`;
+    const volver = () => { leer(); cmpIr({ pant: 'persona', sid: s.id, pk: per.persona }); };
+    $('#rt-volver').onclick = $('#rt-volver2').onclick = volver;
+    $$('[data-rc]').forEach(b => b.onclick = () => { leer(); const x = cands[+b.dataset.rc]; const a = { t: x.t, sem: x.sem, obs: x.obs, sug: '' };
+      if (B.asp.length < 2) B.asp.push(a); else B.asp[1] = a; guardar(); pintar(); });
+    $$('[data-rq]').forEach(b => b.onclick = () => { leer(); B.asp.splice(+b.dataset.rq, 1); guardar(); pintar(); });
+    if ($('#rt-mas')) $('#rt-mas').onclick = () => { leer(); B.asp.push({ t: '', sem: 'amarillo', obs: '', sug: '' }); guardar(); pintar(); };
+    $$('#vista textarea, #vista input, #vista select').forEach(el => el.addEventListener('change', () => { leer(); guardar(); }));
+    $('#rt-imp').onclick = () => { leer(); guardar(); rtImprimir(s, per, B, items); };
+    $('#rt-wa').onclick = () => { leer(); guardar(); rtWhatsApp(s, per, B); };
+  };
+  const leer = () => {
+    if (!$('#rt-fort')) return;
+    B.fort = $('#rt-fort').value; B.acu = $('#rt-acu').value; B.cierre = $('#rt-cie').value; if ($('#rt-tab')) B.tabla = $('#rt-tab').checked;
+    $$('[data-ra]').forEach(el => { const [i, k] = el.dataset.ra.split('|'); if (B.asp[+i]) B.asp[+i][k] = el.value; });
+  };
+  pintar();
+}
+const rtLineas = t => String(t || '').split('\n').map(x => x.replace(/^[\s•\-–]+/, '').trim()).filter(Boolean);
+const rtFecha = () => new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+function rtWhatsApp(s, per, B) {
+  const sem = { verde: '🟢', amarillo: '🟡', rojo: '🔴' };
+  const t = [`*${ZONA.nombreNo}* · ${ZONA.nivelSost}`, `Retroalimentación · ${cmpNomVisita(s.visita)}`, `${per.nombre} · ${nombreEscuela(s.cct)}`, '',
+    '*Fortalezas*', ...rtLineas(B.fort).map(x => '✅ ' + x), '',
+    ...(B.asp.filter(a => a.t).length ? ['*Aspectos para mejorar*', ...B.asp.filter(a => a.t).flatMap(a => [`${sem[a.sem] || '🟡'} ${a.t}`, ...(a.obs ? ['   Observado: ' + a.obs] : []), ...(a.sug ? ['   Sugerencia: ' + a.sug] : [])]), ''] : []),
+    ...(B.acu.trim() ? ['*Acuerdos*', B.acu.trim(), ''] : []),
+    B.cierre.trim(), '', ZONA.supervisor, ZONA.cargoSupervisor + ' · Zona ' + ZONA.numero, `«${ZONA.lemaZona}»`].join('\n');
+  window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+async function rtImprimir(s, per, B, items) {
+  const w = window.open('', '_blank');
+  if (!w) return aviso('El navegador bloqueó la pestaña nueva. Permita las ventanas emergentes para este sitio.', 'mal', 8000);
+  w.document.write('<p style="font:16px system-ui;padding:24px">Preparando la retroalimentación…</p>');
+  const firma = await laFirma().catch(() => '') || '';
+  const abs = u => { try { return new URL(u, location.href).href; } catch (e) { return u; } };
+  const x = v => esc(v == null ? '' : String(v));
+  const esAtp = !esAdmin() && S.yo && S.yo.nombre;
+  const nomSem = { verde: 'Logrado', amarillo: 'En proceso', rojo: 'Requiere atención' };
+  const fort = rtLineas(B.fort), asp = B.asp.filter(a => a.t);
+  const firmas = [];
+  if (esAtp) firmas.push(['', S.yo.nombre, 'Asesor(a) Técnico Pedagógico']);
+  firmas.push([firma, OFI.firmante, OFI.cargo + ' · C.C.T. ' + OFI.cct]);
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Retroalimentación · ${x(per.nombre)}</title>
+<style>
+@page{size:letter;margin:14mm 16mm}
+*{box-sizing:border-box}body{margin:0;font:11pt/1.45 Arial,Helvetica,sans-serif;color:#1b1f2a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hoja{max-width:184mm;margin:0 auto;padding:6mm 0}
+.enc{display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px}
+.enc img.i{width:105px;height:60px;object-fit:contain}.enc img.z{width:78px;height:78px;object-fit:contain;justify-self:end}
+.tit{text-align:center;line-height:1.3}.tit .a{font-size:9pt;font-weight:700;color:#691C32}.tit .c{font-size:14pt;font-weight:700}.tit .d{font-size:9.5pt;color:#1E3A6B;font-style:italic}
+.filete{border-top:2.4px solid #691C32;margin:8px 0 12px}
+h1{font-size:15pt;margin:4px 0 2px;color:#1F3A6B;letter-spacing:.01em}
+.datos{display:grid;grid-template-columns:1fr 1fr;gap:3px 18px;font-size:10pt;background:#F6F2E9;border-radius:8px;padding:9px 12px;margin:8px 0 14px}.datos b{color:#555;font-weight:600}
+h2{font-size:11.5pt;margin:14px 0 6px;color:#691C32;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2d8c6;padding-bottom:3px}
+ul{margin:0;padding-left:0;list-style:none}li{padding:3px 0 3px 22px;position:relative}
+li.f::before{content:"✓";position:absolute;left:3px;color:#2E9E4F;font-weight:700}
+.sem{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px}.sem.verde{background:#2E9E4F}.sem.amarillo{background:#E8B004}.sem.rojo{background:#D23B2E}
+.asp{border:1px solid #e2d8c6;border-left:5px solid #E8B004;border-radius:6px;padding:8px 11px;margin-bottom:8px;break-inside:avoid}.asp.rojo{border-left-color:#D23B2E}
+.asp .t{font-weight:700}.asp .e{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:6px;color:#8a6d00}.asp.rojo .e{color:#a3241a}
+.asp p{margin:4px 0 0;font-size:10.5pt}.asp p b{color:#555}
+table{width:100%;border-collapse:collapse;font-size:9pt}td,th{border-bottom:1px solid #eee5d6;padding:3px 5px;text-align:left;vertical-align:top}th{font-size:8.5pt;color:#555;text-transform:uppercase}
+td.s{width:118px;white-space:nowrap}
+.cierre{margin-top:14px}
+.firmas{display:grid;grid-template-columns:repeat(${firmas.length},1fr);gap:30px;margin-top:34px;break-inside:avoid}
+.fir{text-align:center;font-size:9.5pt;position:relative;padding-top:72px}.fir img{position:absolute;left:50%;top:0;transform:translateX(-50%);height:86px;max-width:200px;object-fit:contain}
+.fir .l{border-top:1px solid #333;padding-top:4px;font-weight:700}.fir .c{color:#444;font-size:8.5pt}
+.pie{margin-top:22px;border-top:1px solid #e2d8c6;padding-top:6px;font-size:8pt;color:#777;text-align:center}
+.bar{position:sticky;top:0;background:#1F3A6B;color:#fff;padding:10px;text-align:center;font:14px system-ui}.bar button{font:600 14px system-ui;padding:8px 16px;border-radius:8px;border:0;margin:0 4px;cursor:pointer}
+@media print{.bar{display:none}.hoja{padding:0}}
+</style></head><body>
+<div class="bar"><button onclick="print()">Imprimir o guardar como PDF</button><button onclick="close()">Cerrar</button></div>
+<div class="hoja">
+<div class="enc"><img class="i" src="${x(abs(ZONA.logoInst))}" alt="${x(ZONA.inst)}"><div class="tit"><div class="a">${x(ZONA.instNombreMay)}</div><div class="c">${x(ZONA.nombreNo)}</div><div class="a" style="color:#333">${x(ZONA.nivelSostMay)}</div><div class="d">«${x(ZONA.lemaZona)}»</div></div><img class="z" src="${x(abs(ZONA.logoZona))}" alt="Zona ${x(ZONA.numero)}"></div>
+<div class="filete"></div>
+<h1>Retroalimentación de la visita</h1>
+<div class="datos"><div><b>Docente:</b> ${x(per.nombre)}</div><div><b>Función / grupo:</b> ${x([per.funcion, per.grupo].filter(Boolean).join(' · ') || '—')}</div>
+<div><b>Escuela:</b> ${x(nombreEscuela(s.cct))}</div><div><b>C.C.T.:</b> ${x(s.cct)}</div>
+<div><b>Visita:</b> ${x(cmpNomVisita(s.visita))}</div><div><b>Fecha:</b> ${x(rtFecha())}</div></div>
+<p style="margin:0">Estimado(a) maestro(a): como parte del acompañamiento de la Supervisión, le compartimos lo que observamos en su trabajo, con el propósito de reconocer sus logros y seguir creciendo juntos.</p>
+${fort.length ? `<h2>Fortalezas</h2><ul>${fort.map(f => `<li class="f">${x(f)}</li>`).join('')}</ul>` : ''}
+${asp.length ? `<h2>Aspectos para mejorar</h2>${asp.map(a => `<div class="asp ${a.sem === 'rojo' ? 'rojo' : ''}"><span class="sem ${a.sem === 'rojo' ? 'rojo' : 'amarillo'}"></span> <span class="t">${x(a.t)}</span><span class="e">${a.sem === 'rojo' ? 'Requiere atención' : 'En proceso'}</span>${a.obs ? `<p><b>Lo que se observó:</b> ${x(a.obs)}</p>` : ''}${a.sug ? `<p><b>Sugerencia:</b> ${x(a.sug)}</p>` : ''}</div>`).join('')}` : ''}
+${B.acu.trim() ? `<h2>Acuerdos y compromisos</h2><p style="margin:0;white-space:pre-line">${x(B.acu.trim())}</p>` : ''}
+${B.tabla && items.length ? `<h2>Resumen de la observación</h2><table><thead><tr><th>Aspecto revisado</th><th>Semáforo</th></tr></thead><tbody>${items.map(i => `<tr><td>${x(i.t)}</td><td class="s"><span class="sem ${i.sem}"></span> ${nomSem[i.sem]}</td></tr>`).join('')}</tbody></table>` : ''}
+${B.cierre.trim() ? `<p class="cierre" style="white-space:pre-line">${x(B.cierre.trim())}</p>` : ''}
+<p style="margin:10px 0 0">Atentamente</p>
+<div class="firmas">${firmas.map(([f, n, c]) => `<div class="fir">${f ? `<img src="data:image/png;base64,${f}" alt="Firma">` : ''}<div class="l">${x(n)}</div><div class="c">${x(c)}</div></div>`).join('')}</div>
+<div class="pie">${x(ZONA.nombreNo)} · ${x(ZONA.nivelSost)} · ${x(ZONA.sede)}, ${x(ZONA.municipioSede)}, B.C.${ZONA.telefono ? ' · Tel. ' + x(ZONA.telefono) : ''}${ZONA.correoSupervision ? ' · ' + x(ZONA.correoSupervision) : ''}</div>
+</div></body></html>`;
+  w.document.open(); w.document.write(html); w.document.close();
+  if (!firma && LA_FIRMA_AVISO) aviso(esc(LA_FIRMA_AVISO), '', 8000);
+}
+
 // lo que se guarda en el dispositivo (sin las direcciones temporales de las fotos)
 const limpioRev = r => JSON.parse(JSON.stringify(r, (k, v) => k === '_url' ? undefined : v));
 
