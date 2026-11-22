@@ -19,7 +19,10 @@ const fLarga = k => { if (!k) return ""; const d = dF(k); return `${d.getDate()}
 const corto = n => String(n || "").trim().split(/\s+/).slice(0, 2).join(" ");
 const faseDe = g => g <= 2 ? 3 : g <= 4 ? 4 : 5;
 /* ---------- nivel: primaria o secundaria (Fase 6) ---------- */
+const APP_PRE = window.NIVEL_APP === "pre";
 const esSec = g => !!(g && g.nivel === "sec");
+const esPre = g => !!(g && g.nivel === "pre");
+const nivelTxt = g => esPre(g) ? "preescolar" : esSec(g) ? "secundaria" : "primaria";
 const DISC_SEC = [["Español", "L", "Esp."], ["Lengua Indígena como Lengua Materna", "L", "L. Ind. LM"], ["Lengua Indígena como Segunda Lengua", "L", "L. Ind. L2"], ["Inglés", "L", "Inglés"], ["Artes", "L", "Artes"],
   ["Matemáticas", "S", "Mat."], ["Biología", "S", "Biol."], ["Física", "S", "Fís."], ["Química", "S", "Quím."],
   ["Geografía", "E", "Geog."], ["Historia", "E", "Hist."], ["Formación Cívica y Ética", "E", "FCyE"],
@@ -30,9 +33,9 @@ const discDelGrado = gr => DISC_SEC.filter(x => !DISC_GR[x[0]] || DISC_GR[x[0]].
 const TELE = gr => discDelGrado(gr).filter(n => !/^Lengua Ind/.test(n));
 const MODS = { general: "Secundaria general", tecnica: "Secundaria técnica", tele: "Telesecundaria", comunitaria: "Secundaria comunitaria" };
 /* escala única de grados para el banco de dinámicas: 1 a 6 primaria, 7 a 9 = 1.° a 3.° de secundaria */
-const escala = grp => { const gs = grp && grp.grados && grp.grados.length ? grp.grados : [1], o = esSec(grp) ? 6 : 0; return [Math.min(...gs) + o, Math.max(...gs) + o]; };
-const gEsc = n => n > 6 ? (n - 6) + ".° sec." : n + ".°";
-const gRango = r => r[0] === r[1] ? gEsc(r[0]) : r[0] > 6 ? (r[0] - 6) + ".° a " + (r[1] - 6) + ".° sec." : r[1] > 6 ? r[0] + ".° prim. a " + gEsc(r[1]) : r[0] + ".° a " + r[1] + ".°";
+const escala = grp => { const gs = grp && grp.grados && grp.grados.length ? grp.grados : [1], o = esPre(grp) ? 10 : esSec(grp) ? 6 : 0; return [Math.min(...gs) + o, Math.max(...gs) + o]; };
+const gEsc = n => n > 10 ? (n - 10) + ".° pre." : n > 6 ? (n - 6) + ".° sec." : n + ".°";
+const gRango = r => r[0] === r[1] ? gEsc(r[0]) : r[0] > 10 ? (r[0] - 10) + ".° a " + (r[1] - 10) + ".° pre." : r[0] > 6 ? (r[0] - 6) + ".° a " + (r[1] - 6) + ".° sec." : r[1] > 6 ? r[0] + ".° prim. a " + gEsc(r[1]) : r[0] + ".° a " + r[1] + ".°";
 const areaTxt = g => esSec(g) ? "disciplina" : "campo formativo";
 const nrm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 const titulo = t => String(t || "").toLowerCase().replace(/(^|\s|-)([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, w => w.toLowerCase());
@@ -54,7 +57,7 @@ const ICONOS = {
 
 /* ---------------- datos ---------------- */
 const DEMO = (() => { let on = false; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
-const CLAVE = DEMO ? "aula-demo" : "aula-datos";
+const CLAVE = (APP_PRE ? "aula-pre-" : "aula-") + (DEMO ? "demo" : "datos");
 const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], exams: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
@@ -69,7 +72,8 @@ const yo = () => { const t = LS("tlm-yo"), p = LS("ppie-perfil") || {}; return {
 /* ---------------- programa y calendario ---------------- */
 let PDA = null, CAL = null;
 async function programa() { if (PDA) return PDA; try { const r = await fetch(TLM + "formatos/pda.json"); if (r.ok) { PDA = await r.json(); try { localStorage.setItem("aula-pda", JSON.stringify(PDA)); } catch (e) {} } } catch (e) {} if (!PDA) PDA = LS("aula-pda"); return PDA; }
-let PDA6 = null;
+let PDA6 = null, PDA2 = null;
+async function programaPre() { if (PDA2) return PDA2; try { const r = await fetch(TLM + "formatos/pda-pre.json"); if (r.ok) { PDA2 = await r.json(); try { localStorage.setItem("aula-pda2", JSON.stringify(PDA2)); } catch (e) {} } } catch (e) {} if (!PDA2) PDA2 = LS("aula-pda2"); return PDA2; }
 async function programaSec() { if (PDA6) return PDA6; try { const r = await fetch(TLM + "formatos/pda-sec.json"); if (r.ok) { PDA6 = await r.json(); try { localStorage.setItem("aula-pda6", JSON.stringify(PDA6)); } catch (e) {} } } catch (e) {} if (!PDA6) PDA6 = LS("aula-pda6"); return PDA6; }
 async function calendario() { if (CAL) return CAL; try { const r = await fetch(TLM + "formatos/calendario.json"); if (r.ok) CAL = await r.json(); } catch (e) {} return CAL || { vacaciones: [], eventos: [] }; }
 function sinClase(k) { const c = CAL || { vacaciones: [], eventos: [] }; const v = (c.vacaciones || []).find(([a, b]) => k >= a && k <= b); if (v) return v[2];
@@ -159,7 +163,7 @@ const val = id => (document.getElementById(id) || {}).value || "";
 const _libs = {};
 function cargarJS(src) { return _libs[src] || (_libs[src] = new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => { delete _libs[src]; no(new Error("No se pudo cargar " + src)); }; document.head.appendChild(s); })); }
 const enApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-const marca = (claro) => `<div class="marca"><img src="img/aula-icono.svg" alt=""><div><div class="mk-n">Tlamatini <b>Aula</b></div><div class="mk-l">El saber, en acción</div></div></div>`;
+const marca = (claro) => `<div class="marca"><img src="img/aula-icono.svg" alt=""><div><div class="mk-n">Tlamatini <b>Aula</b>${APP_PRE ? ' <small style="font-size:.6em;letter-spacing:.06em;text-transform:uppercase;opacity:.85">Preescolar</small>' : ""}</div><div class="mk-l">El saber, en acción</div></div></div>`;
 const pie = () => `<p class="pie">Tlamatini Aula · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p><div class="firma-autor"><span>Desarrollada por</span><img src="${TLM}firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65"></div>`;
 
 /* =================================================================== BLOQUEO */
@@ -174,7 +178,8 @@ ENLAZAR.bloqueo = () => { $("#bRev").onclick = () => ir("revisar"); $("#bOk").on
   $("#bDemo").onclick = e => { e.preventDefault(); try { sessionStorage.setItem("aula-demo", "1"); } catch (er) {} location.reload(); }; };
 
 /* =================================================================== BIENVENIDA Y GRUPO */
-function escuelasMias() { const t = LS("tlm-yo"), p = LS("ppie-perfil") || {}, out = [];
+function escuelasMias() { if (APP_PRE) return DEMO ? [{ cct: "02DJN9999Z", nombre: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", mun: "San Quintín" }] : [];
+  const t = LS("tlm-yo"), p = LS("ppie-perfil") || {}, out = [];
   if (t && Array.isArray(t.escuelas)) t.escuelas.forEach(e => out.push({ cct: e.cct, nombre: "Escuela Primaria " + e.nombre, turno: e.turno || "", dir: e.dir || "", cargoDir: e.cargo || "", loc: e.loc || "", mun: e.mun || "", dom: e.dom || "" }));
   if (p.cct && !out.some(e => e.cct === p.cct)) out.push({ cct: p.cct, nombre: p.escuela || "", turno: p.turno || "", dir: p.director || "", loc: p.localidad || "", mun: p.municipio || "", dom: p.domicilio || "" });
   if (DEMO && !out.length) out.push({ cct: "02DPR9999Z", nombre: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", mun: "San Quintín", dom: "Calle Revolución s/n" });
@@ -183,21 +188,21 @@ VISTAS.bienvenida = () => { const y = yo(); return `<main class="wrap"><section 
   <p>Para empezar, registre su grupo. Si tiene doble plaza o más de un grupo, después puede agregar los demás.</p></section>
   <div class="mt">${formGrupoHTML({})}</div>${pie()}</main>`; };
 ENLAZAR.bienvenida = () => enlazarFormGrupo({}, true);
-function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [], sec = g.id ? esSec(g) : S.nivelNuevo === "sec", otra = (g.cct && !escs.some(e => e.cct === g.cct)) || (!g.id && sec) || !escs.length;
+function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [], sec = !APP_PRE && (g.id ? esSec(g) : S.nivelNuevo === "sec"), otra = (g.cct && !escs.some(e => e.cct === g.cct)) || (!g.id && sec) || !escs.length;
   const ds = new Set(g.discs || []), CAMP_N = { L: "Lenguajes", S: "Saberes y pensamiento científico", E: "Ética, naturaleza y sociedades", H: "De lo humano y lo comunitario" };
   return `<section class="card"><h3>${g.id ? "Editar grupo" : "Mi grupo"}</h3>
-   ${g.id ? `<p class="small muted mb">${sec ? "Secundaria" : "Primaria"}</p>` : `<div class="campo"><span>Nivel</span><div class="chips" id="gNv"><button type="button" class="chip" data-nv="prim" aria-pressed="${!sec}">Primaria</button><button type="button" class="chip" data-nv="sec" aria-pressed="${sec}">Secundaria</button></div></div>`}
+   ${APP_PRE ? `<p class="small muted mb">Preescolar · Fase 2</p>` : g.id ? `<p class="small muted mb">${sec ? "Secundaria" : "Primaria"}</p>` : `<div class="campo"><span>Nivel</span><div class="chips" id="gNv"><button type="button" class="chip" data-nv="prim" aria-pressed="${!sec}">Primaria</button><button type="button" class="chip" data-nv="sec" aria-pressed="${sec}">Secundaria</button></div></div>`}
    <label class="campo"><span>Escuela</span><select id="gE">${escs.map(e => `<option value="${esc(e.cct)}" ${!otra && e.cct === g.cct ? "selected" : ""}>${esc(e.nombre)}${e.turno ? " · " + esc(e.turno) : ""}</option>`).join("")}<option value="otra" ${otra ? "selected" : ""}>Otra escuela…</option></select></label>
-   <div id="gOtra" ${otra ? "" : "hidden"}><div class="dos"><label class="campo"><span>Nombre de la escuela</span><input id="gEN" value="${esc(g.escuela || "")}" placeholder="${sec ? "Escuela Secundaria General No. …" : ""}"></label><label class="campo"><span>C.C.T.</span><input id="gEC" value="${esc(g.cct || "")}" style="text-transform:uppercase" placeholder="${sec ? "02DES…, 02DST…, 02ETV…" : ""}"></label></div></div>
+   <div id="gOtra" ${otra ? "" : "hidden"}><div class="dos"><label class="campo"><span>Nombre de la escuela</span><input id="gEN" value="${esc(g.escuela || "")}" placeholder="${APP_PRE ? "Jardín de Niños …" : sec ? "Escuela Secundaria General No. …" : ""}"></label><label class="campo"><span>C.C.T.</span><input id="gEC" value="${esc(g.cct || "")}" style="text-transform:uppercase" placeholder="${APP_PRE ? "02DJN…, 02EJN…" : sec ? "02DES…, 02DST…, 02ETV…" : ""}"></label></div></div>
    ${sec ? `<label class="campo"><span>Modalidad</span><select id="gMo">${Object.entries(MODS).map(([k, t]) => `<option value="${k}" ${(g.mod || "general") === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>` : ""}
-   <div class="campo"><span>Grado(s) <small>· ${sec ? "si atiende varios grados con este grupo, tóquelos todos" : "si es multigrado, toque todos los grados de su grupo"}</small></span><div class="chips" id="gG">${(sec ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
+   <div class="campo"><span>Grado(s) <small>· ${sec ? "si atiende varios grados con este grupo, tóquelos todos" : "si es multigrado, toque todos los grados de su grupo"}</small></span><div class="chips" id="gG">${(sec || APP_PRE ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
    ${sec ? `<div class="campo"><span>Disciplinas que imparte a este grupo <small>· en telesecundaria, todas</small></span>
      <div id="gDs">${["L", "S", "E", "H"].map(k => `<p class="small muted" style="margin:8px 0 4px">${CAMP_N[k]}</p><div class="chips">${DISC_SEC.filter(x => x[1] === k).map(x => `<button type="button" class="chip" data-ds="${esc(x[0])}" aria-pressed="${ds.has(x[0])}">${esc(x[0])}${DISC_GR[x[0]] ? ` <small>(${DISC_GR[x[0]].join(", ")}.°)</small>` : ""}</button>`).join("")}</div>`).join("")}</div>
      <p class="small muted mt">Biología y Geografía se imparten en 1.°, Física en 2.° y Química en 3.°, como marca el Programa Sintético de la Fase 6.</p></div>` : ""}
    <div class="dos"><label class="campo"><span>Grupo${sec && !g.id ? " <small>· si tiene varios, sepárelos con coma: A, B, C</small>" : ""}</span><input id="gL" maxlength="${sec && !g.id ? 40 : 3}" value="${esc(g.grupo || "")}" placeholder="${sec && !g.id ? "A, B, C" : "A"}" style="text-transform:uppercase"></label>
    <label class="campo"><span>Turno</span><select id="gT">${["Matutino", "Vespertino", "Tiempo completo"].map(t => `<option ${t === (g.turno || (escs[0] || {}).turno) ? "selected" : ""}>${t}</option>`).join("")}</select></label></div>
    <div class="fila fin">${g.id ? `<button class="btn r" id="gB" style="margin-right:auto">${ic("basura", 16)}</button>` : ""}<button class="btn p" id="gOk">${ic("check", 18)} ${g.id ? "Guardar" : "Guardar y seguir"}</button></div></section>`; }
-function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec = g.id ? esSec(g) : S.nivelNuevo === "sec", ds = new Set(g.discs || []);
+function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec = !APP_PRE && (g.id ? esSec(g) : S.nivelNuevo === "sec"), ds = new Set(g.discs || []);
   $$("#gNv .chip").forEach(b => b.onclick = () => { S.nivelNuevo = b.dataset.nv; re(); });
   $$("#gG .chip").forEach(b => b.onclick = () => { const n = +b.dataset.g; sel.has(n) ? sel.delete(n) : sel.add(n); b.setAttribute("aria-pressed", sel.has(n)); });
   const pintaDs = () => $$("#gDs [data-ds]").forEach(b => b.setAttribute("aria-pressed", ds.has(b.dataset.ds)));
@@ -212,6 +217,7 @@ function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec =
       if (!L.length && val("gMo") === "tele") L = [...new Set(datos.grados.flatMap(TELE))];
       if (!L.length) return toast(ds.size ? "Esas disciplinas no se imparten en el grado elegido." : "Elija la disciplina (o las disciplinas) que imparte.");
       Object.assign(datos, { nivel: "sec", mod: val("gMo") || "general", discs: DISC_SEC.map(x => x[0]).filter(n => L.includes(n)) }); }
+    if (APP_PRE) datos.nivel = "pre";
     if (g.id) { Object.assign(g, datos); guardar(); history.back(); toast("Grupo guardado."); return; }
     const letras = sec ? [...new Set(datos.grupo.split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean))] : [datos.grupo];
     const nuevos = (letras.length ? letras : [""]).map(l => Object.assign({ id: uid(), alumnos: [] }, datos, { grupo: l }));
@@ -235,8 +241,8 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
    <button class="puerta" data-v="planes" style="--c:#24427A;--c-s:#E6ECF6"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.filter(p => p.gid === (g && g.id)).length} proyectos · contenidos y PDA oficiales de su grado</span></button>
    <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${todasDin().filter(d => nivelOK(g, d)).length} actividades para iniciar, activar, jugar y cerrar</span></button>
    <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
-   <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por ${areaTxt(g)}, valoración e informes del trimestre</span></button>
-   <button class="puerta" data-v="examenes" style="--c:#A94C2A;--c-s:#F7E3D8"><span class="ic">${ic("doc")}</span><b>Exámenes</b><span>${(D.exams || []).filter(e => e.gid === (g && g.id)).length} · diagnósticos, parciales, trimestrales, finales y por contenido</span></button>
+   <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>${esPre(g) ? "Evaluación cualitativa" : "Evaluación y boletas"}</b><span>${esPre(g) ? "Listas de cotejo, observaciones por campo formativo y redacción con IA" : `Calificación por ${areaTxt(g)}, valoración e informes del trimestre`}</span></button>
+   ${esPre(g) ? "" : `<button class="puerta" data-v="examenes" style="--c:#A94C2A;--c-s:#F7E3D8"><span class="ic">${ic("doc")}</span><b>Exámenes</b><span>${(D.exams || []).filter(e => e.gid === (g && g.id)).length} · diagnósticos, parciales, trimestrales, finales y por contenido</span></button>`}
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
    <button class="puerta" data-v="libros" style="--c:#1F6F8B;--c-s:#DCEEF3"><span class="ic">${ic("libro")}</span><b>Libros de texto</b><span>Los libros gratuitos de ${g && g.grados.length > 1 ? "sus grados" : "su grado"}, ciclo 2026-2027</span></button>
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
@@ -247,7 +253,7 @@ ENLAZAR.inicio = () => { $$("[data-ga]").forEach(b => b.onclick = () => { D.gact
   $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); }); };
 let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; });
 function instalar() { if (PROMPT_INST) { PROMPT_INST.prompt(); PROMPT_INST = null; return; }
-  dlg(`<h3>Instalar Tlamatini Aula</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
+  dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
 
 /* =================================================================== MI GRUPO */
 VISTAS.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return VISTAS.inicio(); const al = activos(g), bajas = (g.alumnos || []).filter(a => a.baja);
@@ -335,7 +341,7 @@ ENLAZAR.asistencia = () => { $("#asM").onchange = e => { S.m = e.target.value; r
 
 /* =================================================================== DINÁMICAS */
 const todasDin = () => DINAMICAS.concat(D.mias.map(d => Object.assign({ mia: true }, d)));
-const nivelOK = (g, d) => !g || !d.g ? true : esSec(g) ? d.g[1] >= 7 : d.g[0] <= 6;
+const nivelOK = (g, d) => !g || !d.g ? true : esPre(g) ? d.g[0] >= 11 : esSec(g) ? d.g[0] >= 7 && d.g[1] <= 9 : d.g[0] <= 6;
 const dinDe = id => todasDin().find(d => d.id === id) || (ZONA || []).find(d => d.id === id);
 VISTAS.dinamicas = () => { const F = S.F = S.F || { cat: "", campo: "", q: "", g: "", fav: false }, g = gAct(), q = nrm(F.q);
   const L = (F.zona ? (ZONA || []) : todasDin()).filter(d => nivelOK(g, d) && (!F.cat || d.cat === F.cat) && (!F.campo || d.campos.includes(F.campo)) && (!F.g || (d.g[0] <= +F.g && d.g[1] >= +F.g)) && (!F.fav || D.favs.includes(d.id)) && (!q || nrm(d.n + " " + d.prop + " " + d.mat).includes(q)));
@@ -411,7 +417,7 @@ ENLAZAR.planes = () => { $("#pN").onclick = () => ir("planNueva"); $$("[data-p]"
 VISTAS.planNueva = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const P = S.P = S.P || { campo: "", sel: {}, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" };
   const fases = [...new Set(g.grados.map(faseDe))];
   return barra("Planeación · " + esc(grNom(g)), "Nuevo proyecto") + `<main class="wrap" id="pnM"><p class="muted mt">Cargando el programa…</p></main>`; };
-ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (!m) return; if (esSec(g)) return planNuevaSec(g, P, m); const pda = await programa(); await calendario();
+ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (!m) return; if (esSec(g) || esPre(g)) return planNuevaSec(g, P, m); const pda = await programa(); await calendario();
   if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
   const fases = [...new Set(g.grados.map(faseDe))].sort();
   const pinta = () => { const met = P.metodo || (P.campo ? Object.keys(METODOS).find(k => METODOS[k].campo === P.campo) : "");
@@ -439,17 +445,17 @@ ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (
   pinta(); };
 const cortaCrit = t => { let x = String(t).split(/[.;:](?:\s|$)/)[0].trim(); if (x.length > 170) x = x.slice(0, x.lastIndexOf(" ", 165)) + "…"; return x; };
 /* ---------- planeación de secundaria: disciplina → contenido → PDA del grado (Fase 6) ---------- */
-async function planNuevaSec(g, P, m) { const pda = await programaSec(); await calendario();
-  if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético de la Fase 6. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
-  const discs = (g.discs || []).filter(n => pda.disciplinas[n]); if (!P.disc && discs.length === 1) P.disc = discs[0]; P.pk = P.pk || {};
+async function planNuevaSec(g, P, m) { const pre = esPre(g), fase = pre ? 2 : 6, pda = pre ? await programaPre() : await programaSec(); await calendario();
+  if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético de la Fase ${fase}. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
+  const discs = (pre ? CAMPOS : g.discs || []).filter(n => pda.disciplinas[n]); if (!P.disc && discs.length === 1) P.disc = discs[0]; P.pk = P.pk || {};
   const pinta = () => { const Dd = P.disc ? pda.disciplinas[P.disc] : null, campo = Dd ? campoKey(Dd.campo) : "", grs = g.grados.filter(x => !Dd || Dd.grados.includes(x));
     const L = Dd ? Dd.contenidos.map((c, i) => ({ c, i })).filter(x => grs.some(gr => (x.c.pda[gr] || []).length)) : [];
     const met = P.metodo || (campo ? Object.keys(METODOS).find(k => METODOS[k].campo === campo) : ""), sel = Dd && P.sel6 != null ? Dd.contenidos[P.sel6] : null;
     const conPda = sel ? grs.filter(gr => (sel.pda[gr] || []).length) : [], listos = sel && conPda.every(gr => (P.pk[gr] || []).length);
-    m.innerHTML = `<section class="card mt"><h3>1. Disciplina</h3>${discs.length ? `<div class="chips">${discs.map(n => `<button class="chip" data-dc="${esc(n)}" aria-pressed="${P.disc === n}">${esc(n)}</button>`).join("")}</div>` : `<p class="small">Este grupo no tiene disciplinas registradas. Edítelo en Ajustes → Mis grupos.</p>`}
-      ${campo ? `<p class="small muted mt">Campo formativo: <b>${esc(campo)}</b> · Fase 6 · ${grs.map(x => x + ".°").join(", ")} de secundaria</p>` : ""}</section>
+    m.innerHTML = `<section class="card mt"><h3>1. ${pre ? "Campo formativo" : "Disciplina"}</h3>${discs.length ? `<div class="chips">${discs.map(n => `<button class="chip" data-dc="${esc(n)}" aria-pressed="${P.disc === n}">${esc(n)}</button>`).join("")}</div>` : `<p class="small">Este grupo no tiene disciplinas registradas. Edítelo en Ajustes → Mis grupos.</p>`}
+      ${campo ? `<p class="small muted mt">${pre ? "" : `Campo formativo: <b>${esc(campo)}</b> · `}Fase ${fase} · ${grs.map(x => x + ".°").join(", ")} de ${pre ? "preescolar" : "secundaria"}</p>` : ""}</section>
     ${Dd && !L.length ? `<div class="vacio mt">${esc(P.disc)} no tiene contenidos en ${g.grados.map(x => x + ".°").join(", ")}: en la Fase 6 se imparte en ${Dd.grados.map(x => x + ".°").join(", ")}.</div>` : ""}
-    ${L.length ? `<section class="card mt"><h3>2. Contenido · ${esc(P.disc)}</h3><p class="small muted mb">Elija el contenido del Programa Sintético de la Fase 6.</p>
+    ${L.length ? `<section class="card mt"><h3>2. Contenido · ${esc(P.disc)}</h3><p class="small muted mb">Elija el contenido del Programa Sintético de la Fase ${fase}.</p>
       <div class="cont-l">${L.map(x => `<label class="cont ${P.sel6 === x.i ? "on" : ""}"><input type="radio" name="ct6" value="${x.i}" ${P.sel6 === x.i ? "checked" : ""} data-ct6="1"><span>${esc(x.c.c)}<small class="muted" style="display:block">${grs.filter(gr => (x.c.pda[gr] || []).length).map(gr => x.c.pda[gr].length + " PDA de " + gr + ".°").join(" · ")}</small></span></label>`).join("")}</div></section>` : ""}
     ${sel ? `<section class="card mt"><h3>3. PDA que va a trabajar</h3><p class="small muted mb">Marque los procesos de desarrollo de aprendizaje de este proyecto o secuencia. Con ellos se arma la rúbrica de evaluación.</p>
       ${conPda.map(gr => `${conPda.length > 1 || g.grados.length > 1 ? `<p class="small mt"><b>${gr}.° grado</b></p>` : ""}${sel.pda[gr].map((t, j) => `<label class="rev-chk" style="align-items:flex-start"><input type="checkbox" data-pk="${gr}|${j}" ${(P.pk[gr] || []).includes(j) ? "checked" : ""} style="margin-top:3px"> <span>${esc(t)}</span></label>`).join("")}`).join("")}
@@ -462,7 +468,7 @@ async function planNuevaSec(g, P, m) { const pda = await programaSec(); await ca
       <label class="campo"><span>Propósito (opcional)</span><textarea id="pPr" class="area" style="min-height:80px" placeholder="Qué se espera que las y los estudiantes logren">${esc(P.proposito)}</textarea></label>
       <label class="campo"><span>Producto final (opcional)</span><input id="pPd" value="${esc(P.producto)}" placeholder="Ej. Infografía, podcast, maqueta, campaña, debate público, informe de laboratorio"></label>
       <div class="tres"><label class="campo"><span>Inicia</span><input type="date" id="pI" value="${P.ini}"></label><label class="campo"><span>Sesiones</span><input type="number" id="pNn" min="1" max="40" value="${P.n}"></label><label class="campo"><span>Minutos por sesión</span><input type="number" id="pMi" min="15" max="240" value="${P.min}"></label></div>
-      <p class="small muted">En secundaria cuente cada módulo como una sesión (50 minutos, o 100 si es doble). Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p>
+      <p class="small muted">${pre ? "En preescolar cuente como sesión cada situación o actividad del proyecto en el día (de 20 a 60 minutos)." : "En secundaria cuente cada módulo como una sesión (50 minutos, o 100 si es doble)."} Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p>
       <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div></section>` : ""}`;
     const lee = () => { if (!$("#pT")) return; P.titulo = val("pT"); P.proposito = val("pPr"); P.producto = val("pPd"); P.ini = val("pI") || P.ini; P.n = Math.max(1, Math.min(40, +val("pNn") || 5)); P.min = Math.max(15, +val("pMi") || 50); if ($("#pMe")) P.metodo = val("pMe"); };
     $$("[data-dc]").forEach(b => b.onclick = () => { P.disc = b.dataset.dc; P.sel6 = null; P.pk = {}; P.metodo = ""; pinta(); });
@@ -474,7 +480,7 @@ async function planNuevaSec(g, P, m) { const pda = await programaSec(); await ca
     $$("[data-ej]").forEach(b => b.onclick = () => { lee(); const i = P.ejes.indexOf(b.dataset.ej); i >= 0 ? P.ejes.splice(i, 1) : P.ejes.push(b.dataset.ej); pinta(); });
     $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met;
       const pdas = {}, crit = []; g.grados.forEach(gr => { const T = (P.pk[gr] || []).map(j => (sel.pda[gr] || [])[j]).filter(Boolean); if (T.length) { pdas[gr] = T.join(" "); T.forEach(t => crit.push({ gr, c: cortaCrit(t) })); } });
-      const p = crearPlan(g, Object.assign({}, P, { campo }), null, { conts: { 6: sel.c }, pdas, crit }); p.nivel = "sec"; p.disc = P.disc;
+      const p = crearPlan(g, Object.assign({}, P, { campo }), null, { conts: { 6: sel.c }, pdas, crit }); if (pre) p.nivel = "pre"; else { p.nivel = "sec"; p.disc = P.disc; }
       D.planes.push(p); guardar(); S.P = null; ir("plan", { id: p.id }, true); toast("<b>Planeación creada.</b> Revise y ajuste cada sesión.", 3500); }); };
   pinta(); }
 function crearPlan(g, P, pda, pre) { const M = METODOS[P.metodo], fases = M.fases, n = P.n, cod = CAMPO_COD[P.campo];
@@ -555,6 +561,8 @@ function imprimir(html, horizontal) { $("#imprimir").innerHTML = (horizontal ? "
 
 /* =================================================================== EVALUACIÓN FORMATIVA (etapa 2) */
 const NIV4 = [[4, "Destacado", "D", "#1E8E5A"], [3, "Logrado", "L", "#5FA36B"], [2, "En proceso", "P", "#C98A0B"], [1, "Requiere apoyo", "R", "#C2362B"]];
+const NIV3 = [[3, "Lo logra", "Sí", "#1E8E5A"], [2, "En ocasiones", "A veces", "#C98A0B"], [1, "Todavía no", "No", "#C2362B"]];
+const nivsDe = g => esPre(g) ? NIV3 : NIV4;
 const nivDe = n => NIV4.find(x => x[0] === n) || [0, "", "", "#999"];
 const presentes = (g, k) => { const r = ((D.asis[g.id] || {})[k]) || {}; return activos(g).filter(a => r[a.id] === "P" || r[a.id] === "R"); };
 const critsDe = (p, a) => p.criterios.map((c, i) => Object.assign({ i }, c)).filter(c => !a || !a.g || c.gr === a.g || !p.criterios.some(x => x.gr === a.g));
@@ -564,10 +572,10 @@ VISTAS.evaluar = () => { const p = plDe(S.pid); if (!p) return VISTAS.planes(); 
   return barra(`Evaluar · sesión ${S.i + 1}`, esc(p.titulo)) + `<main class="wrap">
   <p class="small muted mt">${fCorta(k)} · ${esc(s.fase)} · ${pres.length ? `${pres.length} presentes según su lista` : "No hay pase de lista de ese día: se muestran todos"}</p>
   ${pres.length ? `<div class="fila mt"><button class="chip" id="evTod" aria-pressed="${!!S.todos}">Mostrar también a los ausentes</button></div>` : ""}
-  <section class="card mt"><p class="small"><b>Toque el nivel de cada alumno</b> en el criterio de su grado. Deje en blanco a quien no observó hoy.</p><div class="tags mt">${NIV4.map(n => `<span class="tag" style="background:${n[3]}22;color:${n[3]}">${n[2]} = ${n[1]}</span>`).join(" ")}</div></section>
+  <section class="card mt"><p class="small"><b>Toque el nivel de cada alumno</b> en el criterio de su grado. Deje en blanco a quien no observó hoy.</p><div class="tags mt">${nivsDe(g).map(n => `<span class="tag" style="background:${n[3]}22;color:${n[3]}">${n[2]} = ${n[1]}</span>`).join(" ")}</div></section>
   <div class="lista mt">${L.map(a => { const cs = critsDe(p, a), nf = D.fotos.filter(f => f.al === a.id && f.pid === p.id && f.ses === S.i).length; return `<div class="ev-al card"><div class="fila" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><b>${esc(a.nombre)}${g.grados.length > 1 && a.g ? ` <small class="muted">${a.g}.°</small>` : ""}</b>
       <span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-evf="${a.id}" title="Foto de evidencia">${ic("camara", 16)}${nf ? " " + nf : ""}</button><button class="btn s" data-evo="${a.id}" title="Observación">${ic("lapiz", 16)}</button></span></div>
-     ${cs.map(c => { const v = ((r.al || {})[a.id] || {})[c.i]; return `<p class="small mt" style="color:var(--gris)">${esc(c.c)}</p><div class="niv">${NIV4.map(n => `<button data-ev-al="${a.id}" data-ev-c="${c.i}" data-ev-n="${n[0]}" aria-pressed="${v === n[0]}" style="--c:${n[3]}" title="${n[1]}">${n[2]}<small>${n[1]}</small></button>`).join("")}</div>`; }).join("")}
+     ${cs.map(c => { const v = ((r.al || {})[a.id] || {})[c.i]; return `<p class="small mt" style="color:var(--gris)">${esc(c.c)}</p><div class="niv">${nivsDe(g).map(n => `<button data-ev-al="${a.id}" data-ev-c="${c.i}" data-ev-n="${n[0]}" aria-pressed="${v === n[0]}" style="--c:${n[3]}" title="${n[1]}">${n[2]}<small>${n[1]}</small></button>`).join("")}</div>`; }).join("")}
      ${(r.obs || {})[a.id] ? `<p class="small mt com-t">${esc(r.obs[a.id])}</p>` : ""}</div>`; }).join("") || `<div class="vacio">Primero agregue a sus alumnos.</div>`}</div>
   <div class="fila fin mt2"><button class="btn o" id="evOk">${ic("check", 18)} Listo</button></div>
   <input type="file" id="evCam" accept="image/*" capture="environment" hidden></main>`; };
@@ -584,7 +592,7 @@ ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(
   $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
 
 /* ---------- portafolio: fotos en IndexedDB ---------- */
-function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open(DEMO ? "aula-demo" : "aula", 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
+function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : "aula") + (DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
 async function idbOp(modo, fn) { const db = await idb(); return new Promise((ok, no) => { const t = db.transaction("f", modo), q = fn(t.objectStore("f")); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }); }
 const FOTO = {}; const fotoGet = async id => FOTO[id] || (FOTO[id] = await idbOp("readonly", s => s.get(id)).catch(() => null));
 function comprimir(file, max = 1280, q = .72) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", q)); }; im.onerror = no; im.src = r.result; }; r.onerror = no; r.readAsDataURL(file); }); }
@@ -602,7 +610,7 @@ VISTAS.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id
   return barra(esc(grNom(g)), esc(a.nombre), `<button class="btn s" id="alEd">${ic("lapiz", 16)} Editar</button>`) + `<main class="wrap">
   <p class="small muted mt">${esc(T.n)} · ${fCorta(T.ini)} al ${fCorta(T.fin)}${a.nee ? " · Ajustes: " + esc(a.nee) : ""}</p>
   <div class="kpis mt"><div class="kpi"><b>${R.asisP == null ? "—" : Math.round(R.asisP * 100) + "%"}</b><span>Asistencia</span></div><div class="kpi"><b>${R.falt}</b><span>Faltas</span></div><div class="kpi"><b>${R.nreg}</b><span>Registros</span></div><div class="kpi"><b>${D.fotos.filter(f => f.al === a.id).length}</b><span>Evidencias</span></div></div>
-  <h2 class="sec-t">Por ${areaTxt(g)}</h2><div class="lista">${areasDe(g).map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>
+  ${esPre(g) && typeof preFicha === "function" ? preFicha(g, a) : `<h2 class="sec-t">Por ${areaTxt(g)}</h2><div class="lista">${areasDe(g).map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>`}
   <h2 class="sec-t">Ajustes razonables</h2><section class="card">${(a.ajustes || []).slice(-2).reverse().map(x => `<p class="small"><b>${fCorta(x.f)}</b> · ${esc(x.bar)}</p><ul class="tlami-l small">${x.l.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${x.fam ? `<p class="small"><b>Con la familia:</b> ${esc(x.fam)}</p>` : ""}`).join("") || `<p class="small muted">Si a este alumno algo le cuesta, Tlami le sugiere apoyos concretos.</p>`}<button class="btn s tlami-b mt" id="alTl">${ic("chispa", 16)} Pedir ajustes a Tlami</button></section>
   ${R.obs.length ? `<h2 class="sec-t">Observaciones</h2><section class="card">${R.obs.map(o => `<p class="small"><b>${fCorta(o.f)}:</b> ${esc(o.t)}</p>`).join("")}</section>` : ""}
   <div class="fila mt2" style="justify-content:space-between"><h2 class="sec-t" style="margin:0">Portafolio</h2><button class="btn s p" id="alF">${ic("camara", 16)} Agregar evidencia</button></div><div class="fotos mt" id="alFotos"></div>
@@ -638,7 +646,7 @@ function filasBoleta(g, T) { const B = (D.bol[g.id] || {})[T.id] || {};
     const cs = Object.values(cal).filter(x => x != null), prom = cs.length ? cs.reduce((x, y) => x + y, 0) / cs.length : null;
     return { a, R, cal, val, prom, gen: o.gen || "", edit: o }; }); }
 const colCal = v => v == null ? "#999" : v >= 9 ? "#1E8E5A" : v >= 7 ? "#A87200" : "#C2362B";
-VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const T = trimActual(), F = filasBoleta(g, T), f = F.find(x => x.a.id === S.al);
+VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); if (esPre(g) && VISTAS.evalpre) { S.v = "evalpre"; return VISTAS.evalpre(); } const T = trimActual(), F = filasBoleta(g, T), f = F.find(x => x.a.id === S.al);
   return barra("Evaluación · " + esc(grNom(g)), esc(T.n), `<button class="btn s" id="bvI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
   <div class="chips mt">${TRIMS().map(t => `<button class="chip" data-tr="${t.id}" aria-pressed="${t.id === T.id}">${esc(t.n)}</button>`).join("")}</div>
   <p class="small muted mt">${fCorta(T.ini)} al ${fCorta(T.fin)}. La calificación (5 a 10) sale del promedio de los niveles que registró en cada ${areaTxt(g)}; la valoración, de los criterios y sus observaciones. Puede ajustar ambas.</p>
@@ -651,7 +659,7 @@ VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); co
       <button class="btn s tlami-b mt" data-btl="${esc(c)}">${ic("chispa", 14)} Mejorar redacción con Tlami</button><textarea class="area" style="min-height:80px" data-bv="${esc(c)}" placeholder="${f.R.campos[c] ? "" : "Sin registros en el trimestre: escriba su valoración"}">${esc(f.val[c])}</textarea></div>`).join("")}
     <label class="campo mt"><span>Observaciones generales y recomendaciones para la familia</span><textarea class="area" id="bvG">${esc(f.gen)}</textarea></label>
     <div class="fila">${f.edit.cal || f.edit.val ? `<button class="btn s r" id="bvR">Volver a lo calculado</button>` : ""}<button class="btn s" id="bvU">${ic("impr", 16)} Informe de este alumno</button></div></section>`}</main>`; };
-ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; const T = trimActual();
+ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; if (esPre(g) && ENLAZAR.evalpre) return ENLAZAR.evalpre(); const T = trimActual();
   $$("[data-tr]").forEach(b => b.onclick = () => { S.trim = b.dataset.tr; S.al = null; re(); }); $$("[data-bal]").forEach(r => r.onclick = () => { S.al = r.dataset.bal; pintar(); scrollTo(0, 0); });
   const ed = id => { const B = (D.bol[g.id] = D.bol[g.id] || {}), t = (B[T.id] = B[T.id] || {}); return t[id] = t[id] || {}; };
   $("#bvV") && ($("#bvV").onclick = () => { S.al = null; re(); });
@@ -732,7 +740,7 @@ function tlamiSesion(p, i) { const g = grDe(p.gid), s = p.sesiones[i];
    <div class="fila fin mt"><button class="btn" id="tsX">Cancelar</button><button class="btn p" id="tsOk">${ic("chispa", 16)} Pedir propuesta</button></div>`, v => {
     v.querySelector("#tsX").onclick = cerrarDlg;
     v.querySelector("#tsOk").onclick = async () => { const nota = val("tsN").trim(); tlamiEspera("Preparando inicio, desarrollo, cierre y evaluación de la sesión.");
-      try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, nivel: esSec(g) ? "secundaria" : "primaria", disciplina: p.disc || "", titulo: p.titulo, campo: p.disc ? p.disc + " (secundaria, campo formativo " + p.campo + ")" : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
+      try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, nivel: nivelTxt(g), disciplina: p.disc || "", titulo: p.titulo, campo: p.disc ? p.disc + " (secundaria, campo formativo " + p.campo + ")" : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
           contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), nota });
         const r = j.r || {}; dlg(`<h3>Propuesta de Tlami</h3><div class="tlami-r">${[["Inicio", r.inicio], ["Desarrollo", r.desarrollo], ["Cierre", r.cierre], ["Evaluación", r.evaluacion], ["Materiales", r.materiales], ["Ajustes", r.ajustes]].filter(x => x[1]).map(([t, x]) => `<p><b>${t}:</b> ${esc(x).replace(/\n/g, "<br>")}</p>`).join("")}</div>
           <p class="small muted mt">Revísela y ajústela a su grupo: usted conoce a sus alumnos.</p><div class="fila fin mt"><button class="btn" id="trX">Descartar</button><button class="btn p" id="trOk">${ic("check", 16)} Usar en la sesión</button></div>`, w => {
@@ -747,7 +755,7 @@ function tlamiAjustes(g, a) { const p = D.planes.filter(x => x.gid === g.id).sor
    <div class="fila fin mt"><button class="btn" id="taX">Cancelar</button><button class="btn p" id="taOk">${ic("chispa", 16)} Pedir ajustes</button></div>`, v => {
     v.querySelector("#taX").onclick = cerrarDlg;
     v.querySelector("#taOk").onclick = async () => { const bar = val("taB").trim(), act = val("taA").trim(); if (bar.length < 5) return toast("Describa un poco lo que observa."); tlamiEspera("Buscando apoyos concretos para que participe.");
-      try { const j = await aulaPost("aulaIA", { modo: "ajustes", grados: [a.g || g.grados[0]], nivel: esSec(g) ? "secundaria" : "primaria", actividad: act, campo: p ? (p.disc ? p.disc + " (secundaria)" : p.campo) : "", barrera: bar }), r = j.r || {};
+      try { const j = await aulaPost("aulaIA", { modo: "ajustes", grados: [a.g || g.grados[0]], nivel: nivelTxt(g), actividad: act, campo: p ? (p.disc ? p.disc + " (secundaria)" : p.campo) : "", barrera: bar }), r = j.r || {};
         dlg(`<h3>Ajustes sugeridos</h3><ul class="tlami-l">${(r.ajustes || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>${r.familia ? `<p class="mt"><b>Con la familia:</b> ${esc(r.familia)}</p>` : ""}
           <div class="fila fin mt"><button class="btn" id="tjX">Cerrar</button><button class="btn p" id="tjOk">${ic("check", 16)} Guardar en su ficha</button></div>`, w => {
           w.querySelector("#tjX").onclick = cerrarDlg;
@@ -761,7 +769,7 @@ function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1], gE = escal
    <div class="fila fin mt"><button class="btn" id="tdX">Cancelar</button><button class="btn p" id="tdOk">${ic("chispa", 16)} Crear</button></div>`, v => {
     v.querySelector("#tdX").onclick = cerrarDlg;
     v.querySelector("#tdOk").onclick = async () => { const tema = val("tdT").trim(), cat = val("tdC"), min = +val("tdM") || 10, esp = val("tdE"); if (tema.length < 5) return toast("Escriba para qué la quiere."); tlamiEspera("Inventando una dinámica para su grupo.");
-      try { const j = await aulaPost("aulaIA", { modo: "dinamica", grados: gr, nivel: esSec(g) ? "secundaria" : "primaria", tema, tipo: (DIN_CATS[cat] || [cat])[0], min, esp }), r = j.r || {};
+      try { const j = await aulaPost("aulaIA", { modo: "dinamica", grados: gr, nivel: nivelTxt(g), tema, tipo: (DIN_CATS[cat] || [cat])[0], min, esp }), r = j.r || {};
         const d = { id: "mia-" + uid(), n: r.n || "Dinámica de Tlami", cat, campos: ["L", "S", "E", "H"].filter(k => (cat === "lengua" && k === "L") || (cat === "mate" && k === "S") || (cat === "ciencia" && k === "S") || (cat === "convive" && k === "H")), g: gE, min, esp, mat: r.mat || "", prop: r.prop || "", pasos: r.pasos || [], var: r.var || "", multi: r.multi || "", autor: yo().nombre, ia: true };
         if (!d.campos.length) d.campos = ["L", "S", "E", "H"];
         dlg(`<h3>${esc(d.n)}</h3><p>${esc(d.prop)}</p>${d.mat ? `<p class="small mt"><b>Material:</b> ${esc(d.mat)}</p>` : ""}<ol class="pasos-l mt">${d.pasos.map(x => `<li>${esc(x)}</li>`).join("")}</ol>${d.var ? `<p class="small"><b>Variante:</b> ${esc(d.var)}</p>` : ""}${d.multi ? `<p class="small"><b>Multigrado:</b> ${esc(d.multi)}</p>` : ""}
@@ -771,12 +779,17 @@ function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1], gE = escal
 async function tlamiValoracion(g, a, campo, txt, alListo) { if (!txt || txt.length < 15) return toast("Escriba primero una valoración (o registre evaluaciones) para que Tlami la mejore.");
   const nom = String(a.nombre || "").split(" ")[0], re0 = new RegExp("\\b" + nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
   tlamiEspera("Redactando la valoración para la familia.");
-  try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [a.g || g.grados[0]], nivel: esSec(g) ? "secundaria" : "primaria", campo: esSec(g) ? campo + " (secundaria)" : campo, texto: txt.replace(re0, "[ALUMNO]") }); cerrarDlg(); const t = String((j.r || {}).texto || "").replace(/\[ALUMNO\]/g, nom); if (t) alListo(t); }
+  try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [a.g || g.grados[0]], nivel: nivelTxt(g), campo: esSec(g) ? campo + " (secundaria)" : campo, texto: txt.replace(re0, "[ALUMNO]") }); cerrarDlg(); const t = String((j.r || {}).texto || "").replace(/\[ALUMNO\]/g, nom); if (t) alListo(t); }
   catch (e) { tlamiError(e); } }
 
 /* =================================================================== LIBROS DE TEXTO GRATUITOS */
-const LTG_URL = c => `https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=${/^S/.test(c) ? "secundaria" : "primaria"}&ciclo=2026&clave=${c}`;
+const LTG_URL = c => `https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=${/^S/.test(c) ? "secundaria" : /^K/.test(c) ? "preescolar" : "primaria"}&ciclo=2026&clave=${c}`;
 const COLE_SEC = { 1: "Colección Ximhai", 2: "Colección Sk´asolil", 3: "Colección Nanahuatzin" }, LTG_CAMPO = { "Lenguajes": "L", "Saberes y pensamiento científico": "S", "Ética, naturaleza y sociedades": "E", "De lo humano y lo comunitario": "H" };
+function librosPre(gr) { const o = ORD[gr - 1] + " grado";
+  return [{ c: `K${gr}LPA`, n: "Explorar e imaginar con mi libro de Preescolar", sub: o, t: "aula", k: "P" }, { c: `K${gr}MLA`, n: "Múltiples lenguajes", sub: o, t: "lenguajes", k: "M" }, { c: `K${gr}JIA`, n: "Jugar e imaginar con mi material manipulable", sub: o, t: "saberes", k: "J" },
+    { c: `K${gr}LDG`, n: "Láminas de diálogo con manifestaciones culturales y artísticas", sub: o, t: "comunitario", k: "D" }, { c: "K0CFA", n: "Crianza para la libertad. Libro para las familias", sub: "Fase 2", t: "escolar", k: "F" },
+    { c: "K0LPM", n: "Un libro sin recetas, para la maestra y el maestro", sub: "Fase 2", t: "maestro", k: "LPM" }, { c: "K0TAM", n: "Posibilidades de trabajo para la acción transformadora y el codiseño", sub: "Fase 2 · para la docente", t: "maestro", k: "TAM" },
+    { c: "K0MTM", n: "Modalidades de trabajo para la acción transformadora y el codiseño", sub: "Fase 2 · para la docente", t: "maestro", k: "MTM" }]; }
 function librosSec(gr) { const o = ORD[gr - 1] + " grado", co = COLE_SEC[gr] + " · " + o;
   return [{ c: `S${gr}NLA`, n: "Nuestro libro de proyectos", sub: co, t: "aula", k: "P" }, { c: `S${gr}LEA`, n: "Lenguajes", sub: co, t: "lenguajes", k: "L" }, { c: `S${gr}SAA`, n: "Saberes y pensamiento científico", sub: co, t: "saberes", k: "S" },
     { c: `S${gr}ETA`, n: "Ética, naturaleza y sociedades", sub: co, t: "escolar", k: "E" }, { c: `S${gr}HUA`, n: "De lo humano y lo comunitario", sub: co, t: "comunitario", k: "H" }, { c: `S${gr}MLA`, n: "Múltiples lenguajes", sub: co, t: "lenguajes", k: "M" },
@@ -793,13 +806,14 @@ VISTAS.libros = () => { const g = gAct(), sec = esSec(g), grs = g ? g.grados : [
   return barra("Tlamatini Aula", "Libros de texto") + `<main class="wrap">
   <p class="small muted mt">Libros de Texto Gratuitos de la SEP, ciclo 2026-2027. Se abren en el sitio oficial de la CONALITEG (requiere internet).</p>
   ${grs.length > 1 ? `<div class="chips mt">${grs.map(x => `<button class="chip" data-lg="${x}" aria-pressed="${x === sel}">${x}.° grado</button>`).join("")}</div>` : ""}
-  <div class="lista mt">${(sec ? librosSec(sel) : librosDe(sel)).map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${esc(l.sub)}</small></span>${ic("sig", 16)}</a>`).join("")}</div>
-  ${sec ? `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small"><b>Nuestro libro de proyectos</b> trae los proyectos de aula, escolares y comunitarios de los cuatro campos formativos. El libro de su campo formativo${g && (g.discs || []).length === 1 ? ` (${esc(DIN_CAMPOS[(discDe(g.discs[0]) || [])[1]] || "")})` : ""} sirve para consultar los conceptos de su disciplina. En Inglés use <b>Projects and Readings</b>.</p></section>
+  <div class="lista mt">${(esPre(g) ? librosPre(sel) : sec ? librosSec(sel) : librosDe(sel)).map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${esc(l.sub)}</small></span>${ic("sig", 16)}</a>`).join("")}</div>
+  ${esPre(g) ? `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small"><b>Explorar e imaginar con mi libro</b> acompaña los proyectos de las niñas y los niños; <b>Múltiples lenguajes</b> y el <b>material manipulable</b> apoyan el juego, el lenguaje y el pensamiento matemático. Las <b>Láminas de diálogo</b> sirven para conversar en asamblea, y <b>Crianza para la libertad</b> es para compartir con las familias.</p></section>
+  <p class="small mt"><a href="https://libros.conaliteg.gob.mx/preescolar.html" target="_blank" rel="noopener">Ver todos los libros de preescolar en la CONALITEG</a></p></main>` : sec ? `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small"><b>Nuestro libro de proyectos</b> trae los proyectos de aula, escolares y comunitarios de los cuatro campos formativos. El libro de su campo formativo${g && (g.discs || []).length === 1 ? ` (${esc(DIN_CAMPOS[(discDe(g.discs[0]) || [])[1]] || "")})` : ""} sirve para consultar los conceptos de su disciplina. En Inglés use <b>Projects and Readings</b>.</p></section>
   <p class="small mt"><a href="https://libros.conaliteg.gob.mx/secundaria.html" target="_blank" rel="noopener">Ver todos los libros de secundaria en la CONALITEG</a></p></main>` : `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small">El libro de proyectos va con el <b>escenario</b> de su planeación: <b>Aula</b> → Proyectos de Aula; <b>Escolar</b> → Proyectos Escolares; <b>Comunitario</b> → Proyectos Comunitarios. En el índice, busque los proyectos del campo formativo que trabaja. <b>Nuestros saberes</b> sirve para consultar los conceptos y <b>Múltiples lenguajes</b> para la lectura.</p></section>
   <p class="small mt"><a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver todos los libros de primaria en la CONALITEG</a></p></main>`}`; };
 ENLAZAR.libros = () => { $$("[data-lg]").forEach(b => b.onclick = () => { S.gr = +b.dataset.lg; re(); }); };
 function librosPlan(p) { const g = grDe(p.gid), grs = g ? g.grados : [], t = p.escenario === "escolar" ? "escolar" : p.escenario === "comunitario" ? "comunitario" : "aula", kc = LTG_CAMPO[p.campo];
-  const L = p.disc ? grs.flatMap(gr => librosSec(gr).filter(l => l.k === "P" || l.k === kc || (p.disc === "Inglés" && l.k === "I") || (p.disc === "Historia" && l.k === "HP" && gr === grs[0])).map(l => Object.assign({ gr }, l)))
+  const L = esPre(g) ? grs.flatMap(gr => librosPre(gr).filter(l => ["P", "M", "J"].includes(l.k)).map(l => Object.assign({ gr }, l))) : p.disc ? grs.flatMap(gr => librosSec(gr).filter(l => l.k === "P" || l.k === kc || (p.disc === "Inglés" && l.k === "I") || (p.disc === "Historia" && l.k === "HP" && gr === grs[0])).map(l => Object.assign({ gr }, l)))
     : grs.flatMap(gr => librosDe(gr).filter(l => l.t === t || l.t === "saberes").map(l => Object.assign({ gr }, l)));
   return `<h2 class="sec-t">Libros de texto<small>Busque en el índice los proyectos de ${esc(p.campo)}</small></h2><div class="lista">${L.map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${l.gr}.° grado</small></span>${ic("sig", 16)}</a>`).join("")}</div>`; }
 
@@ -831,7 +845,7 @@ async function paqueteVisita(g, T, que) { const fin = hoy() < T.fin ? hoy() : T.
     ses: p.sesiones.map((s, i) => ({ f: s.fecha, fase: s.fase, ini: [dinDe(s.inicio.din) ? "Dinámica: " + dinDe(s.inicio.din).n : "", s.inicio.txt].filter(Boolean).join(". "), des: s.desarrollo, cie: [dinDe(s.cierre.din) ? "Dinámica: " + dinDe(s.cierre.din).n : "", s.cierre.txt].filter(Boolean).join(". "), ev: s.eval, h: s.hecho ? 1 : 0, r: D.reg.some(r => r.pid === p.id && r.ses === i) ? 1 : 0 })) }));
   const A = D.asis[g.id] || {}, dias = Object.keys(A).filter(enP).sort(), al = activos(g);
   const asis = !que.asis ? null : { dias, al: al.map(a => ({ n: a.nombre, g: a.g || "", m: dias.map(k => (A[k] || {})[a.id] || "-").join("") })) };
-  const F = filasBoleta(g, T), ev = !que.eval ? null : { campos: areasDe(g), al: F.map(x => ({ n: x.a.nombre, cal: areasDe(g).map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
+  const F = filasBoleta(g, T), ev = !que.eval || esPre(g) ? null : { campos: areasDe(g), al: F.map(x => ({ n: x.a.nombre, cal: areasDe(g).map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
   const fotos = []; if (que.fotos) for (const f of D.fotos.filter(f => f.bol && enP(f.fecha) && al.some(a => a.id === f.al)).slice(-6)) { const u = await fotoGet(f.id); if (u) fotos.push({ t: f.t || "Evidencia", f: f.fecha, u: await miniatura(u) }); }
   return { t: "aula-rev", v: 1, gen: new Date().toISOString(), per: { n: T.n, ini: T.ini, fin }, docente: { nombre: yo().nombre, correo: yo().correo },
     escuela: { nombre: g.escuela, cct: g.cct || "", turno: g.turno || "", loc: g.loc || "", dir: dirTxt(g) }, grupo: { nom: grNom(g), grados: g.grados, nivel: esSec(g) ? "sec" : "prim", n: al.length, nee: al.filter(a => a.nee || (a.ajustes || []).length).length },
@@ -983,7 +997,10 @@ ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin"))
   $("#yL").onclick = () => $("#fR").click(); $("#fR").onchange = async e => { try { const x = JSON.parse(await e.target.files[0].text()); if (!x.v || !Array.isArray(x.grupos)) throw 0; if (!(await confirmar("Se reemplazarán los datos de este dispositivo por los del respaldo.", "Cargar"))) return; D = Object.assign(VACIO(), x); guardar(); ir("inicio", {}, true); toast("Respaldo cargado."); } catch (er) { toast("Ese archivo no es un respaldo de Tlamatini Aula."); } }; };
 
 /* =================================================================== ARRANQUE */
-function arrancarDatos() { if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
+function arrancarDatos() { if (DEMO && APP_PRE && !D.grupos.length) { const g = { id: "gdemop", nivel: "pre", cct: "02DJN9999Z", escuela: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", grados: [3], grupo: "A", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
+    ["Ana Sofía Ejemplo Ruiz", "Bruno Muestra Díaz", "Camila Ficticia López", "Diego Prueba Soto", "Elena Ejemplo Cruz", "Fernando Demo Ríos", "Gabriela Muestra Peña", "Hugo Ficticio Lara", "Itzel Ejemplo Mora", "Joaquín Prueba Vega"].forEach(n => g.alumnos.push({ id: uid(), nombre: n, g: 3 }));
+    D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); return; }
+  if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz:1", "Bruno Muestra Díaz:1", "Camila Ficticia López:1", "Diego Prueba Soto:2", "Elena Ejemplo Cruz:2", "Fernando Demo Ríos:2", "Gabriela Muestra Peña:3", "Hugo Ficticio Lara:3", "Itzel Ejemplo Mora:3", "Joaquín Prueba Vega:3"].forEach(x => { const [n, gr] = x.split(":"); g.alumnos.push({ id: uid(), nombre: n, g: +gr }); });
     const g2 = { id: "gdemo2", nivel: "sec", mod: "general", discs: ["Matemáticas", "Formación Cívica y Ética"], cct: "02DES9999Z", escuela: "Escuela Secundaria General «Benito Juárez» (ejemplo)", turno: "Matutino", grados: [2], grupo: "B", dir: "Rosa Ejemplo Valdez", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Alondra Ejemplo Ramos", "Brandon Muestra Castro", "Citlali Ficticia Ortiz", "Daniel Prueba Mendoza", "Estrella Ejemplo Núñez", "Francisco Demo Ibarra", "Guadalupe Muestra Salas", "Héctor Ficticio Rangel", "Iris Ejemplo Torres", "Jorge Prueba Arce"].forEach(n => g2.alumnos.push({ id: uid(), nombre: n, g: 2 }));
