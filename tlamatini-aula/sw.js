@@ -1,8 +1,8 @@
 /* Tlamatini Aula · trabajador de servicio: instalar la app y usarla sin internet. Al publicar cambios, subir VERSION. */
-const VERSION = "aula-2026-11-21a";
+const VERSION = "aula-2026-11-22a";
 const BASE = "aula-base-" + VERSION, EXTRA = "aula-extra";
-const NUCLEO = ["./", "index.html", "aula.js", "dinamicas.js", "qrcode.min.js", "manifest.webmanifest", "img/aula-icono.svg", "img/aula-icono-180.png", "img/aula-icono-192.png", "img/aula-icono-512.png",
-  "../formatos-ppie/formatos/pda.json", "../formatos-ppie/formatos/calendario.json", "../formatos-ppie/img/isep.png", "../formatos-ppie/firma-autor.svg", "../formatos-ppie/vinculo.js?v=2026-11-21a"];
+const NUCLEO = ["./", "index.html", "aula.js", "dinamicas.js", "dinamicas-sec.js", "qrcode.min.js", "manifest.webmanifest", "img/aula-icono.svg", "img/aula-icono-180.png", "img/aula-icono-192.png", "img/aula-icono-512.png",
+  "../formatos-ppie/formatos/pda.json", "../formatos-ppie/formatos/pda-sec.json", "../formatos-ppie/formatos/calendario.json", "../formatos-ppie/img/isep.png", "../formatos-ppie/firma-autor.svg", "../formatos-ppie/vinculo.js?v=2026-11-21a"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(BASE).then(c => Promise.all(NUCLEO.map(u => c.add(u).catch(() => {}))))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(n => n.startsWith("aula-base-") && n !== BASE).map(n => caches.delete(n)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

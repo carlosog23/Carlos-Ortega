@@ -1,5 +1,5 @@
 /* © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California.
-   Tlamatini Aula · el trabajo diario del maestro de grupo de primaria: mi grupo (también multigrado), pase de lista,
+   Tlamatini Aula · el trabajo diario del maestro de grupo de primaria y del docente de secundaria: mi grupo (también multigrado), pase de lista,
    planeación por proyectos con los contenidos y PDA oficiales del Programa Sintético (Plan 2022) y banco de dinámicas
    y juegos con modo clase. De la familia Tlamatini: comparte el enlace personal y los datos de Tlamatini.
    Todo se guarda en el dispositivo. */
@@ -18,6 +18,22 @@ const fCorta = k => { if (!k) return ""; const d = dF(k); return `${DSEM[d.getDa
 const fLarga = k => { if (!k) return ""; const d = dF(k); return `${d.getDate()} de ${MES_L[d.getMonth()]} de ${d.getFullYear()}`; };
 const corto = n => String(n || "").trim().split(/\s+/).slice(0, 2).join(" ");
 const faseDe = g => g <= 2 ? 3 : g <= 4 ? 4 : 5;
+/* ---------- nivel: primaria o secundaria (Fase 6) ---------- */
+const esSec = g => !!(g && g.nivel === "sec");
+const DISC_SEC = [["Español", "L", "Esp."], ["Lengua Indígena como Lengua Materna", "L", "L. Ind. LM"], ["Lengua Indígena como Segunda Lengua", "L", "L. Ind. L2"], ["Inglés", "L", "Inglés"], ["Artes", "L", "Artes"],
+  ["Matemáticas", "S", "Mat."], ["Biología", "S", "Biol."], ["Física", "S", "Fís."], ["Química", "S", "Quím."],
+  ["Geografía", "E", "Geog."], ["Historia", "E", "Hist."], ["Formación Cívica y Ética", "E", "FCyE"],
+  ["Tecnología", "H", "Tec."], ["Educación Socioemocional / Tutoría", "H", "Tutoría"], ["Educación Física", "H", "E. F."]];
+const DISC_GR = { "Biología": [1], "Física": [2], "Química": [3], "Geografía": [1] };
+const discDe = n => DISC_SEC.find(x => x[0] === n);
+const discDelGrado = gr => DISC_SEC.filter(x => !DISC_GR[x[0]] || DISC_GR[x[0]].includes(gr)).map(x => x[0]);
+const TELE = gr => discDelGrado(gr).filter(n => !/^Lengua Ind/.test(n));
+const MODS = { general: "Secundaria general", tecnica: "Secundaria técnica", tele: "Telesecundaria", comunitaria: "Secundaria comunitaria" };
+/* escala única de grados para el banco de dinámicas: 1 a 6 primaria, 7 a 9 = 1.° a 3.° de secundaria */
+const escala = grp => { const gs = grp && grp.grados && grp.grados.length ? grp.grados : [1], o = esSec(grp) ? 6 : 0; return [Math.min(...gs) + o, Math.max(...gs) + o]; };
+const gEsc = n => n > 6 ? (n - 6) + ".° sec." : n + ".°";
+const gRango = r => r[0] === r[1] ? gEsc(r[0]) : r[0] > 6 ? (r[0] - 6) + ".° a " + (r[1] - 6) + ".° sec." : r[1] > 6 ? r[0] + ".° prim. a " + gEsc(r[1]) : r[0] + ".° a " + r[1] + ".°";
+const areaTxt = g => esSec(g) ? "disciplina" : "campo formativo";
 const nrm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 const titulo = t => String(t || "").toLowerCase().replace(/(^|\s|-)([a-záéíóúüñ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, w => w.toLowerCase());
 const ic = (n, s = 20) => `<svg class="i" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${ICONOS[n] || ""}</svg>`;
@@ -47,17 +63,23 @@ const LS = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } 
 const grDe = id => D.grupos.find(g => g.id === id), plDe = id => D.planes.find(p => p.id === id);
 const gAct = () => grDe(D.gact) || D.grupos[0] || null;
 const activos = g => (g ? g.alumnos || [] : []).filter(a => !a.baja).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-const grNom = g => g ? (g.grados.length > 1 ? `Multigrado ${g.grados.map(x => x + ".°").join(", ")}` : `${g.grados[0]}.°`) + (g.grupo ? " " + g.grupo : "") : "";
+const grNom = g => g ? (g.grados.length > 1 ? `Multigrado ${g.grados.map(x => x + ".°").join(", ")}` : `${g.grados[0]}.°`) + (g.grupo ? " " + g.grupo : "") + (esSec(g) ? " · " + ((g.discs || []).length === 1 ? g.discs[0] : g.mod === "tele" ? "Telesecundaria" : (g.discs || []).length + " disciplinas") : "") : "";
 const yo = () => { const t = LS("tlm-yo"), p = LS("ppie-perfil") || {}; return { nombre: D.docente.nombre || (t && t.persona ? [t.persona.trato, t.persona.nombre].filter(Boolean).join(" ") : p.minombre || ""), correo: D.docente.correo || (t && t.persona ? t.persona.correo : p.micorreo || "") }; };
 
 /* ---------------- programa y calendario ---------------- */
 let PDA = null, CAL = null;
 async function programa() { if (PDA) return PDA; try { const r = await fetch(TLM + "formatos/pda.json"); if (r.ok) { PDA = await r.json(); try { localStorage.setItem("aula-pda", JSON.stringify(PDA)); } catch (e) {} } } catch (e) {} if (!PDA) PDA = LS("aula-pda"); return PDA; }
+let PDA6 = null;
+async function programaSec() { if (PDA6) return PDA6; try { const r = await fetch(TLM + "formatos/pda-sec.json"); if (r.ok) { PDA6 = await r.json(); try { localStorage.setItem("aula-pda6", JSON.stringify(PDA6)); } catch (e) {} } } catch (e) {} if (!PDA6) PDA6 = LS("aula-pda6"); return PDA6; }
 async function calendario() { if (CAL) return CAL; try { const r = await fetch(TLM + "formatos/calendario.json"); if (r.ok) CAL = await r.json(); } catch (e) {} return CAL || { vacaciones: [], eventos: [] }; }
 function sinClase(k) { const c = CAL || { vacaciones: [], eventos: [] }; const v = (c.vacaciones || []).find(([a, b]) => k >= a && k <= b); if (v) return v[2];
   const e = (c.eventos || []).find(([a, b, t]) => k >= a && k <= b && /suspensi|consejo t[eé]cnico|fin de clases|clausura/i.test(t)); return e ? e[2] : null; }
 function diasHabiles(desde, n) { const out = [], d = dF(desde); for (let i = 0; i < 400 && out.length < n; i++, d.setDate(d.getDate() + 1)) { const k = iso(d); if (d.getDay() === 0 || d.getDay() === 6 || sinClase(k)) continue; out.push(k); } return out; }
 const CAMPOS = ["Lenguajes", "Saberes y pensamiento científico", "Ética, naturaleza y sociedades", "De lo humano y lo comunitario"];
+/* áreas que se califican: campos formativos en primaria, disciplinas en secundaria */
+const areasDe = g => esSec(g) ? (g.discs && g.discs.length ? g.discs : []) : CAMPOS;
+const ABR_A = { "Lenguajes": "Leng.", "Saberes y pensamiento científico": "Saberes", "Ética, naturaleza y sociedades": "Ética", "De lo humano y lo comunitario": "Humano" };
+const abrArea = a => ABR_A[a] || (discDe(a) || [])[2] || a;
 const CAMPO_COD = { "Lenguajes": "L", "Saberes y pensamiento científico": "S", "Ética, naturaleza y sociedades": "E", "De lo humano y lo comunitario": "H" };
 const EJES = ["Inclusión", "Pensamiento crítico", "Interculturalidad crítica", "Igualdad de género", "Vida saludable", "Apropiación de las culturas a través de la lectura y la escritura", "Artes y experiencias estéticas"];
 const ESCENARIOS = { aula: "Aula", escolar: "Escolar", comunitario: "Comunitario" };
@@ -161,24 +183,40 @@ VISTAS.bienvenida = () => { const y = yo(); return `<main class="wrap"><section 
   <p>Para empezar, registre su grupo. Si tiene doble plaza o más de un grupo, después puede agregar los demás.</p></section>
   <div class="mt">${formGrupoHTML({})}</div>${pie()}</main>`; };
 ENLAZAR.bienvenida = () => enlazarFormGrupo({}, true);
-function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [];
+function formGrupoHTML(g) { const escs = escuelasMias(), gr = g.grados || [], sec = g.id ? esSec(g) : S.nivelNuevo === "sec", otra = (g.cct && !escs.some(e => e.cct === g.cct)) || (!g.id && sec) || !escs.length;
+  const ds = new Set(g.discs || []), CAMP_N = { L: "Lenguajes", S: "Saberes y pensamiento científico", E: "Ética, naturaleza y sociedades", H: "De lo humano y lo comunitario" };
   return `<section class="card"><h3>${g.id ? "Editar grupo" : "Mi grupo"}</h3>
-   <label class="campo"><span>Escuela</span><select id="gE">${escs.map(e => `<option value="${esc(e.cct)}" ${e.cct === g.cct ? "selected" : ""}>${esc(e.nombre)}${e.turno ? " · " + esc(e.turno) : ""}</option>`).join("")}<option value="otra" ${g.cct && !escs.some(e => e.cct === g.cct) ? "selected" : ""}>Otra escuela…</option></select></label>
-   <div id="gOtra" ${escs.length && !(g.cct && !escs.some(e => e.cct === g.cct)) ? "hidden" : ""}><div class="dos"><label class="campo"><span>Nombre de la escuela</span><input id="gEN" value="${esc(g.escuela || "")}"></label><label class="campo"><span>C.C.T.</span><input id="gEC" value="${esc(g.cct || "")}" style="text-transform:uppercase"></label></div></div>
-   <div class="campo"><span>Grado(s) <small>· si es multigrado, toque todos los grados de su grupo</small></span><div class="chips" id="gG">${[1, 2, 3, 4, 5, 6].map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
-   <div class="dos"><label class="campo"><span>Grupo</span><input id="gL" maxlength="3" value="${esc(g.grupo || "")}" placeholder="A" style="text-transform:uppercase"></label>
+   ${g.id ? `<p class="small muted mb">${sec ? "Secundaria" : "Primaria"}</p>` : `<div class="campo"><span>Nivel</span><div class="chips" id="gNv"><button type="button" class="chip" data-nv="prim" aria-pressed="${!sec}">Primaria</button><button type="button" class="chip" data-nv="sec" aria-pressed="${sec}">Secundaria</button></div></div>`}
+   <label class="campo"><span>Escuela</span><select id="gE">${escs.map(e => `<option value="${esc(e.cct)}" ${!otra && e.cct === g.cct ? "selected" : ""}>${esc(e.nombre)}${e.turno ? " · " + esc(e.turno) : ""}</option>`).join("")}<option value="otra" ${otra ? "selected" : ""}>Otra escuela…</option></select></label>
+   <div id="gOtra" ${otra ? "" : "hidden"}><div class="dos"><label class="campo"><span>Nombre de la escuela</span><input id="gEN" value="${esc(g.escuela || "")}" placeholder="${sec ? "Escuela Secundaria General No. …" : ""}"></label><label class="campo"><span>C.C.T.</span><input id="gEC" value="${esc(g.cct || "")}" style="text-transform:uppercase" placeholder="${sec ? "02DES…, 02DST…, 02ETV…" : ""}"></label></div></div>
+   ${sec ? `<label class="campo"><span>Modalidad</span><select id="gMo">${Object.entries(MODS).map(([k, t]) => `<option value="${k}" ${(g.mod || "general") === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>` : ""}
+   <div class="campo"><span>Grado(s) <small>· ${sec ? "si atiende varios grados con este grupo, tóquelos todos" : "si es multigrado, toque todos los grados de su grupo"}</small></span><div class="chips" id="gG">${(sec ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]).map(n => `<button type="button" class="chip" data-g="${n}" aria-pressed="${gr.includes(n)}">${n}.°</button>`).join("")}</div></div>
+   ${sec ? `<div class="campo"><span>Disciplinas que imparte a este grupo <small>· en telesecundaria, todas</small></span>
+     <div id="gDs">${["L", "S", "E", "H"].map(k => `<p class="small muted" style="margin:8px 0 4px">${CAMP_N[k]}</p><div class="chips">${DISC_SEC.filter(x => x[1] === k).map(x => `<button type="button" class="chip" data-ds="${esc(x[0])}" aria-pressed="${ds.has(x[0])}">${esc(x[0])}${DISC_GR[x[0]] ? ` <small>(${DISC_GR[x[0]].join(", ")}.°)</small>` : ""}</button>`).join("")}</div>`).join("")}</div>
+     <p class="small muted mt">Biología y Geografía se imparten en 1.°, Física en 2.° y Química en 3.°, como marca el Programa Sintético de la Fase 6.</p></div>` : ""}
+   <div class="dos"><label class="campo"><span>Grupo${sec && !g.id ? " <small>· si tiene varios, sepárelos con coma: A, B, C</small>" : ""}</span><input id="gL" maxlength="${sec && !g.id ? 40 : 3}" value="${esc(g.grupo || "")}" placeholder="${sec && !g.id ? "A, B, C" : "A"}" style="text-transform:uppercase"></label>
    <label class="campo"><span>Turno</span><select id="gT">${["Matutino", "Vespertino", "Tiempo completo"].map(t => `<option ${t === (g.turno || (escs[0] || {}).turno) ? "selected" : ""}>${t}</option>`).join("")}</select></label></div>
    <div class="fila fin">${g.id ? `<button class="btn r" id="gB" style="margin-right:auto">${ic("basura", 16)}</button>` : ""}<button class="btn p" id="gOk">${ic("check", 18)} ${g.id ? "Guardar" : "Guardar y seguir"}</button></div></section>`; }
-function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []);
+function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec = g.id ? esSec(g) : S.nivelNuevo === "sec", ds = new Set(g.discs || []);
+  $$("#gNv .chip").forEach(b => b.onclick = () => { S.nivelNuevo = b.dataset.nv; re(); });
   $$("#gG .chip").forEach(b => b.onclick = () => { const n = +b.dataset.g; sel.has(n) ? sel.delete(n) : sel.add(n); b.setAttribute("aria-pressed", sel.has(n)); });
+  const pintaDs = () => $$("#gDs [data-ds]").forEach(b => b.setAttribute("aria-pressed", ds.has(b.dataset.ds)));
+  $$("#gDs [data-ds]").forEach(b => b.onclick = () => { const n = b.dataset.ds; ds.has(n) ? ds.delete(n) : ds.add(n); pintaDs(); });
+  $("#gMo") && ($("#gMo").onchange = e => { if (e.target.value === "tele" && !ds.size) { (sel.size ? [...sel] : [1, 2, 3]).forEach(x => TELE(x).forEach(n => ds.add(n))); pintaDs(); } });
   $("#gE").onchange = e => { $("#gOtra").hidden = e.target.value !== "otra"; };
   $("#gOk").onclick = () => { if (!sel.size) return toast("Elija el grado (o los grados) de su grupo."); const cct = val("gE"), e = escuelasMias().find(x => x.cct === cct);
     const datos = { cct: cct === "otra" ? val("gEC").trim().toUpperCase() : cct, escuela: cct === "otra" ? val("gEN").trim() : e.nombre, turno: val("gT"), grados: [...sel].sort(), grupo: val("gL").trim().toUpperCase(),
       dir: e ? e.dir : "", cargoDir: e ? e.cargoDir : "", loc: e ? e.loc : "", mun: e ? e.mun : "" };
     if (cct === "otra" && !datos.escuela) return toast("Escriba el nombre de la escuela.");
+    if (sec) { const vale = n => datos.grados.some(x => discDelGrado(x).includes(n)); let L = [...ds].filter(vale);
+      if (!L.length && val("gMo") === "tele") L = [...new Set(datos.grados.flatMap(TELE))];
+      if (!L.length) return toast(ds.size ? "Esas disciplinas no se imparten en el grado elegido." : "Elija la disciplina (o las disciplinas) que imparte.");
+      Object.assign(datos, { nivel: "sec", mod: val("gMo") || "general", discs: DISC_SEC.map(x => x[0]).filter(n => L.includes(n)) }); }
     if (g.id) { Object.assign(g, datos); guardar(); history.back(); toast("Grupo guardado."); return; }
-    const n = Object.assign({ id: uid(), alumnos: [] }, datos); D.grupos.push(n); D.gact = n.id; const y = yo(); if (!D.docente.nombre) D.docente.nombre = y.nombre; if (!D.docente.correo) D.docente.correo = y.correo; guardar();
-    if (nuevo) { S = { v: "grupo", id: n.id, nuevo: true }; pintar(); } else { history.back(); } toast("Grupo registrado. Ahora agregue a sus alumnos."); };
+    const letras = sec ? [...new Set(datos.grupo.split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean))] : [datos.grupo];
+    const nuevos = (letras.length ? letras : [""]).map(l => Object.assign({ id: uid(), alumnos: [] }, datos, { grupo: l }));
+    D.grupos.push(...nuevos); D.gact = nuevos[0].id; S.nivelNuevo = null; const y = yo(); if (!D.docente.nombre) D.docente.nombre = y.nombre; if (!D.docente.correo) D.docente.correo = y.correo; guardar();
+    if (nuevo) { S = { v: "grupo", id: nuevos[0].id, nuevo: true }; pintar(); } else { history.back(); } toast(nuevos.length > 1 ? `Se registraron ${nuevos.length} grupos (${letras.join(", ")}). Ahora agregue a los alumnos de cada uno.` : "Grupo registrado. Ahora agregue a sus alumnos.", 4000); };
   $("#gB") && ($("#gB").onclick = async () => { if (!(await confirmar("Se borrará el grupo con sus alumnos y su asistencia. Las planeaciones se conservan.", "Borrar"))) return; D.grupos = D.grupos.filter(x => x !== g); D.gact = (D.grupos[0] || {}).id || ""; guardar(); ir("inicio", {}, true); }); }
 VISTAS.grupoForm = () => barra("Mi grupo", S.id ? "Editar grupo" : "Agregar grupo") + `<main class="wrap mt">${formGrupoHTML(grDe(S.id) || {})}</main>`;
 ENLAZAR.grupoForm = () => enlazarFormGrupo(grDe(S.id) || {}, false);
@@ -195,9 +233,9 @@ VISTAS.inicio = () => { const g = gAct(), y = yo(), k = hoy(), d = new Date(), s
   ${!hoySes.length && prox.length ? `<h2 class="sec-t">Lo que sigue</h2><div class="lista">${prox.slice(0, 3).map(x => `<button class="hoy-i" data-ses="${x.p.id}|${x.i}"><span class="gr">${x.i + 1}</span><span class="tx"><b>${esc(x.p.titulo)}</b><small>${fCorta(x.s.fecha)} · ${esc(x.s.fase)}</small></span>${ic("sig", 18)}</button>`).join("")}</div>` : ""}
   <h2 class="sec-t">Su aula</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:#24427A;--c-s:#E6ECF6"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.filter(p => p.gid === (g && g.id)).length} proyectos · contenidos y PDA oficiales de su grado</span></button>
-   <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${DINAMICAS.length + D.mias.length} actividades para iniciar, activar, jugar y cerrar</span></button>
+   <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${todasDin().filter(d => nivelOK(g, d)).length} actividades para iniciar, activar, jugar y cerrar</span></button>
    <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
-   <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por campo formativo, valoración e informes del trimestre</span></button>
+   <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>Evaluación y boletas</b><span>Calificación por ${areaTxt(g)}, valoración e informes del trimestre</span></button>
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
    <button class="puerta" data-v="libros" style="--c:#1F6F8B;--c-s:#DCEEF3"><span class="ic">${ic("libro")}</span><b>Libros de texto</b><span>Los libros gratuitos de ${g && g.grados.length > 1 ? "sus grados" : "su grado"}, ciclo 2026-2027</span></button>
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
@@ -296,19 +334,20 @@ ENLAZAR.asistencia = () => { $("#asM").onchange = e => { S.m = e.target.value; r
 
 /* =================================================================== DINÁMICAS */
 const todasDin = () => DINAMICAS.concat(D.mias.map(d => Object.assign({ mia: true }, d)));
+const nivelOK = (g, d) => !g || !d.g ? true : esSec(g) ? d.g[1] >= 7 : d.g[0] <= 6;
 const dinDe = id => todasDin().find(d => d.id === id) || (ZONA || []).find(d => d.id === id);
 VISTAS.dinamicas = () => { const F = S.F = S.F || { cat: "", campo: "", q: "", g: "", fav: false }, g = gAct(), q = nrm(F.q);
-  const L = (F.zona ? (ZONA || []) : todasDin()).filter(d => (!F.cat || d.cat === F.cat) && (!F.campo || d.campos.includes(F.campo)) && (!F.g || (d.g[0] <= +F.g && d.g[1] >= +F.g)) && (!F.fav || D.favs.includes(d.id)) && (!q || nrm(d.n + " " + d.prop + " " + d.mat).includes(q)));
+  const L = (F.zona ? (ZONA || []) : todasDin()).filter(d => nivelOK(g, d) && (!F.cat || d.cat === F.cat) && (!F.campo || d.campos.includes(F.campo)) && (!F.g || (d.g[0] <= +F.g && d.g[1] >= +F.g)) && (!F.fav || D.favs.includes(d.id)) && (!q || nrm(d.n + " " + d.prop + " " + d.mat).includes(q)));
   return barra("Tlamatini Aula", "Dinámicas y juegos", `<button class="btn s p" id="dNueva">${ic("mas", 16)} Mía</button>`) + `<main class="wrap">
   <div class="fila mt"><button class="btn tlami-b" id="dTlami">${ic("chispa", 16)} Crear con Tlami</button><button class="chip" id="dZona" aria-pressed="${!!F.zona}">${ic("grupo", 14)} De la zona${ZONA ? " (" + ZONA.length + ")" : ""}</button></div>
   ${F.zona && !ZONA ? `<p class="small muted mt">Cargando las dinámicas que comparten los docentes de la zona…</p>` : F.zona && ZONA.err ? `<p class="small muted mt">Sin conexión con el servidor (${esc(ZONA.err)}). Se muestran las últimas que se descargaron.</p>` : F.zona ? `<p class="small muted mt">Dinámicas que comparten sus compañeros. Guárdelas en las suyas para usarlas en sus planeaciones.</p>` : ""}
   <label class="campo mt"><input id="dQ" type="search" placeholder="Buscar: tablas, lectura, calma, patio…" value="${esc(F.q)}"></label>
   <div class="chips">${[["", "Todas"]].concat(Object.entries(DIN_CATS).map(([k, v]) => [k, v[0]])).map(([k, t]) => `<button class="chip" data-fc="${k}" aria-pressed="${F.cat === k}">${t}</button>`).join("")}</div>
   <div class="fila mt" style="gap:8px"><select id="dCampo" class="sel"><option value="">Todos los campos</option>${Object.entries(DIN_CAMPOS).map(([k, t]) => `<option value="${k}" ${F.campo === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-   <select id="dG" class="sel"><option value="">Todos los grados</option>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${String(F.g) === String(n) ? "selected" : ""}>${n}.°</option>`).join("")}</select>
+   <select id="dG" class="sel"><option value="">Todos los grados</option>${(esSec(g) ? [7, 8, 9] : [1, 2, 3, 4, 5, 6]).map(n => `<option value="${n}" ${String(F.g) === String(n) ? "selected" : ""}>${gEsc(n)}</option>`).join("")}</select>
    <button class="chip" id="dFav" aria-pressed="${F.fav}">${ic("estrella", 14)} Favoritas</button></div>
   <div class="dins mt">${L.map(d => { const c = DIN_CATS[d.cat] || ["", "#666"]; return `<button class="din" data-d="${esc(d.id)}" style="--c:${c[1]}"><span class="din-cat">${c[0]}</span><b>${esc(d.n)}</b><span class="din-p">${esc(d.prop)}</span>
-     <span class="din-m">${ic("reloj", 14)} ${d.min} min · ${d.g[0] === d.g[1] ? d.g[0] + ".°" : d.g[0] + ".° a " + d.g[1] + ".°"} · ${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}${D.favs.includes(d.id) ? " · ★" : ""}${d.mia && !d.zona ? " · Mía" : ""}${d.zona ? " · " + esc(d.autor || "") : ""}</span></button>`; }).join("") || `<div class="vacio">No hay dinámicas con estos filtros.</div>`}</div></main>`; };
+     <span class="din-m">${ic("reloj", 14)} ${d.min} min · ${gRango(d.g)} · ${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}${D.favs.includes(d.id) ? " · ★" : ""}${d.mia && !d.zona ? " · Mía" : ""}${d.zona ? " · " + esc(d.autor || "") : ""}</span></button>`; }).join("") || `<div class="vacio">No hay dinámicas con estos filtros.</div>`}</div></main>`; };
 ENLAZAR.dinamicas = () => { const F = S.F; let t; $("#dQ").oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value; re(); const i = $("#dQ"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
   $$("[data-fc]").forEach(b => b.onclick = () => { F.cat = b.dataset.fc; re(); }); $("#dCampo").onchange = e => { F.campo = e.target.value; re(); }; $("#dG").onchange = e => { F.g = e.target.value; re(); };
   $("#dFav").onclick = () => { F.fav = !F.fav; re(); }; $$("[data-d]").forEach(b => b.onclick = () => ir("dinamica", { id: b.dataset.d })); $("#dNueva").onclick = () => formDin(null);
@@ -316,7 +355,7 @@ ENLAZAR.dinamicas = () => { const F = S.F; let t; $("#dQ").oninput = e => { clea
 VISTAS.dinamica = () => { const d = dinDe(S.id); if (!d) return VISTAS.dinamicas(); const c = DIN_CATS[d.cat] || ["", "#666"], fav = D.favs.includes(d.id);
   return barra(c[0], esc(d.n), `<button class="btn s" id="dFv" aria-label="Favorita" style="${fav ? "color:#C98A0B" : ""}">${ic("estrella", 18)}</button>`) + `<main class="wrap">
   <section class="card mt" style="border-top:5px solid ${c[1]}"><p><b>Para qué:</b> ${esc(d.prop)}</p>
-   <div class="tags mt">${d.campos.map(k => `<span class="tag a">${DIN_CAMPOS[k]}</span>`).join(" ")} <span class="tag g">${ic("reloj", 12)} ${d.min} min</span> <span class="tag g">${d.g[0]}.° a ${d.g[1]}.°</span> <span class="tag g">${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}</span></div>
+   <div class="tags mt">${d.campos.map(k => `<span class="tag a">${DIN_CAMPOS[k]}</span>`).join(" ")} <span class="tag g">${ic("reloj", 12)} ${d.min} min</span> <span class="tag g">${gRango(d.g)}</span> <span class="tag g">${d.esp === "patio" ? "Patio" : d.esp === "ambos" ? "Aula o patio" : "Aula"}</span></div>
    ${d.mat ? `<p class="mt"><b>Material:</b> ${esc(d.mat)}</p>` : ""}</section>
   <section class="card mt"><h3>Cómo se hace</h3><ol class="pasos-l">${d.pasos.map(p => `<li>${esc(p)}</li>`).join("")}</ol></section>
   ${d.var || d.multi ? `<section class="card mt">${d.var ? `<p><b>Variante:</b> ${esc(d.var)}</p>` : ""}${d.multi ? `<p class="mt"><b>En multigrado:</b> ${esc(d.multi)}</p>` : ""}</section>` : ""}
@@ -328,11 +367,11 @@ ENLAZAR.dinamica = () => { const d = dinDe(S.id); if (!d) return; $("#dFv").oncl
   $("#dCl").onclick = () => claseDin(d); $("#dEd") && ($("#dEd").onclick = () => formDin(D.mias.find(x => x.id === d.id)));
   $("#dCo") && ($("#dCo").onclick = () => compartirDin(D.mias.find(x => x.id === d.id))); $("#dRe") && ($("#dRe").onclick = () => retirarDin(d.zona ? d : D.mias.find(x => x.id === d.id)));
   $("#dGu") && ($("#dGu").onclick = () => { if (D.mias.some(x => x.de === d.id)) return toast("Ya la tiene en sus dinámicas."); const c = JSON.parse(JSON.stringify(d)); ["zona", "mia", "autor", "escuela", "creado", "pub"].forEach(k => delete c[k]); c.de = d.id; c.id = "mia-" + uid(); c.autor = d.autor; D.mias.push(c); guardar(); re(); toast("Guardada en sus dinámicas."); }); };
-function formDin(d) { const n = !d; d = d || { id: "mia-" + uid(), n: "", cat: "inicio", campos: [], g: [1, 6], min: 10, esp: "aula", mat: "", prop: "", pasos: [], var: "" };
+function formDin(d) { const n = !d, gs = d ? (d.g[0] > 6 ? [7, 8, 9] : [1, 2, 3, 4, 5, 6]) : esSec(gAct()) ? [7, 8, 9] : [1, 2, 3, 4, 5, 6]; d = d || { id: "mia-" + uid(), n: "", cat: "inicio", campos: [], g: [gs[0], gs[gs.length - 1]], min: 10, esp: "aula", mat: "", prop: "", pasos: [], var: "" };
   dlg(`<h3>${n ? "Agregar mi dinámica" : "Editar mi dinámica"}</h3><label class="campo"><span>Nombre</span><input id="fN" value="${esc(d.n)}"></label>
    <div class="dos"><label class="campo"><span>Tipo</span><select id="fC">${Object.entries(DIN_CATS).map(([k, v]) => `<option value="${k}" ${d.cat === k ? "selected" : ""}>${v[0]}</option>`).join("")}</select></label><label class="campo"><span>Minutos</span><input id="fM" type="number" min="1" value="${d.min}"></label></div>
    <div class="campo"><span>Campos formativos</span><div class="chips">${Object.entries(DIN_CAMPOS).map(([k, t]) => `<button type="button" class="chip" data-fk="${k}" aria-pressed="${d.campos.includes(k)}">${t}</button>`).join("")}</div></div>
-   <div class="dos"><label class="campo"><span>Desde</span><select id="fG1">${[1, 2, 3, 4, 5, 6].map(x => `<option ${d.g[0] === x ? "selected" : ""}>${x}</option>`).join("")}</select></label><label class="campo"><span>Hasta</span><select id="fG2">${[1, 2, 3, 4, 5, 6].map(x => `<option ${d.g[1] === x ? "selected" : ""}>${x}</option>`).join("")}</select></label></div>
+   <div class="dos"><label class="campo"><span>Desde</span><select id="fG1">${gs.map(x => `<option value="${x}" ${d.g[0] === x ? "selected" : ""}>${gEsc(x)}</option>`).join("")}</select></label><label class="campo"><span>Hasta</span><select id="fG2">${gs.map(x => `<option value="${x}" ${d.g[1] === x ? "selected" : ""}>${gEsc(x)}</option>`).join("")}</select></label></div>
    <label class="campo"><span>¿Para qué sirve?</span><input id="fP" value="${esc(d.prop)}"></label><label class="campo"><span>Material</span><input id="fMa" value="${esc(d.mat)}"></label>
    <label class="campo"><span>Pasos (uno por renglón)</span><textarea id="fPa" class="area">${esc(d.pasos.join("\n"))}</textarea></label>
    <div class="fila fin">${n ? "" : `<button class="btn r" id="fB" style="margin-right:auto">${ic("basura", 16)}</button>`}<button class="btn" id="fX">Cancelar</button><button class="btn p" id="fOk">Guardar</button></div>`, v => {
@@ -365,13 +404,13 @@ function claseDin(d) { modoClase([{ eb: (DIN_CATS[d.cat] || [""])[0], t: d.n, pr
 const PDA_TXT = (pda, campo, fase) => { const C = (pda && pda.campos) || {}, k = Object.keys(C).find(x => nrm(x) === nrm(campo)); return ((k && C[k]) || {})[fase] || []; };
 VISTAS.planes = () => { const g = gAct(), L = D.planes.filter(p => p.gid === (g && g.id)).sort((a, b) => b.ini.localeCompare(a.ini));
   return barra("Planeación · " + esc(grNom(g)), "Mis proyectos", `<button class="btn s p" id="pN">${ic("mas", 16)} Nuevo</button>`) + `<main class="wrap">
-  <div class="lista mt">${L.map(p => { const hechas = p.sesiones.filter(s => s.hecho).length; return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:${(DIN_CATS[{ L: "lengua", S: "ciencia", E: "convive", H: "integracion" }[CAMPO_COD[p.campo]]] || ["", "#24427A"])[1]}22">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${esc(p.campo)} · ${esc(METODOS[p.metodo].n)} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small><span class="barra-p"><i style="width:${Math.round(100 * hechas / p.sesiones.length)}%"></i></span></span><span class="tag ${hechas === p.sesiones.length ? "" : "g"}">${hechas}/${p.sesiones.length}</span></button>`; }).join("") || `<div class="vacio">Aún no tiene proyectos. Toque «Nuevo» para planear con los contenidos y PDA de su grado.</div>`}</div></main>`; };
+  <div class="lista mt">${L.map(p => { const hechas = p.sesiones.filter(s => s.hecho).length; return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:${(DIN_CATS[{ L: "lengua", S: "ciencia", E: "convive", H: "integracion" }[CAMPO_COD[p.campo]]] || ["", "#24427A"])[1]}22">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${esc(p.disc || p.campo)} · ${esc(METODOS[p.metodo].n)} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small><span class="barra-p"><i style="width:${Math.round(100 * hechas / p.sesiones.length)}%"></i></span></span><span class="tag ${hechas === p.sesiones.length ? "" : "g"}">${hechas}/${p.sesiones.length}</span></button>`; }).join("") || `<div class="vacio">Aún no tiene proyectos. Toque «Nuevo» para planear con los contenidos y PDA de su grado.</div>`}</div></main>`; };
 ENLAZAR.planes = () => { $("#pN").onclick = () => ir("planNueva"); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
 /* asistente para planear */
 VISTAS.planNueva = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const P = S.P = S.P || { campo: "", sel: {}, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" };
   const fases = [...new Set(g.grados.map(faseDe))];
   return barra("Planeación · " + esc(grNom(g)), "Nuevo proyecto") + `<main class="wrap" id="pnM"><p class="muted mt">Cargando el programa…</p></main>`; };
-ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, pda = await programa(), m = $("#pnM"); if (!m) return; await calendario();
+ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (!m) return; if (esSec(g)) return planNuevaSec(g, P, m); const pda = await programa(); await calendario();
   if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
   const fases = [...new Set(g.grados.map(faseDe))].sort();
   const pinta = () => { const met = P.metodo || (P.campo ? Object.keys(METODOS).find(k => METODOS[k].campo === P.campo) : "");
@@ -397,22 +436,61 @@ ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, pda = await program
     $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met; const p = crearPlan(g, P, pda); D.planes.push(p); guardar(); S.P = null; ir("plan", { id: p.id }, true); toast("<b>Planeación creada.</b> Revise y ajuste cada sesión.", 3500); }); };
   const lee = () => { if (!$("#pT")) return; P.titulo = val("pT"); P.proposito = val("pPr"); P.producto = val("pPd"); P.ini = val("pI") || P.ini; P.n = Math.max(1, Math.min(40, +val("pNn") || 5)); P.min = Math.max(15, +val("pMi") || 50); if ($("#pMe")) P.metodo = val("pMe"); };
   pinta(); };
-function crearPlan(g, P, pda) { const M = METODOS[P.metodo], fases = M.fases, n = P.n, cod = CAMPO_COD[P.campo];
-  const conts = {}, pdas = {}; [...new Set(g.grados.map(faseDe))].forEach(f => { const c = PDA_TXT(pda, P.campo, f)[P.sel[f]]; conts[f] = c.c; g.grados.filter(x => faseDe(x) === f).forEach(gr => pdas[gr] = (c.pda || {})[gr] || ""); });
+const cortaCrit = t => { let x = String(t).split(/[.;:](?:\s|$)/)[0].trim(); if (x.length > 170) x = x.slice(0, x.lastIndexOf(" ", 165)) + "…"; return x; };
+/* ---------- planeación de secundaria: disciplina → contenido → PDA del grado (Fase 6) ---------- */
+async function planNuevaSec(g, P, m) { const pda = await programaSec(); await calendario();
+  if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético de la Fase 6. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
+  const discs = (g.discs || []).filter(n => pda.disciplinas[n]); if (!P.disc && discs.length === 1) P.disc = discs[0]; P.pk = P.pk || {};
+  const pinta = () => { const Dd = P.disc ? pda.disciplinas[P.disc] : null, campo = Dd ? campoKey(Dd.campo) : "", grs = g.grados.filter(x => !Dd || Dd.grados.includes(x));
+    const L = Dd ? Dd.contenidos.map((c, i) => ({ c, i })).filter(x => grs.some(gr => (x.c.pda[gr] || []).length)) : [];
+    const met = P.metodo || (campo ? Object.keys(METODOS).find(k => METODOS[k].campo === campo) : ""), sel = Dd && P.sel6 != null ? Dd.contenidos[P.sel6] : null;
+    const conPda = sel ? grs.filter(gr => (sel.pda[gr] || []).length) : [], listos = sel && conPda.every(gr => (P.pk[gr] || []).length);
+    m.innerHTML = `<section class="card mt"><h3>1. Disciplina</h3>${discs.length ? `<div class="chips">${discs.map(n => `<button class="chip" data-dc="${esc(n)}" aria-pressed="${P.disc === n}">${esc(n)}</button>`).join("")}</div>` : `<p class="small">Este grupo no tiene disciplinas registradas. Edítelo en Ajustes → Mis grupos.</p>`}
+      ${campo ? `<p class="small muted mt">Campo formativo: <b>${esc(campo)}</b> · Fase 6 · ${grs.map(x => x + ".°").join(", ")} de secundaria</p>` : ""}</section>
+    ${Dd && !L.length ? `<div class="vacio mt">${esc(P.disc)} no tiene contenidos en ${g.grados.map(x => x + ".°").join(", ")}: en la Fase 6 se imparte en ${Dd.grados.map(x => x + ".°").join(", ")}.</div>` : ""}
+    ${L.length ? `<section class="card mt"><h3>2. Contenido · ${esc(P.disc)}</h3><p class="small muted mb">Elija el contenido del Programa Sintético de la Fase 6.</p>
+      <div class="cont-l">${L.map(x => `<label class="cont ${P.sel6 === x.i ? "on" : ""}"><input type="radio" name="ct6" value="${x.i}" ${P.sel6 === x.i ? "checked" : ""} data-ct6="1"><span>${esc(x.c.c)}<small class="muted" style="display:block">${grs.filter(gr => (x.c.pda[gr] || []).length).map(gr => x.c.pda[gr].length + " PDA de " + gr + ".°").join(" · ")}</small></span></label>`).join("")}</div></section>` : ""}
+    ${sel ? `<section class="card mt"><h3>3. PDA que va a trabajar</h3><p class="small muted mb">Marque los procesos de desarrollo de aprendizaje de este proyecto o secuencia. Con ellos se arma la rúbrica de evaluación.</p>
+      ${conPda.map(gr => `${conPda.length > 1 || g.grados.length > 1 ? `<p class="small mt"><b>${gr}.° grado</b></p>` : ""}${sel.pda[gr].map((t, j) => `<label class="rev-chk" style="align-items:flex-start"><input type="checkbox" data-pk="${gr}|${j}" ${(P.pk[gr] || []).includes(j) ? "checked" : ""} style="margin-top:3px"> <span>${esc(t)}</span></label>`).join("")}`).join("")}
+      ${conPda.some(gr => sel.pda[gr].length > 1) ? `<div class="fila mt"><button class="btn s" id="pkT">Marcar todos</button></div>` : ""}</section>` : ""}
+    ${listos ? `<section class="card mt"><h3>4. Cómo lo va a trabajar</h3>
+      <label class="campo"><span>Metodología</span><select id="pMe">${Object.entries(METODOS).map(([k, v]) => `<option value="${k}" ${met === k ? "selected" : ""}>${v.n}${v.campo === campo ? " (sugerida)" : ""}</option>`).join("")}</select></label>
+      <div class="campo"><span>Escenario</span><div class="chips">${Object.entries(ESCENARIOS).map(([k, t]) => `<button class="chip" data-es="${k}" aria-pressed="${P.escenario === k}">${t}</button>`).join("")}</div></div>
+      <div class="campo"><span>Ejes articuladores</span><div class="chips">${EJES.map(e => `<button class="chip" data-ej="${esc(e)}" aria-pressed="${P.ejes.includes(e)}">${e}</button>`).join("")}</div></div></section>
+     <section class="card mt"><h3>5. Su proyecto</h3><label class="campo"><span>Nombre del proyecto o secuencia</span><input id="pT" value="${esc(P.titulo)}" placeholder="Ej. ¿Qué tan limpia está el agua de nuestra comunidad?"></label>
+      <label class="campo"><span>Propósito (opcional)</span><textarea id="pPr" class="area" style="min-height:80px" placeholder="Qué se espera que las y los estudiantes logren">${esc(P.proposito)}</textarea></label>
+      <label class="campo"><span>Producto final (opcional)</span><input id="pPd" value="${esc(P.producto)}" placeholder="Ej. Infografía, podcast, maqueta, campaña, debate público, informe de laboratorio"></label>
+      <div class="tres"><label class="campo"><span>Inicia</span><input type="date" id="pI" value="${P.ini}"></label><label class="campo"><span>Sesiones</span><input type="number" id="pNn" min="1" max="40" value="${P.n}"></label><label class="campo"><span>Minutos por sesión</span><input type="number" id="pMi" min="15" max="240" value="${P.min}"></label></div>
+      <p class="small muted">En secundaria cuente cada módulo como una sesión (50 minutos, o 100 si es doble). Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p>
+      <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div></section>` : ""}`;
+    const lee = () => { if (!$("#pT")) return; P.titulo = val("pT"); P.proposito = val("pPr"); P.producto = val("pPd"); P.ini = val("pI") || P.ini; P.n = Math.max(1, Math.min(40, +val("pNn") || 5)); P.min = Math.max(15, +val("pMi") || 50); if ($("#pMe")) P.metodo = val("pMe"); };
+    $$("[data-dc]").forEach(b => b.onclick = () => { P.disc = b.dataset.dc; P.sel6 = null; P.pk = {}; P.metodo = ""; pinta(); });
+    $$("[data-ct6]").forEach(r => r.onchange = () => { P.sel6 = +r.value; P.pk = {}; const c = Dd.contenidos[P.sel6]; grs.forEach(gr => { const n = (c.pda[gr] || []).length; if (n) P.pk[gr] = n <= 3 ? [...Array(n).keys()] : [0]; }); pinta(); });
+    $$("[data-pk]").forEach(c => c.onchange = () => { lee(); const [gr, j] = c.dataset.pk.split("|").map(Number), A = P.pk[gr] = P.pk[gr] || []; const k = A.indexOf(j); if (c.checked && k < 0) A.push(j); if (!c.checked && k >= 0) A.splice(k, 1); A.sort((x, y) => x - y); pinta(); });
+    $("#pkT") && ($("#pkT").onclick = () => { lee(); conPda.forEach(gr => P.pk[gr] = [...Array(sel.pda[gr].length).keys()]); pinta(); });
+    $("#pMe") && ($("#pMe").onchange = e => { P.metodo = e.target.value; });
+    $$("[data-es]").forEach(b => b.onclick = () => { lee(); P.escenario = b.dataset.es; pinta(); });
+    $$("[data-ej]").forEach(b => b.onclick = () => { lee(); const i = P.ejes.indexOf(b.dataset.ej); i >= 0 ? P.ejes.splice(i, 1) : P.ejes.push(b.dataset.ej); pinta(); });
+    $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met;
+      const pdas = {}, crit = []; g.grados.forEach(gr => { const T = (P.pk[gr] || []).map(j => (sel.pda[gr] || [])[j]).filter(Boolean); if (T.length) { pdas[gr] = T.join(" "); T.forEach(t => crit.push({ gr, c: cortaCrit(t) })); } });
+      const p = crearPlan(g, Object.assign({}, P, { campo }), null, { conts: { 6: sel.c }, pdas, crit }); p.nivel = "sec"; p.disc = P.disc;
+      D.planes.push(p); guardar(); S.P = null; ir("plan", { id: p.id }, true); toast("<b>Planeación creada.</b> Revise y ajuste cada sesión.", 3500); }); };
+  pinta(); }
+function crearPlan(g, P, pda, pre) { const M = METODOS[P.metodo], fases = M.fases, n = P.n, cod = CAMPO_COD[P.campo];
+  const conts = {}, pdas = {}; if (pre) { Object.assign(conts, pre.conts); Object.assign(pdas, pre.pdas); } else [...new Set(g.grados.map(faseDe))].forEach(f => { const c = PDA_TXT(pda, P.campo, f)[P.sel[f]]; conts[f] = c.c; g.grados.filter(x => faseDe(x) === f).forEach(gr => pdas[gr] = (c.pda || {})[gr] || ""); });
   /* reparte las fases de la metodología entre las sesiones */
   const grupos = []; if (n >= fases.length) { let extra = n - fases.length; fases.forEach((f, i) => { const k = 1 + Math.floor(extra / (fases.length - i)); extra -= k - 1; for (let j = 0; j < k; j++) grupos.push([f]); }); }
   else { const por = fases.length / n; for (let i = 0; i < n; i++) grupos.push(fases.slice(Math.round(i * por), Math.round((i + 1) * por))); }
-  const gmin = Math.min(...g.grados), gmax = Math.max(...g.grados), apta = d => d.g[0] <= gmax && d.g[1] >= gmin && d.campos.includes(cod);
+  const [gmin, gmax] = escala(g), apta = d => d.g[0] <= gmax && d.g[1] >= gmin && d.campos.includes(cod);
   const ini = DINAMICAS.filter(d => ["inicio", "integracion", "pausa"].includes(d.cat) && apta(d)), cie = DINAMICAS.filter(d => d.cat === "cierre" && apta(d));
   const fechas = diasHabiles(P.ini, n);
   const sesiones = grupos.map((fs, i) => ({ n: i + 1, fecha: fechas[i] || "", fase: fs.map(f => f[0]).join(" · "),
     inicio: { din: (ini[i % (ini.length || 1)] || {}).id || "", txt: "" }, desarrollo: fs.map(f => f[1]).join("\n"), cierre: { din: (cie[i % (cie.length || 1)] || {}).id || "", txt: "" }, eval: i === n - 1 ? "Presentación del producto y autoevaluación con la rúbrica." : "Observación y registro en la lista de cotejo.", hecho: false }));
-  const corta = t => { let x = String(t).split(/[.;:](?:\s|$)/)[0].trim(); if (x.length > 170) x = x.slice(0, x.lastIndexOf(" ", 165)) + "…"; return x; };
-  const criterios = Object.entries(pdas).map(([gr, t]) => ({ gr: +gr, c: corta(t) }));
+  const corta = cortaCrit, criterios = pre ? pre.crit : Object.entries(pdas).map(([gr, t]) => ({ gr: +gr, c: corta(t) }));
   return { id: uid(), gid: g.id, creado: hoy(), titulo: P.titulo.trim(), campo: P.campo, metodo: P.metodo, escenario: P.escenario, ejes: P.ejes.slice(), contenidos: conts, pdas, proposito: P.proposito.trim(), producto: P.producto.trim(), ini: P.ini, min: P.min, sesiones, criterios }; }
 VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const g = grDe(p.gid), ab = S.ab;
-  return barra(esc(p.campo), esc(p.titulo), `<button class="btn s" id="plI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
-  <section class="card mt"><div class="tags">${`<span class="tag a">${esc(METODOS[p.metodo].n)}</span> <span class="tag g">Escenario ${esc(ESCENARIOS[p.escenario])}</span> `}${p.ejes.map(e => `<span class="tag m">${esc(e)}</span>`).join(" ")}</div>
+  return barra(esc(p.disc || p.campo), esc(p.titulo), `<button class="btn s" id="plI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
+  <section class="card mt"><div class="tags">${p.disc ? `<span class="tag m">${esc(p.campo)}</span> ` : ""}${`<span class="tag a">${esc(METODOS[p.metodo].n)}</span> <span class="tag g">Escenario ${esc(ESCENARIOS[p.escenario])}</span> `}${p.ejes.map(e => `<span class="tag m">${esc(e)}</span>`).join(" ")}</div>
    ${Object.entries(p.contenidos).map(([f, c]) => `<p class="mt"><b>Contenido${Object.keys(p.contenidos).length > 1 ? " (fase " + f + ")" : ""}:</b> ${esc(c)}</p>`).join("")}
    ${Object.entries(p.pdas).map(([gr, t]) => `<p class="small mt"><b>PDA ${gr}.°:</b> ${esc(t)}</p>`).join("")}
    ${p.proposito ? `<p class="mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${p.producto ? `<p class="mt"><b>Producto:</b> ${esc(p.producto)}</p>` : ""}
@@ -432,7 +510,7 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
   ${librosPlan(p)}
   <h2 class="sec-t">Evaluación formativa<small>Rúbrica a partir de los PDA</small></h2><section class="card"><div class="tabla-c"><table class="tabla rub"><thead><tr><th>Criterio</th>${NIVELES.map(n => `<th>${n[0]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${c.gr}.°</b> ${esc(c.c)}</td>${NIVELES.map(n => `<td class="small">${n[1]}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section></main>`; };
 const NIVELES = [["Destacado", "Lo logra de forma autónoma y lo explica o aplica en otras situaciones."], ["Logrado", "Lo logra de forma autónoma."], ["En proceso", "Lo logra con apoyo del docente o de sus compañeros."], ["Requiere apoyo", "Aún no lo logra; necesita acompañamiento cercano."]];
-function dinOpts(sel, cats) { const g = gAct(), gmin = g ? Math.min(...g.grados) : 1, gmax = g ? Math.max(...g.grados) : 6;
+function dinOpts(sel, cats) { const g = gAct(), [gmin, gmax] = g ? escala(g) : [1, 6];
   return `<option value="">— Ninguna —</option>` + todasDin().filter(d => cats.includes(d.cat) && d.g[0] <= gmax && d.g[1] >= gmin).map(d => `<option value="${esc(d.id)}" ${d.id === sel ? "selected" : ""}>${esc(d.n)} · ${d.min} min</option>`).join(""); }
 ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const s = i => p.sesiones[+i];
   $$("[data-ab]").forEach(b => b.onclick = () => { S.ab = S.ab === +b.dataset.ab ? null : +b.dataset.ab; re(); });
@@ -462,7 +540,7 @@ function abrirClase(pid, i) { const p = plDe(pid), s = p.sesiones[i], di = dinDe
 const dirTxt = g => g && g.dir ? (/directora|encargada/i.test(g.cargoDir || "") ? "Mtra. " : "Mtro. ") + g.dir : "";
 function encabezado(g, tit) { return `<table class="enc"><tr><td style="width:90px"><img src="${ISEP}" alt="ISEP"></td><td class="t"><b>${esc(g ? g.escuela : "")}</b><br><span>${g && g.cct ? "C.C.T. " + esc(g.cct) : ""}${g && g.turno ? " · Turno " + esc(g.turno) : ""}${g && g.loc ? " · " + esc(g.loc) : ""}</span><br><b class="tt">${tit}</b></td><td style="width:90px;text-align:right">${g && g.cct ? `<img src="${ESC_IMG}${esc(g.cct)}.jpg" onerror="if(!this.dataset.p){this.dataset.p=1;this.src='${ESC_IMG}${esc(g.cct)}.png'}else{this.remove()}" alt="">` : ""}</td></tr></table>`; }
 function docPlan(p) { const g = grDe(p.gid);
-  return `<div class="doc">${encabezado(g, "Planeación didáctica · " + esc(p.campo))}
+  return `<div class="doc">${encabezado(g, "Planeación didáctica · " + esc(p.disc ? p.disc + " · " + p.campo : p.campo))}
   <div class="datos"><span><b>Proyecto:</b> ${esc(p.titulo)}</span><span><b>Grupo:</b> ${esc(grNom(g))}</span><span><b>Periodo:</b> ${fCorta(p.sesiones[0].fecha)} al ${fCorta(p.sesiones[p.sesiones.length - 1].fecha)}</span>
    <span><b>Metodología:</b> ${esc(METODOS[p.metodo].n)}</span><span><b>Escenario:</b> ${esc(ESCENARIOS[p.escenario])}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span></div>
   <table><tbody>${Object.entries(p.contenidos).map(([f, c]) => `<tr><th style="width:20%">Contenido${Object.keys(p.contenidos).length > 1 ? " · fase " + f : ""}</th><td>${esc(c)}</td></tr>`).join("")}
@@ -493,7 +571,7 @@ VISTAS.evaluar = () => { const p = plDe(S.pid); if (!p) return VISTAS.planes(); 
   <div class="fila fin mt2"><button class="btn o" id="evOk">${ic("check", 18)} Listo</button></div>
   <input type="file" id="evCam" accept="image/*" capture="environment" hidden></main>`; };
 ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(p.gid), s = p.sesiones[S.i];
-  const reg = () => { let r = D.reg.find(x => x.pid === p.id && x.ses === S.i); if (!r) { r = { id: uid(), pid: p.id, gid: g.id, ses: S.i, fecha: s.fecha || hoy(), campo: p.campo, al: {}, obs: {} }; D.reg.push(r); } return r; };
+  const reg = () => { let r = D.reg.find(x => x.pid === p.id && x.ses === S.i); if (!r) { r = { id: uid(), pid: p.id, gid: g.id, ses: S.i, fecha: s.fecha || hoy(), campo: p.disc || p.campo, al: {}, obs: {} }; D.reg.push(r); } return r; };
   $("#evTod") && ($("#evTod").onclick = () => { S.todos = !S.todos; re(); });
   $$("[data-ev-al]").forEach(b => b.onclick = () => { const r = reg(), a = b.dataset.evAl, c = b.dataset.evC, n = +b.dataset.evN; r.al[a] = r.al[a] || {};
     if (r.al[a][c] === n) delete r.al[a][c]; else r.al[a][c] = n; r.fecha = s.fecha || hoy(); guardar(); re(); });
@@ -501,7 +579,7 @@ ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(
     dlg(`<h3>Observación</h3><p class="small muted mb">${esc(a.nombre)} · lo que observó hoy (se toma en cuenta en su valoración del trimestre).</p><textarea id="oT" class="area">${esc((r.obs || {})[a.id] || "")}</textarea><div class="fila fin mt"><button class="btn" id="oX">Cancelar</button><button class="btn p" id="oOk">Guardar</button></div>`, v => {
       v.querySelector("#oX").onclick = cerrarDlg; v.querySelector("#oOk").onclick = () => { const t = val("oT").trim(); r.obs = r.obs || {}; if (t) r.obs[a.id] = t; else delete r.obs[a.id]; guardar(); re(); }; }); });
   let quien = null; $$("[data-evf]").forEach(b => b.onclick = () => { quien = b.dataset.evf; $("#evCam").click(); });
-  $("#evCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !quien) return; await nuevaFoto(f, { al: quien, pid: p.id, ses: S.i, campo: p.campo, t: s.fase }); re(); };
+  $("#evCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !quien) return; await nuevaFoto(f, { al: quien, pid: p.id, ses: S.i, campo: p.disc || p.campo, t: s.fase }); re(); };
   $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
 
 /* ---------- portafolio: fotos en IndexedDB ---------- */
@@ -523,7 +601,7 @@ VISTAS.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.id
   return barra(esc(grNom(g)), esc(a.nombre), `<button class="btn s" id="alEd">${ic("lapiz", 16)} Editar</button>`) + `<main class="wrap">
   <p class="small muted mt">${esc(T.n)} · ${fCorta(T.ini)} al ${fCorta(T.fin)}${a.nee ? " · Ajustes: " + esc(a.nee) : ""}</p>
   <div class="kpis mt"><div class="kpi"><b>${R.asisP == null ? "—" : Math.round(R.asisP * 100) + "%"}</b><span>Asistencia</span></div><div class="kpi"><b>${R.falt}</b><span>Faltas</span></div><div class="kpi"><b>${R.nreg}</b><span>Registros</span></div><div class="kpi"><b>${D.fotos.filter(f => f.al === a.id).length}</b><span>Evidencias</span></div></div>
-  <h2 class="sec-t">Por campo formativo</h2><div class="lista">${CAMPOS.map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>
+  <h2 class="sec-t">Por ${areaTxt(g)}</h2><div class="lista">${areasDe(g).map(c => { const x = R.campos[c]; return `<div class="it"><span class="tx"><b>${esc(c)}</b><small>${x && x.n ? `${x.n} registros · ${nivDe(Math.round(x.prom))[1]}` : "Sin registros en el trimestre"}</small></span><span class="cal-b">${x && x.cal != null ? x.cal : "—"}</span></div>`; }).join("")}</div>
   <h2 class="sec-t">Ajustes razonables</h2><section class="card">${(a.ajustes || []).slice(-2).reverse().map(x => `<p class="small"><b>${fCorta(x.f)}</b> · ${esc(x.bar)}</p><ul class="tlami-l small">${x.l.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${x.fam ? `<p class="small"><b>Con la familia:</b> ${esc(x.fam)}</p>` : ""}`).join("") || `<p class="small muted">Si a este alumno algo le cuesta, Tlami le sugiere apoyos concretos.</p>`}<button class="btn s tlami-b mt" id="alTl">${ic("chispa", 16)} Pedir ajustes a Tlami</button></section>
   ${R.obs.length ? `<h2 class="sec-t">Observaciones</h2><section class="card">${R.obs.map(o => `<p class="small"><b>${fCorta(o.f)}:</b> ${esc(o.t)}</p>`).join("")}</section>` : ""}
   <div class="fila mt2" style="justify-content:space-between"><h2 class="sec-t" style="margin:0">Portafolio</h2><button class="btn s p" id="alF">${ic("camara", 16)} Agregar evidencia</button></div><div class="fotos mt" id="alFotos"></div>
@@ -537,7 +615,7 @@ ENLAZAR.alumno = () => { const g = grDe(S.gid), a = g && g.alumnos.find(x => x.i
 const TRIMS = () => D.cfg.trims || [{ id: "t1", n: "Primer trimestre", ini: "2026-08-31", fin: "2026-11-27" }, { id: "t2", n: "Segundo trimestre", ini: "2026-11-30", fin: "2027-03-12" }, { id: "t3", n: "Tercer trimestre", ini: "2027-03-15", fin: "2027-07-06" }];
 const trimActual = () => { const k = hoy(), L = TRIMS(); return L.find(t => t.id === S.trim) || L.find(t => k >= t.ini && k <= t.fin) || L.filter(t => t.ini <= k).slice(-1)[0] || L[0]; };
 const calDe = prom => prom == null ? null : Math.max(5, Math.min(10, Math.round(5 + (prom - 1) * 5 / 3)));
-const campoKey = c => CAMPOS.find(x => nrm(x) === nrm(c)) || c;
+const campoKey = c => CAMPOS.find(x => nrm(x) === nrm(c)) || (DISC_SEC.find(x => nrm(x[0]) === nrm(c)) || [c])[0];
 function resumenAlumno(g, a, T) { const regs = D.reg.filter(r => r.gid === g.id && r.fecha >= T.ini && r.fecha <= T.fin), campos = {}, obs = []; let nreg = 0;
   regs.forEach(r => { const p = plDe(r.pid), v = (r.al || {})[a.id] || {}, ck = campoKey(r.campo); Object.entries(v).forEach(([ci, n]) => { const c = campos[ck] = campos[ck] || { s: 0, n: 0, crit: {}, serie: [] }; c.s += n; c.n++; nreg++; c.serie.push([r.fecha, n]);
       const ct = p && p.criterios[ci] ? p.criterios[ci].c : ""; if (ct) { const x = c.crit[ct] = c.crit[ct] || { s: 0, n: 0 }; x.s += n; x.n++; } });
@@ -555,20 +633,20 @@ function valoracion(a, campo, c, obs) { if (!c || !c.n) return "";
   return t; }
 function filasBoleta(g, T) { const B = (D.bol[g.id] || {})[T.id] || {};
   return activos(g).map(a => { const R = resumenAlumno(g, a, T), o = B[a.id] || {}; const cal = {}, val = {};
-    CAMPOS.forEach(c => { cal[c] = o.cal && o.cal[c] != null ? o.cal[c] : (R.campos[c] ? R.campos[c].cal : null); val[c] = o.val && o.val[c] != null ? o.val[c] : valoracion(a, c, R.campos[c], R.obs); });
+    areasDe(g).forEach(c => { cal[c] = o.cal && o.cal[c] != null ? o.cal[c] : (R.campos[c] ? R.campos[c].cal : null); val[c] = o.val && o.val[c] != null ? o.val[c] : valoracion(a, c, R.campos[c], R.obs); });
     const cs = Object.values(cal).filter(x => x != null), prom = cs.length ? cs.reduce((x, y) => x + y, 0) / cs.length : null;
     return { a, R, cal, val, prom, gen: o.gen || "", edit: o }; }); }
 const colCal = v => v == null ? "#999" : v >= 9 ? "#1E8E5A" : v >= 7 ? "#A87200" : "#C2362B";
 VISTAS.evaluacion = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const T = trimActual(), F = filasBoleta(g, T), f = F.find(x => x.a.id === S.al);
   return barra("Evaluación · " + esc(grNom(g)), esc(T.n), `<button class="btn s" id="bvI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
   <div class="chips mt">${TRIMS().map(t => `<button class="chip" data-tr="${t.id}" aria-pressed="${t.id === T.id}">${esc(t.n)}</button>`).join("")}</div>
-  <p class="small muted mt">${fCorta(T.ini)} al ${fCorta(T.fin)}. La calificación (5 a 10) sale del promedio de los niveles que registró en cada campo formativo; la valoración, de los criterios y sus observaciones. Puede ajustar ambas.</p>
-  ${!f ? `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${CAMPOS.map(c => `<th class="c" title="${esc(c)}">${esc({ "Lenguajes": "Leng.", "Saberes y pensamiento científico": "Saberes", "Ética, naturaleza y sociedades": "Ética", "De lo humano y lo comunitario": "Humano" }[c])}</th>`).join("")}<th class="c">Prom.</th><th class="c">Faltas</th></tr></thead><tbody>
-    ${F.map(x => `<tr class="clic" data-bal="${x.a.id}"><td><b>${esc(x.a.nombre)}</b>${Object.keys(x.edit.cal || {}).length || Object.keys(x.edit.val || {}).length ? ' <small class="muted">· ajustada</small>' : ""}</td>${CAMPOS.map(c => `<td class="c"><b style="color:${colCal(x.cal[c])}">${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table></div>
+  <p class="small muted mt">${fCorta(T.ini)} al ${fCorta(T.fin)}. La calificación (5 a 10) sale del promedio de los niveles que registró en cada ${areaTxt(g)}; la valoración, de los criterios y sus observaciones. Puede ajustar ambas.</p>
+  ${!f ? `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${areasDe(g).map(c => `<th class="c" title="${esc(c)}">${esc(abrArea(c))}</th>`).join("")}<th class="c">Prom.</th><th class="c">Faltas</th></tr></thead><tbody>
+    ${F.map(x => `<tr class="clic" data-bal="${x.a.id}"><td><b>${esc(x.a.nombre)}</b>${Object.keys(x.edit.cal || {}).length || Object.keys(x.edit.val || {}).length ? ' <small class="muted">· ajustada</small>' : ""}</td>${areasDe(g).map(c => `<td class="c"><b style="color:${colCal(x.cal[c])}">${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table></div>
     <p class="small muted mt">Toque un alumno para ver y ajustar su valoración. «Imprimir» le da el concentrado del grupo y el informe de cada alumno para las familias.</p>`
   : `<button class="btn s mt" id="bvV">${ic("atras", 16)} Todo el grupo</button>
     <section class="card mt"><h3>${esc(f.a.nombre)}</h3><p class="small muted">${f.R.nreg} registros · ${f.R.falt} faltas${f.R.asisP != null ? " · asistencia " + Math.round(f.R.asisP * 100) + "%" : ""}</p>
-    ${CAMPOS.map(c => `<div class="bcampo"><div class="fila" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(c)}</b><span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-bm="${esc(c)}" data-d="-1">−</button><span class="cal-b" style="color:${colCal(f.cal[c])}">${f.cal[c] ?? "—"}</span><button class="btn s" data-bm="${esc(c)}" data-d="1">+</button></span></div>
+    ${areasDe(g).map(c => `<div class="bcampo"><div class="fila" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(c)}</b><span class="fila" style="gap:6px;flex-wrap:nowrap"><button class="btn s" data-bm="${esc(c)}" data-d="-1">−</button><span class="cal-b" style="color:${colCal(f.cal[c])}">${f.cal[c] ?? "—"}</span><button class="btn s" data-bm="${esc(c)}" data-d="1">+</button></span></div>
       <button class="btn s tlami-b mt" data-btl="${esc(c)}">${ic("chispa", 14)} Mejorar redacción con Tlami</button><textarea class="area" style="min-height:80px" data-bv="${esc(c)}" placeholder="${f.R.campos[c] ? "" : "Sin registros en el trimestre: escriba su valoración"}">${esc(f.val[c])}</textarea></div>`).join("")}
     <label class="campo mt"><span>Observaciones generales y recomendaciones para la familia</span><textarea class="area" id="bvG">${esc(f.gen)}</textarea></label>
     <div class="fila">${f.edit.cal || f.edit.val ? `<button class="btn s r" id="bvR">Volver a lo calculado</button>` : ""}<button class="btn s" id="bvU">${ic("impr", 16)} Informe de este alumno</button></div></section>`}</main>`; };
@@ -583,12 +661,12 @@ ENLAZAR.evaluacion = () => { const g = gAct(); if (!g) return; const T = trimAct
   $("#bvG") && ($("#bvG").onchange = e => { ed(S.al).gen = e.target.value; guardar(); });
   $("#bvR") && ($("#bvR").onclick = () => { const o = ed(S.al); delete o.cal; delete o.val; guardar(); re(); });
   $("#bvU") && ($("#bvU").onclick = async () => imprimir(await docInformes(g, T, S.al)));
-  $("#bvI").onclick = () => dlg(`<h3>Imprimir</h3><div class="lista"><button class="it btnit" id="pC"><span class="tx"><b>Concentrado del grupo</b><small>Calificaciones por campo formativo y faltas</small></span></button><button class="it btnit" id="pA"><span class="tx"><b>Informe de cada alumno</b><small>Una hoja por alumno para la familia, con sus evidencias</small></span></button></div><div class="fila fin mt"><button class="btn" id="pX">Cancelar</button></div>`, v => {
+  $("#bvI").onclick = () => dlg(`<h3>Imprimir</h3><div class="lista"><button class="it btnit" id="pC"><span class="tx"><b>Concentrado del grupo</b><small>Calificaciones por ${areaTxt(g)} y faltas</small></span></button><button class="it btnit" id="pA"><span class="tx"><b>Informe de cada alumno</b><small>Una hoja por alumno para la familia, con sus evidencias</small></span></button></div><div class="fila fin mt"><button class="btn" id="pX">Cancelar</button></div>`, v => {
     v.querySelector("#pX").onclick = cerrarDlg; v.querySelector("#pC").onclick = () => { cerrarDlg(); imprimir(docConcentrado(g, T), true); }; v.querySelector("#pA").onclick = async () => { cerrarDlg(); imprimir(await docInformes(g, T)); }; }); };
 function docConcentrado(g, T) { const F = filasBoleta(g, T);
   return `<div class="doc">${encabezado(g, "Concentrado de evaluación · " + esc(T.n))}<div class="datos"><span><b>Grupo:</b> ${esc(grNom(g))}</span><span><b>Periodo:</b> ${fCorta(T.ini)} al ${fCorta(T.fin)}</span><span><b>Docente:</b> ${esc(yo().nombre)}</span></div>
-  <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th>${g.grados.length > 1 ? '<th class="c">Grado</th>' : ""}${CAMPOS.map(c => `<th class="c">${esc(c)}</th>`).join("")}<th class="c">Promedio</th><th class="c">Faltas</th></tr></thead><tbody>
-  ${F.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.a.nombre)}</td>${g.grados.length > 1 ? `<td class="c">${x.a.g ? x.a.g + ".°" : ""}</td>` : ""}${CAMPOS.map(c => `<td class="c"><b>${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table>
+  <table><thead><tr><th class="c">No.</th><th>Alumno(a)</th>${g.grados.length > 1 ? '<th class="c">Grado</th>' : ""}${areasDe(g).map(c => `<th class="c">${esc(c)}</th>`).join("")}<th class="c">Promedio</th><th class="c">Faltas</th></tr></thead><tbody>
+  ${F.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.a.nombre)}</td>${g.grados.length > 1 ? `<td class="c">${x.a.g ? x.a.g + ".°" : ""}</td>` : ""}${areasDe(g).map(c => `<td class="c"><b>${x.cal[c] ?? "—"}</b></td>`).join("")}<td class="c">${x.prom == null ? "—" : x.prom.toFixed(1)}</td><td class="c">${x.R.falt}</td></tr>`).join("")}</tbody></table>
   <p class="nota">Calificaciones de 5 a 10 obtenidas de los registros de evaluación formativa del periodo (Destacado, Logrado, En proceso, Requiere apoyo), con los ajustes del docente.</p>
   <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección de la escuela</td></tr></table></div>`; }
 async function docInformes(g, T, solo) { const F = filasBoleta(g, T).filter(x => !solo || x.a.id === solo); let out = "";
@@ -596,7 +674,7 @@ async function docInformes(g, T, solo) { const F = filasBoleta(g, T).filter(x =>
     for (const f of fotos) imgs.push({ f, u: await fotoGet(f.id) });
     out += `<div class="doc ${i ? "salto" : ""}">${encabezado(g, "Informe de evaluación formativa · " + esc(T.n))}
     <div class="datos"><span><b>Alumno(a):</b> ${esc(x.a.nombre)}</span><span><b>Grado y grupo:</b> ${x.a.g ? x.a.g + ".°" : esc(grNom(g))}${g.grupo ? " " + esc(g.grupo) : ""}</span><span><b>Periodo:</b> ${fCorta(T.ini)} al ${fCorta(T.fin)}</span><span><b>Faltas:</b> ${x.R.falt}</span><span><b>Docente:</b> ${esc(yo().nombre)}</span></div>
-    <table><thead><tr><th style="width:24%">Campo formativo</th><th class="c" style="width:11%">Calificación</th><th>Valoración del desempeño</th></tr></thead><tbody>${CAMPOS.map(c => `<tr><td><b>${esc(c)}</b></td><td class="c"><b>${x.cal[c] ?? "—"}</b></td><td>${esc(x.val[c] || "")}</td></tr>`).join("")}</tbody></table>
+    <table><thead><tr><th style="width:24%">${esSec(g) ? "Disciplina" : "Campo formativo"}</th><th class="c" style="width:11%">Calificación</th><th>Valoración del desempeño</th></tr></thead><tbody>${areasDe(g).map(c => `<tr><td><b>${esc(c)}</b></td><td class="c"><b>${x.cal[c] ?? "—"}</b></td><td>${esc(x.val[c] || "")}</td></tr>`).join("")}</tbody></table>
     ${x.gen ? `<h2>Observaciones y recomendaciones para la familia</h2><p>${esc(x.gen).replace(/\n/g, "<br>")}</p>` : ""}
     ${imgs.length ? `<h2>Evidencias de su trabajo</h2><table class="ev-f"><tr>${imgs.map(o => `<td>${o.u ? `<img src="${o.u}">` : ""}<p>${esc(o.f.t || "")} · ${fCorta(o.f.fecha)}</p></td>`).join("")}</tr></table>` : ""}
     <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección</td><td>Madre, padre o tutor(a)</td></tr></table></div>`; }
@@ -642,11 +720,11 @@ function tlamiError(e) { dlg(`<h3>Tlami no pudo ayudar esta vez</h3><p class="mb
 function tlamiSesion(p, i) { const g = grDe(p.gid), s = p.sesiones[i];
   dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Tlami detalla su sesión ${i + 1}</h3><p class="small muted">${esc(s.fase)} · ${esc(p.titulo)}</p></div></div>
    <label class="campo mt"><span>¿Algo que quiera pedirle? <small>(opcional)</small></span><textarea id="tsN" class="area" style="min-height:80px" placeholder="Ej.: que sea en el patio, que use material reciclado, tengo 3 alumnos que aún no leen…"></textarea></label>
-   <p class="small muted">Tlami usa el contenido, los PDA de ${g.grados.length > 1 ? "cada grado" : "su grado"} y la metodología del proyecto. No se envían nombres de alumnos.</p>
+   <p class="small muted">Tlami usa ${p.disc ? "la disciplina, " : ""}el contenido, los PDA de ${g.grados.length > 1 ? "cada grado" : "su grado"} y la metodología del proyecto. No se envían nombres de alumnos.</p>
    <div class="fila fin mt"><button class="btn" id="tsX">Cancelar</button><button class="btn p" id="tsOk">${ic("chispa", 16)} Pedir propuesta</button></div>`, v => {
     v.querySelector("#tsX").onclick = cerrarDlg;
     v.querySelector("#tsOk").onclick = async () => { const nota = val("tsN").trim(); tlamiEspera("Preparando inicio, desarrollo, cierre y evaluación de la sesión.");
-      try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, titulo: p.titulo, campo: p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
+      try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, nivel: esSec(g) ? "secundaria" : "primaria", disciplina: p.disc || "", titulo: p.titulo, campo: p.disc ? p.disc + " (secundaria, campo formativo " + p.campo + ")" : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
           contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), nota });
         const r = j.r || {}; dlg(`<h3>Propuesta de Tlami</h3><div class="tlami-r">${[["Inicio", r.inicio], ["Desarrollo", r.desarrollo], ["Cierre", r.cierre], ["Evaluación", r.evaluacion], ["Materiales", r.materiales], ["Ajustes", r.ajustes]].filter(x => x[1]).map(([t, x]) => `<p><b>${t}:</b> ${esc(x).replace(/\n/g, "<br>")}</p>`).join("")}</div>
           <p class="small muted mt">Revísela y ajústela a su grupo: usted conoce a sus alumnos.</p><div class="fila fin mt"><button class="btn" id="trX">Descartar</button><button class="btn p" id="trOk">${ic("check", 16)} Usar en la sesión</button></div>`, w => {
@@ -657,17 +735,17 @@ function tlamiSesion(p, i) { const g = grDe(p.gid), s = p.sesiones[i];
 function tlamiAjustes(g, a) { const p = D.planes.filter(x => x.gid === g.id).sort((x, y) => y.ini.localeCompare(x.ini))[0];
   dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Ajustes razonables con Tlami</h3><p class="small muted">Para ${esc(a.nombre.split(" ")[0])} · su nombre no se envía</p></div></div>
    <label class="campo mt"><span>¿Qué le cuesta o qué observa?</span><textarea id="taB" class="area" style="min-height:80px" placeholder="Ej.: se distrae con facilidad, aún no lee de corrido, le cuesta trabajar en equipo…"></textarea></label>
-   <label class="campo"><span>Actividad o proyecto</span><input id="taA" value="${esc(p ? p.titulo + " (" + p.campo + ")" : "")}"></label>
+   <label class="campo"><span>Actividad o proyecto</span><input id="taA" value="${esc(p ? p.titulo + " (" + (p.disc || p.campo) + ")" : "")}"></label>
    <div class="fila fin mt"><button class="btn" id="taX">Cancelar</button><button class="btn p" id="taOk">${ic("chispa", 16)} Pedir ajustes</button></div>`, v => {
     v.querySelector("#taX").onclick = cerrarDlg;
     v.querySelector("#taOk").onclick = async () => { const bar = val("taB").trim(), act = val("taA").trim(); if (bar.length < 5) return toast("Describa un poco lo que observa."); tlamiEspera("Buscando apoyos concretos para que participe.");
-      try { const j = await aulaPost("aulaIA", { modo: "ajustes", grados: [a.g || g.grados[0]], actividad: act, campo: p ? p.campo : "", barrera: bar }), r = j.r || {};
+      try { const j = await aulaPost("aulaIA", { modo: "ajustes", grados: [a.g || g.grados[0]], nivel: esSec(g) ? "secundaria" : "primaria", actividad: act, campo: p ? (p.disc ? p.disc + " (secundaria)" : p.campo) : "", barrera: bar }), r = j.r || {};
         dlg(`<h3>Ajustes sugeridos</h3><ul class="tlami-l">${(r.ajustes || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>${r.familia ? `<p class="mt"><b>Con la familia:</b> ${esc(r.familia)}</p>` : ""}
           <div class="fila fin mt"><button class="btn" id="tjX">Cerrar</button><button class="btn p" id="tjOk">${ic("check", 16)} Guardar en su ficha</button></div>`, w => {
           w.querySelector("#tjX").onclick = cerrarDlg;
           w.querySelector("#tjOk").onclick = () => { a.ajustes = (a.ajustes || []).concat([{ f: hoy(), bar, l: r.ajustes || [], fam: r.familia || "" }]); guardar(); cerrarDlg(); re(); toast("Ajustes guardados en su ficha."); }; }); }
       catch (e) { tlamiError(e); } }; }); }
-function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1];
+function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1], gE = escala(g);
   dlg(`<div class="fila" style="gap:10px;flex-wrap:nowrap"><span class="tlami-av">${ic("chispa", 26)}</span><div><h3 style="margin:0">Crear una dinámica con Tlami</h3><p class="small muted">Para ${esc(grNom(g))}</p></div></div>
    <label class="campo mt"><span>¿Para qué la quiere?</span><textarea id="tdT" class="area" style="min-height:70px" placeholder="Ej.: repasar las tablas del 3, activarlos después del recreo, iniciar el proyecto del agua…"></textarea></label>
    <div class="dos"><label class="campo"><span>Tipo</span><select id="tdC">${Object.entries(DIN_CATS).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join("")}</select></label><label class="campo"><span>Minutos</span><input id="tdM" type="number" min="3" max="60" value="10"></label></div>
@@ -675,8 +753,8 @@ function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1];
    <div class="fila fin mt"><button class="btn" id="tdX">Cancelar</button><button class="btn p" id="tdOk">${ic("chispa", 16)} Crear</button></div>`, v => {
     v.querySelector("#tdX").onclick = cerrarDlg;
     v.querySelector("#tdOk").onclick = async () => { const tema = val("tdT").trim(), cat = val("tdC"), min = +val("tdM") || 10, esp = val("tdE"); if (tema.length < 5) return toast("Escriba para qué la quiere."); tlamiEspera("Inventando una dinámica para su grupo.");
-      try { const j = await aulaPost("aulaIA", { modo: "dinamica", grados: gr, tema, tipo: (DIN_CATS[cat] || [cat])[0], min, esp }), r = j.r || {};
-        const d = { id: "mia-" + uid(), n: r.n || "Dinámica de Tlami", cat, campos: ["L", "S", "E", "H"].filter(k => (cat === "lengua" && k === "L") || (cat === "mate" && k === "S") || (cat === "ciencia" && k === "S") || (cat === "convive" && k === "H")), g: [Math.min(...gr), Math.max(...gr)], min, esp, mat: r.mat || "", prop: r.prop || "", pasos: r.pasos || [], var: r.var || "", multi: r.multi || "", autor: yo().nombre, ia: true };
+      try { const j = await aulaPost("aulaIA", { modo: "dinamica", grados: gr, nivel: esSec(g) ? "secundaria" : "primaria", tema, tipo: (DIN_CATS[cat] || [cat])[0], min, esp }), r = j.r || {};
+        const d = { id: "mia-" + uid(), n: r.n || "Dinámica de Tlami", cat, campos: ["L", "S", "E", "H"].filter(k => (cat === "lengua" && k === "L") || (cat === "mate" && k === "S") || (cat === "ciencia" && k === "S") || (cat === "convive" && k === "H")), g: gE, min, esp, mat: r.mat || "", prop: r.prop || "", pasos: r.pasos || [], var: r.var || "", multi: r.multi || "", autor: yo().nombre, ia: true };
         if (!d.campos.length) d.campos = ["L", "S", "E", "H"];
         dlg(`<h3>${esc(d.n)}</h3><p>${esc(d.prop)}</p>${d.mat ? `<p class="small mt"><b>Material:</b> ${esc(d.mat)}</p>` : ""}<ol class="pasos-l mt">${d.pasos.map(x => `<li>${esc(x)}</li>`).join("")}</ol>${d.var ? `<p class="small"><b>Variante:</b> ${esc(d.var)}</p>` : ""}${d.multi ? `<p class="small"><b>Multigrado:</b> ${esc(d.multi)}</p>` : ""}
           <div class="fila fin mt"><button class="btn" id="tgX">Descartar</button><button class="btn p" id="tgOk">${ic("check", 16)} Guardar en mis dinámicas</button></div>`, w => {
@@ -685,11 +763,17 @@ function tlamiDinamica() { const g = gAct(), gr = g ? g.grados : [1];
 async function tlamiValoracion(g, a, campo, txt, alListo) { if (!txt || txt.length < 15) return toast("Escriba primero una valoración (o registre evaluaciones) para que Tlami la mejore.");
   const nom = String(a.nombre || "").split(" ")[0], re0 = new RegExp("\\b" + nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
   tlamiEspera("Redactando la valoración para la familia.");
-  try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [a.g || g.grados[0]], campo, texto: txt.replace(re0, "[ALUMNO]") }); cerrarDlg(); const t = String((j.r || {}).texto || "").replace(/\[ALUMNO\]/g, nom); if (t) alListo(t); }
+  try { const j = await aulaPost("aulaIA", { modo: "valoracion", grados: [a.g || g.grados[0]], nivel: esSec(g) ? "secundaria" : "primaria", campo: esSec(g) ? campo + " (secundaria)" : campo, texto: txt.replace(re0, "[ALUMNO]") }); cerrarDlg(); const t = String((j.r || {}).texto || "").replace(/\[ALUMNO\]/g, nom); if (t) alListo(t); }
   catch (e) { tlamiError(e); } }
 
 /* =================================================================== LIBROS DE TEXTO GRATUITOS */
-const LTG_URL = c => `https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=primaria&ciclo=2026&clave=${c}`;
+const LTG_URL = c => `https://libros.conaliteg.gob.mx/pdf-reader/reader.html?nivel=${/^S/.test(c) ? "secundaria" : "primaria"}&ciclo=2026&clave=${c}`;
+const COLE_SEC = { 1: "Colección Ximhai", 2: "Colección Sk´asolil", 3: "Colección Nanahuatzin" }, LTG_CAMPO = { "Lenguajes": "L", "Saberes y pensamiento científico": "S", "Ética, naturaleza y sociedades": "E", "De lo humano y lo comunitario": "H" };
+function librosSec(gr) { const o = ORD[gr - 1] + " grado", co = COLE_SEC[gr] + " · " + o;
+  return [{ c: `S${gr}NLA`, n: "Nuestro libro de proyectos", sub: co, t: "aula", k: "P" }, { c: `S${gr}LEA`, n: "Lenguajes", sub: co, t: "lenguajes", k: "L" }, { c: `S${gr}SAA`, n: "Saberes y pensamiento científico", sub: co, t: "saberes", k: "S" },
+    { c: `S${gr}ETA`, n: "Ética, naturaleza y sociedades", sub: co, t: "escolar", k: "E" }, { c: `S${gr}HUA`, n: "De lo humano y lo comunitario", sub: co, t: "comunitario", k: "H" }, { c: `S${gr}MLA`, n: "Múltiples lenguajes", sub: co, t: "lenguajes", k: "M" },
+    { c: `S${gr}INA`, n: "Uérakua anapu uantakua. Projects and Readings", sub: o + " · Inglés", t: "otros", k: "I" }, { c: "S1HPA", n: "Historia del pueblo mexicano", sub: "Multigrado", t: "otros", k: "HP" },
+    { c: "S0LPM", n: "Un libro sin recetas, para la maestra y el maestro", sub: "Fase 6 · Secundaria", t: "maestro", k: "LPM" }]; }
 const ORD = ["Primer", "Segundo", "Tercer", "Cuarto", "Quinto", "Sexto"];
 function librosDe(gr) { const o = ORD[gr - 1] + " grado", L = [["PAA", "Proyectos de Aula", "aula"], ["PEA", "Proyectos Escolares", "escolar"], ["PCA", "Proyectos Comunitarios", "comunitario"], ["SDA", "Nuestros saberes: libro para alumnos, maestros y familia", "saberes"], ["MLA", "Múltiples lenguajes", "lenguajes"]]
     .map(([c, n, t]) => ({ c: `P${gr}${c}`, n, sub: o, t }));
@@ -697,16 +781,18 @@ function librosDe(gr) { const o = ORD[gr - 1] + " grado", L = [["PAA", "Proyecto
   if (gr >= 4) L.push({ c: "P0CMA", n: "Cartografía de México y el mundo", sub: "4.° a 6.° (multigrado)", t: "otros" }, { c: "P0SHA", n: "Nuestros saberes: México, grandeza y diversidad", sub: "4.° a 6.° (multigrado)", t: "otros" });
   const f = gr <= 2 ? [1, 3] : gr <= 4 ? [3, 4] : [5, 5]; L.push({ c: `P${f[0]}LPM`, n: "Un libro sin recetas, para la maestra y el maestro", sub: "Fase " + f[1], t: "maestro" });
   return L; }
-VISTAS.libros = () => { const g = gAct(), grs = g ? g.grados : [1, 2, 3, 4, 5, 6], sel = S.gr && grs.includes(S.gr) ? S.gr : grs[0];
+VISTAS.libros = () => { const g = gAct(), sec = esSec(g), grs = g ? g.grados : [1, 2, 3, 4, 5, 6], sel = S.gr && grs.includes(S.gr) ? S.gr : grs[0];
   return barra("Tlamatini Aula", "Libros de texto") + `<main class="wrap">
   <p class="small muted mt">Libros de Texto Gratuitos de la SEP, ciclo 2026-2027. Se abren en el sitio oficial de la CONALITEG (requiere internet).</p>
   ${grs.length > 1 ? `<div class="chips mt">${grs.map(x => `<button class="chip" data-lg="${x}" aria-pressed="${x === sel}">${x}.° grado</button>`).join("")}</div>` : ""}
-  <div class="lista mt">${librosDe(sel).map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${esc(l.sub)}</small></span>${ic("sig", 16)}</a>`).join("")}</div>
-  <section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small">El libro de proyectos va con el <b>escenario</b> de su planeación: <b>Aula</b> → Proyectos de Aula; <b>Escolar</b> → Proyectos Escolares; <b>Comunitario</b> → Proyectos Comunitarios. En el índice, busque los proyectos del campo formativo que trabaja. <b>Nuestros saberes</b> sirve para consultar los conceptos y <b>Múltiples lenguajes</b> para la lectura.</p></section>
-  <p class="small mt"><a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver todos los libros de primaria en la CONALITEG</a></p></main>`; };
+  <div class="lista mt">${(sec ? librosSec(sel) : librosDe(sel)).map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${esc(l.sub)}</small></span>${ic("sig", 16)}</a>`).join("")}</div>
+  ${sec ? `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small"><b>Nuestro libro de proyectos</b> trae los proyectos de aula, escolares y comunitarios de los cuatro campos formativos. El libro de su campo formativo${g && (g.discs || []).length === 1 ? ` (${esc(DIN_CAMPOS[(discDe(g.discs[0]) || [])[1]] || "")})` : ""} sirve para consultar los conceptos de su disciplina. En Inglés use <b>Projects and Readings</b>.</p></section>
+  <p class="small mt"><a href="https://libros.conaliteg.gob.mx/secundaria.html" target="_blank" rel="noopener">Ver todos los libros de secundaria en la CONALITEG</a></p></main>` : `<section class="card mt"><h3>¿Cuál uso para mi proyecto?</h3><p class="small">El libro de proyectos va con el <b>escenario</b> de su planeación: <b>Aula</b> → Proyectos de Aula; <b>Escolar</b> → Proyectos Escolares; <b>Comunitario</b> → Proyectos Comunitarios. En el índice, busque los proyectos del campo formativo que trabaja. <b>Nuestros saberes</b> sirve para consultar los conceptos y <b>Múltiples lenguajes</b> para la lectura.</p></section>
+  <p class="small mt"><a href="https://libros.conaliteg.gob.mx/primaria.html" target="_blank" rel="noopener">Ver todos los libros de primaria en la CONALITEG</a></p></main>`}`; };
 ENLAZAR.libros = () => { $$("[data-lg]").forEach(b => b.onclick = () => { S.gr = +b.dataset.lg; re(); }); };
-function librosPlan(p) { const g = grDe(p.gid), grs = g ? g.grados : [], t = p.escenario === "escolar" ? "escolar" : p.escenario === "comunitario" ? "comunitario" : "aula";
-  const L = grs.flatMap(gr => librosDe(gr).filter(l => l.t === t || l.t === "saberes").map(l => Object.assign({ gr }, l)));
+function librosPlan(p) { const g = grDe(p.gid), grs = g ? g.grados : [], t = p.escenario === "escolar" ? "escolar" : p.escenario === "comunitario" ? "comunitario" : "aula", kc = LTG_CAMPO[p.campo];
+  const L = p.disc ? grs.flatMap(gr => librosSec(gr).filter(l => l.k === "P" || l.k === kc || (p.disc === "Inglés" && l.k === "I") || (p.disc === "Historia" && l.k === "HP" && gr === grs[0])).map(l => Object.assign({ gr }, l)))
+    : grs.flatMap(gr => librosDe(gr).filter(l => l.t === t || l.t === "saberes").map(l => Object.assign({ gr }, l)));
   return `<h2 class="sec-t">Libros de texto<small>Busque en el índice los proyectos de ${esc(p.campo)}</small></h2><div class="lista">${L.map(l => `<a class="it btnit libro" href="${LTG_URL(l.c)}" target="_blank" rel="noopener"><span class="av lb-${l.t}">${ic("libro", 18)}</span><span class="tx"><b>${esc(l.n)}</b><small>${l.gr}.° grado</small></span>${ic("sig", 16)}</a>`).join("")}</div>`; }
 
 /* =================================================================== DINÁMICAS DE LA ZONA */
@@ -732,15 +818,15 @@ async function unzip(s, z) { if (!+z) return decodeURIComponent(escape(atob(s)))
   const bin = Uint8Array.from(atob(s), c => c.charCodeAt(0)); return new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
 async function miniatura(u, max = 360) { return new Promise(ok => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", .6)); }; im.onerror = () => ok(""); im.src = u; }); }
 async function paqueteVisita(g, T, que) { const fin = hoy() < T.fin ? hoy() : T.fin, enP = k => k >= T.ini && k <= fin;
-  const planes = !que.plan ? [] : D.planes.filter(p => p.gid === g.id && p.sesiones.some(s => !s.fecha || s.fecha >= T.ini) && p.ini <= fin).map(p => ({ titulo: p.titulo, campo: p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, esc: ESCENARIOS[p.escenario] || "", ejes: p.ejes, ini: p.ini, min: p.min,
+  const planes = !que.plan ? [] : D.planes.filter(p => p.gid === g.id && p.sesiones.some(s => !s.fecha || s.fecha >= T.ini) && p.ini <= fin).map(p => ({ titulo: p.titulo, campo: p.disc ? p.disc + " · " + p.campo : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, esc: ESCENARIOS[p.escenario] || "", ejes: p.ejes, ini: p.ini, min: p.min,
     cont: Object.values(p.contenidos || {}), pdas: p.pdas, prop: p.proposito, prod: p.producto, crit: p.criterios.map(c => c.gr + ".° " + c.c),
     ses: p.sesiones.map((s, i) => ({ f: s.fecha, fase: s.fase, ini: [dinDe(s.inicio.din) ? "Dinámica: " + dinDe(s.inicio.din).n : "", s.inicio.txt].filter(Boolean).join(". "), des: s.desarrollo, cie: [dinDe(s.cierre.din) ? "Dinámica: " + dinDe(s.cierre.din).n : "", s.cierre.txt].filter(Boolean).join(". "), ev: s.eval, h: s.hecho ? 1 : 0, r: D.reg.some(r => r.pid === p.id && r.ses === i) ? 1 : 0 })) }));
   const A = D.asis[g.id] || {}, dias = Object.keys(A).filter(enP).sort(), al = activos(g);
   const asis = !que.asis ? null : { dias, al: al.map(a => ({ n: a.nombre, g: a.g || "", m: dias.map(k => (A[k] || {})[a.id] || "-").join("") })) };
-  const F = filasBoleta(g, T), ev = !que.eval ? null : { campos: CAMPOS, al: F.map(x => ({ n: x.a.nombre, cal: CAMPOS.map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
+  const F = filasBoleta(g, T), ev = !que.eval ? null : { campos: areasDe(g), al: F.map(x => ({ n: x.a.nombre, cal: areasDe(g).map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
   const fotos = []; if (que.fotos) for (const f of D.fotos.filter(f => f.bol && enP(f.fecha) && al.some(a => a.id === f.al)).slice(-6)) { const u = await fotoGet(f.id); if (u) fotos.push({ t: f.t || "Evidencia", f: f.fecha, u: await miniatura(u) }); }
   return { t: "aula-rev", v: 1, gen: new Date().toISOString(), per: { n: T.n, ini: T.ini, fin }, docente: { nombre: yo().nombre, correo: yo().correo },
-    escuela: { nombre: g.escuela, cct: g.cct || "", turno: g.turno || "", loc: g.loc || "", dir: dirTxt(g) }, grupo: { nom: grNom(g), grados: g.grados, n: al.length, nee: al.filter(a => a.nee || (a.ajustes || []).length).length },
+    escuela: { nombre: g.escuela, cct: g.cct || "", turno: g.turno || "", loc: g.loc || "", dir: dirTxt(g) }, grupo: { nom: grNom(g), grados: g.grados, nivel: esSec(g) ? "sec" : "prim", n: al.length, nee: al.filter(a => a.nee || (a.ajustes || []).length).length },
     planes, asis, ev, fotos, din: D.mias.length }; }
 VISTAS.visita = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const q = D.cfg.revQR, vig = q && new Date(q.vence) > new Date(), R = S.R = S.R || { plan: true, asis: true, eval: true, fotos: true };
   return barra("Tlamatini Aula", "Visita de acompañamiento") + `<main class="wrap">
@@ -794,13 +880,13 @@ VISTAS.revisar = () => { if (S.id && (!RV || RV.id !== S.id)) RV = visitas().fin
     const prom = p.ev ? p.ev.campos.map((c, i) => { const v = p.ev.al.map(a => a.cal[i]).filter(x => x != null); return [c, v.length ? v.reduce((x, y) => x + y, 0) / v.length : null]; }) : [];
     cuerpo = `<div class="kpis mt"><div class="kpi"><b>${p.planes.length}</b><span>Proyectos</span></div><div class="kpi"><b>${dadas}/${ses.length}</b><span>Sesiones dadas</span></div><div class="kpi"><b>${tot ? Math.round(100 * as / tot) + "%" : "—"}</b><span>Asistencia</span></div><div class="kpi"><b>${p.ev ? p.ev.reg : "—"}</b><span>Registros de evaluación</span></div></div>
      <section class="card mt"><p><b>Escuela:</b> ${esc(p.escuela.nombre)}${p.escuela.cct ? " · " + esc(p.escuela.cct) : ""}${p.escuela.turno ? " · " + esc(p.escuela.turno) : ""}</p><p><b>Grupo:</b> ${esc(p.grupo.nom)} · ${p.grupo.n} alumnos${p.grupo.nee ? ` · ${p.grupo.nee} con ajustes razonables` : ""}</p><p><b>Periodo:</b> ${esc(p.per.n)}, ${fCorta(p.per.ini)} al ${fCorta(p.per.fin)}</p><p class="small muted mt">${pl(ev, "sesión", "sesiones")} con registro de evaluación · ${pl(p.fotos.length, "evidencia", "evidencias")} · ${pl(p.din, "dinámica propia", "dinámicas propias")}</p></section>
-     ${prom.length ? `<h2 class="sec-t">Promedio del grupo por campo formativo</h2><section class="card">${barras(prom)}</section>` : ""}`; }
+     ${prom.length ? `<h2 class="sec-t">Promedio del grupo por ${p.grupo.nivel === "sec" ? "disciplina" : "campo formativo"}</h2><section class="card">${barras(prom)}</section>` : ""}`; }
   if (tab === "plan") cuerpo = p.planes.map((x, i) => `<section class="card mt"><h3>${esc(x.titulo)}</h3><p class="small muted">${esc(x.campo)} · ${esc(x.metodo)} · Escenario ${esc(x.esc)} · ${x.ses.length} sesiones de ${x.min} min · desde ${fCorta(x.ini)}</p>
       ${x.cont.map(c => `<p class="small mt"><b>Contenido:</b> ${esc(c)}</p>`).join("")}${Object.entries(x.pdas || {}).map(([k, t]) => `<p class="small"><b>PDA ${k}.°:</b> ${esc(t)}</p>`).join("")}${x.prop ? `<p class="small"><b>Propósito:</b> ${esc(x.prop)}</p>` : ""}${x.prod ? `<p class="small"><b>Producto:</b> ${esc(x.prod)}</p>` : ""}
       <details class="mt"><summary><b>Sesiones</b> (${x.ses.filter(s => s.h).length} dadas, ${x.ses.filter(s => s.r).length} evaluadas)</summary>${x.ses.map((s, k) => `<div class="rv-ses"><b>${k + 1}. ${esc(s.fase)}</b> <small class="muted">${s.f ? fCorta(s.f) : ""}${s.h ? " · dada" : ""}${s.r ? " · evaluada" : ""}</small>${s.ini ? `<p class="small"><b>Inicio:</b> ${esc(s.ini)}</p>` : ""}<p class="small"><b>Desarrollo:</b> ${esc(s.des).replace(/\n/g, "<br>")}</p>${s.cie ? `<p class="small"><b>Cierre:</b> ${esc(s.cie)}</p>` : ""}<p class="small"><b>Evaluación:</b> ${esc(s.ev)}</p></div>`).join("")}</details></section>`).join("") || `<div class="vacio mt">No compartió planeaciones de este periodo.</div>`;
   if (tab === "asis") cuerpo = !p.asis ? `<div class="vacio mt">No compartió el pase de lista.</div>` : !p.asis.dias.length ? `<div class="vacio mt">No hay pase de lista en el periodo.</div>` : `<div class="tabla-c mt"><table class="tabla asis-t"><thead><tr><th>Alumno(a)</th>${p.asis.dias.map(k => `<th class="c">${dF(k).getDate()}<br><small>${MES[dF(k).getMonth()]}</small></th>`).join("")}<th class="c">%</th></tr></thead><tbody>${p.asis.al.map(a => { const v = [...a.m].filter(c => c !== "-"), as = v.filter(c => c === "P" || c === "R").length;
       return `<tr><td>${esc(a.n)}</td>${[...a.m].map(c => `<td class="c m-${c}">${c === "-" ? "" : c}</td>`).join("")}<td class="c"><b>${v.length ? Math.round(100 * as / v.length) : "—"}</b></td></tr>`; }).join("")}</tbody></table></div><p class="small muted mt">P asistió · R retardo · F falta · J justificada</p>`;
-  if (tab === "eval") cuerpo = !p.ev ? `<div class="vacio mt">No compartió la evaluación.</div>` : `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${p.ev.campos.map(c => `<th class="c">${esc(c.split(" ")[0])}</th>`).join("")}<th class="c">Reg.</th><th class="c">Faltas</th></tr></thead><tbody>${p.ev.al.map(a => `<tr><td>${esc(a.n)}</td>${a.cal.map(v => `<td class="c"><b style="color:${colCal(v)}">${v ?? "—"}</b></td>`).join("")}<td class="c">${a.nreg}</td><td class="c">${a.falt}</td></tr>`).join("")}</tbody></table></div>`;
+  if (tab === "eval") cuerpo = !p.ev ? `<div class="vacio mt">No compartió la evaluación.</div>` : `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${p.ev.campos.map(c => `<th class="c" title="${esc(c)}">${esc(p.grupo.nivel === "sec" ? abrArea(c) : c.split(" ")[0])}</th>`).join("")}<th class="c">Reg.</th><th class="c">Faltas</th></tr></thead><tbody>${p.ev.al.map(a => `<tr><td>${esc(a.n)}</td>${a.cal.map(v => `<td class="c"><b style="color:${colCal(v)}">${v ?? "—"}</b></td>`).join("")}<td class="c">${a.nreg}</td><td class="c">${a.falt}</td></tr>`).join("")}</tbody></table></div>`;
   if (tab === "fotos") cuerpo = p.fotos.length ? `<div class="fotos mt">${p.fotos.map(f => `<div class="foto"><img src="${f.u}" alt=""><span>${esc(f.t)}<small>${fCorta(f.f)}</small></span></div>`).join("")}</div>` : `<div class="vacio mt">No compartió evidencias.</div>`;
   if (tab === "cierre") cuerpo = `<p class="small muted mt">Valore cada aspecto con el semáforo y anote lo observado. Al final firme y genere el informe para el docente.</p>
     ${ASPECTOS.map(([k, t, d]) => `<section class="card mt"><h3>${t}</h3><p class="small muted">${d}</p><div class="sem mt">${SEM.map(([s, n, c]) => `<button data-sm="${k}" data-sv="${s}" style="--c:${c}" aria-pressed="${RV.sem[k] === s}">${n}</button>`).join("")}</div><textarea class="area mt" data-so="${k}" style="min-height:64px" placeholder="Observaciones">${esc(RV.obs[k] || "")}</textarea></section>`).join("")}
@@ -891,7 +977,9 @@ ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin"))
 /* =================================================================== ARRANQUE */
 function arrancarDatos() { if (DEMO && !D.grupos.length) { const g = { id: "gdemo", cct: "02DPR9999Z", escuela: "Escuela Primaria «Cuauhtémoc» (ejemplo)", turno: "Matutino", grados: [1, 2, 3], grupo: "A", dir: "Ramón Ejemplo Torres", cargoDir: "Director", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz:1", "Bruno Muestra Díaz:1", "Camila Ficticia López:1", "Diego Prueba Soto:2", "Elena Ejemplo Cruz:2", "Fernando Demo Ríos:2", "Gabriela Muestra Peña:3", "Hugo Ficticio Lara:3", "Itzel Ejemplo Mora:3", "Joaquín Prueba Vega:3"].forEach(x => { const [n, gr] = x.split(":"); g.alumnos.push({ id: uid(), nombre: n, g: +gr }); });
-    D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
+    const g2 = { id: "gdemo2", nivel: "sec", mod: "general", discs: ["Matemáticas", "Formación Cívica y Ética"], cct: "02DES9999Z", escuela: "Escuela Secundaria General «Benito Juárez» (ejemplo)", turno: "Matutino", grados: [2], grupo: "B", dir: "Rosa Ejemplo Valdez", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
+    ["Alondra Ejemplo Ramos", "Brandon Muestra Castro", "Citlali Ficticia Ortiz", "Daniel Prueba Mendoza", "Estrella Ejemplo Núñez", "Francisco Demo Ibarra", "Guadalupe Muestra Salas", "Héctor Ficticio Rangel", "Iris Ejemplo Torres", "Jorge Prueba Arce"].forEach(n => g2.alumnos.push({ id: uid(), nombre: n, g: 2 }));
+    D.grupos.push(g, g2); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
 window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
