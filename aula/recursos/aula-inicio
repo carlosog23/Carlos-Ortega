@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+# Aula Zona 050 · Pantalla de inicio del alumno (computadoras Dell y HP con Linux Mint).
+# Lee los botones de /var/lib/aula/aula.json (se actualiza solo desde GitHub) o, si no hay, de /usr/share/aula/aula.json.
+import json, os, shlex, shutil, subprocess, sys, time
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk, GLib, Pango
+
+ARCHIVOS = ['/var/lib/aula/aula.json', '/usr/share/aula/aula.json']
+CSS = b"""
+window { background: #F3F7FA; }
+.cabecera { background: #0F3B5F; padding: 14px 26px; }
+.titulo { color: white; font-size: 26px; font-weight: 800; }
+.mensaje { color: #BFD3E2; font-size: 16px; }
+.reloj { color: white; font-size: 26px; font-weight: 700; }
+.fecha { color: #BFD3E2; font-size: 13px; }
+.seccion { color: #0F3B5F; font-size: 19px; font-weight: 800; }
+.nota { color: #5F6B76; font-size: 13px; }
+.boton { background: white; border-radius: 18px; border: 2px solid #D6E3EC; padding: 10px; box-shadow: none; }
+.boton:hover { border-color: #E8772E; background: #FFF6EE; }
+.boton:active { background: #FFE7D1; }
+.emoji { font-size: 46px; }
+.nombre { color: #0F3B5F; font-size: 17px; font-weight: 800; }
+.detalle { color: #5F6B76; font-size: 12px; }
+.pie { background: #E3ECF2; padding: 10px 26px; }
+.accion { border-radius: 14px; padding: 8px 18px; font-size: 15px; font-weight: 700; }
+.salir { background: #E8772E; color: white; border: none; }
+.aviso { color: #0F3B5F; font-size: 14px; font-weight: 700; }
+"""
+
+def cargar():
+    for a in ARCHIVOS:
+        try:
+            with open(a, encoding='utf-8') as f:
+                d = json.load(f)
+            if d.get('secciones'):
+                return d
+        except Exception:
+            pass
+    return {'titulo': 'Aula Zona 050', 'secciones': []}
+
+def comando(texto):
+    # "a|b|c": usa el primer programa que exista
+    for alt in str(texto).split('|'):
+        partes = shlex.split(alt.strip())
+        if partes and shutil.which(partes[0]):
+            return partes
+    return None
+
+def disponible(b):
+    return b.get('activa', True) and (('url' in b) or comando(b.get('programa', '')))
+
+class Aula(Gtk.Window):
+    def __init__(self):
+        super().__init__(title='Aula Zona 050')
+        self.set_icon_name('applications-education')
+        self.datos = cargar()
+        prov = Gtk.CssProvider(); prov.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.connect('delete-event', lambda *a: (self.iconify(), True)[1])   # no se cierra: se minimiza
+        self.caja = Gtk.Box(orientation=Gtk.Orientation.VERTICAL); self.add(self.caja)
+        self.construir()
+        try:
+            disp = Gdk.Display.get_default(); mon = disp.get_primary_monitor() or disp.get_monitor(0)
+            g = mon.get_workarea(); self.set_default_size(g.width, g.height)
+        except Exception:
+            self.set_default_size(1024, 700)
+        self.maximize(); self.show_all()
+        GLib.timeout_add_seconds(20, self.tic); self.tic()
+
+    def construir(self):
+        for h in self.caja.get_children(): self.caja.remove(h)
+        d = self.datos
+        cab = Gtk.Box(spacing=16); cab.get_style_context().add_class('cabecera')
+        izq = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        t = Gtk.Label(label=d.get('titulo', 'Aula Zona 050'), xalign=0); t.get_style_context().add_class('titulo')
+        m = Gtk.Label(label=d.get('mensaje', ''), xalign=0); m.get_style_context().add_class('mensaje')
+        izq.pack_start(t, False, False, 0); izq.pack_start(m, False, False, 0)
+        der = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.reloj = Gtk.Label(xalign=1); self.reloj.get_style_context().add_class('reloj')
+        self.fecha = Gtk.Label(xalign=1); self.fecha.get_style_context().add_class('fecha')
+        der.pack_start(self.reloj, False, False, 0); der.pack_start(self.fecha, False, False, 0)
+        cab.pack_start(izq, True, True, 0); cab.pack_end(der, False, False, 0)
+        self.caja.pack_start(cab, False, False, 0)
+
+        sc = Gtk.ScrolledWindow(); sc.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        cuerpo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=22)
+        for s in d.get('secciones', []):
+            bots = [b for b in s.get('botones', []) if disponible(b)]
+            if not bots: continue
+            fila = Gtk.Box(spacing=12)
+            n = Gtk.Label(label=s.get('nombre', ''), xalign=0); n.get_style_context().add_class('seccion')
+            fila.pack_start(n, False, False, 0)
+            if s.get('nota'):
+                no = Gtk.Label(label=s['nota'], xalign=0); no.get_style_context().add_class('nota'); fila.pack_start(no, False, False, 0)
+            cuerpo.pack_start(fila, False, False, 6)
+            flujo = Gtk.FlowBox(); flujo.set_selection_mode(Gtk.SelectionMode.NONE)
+            flujo.set_max_children_per_line(6); flujo.set_min_children_per_line(2)
+            flujo.set_row_spacing(14); flujo.set_column_spacing(14); flujo.set_homogeneous(True)
+            for b in bots: flujo.add(self.boton(b))
+            cuerpo.pack_start(flujo, False, False, 0)
+        sc.add(cuerpo); self.caja.pack_start(sc, True, True, 0)
+
+        pie = Gtk.Box(spacing=10); pie.get_style_context().add_class('pie')
+        self.aviso = Gtk.Label(xalign=0); self.aviso.get_style_context().add_class('aviso')
+        pie.pack_start(self.aviso, True, True, 0)
+        for txt, fn, clase in [('👩‍🏫  Soy maestro', self.maestro, ''), ('⏻  Apagar', self.apagar, ''), ('🔄  Terminar y borrar todo', self.salir, 'salir')]:
+            b = Gtk.Button(label=txt); b.get_style_context().add_class('accion')
+            if clase: b.get_style_context().add_class(clase)
+            b.connect('clicked', lambda w, f=fn: f()); pie.pack_end(b, False, False, 0)
+        self.caja.pack_start(pie, False, False, 0)
+        self.caja.show_all()
+
+    def boton(self, b):
+        btn = Gtk.Button(); btn.get_style_context().add_class('boton'); btn.set_size_request(190, 150)
+        v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        e = Gtk.Label(label=b.get('emoji', '⭐')); e.get_style_context().add_class('emoji')
+        n = Gtk.Label(label=b.get('nombre', '')); n.get_style_context().add_class('nombre')
+        de = Gtk.Label(label=b.get('detalle', '')); de.get_style_context().add_class('detalle')
+        de.set_line_wrap(True); de.set_justify(Gtk.Justification.CENTER); de.set_max_width_chars(22)
+        for w in (e, n, de): v.pack_start(w, False, False, 0)
+        btn.add(v); btn.connect('clicked', lambda w: self.abrir(b))
+        return btn
+
+    def abrir(self, b):
+        if 'url' in b: cmd = ['firefox', '--new-window', b['url']]
+        else: cmd = comando(b.get('programa', ''))
+        if not cmd: return self.decir('Ese programa no está instalado.')
+        try:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            self.decir('Abriendo %s…' % b.get('nombre', ''))
+        except Exception:
+            self.decir('No se pudo abrir %s.' % b.get('nombre', ''))
+
+    def decir(self, t):
+        self.aviso.set_text(t); GLib.timeout_add_seconds(6, lambda: (self.aviso.set_text(''), False)[1])
+
+    def confirmar(self, pregunta):
+        d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.YES_NO, text=pregunta)
+        r = d.run(); d.destroy(); return r == Gtk.ResponseType.YES
+
+    def salir(self):
+        if self.confirmar('¿Terminar? Se cerrará todo y se borrará lo que hiciste en esta computadora.'):
+            for c in (['xfce4-session-logout', '--logout', '--fast'], ['cinnamon-session-quit', '--logout', '--no-prompt'], ['loginctl', 'terminate-user', os.environ.get('USER', '')]):
+                if shutil.which(c[0]):
+                    subprocess.Popen(c); return
+    def apagar(self):
+        if self.confirmar('¿Apagar la computadora?'):
+            subprocess.Popen(['systemctl', 'poweroff'])
+    def maestro(self):
+        # Muestra la pantalla de inicio de sesión para entrar a la cuenta del maestro; la sesión del alumno se cierra sola después.
+        if shutil.which('dm-tool'): subprocess.Popen(['dm-tool', 'switch-to-greeter'])
+
+    def tic(self):
+        meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+        dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+        t = time.localtime()
+        self.reloj.set_text(time.strftime('%H:%M', t))
+        self.fecha.set_text('%s %d de %s' % (dias[t.tm_wday].capitalize(), t.tm_mday, meses[t.tm_mon - 1]))
+        return True
+
+if __name__ == '__main__':
+    Aula(); Gtk.main()
