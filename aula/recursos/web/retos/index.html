@@ -24,6 +24,7 @@ input,select{font-size:20px;padding:10px 14px;border-radius:12px;border:2px soli
 .texto{background:#FFF8EC;border:2px solid #F3D9B1;border-radius:16px;padding:16px 18px;font-size:20px;line-height:1.5;margin-bottom:16px}
 .ops{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
 .op{font-size:26px;font-weight:800;padding:18px;border-radius:16px;border:3px solid #D6E3EC;background:#F8FAFC;color:#0F3B5F;cursor:pointer;text-align:center}.op:hover{border-color:#E8772E}
+.preg .q.t ~ .ops .op{font-size:19px;font-weight:700}
 .op.bien{background:#DDF1E6;border-color:#2E9E5B;color:#14532d}.op.mal{background:#FBE4E1;border-color:#C0392B;color:#7f1d1d}
 .res{text-align:center}.res .e{font-size:90px}.res b{font-size:40px;display:block}
 .aviso{background:#FFF6EE;border:2px solid #F3C7A1;border-radius:14px;padding:12px 16px;margin-top:14px;font-size:15px}
@@ -34,6 +35,7 @@ input,select{font-size:20px;padding:10px 14px;border-radius:12px;border:2px soli
 <div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
 <main id="app"></main>
 <script src="banco.js"></script>
+<script src="lecturas.js"></script>
 <script>
 const $ = s => document.querySelector(s), app = $("#app"), esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1)), baraja = L => { L = L.slice(); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L; };
@@ -71,9 +73,11 @@ const GEN = {
   ortografia: g => { const L = ORTOGRAFIA.filter(x => g >= x.g[0] && g <= x.g[1]), x = L[ri(0, L.length - 1)]; return { q: x.p || "¿Cuál está bien escrita?", c: x.ops[0], ops: baraja(x.ops), t: 1 }; }
 };
 const AREAS = [["calculo", "🧮", "Cálculo mental", "Sumas, restas y más, de cabeza", 1], ["tablas", "✖️", "Tablas de multiplicar", "Para dominarlas", 2], ["problemas", "🧩", "Problemas", "Situaciones de la vida diaria", 1],
-  ["fracciones", "🍕", "Fracciones", "Partes de un entero", 3], ["ortografia", "✍️", "Ortografía", "Escribe bien las palabras", 1], ["lectura", "📖", "Lectura", "Lee y contesta", 1]];
+  ["fracciones", "🍕", "Fracciones", "Partes de un entero", 3], ["ortografia", "✍️", "Ortografía", "Escribe bien las palabras", 1], ["lectura", "📖", "Comprensión lectora", "Lee con calma y contesta", 1]];
 function armarReto(area, g) {
-  if (area === "lectura") { const L = LECTURAS.filter(x => g >= x.g[0] && g <= x.g[1]), x = L[ri(0, L.length - 1)]; return x.q.map(([p, ops]) => ({ q: p, c: ops[0], ops: baraja(ops), texto: x, t: 1 })); }
+  if (area === "lectura") { const C = (window.LECTURAS_COMP || []).filter(x => x.g === g);
+    if (C.length >= 2) return baraja(C).slice(0, 2).flatMap(x => x.q.map(([n, p, ops]) => ({ q: p, c: ops[0], ops: baraja(ops), texto: x, t: 1, n })));
+    const L = LECTURAS.filter(x => g >= x.g[0] && g <= x.g[1]), x = L[ri(0, L.length - 1)]; return x.q.map(([p, ops]) => ({ q: p, c: ops[0], ops: baraja(ops), texto: x, t: 1 })); }
   const out = [], vistos = new Set(); let n = 0; while (out.length < 10 && n++ < 200) { const p = GEN[area](g); if (vistos.has(p.q)) continue; vistos.add(p.q); out.push(p); } return out; }
 
 /* ---------- servidor ---------- */
@@ -102,19 +106,19 @@ function menu() { if (!A) return entrada(); $("#bMenu").hidden = true;
   $("#bCam").onclick = () => { A = null; try { sessionStorage.removeItem("rz-alumno"); } catch (e) {} entrada(); };
   document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => reto(b.dataset.a));
   const p = pendientes().length; if (p) { const n = $("#nPend"); n.hidden = false; n.textContent = `Hay ${p} reto${p === 1 ? "" : "s"} guardado${p === 1 ? "" : "s"} en esta computadora que se enviarán a tu maestro cuando se encuentre el servidor de la escuela.`; } }
-function reto(area) { $("#bMenu").hidden = false; const P = armarReto(area, A.grado), t0 = Date.now(); let i = 0, ok = 0, bloqueo = false; const nombreArea = AREAS.find(a => a[0] === area)[2];
+function reto(area) { $("#bMenu").hidden = false; const P = armarReto(area, A.grado), t0 = Date.now(); let i = 0, ok = 0, bloqueo = false, niv = {}; const nombreArea = AREAS.find(a => a[0] === area)[2];
   const pinta = () => { const p = P[i];
     app.innerHTML = `<p style="margin:0;font-weight:700">${nombreArea} · pregunta ${i + 1} de ${P.length}</p><div class="prog"><i style="width:${100 * i / P.length}%"></i></div>
-     <div class="preg">${p.texto ? `<div class="texto"><b>${esc(p.texto.t)}</b><br>${esc(p.texto.x)}</div>` : ""}<p class="q ${p.t ? "t" : ""}">${esc(p.q)}</p>
+     <div class="preg">${p.texto ? `<div class="texto"><b>${esc(p.texto.t)}</b><br>${esc(p.texto.x)}</div>` : ""}${p.n ? `<p style="margin:0 0 6px;color:#5F6B76;font-weight:700;font-size:15px">${esc(NIVELES_LECTURA[p.n])}</p>` : ""}<p class="q ${p.t ? "t" : ""}">${esc(p.q)}</p>
      <div class="ops">${p.ops.map(o => `<button class="op" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
-    document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { if (bloqueo) return; bloqueo = true; const bien = b.dataset.o === p.c; if (bien) ok++;
+    document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { if (bloqueo) return; bloqueo = true; const bien = b.dataset.o === p.c; if (bien) ok++; if (p.n) { const v = niv[p.n] || (niv[p.n] = [0, 0]); v[1]++; if (bien) v[0]++; }
       b.classList.add(bien ? "bien" : "mal"); if (!bien) document.querySelectorAll("[data-o]").forEach(x => { if (x.dataset.o === p.c) x.classList.add("bien"); });
       setTimeout(() => { bloqueo = false; i++; if (i < P.length) pinta(); else fin(); }, bien ? 700 : 1700); }); };
   const fin = async () => { const pct = Math.round(100 * ok / P.length), est = pct >= 90 ? "🏆" : pct >= 70 ? "⭐" : pct >= 50 ? "👍" : "💪";
     app.innerHTML = `<div class="preg res"><div class="e">${est}</div><b>${ok} de ${P.length}</b><p style="font-size:22px">${pct >= 90 ? "¡Excelente trabajo!" : pct >= 70 ? "¡Muy bien!" : pct >= 50 ? "¡Vas bien! Sigue practicando." : "¡No te rindas! Inténtalo otra vez."}</p>
      <p id="envio" style="color:#5F6B76">Guardando tu resultado…</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn" id="bOtra">Otro reto igual</button><button class="btn sec" id="bVolver">Elegir otro reto</button></div></div>`;
     $("#bOtra").onclick = () => reto(area); $("#bVolver").onclick = menu;
-    const r = Object.assign({}, A, { area, aciertos: ok, total: P.length, seg: Math.round((Date.now() - t0) / 1000), fecha: new Date().toISOString() });
+    const r = Object.assign({}, A, { area, aciertos: ok, total: P.length, seg: Math.round((Date.now() - t0) / 1000), fecha: new Date().toISOString() }, Object.keys(niv).length ? { niv } : {});
     const ok2 = await enviar(r); const e = $("#envio"); if (e) e.textContent = ok2 ? "✔ Tu resultado llegó a tu maestro." : "Tu resultado quedó guardado y se enviará cuando se encuentre el servidor de la escuela."; };
   pinta(); }
 menu();

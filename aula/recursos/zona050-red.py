@@ -163,6 +163,9 @@ class Manejador(SimpleHTTPRequestHandler):
                     a["n"] += 1; a["ac"] += r["aciertos"]; a["tot"] += r["total"]; a["ult"] = max(a["ult"], r.get("fecha", ""))
                     x = a["areas"].setdefault(r["area"], {"n": 0, "ac": 0, "tot": 0})
                     x["n"] += 1; x["ac"] += r["aciertos"]; x["tot"] += r["total"]
+                    for nk, nv in (r.get("niv") or {}).items():
+                        y = a.setdefault("niv", {}).setdefault(nk, [0, 0])
+                        y[0] += nv[0]; y[1] += nv[1]
         except FileNotFoundError:
             pass
         L = sorted(al.values(), key=lambda a: (a["grado"], a["grupo"], a["nombre"].lower()))
@@ -173,6 +176,11 @@ class Manejador(SimpleHTTPRequestHandler):
             r = {"grado": int(d.get("grado")), "grupo": str(d.get("grupo") or "")[:8], "nombre": nombre_limpio(d.get("nombre"))[:40],
                  "area": str(d.get("area")), "aciertos": int(d.get("aciertos")), "total": int(d.get("total")),
                  "seg": int(d.get("seg") or 0), "fecha": str(d.get("fecha") or datetime.datetime.now().isoformat())[:25]}
+            nv = d.get("niv") or {}
+            if isinstance(nv, dict):
+                nv = {k: [int(v[0]), int(v[1])] for k, v in nv.items() if k in ("L", "I", "V", "C") and isinstance(v, list) and len(v) == 2 and 0 <= int(v[0]) <= int(v[1]) <= 50}
+                if nv:
+                    r["niv"] = nv
         except Exception:
             return self.json({"error": "Datos incompletos."}, 400)
         if not (1 <= r["grado"] <= 6) or r["area"] not in AREAS or not (0 <= r["aciertos"] <= r["total"] <= 50):
