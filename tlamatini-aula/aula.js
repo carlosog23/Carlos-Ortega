@@ -436,6 +436,9 @@ function modoClase(pasos, alTerminar) { cerrarClase(); const c = document.create
 function claseDin(d) { modoClase([{ eb: (DIN_CATS[d.cat] || [""])[0], t: d.n, prop: d.prop, lista: d.pasos, min: d.min }]); }
 
 /* =================================================================== PLANEACIÓN */
+/* separa el texto de PDA de un grado en sus PDA individuales (cada uno empieza con un verbo en mayúscula) */
+const pdaLista = t => String(t || "").split(/(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÑ¿«“])/).map(x => x.trim()).filter(x => x.length > 8);
+const pdaListos = (g, P) => g.grados.every(gr => ((P.pk || {})[gr] || []).length);
 const PDA_TXT = (pda, campo, fase) => { const C = (pda && pda.campos) || {}, k = Object.keys(C).find(x => nrm(x) === nrm(campo)); return ((k && C[k]) || {})[fase] || []; };
 VISTAS.planes = () => { const g = gAct(), L = D.planes.filter(p => p.gid === (g && g.id)).sort((a, b) => b.ini.localeCompare(a.ini));
   return barra("Planeación · " + esc(grNom(g)), "Mis proyectos", `<button class="btn s p" id="pN">${ic("mas", 16)} Nuevo</button>`) + `<main class="wrap">
@@ -455,8 +458,10 @@ ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (
     m.innerHTML = `<section class="card mt"><h3>1. Campo formativo</h3><div class="chips">${CAMPOS.map(c => `<button class="chip" data-cf="${esc(c)}" aria-pressed="${P.campo === c}">${c}</button>`).join("")}</div></section>
     ${P.campo ? fases.map(f => { const L = PDA_TXT(pda, P.campo, f); return `<section class="card mt"><h3>2. Contenido · ${esc(pda.fases[f].nombre)}</h3><p class="small muted mb">Elija el contenido del Programa Sintético. ${g.grados.filter(x => faseDe(x) === f).length > 1 || fases.length > 1 ? "En multigrado, los PDA de cada grado se toman del mismo contenido." : ""}</p>
       <div class="cont-l">${L.map((c, i) => `<label class="cont ${P.sel[f] === i ? "on" : ""}"><input type="radio" name="ct${f}" value="${i}" ${P.sel[f] === i ? "checked" : ""} data-ct="${f}"><span>${esc(c.c)}</span></label>`).join("")}</div>
-      ${P.sel[f] != null ? `<div class="pdas mt">${g.grados.filter(x => faseDe(x) === f).map(gr => `<p><b>PDA de ${gr}.°:</b> ${esc((L[P.sel[f]].pda || {})[gr] || "")}</p>`).join("")}</div>` : ""}</section>`; }).join("") : ""}
-    ${P.campo && fases.every(f => P.sel[f] != null) ? `<section class="card mt"><h3>3. Cómo lo va a trabajar</h3>
+      ${P.sel[f] != null ? g.grados.filter(x => faseDe(x) === f).map(gr => { const Lp = pdaLista((L[P.sel[f]].pda || {})[gr]), pk = (P.pk = P.pk || {})[gr] || [];
+        return `<div class="pdas mt"><p><b>PDA de ${gr}.° · marque el que va a trabajar</b> <small class="muted">(uno o varios)</small></p>${Lp.map((t, i) => `<label class="pda-ck"><input type="checkbox" data-pk="${gr}|${i}" ${pk.includes(i) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>`; }).join("") : ""}</section>`; }).join("") : ""}
+    ${P.campo && fases.every(f => P.sel[f] != null) && !pdaListos(g, P) ? `<p class="small mt" style="color:var(--maiz-d)">Marque al menos un PDA ${g.grados.length > 1 ? "de cada grado" : ""} para continuar.</p>` : ""}
+    ${P.campo && fases.every(f => P.sel[f] != null) && pdaListos(g, P) ? `<section class="card mt"><h3>3. Cómo lo va a trabajar</h3>
       <label class="campo"><span>Metodología</span><select id="pMe">${Object.entries(METODOS).map(([k, v]) => `<option value="${k}" ${met === k ? "selected" : ""}>${v.n}${v.campo === P.campo ? " (sugerida)" : ""}</option>`).join("")}</select></label>
       <div class="campo"><span>Escenario</span><div class="chips">${Object.entries(ESCENARIOS).map(([k, t]) => `<button class="chip" data-es="${k}" aria-pressed="${P.escenario === k}">${t}</button>`).join("")}</div></div>
       <div class="campo"><span>Ejes articuladores</span><div class="chips">${EJES.map(e => `<button class="chip" data-ej="${esc(e)}" aria-pressed="${P.ejes.includes(e)}">${e}</button>`).join("")}</div></div></section>
@@ -467,7 +472,9 @@ ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (
       <p class="small muted">Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p></section>
      ${P.guia && typeof guiaCardHTML === "function" ? guiaCardHTML(P) : ""}${lecCard(g, P)}<div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div>` : ""}`;
     $$("[data-cf]").forEach(b => b.onclick = () => { P.campo = b.dataset.cf; P.sel = {}; P.metodo = ""; pinta(); });
-    $$("[data-ct]").forEach(r => r.onchange = () => { P.sel[r.dataset.ct] = +r.value; pinta(); const s = $$("[data-ct]").find(x => x.checked); });
+    $$("[data-ct]").forEach(r => r.onchange = () => { P.sel[r.dataset.ct] = +r.value; P.pk = P.pk || {}; g.grados.filter(x => faseDe(x) === +r.dataset.ct).forEach(gr => delete P.pk[gr]); pinta();
+      const pd = $$(".pdas")[0]; if (pd) pd.scrollIntoView({ behavior: "smooth", block: "start" }); const s = $$("[data-ct]").find(x => x.checked); });
+    $$("[data-pk]").forEach(c => c.onchange = () => { const [gr, i] = c.dataset.pk.split("|").map(Number); P.pk = P.pk || {}; const L = P.pk[gr] = (P.pk[gr] || []).filter(x => x !== i); if (c.checked) L.push(i); L.sort((x, y) => x - y); const y = scrollY; if (pdaListos(g, P) !== !!$("#pT")) { lee(); pinta(); scrollTo(0, y); } });
     $("#pMe") && ($("#pMe").onchange = e => { P.metodo = e.target.value; });
     $$("[data-es]").forEach(b => b.onclick = () => { lee(); P.escenario = b.dataset.es; pinta(); });
     $$("[data-ej]").forEach(b => b.onclick = () => { lee(); const i = P.ejes.indexOf(b.dataset.ej); i >= 0 ? P.ejes.splice(i, 1) : P.ejes.push(b.dataset.ej); pinta(); });
@@ -590,7 +597,7 @@ async function planNuevaSec(g, P, m) { const pre = esPre(g), fase = pre ? 2 : 6,
       crearYAbrir(g, P, p); }); };
   pinta(); }
 function crearPlan(g, P, pda, pre) { const M = METODOS[P.metodo], fases = M.fases, n = P.n, cod = CAMPO_COD[P.campo];
-  const conts = {}, pdas = {}; if (pre) { Object.assign(conts, pre.conts); Object.assign(pdas, pre.pdas); } else [...new Set(g.grados.map(faseDe))].forEach(f => { const c = PDA_TXT(pda, P.campo, f)[P.sel[f]]; conts[f] = c.c; g.grados.filter(x => faseDe(x) === f).forEach(gr => pdas[gr] = (c.pda || {})[gr] || ""); });
+  const conts = {}, pdas = {}, pdasL = {}; if (pre) { Object.assign(conts, pre.conts); Object.assign(pdas, pre.pdas); } else [...new Set(g.grados.map(faseDe))].forEach(f => { const c = PDA_TXT(pda, P.campo, f)[P.sel[f]]; conts[f] = c.c; g.grados.filter(x => faseDe(x) === f).forEach(gr => { const todos = pdaLista((c.pda || {})[gr]), pk = (P.pk || {})[gr]; const L = pk && pk.length ? pk.map(i => todos[i]).filter(Boolean) : todos; pdas[gr] = L.join(" "); (pdasL[gr] = L); }); });
   /* reparte las fases de la metodología entre las sesiones */
   const grupos = []; if (n >= fases.length) { let extra = n - fases.length; fases.forEach((f, i) => { const k = 1 + Math.floor(extra / (fases.length - i)); extra -= k - 1; for (let j = 0; j < k; j++) grupos.push([f]); }); }
   else { const por = fases.length / n; for (let i = 0; i < n; i++) grupos.push(fases.slice(Math.round(i * por), Math.round((i + 1) * por))); }
@@ -599,7 +606,7 @@ function crearPlan(g, P, pda, pre) { const M = METODOS[P.metodo], fases = M.fase
   const fechas = diasHabiles(P.ini, n);
   const sesiones = grupos.map((fs, i) => ({ n: i + 1, fecha: fechas[i] || "", fase: fs.map(f => f[0]).join(" · "),
     inicio: { din: (ini[i % (ini.length || 1)] || {}).id || "", txt: "" }, desarrollo: fs.map(f => f[1]).join("\n"), cierre: { din: (cie[i % (cie.length || 1)] || {}).id || "", txt: "" }, eval: i === n - 1 ? "Presentación del producto y autoevaluación con la rúbrica." : "Observación y registro en la lista de cotejo.", hecho: false }));
-  const corta = cortaCrit, criterios = pre ? pre.crit : Object.entries(pdas).map(([gr, t]) => ({ gr: +gr, c: corta(t) }));
+  const corta = cortaCrit, criterios = pre ? pre.crit : Object.entries(pdasL).flatMap(([gr, L]) => (L.length ? L : [pdas[gr]]).map(t => ({ gr: +gr, c: corta(t) })));
   return { id: uid(), gid: g.id, creado: hoy(), titulo: P.titulo.trim(), campo: P.campo, metodo: P.metodo, escenario: P.escenario, ejes: P.ejes.slice(), contenidos: conts, pdas, proposito: P.proposito.trim(), producto: P.producto.trim(), ini: P.ini, min: P.min, sesiones, criterios }; }
 VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); const g = grDe(p.gid), ab = S.ab;
   return barra(esc(p.disc || p.campo), esc(p.titulo), `<button class="btn s" id="plI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap">
