@@ -1,6 +1,6 @@
 #!/bin/bash
 # aula-libros · Supervisión Escolar Zona 050
-# Descarga los libros de texto que falten en la carpeta de la escuela (solo cuando hay internet).
+# Descarga los libros de texto que falten (CONALITEG, primaria, unos 1.9 GB) en la carpeta de la escuela (solo cuando hay internet).
 # La lista vive en /usr/share/aula/libros.txt y se actualiza sola desde el repositorio de la zona.
 # Formato de cada línea:   carpeta | título | dirección del PDF
 #   ejemplo:  1° grado | Proyectos de Aula | https://…/libro.pdf
@@ -25,7 +25,9 @@ while IFS='|' read -r carpeta titulo url; do
   if wget -q -T 60 -t 3 -c -O "$dest.parcial" "$url" && head -c 5 "$dest.parcial" | grep -q '%PDF'; then
     mv "$dest.parcial" "$dest"; ok=$((ok+1))
   else
-    rm -f "$dest.parcial"; mal=$((mal+1)); echo "    ! no se pudo descargar"
+    # Si se cortó a la mitad, se guarda lo bajado y la próxima vez continúa desde ahí
+    head -c 5 "$dest.parcial" 2>/dev/null | grep -q '%PDF' || rm -f "$dest.parcial"
+    mal=$((mal+1)); echo "    ! no se pudo terminar (se continúa la próxima vez)"
   fi
 done < "$LISTA"
 id maestro >/dev/null 2>&1 && chown -R maestro:maestro "$LT"

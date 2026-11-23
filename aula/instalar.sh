@@ -391,8 +391,10 @@ if [ "$SERVIDOR" = 1 ]; then
   printf 'Libros de texto\n\nCopia aquí los libros en PDF, cada uno en la carpeta de su grado.\nLos alumnos los verán en «Libros de texto» de la Biblioteca sin internet.\nCuando haya internet, el ícono «Descargar libros de texto» baja los que falten.\n' > "$LT/LEEME.txt"
   install -m 755 "$DIR_RECURSOS/aula-libros" /usr/local/bin/aula-libros
   [ -f "$DIR_RECURSOS/libros.txt" ] && install -m 644 "$DIR_RECURSOS/libros.txt" /usr/share/aula/libros.txt
-  echo "  Descargando libros de texto (puede tardar)…"
-  /usr/local/bin/aula-libros || amarillo "  ! Algunos libros no se pudieron descargar; se pueden bajar después o copiar desde una USB."
+  # Son unos 1.9 GB: se bajan en segundo plano para no detener la instalación
+  echo "  Los libros de texto (unos 1.9 GB) se descargan en segundo plano; se puede seguir usando la computadora."
+  echo "  Avance en /var/log/aula-libros.log. Si se corta el internet, el ícono «Descargar libros de texto» continúa donde se quedó."
+  nohup /usr/local/bin/aula-libros > /var/log/aula-libros.log 2>&1 &
   if id maestro >/dev/null 2>&1; then chown -R maestro:maestro /srv/aula/compartido; fi
   chmod -R a+rX /srv/aula
   # Kiwix: enciclopedia, diccionario y simulaciones de ciencias para consultar sin internet
