@@ -99,3 +99,15 @@ async function avVerRegistro(g, pda, r) { if (!r) return;
 
 /* resumen corto para la tarjeta del inicio */
 function avResumen(g) { if (!avAplica(g)) return null; const pda = avPda(); if (!pda) return null; return avanceDe(g, pda); }
+
+/* ---------- para la visita de acompañamiento: lo que se comparte y cómo lo ve quien revisa ---------- */
+async function avPaquete(g) { const pda = await programa(); if (!pda) return null; const A = avanceDe(g, pda), varias = avFases(g).length > 1;
+  return { pct: A.pct, ok: A.ok, pl: A.pl, n: A.n, guias: AVR().filter(r => r.gid === g.id && r.src === "guia").length,
+    campos: A.campos.map(C => ({ campo: C.campo, ok: C.ok, pl: C.pl, n: C.n, L: C.filas.map(x => ({ c: x.c + (varias ? " (" + pda.fases[x.f].nombre + ")" : ""), e: x.est, s: x.h ? x.h.map(o => o.src === "plan" ? "Planeación «" + o.t + "»" : o.src === "guia" ? (o.t || "Guía o planeación (fotos)") : "Marcado por el docente").join(" · ") : "" })) })) }; }
+function avRevisarHTML(av) {
+  return `<section class="card mt av-res"><div class="av-pct">${av.pct}%</div><p class="small muted" style="margin:0">${av.ok} de ${av.n} contenidos del Programa Sintético trabajados${av.pl ? ` · ${av.pl} planeados` : ""}${av.guias ? ` · ${av.guias} registro${av.guias === 1 ? "" : "s"} con fotos de guía o planeación` : ""}</p>${avBarra(av.ok, av.pl, av.n)}
+    <div class="av-ley small mt"><span><i class="av-d ok"></i>Trabajado</span><span><i class="av-d pl"></i>Planeado</span><span><i class="av-d no"></i>Pendiente</span></div></section>
+  ${av.campos.map(C => `<section class="card mt"><details><summary class="av-cab" style="list-style:none"><span><b>${esc(C.campo)}</b><small>${C.ok} de ${C.n} trabajados${C.pl ? ` · ${C.pl} planeados` : ""}</small></span><span class="av-n">${C.n ? Math.round(100 * C.ok / C.n) : 0}%</span></summary>
+    <div class="av-lista mt">${C.L.map(x => `<div class="av-it e${x.e}"><span class="av-d ${["no", "pl", "ok"][x.e]}"></span><div class="tx"><b>${esc(x.c)}</b>${x.s ? `<small>${esc(x.s)}</small>` : ""}</div></div>`).join("")}</div></details>${avBarra(C.ok, C.pl, C.n)}</section>`).join("")}`; }
+function avInformeHTML(av) {
+  return `<h2>Avance del programa</h2><table><thead><tr><th>Campo formativo</th><th class="c">Trabajados</th><th class="c">Planeados</th><th class="c">Pendientes</th><th class="c">Avance</th></tr></thead><tbody>${av.campos.map(C => `<tr><td>${esc(C.campo)}</td><td class="c">${C.ok}</td><td class="c">${C.pl}</td><td class="c">${C.n - C.ok - C.pl}</td><td class="c"><b>${C.n ? Math.round(100 * C.ok / C.n) : 0}%</b></td></tr>`).join("")}<tr><td><b>Total</b></td><td class="c"><b>${av.ok}</b></td><td class="c"><b>${av.pl}</b></td><td class="c"><b>${av.n - av.ok - av.pl}</b></td><td class="c"><b>${av.pct}%</b></td></tr></tbody></table>`; }
