@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mesa Técnica · Zona 050</title>
+<meta name="theme-color" content="#0B2E4A">
+<meta name="description" content="Tableta de trabajo de la Supervisión Escolar Zona 050: visitas, escuelas y herramientas de la Mesa Técnica.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/icono-192.png">
+<link rel="apple-touch-icon" href="img/icono-180.png">
+<style>
+:root{--n0:#061A2C;--n1:#0B2E4A;--n2:#12497A;--az:#1798E8;--az2:#7CC4F5;--oro:#FFC93A;--tx:#F1F7FC;--mu:#A9C3D8;--card:rgba(255,255,255,.065);--line:rgba(169,195,216,.18);--ok:#3DDC97;--r:22px}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{font-family:"Ubuntu","Noto Sans","Segoe UI",system-ui,sans-serif;color:var(--tx);background:var(--n0) url("fondos/fondo-app.jpg") center/cover fixed;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(6,26,44,.55),rgba(6,26,44,.86));pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 22px 30px}
+button,a{font:inherit;color:inherit}
+button{cursor:pointer}
+/* ---- barra superior ---- */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.marca{display:flex;align-items:center;gap:14px;text-decoration:none}
+.marca img{width:64px;height:64px}
+.marca small{display:block;font-size:12px;letter-spacing:.28em;color:var(--az2);font-weight:700}
+.marca b{display:block;font-size:26px;line-height:1.05;font-weight:800}
+.marca b span{color:var(--oro)}
+.esp{flex:1}
+.reloj{text-align:right}
+.reloj b{display:block;font-size:40px;font-weight:300;letter-spacing:.02em;line-height:1}
+.reloj span{font-size:14px;color:var(--mu)}
+.yo{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:40px;padding:6px 16px 6px 6px}
+.yo i{width:40px;height:40px;font-size:14px;border-radius:50%;display:grid;place-items:center;background:var(--az);font-style:normal;font-weight:800;color:#fff}
+.yo b{display:block;font-size:15px}.yo span{display:block;font-size:12px;color:var(--mu)}
+/* ---- secciones ---- */
+h2{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--az2);margin:30px 0 12px;font-weight:700;display:flex;align-items:center;gap:12px}
+h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.hola{margin-top:22px;display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.saludo h1{margin:0;font-size:32px;font-weight:800}.saludo p{margin:6px 0 16px;color:var(--mu);font-size:16px}
+.big{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:16px;padding:14px 20px;font-size:17px;font-weight:700;text-decoration:none;background:rgba(255,255,255,.1);color:var(--tx)}
+.btn.pri{background:linear-gradient(135deg,#FFC93A,#FFB000);color:#1B2430;box-shadow:0 8px 24px rgba(255,185,0,.25)}
+.btn.az{background:var(--az);color:#fff}
+.btn svg{width:22px;height:22px}
+.dato{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dato div{background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
+.dato b{display:block;font-size:30px;font-weight:800;color:var(--oro)}.dato span{font-size:13px;color:var(--mu)}
+.nota{font-size:13px;color:var(--mu);margin:12px 0 0}
+/* ---- mosaico de herramientas ---- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;text-decoration:none;min-height:140px;padding:16px 10px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);transition:transform .12s,background .12s}
+.tile:active{transform:scale(.96)}.tile:hover{background:rgba(255,255,255,.1)}
+.tile .ic{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;overflow:hidden;background:rgba(255,255,255,.08)}
+.tile .ic img{width:100%;height:100%;object-fit:cover}
+.tile .ic svg{width:34px;height:34px}
+.tile b{font-size:15px;line-height:1.15}.tile span{font-size:12px;color:var(--mu);line-height:1.2}
+.tile .tag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:800;letter-spacing:.08em;background:var(--oro);color:#1B2430;border-radius:20px;padding:3px 8px}
+/* ---- escuelas ---- */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:30px;padding:9px 16px;font-size:14px;font-weight:700;color:var(--mu)}
+.chip[aria-pressed=true]{background:var(--tx);color:var(--n1);border-color:var(--tx)}
+.esc{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.es{padding:16px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.es .cab{display:flex;align-items:flex-start;gap:10px}
+.es .num{flex:none;width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:rgba(23,152,232,.2);color:var(--az2)}
+.es b{font-size:17px;line-height:1.2}.es small{display:block;color:var(--mu);font-size:13px;margin-top:2px}
+.es .tags{display:flex;gap:6px;flex-wrap:wrap}
+.es .tags span{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08);color:var(--mu)}
+.es .tags .mg{background:rgba(255,201,58,.16);color:var(--oro)}
+.es .acc{display:flex;gap:8px;margin-top:6px}
+.es .acc a{flex:1;justify-content:center;padding:10px 12px;font-size:14px}
+/* ---- configurar ---- */
+.pasos{counter-reset:p;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:0;margin:0;list-style:none}
+.pasos li{counter-increment:p;position:relative;padding:16px 16px 16px 62px;border-radius:18px;background:var(--card);border:1px solid var(--line);font-size:15px;line-height:1.45;color:#D7E6F2}
+.pasos li::before{content:counter(p);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--oro);color:#1B2430;font-weight:800}
+.pasos li b{color:#fff}
+.fondos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.fondos a{display:block;border-radius:16px;overflow:hidden;border:1px solid var(--line);text-decoration:none;background:var(--card)}
+.fondos img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
+.fondos span{display:block;padding:10px 12px;font-size:14px;font-weight:700}
+.firma{display:flex;flex-direction:column;align-items:center;gap:6px;margin:36px 0 6px;opacity:.85}
+.firma span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mu)}
+.firma img{width:170px;background:#fff;border-radius:12px;padding:6px 10px}
+/* ---- diálogo ---- */
+dialog{border:0;border-radius:24px;padding:0;max-width:560px;width:calc(100% - 32px);background:#0E3556;color:var(--tx);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(3,12,22,.7)}
+dialog .in{padding:24px}
+dialog h3{margin:0 0 6px;font-size:22px}
+dialog p{color:var(--mu);margin:0 0 14px}
+.quien{display:grid;gap:10px}
+.quien button{display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
+.quien button i{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--az);font-style:normal;font-weight:800}
+.quien button b{display:block}.quien button span{display:block;font-size:13px;color:var(--mu)}
+.inst{display:none}
+[hidden]{display:none!important}
+@media(max-width:860px){.hola{grid-template-columns:1fr}.reloj{display:none}}
+@media(prefers-reduced-motion:reduce){.tile{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+ <header class="top">
+  <a class="marca" href="./"><img src="img/zona050-blanco-320.png" alt="Zona Escolar 050"><span><small>SUPERVISIÓN ESCOLAR</small><b>Zona 050 <span>·</span> Mesa Técnica</b></span></a>
+  <div class="esp"></div>
+  <div class="reloj" aria-live="off"><b id="hora">--:--</b><span id="fecha"></span></div>
+  <button class="yo" id="bYo" aria-label="Cambiar de usuario"><i id="yoIni">?</i><span><b id="yoNom">Elegir usuario</b><span id="yoRol">Toque para elegir</span></span></button>
+ </header>
+
+ <section class="hola">
+  <div class="card saludo">
+   <h1 id="saludo">Buen día</h1>
+   <p id="sub">Ciclo escolar 2026-2027 · Delegación San Quintín</p>
+   <div class="big">
+    <a class="btn pri" id="bVisita" href="../tequio/?campo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Iniciar visita a escuela</a>
+    <a class="btn az" href="../tequio/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda y seguimiento</a>
+    <button class="btn" id="bInstalar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Instalar en esta tableta</button>
+   </div>
+   <p class="nota" id="notaVisita">La visita funciona sin internet: lo que capture se sube a Tequio cuando vuelva la señal.</p>
+  </div>
+  <div class="card">
+   <div class="dato">
+    <div><b id="nEsc">14</b><span id="lEsc">escuelas en la zona</span></div>
+    <div><b id="nMg">6</b><span>multigrado</span></div>
+    <div><b id="nAlum">—</b><span id="lRed">conexión</span></div>
+   </div>
+   <p class="nota" id="notaAtp">Ensenada: 7 escuelas · San Quintín: 7 escuelas</p>
+  </div>
+ </section>
+
+ <h2>Herramientas</h2>
+ <div class="tiles" id="tiles"></div>
+
+ <h2 id="tEsc">Escuelas de la zona</h2>
+ <div class="filtros" id="filtros"></div>
+ <div class="esc" id="esc"></div>
+
+ <h2>Configurar esta tableta</h2>
+ <ol class="pasos">
+  <li><b>Nombre y cuenta.</b> En Ajustes → Acerca de la tableta, póngale de nombre <b>Mesa Técnica 050 · 01</b> (o 02). Entre con la cuenta de Google de quien la va a usar (de preferencia la institucional @bcedu.mx).</li>
+  <li><b>Fondos de la zona.</b> Abajo descargue los fondos. Abra Galería o Fotos, toque el fondo → ⋮ → <b>Establecer como fondo</b>: el de «inicio» para la pantalla de inicio y el de «bloqueo» para la pantalla de bloqueo.</li>
+  <li><b>Instalar esta app.</b> Abra esta página en <b>Chrome</b>, toque «Instalar en esta tableta» (o ⋮ → <b>Instalar app</b>). Póngala en la barra de abajo de la pantalla de inicio.</li>
+  <li><b>Entrar a Tequio y Tlamatini una vez.</b> Abra en Chrome <b>su enlace personal</b> de Tequio y de Tlamatini (el que llegó por correo). La tableta lo recuerda y desde aquí ya entra directo.</li>
+  <li><b>Apps de Google.</b> Instale o actualice desde Play Store: Drive, Gmail, Calendar, Meet y WhatsApp. En Drive active «Disponible sin conexión» en las carpetas de las escuelas que más visita.</li>
+  <li><b>Escanear documentos.</b> En Drive toque <b>+ → Escanear</b>: la foto sale recortada como PDF y se guarda directo en la carpeta de la escuela.</li>
+  <li><b>Seguridad.</b> Ponga PIN o huella (Ajustes → Pantalla de bloqueo) y active <b>Encontrar mi dispositivo</b> de Google. El fondo de bloqueo ya trae el teléfono de la Supervisión por si se extravía.</li>
+  <li><b>Orden en la pantalla.</b> Deje en la pantalla de inicio solo: Mesa Técnica, Chrome, Drive, Gmail, Meet, WhatsApp y Cámara. Lo demás, en una carpeta «Otras». Así se ve limpia y profesional en las visitas.</li>
+ </ol>
+ <div class="fondos">
+  <a href="fondos/Zona050-inicio.jpg" download="Zona050-inicio.jpg"><img src="fondos/Zona050-inicio.jpg" alt="Fondo de inicio de la Zona 050" loading="lazy"><span>⬇ Fondo de inicio</span></a>
+  <a href="fondos/Zona050-bloqueo-01.jpg" download="Zona050-bloqueo-01.jpg"><img src="fondos/Zona050-bloqueo-01.jpg" alt="Fondo de bloqueo, tableta 01" loading="lazy"><span>⬇ Fondo de bloqueo · Tableta 01</span></a>
+  <a href="fondos/Zona050-bloqueo-02.jpg" download="Zona050-bloqueo-02.jpg"><img src="fondos/Zona050-bloqueo-02.jpg" alt="Fondo de bloqueo, tableta 02" loading="lazy"><span>⬇ Fondo de bloqueo · Tableta 02</span></a>
+ </div>
+
+ <div class="firma"><span>Desarrollado por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega"></div>
+</div>
+
+<dialog id="dQuien"><div class="in">
+ <h3>¿Quién usa esta tableta?</h3>
+ <p>Se acomodan sus escuelas y su saludo. Lo puede cambiar cuando quiera tocando su nombre arriba.</p>
+ <div class="quien" id="quien"></div>
+</div></dialog>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const guarda = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, lee = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+/* ---------- personas de la Mesa Técnica ---------- */
+const MESA = [
+  { id: "sup", nom: "Mtro. Carlos Gabriel Ortega Gutiérrez", ini: "CO", corto: "Mtro. Carlos", rol: "Supervisor escolar" },
+  { id: "cup", nom: "Mtro. José Cupertino Oros Reyes", ini: "CU", corto: "Mtro. Cupertino", rol: "ATP de la Supervisión" },
+  { id: "efr", nom: "Mtro. Efraín López Alvarado", ini: "EL", corto: "Mtro. Efraín", rol: "ATP de la Supervisión" },
+  { id: "pao", nom: "Mtra. Paola Espinoza Araujo", ini: "PE", corto: "Mtra. Paola", rol: "ATP de la Supervisión" },
+  { id: "isi", nom: "Mtra. Isidra Analy Arce Aviña", ini: "IA", corto: "Mtra. Isidra", rol: "ATP de la Supervisión" }
+];
+/* ---------- escuelas (ciclo 2026-2027) ---------- */
+const ESC = [
+  { n: "Belisario Domínguez", cct: "02DPR0210Z", dir: "Mtro. Luis Ángel Bandala Guerrero", mun: "San Quintín", tur: "Matutino", atp: "isi" },
+  { n: "Josefa Ortiz de Domínguez", cct: "02DPR0150B", dir: "Mtro. Carlos Gustavo Domínguez Figueroa", mun: "San Quintín", tur: "Vespertino", atp: "pao" },
+  { n: "Niños Héroes", cct: "02DPR0862Z", dir: "Mtro. José Feliciano Gutiérrez Valdez", mun: "San Quintín", tur: "Matutino", atp: "isi" },
+  { n: "13 de Septiembre", cct: "02DPR0077J", dir: "Mtra. Cecilia Gómez Martínez", mun: "San Quintín", tur: "Vespertino", atp: "pao" },
+  { n: "Pdte. Adolfo López Mateos", cct: "02DPR0379E", dir: "Mtro. Gilberto Medina Araujo", ed: 1, mun: "San Quintín", tur: "Matutino", mg: 1, uni: 1, atp: "isi" },
+  { n: "Emiliano Zapata", cct: "02DPR0425Z", dir: "Mtro. Juan Carlos Chávez Bermúdez", mun: "San Quintín", tur: "Matutino", atp: "cup" },
+  { n: "Margarita Maza de Juárez", cct: "02DPR0378F", dir: "Mtra. Adriana Valentina Zavala Cruz", ed: 1, mun: "San Quintín", tur: "Matutino", mg: 1, atp: "pao" },
+  { n: "Maximino Virgen Flores", cct: "02DPR0684N", dir: "Mtra. Citlali Shugey Nepita Anaya", mun: "Ensenada", loc: "Ejido Díaz Ordaz", tur: "Matutino", atp: "isi" },
+  { n: "José Vasconcelos", cct: "02DPR0014Y", dir: "Mtro. Jesús González Urdiano", mun: "Ensenada", tur: "Matutino", atp: "cup" },
+  { n: "James S. Yglesias", cct: "02DPR0593W", dir: "Mtra. Lorena Valdez Rivera", mun: "Ensenada", tur: "Matutino", atp: "efr" },
+  { n: "Luis Donaldo Colosio Murrieta", cct: "02DPR0882N", dir: "Mtro. Efraín López Alvarado", ed: 1, mun: "Ensenada", tur: "Vespertino", mg: 1, atp: "pao" },
+  { n: "Narciso Mendoza", cct: "02DPR0012Z", dir: "Mtro. Armando Calderón Hernández", ed: 1, mun: "Ensenada", tur: "Matutino", mg: 1, uni: 1, atp: "efr" },
+  { n: "Ignacio Allende", cct: "02DPR0556S", dir: "Mtro. Jesús Aarón Montero Meléndrez", ed: 1, mun: "Ensenada", tur: "Matutino", mg: 1, atp: "efr" },
+  { n: "José Ma. Pino Suárez", cct: "02DPR0382S", dir: "Mtro. Armando Urzúa Osuna", ed: 1, mun: "Ensenada", loc: "Ej. Gral. Rodolfo Sánchez Taboada, San Vicente", tur: "Matutino", mg: 1, atp: "efr" }
+];
+
+/* ---------- herramientas ---------- */
+const IC = {
+  rel: '<svg viewBox="0 0 24 24" fill="none" stroke="#7CC4F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  drive: '<svg viewBox="0 0 24 24"><path d="M8 3h8l6 10-4 7H6l-4-7z" fill="none" stroke="#FFC93A" stroke-width="2" stroke-linejoin="round"/><path d="M8 3l6 10H2M16 3l-6 10h12" fill="none" stroke="#FFC93A" stroke-width="2" stroke-linejoin="round"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="#7CC4F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="#7CC4F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  meet: '<svg viewBox="0 0 24 24" fill="none" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-4v12l-6-4"/></svg>',
+  wa: '<svg viewBox="0 0 24 24" fill="none" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-13.5 7.8L3 21l1.3-4.4A9 9 0 1 1 21 12z"/><path d="M8.5 9.5c.5 2.5 3.5 5.5 6 6l1.5-1.5-2-1-1 1c-1-.5-2.5-2-3-3l1-1-1-2z"/></svg>',
+  apps: '<svg viewBox="0 0 24 24" fill="#FFC93A"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>'
+};
+const TILES = [
+  { t: "Visitas", s: "Revisión en campo, sin internet", h: "../tequio/?campo", img: "../tequio/img/tequio-logo-192.png", tag: "CAMPO" },
+  { t: "Tequio", s: "Agenda, acuerdos, evidencias", h: "../tequio/", img: "../tequio/img/tequio-512.png" },
+  { t: "Tlamatini", s: "Formatos y gestión", h: "../formatos-ppie/", img: "../formatos-ppie/img/tlamatini-icono-192.png" },
+  { t: "Tlamatini Aula", s: "Planeación y estudio", h: "../tlamatini-aula/", img: "../tlamatini-aula/img/aula-icono-192.png" },
+  { t: "RELweb", s: "Registros de primaria", h: "https://rel.educacionbc.edu.mx/PRIM/", ic: "rel" },
+  { t: "Drive", s: "Carpetas de las escuelas", h: "https://drive.google.com/", ic: "drive" },
+  { t: "Correo", s: "Gmail institucional", h: "https://mail.google.com/", ic: "mail" },
+  { t: "Calendario", s: "Google Calendar", h: "https://calendar.google.com/", ic: "cal" },
+  { t: "Meet", s: "Videollamadas", h: "https://meet.google.com/", ic: "meet" },
+  { t: "WhatsApp", s: "Grupos de la zona", h: "https://web.whatsapp.com/", ic: "wa" },
+  { t: "Centro de Apps", s: "Todas las apps", h: "../centro-apps/", ic: "apps" }
+];
+$("#tiles").innerHTML = TILES.map(x => `<a class="tile" href="${x.h}"${/^https:/.test(x.h) ? ' target="_blank" rel="noopener"' : ""}>${x.tag ? `<span class="tag">${x.tag}</span>` : ""}<span class="ic">${x.img ? `<img src="${x.img}" alt="" loading="lazy">` : IC[x.ic]}</span><b>${esc(x.t)}</b><span>${esc(x.s)}</span></a>`).join("");
+
+/* ---------- reloj y saludo ---------- */
+function reloj() {
+  const d = new Date(), h = d.getHours();
+  $("#hora").textContent = d.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+  const f = d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }); $("#fecha").textContent = f[0].toUpperCase() + f.slice(1);
+  const yo = MESA.find(m => m.id === lee("mt-yo"));
+  $("#saludo").textContent = (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + (yo ? ", " + yo.corto : "");
+}
+reloj(); setInterval(reloj, 15000);
+const red = () => { $("#nAlum").textContent = navigator.onLine ? "En línea" : "Sin señal"; $("#nAlum").style.fontSize = "22px"; $("#nAlum").style.color = navigator.onLine ? "var(--ok)" : "var(--oro)"; $("#lRed").textContent = navigator.onLine ? "todo se sincroniza" : "la visita se guarda aquí"; };
+addEventListener("online", red); addEventListener("offline", red); red();
+
+/* ---------- usuario ---------- */
+let filtro = "mias";
+function pintaYo() {
+  const yo = MESA.find(m => m.id === lee("mt-yo"));
+  $("#yoIni").textContent = yo ? yo.ini : "?";
+  $("#yoNom").textContent = yo ? yo.nom.replace(/^Mtr[oa]\. /, "") : "Elegir usuario";
+  $("#yoRol").textContent = yo ? yo.rol : "Toque para elegir";
+  const mias = yo && yo.id !== "sup" ? ESC.filter(e => e.atp === yo.id) : [];
+  $("#nEsc").textContent = mias.length || ESC.length;
+  $("#lEsc").textContent = mias.length ? "escuelas a su cargo" : "escuelas en la zona";
+  $("#nMg").textContent = (mias.length ? mias : ESC).filter(e => e.mg).length;
+  $("#notaAtp").textContent = mias.length ? "A su cargo: " + mias.map(e => e.n).join(", ") : "Ensenada: 7 escuelas · San Quintín: 7 escuelas";
+  if (!mias.length && filtro === "mias") filtro = "todas";
+  reloj(); escuelas();
+}
+$("#quien").innerHTML = MESA.map(m => `<button data-yo="${m.id}"><i>${m.ini}</i><span><b>${esc(m.nom)}</b><span>${esc(m.rol)}</span></span></button>`).join("");
+$("#quien").onclick = e => { const b = e.target.closest("[data-yo]"); if (!b) return; guarda("mt-yo", b.dataset.yo); filtro = b.dataset.yo === "sup" ? "todas" : "mias"; $("#dQuien").close(); pintaYo(); };
+$("#bYo").onclick = () => $("#dQuien").showModal();
+
+/* ---------- escuelas ---------- */
+const ATP = id => (MESA.find(m => m.id === id) || {}).corto || "";
+function escuelas() {
+  const yo = lee("mt-yo"), F = [["mias", "Mis escuelas"], ["todas", "Todas"], ["San Quintín", "San Quintín"], ["Ensenada", "Ensenada"], ["mg", "Multigrado"], ["Vespertino", "Vespertinas"]].filter(f => f[0] !== "mias" || (yo && yo !== "sup"));
+  $("#filtros").innerHTML = F.map(([k, t]) => `<button class="chip" data-f="${k}" aria-pressed="${filtro === k}">${t}</button>`).join("");
+  const L = ESC.map((e, i) => Object.assign({ i: i + 1 }, e)).filter(e => filtro === "todas" ? true : filtro === "mias" ? e.atp === yo : filtro === "mg" ? e.mg : e.mun === filtro || e.tur === filtro);
+  $("#esc").innerHTML = L.map(e => {
+    const q = encodeURIComponent(`Escuela Primaria ${e.n}, ${e.loc ? e.loc + ", " : ""}${e.mun}, Baja California`);
+    return `<div class="es"><div class="cab"><span class="num">${e.i}</span><div><b>${esc(e.n)}</b><small>${e.cct} · ${esc(e.loc || e.mun)}</small></div></div>
+     <small>${e.ed ? "Encargado de despacho" : "Dirección"}: ${esc(e.dir)}</small>
+     <div class="tags"><span>${e.tur}</span><span class="${e.mg ? "mg" : ""}">${e.uni ? "Unitaria" : e.mg ? "Multigrado" : "Organización completa"}</span><span>${esc(e.mun)}</span><span>ATP: ${esc(ATP(e.atp))}</span></div>
+     <div class="acc"><a class="btn pri" href="../tequio/?campo">Visitar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Cómo llegar</a></div></div>`;
+  }).join("") || `<p class="nota">No hay escuelas con ese filtro.</p>`;
+}
+$("#filtros").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; filtro = b.dataset.f; escuelas(); };
+pintaYo();
+if (!lee("mt-yo")) setTimeout(() => { try { $("#dQuien").showModal(); } catch (e) {} }, 400);
+
+/* ---------- instalar y sin conexión ---------- */
+let prompt = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); prompt = e; $("#bInstalar").hidden = false; });
+$("#bInstalar").onclick = async () => { if (!prompt) return; prompt.prompt(); try { await prompt.userChoice; } catch (e) {} prompt = null; $("#bInstalar").hidden = true; };
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
