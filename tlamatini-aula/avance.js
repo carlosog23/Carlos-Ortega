@@ -45,7 +45,7 @@ ENLAZAR.avance = () => { const g = gAct(), pda = avPda(); if (!g || !pda || !avA
   $$("[data-avq]").forEach(b => b.onclick = () => { const x = fila(S.cmp, b.dataset.avq), k = avKey(x.f, x.campo, x.c);
     D.avr = AVR().map(r => r.gid === g.id && r.src === "manual" ? Object.assign(r, { conts: r.conts.filter(y => avKey(y.f, y.campo, y.c) !== k) }) : r).filter(r => r.src !== "manual" || r.conts.length); guardar(); re(); });
   $$("[data-avp]").forEach(b => b.onclick = () => { const x = fila(S.cmp, b.dataset.avp); const sel = {}; sel[x.f] = x.i;
-    S.P = { campo: x.campo, sel, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" }; ir("planNueva", { P: S.P }); });
+    S.P = { campo: x.campo, sel, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" }; lecRecordar(g, () => ir("planNueva", { P: S.P })); });
   $("#avM").onclick = () => avElegir(g, pda, [], null);
   $("#avF").onchange = e => { const L = [...e.target.files]; e.target.value = ""; if (L.length) avSubir(g, pda, L); };
   $$("[data-avr]").forEach(b => b.onclick = () => avVerRegistro(g, pda, AVR().find(r => r.id === b.dataset.avr))); };
@@ -119,7 +119,7 @@ function guiaOfrecer(g, rec) {
   dlg(`<div class="tlami-esp" style="text-align:left"><span class="tlami-av">${ic("chispa", 30)}</span><h3>¿Le hago su planeación con estas páginas?</h3>
     <p class="small">Tlami toma las actividades de su guía y las acomoda en una planeación de Tlamatini Aula: con los contenidos y PDA de su grado, la metodología, sesiones con inicio, desarrollo y cierre, y evaluación.${g.lectura ? " Además la <b>contextualiza</b> con la lectura de la realidad de su grupo." : " Si sube la lectura de la realidad de su grupo, también la contextualiza."}</p></div>
     <div class="fila fin mt"><button class="btn" id="goNo">Ahora no</button><button class="btn p" id="goSi">${ic("chispa", 16)} Sí, hacer mi planeación</button></div>`, v => {
-    v.querySelector("#goNo").onclick = cerrarDlg; v.querySelector("#goSi").onclick = () => { cerrarDlg(); guiaPlanearDesde(g, rec); }; }); }
+    v.querySelector("#goNo").onclick = cerrarDlg; v.querySelector("#goSi").onclick = () => { cerrarDlg(); lecRecordar(g, () => guiaPlanearDesde(g, rec)); }; }); }
 function guiaPlanearDesde(g, rec) { const pda = avPda(); if (!pda || !rec) return;
   const campos = [...new Set(rec.conts.map(x => x.campo))];
   const sigue = campo => { const sel = {}; avFases(g).forEach(f => { const x = rec.conts.find(y => y.campo === campo && y.f === f); if (x) { const i = PDA_TXT(pda, campo, f).findIndex(z => nrm(z.c) === nrm(x.c)); if (i >= 0) sel[f] = i; } });

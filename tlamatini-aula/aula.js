@@ -240,7 +240,7 @@ VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio(
    <p>${DSEM_L[d.getDay()][0].toUpperCase() + DSEM_L[d.getDay()].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : ""}</p>
    ${D.grupos.length > 1 ? `<div class="chips mt">${D.grupos.map(x => `<button class="chip osc" data-ga="${x.id}" aria-pressed="${x === g}">${esc(grNom(x))} · ${esc(String(x.escuela).replace(/^Escuela Primaria\s*/i, ""))}</button>`).join("")}</div>` : `<p class="small" style="margin-top:6px;opacity:.85">${esc(grNom(g))} · ${esc(g.escuela)} · ${activos(g).length} alumnos</p>`}
    <div class="fila"><button class="btn m" id="bLista">${ic("lista")} Pasar lista</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button>${enApp() ? "" : `<button class="btn sec" id="bInst">${ic("bajar")} Instalar app</button>`}</div></section>
-  ${typeof estTarjeta === "function" ? estTarjeta() : ""}
+  ${typeof estTarjeta === "function" ? estTarjeta() : ""}${lecRecordatorioHTML(g)}
   ${hoySes.length ? `<h2 class="sec-t">Hoy en clase</h2><div class="lista">${hoySes.map(x => `<button class="hoy-i" data-ses="${x.p.id}|${x.i}"><span class="gr">${x.i + 1}</span><span class="tx"><b>${esc(x.p.titulo)}</b><small>Sesión ${x.i + 1} de ${x.p.sesiones.length} · ${esc(x.s.fase)}</small></span><span class="tag ${x.s.hecho ? "" : "m"}">${x.s.hecho ? "Dada" : "Dar la clase"}</span></button>`).join("")}</div>` : ""}
   ${!hoySes.length && prox.length ? `<h2 class="sec-t">Lo que sigue</h2><div class="lista">${prox.slice(0, 3).map(x => `<button class="hoy-i" data-ses="${x.p.id}|${x.i}"><span class="gr">${x.i + 1}</span><span class="tx"><b>${esc(x.p.titulo)}</b><small>${fCorta(x.s.fecha)} · ${esc(x.s.fase)}</small></span>${ic("sig", 18)}</button>`).join("")}</div>` : ""}
   <h2 class="sec-t">Su aula</h2><div class="puertas">
@@ -256,7 +256,7 @@ VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio(
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
-ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espInicio(); $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => ir("planNueva");
+ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espInicio(); lecRecordatorioCablear(gAct()); $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => lecRecordar(gAct(), () => ir("planNueva"));
   $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
   $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); });
   typeof estEnlazar === "function" && estEnlazar(); };
@@ -443,7 +443,7 @@ VISTAS.planes = () => { const g = gAct(), L = D.planes.filter(p => p.gid === (g 
    <div class="fila mt"><label class="btn p" style="cursor:pointer">${ic("camara", 18)} Planear con mi guía<input type="file" id="pGuia" multiple accept="image/*" hidden></label></div>
    <p class="small muted mt">${ic("check", 14)} Lo que hace aquí se queda en su celular. Nadie más lo ve; Tlami solo lee sus fotos para ayudarle y no las guarda en ningún otro lado.</p></section>` : ""}
   <div class="lista mt">${L.map(p => { const hechas = p.sesiones.filter(s => s.hecho).length; return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:${(DIN_CATS[{ L: "lengua", S: "ciencia", E: "convive", H: "integracion" }[CAMPO_COD[p.campo]]] || ["", "#24427A"])[1]}22">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${p.guia ? "Con guía · " : ""}${esc(p.disc || p.campo)} · ${esc(METODOS[p.metodo].n)} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small><span class="barra-p"><i style="width:${Math.round(100 * hechas / p.sesiones.length)}%"></i></span></span><span class="tag ${hechas === p.sesiones.length ? "" : "g"}">${hechas}/${p.sesiones.length}</span></button>`; }).join("") || `<div class="vacio">Aún no tiene proyectos. Toque «Nuevo» para planear con los contenidos y PDA de su grado.</div>`}</div></main>`; };
-ENLAZAR.planes = () => { $("#pN").onclick = () => ir("planNueva"); $("#pGuia") && ($("#pGuia").onchange = async e => { const L = [...e.target.files]; e.target.value = ""; if (!L.length) return; const pda = await programa(); if (!pda) return toast("Conéctese a internet una vez para cargar el programa."); avSubir(gAct(), pda, L, true); }); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
+ENLAZAR.planes = () => { $("#pN").onclick = () => lecRecordar(gAct(), () => ir("planNueva")); $("#pGuia") && ($("#pGuia").onchange = async e => { const L = [...e.target.files]; e.target.value = ""; if (!L.length) return; const pda = await programa(); if (!pda) return toast("Conéctese a internet una vez para cargar el programa."); lecRecordar(gAct(), () => avSubir(gAct(), pda, L, true)); }); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
 /* asistente para planear */
 VISTAS.planNueva = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const P = S.P = S.P || { campo: "", sel: {}, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" };
   const fases = [...new Set(g.grados.map(faseDe))];
@@ -521,14 +521,15 @@ function lecVer(g, listo) { const l = g.lectura || {};
     v.querySelector("#lecX").onclick = cerrarDlg;
     v.querySelector("#lecOk").onclick = () => { const t = val("lecT").trim(); if (t.length < 20) return toast("Escriba al menos unas líneas o quite la lectura."); g.lectura.sint = t.slice(0, 5000); guardar(); cerrarDlg(); toast("Lectura de la realidad actualizada."); listo && listo(); }; }); }
 function lecCard(g, P) { const l = g.lectura;
-  return `<section class="card mt" id="lecC"><h3>Lectura de la realidad de su grupo <span class="tag g" style="font-size:12px;vertical-align:middle">Opcional</span></h3>
+  return `<section class="card mt" id="lecC"><h3>Lectura de la realidad de su grupo <span class="tag g" style="font-size:12px;vertical-align:middle">Recomendada</span></h3>
    ${l ? `<p class="small"><b style="color:#1E8E5A">✓ Tiene guardada la lectura de la realidad de ${esc(grNom(g))}</b>${l.fecha ? " (" + fCorta(l.fecha) + ")" : ""}.</p>
      <p class="small muted" style="max-height:4.6em;overflow:hidden">${esc(l.sint).replace(/\n/g, " ")}</p>
      <label class="rev-chk mt"><input type="checkbox" id="lecUsa" ${P.ctx === false ? "" : "checked"}> Contextualizar esta planeación con ella (Tlami ajusta el problema, las actividades y los ejemplos a su grupo y su comunidad)</label>
      <div class="fila mt"><button class="btn s" id="lecV">Ver o corregir</button><label class="btn s" style="cursor:pointer">Reemplazar<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s r" id="lecQ">Quitar</button></div>`
    : `<p class="small">Súbala en <b>PDF, Word o fotos</b> y Tlami contextualiza la planeación con ella: el problema, las actividades y los ejemplos partirán de lo que usted conoce de su grupo y su comunidad. Se queda guardada en el grupo para las siguientes planeaciones.</p>
-     <p class="small muted">Si no la sube, la planeación se arma igual.</p><div class="fila mt"><label class="btn s" style="cursor:pointer">${ic("bajar", 16)} Subir lectura de la realidad<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label></div>`}</section>`; }
+     <p class="small muted">Si no la tiene a la mano, puede escribirla aquí en unos minutos. Sin ella la planeación se arma igual, pero menos ligada a su grupo.</p><div class="fila mt"><label class="btn s" style="cursor:pointer">${ic("bajar", 16)} Subir lectura de la realidad<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s" id="lecE">${ic("lapiz", 16)} Escribirla aquí</button></div>`}</section>`; }
 function lecCablear(g, P, repinta) {
+  $("#lecE") && ($("#lecE").onclick = () => lecGuiada(g, repinta));
   const f = $("#lecF"); if (f) f.onchange = () => { const L = [...f.files]; f.value = ""; if (L.length) lecSubir(g, L, repinta); };
   $("#lecUsa") && ($("#lecUsa").onchange = e => { P.ctx = e.target.checked; });
   $("#lecV") && ($("#lecV").onclick = () => lecVer(g, repinta));
@@ -1140,6 +1141,35 @@ async function arrancarDatos() { autoGrupos(); if (CAP && !APP_PRE && !APP_ESP) 
     const g2 = { id: "gdemo2", nivel: "sec", mod: "general", discs: ["Matemáticas", "Formación Cívica y Ética"], cct: "02DES9999Z", escuela: "Escuela Secundaria General «Benito Juárez» (ejemplo)", turno: "Matutino", grados: [2], grupo: "B", dir: "Rosa Ejemplo Valdez", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Alondra Ejemplo Ramos", "Brandon Muestra Castro", "Citlali Ficticia Ortiz", "Daniel Prueba Mendoza", "Estrella Ejemplo Núñez", "Francisco Demo Ibarra", "Guadalupe Muestra Salas", "Héctor Ficticio Rangel", "Iris Ejemplo Torres", "Jorge Prueba Arce"].forEach(n => g2.alumnos.push({ id: uid(), nombre: n, g: 2 }));
     D.grupos.push(g, g2); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
+/* ---------- recordatorio amable de la lectura de la realidad (no es obligatoria) ---------- */
+const lecPend = g => g && !APP_ESP && !g.lectura && !esSec(g);
+function lecRecordatorioHTML(g) { if (!lecPend(g)) return ""; const hasta = ((D.cfg.lecLuego || {})[g.id]) || ""; if (hasta && hoy() < hasta) return "";
+  return `<section class="card mt lec-rec"><h3>${ic("doc", 18)} Falta la lectura de la realidad de ${esc(grNom(g))}</h3><p class="small">Con ella, Tlami contextualiza sus planeaciones: el problema, los ejemplos y las actividades salen de su grupo y su comunidad. Puede subirla (PDF, Word o fotos) o escribirla aquí en unos minutos, aunque sea solo de su grupo.</p>
+   <div class="fila mt"><label class="btn s p" style="cursor:pointer">${ic("bajar", 16)} Subirla<input type="file" id="lrF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s" id="lrE">${ic("lapiz", 16)} Escribirla aquí</button><button class="btn s" id="lrL">Después</button></div></section>`; }
+function lecRecordatorioCablear(g) { if (!$("#lrE")) return; $("#lrF").onchange = e => { const L = [...e.target.files]; e.target.value = ""; if (L.length) lecSubir(g, L, re); };
+  $("#lrE").onclick = () => lecGuiada(g, re); $("#lrL").onclick = () => { const d = new Date(); d.setDate(d.getDate() + 7); D.cfg.lecLuego = Object.assign({}, D.cfg.lecLuego, { [g.id]: iso(d) }); guardar(); re(); toast("Se lo recordamos en una semana."); }; }
+let LEC_AVISO = false;
+function lecRecordar(g, seguir) { if (!lecPend(g) || LEC_AVISO) return seguir(); LEC_AVISO = true;
+  dlg(`<h3>Antes de planear: su lectura de la realidad</h3><p class="small">Su planeación saldrá <b>contextualizada</b> con su grupo y su comunidad si Tlami conoce su lectura de la realidad. No es obligatoria: puede seguir sin ella.</p>
+    <div class="lista mt"><label class="it btnit" style="cursor:pointer"><span class="av">${ic("bajar", 18)}</span><span class="tx"><b>Subirla ahora</b><small>PDF, Word o fotos</small></span><input type="file" id="lrdF" multiple accept=".pdf,.docx,image/*" hidden></label>
+     <button class="it btnit" id="lrdE"><span class="av">${ic("lapiz", 18)}</span><span class="tx"><b>Escribirla aquí</b><small>Unas preguntas sencillas, unos minutos</small></span></button></div>
+    <div class="fila fin mt"><button class="btn" id="lrdS">Seguir sin ella</button></div>`, v => {
+    v.querySelector("#lrdS").onclick = () => { cerrarDlg(); seguir(); };
+    v.querySelector("#lrdE").onclick = () => lecGuiada(g, seguir);
+    v.querySelector("#lrdF").onchange = e => { const L = [...e.target.files]; if (L.length) lecSubir(g, L, seguir); }; }); }
+/* escribir la lectura de la realidad con preguntas guiadas */
+function lecGuiada(g, listo) { const Q = [["Su grupo", "¿Cuántos alumnos son, de qué edades, cómo aprenden mejor y qué les interesa?", "Ej. 22 alumnos de 9 y 10 años; aprenden mejor en equipo y con actividades prácticas; les gusta el fútbol y los animales."],
+    ["Su comunidad", "¿A qué se dedican las familias? ¿Qué lenguas se hablan? ¿Cómo es el lugar?", "Ej. La mayoría trabaja en los campos agrícolas; varias familias llegaron de Oaxaca; algunos hablan mixteco en casa."],
+    ["Lo que más necesitan", "En aprendizajes y en convivencia, ¿qué les cuesta más?", "Ej. Comprensión lectora, resolver problemas con dos operaciones; respetar turnos."],
+    ["Fortalezas y recursos", "¿Qué tienen a favor el grupo, la escuela y la comunidad?", "Ej. Son participativos; hay biblioteca de aula y patio amplio; las familias apoyan en las faenas."]];
+  dlg(`<h3>Lectura de la realidad de ${esc(grNom(g))}</h3><p class="small muted mb">Conteste con sus palabras, con lo que usted ya conoce. Basta con unas líneas en cada pregunta.</p>
+    ${Q.map(([t, q, ej], i) => `<label class="campo"><span><b>${t}</b> · ${q}</span><textarea class="area" id="lg${i}" style="min-height:70px" placeholder="${esc(ej)}"></textarea></label>`).join("")}
+    <div class="fila fin mt"><button class="btn" id="lgX">Cancelar</button><button class="btn p" id="lgOk">${ic("check", 16)} Guardar</button></div>`, v => {
+    v.querySelector("#lgX").onclick = cerrarDlg;
+    v.querySelector("#lgOk").onclick = () => { const t = Q.map(([tt], i) => { const x = v.querySelector("#lg" + i).value.trim(); return x ? "- " + tt + ": " + x : ""; }).filter(Boolean).join("\n");
+      if (t.replace(/\s/g, "").length < 40) return toast("Escriba al menos unas líneas para que Tlami conozca a su grupo.");
+      g.lectura = { sint: t.slice(0, 3500), problemas: [], nombres: ["Escrita en Tlamatini Aula"], fecha: hoy(), sinIA: true }; guardar(); cerrarDlg();
+      toast("<b>Lectura de la realidad guardada.</b> Sus planeaciones se contextualizarán con ella.", 4000); listo && listo(); }; }); }
 window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|capacitacion\b|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
