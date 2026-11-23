@@ -53,7 +53,7 @@ ENLAZAR.avance = () => { const g = gAct(), pda = avPda(); if (!g || !pda || !avA
 /* lista numerada de los contenidos del grupo, para Tlami y para elegir a mano */
 function avCatalogo(g, pda) { const out = []; avFases(g).forEach(f => CAMPOS.forEach(campo => PDA_TXT(pda, campo, f).forEach(x => out.push({ f, campo, c: x.c })))); return out; }
 
-async function avSubir(g, pda, files) {
+async function avSubir(g, pda, files, paraPlan) {
   let L, fotos = [];
   try { L = await lecLeer(files); } catch (e) { return tlamiError(e); }
   for (const f of files) if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || "")) { try { const u = await comprimir(f, 1400, .7), id = uid(); FOTO[id] = u; await idbOp("readwrite", s => s.put(u, id)); fotos.push(id); } catch (e) {} }
@@ -63,7 +63,7 @@ async function avSubir(g, pda, files) {
       contenidos: cat.map((x, i) => `${i + 1}. [${x.campo} · ${pda.fases[x.f].nombre}] ${x.c}`).join("\n") }, 180000), r = j.r || {};
     ids = (r.ids || []).map(n => parseInt(n, 10) - 1).filter(n => n >= 0 && n < cat.length); titulo = String(r.titulo || "").trim(); cerrarDlg(); }
   catch (e) { cerrarDlg(); toast("Tlami no pudo revisar las fotos ahora (" + esc(e.message) + "). Elija usted los contenidos.", 6000); }
-  avElegir(g, pda, ids.map(i => cat[i]), { fotos, titulo, nombres: L.nombres });
+  avElegir(g, pda, ids.map(i => cat[i]), { fotos, titulo, nombres: L.nombres, plan: !!paraPlan });
 }
 
 /* diálogo para confirmar o elegir contenidos; si trae fotos, se guarda como registro de guía o planeación */
@@ -73,7 +73,7 @@ function avElegir(g, pda, pre, extra) { const cat = avCatalogo(g, pda), ya = new
     v.querySelector("#aeL").innerHTML = L.map(x => { const k = avKey(x.f, x.campo, x.c); return `<label class="av-ck"><input type="checkbox" data-k="${esc(k)}" ${marcados.has(k) ? "checked" : ""}><span>${esc(x.c)}${varias ? ` <small class="muted">· ${esc(pda.fases[x.f].nombre)}</small>` : ""}</span></label>`; }).join("");
     v.querySelectorAll("[data-ae]").forEach(b => { const n = cat.filter(x => x.campo === b.dataset.ae && marcados.has(avKey(x.f, x.campo, x.c))).length; b.setAttribute("aria-pressed", b.dataset.ae === campo); b.textContent = b.dataset.ae + (n ? " · " + n : ""); });
     v.querySelectorAll("#aeL input").forEach(i => i.onchange = () => { i.checked ? marcados.add(i.dataset.k) : marcados.delete(i.dataset.k); v.querySelector("#aeN").textContent = marcados.size; pinta(v); }); };
-  dlg(`<h3>${extra ? "¿Qué contenidos se trabajan en sus fotos?" : "Marcar contenidos trabajados"}</h3>
+  dlg(`<h3>${extra ? (extra.plan ? "¿Qué contenidos va a trabajar con estas páginas?" : "¿Qué contenidos se trabajan en sus fotos?") : "Marcar contenidos trabajados"}</h3>
     <p class="small muted mb">${extra ? (pre.length ? `Tlami reconoció <b>${pre.length}</b> contenido${pre.length === 1 ? "" : "s"}; ya están marcados. Revise y corrija si hace falta.` : "Elija los contenidos que se trabajan en esas páginas.") : "Elija los contenidos que ya trabajó con su grupo aunque no los haya planeado en la app."}</p>
     ${extra ? `<label class="campo"><span>Descripción (para encontrarlas después)</span><input id="aeT" value="${esc(extra.titulo || "")}" placeholder="Ej. Guía 4.°, lecciones 12 a 15"></label>` : ""}
     <div class="chips">${CAMPOS.map(c => `<button type="button" class="chip" data-ae="${esc(c)}">${esc(c)}</button>`).join("")}</div>
@@ -85,11 +85,11 @@ function avElegir(g, pda, pre, extra) { const cat = avCatalogo(g, pda), ya = new
       const conts = cat.filter(x => marcados.has(avKey(x.f, x.campo, x.c))).map(x => ({ f: x.f, campo: x.campo, c: x.c }));
       AVR().push({ id: uid(), gid: g.id, fecha: hoy(), src: extra ? "guia" : "manual", t: extra ? (v.querySelector("#aeT").value.trim() || "Fotos de guía o planeación") : "", fotos: extra ? extra.fotos : [], conts });
       const rec = AVR()[AVR().length - 1]; guardar(); cerrarDlg(); re(); toast(`<b>Avance actualizado:</b> ${conts.length} contenido${conts.length === 1 ? "" : "s"}.`, 3500);
-      if (extra && extra.fotos.length) setTimeout(() => guiaOfrecer(g, rec), 600); }; });
+      if (extra && extra.fotos.length) setTimeout(() => extra.plan ? guiaPlanearDesde(g, rec) : guiaOfrecer(g, rec), 500); }; });
 }
 
 async function avVerRegistro(g, pda, r) { if (!r) return;
-  dlg(`<h3>${esc(r.t || "Fotos de guía o planeación")}</h3><p class="small muted">${fCorta(r.fecha)}</p>
+  dlg(`<h3>${esc(r.t || "Fotos de guía o planeación")}</h3><p class="small muted">${fCorta(r.fecha)}${D.planes.some(p => p.guia === r.id) ? " · " + D.planes.filter(p => p.guia === r.id).map(p => "Planeación «" + esc(p.titulo) + "»").join(", ") : ""}</p>
     <div class="av-fotos mt">${(r.fotos || []).map(id => `<img data-src="${id}" alt="">`).join("") || `<p class="small muted">Se subió como PDF; no se guardaron fotos.</p>`}</div>
     <p class="small mt"><b>Contenidos:</b></p><ul class="small">${r.conts.map(x => `<li>${esc(x.c)} <span class="muted">· ${esc(x.campo)}</span></li>`).join("")}</ul>
     ${(r.fotos || []).length ? `<button class="btn p mt" id="arP" style="width:100%;justify-content:center">${ic("chispa", 16)} Hacer mi planeación con estas páginas</button>` : ""}<div class="fila fin mt"><button class="btn r" id="arB">Borrar</button><button class="btn" id="arX">Cerrar</button></div>`, async v => {
@@ -142,3 +142,8 @@ async function guiaPlanear(p, g, recId, conContexto) { const r = AVR().find(x =>
     (x.sesiones || []).forEach((y, i) => { const s = p.sesiones[i]; if (!s || !y) return; if (y.inicio) s.inicio.txt = y.inicio; if (y.desarrollo) s.desarrollo = y.desarrollo; if (y.cierre) s.cierre.txt = y.cierre; if (y.evaluacion) s.eval = y.evaluacion; s.ia = true; });
     p.guia = r.id; if (conContexto && g.lectura) p.ctx = hoy(); guardar(); cerrarDlg(); return true; }
   catch (e) { cerrarDlg(); toast("<b>La planeación quedó con la estructura básica.</b> Tlami no pudo leer la guía ahora (" + esc(e.message) + "). Intente de nuevo más tarde.", 7000); return false; } }
+
+/* páginas de la guía guardadas junto a la planeación */
+function guiaFotosHTML(p) { const r = AVR().find(x => x.id === p.guia); if (!r) return "";
+  return `<div class="mt"><p class="small"><b>${ic("camara", 14)} Páginas de su guía:</b> ${esc(r.t || "")}</p><div class="av-fotos mt" id="plGuia">${(r.fotos || []).map(id => `<img data-src="${id}" alt="Página de la guía">`).join("")}</div></div>`; }
+async function guiaFotosCargar(p) { const box = $("#plGuia"); if (!box) return; for (const i of box.querySelectorAll("img[data-src]")) { i.src = await fotoGet(i.dataset.src) || ""; i.onclick = () => dlg(`<img src="${i.src}" alt="" style="width:100%;max-height:75vh;object-fit:contain;border-radius:12px;background:#111"><div class="fila fin mt"><button class="btn p" id="gfX">Cerrar</button></div>`, v => v.querySelector("#gfX").onclick = cerrarDlg); } }
