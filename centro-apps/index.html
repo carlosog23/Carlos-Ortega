@@ -277,7 +277,8 @@ const ICONO={
  cherry:["../cherry-nails/icon-192.png","full"],
  gasolina:["../tarjeta-gasolina/icon-192.png","full"],
  fuerza:["../fuerza/icono-192.png","full"],
- tarjeta:["../tarjeta/img/icono-192.png","pad"]
+ tarjeta:["../tarjeta/img/icono-192.png","pad"],
+ amoxcalli:["amoxcalli-192.png","full"]
 };
 const svg=(id)=>{const [src,fit]=ICONO[id];return`<img class="ic-img ${fit}" src="${src}" alt="" loading="lazy" decoding="async">`};
 
@@ -344,6 +345,10 @@ const APPS=[
   users:"Supervisores e inspectores",stack:"GitHub Pages · Firebase (alertas)",
   tags:[{t:"Alerta «no hay sistema»"}],
   rel:[["Tarjeta de Gasolina","45a9780c-4aca-47b2-bda5-03cec0f367e8"]]},
+ {id:"amoxcalli",name:"Amoxcalli",tag:"Archivo familiar de documentos",g:"otros",c:"#0F766E",
+  url:"https://claude.ai/artifact/UyeLeAp1R9fjUHM8DB1Wak",admin:"",repo:"https://drive.google.com/drive/folders/1AK8JwmAVL2McpfbxKTpIiHTinxV28XD5",folder:"Drive · Amoxcalli",
+  users:"Yo, Carlos Enrique y Megara · cada hijo con su carpeta compartida",stack:"App en Claude (artifact) · documentos en Google Drive (carlosog23)",
+  tags:[{t:"Sube fotos, PDF y Word"},{t:"Separa PDF largos y junta expedientes"},{t:"Sin recibos de nómina"}],rel:[]},
  {id:"fuerza",name:"Mi Fuerza",tag:"Mi rutina de ejercicio diaria",g:"otros",c:"#0f3b5f",
   url:GH+"fuerza/",admin:"",repo:REPO+"fuerza",folder:"fuerza",
   users:"Solo para mí · datos guardados en el celular",stack:"GitHub Pages · sin servidor",
@@ -613,7 +618,7 @@ function drawDetail(){
       <div class="actions">
         <a class="btn pri" href="${esc(k.url)}" target="_blank" rel="noopener" aria-disabled="${!k.url}" data-open="${a.id}">Abrir app</a>
         <a class="btn adm" href="${esc(k.admin)}" target="_blank" rel="noopener" aria-disabled="${!k.admin}">${k.admin?"Panel de administrador":"Sin panel registrado"}</a>
-        <a class="btn" href="${esc(a.repo)}" target="_blank" rel="noopener">Código en GitHub</a>
+        <a class="btn" href="${esc(a.repo)}" target="_blank" rel="noopener">${/drive\.google/.test(a.repo)?"Carpeta en Drive":"Código en GitHub"}</a>
         <button class="btn" id="copy">Copiar enlace</button>
       </div>
       <div class="tags">${a.tags.map(t=>`<span class="tag${t.w?" warn":""}">${t.t}</span>`).join("")}</div>
