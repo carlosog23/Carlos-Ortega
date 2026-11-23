@@ -100,6 +100,8 @@ class Manejador(SimpleHTTPRequestHandler):
             return self.json({"kiwix": libros, "compartido": comp})
         if ruta == "/api/retos/resumen":
             return self.resumen()
+        if ruta == "/api/libros":
+            return self.libros()
         if ruta == "/compartido" or ruta.startswith("/compartido/"):
             return self.compartido(ruta)
         return super().do_GET()
@@ -131,6 +133,28 @@ class Manejador(SimpleHTTPRequestHandler):
         self.directory = os.path.dirname(dest)
         self.path = "/" + urllib.parse.quote(os.path.basename(dest))
         return super().do_GET()
+
+    # ---------- Libros de texto: estante por grado dentro de la carpeta de la escuela ----------
+    def libros(self):
+        base = os.path.join(COMPARTIDO, "Libros de texto")
+        out = []
+        try:
+            for d in sorted(os.listdir(base)):
+                ruta_d = os.path.join(base, d)
+                if d.startswith(".") or not os.path.isdir(ruta_d):
+                    continue
+                L = []
+                for f in sorted(os.listdir(ruta_d), key=str.lower):
+                    if f.lower().endswith(".pdf") and not f.startswith("."):
+                        try:
+                            mb = round(os.path.getsize(os.path.join(ruta_d, f)) / 1048576, 1)
+                        except Exception:
+                            mb = 0
+                        L.append({"t": f[:-4], "mb": mb, "url": "/compartido/" + urllib.parse.quote("Libros de texto/" + d + "/" + f)})
+                out.append({"nombre": d, "libros": L})
+        except Exception:
+            pass
+        return self.json({"carpetas": out})
 
     # ---------- Retos Zona 050: resultados de los alumnos ----------
     def clave_ok(self, c):

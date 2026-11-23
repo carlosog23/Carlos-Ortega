@@ -12,6 +12,8 @@
 #   - Educación Física en el salón para días de lluvia (app propia, sin internet).
 #   - Biblioteca sin internet: ajedrez (también en red entre computadoras), juegos de mente,
 #     sudoku, geografía y mecanografía. Funciona aunque la escuela no tenga internet.
+#   - Aprende a programar: Laberinto y la tortuga que dibuja, con bloques en español.
+#   - Libros de texto de la SEP por grado, guardados en el servidor para leerlos sin internet.
 #   - Retos Zona 050: práctica diaria (cálculo, tablas, problemas, fracciones, ortografía, lectura)
 #     con un tablero para que el maestro vea el avance de cada alumno.
 #   - Una computadora puede ser el «servidor de la escuela» (--servidor): organiza el ajedrez en red,
@@ -51,7 +53,7 @@ while [ $# -gt 0 ]; do
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
     --servidor) SERVIDOR=1; shift ;;
     --wikipedia) WIKIPEDIA=1; SERVIDOR=1; shift ;;
-    -h|--help|--ayuda) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help|--ayuda) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) rojo "Opción no reconocida: $1"; exit 1 ;;
   esac
 done
@@ -364,6 +366,7 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   acceso aula "Aula Zona 050 (pantalla del alumno)" "aula-inicio" applications-education
   acceso youtube "YouTube" "firefox --new-window https://www.youtube.com/" multimedia-video-player
   acceso biblioteca "Biblioteca sin internet" "firefox --new-window http://localhost:8050/" accessories-dictionary
+  acceso programa "Aprende a programar" "firefox --new-window http://localhost:8050/programa/" applications-development
   acceso retos-maestro "Retos · avance de mis alumnos" "firefox --new-window http://localhost:8050/retos/maestro.html" x-office-spreadsheet
   acceso word "Documentos (Word)" "libreoffice --writer" libreoffice-writer
   acceso excel "Hojas de cálculo (Excel)" "libreoffice --calc" libreoffice-calc
@@ -382,6 +385,14 @@ if [ "$SERVIDOR" = 1 ]; then
   systemctl restart avahi-daemon >/dev/null 2>&1 || true
   mkdir -p /srv/aula/compartido/Videos /srv/aula/compartido/Libros /srv/aula/compartido/Audios /srv/aula/kiwix
   printf 'Carpeta de la escuela\n\nTodo lo que pongas aquí (videos .mp4, libros en PDF, audios .mp3, imágenes) lo ven los alumnos\nen la Biblioteca sin internet de todas las computadoras, aunque no haya internet.\n' > /srv/aula/compartido/LEEME.txt
+  # Libros de texto: un estante por grado (los alumnos los abren sin internet desde la Biblioteca)
+  LT="/srv/aula/compartido/Libros de texto"
+  for g in "1° grado" "2° grado" "3° grado" "4° grado" "5° grado" "6° grado" "Multigrado" "Para el maestro"; do mkdir -p "$LT/$g"; done
+  printf 'Libros de texto\n\nCopia aquí los libros en PDF, cada uno en la carpeta de su grado.\nLos alumnos los verán en «Libros de texto» de la Biblioteca sin internet.\nCuando haya internet, el ícono «Descargar libros de texto» baja los que falten.\n' > "$LT/LEEME.txt"
+  install -m 755 "$DIR_RECURSOS/aula-libros" /usr/local/bin/aula-libros
+  [ -f "$DIR_RECURSOS/libros.txt" ] && install -m 644 "$DIR_RECURSOS/libros.txt" /usr/share/aula/libros.txt
+  echo "  Descargando libros de texto (puede tardar)…"
+  /usr/local/bin/aula-libros || amarillo "  ! Algunos libros no se pudieron descargar; se pueden bajar después o copiar desde una USB."
   if id maestro >/dev/null 2>&1; then chown -R maestro:maestro /srv/aula/compartido; fi
   chmod -R a+rX /srv/aula
   # Kiwix: enciclopedia, diccionario y simulaciones de ciencias para consultar sin internet
@@ -446,6 +457,9 @@ KIWIX
   systemctl restart zona050-red.service >/dev/null 2>&1
   if id maestro >/dev/null 2>&1; then
     ESC=/home/maestro/Escritorio; mkdir -p "$ESC"
+    printf '[Desktop Entry]\nType=Application\nName=Libros de texto (agregar desde USB)\nExec=xdg-open "/srv/aula/compartido/Libros de texto"\nIcon=x-office-document\nTerminal=false\n' > "$ESC/libros-texto.desktop"
+    printf '[Desktop Entry]\nType=Application\nName=Descargar libros de texto (con internet)\nExec=pkexec /usr/local/bin/aula-libros\nIcon=emblem-downloads\nTerminal=true\n' > "$ESC/descargar-libros.desktop"
+    chmod 755 "$ESC/libros-texto.desktop" "$ESC/descargar-libros.desktop"; chown maestro:maestro "$ESC/libros-texto.desktop" "$ESC/descargar-libros.desktop"
     dpkg -s kolibri >/dev/null 2>&1 && printf '[Desktop Entry]\nType=Application\nName=Kolibri (videos y ejercicios sin internet)\nExec=firefox --new-window http://localhost:8080/\nIcon=applications-education\nTerminal=false\n' > "$ESC/kolibri.desktop" && chmod 755 "$ESC/kolibri.desktop" && chown maestro:maestro "$ESC/kolibri.desktop"
     printf '[Desktop Entry]\nType=Application\nName=Carpeta de la escuela (la ven los alumnos)\nExec=xdg-open /srv/aula/compartido\nIcon=folder-publicshare\nTerminal=false\n' > "$ESC/carpeta-escuela.desktop"
     chmod 755 "$ESC/carpeta-escuela.desktop"; chown maestro:maestro "$ESC/carpeta-escuela.desktop"

@@ -24,6 +24,7 @@ h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 
   <h2>En esta computadora</h2>
   <div class="grid">
     <a class="c" href="/retos/"><div class="e">🎯</div><b>Retos Zona 050</b><span>Práctica diaria: cálculo, tablas, problemas, fracciones, ortografía y lectura</span></a>
+    <a class="c" href="/programa/"><div class="e">🧩</div><b>Aprende a programar</b><span>Laberinto y la tortuga que dibuja: da órdenes a la computadora con bloques</span></a>
     <a class="c" href="/ajedrez/"><div class="e">♞</div><b>Ajedrez</b><span>Contra la computadora, con un compañero o en red con otra computadora</span></a>
     <a class="c" href="/ef/index.html"><div class="e">🤸</div><b>Educación Física en el salón</b><span>Juegos y activaciones para días de lluvia</span></a>
   </div>
@@ -32,6 +33,7 @@ h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 
   <p class="nota" id="nSrv">Buscando el servidor de la escuela…</p>
   <div class="grid" id="gSrv">
     <a class="c off" id="cKiwix" href="#"><div class="e">📖</div><b>Enciclopedia, diccionario y ciencias</b><span>Vikidia (enciclopedia para niños), diccionario, simulaciones de ciencias y matemáticas (PhET)</span><div class="estado" id="eKiwix">…</div></a>
+    <a class="c" id="cLib" href="/libros/"><div class="e">📗</div><b>Libros de texto</b><span>Los libros de la SEP de cada grado, para leer sin internet</span><div class="estado" id="eLib">…</div></a>
     <a class="c off" id="cComp" href="#"><div class="e">📂</div><b>Carpeta de la escuela</b><span>Videos, libros en PDF, audios y materiales que deja el maestro</span><div class="estado" id="eComp">…</div></a>
     <a class="c off" id="cKol" href="#"><div class="e">🎬</div><b>Kolibri: videos y ejercicios</b><span>Clases en video y ejercicios de Khan Academy en español, sin internet</span><div class="estado" id="eKol">…</div></a>
     <a class="c off" id="cAj" href="#"><div class="e">🏫</div><b>Ajedrez en red</b><span>Partidas entre computadoras de la escuela</span><div class="estado" id="eAj">…</div></a>
@@ -44,12 +46,13 @@ const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servid
   let srv = "", host = "";
   for (const s of CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const r = await fetch(s + "/api/ping", { signal: c.signal }); clearTimeout(t); const j = await r.json(); if (j.ok && j.servidor) { srv = s; host = new URL(s).hostname; break; } } catch (e) {} }
   const n = document.getElementById("nSrv");
-  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eKol", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
+  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eLib", "eComp", "eKol", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
   n.textContent = "Conectado al servidor de la escuela.";
   let b = {}; try { b = await (await fetch(srv + "/api/biblioteca")).json(); } catch (e) {}
   const pon = (c, e, url, txt, ok) => { const a = document.getElementById(c); a.href = url; a.classList.toggle("off", !ok); const s = document.getElementById(e); s.textContent = txt; s.classList.toggle("ok", ok); };
   const nk = (b.kiwix || []).length;
   pon("cKiwix", "eKiwix", `http://${host}:8051/`, nk ? `${nk} libro${nk === 1 ? "" : "s"} disponible${nk === 1 ? "" : "s"}` : "Aún no se cargan", nk > 0);
+  try { const L = await (await fetch(srv + "/api/libros")).json(); const nl = (L.carpetas || []).reduce((s, c) => s + c.libros.length, 0); pon("cLib", "eLib", "/libros/", nl ? `${nl} libro${nl === 1 ? "" : "s"}` : "Aún no se cargan", true); } catch (e) {}
   pon("cComp", "eComp", srv + "/compartido/", b.compartido ? `${b.compartido} archivo${b.compartido === 1 ? "" : "s"}` : "Vacía por ahora", true);
   pon("cAj", "eAj", "/ajedrez/", "Disponible", true);
   try { const c = new AbortController(), t = setTimeout(() => c.abort(), 3000); await fetch(`http://${host}:8080/`, { mode: "no-cors", signal: c.signal }); clearTimeout(t); pon("cKol", "eKol", `http://${host}:8080/`, "Disponible", true); }

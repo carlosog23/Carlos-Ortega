@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aprende a programar · Zona 050</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0}body{font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:#F3F7FA;color:#0F3B5F}
+header{background:#0F3B5F;color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px}header h1{margin:0;font-size:26px}header p{margin:2px 0 0;opacity:.8}header .t{flex:1}
+.marca{display:flex;align-items:center;gap:10px;color:#fff}.marca img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:14px;line-height:1.15}.marca small{display:block;font-size:11px;opacity:.75;font-style:italic}
+main{max-width:980px;margin:0 auto;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+a.c{display:block;background:#fff;border:2px solid #D6E3EC;border-radius:24px;padding:24px;text-decoration:none;color:inherit}a.c:hover{border-color:#E8772E;background:#FFF6EE}
+a.c .e{font-size:70px}a.c b{display:block;font-size:26px;margin:6px 0}a.c span{color:#5F6B76;font-size:16px;line-height:1.4}
+.est{margin-top:14px;font-size:22px;letter-spacing:2px}.est small{font-size:14px;color:#5F6B76;letter-spacing:0;margin-left:6px}
+.nota{background:#fff;border:2px dashed #D6E3EC;border-radius:16px;padding:14px 18px;margin-top:22px;color:#3d4a55;font-size:15px;line-height:1.45}
+.firma{display:flex;flex-direction:column;align-items:center;gap:4px;margin:28px 0 8px;opacity:.75}.firma span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:170px}
+.vol{color:#fff;text-decoration:none;border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:7px 12px;font-weight:700}
+</style>
+</head>
+<body>
+<header><span style="font-size:40px">🧩</span><div class="t"><h1>Aprende a programar</h1><p>Da órdenes a la computadora con bloques · funciona sin internet</p></div><a class="vol" href="/">← Biblioteca</a>
+<div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
+<main>
+  <div class="grid">
+    <a class="c" href="juego.html?j=lab"><div class="e">🧭</div><b>Laberinto</b><span>Lleva el carrito hasta la meta 🏁. Aprende a dar instrucciones en orden, a repetir y a tomar decisiones.</span><div class="est" id="eLab"></div></a>
+    <a class="c" href="juego.html?j=tor"><div class="e">🐢</div><b>La tortuga que dibuja</b><span>Dibuja cuadrados, estrellas y flores con la tortuga. Aprende ángulos, figuras y patrones.</span><div class="est" id="eTor"></div></a>
+  </div>
+  <div class="nota">👩‍🏫 <b>Para el maestro:</b> cada nivel se desbloquea al resolver el anterior y el avance se guarda en esta computadora. Sugerencia: trabajen en parejas; uno arrastra los bloques y el otro explica qué hará el programa antes de presionar «Ejecutar».</div>
+  <div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>
+</main>
+<script src="niveles.js"></script>
+<script>
+let p = {}; try { p = JSON.parse(localStorage.getItem("z050-programa")) || {}; } catch (e) {}
+const est = (n, tot) => "⭐".repeat(n) + "☆".repeat(tot - n) + `<small>${n} de ${tot} niveles</small>`;
+document.getElementById("eLab").innerHTML = est(p.lab || 0, Z050P.LAB.length);
+document.getElementById("eTor").innerHTML = est(p.tor || 0, Z050P.TOR.length);
+</script>
+</body>
+</html>

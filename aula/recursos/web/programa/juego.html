@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Programa · Zona 050</title>
+<style>
+[hidden]{display:none!important}*{box-sizing:border-box}html,body{margin:0;height:100%}body{font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:#F3F7FA;color:#0F3B5F;display:flex;flex-direction:column}
+header{background:#0F3B5F;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:12px;flex:none}
+header h1{margin:0;font-size:21px}header .esp{flex:1}
+header a.vol{color:#fff;text-decoration:none;border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:6px 12px;font-weight:700;font-size:15px}
+.marca{display:flex;align-items:center;gap:8px;color:#fff}.marca img{width:40px;height:40px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:13px;line-height:1.15}.marca small{display:block;font-size:10px;opacity:.75;font-style:italic}
+.niveles{display:flex;gap:6px}.niveles button{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:transparent;color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.niveles button.hecho{background:#2E9E5B;border-color:#2E9E5B}.niveles button.act{background:#fff;color:#0F3B5F;border-color:#fff}.niveles button:disabled{opacity:.35;cursor:default}
+.cuerpo{flex:1;display:flex;min-height:0}
+.izq{width:432px;flex:none;padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.pista{background:#fff;border:2px solid #D6E3EC;border-radius:16px;padding:12px 14px;font-size:16px;line-height:1.4}.pista b{display:block;font-size:19px;margin-bottom:4px}
+.lienzo{position:relative;width:400px;height:400px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px #D6E3EC;background:#fff}.lienzo canvas{position:absolute;left:0;top:0}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:11px 18px;font-size:17px;font-weight:800;cursor:pointer;background:#2E9E5B;color:#fff}.btn.sec{background:#fff;color:#0F3B5F;border:2px solid #D6E3EC}.btn:disabled{opacity:.5;cursor:default}
+.vel{display:flex;align-items:center;gap:6px;font-size:14px;color:#5F6B76}
+.cuenta{font-size:14px;color:#5F6B76}
+.msg{border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700;display:none}.msg.mal{display:block;background:#FBE4E1;color:#7f1d1d}.msg.casi{display:block;background:#FFF3D6;color:#7a5200}
+#blockly{flex:1;min-width:0;height:100%}
+.velo{position:fixed;inset:0;background:rgba(15,59,95,.55);display:none;align-items:center;justify-content:center;z-index:50}.velo.ver{display:flex}
+.modal{background:#fff;border-radius:22px;padding:26px 30px;text-align:center;max-width:440px}.modal .e{font-size:76px}.modal h2{margin:6px 0;font-size:30px}.modal p{font-size:17px;color:#3d4a55}.modal .ctrl{justify-content:center;margin-top:14px}
+.firma{margin-top:auto;padding-top:8px;opacity:.6;display:flex;flex-direction:column;align-items:center}.firma span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:120px}
+@media print{header,.izq>*:not(.lienzo),#blockly,.firma{display:none!important}.izq{width:auto}}
+</style>
+</head>
+<body>
+<header><span style="font-size:30px" id="ico">🧩</span><h1 id="tit">Programa</h1><div class="niveles" id="niv"></div><div class="esp"></div><a class="vol" href="index.html">← Juegos</a>
+<div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
+<div class="cuerpo">
+  <div class="izq">
+    <div class="pista" id="pista"></div>
+    <div class="lienzo"><canvas id="cv" width="400" height="400"></canvas><canvas id="cv2" width="400" height="400"></canvas></div>
+    <div class="ctrl"><button class="btn" id="bRun">▶ Ejecutar</button><button class="btn sec" id="bRe">↺ Volver a empezar</button>
+      <label class="vel">🐢<input type="range" id="vel" min="1" max="5" value="3">🐇</label></div>
+    <div class="ctrl" id="ctrlLibre" hidden><button class="btn sec" id="bImg">💾 Guardar dibujo</button><button class="btn sec" onclick="print()">🖨️ Imprimir</button></div>
+    <div class="cuenta" id="cuenta"></div>
+    <div class="msg" id="msg"></div>
+    <div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>
+  </div>
+  <div id="blockly"></div>
+</div>
+<div class="velo" id="velo"><div class="modal"><div class="e">🎉</div><h2>¡Lo lograste!</h2><p id="mTxt"></p><div class="ctrl"><button class="btn sec" id="mOtra">Quedarme aquí</button><button class="btn" id="mSig">Siguiente nivel →</button></div></div></div>
+<script src="lib/blockly_compressed.js"></script>
+<script src="lib/blocks_compressed.js"></script>
+<script src="lib/msg-es.js"></script>
+<script src="niveles.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s), Z = window.Z050P;
+const q = new URLSearchParams(location.search), JUEGO = q.get("j") === "tor" ? "tor" : "lab";
+const NIV = JUEGO === "lab" ? Z.LAB : Z.TOR;
+const PK = "z050-programa";
+const leer = () => { try { return JSON.parse(localStorage.getItem(PK)) || {}; } catch (e) { return {}; } };
+const guardar = o => { try { localStorage.setItem(PK, JSON.stringify(o)); } catch (e) {} };
+const prog = leer(), hechos = prog[JUEGO] || 0;
+let N = Math.max(1, Math.min(NIV.length, +q.get("n") || Math.min(hechos + 1, NIV.length)));
+if (N > hechos + 1) N = hechos + 1;
+const LV = NIV[N - 1];
+
+// ---------- Encabezado ----------
+$("#tit").textContent = JUEGO === "lab" ? "Laberinto" : "La tortuga que dibuja";
+$("#ico").textContent = JUEGO === "lab" ? "🧭" : "🐢";
+document.title = $("#tit").textContent + " · Zona 050";
+$("#niv").innerHTML = NIV.map((_, i) => `<button class="${i + 1 === N ? "act" : i < hechos ? "hecho" : ""}" ${i > hechos ? "disabled" : ""} data-n="${i + 1}" title="Nivel ${i + 1}">${i + 1}</button>`).join("");
+$("#niv").onclick = e => { const b = e.target.closest("button[data-n]"); if (b && !b.disabled) location.search = `?j=${JUEGO}&n=${b.dataset.n}`; };
+$("#pista").innerHTML = `<b>Nivel ${N}${JUEGO === "tor" ? " · " + LV.t : ""}</b>${LV.pista}`;
+
+// ---------- Bloques ----------
+const MOV = "#4C97FF", CIC = "#FFAB19", DEC = "#5CB1D6", PLU = "#59C059";
+const st = { previousStatement: null, nextStatement: null };
+Blockly.common.defineBlocksWithJsonArray([
+  { type: "inicio", message0: "al iniciar ▶", nextStatement: null, colour: "#E8772E", tooltip: "Aquí empieza tu programa" },
+  { type: "avanzar", message0: "avanzar ⬆", ...st, colour: MOV, tooltip: "Un paso hacia donde mira" },
+  { type: "girar", message0: "girar a la %1", args0: [{ type: "field_dropdown", name: "D", options: [["izquierda ↺", "L"], ["derecha ↻", "R"]] }], ...st, colour: MOV },
+  { type: "repetir", message0: "repetir %1 veces", args0: [{ type: "field_number", name: "N", value: 4, min: 1, max: 100, precision: 1 }], message1: "%1", args1: [{ type: "input_statement", name: "H" }], ...st, colour: CIC },
+  { type: "hasta", message0: "repetir hasta llegar a 🏁", message1: "%1", args1: [{ type: "input_statement", name: "H" }], ...st, colour: CIC },
+  { type: "si", message0: "si hay camino %1", args0: [{ type: "field_dropdown", name: "D", options: [["adelante ⬆", "F"], ["a la izquierda ↺", "L"], ["a la derecha ↻", "R"]] }], message1: "%1", args1: [{ type: "input_statement", name: "H" }], ...st, colour: DEC },
+  { type: "sisino", message0: "si hay camino %1", args0: [{ type: "field_dropdown", name: "D", options: [["adelante ⬆", "F"], ["a la izquierda ↺", "L"], ["a la derecha ↻", "R"]] }], message1: "%1", args1: [{ type: "input_statement", name: "H" }], message2: "si no %1", args2: [{ type: "input_statement", name: "S" }], ...st, colour: DEC },
+  { type: "t_avanzar", message0: "avanzar %1 pasos", args0: [{ type: "field_number", name: "N", value: 100, min: 0, max: 500, precision: 1 }], ...st, colour: MOV },
+  { type: "t_girar", message0: "girar a la %1 %2 grados", args0: [{ type: "field_dropdown", name: "D", options: [["derecha ↻", "R"], ["izquierda ↺", "L"]] }, { type: "field_number", name: "N", value: 90, min: 0, max: 360, precision: 1 }], ...st, colour: MOV },
+  { type: "t_color", message0: "color %1", args0: [{ type: "field_dropdown", name: "C", options: [["⬛ negro", "#222222"], ["🟥 rojo", "#D7263D"], ["🟧 naranja", "#E8772E"], ["🟨 amarillo", "#E6B800"], ["🟩 verde", "#2E9E5B"], ["🟦 azul", "#1F6FD1"], ["🟪 morado", "#7B3FB5"], ["🌸 rosa", "#E0559B"], ["🎲 al azar", "azar"]] }], ...st, colour: PLU },
+  { type: "t_grosor", message0: "grosor %1", args0: [{ type: "field_number", name: "N", value: 6, min: 1, max: 30, precision: 1 }], ...st, colour: PLU },
+  { type: "t_pluma", message0: "%1 la pluma", args0: [{ type: "field_dropdown", name: "P", options: [["subir", "arriba"], ["bajar", "abajo"]] }], ...st, colour: PLU },
+]);
+
+const ws = Blockly.inject("blockly", {
+  toolbox: { kind: "flyoutToolbox", contents: LV.caja.map(t => ({ kind: "block", type: t })) },
+  media: "lib/media/", renderer: "zelos", trashcan: true, sounds: true,
+  maxBlocks: LV.max ? LV.max + 1 : Infinity,
+  zoom: { controls: true, wheel: true, startScale: 0.85 }, move: { scrollbars: true, drag: true, wheel: false },
+});
+const WSK = `z050-prog-ws-${JUEGO}-${N}`;
+let cargado = false;
+try { const s = localStorage.getItem(WSK); if (s) { Blockly.serialization.workspaces.load(JSON.parse(s), ws); cargado = true; } } catch (e) {}
+if (!ws.getBlocksByType("inicio").length) { ws.clear(); const b = ws.newBlock("inicio"); b.initSvg(); b.render(); b.moveBy(30, 30); }
+ws.getBlocksByType("inicio").forEach(b => b.setDeletable(false));
+const cuenta = () => { const n = ws.getAllBlocks(false).filter(b => b.type !== "inicio").length; $("#cuenta").textContent = LV.max ? `Bloques: ${n} de ${LV.max}` : `Bloques: ${n}`; return n; };
+ws.addChangeListener(e => { if (e.isUiEvent) return; cuenta(); try { localStorage.setItem(WSK, JSON.stringify(Blockly.serialization.workspaces.save(ws))); } catch (er) {} });
+cuenta();
+
+// Programa de bloques → árbol que entiende el motor
+function arbol() {
+  const cad = b => { const L = []; while (b) { if (b.isEnabled()) { const it = item(b); if (it) L.push(it); } b = b.getNextBlock(); } return L; };
+  const sub = (b, n) => cad(b.getInputTargetBlock(n));
+  const item = b => { let r;
+    switch (b.type) {
+      case "avanzar": r = ["av"]; break; case "girar": r = ["gi", b.getFieldValue("D")]; break;
+      case "repetir": r = ["rep", +b.getFieldValue("N"), sub(b, "H")]; break; case "hasta": r = ["hasta", sub(b, "H")]; break;
+      case "si": r = ["si", b.getFieldValue("D"), sub(b, "H")]; break; case "sisino": r = ["sisino", b.getFieldValue("D"), sub(b, "H"), sub(b, "S")]; break;
+      case "t_avanzar": r = ["av", +b.getFieldValue("N")]; break; case "t_girar": r = ["gi", b.getFieldValue("D"), +b.getFieldValue("N")]; break;
+      case "t_color": { let c = b.getFieldValue("C"); if (c === "azar") c = `hsl(${Math.floor(Math.random() * 360)} 75% 45%)`; r = ["color", c]; break; }
+      case "t_grosor": r = ["grosor", +b.getFieldValue("N")]; break; case "t_pluma": r = ["pluma", b.getFieldValue("P")]; break;
+      default: return null; }
+    r.id = b.id; return r; };
+  const ini = ws.getBlocksByType("inicio")[0];
+  return ini ? cad(ini.getNextBlock()) : [];
+}
+
+// ---------- Dibujo ----------
+const cv = $("#cv"), cx = cv.getContext("2d"), cv2 = $("#cv2"), cx2 = cv2.getContext("2d");
+const espera = ms => new Promise(r => setTimeout(r, ms));
+const retardo = () => [0, 520, 330, 190, 90, 25][+$("#vel").value];
+let corriendo = false, parar = false;
+const msg = (t, c) => { const m = $("#msg"); m.className = "msg" + (t ? " " + c : ""); m.textContent = t || ""; };
+
+// Laberinto
+let MAPA, TAM;
+function dibujaMapa() {
+  MAPA = Z.mapaLab(LV); TAM = 400 / LV.n;
+  for (let r = 0; r < LV.n; r++) for (let c = 0; c < LV.n; c++) {
+    const libre = MAPA.g[r][c] === 1;
+    cx.fillStyle = libre ? ((r + c) % 2 ? "#F6E7C8" : "#F1DFBB") : ((r + c) % 2 ? "#3F7D5B" : "#3A7454");
+    cx.fillRect(c * TAM, r * TAM, TAM + 1, TAM + 1);
+    if (!libre && (r * 7 + c * 3) % 5 === 0) { cx.font = `${TAM * 0.55}px sans-serif`; cx.textAlign = "center"; cx.textBaseline = "middle"; cx.fillText("🌵", c * TAM + TAM / 2, r * TAM + TAM / 2 + 2); }
+  }
+  cx.font = `${TAM * 0.7}px sans-serif`; cx.textAlign = "center"; cx.textBaseline = "middle";
+  cx.fillText("🏁", MAPA.meta[1] * TAM + TAM / 2, MAPA.meta[0] * TAM + TAM / 2 + 2);
+}
+function carrito(r, c, d, mal) {
+  cx2.clearRect(0, 0, 400, 400);
+  const x = c * TAM + TAM / 2, y = r * TAM + TAM / 2, s = TAM * 0.36;
+  cx2.save(); cx2.translate(x, y); cx2.rotate(d * Math.PI / 2);
+  cx2.fillStyle = mal ? "#C0392B" : "#1F6FD1"; cx2.strokeStyle = "#fff"; cx2.lineWidth = 3;
+  cx2.beginPath(); if (cx2.roundRect) cx2.roundRect(-s, -s, 2 * s, 2 * s, s * 0.45); else cx2.rect(-s, -s, 2 * s, 2 * s); cx2.fill(); cx2.stroke();
+  cx2.fillStyle = "#fff"; cx2.beginPath(); cx2.moveTo(0, -s * 0.7); cx2.lineTo(s * 0.55, s * 0.25); cx2.lineTo(-s * 0.55, s * 0.25); cx2.closePath(); cx2.fill();
+  cx2.restore();
+}
+
+// Tortuga
+const AR = 400;
+function lineas(cxx, pasos, grosor, color) {
+  cxx.lineCap = "round"; cxx.lineJoin = "round";
+  for (const p of pasos) if (p.k === "lin" && p.pl) { cxx.strokeStyle = color || p.col; cxx.lineWidth = grosor || p.gr; cxx.beginPath(); cxx.moveTo(p.x1, p.y1); cxx.lineTo(p.x2, p.y2); cxx.stroke(); }
+}
+function fondoTortuga() {
+  cx.clearRect(0, 0, AR, AR); cx.fillStyle = "#fff"; cx.fillRect(0, 0, AR, AR);
+  cx.strokeStyle = "#EEF3F7"; cx.lineWidth = 1; for (let i = 0; i <= AR; i += 40) { cx.beginPath(); cx.moveTo(i, 0); cx.lineTo(i, AR); cx.moveTo(0, i); cx.lineTo(AR, i); cx.stroke(); }
+  if (LV.sol) lineas(cx, Z.tortugaPasos(LV.sol, LV.x, LV.y), 11, "#D7E7F3");
+}
+function tortuga(x, y, a) {
+  cx2.clearRect(0, 0, AR, AR); cx2.save(); cx2.translate(x, y); cx2.rotate(a * Math.PI / 180);
+  cx2.fillStyle = "#2E9E5B"; cx2.strokeStyle = "#fff"; cx2.lineWidth = 2;
+  cx2.beginPath(); cx2.ellipse(0, 0, 9, 11, 0, 0, 7); cx2.fill(); cx2.stroke();
+  cx2.beginPath(); cx2.arc(0, -14, 4.5, 0, 7); cx2.fill(); cx2.stroke();
+  cx2.restore();
+}
+function parecido(pasos) {
+  const mk = () => { const c = document.createElement("canvas"); c.width = c.height = AR; return c; };
+  const a = mk(), b = mk(); lineas(a.getContext("2d"), Z.tortugaPasos(LV.sol, LV.x, LV.y), 12, "#000"); lineas(b.getContext("2d"), pasos, 12, "#000");
+  const A = a.getContext("2d").getImageData(0, 0, AR, AR).data, B = b.getContext("2d").getImageData(0, 0, AR, AR).data;
+  let x = 0, u = 0; for (let i = 3; i < A.length; i += 4) { const p = A[i] > 60, q2 = B[i] > 60; if (p || q2) u++; if (p !== q2) x++; }
+  return u ? 1 - x / u : 0;
+}
+
+function reiniciar() {
+  parar = true; msg(""); ws.highlightBlock(null);
+  if (JUEGO === "lab") { cx.clearRect(0, 0, 400, 400); dibujaMapa(); carrito(LV.r, LV.c, LV.dir); }
+  else { fondoTortuga(); tortuga(LV.x, LV.y, 0); }
+}
+
+async function ejecutar() {
+  if (corriendo) return; reiniciar(); await espera(30);
+  parar = false; corriendo = true; $("#bRun").disabled = true;
+  const P = arbol();
+  try {
+    if (!P.length) { msg("Pon bloques debajo de «al iniciar ▶».", "casi"); return; }
+    if (JUEGO === "lab") {
+      const pasos = Z.laberintoPasos(P, LV);
+      for (const p of pasos) {
+        if (parar) return;
+        if (p.id) ws.highlightBlock(p.id);
+        if (p.k === "mov" || p.k === "gir") { carrito(p.r, p.c, p.d); await espera(retardo()); }
+        else if (p.k === "nada") await espera(retardo() / 3);
+        else if (p.k === "choque") { carrito(p.r, p.c, p.d, true); msg("¡Chocaste con la pared! Revisa tu programa y vuelve a intentar.", "mal"); }
+        else if (p.k === "corto") msg("Tu carrito se detuvo antes de llegar a la meta. ¿Qué le falta a tu programa?", "casi");
+        else if (p.k === "lento") msg("Tu programa da vueltas sin avanzar. Revisa las condiciones.", "mal");
+        else if (p.k === "meta") { await espera(200); gano(); }
+      }
+    } else {
+      let pasos; try { pasos = Z.tortugaPasos(P, LV.x, LV.y); } catch (e) { msg("Tu programa es demasiado largo. Usa números más pequeños en «repetir».", "mal"); return; }
+      let x = LV.x, y = LV.y, a = 0; const lento = retardo();
+      for (let i = 0; i < pasos.length; i++) {
+        const p = pasos[i]; if (parar) return;
+        if (p.id) ws.highlightBlock(p.id);
+        if (p.k === "lin") {
+          if (p.pl) { cx.strokeStyle = p.col; cx.lineWidth = p.gr; cx.lineCap = "round"; cx.beginPath(); cx.moveTo(p.x1, p.y1); cx.lineTo(p.x2, p.y2); cx.stroke(); }
+          x = p.x2; y = p.y2;
+        } else if (p.k === "gir") a = p.a;
+        tortuga(x, y, a);
+        if (lento) await espera(lento / (pasos.length > 120 ? 4 : 1)); else if (i % 20 === 0) await espera(0);
+      }
+      if (LV.sol) {
+        const s = parecido(pasos);
+        if (s > 0.86) { await espera(250); gano(); }
+        else msg(s > 0.5 ? "¡Casi! Tu dibujo se parece, pero no es igual. Revisa los números." : "Tu dibujo todavía no es igual al modelo azul claro. ¡Inténtalo otra vez!", "casi");
+      } else msg("");
+    }
+  } finally { corriendo = false; $("#bRun").disabled = false; setTimeout(() => ws.highlightBlock(null), 600); }
+}
+
+function gano() {
+  const p = leer(); p[JUEGO] = Math.max(p[JUEGO] || 0, N); guardar(p);
+  const n = cuenta();
+  $("#mTxt").textContent = `Resolviste el nivel ${N} con ${n} bloque${n === 1 ? "" : "s"}.` + (N >= NIV.length ? " ¡Terminaste todos los niveles!" : "");
+  $("#mSig").textContent = N >= NIV.length ? "Volver a los juegos" : "Siguiente nivel →";
+  $("#velo").classList.add("ver");
+}
+$("#mSig").onclick = () => { location.href = N >= NIV.length ? "index.html" : `?j=${JUEGO}&n=${N + 1}`; };
+$("#mOtra").onclick = () => $("#velo").classList.remove("ver");
+$("#bRun").onclick = ejecutar;
+$("#bRe").onclick = reiniciar;
+if (JUEGO === "tor" && !LV.sol) {
+  $("#ctrlLibre").hidden = false;
+  $("#bImg").onclick = () => { const c = document.createElement("canvas"); c.width = c.height = AR; const g = c.getContext("2d"); g.drawImage(cv, 0, 0); const a = document.createElement("a"); a.download = "mi-dibujo.png"; a.href = c.toDataURL("image/png"); a.click(); };
+}
+reiniciar();
+</script>
+</body>
+</html>
