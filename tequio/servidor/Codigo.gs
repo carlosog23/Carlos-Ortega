@@ -252,7 +252,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 75;
+const VERSION = 76;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -5966,6 +5966,24 @@ function aulaIA_(q) {
       '', 'Responde SOLO con JSON: {"inicio": "pregunta detonadora y recuperación de saberes (2 a 4 oraciones)", "desarrollo": "actividades en pasos numerados, con tiempos", "cierre": "cómo se cierra y se socializa", "evaluacion": "qué observar y con qué instrumento, en una oración", "materiales": "lista breve", "ajustes": "sugerencia breve para alumnos que requieren apoyo"}']).filter(x => x !== '');
     const j = aulaJSON_(p.join('\n'));
     return { r: { inicio: L(j.inicio, 1200), desarrollo: String(j.desarrollo || '').slice(0, 3500), cierre: L(j.cierre, 1200), evaluacion: L(j.evaluacion, 400), materiales: L(j.materiales, 500), ajustes: L(j.ajustes, 700) } };
+  }
+  if (modo === 'avance') {
+    // Lee fotos (o PDF) de la guía de editorial o de la planeación del docente y reconoce qué contenidos del Programa Sintético se trabajan
+    const TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const arch = (Array.isArray(d.archivos) ? d.archivos : []).slice(0, 8).filter(a => a && TIPOS.indexOf(a.tipo) >= 0 && typeof a.data === 'string' && a.data.length > 100).map(a => ({ tipo: a.tipo, data: a.data }));
+    if (!arch.length) throw new Error('No llegaron las fotos. Súbalas de nuevo.');
+    if (arch.reduce((t, a) => t + a.data.length, 0) > 19000000) throw new Error('Las fotos pesan mucho. Suba menos páginas a la vez.');
+    const lista = String(d.contenidos || '').slice(0, 40000), n = lista.split('\n').length;
+    if (n < 2) throw new Error('No llegó la lista de contenidos del programa.');
+    const p = [].concat(base, [
+      'Un docente de ' + gtxt + ' subió fotos de las páginas de su GUÍA DE EDITORIAL o de su PLANEACIÓN (adjuntas). Míralas con atención: títulos, temas, lecciones, actividades, propósitos y, si aparecen, los contenidos o PDA que citan.',
+      'Tu tarea: decir qué CONTENIDOS del Programa Sintético de la lista se trabajan en esas páginas. Elige SOLO de la lista, por su número. Puede ser más de uno y de distintos campos formativos.',
+      'Sé prudente: incluye un contenido solo si las páginas claramente lo trabajan; si nada corresponde, devuelve la lista vacía. No inventes.',
+      '', 'LISTA DE CONTENIDOS (número. [campo formativo · fase] contenido):', lista, '',
+      'Responde SOLO con JSON: {"ids": [números de la lista], "titulo": "descripción breve de lo que se ve, p. ej. «Guía 4.° grado, lecciones 12 a 14» o «Planeación de la semana del 9 al 13 de noviembre» (máximo 80 caracteres)"}']);
+    const j = aulaJSON_(p.join('\n'), 0.2, { archivos: arch, max: 1024 });
+    const ids = (Array.isArray(j.ids) ? j.ids : []).map(x => parseInt(x, 10)).filter(x => x >= 1 && x <= n).filter((x, i, a) => a.indexOf(x) === i).slice(0, 25);
+    return { r: { ids: ids, titulo: L(j.titulo, 90) } };
   }
   if (modo === 'lectura') {
     // Lee la lectura de la realidad que subió el docente (PDF, fotos o texto de Word) y devuelve una síntesis para planear

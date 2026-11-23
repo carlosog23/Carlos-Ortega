@@ -72,6 +72,8 @@ async function capSembrar() { try { const ap = document.getElementById("app"); i
     const p1 = plan(g, c1, PROY[c1], dias[dias.length - 15], 5, 5, PROY[c1].re);
     const p2 = k % 3 === 0 ? plan(g, CAMPO_EXACTO("Saberes y pensamiento científico"), MATE, dias[dias.length - 4], 6, 4, /suma y resta|números/i) : plan(g, c2, PROY[c2], dias[dias.length - 4], 6, 4, PROY[c2].re);
     Dx.planes.push(p1, p2);
+    if (k % 2 === 0) { const f0 = faseDe(grados[0]), cs = [CAMPOS_ORDEN[(k + 2) % 4], CAMPOS_ORDEN[(k + 3) % 4]].map(c => ({ f: f0, campo: c, c: (PDA_TXT(pda, c, f0)[2 + (k % 5)] || PDA_TXT(pda, c, f0)[0]).c }));
+      (Dx.avr = Dx.avr || []).push({ id: id("av"), gid: g.id, fecha: dias[dias.length - 10], src: "guia", t: "Guía de editorial · " + grados[0] + ".° grado, lecciones 8 a 11", fotos: [], conts: cs }); }
     // evaluación de las sesiones hechas
     const nivel = {}; al.forEach(a => nivel[a.id] = 1.8 + rnd() * 2.2);
     [p1, p2].forEach(p => p.sesiones.forEach((s, i) => { if (!s.hecho) return; const r = { id: id("r"), pid: p.id, gid: g.id, ses: i, fecha: s.fecha, campo: p.campo, al: {}, obs: {} };
