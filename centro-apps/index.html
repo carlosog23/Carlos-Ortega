@@ -327,7 +327,7 @@ const APPS=[
 /* Enlaces de demostración para compartir (datos ficticios) */
 const DEMOS={
  visitas:[{t:"App de visitas a las escuelas",u:GH+"tequio/index.html?campo#demo",n:"La app de campo: revisión con guía, visita de atención, trabajo sin internet. Datos de ejemplo; nada se guarda."}],
- tlamatini:[{t:"Demostración de Tlamatini",u:GH+"formatos-ppie/#demo",n:"Entra con datos ficticios, sin enlace de acceso. Su vigencia la fija la Supervisión.",vig:true},
+ tlamatini:[{t:"Demostración de Tlamatini",u:GH+"formatos-ppie/#demo",n:"Entra con datos ficticios, sin enlace de acceso y sin fecha de vencimiento.",vig:true},
             {t:"Recorrido de 2 minutos",u:GH+"formatos-ppie/tour.html",n:"Presentación animada de lo que hace Tlamatini."},
             {t:"Conozca a Tlami",u:GH+"formatos-ppie/tlami.html",n:"El guía de Tlamatini se presenta."}],
  tequio:[{t:"Demostración completa",u:GH+"tequio/#demo",n:"Como Supervisión, con datos de ejemplo. Se puede probar todo; nada se guarda."},
@@ -363,7 +363,7 @@ function capSeccion(){
 let VIG_TLM=null;
 fetch("../formatos-ppie/formatos/acceso.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.demoVence){VIG_TLM=j.demoVence;if(mode==="use")renderUse();else if(mode==="admin")drawDetail()}}).catch(()=>{});
 function vigHTML(){
-  if(!VIG_TLM)return"";const f=new Date(VIG_TLM),txt=f.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+  if(!VIG_TLM)return"";if(VIG_TLM==="nunca")return`<span class="tag ok">Sin vencimiento</span>`;const f=new Date(VIG_TLM),txt=f.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
   return Date.now()<f.getTime()?`<span class="tag ok">Vigente hasta el ${txt}</span>`:`<span class="tag warn">Venció el ${txt}: no abrirá hasta que se renueve</span>`;
 }
 function demoHTML(a,d,conIco){

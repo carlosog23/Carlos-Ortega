@@ -3853,7 +3853,7 @@ async function accesoGate(){
   if(!ACC||!ACC.activo)return true;
   if(store.get("gh-token",""))return true; // la Supervisión siempre entra
   if(paseTequio())return true; // ATP y directores que vienen de Tequio con su enlace vigente
-  if(DEMO&&ACC.demoVence&&Date.now()<Date.parse(ACC.demoVence))return true; // demostración abierta (solo datos ficticios) hasta la fecha fijada en acceso.json
+  if(DEMO&&ACC.demoVence&&(ACC.demoVence==="nunca"||Date.now()<Date.parse(ACC.demoVence)))return true; // demostración abierta (solo datos ficticios) hasta la fecha fijada en acceso.json
   const tok=store.get("acc-token","");if(!tok)return false;
   const h=await sha256(tok);const e=(ACC.enlaces||[]).find(x=>x.h===h);ACC_YO=e||null;
   return accEstado(e,ACC.generacion)==="vigente"}
