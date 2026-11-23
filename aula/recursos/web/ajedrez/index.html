@@ -42,10 +42,11 @@ input[type=text]{font-size:20px;padding:10px 14px;border-radius:12px;border:2px 
 .leccion{display:grid;grid-template-columns:90px 1fr;gap:14px;align-items:center;background:#fff;border:2px solid #D6E3EC;border-radius:16px;padding:14px;margin-top:10px}
 .leccion .e{font-size:64px;text-align:center}.leccion b{font-size:19px}
 .pie{margin-top:26px;color:#5F6B76;font-size:13px;text-align:center}
+.marca{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}.marca img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:14px;line-height:1.15}.marca small{display:block;font-size:11px;opacity:.75;font-style:italic}.firma{display:flex;flex-direction:column;align-items:center;gap:4px;margin:26px 0 8px;opacity:.75}.firma span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:170px;height:auto}
 </style>
 </head>
 <body>
-<header><span style="font-size:34px">♞</span><div><h1>Ajedrez</h1><div class="sub">Aula Zona 050 · funciona sin internet</div></div><div class="esp"></div><button id="bInicio" hidden>← Menú del ajedrez</button></header>
+<header><span style="font-size:34px">♞</span><div><h1>Ajedrez</h1><div class="sub">Aula Zona 050 · funciona sin internet</div></div><div class="esp"></div><button id="bInicio" hidden>← Menú del ajedrez</button><div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
 <main id="app"></main>
 <script type="module">
 import { Chess } from "./chess.js";
@@ -66,7 +67,7 @@ function menu() { parar(); $("#bInicio").hidden = true;
     <button class="tarjeta" data-m="dos"><div class="e">👫</div><b>Dos jugadores aquí</b><span>Se turnan en esta misma computadora</span></button>
     <button class="tarjeta" data-m="red"><div class="e">🏫</div><b>Con otra computadora</b><span>Juega con un compañero de la escuela por la red</span></button>
     <button class="tarjeta" data-m="aprender"><div class="e">📘</div><b>Aprender a jugar</b><span>Cómo se mueve cada pieza</span></button>
-  </div><p class="pie">Ajedrez de la Supervisión Escolar Zona 050 · Mtro. Carlos Ortega</p>`;
+  </div><div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>`;
   const guarda = () => { nombre = $("#nom").value.trim(); try { sessionStorage.setItem("az-nombre", nombre); } catch (e) {} };
   document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { guarda(); const m = b.dataset.m;
     if (m === "pc") elegirNivel(); else if (m === "dos") jugar({ modo: "dos" }); else if (m === "red") lobby(); else aprender(); }); }
@@ -129,7 +130,7 @@ function pinta() { if (!J) return; const ch = J.ch, B = ch.board(), dest = J.sel
    <div class="jug ${ch.turn() === "b" ? "turno" : ""}"><span>♚ ${esc(nn)}</span></div><div class="jug ${ch.turn() === "w" ? "turno" : ""}"><span>♔ ${esc(nb)}</span></div>
    ${J.modo === "red" && J.sala ? `<p class="det">Partida en red · código <b>${J.sala.id}</b></p>` : ""}
    <div class="fila">${J.modo !== "red" ? `<button class="btn s" id="bDes">↶ Deshacer</button>` : ""}<button class="btn s" id="bGir">🔄 Girar tablero</button>${J.modo === "red" && J.sala && J.sala.estado !== "terminada" ? `<button class="btn s" id="bAban">🏳️ Rendirme</button>` : `<button class="btn s p" id="bNueva">Nueva partida</button>`}</div>
-   <pre class="movs">${esc(movs) || "Aún no hay movimientos."}</pre></div></div>`;
+   <pre class="movs">${esc(movs) || "Aún no hay movimientos."}</pre><div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div></div></div>`;
   document.querySelectorAll(".cas").forEach(c => c.onclick = () => toca(c.dataset.sq));
   $("#bGir").onclick = () => { J.gira = !J.gira; pinta(); };
   $("#bDes") && ($("#bDes").onclick = () => { if (J.modo === "pc") { J.ch.undo(); if (J.ch.turn() !== J.yo) J.ch.undo(); } else J.ch.undo(); J.sel = null; J.fin = false; const h = J.ch.history({ verbose: true }); J.ult = h[h.length - 1] || null; pinta(); });
