@@ -255,7 +255,22 @@ ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espIni
   $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
   $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); });
   typeof estEnlazar === "function" && estEnlazar(); };
-let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; });
+let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; const b = $("#invInst"), q = $("#invPasos"); if (b) b.style.display = ""; if (q) q.style.display = "none"; });
+window.addEventListener("appinstalled", () => { PROMPT_INST = null; cerrarDlg(); toast("<b>¡Listo!</b> Tlamatini Aula quedó instalada. Ábrala desde su pantalla de inicio o escritorio.", 5000); });
+/* al abrir: invitación a instalar la app en el celular o la computadora (una vez por visita, mientras no esté instalada) */
+function invitarInstalar() {
+  if (enApp() || DEMO || $("#velo")) return; try { if (sessionStorage.getItem("aula-inv") === "1") return; sessionStorage.setItem("aula-inv", "1"); } catch (e) {}
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1), android = /Android/i.test(ua), cel = ios || android;
+  const nom = "Tlamatini Aula" + (APP_PRE ? " Preescolar" : APP_ESP ? " Especial" : "");
+  const pasos = ios ? (/CriOS|FxiOS|EdgiOS/.test(ua) ? "Abra esta página en <b>Safari</b> y toque <b>Compartir</b> (el cuadro con la flecha hacia arriba) → <b>«Agregar a pantalla de inicio»</b> → <b>Agregar</b>." : "Toque <b>Compartir</b> (el cuadro con la flecha hacia arriba, abajo en la pantalla) → baje y elija <b>«Agregar a pantalla de inicio»</b> → <b>Agregar</b>.")
+    : android ? "En Chrome, toque el menú <b>⋮</b> (arriba a la derecha) → <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>."
+    : "En Chrome o Edge, haga clic en el ícono de <b>instalar</b> (una pantalla con una flecha) a la derecha de la barra de direcciones, o en el menú <b>⋮</b> → <b>«Instalar»</b>.";
+  dlg(`<div class="fila" style="gap:12px;flex-wrap:nowrap;align-items:center"><img src="img/aula-icono-192.png" alt="" style="width:56px;height:56px;border-radius:14px;flex:none" onerror="this.remove()"><div><h3 style="margin:0">Instale ${esc(nom)} en su ${cel ? "celular" : "computadora"}</h3><p class="small muted" style="margin:2px 0 0">Gratis, en un momento y sin tienda de aplicaciones.</p></div></div>
+   <ul class="small mt" style="padding-left:20px;line-height:1.5"><li>Se abre con un toque desde su ${cel ? "pantalla de inicio" : "escritorio"}, como cualquier app.</li><li>Funciona <b>sin internet</b>: pase lista y consulte sus planeaciones en el salón.</li><li>Sus datos se quedan guardados en su ${cel ? "celular" : "computadora"}.</li></ul>
+   <div id="invPasos" class="mt" style="${PROMPT_INST ? "display:none;" : ""}background:#F6EFE3;border-radius:12px;padding:10px 12px"><p class="small" style="margin:0"><b>Cómo instalarla:</b> ${pasos}</p></div>
+   <div class="fila fin mt"><button class="btn" id="invNo">${PROMPT_INST ? "Ahora no" : "Entendido"}</button><button class="btn p" id="invInst" style="${PROMPT_INST ? "" : "display:none"}">${ic("bajar", 16)} Instalar</button></div>`, v => {
+    v.querySelector("#invNo").onclick = cerrarDlg;
+    v.querySelector("#invInst").onclick = async () => { if (!PROMPT_INST) { v.querySelector("#invPasos").style.display = ""; return; } const pr = PROMPT_INST; PROMPT_INST = null; pr.prompt(); try { const r = await pr.userChoice; if (r && r.outcome === "accepted") cerrarDlg(); else { v.querySelector("#invInst").style.display = "none"; v.querySelector("#invPasos").style.display = ""; } } catch (e) {} }; }); }
 function instalar() { if (PROMPT_INST) { PROMPT_INST.prompt(); PROMPT_INST = null; return; }
   dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : APP_ESP ? " Especial" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
 
@@ -1098,4 +1113,4 @@ function arrancarDatos() { if (DEMO && APP_PRE && !D.grupos.length) { const g = 
 window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
-  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
+  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
