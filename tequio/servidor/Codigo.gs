@@ -252,7 +252,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 73;
+const VERSION = 74;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -5923,10 +5923,10 @@ function aulaQuien_(q, tope, que) {
   cache.put(kk, String(n), 3600);
   return { huella: huella, admin: !!(u && u.rol === 'admin'), nombre: limpio(p.nombre || (u && u.nombre) || (tl && tl.nombre), 80), escuela: limpio(p.escuela, 90) };
 }
-function aulaJSON_(prompt, temp) {
-  let crudo = '';
+function aulaJSON_(prompt, temp, op) {
+  op = op || {}; let crudo = '';
   for (let n = 0; ; n++) {   // Gemini a veces contesta «saturado» (500-504): se reintenta un par de veces
-    try { crudo = gemini_(prompt, { json: true, temperatura: temp == null ? 0.5 : temp, max: 8192 }); break; }
+    try { crudo = gemini_(prompt, { json: true, temperatura: temp == null ? 0.5 : temp, max: op.max || 8192, archivos: op.archivos }); break; }
     catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (n + 1)); }
   }
   try { return JSON.parse(crudo.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (e) { throw new Error('Tlami no pudo terminar la respuesta. Intente de nuevo.'); }
@@ -5951,10 +5951,46 @@ function aulaIA_(q) {
       'Momento o fase de esta sesión: ' + L(d.fase, 200) + '. Sesión ' + (parseInt(d.num, 10) || 1) + ' de ' + (parseInt(d.total, 10) || 1) + '. Duración aproximada: ' + (parseInt(d.min, 10) || 50) + ' minutos.',
       'Contenido(s): ' + L(d.contenidos, 500), 'PDA por grado: ' + L(d.pdas, 1200),
       d.escenario ? 'Escenario: ' + L(d.escenario, 40) + '.' : '', d.nota ? 'Lo que la maestra ya tiene o quiere: ' + L(d.nota, 800) : '',
+      d.contexto ? 'Lectura de la realidad del grupo (contextualiza la sesión con ella: ejemplos, situaciones y materiales de su comunidad): ' + L(d.contexto, 2500) : '',
       grados.length > 1 ? (sec ? 'Atiende varios grados: propone una actividad común y el reto de cada grado.' : 'Es multigrado: propone una actividad común y la variante o el reto de cada grado.') : '',
       '', 'Responde SOLO con JSON: {"inicio": "pregunta detonadora y recuperación de saberes (2 a 4 oraciones)", "desarrollo": "actividades en pasos numerados, con tiempos", "cierre": "cómo se cierra y se socializa", "evaluacion": "qué observar y con qué instrumento, en una oración", "materiales": "lista breve", "ajustes": "sugerencia breve para alumnos que requieren apoyo"}']).filter(x => x !== '');
     const j = aulaJSON_(p.join('\n'));
     return { r: { inicio: L(j.inicio, 1200), desarrollo: String(j.desarrollo || '').slice(0, 3500), cierre: L(j.cierre, 1200), evaluacion: L(j.evaluacion, 400), materiales: L(j.materiales, 500), ajustes: L(j.ajustes, 700) } };
+  }
+  if (modo === 'lectura') {
+    // Lee la lectura de la realidad que subió el docente (PDF, fotos o texto de Word) y devuelve una síntesis para planear
+    const TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const arch = (Array.isArray(d.archivos) ? d.archivos : []).slice(0, 8).filter(a => a && TIPOS.indexOf(a.tipo) >= 0 && typeof a.data === 'string' && a.data.length > 100).map(a => ({ tipo: a.tipo, data: a.data }));
+    const texto = String(d.texto || '').slice(0, 60000);
+    if (!arch.length && texto.replace(/\s/g, '').length < 40) throw new Error('No llegó la lectura de la realidad. Súbala de nuevo.');
+    if (arch.reduce((t, a) => t + a.data.length, 0) > 19000000) throw new Error('La lectura de la realidad pesa mucho. Súbala en menos páginas o como fotos.');
+    const p = [].concat(base, [
+      'Un docente de ' + gtxt + ' subió la LECTURA DE LA REALIDAD de su grupo (diagnóstico socioeducativo de la Nueva Escuela Mexicana)' + (arch.length ? ' en los archivos adjuntos' : '') + '. Léela completa.',
+      'Haz una SÍNTESIS útil para planear y contextualizar proyectos, solo con lo que dice el documento (no inventes datos). Cambia los nombres de alumnos o familias por «un alumno», «una alumna», etc.',
+      texto ? '\nTEXTO DEL DOCUMENTO:\n' + texto : '', '',
+      'Responde SOLO con JSON: {"sintesis": "de 8 a 14 renglones, con viñetas «- » agrupadas así: Grupo (cuántos, edades, cómo aprenden, intereses); Lo que más necesitan (aprendizajes y convivencia, con los datos que dé el documento); Fortalezas; Familias y comunidad (actividades económicas, costumbres, problemáticas, recursos y espacios); Lo que conviene tomar en cuenta al planear", "problemas": ["2 a 4 problemáticas del contexto que podrían trabajarse en un proyecto, cada una en una frase"]}']).filter(x => x !== '');
+    const j = aulaJSON_(p.join('\n'), 0.3, { archivos: arch, max: 4096 });
+    const sint = String(j.sintesis || '').replace(/\r/g, '').trim().slice(0, 3500);
+    if (sint.length < 40) throw new Error('Tlami no pudo leer el documento. Revise que se vea bien e intente de nuevo.');
+    return { r: { sintesis: sint, problemas: (Array.isArray(j.problemas) ? j.problemas : []).map(x => L(x, 250)).filter(String).slice(0, 5) } };
+  }
+  if (modo === 'contexto') {
+    // Contextualiza una planeación ya armada con la síntesis de la lectura de la realidad del grupo
+    const ses = (Array.isArray(d.sesiones) ? d.sesiones : []).slice(0, 40).map((x, i) => (i + 1) + '. ' + L(x.fase, 120) + ' — ' + L(x.des, 400));
+    if (!ses.length) throw new Error('La planeación no tiene sesiones.');
+    const p = [].concat(base, [
+      'CONTEXTUALIZA esta planeación de un ' + gtxt + ' con la LECTURA DE LA REALIDAD del grupo. El problema, los ejemplos, las situaciones, los materiales y los ajustes deben responder a lo que se describe del grupo, de las familias y de la comunidad.',
+      'Proyecto: ' + L(d.titulo, 150) + ' · Campo formativo: ' + L(d.campo, 80) + ' · Metodología: ' + L(d.metodo, 80) + (d.escenario ? ' · Escenario: ' + L(d.escenario, 40) : '') + '. Sesiones de unos ' + (parseInt(d.min, 10) || 50) + ' minutos.',
+      'Contenido(s): ' + L(d.contenidos, 600), 'PDA por grado: ' + L(d.pdas, 1500),
+      d.proposito ? 'Propósito que escribió el docente (consérvalo y solo mejóralo si hace falta): ' + L(d.proposito, 400) : '',
+      d.producto ? 'Producto final que eligió el docente (consérvalo): ' + L(d.producto, 200) : '',
+      'LECTURA DE LA REALIDAD DEL GRUPO:\n' + String(d.contexto || '').slice(0, 3500),
+      'SESIONES (fase de la metodología y lo que se hace; respeta el orden y la fase de cada una):\n' + ses.join('\n'),
+      grados.length > 1 ? 'Es multigrado: en el desarrollo indica el reto de cada grado.' : '', '',
+      'Responde SOLO con JSON: {"problema": "problema del contexto en 2 o 3 oraciones, tomado de la lectura de la realidad", "proposito": "propósito del proyecto en una o dos oraciones", "producto": "producto final", "sesiones": [{"inicio": "1 a 3 oraciones", "desarrollo": "actividades en pasos breves, con tiempos", "cierre": "1 o 2 oraciones", "evaluacion": "una oración"}]} con exactamente ' + ses.length + ' elementos en «sesiones», en el mismo orden.']).filter(x => x !== '');
+    const j = aulaJSON_(p.join('\n'), 0.45, { max: 24000 });
+    return { r: { problema: L(j.problema, 900), proposito: L(j.proposito, 500), producto: L(j.producto, 250),
+      sesiones: (Array.isArray(j.sesiones) ? j.sesiones : []).slice(0, ses.length).map(x => ({ inicio: L((x || {}).inicio, 900), desarrollo: String((x || {}).desarrollo || '').slice(0, 3000), cierre: L((x || {}).cierre, 700), evaluacion: L((x || {}).evaluacion, 400) })) } };
   }
   if (modo === 'ajustes') {
     const p = [].concat(base, [

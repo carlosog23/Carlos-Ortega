@@ -438,17 +438,89 @@ ENLAZAR.planNueva = async () => { const g = gAct(), P = S.P, m = $("#pnM"); if (
       <label class="campo"><span>Propósito (opcional)</span><textarea id="pPr" class="area" style="min-height:80px" placeholder="Qué se espera que los alumnos logren">${esc(P.proposito)}</textarea></label>
       <label class="campo"><span>Producto final (opcional)</span><input id="pPd" value="${esc(P.producto)}" placeholder="Ej. Periódico mural, folleto, maqueta, presentación a las familias"></label>
       <div class="tres"><label class="campo"><span>Inicia</span><input type="date" id="pI" value="${P.ini}"></label><label class="campo"><span>Sesiones</span><input type="number" id="pNn" min="1" max="40" value="${P.n}"></label><label class="campo"><span>Minutos por sesión</span><input type="number" id="pMi" min="15" max="240" value="${P.min}"></label></div>
-      <p class="small muted">Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p>
-      <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div></section>` : ""}`;
+      <p class="small muted">Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p></section>
+     ${lecCard(g, P)}<div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div>` : ""}`;
     $$("[data-cf]").forEach(b => b.onclick = () => { P.campo = b.dataset.cf; P.sel = {}; P.metodo = ""; pinta(); });
     $$("[data-ct]").forEach(r => r.onchange = () => { P.sel[r.dataset.ct] = +r.value; pinta(); const s = $$("[data-ct]").find(x => x.checked); });
     $("#pMe") && ($("#pMe").onchange = e => { P.metodo = e.target.value; });
     $$("[data-es]").forEach(b => b.onclick = () => { lee(); P.escenario = b.dataset.es; pinta(); });
     $$("[data-ej]").forEach(b => b.onclick = () => { lee(); const i = P.ejes.indexOf(b.dataset.ej); i >= 0 ? P.ejes.splice(i, 1) : P.ejes.push(b.dataset.ej); pinta(); });
-    $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met; const p = crearPlan(g, P, pda); D.planes.push(p); guardar(); S.P = null; ir("plan", { id: p.id }, true); toast("<b>Planeación creada.</b> Revise y ajuste cada sesión.", 3500); }); };
+    lecCablear(g, P, () => { lee(); pinta(); });
+    $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met; crearYAbrir(g, P, crearPlan(g, P, pda)); }); };
   const lee = () => { if (!$("#pT")) return; P.titulo = val("pT"); P.proposito = val("pPr"); P.producto = val("pPd"); P.ini = val("pI") || P.ini; P.n = Math.max(1, Math.min(40, +val("pNn") || 5)); P.min = Math.max(15, +val("pMi") || 50); if ($("#pMe")) P.metodo = val("pMe"); };
   pinta(); };
 const cortaCrit = t => { let x = String(t).split(/[.;:](?:\s|$)/)[0].trim(); if (x.length > 170) x = x.slice(0, x.lastIndexOf(" ", 165)) + "…"; return x; };
+/* ---------- lectura de la realidad del grupo (opcional): el docente la sube en PDF, Word o fotos;
+   Tlami la lee una vez, guarda una síntesis en el grupo y con ella contextualiza las planeaciones.
+   Si no la sube, la planeación se arma igual que siempre. ---------- */
+const lecB64 = b => new Promise((ok, no) => { const f = new FileReader(); f.onload = () => ok(String(f.result).split(",")[1] || ""); f.onerror = () => no(new Error("No se pudo leer el archivo.")); f.readAsDataURL(b); });
+async function lecFoto(file) { const url = URL.createObjectURL(file);
+  try { const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error("No se pudo abrir la foto «" + file.name + "». Pruebe con JPG o PNG.")); i.src = url; });
+    const k = Math.min(1, 1900 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", .82).split(",")[1]; }
+  finally { URL.revokeObjectURL(url); } }
+async function lecWord(file) { /* .docx es un zip: se saca el texto de word/document.xml sin librerías */
+  const buf = await file.arrayBuffer(), dv = new DataView(buf), td = new TextDecoder(); let e = buf.byteLength - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--; if (e < 0) throw new Error("El archivo de Word «" + file.name + "» está dañado.");
+  let p = dv.getUint32(e + 16, true), x = null; const n = dv.getUint16(e + 10, true);
+  for (let i = 0; i < n && dv.getUint32(p, true) === 0x02014b50; i++) { const nl = dv.getUint16(p + 28, true), nom = td.decode(new Uint8Array(buf, p + 46, nl));
+    if (nom === "word/document.xml") x = { met: dv.getUint16(p + 10, true), cs: dv.getUint32(p + 20, true), lh: dv.getUint32(p + 42, true) }; p += 46 + nl + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true); }
+  if (!x) throw new Error("No se encontró el texto dentro de «" + file.name + "».");
+  const ini = x.lh + 30 + dv.getUint16(x.lh + 26, true) + dv.getUint16(x.lh + 28, true), dat = new Uint8Array(buf, ini, x.cs);
+  let xml; if (x.met === 0) xml = td.decode(dat); else { if (typeof DecompressionStream === "undefined") throw new Error("Este navegador no puede abrir Word. Guarde el documento como PDF y súbalo así."); xml = td.decode(await new Response(new Blob([dat]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
+  const d = new DOMParser().parseFromString(xml, "application/xml"); return [...d.getElementsByTagName("w:p")].map(q => [...q.getElementsByTagName("w:t")].map(t => t.textContent).join("").trim()).filter(Boolean).join("\n"); }
+async function lecLeer(files) { const out = { archivos: [], texto: "", nombres: [] }; let pesa = 0;
+  for (const f of [...files].slice(0, 8)) { const n = f.name || "archivo", ext = (n.split(".").pop() || "").toLowerCase();
+    if (f.type === "application/pdf" || ext === "pdf") { if (f.size > 12e6) throw new Error("«" + n + "» pesa más de 12 MB. Súbalo en partes o como fotos."); out.archivos.push({ tipo: "application/pdf", data: await lecB64(f) }); }
+    else if (ext === "docx") out.texto += (out.texto ? "\n\n" : "") + await lecWord(f);
+    else if (ext === "doc" || ext === "odt" || ext === "pages") throw new Error("«" + n + "» no se puede leer. En Word use «Guardar como» → Word (.docx) o PDF.");
+    else if (/^image\//.test(f.type) || /^(jpe?g|png|webp|heic|heif)$/.test(ext)) out.archivos.push({ tipo: "image/jpeg", data: await lecFoto(f) });
+    else throw new Error("«" + n + "» no es PDF, Word ni foto.");
+    out.nombres.push(n); }
+  out.archivos.forEach(a => pesa += a.data.length); if (pesa > 18e6) throw new Error("Los archivos pesan mucho. Suba menos páginas o fotos.");
+  out.texto = out.texto.slice(0, 60000); return out; }
+async function lecSubir(g, files, listo) { let L;
+  try { L = await lecLeer(files); } catch (e) { return tlamiError(e); }
+  if (!L.archivos.length && L.texto.replace(/\s/g, "").length < 40) return tlamiError(new Error("El documento no tiene texto que se pueda leer."));
+  tlamiEspera("Leyendo la lectura de la realidad de su grupo para tomarla en cuenta al planear.");
+  try { const j = await aulaPost("aulaIA", { modo: "lectura", grados: g.grados, nivel: nivelTxt(g), archivos: L.archivos, texto: L.texto }, 180000), r = j.r || {};
+    g.lectura = { sint: String(r.sintesis || "").trim(), problemas: r.problemas || [], nombres: L.nombres, fecha: hoy() }; }
+  catch (e) { if (L.texto && !L.archivos.length) { g.lectura = { sint: L.texto.slice(0, 3500), problemas: [], nombres: L.nombres, fecha: hoy(), sinIA: true }; toast("Tlami no pudo resumirla ahora (" + esc(e.message) + "). Se guardó el texto del Word tal cual.", 6000); } else { cerrarDlg(); return tlamiError(e); } }
+  guardar(); cerrarDlg(); toast("<b>Lectura de la realidad guardada.</b> Sus planeaciones de este grupo se contextualizarán con ella.", 4500); listo && listo(); }
+function lecVer(g, listo) { const l = g.lectura || {};
+  dlg(`<h3>Lectura de la realidad · ${esc(grNom(g))}</h3><p class="small muted">${l.nombres && l.nombres.length ? "De: " + esc(l.nombres.join(", ")) + " · " : ""}${l.fecha ? fCorta(l.fecha) : ""}. Es la síntesis que Tlami usa para contextualizar; puede corregirla o completarla.</p>
+   <textarea id="lecT" class="area mt" style="min-height:260px">${esc(l.sint || "")}</textarea>
+   ${(l.problemas || []).length ? `<p class="small mt"><b>Problemáticas que se podrían trabajar:</b></p><ul class="small">${l.problemas.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+   <div class="fila fin mt"><button class="btn" id="lecX">Cerrar</button><button class="btn p" id="lecOk">${ic("check", 16)} Guardar</button></div>`, v => {
+    v.querySelector("#lecX").onclick = cerrarDlg;
+    v.querySelector("#lecOk").onclick = () => { const t = val("lecT").trim(); if (t.length < 20) return toast("Escriba al menos unas líneas o quite la lectura."); g.lectura.sint = t.slice(0, 5000); guardar(); cerrarDlg(); toast("Lectura de la realidad actualizada."); listo && listo(); }; }); }
+function lecCard(g, P) { const l = g.lectura;
+  return `<section class="card mt" id="lecC"><h3>Lectura de la realidad de su grupo <span class="tag g" style="font-size:12px;vertical-align:middle">Opcional</span></h3>
+   ${l ? `<p class="small"><b style="color:#1E8E5A">✓ Tiene guardada la lectura de la realidad de ${esc(grNom(g))}</b>${l.fecha ? " (" + fCorta(l.fecha) + ")" : ""}.</p>
+     <p class="small muted" style="max-height:4.6em;overflow:hidden">${esc(l.sint).replace(/\n/g, " ")}</p>
+     <label class="rev-chk mt"><input type="checkbox" id="lecUsa" ${P.ctx === false ? "" : "checked"}> Contextualizar esta planeación con ella (Tlami ajusta el problema, las actividades y los ejemplos a su grupo y su comunidad)</label>
+     <div class="fila mt"><button class="btn s" id="lecV">Ver o corregir</button><label class="btn s" style="cursor:pointer">Reemplazar<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s r" id="lecQ">Quitar</button></div>`
+   : `<p class="small">Súbala en <b>PDF, Word o fotos</b> y Tlami contextualiza la planeación con ella: el problema, las actividades y los ejemplos partirán de lo que usted conoce de su grupo y su comunidad. Se queda guardada en el grupo para las siguientes planeaciones.</p>
+     <p class="small muted">Si no la sube, la planeación se arma igual.</p><div class="fila mt"><label class="btn s" style="cursor:pointer">${ic("bajar", 16)} Subir lectura de la realidad<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label></div>`}</section>`; }
+function lecCablear(g, P, repinta) {
+  const f = $("#lecF"); if (f) f.onchange = () => { const L = [...f.files]; f.value = ""; if (L.length) lecSubir(g, L, repinta); };
+  $("#lecUsa") && ($("#lecUsa").onchange = e => { P.ctx = e.target.checked; });
+  $("#lecV") && ($("#lecV").onclick = () => lecVer(g, repinta));
+  $("#lecQ") && ($("#lecQ").onclick = async () => { if (!(await confirmar("Se quitará la lectura de la realidad de este grupo. Sus planeaciones ya hechas no cambian.", "Quitar"))) return; delete g.lectura; guardar(); repinta(); }); }
+/* contextualiza una planeación ya creada con la lectura de la realidad del grupo */
+async function contextualizar(p, g, silencio) { if (!g.lectura || !g.lectura.sint) return false;
+  tlamiEspera("Contextualizando la planeación con la lectura de la realidad de su grupo. Puede tardar hasta un minuto.");
+  try { const j = await aulaPost("aulaIA", { modo: "contexto", grados: g.grados, nivel: nivelTxt(g), disciplina: p.disc || "", titulo: p.titulo, campo: p.disc ? p.disc + " (campo formativo " + p.campo + ")" : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", min: p.min,
+      contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), proposito: p.proposito, producto: p.producto, contexto: g.lectura.sint,
+      sesiones: p.sesiones.map(s => ({ fase: s.fase, des: s.desarrollo })) }, 240000), r = j.r || {};
+    if (r.problema) p.contexto = r.problema; if (r.proposito) p.proposito = r.proposito; if (!p.producto && r.producto) p.producto = r.producto;
+    (r.sesiones || []).forEach((x, i) => { const s = p.sesiones[i]; if (!s || !x) return; if (x.inicio) s.inicio.txt = x.inicio; if (x.desarrollo) s.desarrollo = x.desarrollo; if (x.cierre) s.cierre.txt = x.cierre; if (x.evaluacion) s.eval = x.evaluacion; s.ia = true; });
+    p.ctx = hoy(); guardar(); cerrarDlg(); return true; }
+  catch (e) { cerrarDlg(); if (!silencio) tlamiError(e); else toast("<b>La planeación quedó creada sin contextualizar.</b> " + esc(e.message) + " Puede intentarlo después desde la planeación.", 7000); return false; } }
+async function crearYAbrir(g, P, p) { D.planes.push(p); guardar(); S.P = null;
+  const ok = g.lectura && P.ctx !== false ? await contextualizar(p, g, true) : false;
+  ir("plan", { id: p.id }, true); toast(ok ? "<b>Planeación creada y contextualizada</b> con la lectura de la realidad de su grupo. Revise y ajuste cada sesión." : "<b>Planeación creada.</b> Revise y ajuste cada sesión.", 4500); }
+
 /* ---------- planeación de secundaria: disciplina → contenido → PDA del grado (Fase 6) ---------- */
 async function planNuevaSec(g, P, m) { const pre = esPre(g), fase = pre ? 2 : 6, pda = pre ? await programaPre() : await programaSec(); await calendario();
   if (!pda) { m.innerHTML = `<div class="vacio mt">No se pudo cargar el Programa Sintético de la Fase ${fase}. Conéctese a internet una vez y vuelva a intentarlo.</div>`; return; }
@@ -473,8 +545,8 @@ async function planNuevaSec(g, P, m) { const pre = esPre(g), fase = pre ? 2 : 6,
       <label class="campo"><span>Propósito (opcional)</span><textarea id="pPr" class="area" style="min-height:80px" placeholder="Qué se espera que las y los estudiantes logren">${esc(P.proposito)}</textarea></label>
       <label class="campo"><span>Producto final (opcional)</span><input id="pPd" value="${esc(P.producto)}" placeholder="Ej. Infografía, podcast, maqueta, campaña, debate público, informe de laboratorio"></label>
       <div class="tres"><label class="campo"><span>Inicia</span><input type="date" id="pI" value="${P.ini}"></label><label class="campo"><span>Sesiones</span><input type="number" id="pNn" min="1" max="40" value="${P.n}"></label><label class="campo"><span>Minutos por sesión</span><input type="number" id="pMi" min="15" max="240" value="${P.min}"></label></div>
-      <p class="small muted">${pre ? "En preescolar cuente como sesión cada situación o actividad del proyecto en el día (de 20 a 60 minutos)." : "En secundaria cuente cada módulo como una sesión (50 minutos, o 100 si es doble)."} Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p>
-      <div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div></section>` : ""}`;
+      <p class="small muted">${pre ? "En preescolar cuente como sesión cada situación o actividad del proyecto en el día (de 20 a 60 minutos)." : "En secundaria cuente cada módulo como una sesión (50 minutos, o 100 si es doble)."} Las fechas se acomodan solas en días de clase, saltando vacaciones, suspensiones y Consejos Técnicos del calendario de Baja California.</p></section>
+     ${lecCard(g, P)}<div class="fila fin mt"><button class="btn p" id="pOk">${ic("check", 18)} Crear la planeación</button></div>` : ""}`;
     const lee = () => { if (!$("#pT")) return; P.titulo = val("pT"); P.proposito = val("pPr"); P.producto = val("pPd"); P.ini = val("pI") || P.ini; P.n = Math.max(1, Math.min(40, +val("pNn") || 5)); P.min = Math.max(15, +val("pMi") || 50); if ($("#pMe")) P.metodo = val("pMe"); };
     $$("[data-dc]").forEach(b => b.onclick = () => { P.disc = b.dataset.dc; P.sel6 = null; P.pk = {}; P.metodo = ""; pinta(); });
     $$("[data-ct6]").forEach(r => r.onchange = () => { P.sel6 = +r.value; P.pk = {}; const c = Dd.contenidos[P.sel6]; grs.forEach(gr => { const n = (c.pda[gr] || []).length; if (n) P.pk[gr] = n <= 3 ? [...Array(n).keys()] : [0]; }); pinta(); });
@@ -483,10 +555,11 @@ async function planNuevaSec(g, P, m) { const pre = esPre(g), fase = pre ? 2 : 6,
     $("#pMe") && ($("#pMe").onchange = e => { P.metodo = e.target.value; });
     $$("[data-es]").forEach(b => b.onclick = () => { lee(); P.escenario = b.dataset.es; pinta(); });
     $$("[data-ej]").forEach(b => b.onclick = () => { lee(); const i = P.ejes.indexOf(b.dataset.ej); i >= 0 ? P.ejes.splice(i, 1) : P.ejes.push(b.dataset.ej); pinta(); });
+    lecCablear(g, P, () => { lee(); pinta(); });
     $("#pOk") && ($("#pOk").onclick = () => { lee(); if (!P.titulo.trim()) return toast("Escriba el nombre del proyecto."); P.metodo = P.metodo || met;
       const pdas = {}, crit = []; g.grados.forEach(gr => { const T = (P.pk[gr] || []).map(j => (sel.pda[gr] || [])[j]).filter(Boolean); if (T.length) { pdas[gr] = T.join(" "); T.forEach(t => crit.push({ gr, c: cortaCrit(t) })); } });
       const p = crearPlan(g, Object.assign({}, P, { campo }), null, { conts: { 6: sel.c }, pdas, crit }); if (pre) p.nivel = "pre"; else { p.nivel = "sec"; p.disc = P.disc; }
-      D.planes.push(p); guardar(); S.P = null; ir("plan", { id: p.id }, true); toast("<b>Planeación creada.</b> Revise y ajuste cada sesión.", 3500); }); };
+      crearYAbrir(g, P, p); }); };
   pinta(); }
 function crearPlan(g, P, pda, pre) { const M = METODOS[P.metodo], fases = M.fases, n = P.n, cod = CAMPO_COD[P.campo];
   const conts = {}, pdas = {}; if (pre) { Object.assign(conts, pre.conts); Object.assign(pdas, pre.pdas); } else [...new Set(g.grados.map(faseDe))].forEach(f => { const c = PDA_TXT(pda, P.campo, f)[P.sel[f]]; conts[f] = c.c; g.grados.filter(x => faseDe(x) === f).forEach(gr => pdas[gr] = (c.pda || {})[gr] || ""); });
@@ -505,8 +578,9 @@ VISTAS.plan = () => { const p = plDe(S.id); if (!p) return VISTAS.planes(); cons
   <section class="card mt"><div class="tags">${p.disc ? `<span class="tag m">${esc(p.campo)}</span> ` : ""}${`<span class="tag a">${esc(METODOS[p.metodo].n)}</span> <span class="tag g">Escenario ${esc(ESCENARIOS[p.escenario])}</span> `}${p.ejes.map(e => `<span class="tag m">${esc(e)}</span>`).join(" ")}</div>
    ${Object.entries(p.contenidos).map(([f, c]) => `<p class="mt"><b>Contenido${Object.keys(p.contenidos).length > 1 ? " (fase " + f + ")" : ""}:</b> ${esc(c)}</p>`).join("")}
    ${Object.entries(p.pdas).map(([gr, t]) => `<p class="small mt"><b>PDA ${gr}.°:</b> ${esc(t)}</p>`).join("")}
-   ${p.proposito ? `<p class="mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${p.producto ? `<p class="mt"><b>Producto:</b> ${esc(p.producto)}</p>` : ""}
-   <div class="fila mt"><button class="btn s" id="plRec">${ic("agenda", 16)} Recorrer fechas</button><button class="btn s r" id="plB">${ic("basura", 16)} Borrar</button></div></section>
+   ${p.contexto ? `<p class="mt"><b>Problema del contexto:</b> ${esc(p.contexto)}</p>` : ""}${p.proposito ? `<p class="mt"><b>Propósito:</b> ${esc(p.proposito)}</p>` : ""}${p.producto ? `<p class="mt"><b>Producto:</b> ${esc(p.producto)}</p>` : ""}
+   ${p.ctx ? `<p class="small muted mt">${ic("check", 14)} Contextualizada con la lectura de la realidad del grupo (${fCorta(p.ctx)}).</p>` : ""}
+   <div class="fila mt">${g && g.lectura ? `<button class="btn s tlami-b" id="plCtx">${ic("chispa", 16)} ${p.ctx ? "Contextualizar de nuevo" : "Contextualizar con la lectura de la realidad"}</button>` : ""}<button class="btn s" id="plRec">${ic("agenda", 16)} Recorrer fechas</button><button class="btn s r" id="plB">${ic("basura", 16)} Borrar</button></div></section>
   <h2 class="sec-t">Sesiones<small>Toque una para ajustarla. «Dar la clase» la muestra en pantalla completa.</small></h2>
   ${p.sesiones.map((s, i) => { const di = dinDe(s.inicio.din), dc = dinDe(s.cierre.din), abierta = ab === i;
     return `<section class="ses card ${s.hecho ? "hecha" : ""}"><button class="ses-h" data-ab="${i}"><span class="gr">${i + 1}</span><span class="tx"><b>${esc(s.fase)}</b><small>${s.fecha ? fCorta(s.fecha) : "Sin fecha"}${s.hecho ? " · Dada" : ""}</small></span>${ic(abierta ? "atras" : "sig", 16)}</button>
@@ -534,6 +608,8 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const s = i => p.se
   $$("[data-hecho]").forEach(b => b.onclick = () => { const x = s(b.dataset.hecho); x.hecho = !x.hecho; guardar(); re(); });
   $$("[data-dar]").forEach(b => b.onclick = () => abrirClase(p.id, +b.dataset.dar));
   $$("[data-ev]").forEach(b => b.onclick = () => ir("evaluar", { pid: p.id, i: +b.dataset.ev }));
+  $("#plCtx") && ($("#plCtx").onclick = async () => { const gg = grDe(p.gid); if (p.sesiones.some(x => x.ia || x.inicio.txt) && !(await confirmar("Tlami reescribirá el inicio, el desarrollo, el cierre y la evaluación de las sesiones con la lectura de la realidad del grupo. Lo que usted escribió en ellas se reemplaza.", "Contextualizar"))) return;
+    if (await contextualizar(p, gg)) { re(); toast("<b>Listo.</b> La planeación quedó contextualizada. Revise cada sesión."); } });
   $("#plB").onclick = async () => { if (!(await confirmar("Se borrará esta planeación.", "Borrar"))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
   $("#plRec").onclick = () => dlg(`<h3>Recorrer fechas</h3><p class="small muted mb">Si un día no hubo clase, las sesiones pendientes se acomodan de nuevo en días de clase desde la fecha que elija.</p><label class="campo"><span>Desde</span><input type="date" id="rD" value="${hoy()}"></label><div class="fila fin"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Recorrer</button></div>`, v => {
     v.querySelector("#rX").onclick = cerrarDlg; v.querySelector("#rOk").onclick = async () => { await calendario(); const pend = p.sesiones.filter(x => !x.hecho), f = diasHabiles(val("rD") || hoy(), pend.length); pend.forEach((x, i) => x.fecha = f[i] || ""); guardar(); cerrarDlg(); re(); toast("Fechas recorridas."); }; });
@@ -557,9 +633,9 @@ function docPlan(p) { const g = grDe(p.gid);
    <span><b>Metodología:</b> ${esc(METODOS[p.metodo].n)}</span><span><b>Escenario:</b> ${esc(ESCENARIOS[p.escenario])}</span><span><b>Sesiones:</b> ${p.sesiones.length} de ${p.min} min</span></div>
   <table><tbody>${Object.entries(p.contenidos).map(([f, c]) => `<tr><th style="width:20%">Contenido${Object.keys(p.contenidos).length > 1 ? " · fase " + f : ""}</th><td>${esc(c)}</td></tr>`).join("")}
    ${Object.entries(p.pdas).map(([gr, t]) => `<tr><th>PDA ${gr}.°</th><td>${esc(t)}</td></tr>`).join("")}
-   ${p.ejes.length ? `<tr><th>Ejes articuladores</th><td>${esc(p.ejes.join(", "))}</td></tr>` : ""}${p.proposito ? `<tr><th>Propósito</th><td>${esc(p.proposito)}</td></tr>` : ""}${p.producto ? `<tr><th>Producto</th><td>${esc(p.producto)}</td></tr>` : ""}</tbody></table>
+   ${p.ejes.length ? `<tr><th>Ejes articuladores</th><td>${esc(p.ejes.join(", "))}</td></tr>` : ""}${p.contexto ? `<tr><th>Problema del contexto</th><td>${esc(p.contexto)}</td></tr>` : ""}${p.proposito ? `<tr><th>Propósito</th><td>${esc(p.proposito)}</td></tr>` : ""}${p.producto ? `<tr><th>Producto</th><td>${esc(p.producto)}</td></tr>` : ""}</tbody></table>
   <h2>Secuencia didáctica</h2><table><thead><tr><th class="c">No.</th><th>Fecha</th><th>Momento</th><th>Inicio</th><th>Desarrollo</th><th>Cierre</th><th>Evaluación</th></tr></thead><tbody>
-  ${p.sesiones.map((s, i) => { const di = dinDe(s.inicio.din), dc = dinDe(s.cierre.din); return `<tr><td class="c">${i + 1}</td><td>${fCorta(s.fecha)}</td><td><b>${esc(s.fase)}</b></td><td>${di ? `<b>${esc(di.n)}</b>. ${esc(di.prop)}` : ""}${s.inicio.txt ? "<br>" + esc(s.inicio.txt) : ""}</td><td>${esc(s.desarrollo).replace(/\n/g, "<br>")}</td><td>${dc ? `<b>${esc(dc.n)}</b>. ${esc(dc.prop)}` : ""}</td><td>${esc(s.eval)}</td></tr>`; }).join("")}</tbody></table>
+  ${p.sesiones.map((s, i) => { const di = dinDe(s.inicio.din), dc = dinDe(s.cierre.din); return `<tr><td class="c">${i + 1}</td><td>${fCorta(s.fecha)}</td><td><b>${esc(s.fase)}</b></td><td>${di ? `<b>${esc(di.n)}</b>. ${esc(di.prop)}` : ""}${s.inicio.txt ? "<br>" + esc(s.inicio.txt) : ""}</td><td>${esc(s.desarrollo).replace(/\n/g, "<br>")}</td><td>${dc ? `<b>${esc(dc.n)}</b>. ${esc(dc.prop)}` : ""}${s.cierre.txt ? (dc ? "<br>" : "") + esc(s.cierre.txt) : ""}</td><td>${esc(s.eval)}</td></tr>`; }).join("")}</tbody></table>
   <h2>Rúbrica</h2><table><thead><tr><th>Criterio</th>${NIVELES.map(n => `<th>${n[0]}</th>`).join("")}</tr></thead><tbody>${p.criterios.map(c => `<tr><td><b>${c.gr}.°</b> ${esc(c.c)}</td>${NIVELES.map(n => `<td>${n[1]}</td>`).join("")}</tr>`).join("")}</tbody></table>
   <table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección de la escuela · Vo. Bo.</td></tr></table></div>`; }
 function imprimir(html, horizontal) { $("#imprimir").innerHTML = (horizontal ? "<style>@page{size:letter landscape;margin:9mm}</style>" : "") + html; const imgs = [...$("#imprimir").querySelectorAll("img")]; Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 2500); }))).then(() => setTimeout(() => window.print(), 120)); }
@@ -717,6 +793,9 @@ const DEMO_ZONA = [
   { id: "adn-demo3", n: "Semáforo de emociones", cat: "convive", campos: ["H", "E"], g: [1, 6], min: 10, esp: "aula", mat: "Tres círculos de papel: verde, amarillo y rojo", prop: "Reconocer cómo llegan al salón y acordar qué necesitan.", pasos: ["Muestre los tres colores y su significado.", "Cada alumno se acerca al color que describe cómo se siente.", "Quien quiera, comparte por qué.", "Acuerden una acción para ayudar a quien está en rojo."], var: "Con dibujos en lugar de colores para 1.°", multi: "Los mayores ayudan a nombrar emociones.", autor: "Mtra. Ana Ficticia", escuela: "Esc. Prim. «Revolución» (ejemplo)", creado: "2026-10-30" }];
 async function demoPost(accion, d) { await new Promise(r => setTimeout(r, 900));
   if (accion === "aulaIA") { const m = d.modo;
+    if (m === "lectura") return { r: { sintesis: "- Grupo: 26 alumnos de 9 a 10 años; aprenden mejor con actividades prácticas y en equipo; les interesan los animales y el fútbol.\n- Lo que más necesitan: 8 alumnos aún no comprenden lo que leen; dificultad para resolver problemas con dos operaciones.\n- Fortalezas: participativos, buena convivencia, apoyo entre compañeros.\n- Familias y comunidad: comunidad agrícola (jornaleros en los campos de cultivo); muchas familias trabajan todo el día; escasez de agua en temporada de calor.\n- Al planear: usar situaciones del campo y del cuidado del agua; tareas que no dependan de internet en casa.", problemas: ["Escasez de agua en la comunidad durante el verano", "Poco tiempo de lectura en casa"] } };
+    if (m === "contexto") return { r: { problema: "En nuestra comunidad agrícola el agua escasea en temporada de calor y muchas familias trabajan en el campo todo el día. Los alumnos conocen de cerca el riego de los cultivos, pero no siempre leen ni interpretan la información que les ayudaría a cuidar el agua.", proposito: d.proposito || "Que los alumnos investiguen cómo se usa el agua en los campos y en sus casas, y propongan acciones para cuidarla.", producto: d.producto || "Campaña para las familias sobre el cuidado del agua",
+      sesiones: (d.sesiones || []).map((x, i) => ({ inicio: "Pregunte: «¿De dónde sale el agua con que riegan los campos donde trabajan sus familias?» (ejemplo contextualizado, sesión " + (i + 1) + ").", desarrollo: "1. (15 min) " + (x.fase || "Actividad") + " a partir de una situación del campo de la comunidad.\n2. (20 min) Trabajo en equipos con apoyo de lectura para quienes lo necesitan.\n3. (10 min) Puesta en común.", cierre: "Cada equipo comparte una idea para cuidar el agua en casa.", evaluacion: "Observación con lista de cotejo." })) } };
     if (m === "sesion") return { r: { inicio: "Pregunte: «¿De dónde viene el agua que tomamos en casa?». Escuche ideas y anótelas en el pizarrón para volver a ellas al final.", desarrollo: "1. (10 min) En equipos, dibujan el camino del agua desde el pozo o la pipa hasta su casa.\n2. (15 min) Cada equipo comparte su dibujo; el grupo identifica en qué puntos el agua puede ensuciarse.\n3. (15 min) Con su apoyo, escriben o dibujan dos cuidados para que el agua llegue limpia.\n4. (5 min) Peguen los trabajos en el muro del proyecto.", cierre: "Regresen a las ideas del inicio: ¿qué cambió de lo que pensábamos? Cada alumno dice un cuidado del agua que hará en casa.", evaluacion: "Observe si explican el recorrido del agua y proponen cuidados; registre en la lista de cotejo.", materiales: "Hojas, colores, cinta, pizarrón", ajustes: "Para quien aún no escribe, que dicte a un compañero o dibuje; ofrezca imágenes de apoyo." } };
     if (m === "ajustes") return { r: { ajustes: ["Siente al alumno cerca del pizarrón y lejos de distracciones.", "Dé las indicaciones en pasos cortos y compruebe que las entendió.", "Ofrezca apoyos visuales (imágenes, tarjetas) para la actividad.", "Permita que muestre lo que sabe de forma oral o con dibujos.", "Forme pareja con un compañero tutor."], familia: "Lean juntos 10 minutos diarios y pídanle que cuente con sus palabras lo leído." } };
     if (m === "dinamica") return { r: { n: "Detectives del agua", prop: "Recordar cuidados del agua mientras se activan.", mat: "Tarjetas con imágenes de acciones", pasos: ["Esconda tarjetas en el salón.", "Por equipos, las buscan durante 3 minutos.", "Clasifican cada acción: cuida o desperdicia el agua.", "Explican al grupo una de sus tarjetas."], var: "Con un tiempo límite para cada equipo.", multi: "Los mayores leen las tarjetas a los menores." } };
@@ -751,7 +830,7 @@ function tlamiSesion(p, i) { const g = grDe(p.gid), s = p.sesiones[i];
     v.querySelector("#tsX").onclick = cerrarDlg;
     v.querySelector("#tsOk").onclick = async () => { const nota = val("tsN").trim(); tlamiEspera("Preparando inicio, desarrollo, cierre y evaluación de la sesión.");
       try { const j = await aulaPost("aulaIA", { modo: "sesion", grados: g.grados, nivel: nivelTxt(g), disciplina: p.disc || "", titulo: p.titulo, campo: p.disc ? p.disc + " (secundaria, campo formativo " + p.campo + ")" : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", fase: s.fase, num: i + 1, total: p.sesiones.length, min: p.min,
-          contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), nota });
+          contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), nota, contexto: (g.lectura && g.lectura.sint) || "" });
         const r = j.r || {}; dlg(`<h3>Propuesta de Tlami</h3><div class="tlami-r">${[["Inicio", r.inicio], ["Desarrollo", r.desarrollo], ["Cierre", r.cierre], ["Evaluación", r.evaluacion], ["Materiales", r.materiales], ["Ajustes", r.ajustes]].filter(x => x[1]).map(([t, x]) => `<p><b>${t}:</b> ${esc(x).replace(/\n/g, "<br>")}</p>`).join("")}</div>
           <p class="small muted mt">Revísela y ajústela a su grupo: usted conoce a sus alumnos.</p><div class="fila fin mt"><button class="btn" id="trX">Descartar</button><button class="btn p" id="trOk">${ic("check", 16)} Usar en la sesión</button></div>`, w => {
           w.querySelector("#trX").onclick = cerrarDlg;
