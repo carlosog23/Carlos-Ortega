@@ -41,7 +41,8 @@ async function capSembrar() { try { const ap = document.getElementById("app"); i
     const fs = [...new Set(g.grados.map(faseDe))], sel = {};
     fs.forEach(f => { const L = PDA_TXT(pda, campo, f); let i = L.findIndex(x => re.test(x.c)); if (i < 0) i = 0; sel[f] = i; });
     const met = Object.keys(METODOS).find(k => METODOS[k].campo === campo) || Object.keys(METODOS)[0];
-    const P = { campo, sel, metodo: met, escenario: pick(["aula", "escolar", "comunitario"]), ejes: [pick(EJES), pick(EJES)].filter((x, i, a) => a.indexOf(x) === i), titulo: info.t, proposito: info.pr, ini, n: ns, min: 50, producto: info.pd };
+    const pk = {}; g.grados.forEach(gr => { const f = faseDe(gr), x = PDA_TXT(pda, campo, f)[sel[f]], n = pdaLista(((x || {}).pda || {})[gr]).length; pk[gr] = n > 2 ? [0, 1] : n ? [0] : []; });
+    const P = { pk, campo, sel, metodo: met, escenario: pick(["aula", "escolar", "comunitario"]), ejes: [pick(EJES), pick(EJES)].filter((x, i, a) => a.indexOf(x) === i), titulo: info.t, proposito: info.pr, ini, n: ns, min: 50, producto: info.pd };
     const p = crearPlan(g, P, pda); p.id = id("pl"); p.creado = dias[Math.max(0, dias.indexOf(ini) - 3)] || ini;
     p.sesiones.forEach((s, i) => { if (s.fecha && s.fecha <= LIM && i < hechas) s.hecho = true; });
     return p; };
