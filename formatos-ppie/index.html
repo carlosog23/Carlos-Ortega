@@ -17,6 +17,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 .tqi-tb{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0 10px}.tqi-tb th,.tqi-tb td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}.tqi-tb th{width:30%;background:rgba(0,0,0,.03)}
 .tqi-acc th{width:auto}.tqi-pda{padding-left:22px;margin:4px 0 10px}.tqi-pda li{margin:0 0 8px;line-height:1.5}.tqi-q{color:var(--muted,#6b6157);font-size:14px}.tqi-g{font-weight:600}
 .tqi-fil{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}.tqi-sel{display:flex;gap:6px;align-items:center;font-size:14px}.tqi-sel select{min-height:36px}
+.aula-ir{display:flex;align-items:center;gap:16px;margin:18px 0;padding:16px 18px;border-radius:18px;background:linear-gradient(120deg,#1F3A6B,#24427A);color:#fff;text-decoration:none;box-shadow:0 10px 28px -16px rgb(31 58 107/.7)}
+.aula-ir:hover{filter:brightness(1.07)}
+.aula-ir-ic{flex:none;width:54px;height:54px;border-radius:14px;overflow:hidden;background:#fff}.aula-ir-ic img{width:100%;height:100%;display:block}
+.aula-ir-tx{flex:1;min-width:0}.aula-ir-tx b{display:block;font-size:17px}.aula-ir-tx small{display:block;font-size:14px;opacity:.85;line-height:1.35}
+.aula-ir-go{flex:none;background:#E8A33D;color:#3A2A08;font-weight:800;padding:9px 16px;border-radius:12px}
+@media (max-width:520px){.aula-ir{flex-wrap:wrap}.aula-ir-go{width:100%;text-align:center}}
 </style></head><body>
 <title>Tlamatini · Un camino para la labor docente</title>
 <meta name="theme-color" content="#1F3A6B">
@@ -2128,7 +2134,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
   app.innerHTML=`<div class="t3">
   <header class="t3-top"><div class="t3-top-in">
    <button type="button" class="t3-marca" id="t3Marca" aria-label="Tlamatini, inicio"><span class="lg">${TLM("oscuro")}</span><span><b>Tlamatini</b><small>Un camino para la labor docente</small></span></button>
-   <div class="t3-der"><button type="button" class="t3-tb" id="lkAg">${t3ic("cal",18)}Mi agenda</button><button type="button" class="t3-tb" id="lkDocs">${t3ic("docs",18)}Mis documentos</button><button type="button" class="t3-tb" id="lkEsc">${t3ic("escuela",18)}Mi escuela</button><button type="button" class="t3-tb" id="lkResp">${t3ic("nube",18)}Respaldo</button>
+   <div class="t3-der"><a class="t3-tb" href="../tlamatini-aula/${DEMO?"#demo":""}" style="text-decoration:none">${t3ic("grupo",18)}Mi grupo</a><button type="button" class="t3-tb" id="lkAg">${t3ic("cal",18)}Mi agenda</button><button type="button" class="t3-tb" id="lkDocs">${t3ic("docs",18)}Mis documentos</button><button type="button" class="t3-tb" id="lkEsc">${t3ic("escuela",18)}Mi escuela</button><button type="button" class="t3-tb" id="lkResp">${t3ic("nube",18)}Respaldo</button>
     <button type="button" class="t3-ava" id="avBtn" aria-label="Mi escuela y mis datos">${P.ini?esc(P.ini):t3ic("grupo",22)}</button></div></div></header>
   <main class="t3-wrap">
    ${perfil.escuela&&perfil.minombre?"":`<section class="card"><div><h3>${perfil.escuela?"Falta capturar sus datos":"Primero, su escuela y sus datos"}</h3><p class="muted" style="font-size:15px">${perfil.escuela?"Su nombre, función, grado y grupo":"La escuela, su nombre, función, grado y grupo"}: captúrelos una sola vez y se llenarán automáticamente en todos los formatos.</p></div><button type="button" class="btn primary" id="perfilBtn">${perfil.escuela?"Capturar mis datos":"Capturar mi escuela y mis datos"}</button></section>`}
@@ -2148,6 +2154,7 @@ function home(){S.view="home";S.sec=null;S.letra=null;setBar("");
     </div>
     ${t3TelarHTML()}
    </section>
+   <a class="aula-ir" href="../tlamatini-aula/${DEMO?"#demo":""}"><span class="aula-ir-ic"><img src="../tlamatini-aula/img/aula-icono-192.png" alt=""></span><span class="aula-ir-tx"><b>Tlamatini Aula · Mi grupo</b><small>Pase de lista, planeación con los PDA, evaluación, boletas y exámenes. Entra con este mismo enlace, ya con los datos de su escuela.</small></span><span class="aula-ir-go">Abrir ›</span></a>
    <div id="iniMain">
     <div id="t3Adel">${t3AdelHTML()}</div>
     <section class="t3-blq" id="contSec" ${conts.length?"":"hidden"}><div class="t3-bt"><div><div class="t3-eye">Continúe donde se quedó</div><h2>Sus documentos recientes</h2></div><button type="button" class="t3-lnk" id="lkDocs2">Ver todos →</button></div>

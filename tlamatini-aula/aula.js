@@ -151,7 +151,7 @@ function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(
 window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(); if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
-function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
+function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && S.v === "bloqueo") S = { v: "inicio" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
   else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (CAP ? `<div class="banda-demo">Capacitación · datos ficticios · puede usar todo <button id="dReini">Reiniciar datos</button> <button id="dSalir">Salir</button></div>` : DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = volver; const dr = $("#dReini"); if (dr) dr.onclick = async () => { if (!(await confirmar("Se borrará lo que se haya practicado y se volverán a cargar los datos de capacitación.", "Reiniciar"))) return; try { localStorage.removeItem(CLAVE); indexedDB.deleteDatabase((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + "-cap"); } catch (e) {} location.reload(); };
@@ -1108,7 +1108,18 @@ ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin"))
   $("#yL").onclick = () => $("#fR").click(); $("#fR").onchange = async e => { try { const x = JSON.parse(await e.target.files[0].text()); if (!x.v || !Array.isArray(x.grupos)) throw 0; if (!(await confirmar("Se reemplazarán los datos de este dispositivo por los del respaldo.", "Cargar"))) return; D = Object.assign(VACIO(), x); guardar(); ir("inicio", {}, true); toast("Respaldo cargado."); } catch (er) { toast("Ese archivo no es un respaldo de Tlamatini Aula."); } }; };
 
 /* =================================================================== ARRANQUE */
-async function arrancarDatos() { if (CAP && !APP_PRE && !APP_ESP) { if (D.grupos.length) return; for (let i = 0; i < 100 && typeof capSembrar !== "function"; i++) await new Promise(r => setTimeout(r, 50)); if (typeof capSembrar === "function") return capSembrar(); }
+/* Con el enlace personal de Tlamatini: si la Supervisión ya tiene registrado su grado y grupo, se crea solo el grupo con los datos de su escuela */
+let AUTO_G = "";
+function gradosDe(t) { t = String(t || "").toUpperCase(); const r = t.match(/([1-6])\s*\.?\s*[°º]?\s*(?:-|–|AL|A)\s*([1-6])\s*\.?\s*[°º]/) || t.match(/([1-6])\s*-\s*([1-6])/);
+  if (r && +r[2] > +r[1]) { const L = []; for (let i = +r[1]; i <= +r[2]; i++) L.push(i); return { grados: L, letra: "" }; }
+  const L = [...new Set((t.match(/[1-6]/g) || []).map(Number))].sort(); if (!L.length) return null;
+  const l = L.length === 1 ? (t.match(/[1-6]\s*\.?\s*[°º]?\s*\.?\s*([A-F])\b/) || [])[1] || "" : ""; return { grados: L, letra: l }; }
+function autoGrupos() { if (DEMO || APP_PRE || APP_ESP || D.grupos.length || D.cfg.autoHecho) return; const t = LS("tlm-yo"); if (!t || !Array.isArray(t.escuelas)) return;
+  const nuevos = []; t.escuelas.forEach(e => { if (/direct|subdirect|atp|asesor|f[ií]sica|usaer|apoyo|intend|secretar/i.test(e.funcion || "") && !/frente|grupo/i.test(e.funcion || "")) return; const x = gradosDe(e.grupo); if (!x) return;
+    nuevos.push({ id: uid(), alumnos: [], cct: e.cct, escuela: "Escuela Primaria " + e.nombre, turno: e.turno || "", grados: x.grados, grupo: x.letra, dir: e.dir || "", cargoDir: e.cargo || "", loc: e.loc || "", mun: e.mun || "" }); });
+  D.cfg.autoHecho = true; if (!nuevos.length) { guardar(); return; }
+  D.grupos.push(...nuevos); D.gact = nuevos[0].id; const y = yo(); if (!D.docente.nombre) D.docente.nombre = y.nombre; if (!D.docente.correo) D.docente.correo = y.correo; guardar(); AUTO_G = nuevos[0].id; }
+async function arrancarDatos() { autoGrupos(); if (CAP && !APP_PRE && !APP_ESP) { if (D.grupos.length) return; for (let i = 0; i < 100 && typeof capSembrar !== "function"; i++) await new Promise(r => setTimeout(r, 50)); if (typeof capSembrar === "function") return capSembrar(); }
   if (DEMO && APP_PRE && !D.grupos.length) { const g = { id: "gdemop", nivel: "pre", cct: "02DJN9999Z", escuela: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", grados: [3], grupo: "A", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz", "Bruno Muestra Díaz", "Camila Ficticia López", "Diego Prueba Soto", "Elena Ejemplo Cruz", "Fernando Demo Ríos", "Gabriela Muestra Peña", "Hugo Ficticio Lara", "Itzel Ejemplo Mora", "Joaquín Prueba Vega"].forEach(n => g.alumnos.push({ id: uid(), nombre: n, g: 3 }));
     D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); return; }
@@ -1121,4 +1132,4 @@ async function arrancarDatos() { if (CAP && !APP_PRE && !APP_ESP) { if (D.grupos
 window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|capacitacion\b|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
-  calendario(); ACCESO_OK = await acceso(); await arrancarDatos(); pintar(); if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
+  calendario(); ACCESO_OK = await acceso(); await arrancarDatos(); pintar(); if (AUTO_G && ACCESO_OK) { S = { v: "inicio" }; PILA.length = 0; ir("grupo", { id: AUTO_G, nuevo: true }); toast("<b>Ya está registrado su grupo</b> con los datos de su escuela. Ahora agregue a sus alumnos.", 5000); } if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, AUTO_G ? 9000 : 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
