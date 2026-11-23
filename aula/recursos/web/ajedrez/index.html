@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ajedrez · Aula Zona 050</title>
+<style>
+:root{--azul:#0F3B5F;--azul2:#1E5A86;--naranja:#E8772E;--crema:#F3F7FA;--claro:#EED9B6;--oscuro:#B5835A;--verde:#2E9E5B}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:var(--crema);color:var(--azul)}
+header{background:var(--azul);color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px}
+header h1{margin:0;font-size:24px}header .sub{opacity:.75;font-size:14px}header .esp{flex:1}
+header button{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:8px 14px;font-size:15px;font-weight:700;cursor:pointer}
+main{padding:18px 22px;max-width:1200px;margin:0 auto}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-size:17px;font-weight:800;cursor:pointer;background:#fff;color:var(--azul);border:2px solid #D6E3EC}
+.btn:hover{border-color:var(--naranja)}.btn.p{background:var(--naranja);color:#fff;border-color:var(--naranja)}.btn.s{padding:8px 12px;font-size:15px}
+.tarjetas{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));margin-top:16px}
+.tarjeta{background:#fff;border:2px solid #D6E3EC;border-radius:20px;padding:20px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.tarjeta:hover{border-color:var(--naranja);background:#FFF6EE}.tarjeta .e{font-size:52px}.tarjeta b{display:block;font-size:21px;margin-top:6px}.tarjeta span{color:#5F6B76;font-size:15px}
+input[type=text]{font-size:20px;padding:10px 14px;border-radius:12px;border:2px solid #D6E3EC;width:min(360px,100%)}
+.juego{display:grid;grid-template-columns:auto minmax(260px,1fr);gap:22px;align-items:start}
+@media (max-width:900px){.juego{grid-template-columns:1fr}}
+.tablero{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(78vh,92vw,640px);aspect-ratio:1;border:8px solid #6B4A2E;border-radius:10px;box-shadow:0 12px 30px -12px rgba(0,0,0,.45);user-select:none}
+.cas{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:min(7.4vh,9vw,62px);line-height:1;cursor:pointer}
+.cas.c{background:var(--claro)}.cas.o{background:var(--oscuro)}
+.cas.sel{background:#F4D35E!important}.cas.ult{box-shadow:inset 0 0 0 999px rgba(255,214,0,.28)}.cas.jaque{background:radial-gradient(#ff6b6b,#c0392b 70%)!important}
+.cas.dest::after{content:"";width:28%;height:28%;border-radius:50%;background:rgba(15,59,95,.35)}.cas.dest.cap::after{width:84%;height:84%;background:transparent;border:5px solid rgba(15,59,95,.4)}
+.pz{pointer-events:none;filter:drop-shadow(0 2px 1px rgba(0,0,0,.25))}.pz.w{color:#fff;-webkit-text-stroke:1.4px #222}.pz.b{color:#1d1d1d}
+.coord{position:absolute;font-size:11px;font-weight:700;opacity:.65}.coord.f{left:3px;top:2px}.coord.r{right:3px;bottom:1px}
+.panel{background:#fff;border:2px solid #D6E3EC;border-radius:20px;padding:18px}
+.estado{font-size:22px;font-weight:800;margin:0 0 8px}.det{color:#5F6B76;font-size:15px;margin:0 0 12px}
+.jug{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:12px;background:#F3F7FA;margin:6px 0;font-weight:700}
+.jug.turno{background:#FFF0E3;outline:2px solid var(--naranja)}
+.movs{max-height:220px;overflow:auto;font-family:monospace;font-size:15px;background:#F8FAFC;border-radius:12px;padding:10px;margin-top:10px}
+.fila{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.lista{display:grid;gap:10px;margin-top:12px}
+.sala{display:flex;justify-content:space-between;align-items:center;background:#fff;border:2px solid #D6E3EC;border-radius:14px;padding:12px 16px;font-size:17px}
+.velo{position:fixed;inset:0;background:rgba(15,59,95,.55);display:flex;align-items:center;justify-content:center;z-index:9}
+.dlg{background:#fff;border-radius:20px;padding:22px;max-width:520px;width:92%}
+.prom{display:flex;gap:10px;justify-content:center;font-size:60px}.prom button{font-size:60px;background:#F3F7FA;border:2px solid #D6E3EC;border-radius:14px;cursor:pointer;padding:4px 14px}
+.aviso{background:#FFF6EE;border:2px solid #F3C7A1;border-radius:14px;padding:12px 16px;margin-top:12px}
+.leccion{display:grid;grid-template-columns:90px 1fr;gap:14px;align-items:center;background:#fff;border:2px solid #D6E3EC;border-radius:16px;padding:14px;margin-top:10px}
+.leccion .e{font-size:64px;text-align:center}.leccion b{font-size:19px}
+.pie{margin-top:26px;color:#5F6B76;font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<header><span style="font-size:34px">♞</span><div><h1>Ajedrez</h1><div class="sub">Aula Zona 050 · funciona sin internet</div></div><div class="esp"></div><button id="bInicio" hidden>← Menú del ajedrez</button></header>
+<main id="app"></main>
+<script type="module">
+import { Chess } from "./chess.js";
+const $ = s => document.querySelector(s), app = $("#app");
+const PZ = { w: { k: "♔", q: "♕", r: "♖", b: "♗", n: "♘", p: "♙" }, b: { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" } };
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let nombre = (() => { try { return sessionStorage.getItem("az-nombre") || ""; } catch (e) { return ""; } })();
+const SERVIDORES = [...new Set(["http://aula-servidor.local:8050", "http://aula-servidor:8050", location.origin])];
+let SRV = "";
+$("#bInicio").onclick = () => menu();
+
+/* ======================= MENÚ ======================= */
+function menu() { parar(); $("#bInicio").hidden = true;
+  app.innerHTML = `<h2 style="margin:4px 0 6px;font-size:28px">¡Vamos a jugar ajedrez!</h2>
+  <label style="font-size:18px;font-weight:700">¿Cómo te llamas? <br><input type="text" id="nom" maxlength="24" value="${esc(nombre)}" placeholder="Escribe tu nombre"></label>
+  <div class="tarjetas">
+    <button class="tarjeta" data-m="pc"><div class="e">🤖</div><b>Contra la computadora</b><span>Fácil, medio o difícil</span></button>
+    <button class="tarjeta" data-m="dos"><div class="e">👫</div><b>Dos jugadores aquí</b><span>Se turnan en esta misma computadora</span></button>
+    <button class="tarjeta" data-m="red"><div class="e">🏫</div><b>Con otra computadora</b><span>Juega con un compañero de la escuela por la red</span></button>
+    <button class="tarjeta" data-m="aprender"><div class="e">📘</div><b>Aprender a jugar</b><span>Cómo se mueve cada pieza</span></button>
+  </div><p class="pie">Ajedrez de la Supervisión Escolar Zona 050 · Mtro. Carlos Ortega</p>`;
+  const guarda = () => { nombre = $("#nom").value.trim(); try { sessionStorage.setItem("az-nombre", nombre); } catch (e) {} };
+  document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { guarda(); const m = b.dataset.m;
+    if (m === "pc") elegirNivel(); else if (m === "dos") jugar({ modo: "dos" }); else if (m === "red") lobby(); else aprender(); }); }
+
+function elegirNivel() { $("#bInicio").hidden = false;
+  app.innerHTML = `<h2 style="font-size:26px">¿Qué tan difícil?</h2><div class="tarjetas">
+   <button class="tarjeta" data-n="1"><div class="e">🐣</div><b>Fácil</b><span>Para empezar</span></button>
+   <button class="tarjeta" data-n="2"><div class="e">🦊</div><b>Medio</b><span>Piensa un poco</span></button>
+   <button class="tarjeta" data-n="3"><div class="e">🦉</div><b>Difícil</b><span>Para expertos</span></button></div>
+   <div class="fila"><label style="font-size:18px"><input type="checkbox" id="negras"> Quiero jugar con las piezas negras</label></div>`;
+  document.querySelectorAll("[data-n]").forEach(b => b.onclick = () => jugar({ modo: "pc", nivel: +b.dataset.n, yo: $("#negras").checked ? "b" : "w" })); }
+
+/* ======================= COMPUTADORA (minimax) ======================= */
+const VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+const PST = { p: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,25,25,10,5,5,0,0,0,20,20,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-20,-20,10,10,5,0,0,0,0,0,0,0,0],
+  n: [-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],
+  b: [-20,-10,-10,-10,-10,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,10,10,5,0,-10,-10,5,5,10,10,5,5,-10,-10,0,10,10,10,10,0,-10,-10,10,10,10,10,10,10,-10,-10,5,0,0,0,0,5,-10,-20,-10,-10,-10,-10,-10,-10,-20],
+  r: [0,0,0,0,0,0,0,0,5,10,10,10,10,10,10,5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,0,0,0,5,5,0,0,0],
+  q: [-20,-10,-10,-5,-5,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,5,5,5,0,-10,-5,0,5,5,5,5,0,-5,0,0,5,5,5,5,0,-5,-10,5,5,5,5,5,0,-10,-10,0,5,0,0,0,0,-10,-20,-10,-10,-5,-5,-10,-10,-20],
+  k: [-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-20,-30,-30,-40,-40,-30,-30,-20,-10,-20,-20,-20,-20,-20,-20,-10,20,20,0,0,0,0,20,20,20,30,10,0,0,10,30,20] };
+function evalua(ch) { let s = 0; const B = ch.board();
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) { const p = B[r][f]; if (!p) continue; const i = p.color === "w" ? r * 8 + f : (7 - r) * 8 + f; const v = VAL[p.type] + PST[p.type][i]; s += p.color === "w" ? v : -v; }
+  return s; }
+function busca(ch, prof, a, b, max) {
+  if (prof === 0) return evalua(ch);
+  const M = ch.moves({ verbose: true }); if (!M.length) return ch.in_check() ? (max ? -99999 - prof : 99999 + prof) : 0;
+  M.sort((x, y) => (y.captured ? VAL[y.captured] : 0) - (x.captured ? VAL[x.captured] : 0));
+  if (max) { let v = -Infinity; for (const m of M) { ch.move(m); v = Math.max(v, busca(ch, prof - 1, a, b, false)); ch.undo(); a = Math.max(a, v); if (b <= a) break; } return v; }
+  let v = Infinity; for (const m of M) { ch.move(m); v = Math.min(v, busca(ch, prof - 1, a, b, true)); ch.undo(); b = Math.min(b, v); if (b <= a) break; } return v; }
+function jugadaPC(ch, nivel) { const M = ch.moves({ verbose: true }); if (!M.length) return null;
+  if (nivel === 1 && Math.random() < 0.45) return M[Math.floor(Math.random() * M.length)];
+  const prof = nivel === 1 ? 1 : nivel === 2 ? 2 : 3, max = ch.turn() === "w"; let mejor = [], mv = max ? -Infinity : Infinity;
+  for (const m of M) { ch.move(m); const v = busca(ch, prof - 1, -Infinity, Infinity, !max) + (Math.random() * 8 - 4); ch.undo();
+    if (max ? v > mv : v < mv) { mv = v; mejor = [m]; } else if (v === mv) mejor.push(m); }
+  return mejor[Math.floor(Math.random() * mejor.length)]; }
+
+/* ======================= TABLERO ======================= */
+let J = null, temp = null;
+function parar() { clearTimeout(temp); temp = null; J = null; }
+function jugar(op) { parar(); $("#bInicio").hidden = false;
+  J = Object.assign({ ch: new Chess(), sel: null, gira: false, yo: "w", ult: null, fin: false }, op);
+  if (J.modo === "pc") J.gira = J.yo === "b"; if (J.modo === "red") J.gira = J.color === "b";
+  pinta(); if (J.modo === "pc" && J.yo === "b") setTimeout(turnoPC, 400); if (J.modo === "red") sondea(); }
+const puedoMover = () => J && !J.fin && (J.modo === "dos" || (J.modo === "pc" && J.ch.turn() === J.yo) || (J.modo === "red" && J.ch.turn() === J.color && J.sala && J.sala.estado === "jugando"));
+function nombres() { if (J.modo === "pc") return J.yo === "w" ? [nombre || "Tú", "Computadora"] : ["Computadora", nombre || "Tú"];
+  if (J.modo === "red") return [J.sala ? J.sala.blancas || "…" : "…", J.sala ? J.sala.negras || "Esperando rival…" : "…"]; return ["Blancas", "Negras"]; }
+function estadoTxt() { const ch = J.ch, t = ch.turn() === "w" ? "blancas" : "negras";
+  if (J.sala && J.sala.estado === "terminada" && J.sala.resultado && !ch.game_over()) return J.sala.resultado;
+  if (ch.in_checkmate()) return `¡Jaque mate! Ganan las ${t === "blancas" ? "negras" : "blancas"} 🏆`;
+  if (ch.in_stalemate()) return "Tablas: el rey no tiene movimientos (ahogado)";
+  if (ch.in_threefold_repetition()) return "Tablas por repetición"; if (ch.insufficient_material()) return "Tablas: no alcanza para dar mate"; if (ch.in_draw()) return "Tablas";
+  if (J.modo === "red" && J.sala && J.sala.estado === "esperando") return "Esperando a que alguien se una…";
+  return (ch.in_check() ? "¡Jaque! " : "") + (J.modo === "pc" ? (ch.turn() === J.yo ? "Te toca" : "Piensa la computadora…") : J.modo === "red" ? (ch.turn() === J.color ? "Te toca" : "Le toca a tu rival") : `Turno de las ${t}`); }
+function pinta() { if (!J) return; const ch = J.ch, B = ch.board(), dest = J.sel ? ch.moves({ square: J.sel, verbose: true }) : [], [nb, nn] = nombres();
+  const reyJaque = ch.in_check() ? (() => { for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) { const p = B[r][f]; if (p && p.type === "k" && p.color === ch.turn()) return "abcdefgh"[f] + (8 - r); } })() : "";
+  let h = ""; for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { const r = J.gira ? 7 - i : i, f = J.gira ? 7 - j : j, sq = "abcdefgh"[f] + (8 - r), p = B[r][f], d = dest.find(m => m.to === sq);
+    h += `<div class="cas ${(r + f) % 2 ? "o" : "c"} ${J.sel === sq ? "sel" : ""} ${J.ult && (J.ult.from === sq || J.ult.to === sq) ? "ult" : ""} ${reyJaque === sq ? "jaque" : ""} ${d ? "dest" + (d.captured ? " cap" : "") : ""}" data-sq="${sq}">${p ? `<span class="pz ${p.color}">${PZ.b[p.type]}</span>` : ""}${j === 0 ? `<span class="coord f">${8 - r}</span>` : ""}${i === 7 ? `<span class="coord r">${"abcdefgh"[f]}</span>` : ""}</div>`; }
+  const H = ch.history(); let movs = ""; for (let i = 0; i < H.length; i += 2) movs += `${i / 2 + 1}. ${H[i]} ${H[i + 1] || ""}\n`;
+  app.innerHTML = `<div class="juego"><div class="tablero" id="tab">${h}</div><div class="panel"><p class="estado">${esc(estadoTxt())}</p>
+   <div class="jug ${ch.turn() === "b" ? "turno" : ""}"><span>♚ ${esc(nn)}</span></div><div class="jug ${ch.turn() === "w" ? "turno" : ""}"><span>♔ ${esc(nb)}</span></div>
+   ${J.modo === "red" && J.sala ? `<p class="det">Partida en red · código <b>${J.sala.id}</b></p>` : ""}
+   <div class="fila">${J.modo !== "red" ? `<button class="btn s" id="bDes">↶ Deshacer</button>` : ""}<button class="btn s" id="bGir">🔄 Girar tablero</button>${J.modo === "red" && J.sala && J.sala.estado !== "terminada" ? `<button class="btn s" id="bAban">🏳️ Rendirme</button>` : `<button class="btn s p" id="bNueva">Nueva partida</button>`}</div>
+   <pre class="movs">${esc(movs) || "Aún no hay movimientos."}</pre></div></div>`;
+  document.querySelectorAll(".cas").forEach(c => c.onclick = () => toca(c.dataset.sq));
+  $("#bGir").onclick = () => { J.gira = !J.gira; pinta(); };
+  $("#bDes") && ($("#bDes").onclick = () => { if (J.modo === "pc") { J.ch.undo(); if (J.ch.turn() !== J.yo) J.ch.undo(); } else J.ch.undo(); J.sel = null; J.fin = false; const h = J.ch.history({ verbose: true }); J.ult = h[h.length - 1] || null; pinta(); });
+  $("#bNueva") && ($("#bNueva").onclick = () => J.modo === "red" ? lobby() : jugar({ modo: J.modo, nivel: J.nivel, yo: J.yo }));
+  $("#bAban") && ($("#bAban").onclick = async () => { if (!confirm("¿Seguro que te rindes?")) return; await api(`/api/salas/${J.sala.id}/fin`, { token: J.token }); }); }
+function toca(sq) { if (!puedoMover()) return; const ch = J.ch, p = ch.get(sq);
+  if (J.sel) { const m = ch.moves({ square: J.sel, verbose: true }).filter(x => x.to === sq);
+    if (m.length) { if (m[0].flags.includes("p")) return promocion(m[0].from, sq); return hacer({ from: J.sel, to: sq }); } }
+  J.sel = p && p.color === ch.turn() ? (J.sel === sq ? null : sq) : null; pinta(); }
+function promocion(from, to) { const c = J.ch.turn(), v = document.createElement("div"); v.className = "velo";
+  v.innerHTML = `<div class="dlg"><h3 style="margin-top:0;text-align:center">¿En qué se convierte tu peón?</h3><div class="prom">${["q", "r", "b", "n"].map(t => `<button data-t="${t}">${PZ[c][t]}</button>`).join("")}</div></div>`;
+  document.body.appendChild(v); v.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { v.remove(); hacer({ from, to, promotion: b.dataset.t }); }); }
+async function hacer(mv) { const r = J.ch.move(mv); if (!r) return; J.ult = r; J.sel = null; J.fin = J.ch.game_over(); pinta();
+  if (J.modo === "red") { const res = J.ch.game_over() ? estadoTxt() : "";
+    const s = await api(`/api/salas/${J.sala.id}/mover`, { token: J.token, mov: r.from + r.to + (r.promotion || ""), num: J.ch.history().length - 1, resultado: res });
+    if (s && s.error) { alert(s.error); J.ch.undo(); pinta(); } else if (s) { J.sala = s; } return; }
+  if (J.modo === "pc" && !J.fin) setTimeout(turnoPC, 250); }
+function turnoPC() { if (!J || J.fin) return; const m = jugadaPC(J.ch, J.nivel); if (!m) return; J.ult = J.ch.move(m); J.fin = J.ch.game_over(); pinta(); }
+
+/* ======================= EN RED ======================= */
+async function api(ruta, datos) { try { const r = await fetch(SRV + ruta, datos ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) } : {}); return await r.json(); } catch (e) { return null; } }
+async function buscarServidor() { for (const s of SERVIDORES) { try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 2500); const r = await fetch(s + "/api/ping", { signal: c.signal }); clearTimeout(t); const j = await r.json(); if (j.ok && j.servidor) { SRV = s; return true; } } catch (e) {} } return false; }
+async function lobby() { parar(); $("#bInicio").hidden = false; app.innerHTML = `<p class="estado">Buscando el servidor de la escuela…</p>`;
+  if (!SRV && !(await buscarServidor())) { app.innerHTML = `<div class="aviso"><b>No se encontró el servidor de la escuela.</b><br>Para jugar entre computadoras, la computadora «servidor» debe estar encendida y conectada a la misma red (cable o módem). Mientras tanto, puedes jugar contra la computadora o con un compañero aquí mismo.</div><div class="fila"><button class="btn" id="bR">Intentar de nuevo</button></div>`; $("#bR").onclick = lobby; return; }
+  if (!nombre) { const n = prompt("¿Cómo te llamas?"); nombre = (n || "").trim() || "Jugador"; try { sessionStorage.setItem("az-nombre", nombre); } catch (e) {} }
+  const L = await api("/api/salas"); const S = (L && L.salas) || [], esp = S.filter(s => s.estado === "esperando"), jug = S.filter(s => s.estado === "jugando");
+  app.innerHTML = `<h2 style="font-size:26px;margin:4px 0">Ajedrez en la escuela</h2><p class="det">Hola, <b>${esc(nombre)}</b>. Crea una partida y espera a un compañero, o únete a una que esté esperando.</p>
+   <div class="fila"><button class="btn p" id="bCrear">➕ Crear una partida</button><button class="btn" id="bAct">🔄 Actualizar</button></div>
+   <h3 style="margin-top:22px">Esperando rival</h3><div class="lista">${esp.map(s => `<div class="sala"><span>♔ <b>${esc(s.blancas)}</b> te espera</span><button class="btn s p" data-u="${s.id}">Jugar</button></div>`).join("") || `<p class="det">Nadie está esperando por ahora.</p>`}</div>
+   ${jug.length ? `<h3 style="margin-top:22px">Jugando ahora</h3><div class="lista">${jug.map(s => `<div class="sala"><span>♔ ${esc(s.blancas)} vs ♚ ${esc(s.negras)}</span><span class="det">${s.movs.length} jugadas</span></div>`).join("")}</div>` : ""}`;
+  $("#bAct").onclick = lobby;
+  $("#bCrear").onclick = async () => { const r = await api("/api/salas", { jugador: nombre }); if (!r || r.error) return alert((r && r.error) || "No se pudo crear."); entrar(r); };
+  document.querySelectorAll("[data-u]").forEach(b => b.onclick = async () => { const r = await api(`/api/salas/${b.dataset.u}/unirse`, { jugador: nombre }); if (!r || r.error) { alert((r && r.error) || "No se pudo unir."); return lobby(); } entrar(r); });
+  temp = setTimeout(() => { if (!J) lobby(); }, 4000); }
+async function entrar(r) { const s = await api(`/api/salas/${r.id}`); jugar({ modo: "red", color: r.color, token: r.token, sala: s }); }
+async function sondea() { if (!J || J.modo !== "red") return; const s = await api(`/api/salas/${J.sala.id}`);
+  if (J && J.modo === "red" && s && !s.error) { const antes = J.sala.v; J.sala = s;
+    if (s.movs.length > J.ch.history().length) { for (const u of s.movs.slice(J.ch.history().length)) J.ult = J.ch.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); }
+    J.fin = J.ch.game_over() || s.estado === "terminada"; if (s.v !== antes) pinta(); }
+  if (J && J.modo === "red") temp = setTimeout(sondea, 1000); }
+
+/* ======================= APRENDER ======================= */
+function aprender() { $("#bInicio").hidden = false;
+  const L = [["♔", "El rey", "Se mueve una casilla hacia cualquier lado. Es la pieza más importante: si queda atrapado (jaque mate), se pierde la partida."],
+    ["♕", "La dama", "La más poderosa: avanza las casillas que quiera en línea recta o en diagonal, hacia cualquier lado."],
+    ["♖", "La torre", "Avanza las casillas que quiera en línea recta: hacia adelante, atrás o a los lados."],
+    ["♗", "El alfil", "Avanza las casillas que quiera en diagonal. Siempre se queda en casillas del mismo color."],
+    ["♘", "El caballo", "Salta en forma de «L»: dos casillas en una dirección y una hacia un lado. Es la única pieza que puede saltar sobre las demás."],
+    ["♙", "El peón", "Avanza una casilla hacia adelante (dos en su primer movimiento) y come en diagonal. Si llega al final del tablero, se convierte en otra pieza."],
+    ["🏰", "El enroque", "Movimiento especial del rey y la torre para proteger al rey: el rey se mueve dos casillas hacia la torre y la torre salta a su lado."],
+    ["🏆", "Cómo se gana", "Con jaque mate: el rey está atacado y no puede escapar. Si no hay movimientos posibles pero el rey no está atacado, son tablas (empate)."]];
+  app.innerHTML = `<h2 style="font-size:26px;margin:4px 0">Aprender a jugar</h2>${L.map(([e, t, d]) => `<div class="leccion"><div class="e">${e}</div><div><b>${t}</b><p style="margin:6px 0 0;font-size:17px">${d}</p></div></div>`).join("")}
+   <div class="fila"><button class="btn p" id="bPrac">Practicar contra la computadora (fácil)</button></div>`;
+  $("#bPrac").onclick = () => jugar({ modo: "pc", nivel: 1, yo: "w" }); }
+
+menu();
+</script>
+</body>
+</html>

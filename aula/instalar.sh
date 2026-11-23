@@ -10,15 +10,22 @@
 #   - Cuenta "Maestro" con contraseña para el docente.
 #   - YouTube en modo restringido, sin publicidad y ligero para equipos antiguos.
 #   - Educación Física en el salón para días de lluvia (app propia, sin internet).
+#   - Biblioteca sin internet: ajedrez (también en red entre computadoras), juegos de mente,
+#     sudoku, geografía y mecanografía. Funciona aunque la escuela no tenga internet.
+#   - Una computadora puede ser el «servidor de la escuela» (--servidor): organiza el ajedrez en red,
+#     comparte una carpeta con videos y libros, y guarda enciclopedia, diccionario y simulaciones
+#     de ciencias (Kiwix) para consultarlas sin internet desde todas las computadoras.
 #
-#  Uso (con la computadora conectada por cable de red):
+#  Uso (con la computadora conectada por cable de red y CON internet solo durante la instalación):
 #     sudo bash instalar.sh --clave-maestro CLAVE
 #     sudo bash instalar.sh --clave-maestro CLAVE --impresora 192.168.1.50
+#     sudo bash instalar.sh --clave-maestro CLAVE --servidor              (solo en UNA computadora)
+#     sudo bash instalar.sh --clave-maestro CLAVE --servidor --wikipedia  (además Wikipedia en español)
 #  Se puede volver a correr sin problema: no duplica nada.
 # =====================================================================
 set -uo pipefail
 
-VERSION="1.0"
+VERSION="1.1"
 BASE_URL="https://carlosog23.github.io/Carlos-Ortega/aula"
 DIR_AULA="/usr/share/aula"
 DIR_RECURSOS="$(cd "$(dirname "$0")" && pwd)/recursos"
@@ -26,6 +33,8 @@ DIR_PAQUETE="$(cd "$(dirname "$0")" && pwd)"
 LOG="/var/log/aula-instalacion.log"
 CLAVE_MAESTRO=""
 IP_IMPRESORA=""
+SERVIDOR=0
+WIKIPEDIA=0
 
 verde() { printf '\033[1;32m%s\033[0m\n' "$*"; }
 amarillo() { printf '\033[1;33m%s\033[0m\n' "$*"; }
@@ -37,7 +46,9 @@ while [ $# -gt 0 ]; do
     --clave-maestro|--usuario-maestro) CLAVE_MAESTRO="${2:-}"; shift 2
       [ ${#CLAVE_MAESTRO} -ge 4 ] || { rojo "La clave de la cuenta Maestro debe tener al menos 4 caracteres."; exit 1; } ;;
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
-    -h|--help|--ayuda) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --servidor) SERVIDOR=1; shift ;;
+    --wikipedia) WIKIPEDIA=1; SERVIDOR=1; shift ;;
+    -h|--help|--ayuda) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) rojo "Opción no reconocida: $1"; exit 1 ;;
   esac
 done
@@ -134,7 +145,9 @@ instalar firefox firefox-locale-es language-pack-es language-pack-gnome-es \
   fonts-crosextra-carlito fonts-crosextra-caladea fonts-noto-color-emoji \
   gnome-calculator python3-gi gir1.2-gtk-3.0 \
   libavcodec-extra ffmpeg i965-va-driver va-driver-all \
-  zram-tools cups cups-filters printer-driver-all hplip system-config-printer
+  zram-tools cups cups-filters printer-driver-all hplip system-config-printer \
+  avahi-daemon libnss-mdns python3 \
+  gbrainy gnome-sudoku klavaro kgeography
 verde "Programas instalados."
 
 # Quita programas que no usan los alumnos y gastan memoria
@@ -164,7 +177,39 @@ install -m 755 "$DIR_RECURSOS/aula-inicio" /usr/local/bin/aula-inicio
 cp -f "$DIR_PAQUETE/aula.json" "$DIR_AULA/aula.json"
 cp -f "$DIR_RECURSOS/fondo-aula.png" "$DIR_AULA/fondo-aula.png"
 rm -rf "$DIR_AULA/ef"; cp -r "$DIR_RECURSOS/ef" "$DIR_AULA/ef"
+# Biblioteca sin internet (ajedrez y más) y el servicio de la red de la escuela (puerto 8050)
+rm -rf "$DIR_AULA/web"; cp -r "$DIR_RECURSOS/web" "$DIR_AULA/web"; cp -r "$DIR_RECURSOS/ef" "$DIR_AULA/web/ef"
+install -m 755 "$DIR_RECURSOS/zona050-red.py" /usr/local/bin/zona050-red
 chmod -R a+rX "$DIR_AULA"
+cat > /etc/systemd/system/zona050-red.service <<'SERVICIO'
+[Unit]
+Description=Aula Zona 050 · biblioteca sin internet y ajedrez en red (puerto 8050)
+After=network.target
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/zona050-red
+Restart=always
+DynamicUser=yes
+[Install]
+WantedBy=multi-user.target
+SERVICIO
+systemctl daemon-reload
+systemctl enable zona050-red.service >/dev/null 2>&1; systemctl restart zona050-red.service >/dev/null 2>&1
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
+  ufw allow 8050/tcp >/dev/null; ufw allow 8051/tcp >/dev/null; ufw allow 5353/udp >/dev/null
+fi
+verde "Biblioteca sin internet lista (http://localhost:8050)."
+
+# ---------- red de la escuela SIN internet ----------
+# Si no hay módem que reparta direcciones, las computadoras se dan una dirección automática (169.254.x.x)
+# y se encuentran por nombre (aula-servidor.local) gracias a Avahi.
+paso "Red de la escuela (también sin internet)"
+systemctl enable --now avahi-daemon >/dev/null 2>&1 || true
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2 ~ /ethernet/ {print $1}' | while IFS= read -r CON; do
+    nmcli connection modify "$CON" ipv4.link-local fallback >/dev/null 2>&1 || nmcli connection modify "$CON" ipv4.dhcp-timeout 30 >/dev/null 2>&1 || true
+  done
+fi
+verde "Las computadoras podrán verse entre sí aunque no haya internet."
 
 # Los botones se pueden cambiar desde GitHub (aula.json): se revisa al encender y cada hora
 cat > /usr/local/bin/aula-actualizar <<EOF
@@ -312,6 +357,7 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   acceso tlamatini-aula "Tlamatini Aula" "firefox --new-window https://carlosog23.github.io/Carlos-Ortega/tlamatini-aula/" applications-education
   acceso aula "Aula Zona 050 (pantalla del alumno)" "aula-inicio" applications-education
   acceso youtube "YouTube" "firefox --new-window https://www.youtube.com/" multimedia-video-player
+  acceso biblioteca "Biblioteca sin internet" "firefox --new-window http://localhost:8050/" accessories-dictionary
   acceso word "Documentos (Word)" "libreoffice --writer" libreoffice-writer
   acceso excel "Hojas de cálculo (Excel)" "libreoffice --calc" libreoffice-calc
   acceso powerpoint "Presentaciones (PowerPoint)" "libreoffice --impress" libreoffice-impress
@@ -321,12 +367,78 @@ else
   amarillo "No se creó la cuenta Maestro (falta --clave-maestro CLAVE)."
 fi
 
+# ---------- servidor de la escuela (solo con --servidor) ----------
+if [ "$SERVIDOR" = 1 ]; then
+  paso "Servidor de la escuela"
+  hostnamectl set-hostname aula-servidor 2>/dev/null || echo aula-servidor > /etc/hostname
+  if grep -q '^127.0.1.1' /etc/hosts; then sed -i 's/^127\.0\.1\.1.*/127.0.1.1\taula-servidor/' /etc/hosts; else printf '127.0.1.1\taula-servidor\n' >> /etc/hosts; fi
+  systemctl restart avahi-daemon >/dev/null 2>&1 || true
+  mkdir -p /srv/aula/compartido/Videos /srv/aula/compartido/Libros /srv/aula/compartido/Audios /srv/aula/kiwix
+  printf 'Carpeta de la escuela\n\nTodo lo que pongas aquí (videos .mp4, libros en PDF, audios .mp3, imágenes) lo ven los alumnos\nen la Biblioteca sin internet de todas las computadoras, aunque no haya internet.\n' > /srv/aula/compartido/LEEME.txt
+  if id maestro >/dev/null 2>&1; then chown -R maestro:maestro /srv/aula/compartido; fi
+  chmod -R a+rX /srv/aula
+  # Kiwix: enciclopedia, diccionario y simulaciones de ciencias para consultar sin internet
+  instalar kiwix-tools
+  if ! command -v kiwix-serve >/dev/null 2>&1; then
+    T=$(mktemp -d)
+    if wget -q -T 30 -t 2 -O "$T/k.tgz" https://download.kiwix.org/release/kiwix-tools/kiwix-tools_linux-x86_64.tar.gz; then
+      tar xzf "$T/k.tgz" -C "$T" && install -m 755 "$T"/kiwix-tools*/kiwix-serve /usr/local/bin/ && echo "  + kiwix-serve"
+    fi
+    rm -rf "$T"
+  fi
+  ultimo() { # carpeta patrón → nombre del archivo .zim más reciente
+    wget -q -T 30 -t 2 -O - "https://download.kiwix.org/zim/$1/" 2>/dev/null | grep -o "$2_[0-9-]*\.zim" | sort -u | tail -1; }
+  bajar_zim() { # carpeta patrón descripción
+    local f; f=$(ultimo "$1" "$2")
+    [ -n "$f" ] || { amarillo "  ! no encontré $3"; return; }
+    [ -f "/srv/aula/kiwix/$f" ] && { echo "  = $3 ya estaba"; return; }
+    echo "  Descargando $3 ($f)…"
+    if wget -q -c -T 60 -t 5 -O "/srv/aula/kiwix/$f.parte" "https://download.kiwix.org/zim/$1/$f"; then
+      mv "/srv/aula/kiwix/$f.parte" "/srv/aula/kiwix/$f"; echo "  + $3"
+      for v in /srv/aula/kiwix/"$2"_*.zim; do [ "$v" = "/srv/aula/kiwix/$f" ] || rm -f "$v"; done
+    else amarillo "  ! no se pudo descargar $3 (se puede volver a correr el instalador)"; fi; }
+  LIBRE_GB=$(df -BG --output=avail /srv | tail -1 | tr -dc 0-9)
+  bajar_zim vikidia vikidia_es_all "Vikidia, enciclopedia para niños"
+  bajar_zim phet phet_es_all "simulaciones de ciencias y matemáticas (PhET)"
+  bajar_zim wiktionary wiktionary_es_all_nopic "diccionario (Wikcionario)"
+  bajar_zim wikibooks wikibooks_es_all_nopic "libros de texto libres (Wikilibros)"
+  if [ "$WIKIPEDIA" = 1 ]; then
+    if [ "${LIBRE_GB:-0}" -ge 15 ]; then bajar_zim wikipedia wikipedia_es_all_mini "Wikipedia en español (resumida)"
+    else amarillo "  ! No hay espacio suficiente para Wikipedia (se necesitan 15 GB libres)."; fi
+  fi
+  chmod -R a+rX /srv/aula/kiwix
+  KS=$(command -v kiwix-serve || true)
+  if [ -n "$KS" ]; then
+    cat > /etc/systemd/system/aula-kiwix.service <<KIWIX
+[Unit]
+Description=Aula Zona 050 · enciclopedia y libros sin internet (Kiwix, puerto 8051)
+After=network.target
+[Service]
+ExecStart=/bin/sh -c 'ls /srv/aula/kiwix/*.zim >/dev/null 2>&1 && exec $KS --port 8051 /srv/aula/kiwix/*.zim || exec sleep infinity'
+Restart=always
+DynamicUser=yes
+[Install]
+WantedBy=multi-user.target
+KIWIX
+    systemctl daemon-reload; systemctl enable aula-kiwix.service >/dev/null 2>&1; systemctl restart aula-kiwix.service >/dev/null 2>&1
+  else
+    amarillo "  ! No se pudo instalar Kiwix; la enciclopedia quedará pendiente."
+  fi
+  systemctl restart zona050-red.service >/dev/null 2>&1
+  if id maestro >/dev/null 2>&1; then
+    ESC=/home/maestro/Escritorio; mkdir -p "$ESC"
+    printf '[Desktop Entry]\nType=Application\nName=Carpeta de la escuela (la ven los alumnos)\nExec=xdg-open /srv/aula/compartido\nIcon=folder-publicshare\nTerminal=false\n' > "$ESC/carpeta-escuela.desktop"
+    chmod 755 "$ESC/carpeta-escuela.desktop"; chown maestro:maestro "$ESC/carpeta-escuela.desktop"
+  fi
+  verde "Esta computadora es el servidor de la escuela (aula-servidor). Déjala encendida mientras los alumnos trabajan."
+fi
+
 # ---------- Firefox: YouTube ligero, sin publicidad, sin datos guardados ----------
 paso "Configurando Firefox"
 POLITICAS=$(cat <<'EOF'
 {
   "policies": {
-    "Homepage": { "URL": "https://www.google.com.mx/", "StartPage": "homepage" },
+    "Homepage": { "URL": "http://localhost:8050/", "StartPage": "homepage" },
     "DontCheckDefaultBrowser": true,
     "DisableTelemetry": true,
     "DisableFirefoxStudies": true,
@@ -409,5 +521,6 @@ echo
 verde "=============================================================="
 verde "  Listo. Reinicia la computadora:   sudo reboot"
 verde "  Al encender entrará sola la cuenta Alumno."
+[ "$SERVIDOR" = 1 ] && verde "  Esta es la computadora SERVIDOR de la escuela (aula-servidor)."
 verde "=============================================================="
 echo "Registro completo en: $LOG"

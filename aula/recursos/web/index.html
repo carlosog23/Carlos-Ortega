@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Biblioteca sin internet · Aula Zona 050</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:#F3F7FA;color:#0F3B5F}
+header{background:#0F3B5F;color:#fff;padding:18px 26px}header h1{margin:0;font-size:28px}header p{margin:4px 0 0;opacity:.8}
+main{padding:20px 26px;max-width:1200px;margin:0 auto}
+h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 0 10px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.c{display:block;background:#fff;border:2px solid #D6E3EC;border-radius:18px;padding:16px;text-decoration:none;color:inherit}
+.c:hover{border-color:#E8772E;background:#FFF6EE}.c .e{font-size:44px}.c b{display:block;font-size:19px;margin-top:4px}.c span{color:#5F6B76;font-size:14px}
+.c.off{opacity:.5;pointer-events:none}.estado{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:#E3ECF2}
+.estado.ok{background:#DDF1E6;color:#1E7A45}
+.pie{margin-top:28px;color:#5F6B76;font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<header><h1>📚 Biblioteca sin internet</h1><p>Todo esto funciona aunque la escuela no tenga internet.</p></header>
+<main>
+  <h2>En esta computadora</h2>
+  <div class="grid">
+    <a class="c" href="/ajedrez/"><div class="e">♞</div><b>Ajedrez</b><span>Contra la computadora, con un compañero o en red con otra computadora</span></a>
+    <a class="c" href="/ef/index.html"><div class="e">🤸</div><b>Educación Física en el salón</b><span>Juegos y activaciones para días de lluvia</span></a>
+  </div>
+
+  <h2>En el servidor de la escuela</h2>
+  <p class="nota" id="nSrv">Buscando el servidor de la escuela…</p>
+  <div class="grid" id="gSrv">
+    <a class="c off" id="cKiwix" href="#"><div class="e">📖</div><b>Enciclopedia, diccionario y ciencias</b><span>Vikidia (enciclopedia para niños), diccionario, simulaciones de ciencias y matemáticas (PhET)</span><div class="estado" id="eKiwix">…</div></a>
+    <a class="c off" id="cComp" href="#"><div class="e">📂</div><b>Carpeta de la escuela</b><span>Videos, libros en PDF, audios y materiales que deja el maestro</span><div class="estado" id="eComp">…</div></a>
+    <a class="c off" id="cAj" href="#"><div class="e">🏫</div><b>Ajedrez en red</b><span>Partidas entre computadoras de la escuela</span><div class="estado" id="eAj">…</div></a>
+  </div>
+  <p class="pie">Aula Zona 050 · Supervisión Escolar Zona 050 · Mtro. Carlos Ortega</p>
+</main>
+<script>
+const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servidor:8050", location.origin])];
+(async () => {
+  let srv = "", host = "";
+  for (const s of CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const r = await fetch(s + "/api/ping", { signal: c.signal }); clearTimeout(t); const j = await r.json(); if (j.ok && j.servidor) { srv = s; host = new URL(s).hostname; break; } } catch (e) {} }
+  const n = document.getElementById("nSrv");
+  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
+  n.textContent = "Conectado al servidor de la escuela.";
+  let b = {}; try { b = await (await fetch(srv + "/api/biblioteca")).json(); } catch (e) {}
+  const pon = (c, e, url, txt, ok) => { const a = document.getElementById(c); a.href = url; a.classList.toggle("off", !ok); const s = document.getElementById(e); s.textContent = txt; s.classList.toggle("ok", ok); };
+  const nk = (b.kiwix || []).length;
+  pon("cKiwix", "eKiwix", `http://${host}:8051/`, nk ? `${nk} libro${nk === 1 ? "" : "s"} disponible${nk === 1 ? "" : "s"}` : "Aún no se cargan", nk > 0);
+  pon("cComp", "eComp", srv + "/compartido/", b.compartido ? `${b.compartido} archivo${b.compartido === 1 ? "" : "s"}` : "Vacía por ahora", true);
+  pon("cAj", "eAj", "/ajedrez/", "Disponible", true);
+})();
+</script>
+</body>
+</html>
