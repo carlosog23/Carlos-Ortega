@@ -342,23 +342,26 @@ async function leerPdf(g, f) { if (!f) return; dlg(`<h3>Leyendo la lista…</h3>
   catch (e) { cerrarDlg(); toast("No se pudo leer el PDF" + (navigator.onLine === false ? " (sin internet la primera vez)." : "."), 4000); } }
 
 /* =================================================================== PASE DE LISTA Y ASISTENCIA */
-const MARCAS = [["P", "Asistió"], ["R", "Retardo"], ["F", "Falta"], ["J", "Justificada"]];
+const MARCAS = [["P", "Asistió"], ["R", "Retardo"], ["J", "Justificada"]];
+/* Pase de lista: solo se marca P, R o J. En un día con lista tomada, quien queda sin marca faltó («F» de registros anteriores también cuenta como falta). */
+const listaTomada = r => !!r && Object.values(r).some(v => v);
+const marcaDe = (r, id) => !listaTomada(r) ? "" : (!r[id] || r[id] === "F") ? "F" : r[id];
 VISTAS.lista = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const k = S.f || hoy(), reg = ((D.asis[g.id] || {})[k]) || {}, al = activos(g), sc = sinClase(k);
   const n = c => al.filter(a => reg[a.id] === c).length;
   return barra("Pase de lista · " + esc(grNom(g)), fCorta(k)) + `<main class="wrap"><div class="fila mt"><input type="date" id="lF" value="${k}" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px"><button class="btn s" id="lTodos">${ic("check", 16)} Todos asistieron</button></div>
   ${sc ? `<p class="small mt" style="color:var(--maiz-d)">Según el calendario: ${esc(sc)}.</p>` : ""}
-  <div class="kpis mt">${MARCAS.map(([c, t]) => `<div class="kpi"><b>${n(c)}</b><span>${t}</span></div>`).join("")}</div>
+  <div class="kpis mt">${MARCAS.map(([c, t]) => `<div class="kpi"><b>${n(c)}</b><span>${t}</span></div>`).join("")}<div class="kpi"><b>${listaTomada(reg) ? al.filter(a => marcaDe(reg, a.id) === "F").length : 0}</b><span>Faltas</span></div></div>
   <div class="lista mt">${al.map((a, i) => `<div class="it"><span class="av">${i + 1}</span><span class="tx"><b>${esc(a.nombre)}</b>${g.grados.length > 1 && a.g ? `<small>${a.g}.°</small>` : ""}</span><span class="asis">${MARCAS.map(([c]) => `<button class="m-${c}" data-al="${a.id}" data-c="${c}" aria-pressed="${reg[a.id] === c}">${c}</button>`).join("")}</span></div>`).join("") || `<div class="vacio">Primero agregue a sus alumnos en Mi grupo.</div>`}</div>
-  <p class="small muted mt">Quien quede sin marcar no cuenta. P asistió · R retardo · F falta · J falta justificada.</p></main>`; };
+  <p class="small muted mt">P asistió · R retardo · J falta justificada. <b>Quien quede sin marcar se cuenta como falta.</b></p></main>`; };
 ENLAZAR.lista = () => { const g = gAct(); if (!g) return; const k = S.f || hoy(); const reg = () => { D.asis[g.id] = D.asis[g.id] || {}; return D.asis[g.id][k] = D.asis[g.id][k] || {}; };
   $("#lF").onchange = e => { S.f = e.target.value; re(); };
   $("#lTodos").onclick = () => { const r = reg(); activos(g).forEach(a => { if (!r[a.id]) r[a.id] = "P"; }); guardar(); re(); };
   $$("[data-al]").forEach(b => b.onclick = () => { const r = reg(); r[b.dataset.al] = r[b.dataset.al] === b.dataset.c ? undefined : b.dataset.c; if (!r[b.dataset.al]) delete r[b.dataset.al]; guardar(); re(); }); };
-VISTAS.asistencia = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const m = S.m || hoy().slice(0, 7), A = D.asis[g.id] || {}, dias = Object.keys(A).filter(k => k.slice(0, 7) === m).sort(), al = activos(g);
+VISTAS.asistencia = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const m = S.m || hoy().slice(0, 7), A = D.asis[g.id] || {}, dias = Object.keys(A).filter(k => k.slice(0, 7) === m && listaTomada(A[k])).sort(), al = activos(g);
   const [yy, mm] = m.split("-").map(Number);
   return barra("Asistencia · " + esc(grNom(g)), MES_L[mm - 1] + " " + yy, `<button class="btn s" id="asI">${ic("impr", 16)} Imprimir</button>`) + `<main class="wrap"><div class="fila mt"><input type="month" id="asM" value="${m}" style="min-height:44px;border:1px solid var(--hilo);border-radius:12px;padding:0 10px"></div>
   ${dias.length ? `<div class="tabla-c mt"><table class="tabla"><thead><tr><th>Alumno(a)</th>${dias.map(k => `<th class="c">${dF(k).getDate()}<br><small>${DSEM[dF(k).getDay()]}</small></th>`).join("")}<th class="c">Asist.</th><th class="c">Faltas</th></tr></thead><tbody>
-   ${al.map(a => { let as = 0, fa = 0; const c = dias.map(k => { const v = (A[k] || {})[a.id] || ""; if (v === "P" || v === "R") as++; if (v === "F") fa++; return `<td class="c m-${v}">${v === "P" ? "•" : v}</td>`; }).join(""); return `<tr><td>${esc(a.nombre)}</td>${c}<td class="c"><b>${as}</b></td><td class="c">${fa}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="vacio mt">No hay registros de asistencia en este mes.</div>`}</main>`; };
+   ${al.map(a => { let as = 0, fa = 0; const c = dias.map(k => { const v = marcaDe(A[k], a.id); if (v === "P" || v === "R") as++; if (v === "F") fa++; return v === "F" ? `<td class="c m-F"></td>` : `<td class="c m-${v}">${v === "P" ? "•" : v}</td>`; }).join(""); return `<tr><td>${esc(a.nombre)}</td>${c}<td class="c"><b>${as}</b></td><td class="c">${fa}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="vacio mt">No hay registros de asistencia en este mes.</div>`}</main>`; };
 ENLAZAR.asistencia = () => { $("#asM").onchange = e => { S.m = e.target.value; re(); }; $("#asI").onclick = () => { const t = $(".tabla-c"); if (!t) return toast("No hay registros este mes."); const g = gAct(); imprimir(`<div class="doc">${encabezado(g, "Lista de asistencia · " + $("h1").textContent)}${t.innerHTML.replace('class="tabla"', '')}<table class="firmas"><tr><td>${esc(yo().nombre)}<br>Docente del grupo</td><td>${esc(dirTxt(g))}<br>Dirección de la escuela</td></tr></table></div>`, true); }; };
 
 /* =================================================================== DINÁMICAS */
@@ -730,7 +733,7 @@ function resumenAlumno(g, a, T) { const regs = D.reg.filter(r => r.gid === g.id 
       const ct = p && p.criterios[ci] ? p.criterios[ci].c : ""; if (ct) { const x = c.crit[ct] = c.crit[ct] || { s: 0, n: 0 }; x.s += n; x.n++; } });
     if ((r.obs || {})[a.id]) obs.push({ f: r.fecha, t: r.obs[a.id], campo: ck }); });
   Object.values(campos).forEach(c => { c.prom = c.s / c.n; c.cal = calDe(c.prom); c.serie.sort((x, y) => x[0].localeCompare(y[0])); });
-  const A = D.asis[g.id] || {}; let as = 0, tot = 0, falt = 0; Object.keys(A).filter(k => k >= T.ini && k <= T.fin).forEach(k => { const v = A[k][a.id]; if (!v) return; tot++; if (v === "P" || v === "R") as++; if (v === "F") falt++; });
+  const A = D.asis[g.id] || {}; let as = 0, tot = 0, falt = 0; Object.keys(A).filter(k => k >= T.ini && k <= T.fin).forEach(k => { const v = marcaDe(A[k], a.id); if (!v) return; tot++; if (v === "P" || v === "R") as++; if (v === "F") falt++; });
   return { campos, obs: obs.sort((x, y) => x.f.localeCompare(y.f)), nreg, asisP: tot ? as / tot : null, falt }; }
 const minus = t => t ? t[0].toLowerCase() + t.slice(1) : t;
 function valoracion(a, campo, c, obs) { if (!c || !c.n) return "";
@@ -949,8 +952,8 @@ async function paqueteVisita(g, T, que) { const fin = hoy() < T.fin ? hoy() : T.
   const planes = !que.plan ? [] : D.planes.filter(p => p.gid === g.id && p.sesiones.some(s => !s.fecha || s.fecha >= T.ini) && p.ini <= fin).map(p => ({ titulo: p.titulo, campo: p.disc ? p.disc + " · " + p.campo : p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, esc: ESCENARIOS[p.escenario] || "", ejes: p.ejes, ini: p.ini, min: p.min,
     cont: Object.values(p.contenidos || {}), pdas: p.pdas, prop: p.proposito, prod: p.producto, crit: p.criterios.map(c => c.gr + ".° " + c.c),
     ses: p.sesiones.map((s, i) => ({ f: s.fecha, fase: s.fase, ini: [dinDe(s.inicio.din) ? "Dinámica: " + dinDe(s.inicio.din).n : "", s.inicio.txt].filter(Boolean).join(". "), des: s.desarrollo, cie: [dinDe(s.cierre.din) ? "Dinámica: " + dinDe(s.cierre.din).n : "", s.cierre.txt].filter(Boolean).join(". "), ev: s.eval, h: s.hecho ? 1 : 0, r: D.reg.some(r => r.pid === p.id && r.ses === i) ? 1 : 0 })) }));
-  const A = D.asis[g.id] || {}, dias = Object.keys(A).filter(enP).sort(), al = activos(g);
-  const asis = !que.asis ? null : { dias, al: al.map(a => ({ n: a.nombre, g: a.g || "", m: dias.map(k => (A[k] || {})[a.id] || "-").join("") })) };
+  const A = D.asis[g.id] || {}, dias = Object.keys(A).filter(k => enP(k) && listaTomada(A[k])).sort(), al = activos(g);
+  const asis = !que.asis ? null : { dias, al: al.map(a => ({ n: a.nombre, g: a.g || "", m: dias.map(k => marcaDe(A[k], a.id) || "-").join("") })) };
   const F = filasBoleta(g, T), ev = !que.eval || esPre(g) ? null : { campos: areasDe(g), al: F.map(x => ({ n: x.a.nombre, cal: areasDe(g).map(c => x.cal[c]), nreg: x.R.nreg, falt: x.R.falt })), reg: D.reg.filter(r => r.gid === g.id && enP(r.fecha)).length };
   const fotos = []; if (que.fotos) for (const f of D.fotos.filter(f => f.bol && enP(f.fecha) && al.some(a => a.id === f.al)).slice(-6)) { const u = await fotoGet(f.id); if (u) fotos.push({ t: f.t || "Evidencia", f: f.fecha, u: await miniatura(u) }); }
   return { t: "aula-rev", v: 1, gen: new Date().toISOString(), per: { n: T.n, ini: T.ini, fin }, docente: { nombre: yo().nombre, correo: yo().correo },

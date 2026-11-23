@@ -66,7 +66,7 @@ async function capSembrar() { try { const ap = document.getElementById("app"); i
     Dx.grupos.push(g); const al = g.alumnos;
     // asistencia
     const A = Dx.asis[g.id] = {}; const faltón = new Set(al.filter(() => rnd() < .15).map(a => a.id));
-    dias.forEach(d => { const r = A[d] = {}; al.forEach(a => { const x = rnd(), pf = faltón.has(a.id) ? .14 : .04; r[a.id] = x < pf ? "F" : x < pf + .03 ? "R" : x < pf + .045 ? "J" : "P"; }); });
+    dias.forEach(d => { const r = A[d] = {}; al.forEach(a => { const x = rnd(), pf = faltón.has(a.id) ? .14 : .04; if (x >= pf) r[a.id] = x < pf + .03 ? "R" : x < pf + .045 ? "J" : "P"; }); });
     // dos planeaciones: una terminada y una en curso
     const c1 = CAMPOS_ORDEN[k % 4], c2 = CAMPOS_ORDEN[(k + 1) % 4];
     const p1 = plan(g, c1, PROY[c1], dias[dias.length - 15], 5, 5, PROY[c1].re);
@@ -75,7 +75,7 @@ async function capSembrar() { try { const ap = document.getElementById("app"); i
     // evaluación de las sesiones hechas
     const nivel = {}; al.forEach(a => nivel[a.id] = 1.8 + rnd() * 2.2);
     [p1, p2].forEach(p => p.sesiones.forEach((s, i) => { if (!s.hecho) return; const r = { id: id("r"), pid: p.id, gid: g.id, ses: i, fecha: s.fecha, campo: p.campo, al: {}, obs: {} };
-      al.forEach(a => { if (A[s.fecha] && A[s.fecha][a.id] === "F") return; const cs = critsDe(p, a); r.al[a.id] = {}; cs.forEach(c => { r.al[a.id][c.i] = Math.max(1, Math.min(4, Math.round(nivel[a.id] + (rnd() - .5) * 1.2 + i * .08))); }); });
+      al.forEach(a => { if (A[s.fecha] && !A[s.fecha][a.id]) return; const cs = critsDe(p, a); r.al[a.id] = {}; cs.forEach(c => { r.al[a.id][c.i] = Math.max(1, Math.min(4, Math.round(nivel[a.id] + (rnd() - .5) * 1.2 + i * .08))); }); });
       const o = pick(al); r.obs[o.id] = pick(["Participó con entusiasmo y ayudó a sus compañeros de equipo.", "Le costó concentrarse; con apoyo logró terminar la actividad.", "Explicó con sus palabras lo que aprendió al grupo.", "Trajo información de su casa para compartir con el grupo."]);
       Dx.reg.push(r); }));
     // examen de matemáticas (evaluación rápida) del grado mayor del grupo
