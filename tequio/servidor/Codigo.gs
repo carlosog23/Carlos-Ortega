@@ -252,7 +252,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 74;
+const VERSION = 75;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -4747,6 +4747,7 @@ function vidDiaria_() {
 
 function tareaDiaria() {
   try { latido_(); CacheService.getScriptCache().remove('estadoRegistro'); } catch (e) {}
+  try { limpiarCorreosNoEnviar_(); } catch (e) {}
   try { tlpEnvioDiario_(); } catch (e) { bitacora_('tlamatini', '', [], 'Enlaces personales de Tlamatini', 'error: ' + e.message); }
   try { revisarEvidencias_({ desdeCero: true, limite: 150000 }); } catch (e) { bitacora_('evidencias', '', [], 'Revisión diaria del Drive', 'error: ' + e.message); }
   try { const c = cicloActual_(); cteSincronizar_(c, cteSesionesARevisar_(c, true)); } catch (e) { bitacora_('cte', '', [], 'Revisar el Drive del CTE', 'error: ' + e.message); }
@@ -5295,7 +5296,16 @@ function cifrasSemanal_(D, c, hoy) {
   return r;
 }
 
+/** Correos personales que la Supervisión pidió no usar: se quitan del directorio y nunca se les envía nada
+ *  (a esos directores todo les llega solo a su correo institucional). */
+const CORREOS_NO_ENVIAR = ['chespiercol@hotmail.com'];   // Mtro. Jesús Aarón Montero Meléndrez (Ignacio Allende): solo al institucional
+function limpiarCorreosNoEnviar_() {
+  leer_('dir').forEach(c => { let cambio = false;
+    ['correo1', 'correo2'].forEach(k => { if (CORREOS_NO_ENVIAR.indexOf(String(c[k] || '').trim().toLowerCase()) >= 0) { c[k] = ''; cambio = true; } });
+    if (cambio) { guardar_('dir', c); try { bitacora_('directorio', c.cct || '', [], 'Correo personal quitado', (c.nombre || '') + ': por indicación de la Supervisión, solo se usa su correo institucional'); } catch (e) {} } });
+}
 function informeSemanal_(prueba) {
+  try { limpiarCorreosNoEnviar_(); } catch (e) {}
   const hoy = hoy_(), vac = enVacaciones_(hoy);
   if (vac && !prueba) { bitacora_('informe semanal', '', [], 'Informe semanal', 'No se envió: ' + vac); return; }
   const D = datosSemanal_();
@@ -5307,7 +5317,7 @@ function informeSemanal_(prueba) {
   const res = [], nuevos = [];
   lista.forEach(({ c, r }) => {
     const atp = D.atpDe(c.cct);
-    const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /@/.test(m));
+    const para = [c.correo1, c.correo2].map(m => String(m || '').trim()).filter(m => /@/.test(m) && CORREOS_NO_ENVIAR.indexOf(m.toLowerCase()) < 0);
     const cc = atp ? String(atp.correo || '').split(',').map(m => m.trim()).filter(m => /@/.test(m)) : [];
     const html = htmlSemanal_(c, r, z, atp, hoy, prueba);
     const asunto = (prueba ? 'PRUEBA · ' : '') + 'Informe semanal · Esc. Prim. «' + c.escuela + '» · ' + fechaCorta_(hoy);
