@@ -84,14 +84,16 @@ function avElegir(g, pda, pre, extra) { const cat = avCatalogo(g, pda), ya = new
     v.querySelector("#aeOk").onclick = () => { if (!marcados.size) return toast("Marque al menos un contenido.");
       const conts = cat.filter(x => marcados.has(avKey(x.f, x.campo, x.c))).map(x => ({ f: x.f, campo: x.campo, c: x.c }));
       AVR().push({ id: uid(), gid: g.id, fecha: hoy(), src: extra ? "guia" : "manual", t: extra ? (v.querySelector("#aeT").value.trim() || "Fotos de guía o planeación") : "", fotos: extra ? extra.fotos : [], conts });
-      guardar(); cerrarDlg(); re(); toast(`<b>Avance actualizado:</b> ${conts.length} contenido${conts.length === 1 ? "" : "s"}.`, 3500); }; });
+      const rec = AVR()[AVR().length - 1]; guardar(); cerrarDlg(); re(); toast(`<b>Avance actualizado:</b> ${conts.length} contenido${conts.length === 1 ? "" : "s"}.`, 3500);
+      if (extra && extra.fotos.length) setTimeout(() => guiaOfrecer(g, rec), 600); }; });
 }
 
 async function avVerRegistro(g, pda, r) { if (!r) return;
   dlg(`<h3>${esc(r.t || "Fotos de guía o planeación")}</h3><p class="small muted">${fCorta(r.fecha)}</p>
     <div class="av-fotos mt">${(r.fotos || []).map(id => `<img data-src="${id}" alt="">`).join("") || `<p class="small muted">Se subió como PDF; no se guardaron fotos.</p>`}</div>
     <p class="small mt"><b>Contenidos:</b></p><ul class="small">${r.conts.map(x => `<li>${esc(x.c)} <span class="muted">· ${esc(x.campo)}</span></li>`).join("")}</ul>
-    <div class="fila fin mt"><button class="btn r" id="arB">Borrar</button><button class="btn p" id="arX">Cerrar</button></div>`, async v => {
+    ${(r.fotos || []).length ? `<button class="btn p mt" id="arP" style="width:100%;justify-content:center">${ic("chispa", 16)} Hacer mi planeación con estas páginas</button>` : ""}<div class="fila fin mt"><button class="btn r" id="arB">Borrar</button><button class="btn" id="arX">Cerrar</button></div>`, async v => {
+    v.querySelector("#arP") && (v.querySelector("#arP").onclick = () => { cerrarDlg(); guiaPlanearDesde(g, r); });
     v.querySelector("#arX").onclick = cerrarDlg;
     v.querySelector("#arB").onclick = async () => { if (!(await confirmar("Se borrarán estas fotos y su marca en el avance. Sus planeaciones no cambian.", "Borrar"))) return; (r.fotos || []).forEach(id => idbOp("readwrite", s => s.delete(id)).catch(() => {})); D.avr = AVR().filter(x => x !== r); guardar(); re(); };
     for (const i of v.querySelectorAll("img[data-src]")) { i.src = await fotoGet(i.dataset.src) || ""; i.onclick = () => window.open(i.src, "_blank"); } });
@@ -111,3 +113,32 @@ function avRevisarHTML(av) {
     <div class="av-lista mt">${C.L.map(x => `<div class="av-it e${x.e}"><span class="av-d ${["no", "pl", "ok"][x.e]}"></span><div class="tx"><b>${esc(x.c)}</b>${x.s ? `<small>${esc(x.s)}</small>` : ""}</div></div>`).join("")}</div></details>${avBarra(C.ok, C.pl, C.n)}</section>`).join("")}`; }
 function avInformeHTML(av) {
   return `<h2>Avance del programa</h2><table><thead><tr><th>Campo formativo</th><th class="c">Trabajados</th><th class="c">Planeados</th><th class="c">Pendientes</th><th class="c">Avance</th></tr></thead><tbody>${av.campos.map(C => `<tr><td>${esc(C.campo)}</td><td class="c">${C.ok}</td><td class="c">${C.pl}</td><td class="c">${C.n - C.ok - C.pl}</td><td class="c"><b>${C.n ? Math.round(100 * C.ok / C.n) : 0}%</b></td></tr>`).join("")}<tr><td><b>Total</b></td><td class="c"><b>${av.ok}</b></td><td class="c"><b>${av.pl}</b></td><td class="c"><b>${av.n - av.ok - av.pl}</b></td><td class="c"><b>${av.pct}%</b></td></tr></tbody></table>`; }
+
+/* ---------- planeación a partir de las páginas de la guía (o de la planeación de editorial) ---------- */
+function guiaOfrecer(g, rec) {
+  dlg(`<div class="tlami-esp" style="text-align:left"><span class="tlami-av">${ic("chispa", 30)}</span><h3>¿Le hago su planeación con estas páginas?</h3>
+    <p class="small">Tlami toma las actividades de su guía y las acomoda en una planeación de Tlamatini Aula: con los contenidos y PDA de su grado, la metodología, sesiones con inicio, desarrollo y cierre, y evaluación.${g.lectura ? " Además la <b>contextualiza</b> con la lectura de la realidad de su grupo." : " Si sube la lectura de la realidad de su grupo, también la contextualiza."}</p></div>
+    <div class="fila fin mt"><button class="btn" id="goNo">Ahora no</button><button class="btn p" id="goSi">${ic("chispa", 16)} Sí, hacer mi planeación</button></div>`, v => {
+    v.querySelector("#goNo").onclick = cerrarDlg; v.querySelector("#goSi").onclick = () => { cerrarDlg(); guiaPlanearDesde(g, rec); }; }); }
+function guiaPlanearDesde(g, rec) { const pda = avPda(); if (!pda || !rec) return;
+  const campos = [...new Set(rec.conts.map(x => x.campo))];
+  const sigue = campo => { const sel = {}; avFases(g).forEach(f => { const x = rec.conts.find(y => y.campo === campo && y.f === f); if (x) { const i = PDA_TXT(pda, campo, f).findIndex(z => nrm(z.c) === nrm(x.c)); if (i >= 0) sel[f] = i; } });
+    S.P = { campo, sel, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: Math.max(3, Math.min(10, (rec.fotos || []).length + 2)), min: 50, producto: "", guia: rec.id };
+    ir("planNueva", { P: S.P }); };
+  if (campos.length < 2) return sigue(campos[0]);
+  dlg(`<h3>¿De qué campo formativo será la planeación?</h3><p class="small muted mb">Sus páginas tienen contenidos de varios campos. Elija uno; después puede hacer otra planeación con las mismas fotos.</p>
+    <div class="lista">${campos.map(c => `<button class="it btnit" data-gc="${esc(c)}"><span class="tx"><b>${esc(c)}</b><small>${rec.conts.filter(x => x.campo === c).map(x => esc(x.c)).join(" · ")}</small></span>${ic("sig", 16)}</button>`).join("")}</div>
+    <div class="fila fin mt"><button class="btn" id="gcX">Cancelar</button></div>`, v => { v.querySelector("#gcX").onclick = cerrarDlg; v.querySelectorAll("[data-gc]").forEach(b => b.onclick = () => { cerrarDlg(); sigue(b.dataset.gc); }); }); }
+function guiaCardHTML(P) { const r = AVR().find(x => x.id === P.guia); if (!r) return "";
+  return `<section class="card mt" style="border:2px solid #E8A33D"><h3>${ic("chispa", 18)} Con las páginas de su guía</h3><p class="small">Tlami usará las ${(r.fotos || []).length} foto${(r.fotos || []).length === 1 ? "" : "s"} de <b>${esc(r.t || "su guía")}</b>: respeta las actividades de la guía y las acomoda en sesiones con inicio, desarrollo, cierre y evaluación, alineadas a los contenidos y PDA que eligió. El nombre del proyecto, el propósito y el producto se los propone Tlami si los deja en blanco.</p></section>`; }
+async function guiaPlanear(p, g, recId, conContexto) { const r = AVR().find(x => x.id === recId); if (!r) return false;
+  const archivos = []; for (const id of (r.fotos || []).slice(0, 8)) { const u = await fotoGet(id); if (u) archivos.push({ tipo: "image/jpeg", data: String(u).split(",")[1] }); }
+  if (!archivos.length) { toast("No se encontraron las fotos de la guía en este dispositivo. La planeación quedó con la estructura básica."); return false; }
+  tlamiEspera("Armando su planeación con las páginas de su guía" + (conContexto && g.lectura ? " y contextualizándola con su grupo" : "") + ". Puede tardar hasta un minuto.");
+  try { const j = await aulaPost("aulaIA", { modo: "guia", grados: g.grados, nivel: nivelTxt(g), archivos, titulo: p.titulo === "Proyecto de la guía" ? "" : p.titulo, campo: p.campo, metodo: (METODOS[p.metodo] || {}).n || p.metodo, escenario: ESCENARIOS[p.escenario] || "", min: p.min,
+      contenidos: Object.values(p.contenidos || {}).join(" | "), pdas: Object.entries(p.pdas || {}).map(([k, t]) => k + ".°: " + t).join(" | "), proposito: p.proposito, producto: p.producto,
+      contexto: conContexto && g.lectura ? g.lectura.sint : "", sesiones: p.sesiones.map(s => ({ fase: s.fase, des: s.desarrollo })) }, 240000), x = j.r || {};
+    if (x.titulo && (!p.titulo || p.titulo === "Proyecto de la guía")) p.titulo = x.titulo; if (x.proposito && !p.proposito) p.proposito = x.proposito; if (x.producto && !p.producto) p.producto = x.producto; if (x.problema) p.contexto = x.problema;
+    (x.sesiones || []).forEach((y, i) => { const s = p.sesiones[i]; if (!s || !y) return; if (y.inicio) s.inicio.txt = y.inicio; if (y.desarrollo) s.desarrollo = y.desarrollo; if (y.cierre) s.cierre.txt = y.cierre; if (y.evaluacion) s.eval = y.evaluacion; s.ia = true; });
+    p.guia = r.id; if (conContexto && g.lectura) p.ctx = hoy(); guardar(); cerrarDlg(); return true; }
+  catch (e) { cerrarDlg(); toast("<b>La planeación quedó con la estructura básica.</b> Tlami no pudo leer la guía ahora (" + esc(e.message) + "). Intente de nuevo más tarde.", 7000); return false; } }

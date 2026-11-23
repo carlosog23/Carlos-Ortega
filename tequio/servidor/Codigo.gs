@@ -252,7 +252,7 @@ const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recorda
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 76;
+const VERSION = 77;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -5966,6 +5966,29 @@ function aulaIA_(q) {
       '', 'Responde SOLO con JSON: {"inicio": "pregunta detonadora y recuperación de saberes (2 a 4 oraciones)", "desarrollo": "actividades en pasos numerados, con tiempos", "cierre": "cómo se cierra y se socializa", "evaluacion": "qué observar y con qué instrumento, en una oración", "materiales": "lista breve", "ajustes": "sugerencia breve para alumnos que requieren apoyo"}']).filter(x => x !== '');
     const j = aulaJSON_(p.join('\n'));
     return { r: { inicio: L(j.inicio, 1200), desarrollo: String(j.desarrollo || '').slice(0, 3500), cierre: L(j.cierre, 1200), evaluacion: L(j.evaluacion, 400), materiales: L(j.materiales, 500), ajustes: L(j.ajustes, 700) } };
+  }
+  if (modo === 'guia') {
+    // Arma una planeación de Tlamatini Aula a partir de las páginas de la guía de editorial (o de la planeación de editorial) del docente
+    const TIPOS = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const arch = (Array.isArray(d.archivos) ? d.archivos : []).slice(0, 8).filter(a => a && TIPOS.indexOf(a.tipo) >= 0 && typeof a.data === 'string' && a.data.length > 100).map(a => ({ tipo: a.tipo, data: a.data }));
+    if (!arch.length) throw new Error('No llegaron las páginas de la guía.');
+    if (arch.reduce((t, a) => t + a.data.length, 0) > 19000000) throw new Error('Las fotos pesan mucho. Use menos páginas.');
+    const ses = (Array.isArray(d.sesiones) ? d.sesiones : []).slice(0, 20);
+    const p = [].concat(base, [
+      'Un docente de ' + gtxt + ' trabaja con una GUÍA DE EDITORIAL (o una planeación de editorial). Adjuntó fotos de las páginas que va a trabajar. Léelas con atención: lecciones, lecturas, actividades, ejercicios y números de página.',
+      'Tu tarea: convertir esas páginas en una PLANEACIÓN DIDÁCTICA de la Nueva Escuela Mexicana, práctica y lista para usarse, que la guía por sí sola no tiene.',
+      'Campo formativo: ' + L(d.campo, 60) + ' · Metodología: ' + L(d.metodo, 80) + (d.escenario ? ' · Escenario: ' + L(d.escenario, 40) : '') + ' · Sesiones de unos ' + (parseInt(d.min, 10) || 50) + ' minutos.',
+      'Contenido(s) del Programa Sintético: ' + L(d.contenidos, 600), 'PDA por grado: ' + L(d.pdas, 1500),
+      d.titulo ? 'Nombre del proyecto que eligió el docente: ' + L(d.titulo, 150) : '', d.proposito ? 'Propósito que escribió: ' + L(d.proposito, 400) : '', d.producto ? 'Producto final que eligió: ' + L(d.producto, 200) : '',
+      d.contexto ? 'LECTURA DE LA REALIDAD del grupo (contextualiza TODO con ella: el problema, los ejemplos, las situaciones, los materiales y el producto deben salir de su comunidad): ' + L(d.contexto, 2500) : 'No hay lectura de la realidad: contextualiza con la vida cotidiana de una comunidad rural o semiurbana de Baja California, sin inventar datos del grupo.',
+      'Reglas: 1) Respeta y APROVECHA las actividades de la guía: cita la página o la lección cuando la uses («Guía, pág. 45»). 2) Agrega lo que la guía no tiene: pregunta detonadora, trabajo colaborativo, vínculo con la comunidad y las familias, cierre con socialización y evaluación formativa con criterios observables ligados a los PDA. 3) Respeta las fases de la metodología en el orden de las sesiones. 4) Materiales sencillos y accesibles. 5) No inventes páginas que no aparezcan en las fotos.',
+      grados.length > 1 ? 'Es multigrado: propone una actividad común y la variante o el reto de cada grado.' : '',
+      '', 'Hay ' + ses.length + ' sesiones con estas fases de la metodología:', ses.map((x, i) => (i + 1) + '. ' + L(x && x.fase, 150)).join('\n'), '',
+      'Responde SOLO con JSON: {"titulo": "nombre del proyecto, breve y atractivo", "problema": "situación o problema de la comunidad que da sentido al proyecto (2 a 4 oraciones)", "proposito": "1 o 2 oraciones", "producto": "producto final", "sesiones": [{"inicio": "2 a 4 oraciones", "desarrollo": "actividades en pasos numerados con tiempos, citando la guía donde aplique", "cierre": "1 a 3 oraciones", "evaluacion": "qué observar y con qué instrumento"}] } con exactamente ' + ses.length + ' sesiones en el mismo orden.']);
+    const j = aulaJSON_(p.join('\n'), 0.5, { archivos: arch, max: 8192 });
+    const out = (Array.isArray(j.sesiones) ? j.sesiones : []).slice(0, ses.length).map(x => ({ inicio: L(x && x.inicio, 1200), desarrollo: String((x && x.desarrollo) || '').slice(0, 3500), cierre: L(x && x.cierre, 1200), evaluacion: L(x && x.evaluacion, 500) }));
+    if (!out.length) throw new Error('Tlami no pudo leer las páginas. Revise que las fotos se vean bien.');
+    return { r: { titulo: L(j.titulo, 150), problema: L(j.problema, 900), proposito: L(j.proposito, 500), producto: L(j.producto, 200), sesiones: out } };
   }
   if (modo === 'avance') {
     // Lee fotos (o PDF) de la guía de editorial o de la planeación del docente y reconoce qué contenidos del Programa Sintético se trabajan
