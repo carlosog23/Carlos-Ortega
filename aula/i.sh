@@ -8,7 +8,7 @@ BASE="https://carlosog23.github.io/Carlos-Ortega/aula"
 TMP="$(mktemp -d /tmp/aula-XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 echo "Descargando el instalador de Aula Zona 050…"
-mkdir -p "$TMP/recursos/ef" "$TMP/recursos/web/ajedrez" "$TMP/recursos/web/img"
+mkdir -p "$TMP/recursos/ef" "$TMP/recursos/web/ajedrez" "$TMP/recursos/web/img" "$TMP/recursos/web/retos"
 bajar() { wget -q --tries=3 -O "$TMP/$1" "$BASE/$1?v=$(date +%s)"; }
 bajar instalar.sh
 bajar aula.json
@@ -23,6 +23,9 @@ bajar recursos/web/img/zona050.png
 bajar recursos/web/img/firma-autor.svg
 bajar recursos/web/img/firma-autor-blanca.svg
 bajar recursos/web/ajedrez/index.html
+bajar recursos/web/retos/index.html
+bajar recursos/web/retos/banco.js
+bajar recursos/web/retos/maestro.html
 bajar recursos/web/ajedrez/chess.js
 bajar recursos/web/ajedrez/LICENCIA-chess.js.txt
 bash "$TMP/instalar.sh" "$@" </dev/null

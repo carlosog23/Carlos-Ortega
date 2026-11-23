@@ -12,9 +12,12 @@
 #   - Educación Física en el salón para días de lluvia (app propia, sin internet).
 #   - Biblioteca sin internet: ajedrez (también en red entre computadoras), juegos de mente,
 #     sudoku, geografía y mecanografía. Funciona aunque la escuela no tenga internet.
+#   - Retos Zona 050: práctica diaria (cálculo, tablas, problemas, fracciones, ortografía, lectura)
+#     con un tablero para que el maestro vea el avance de cada alumno.
 #   - Una computadora puede ser el «servidor de la escuela» (--servidor): organiza el ajedrez en red,
-#     comparte una carpeta con videos y libros, y guarda enciclopedia, diccionario y simulaciones
-#     de ciencias (Kiwix) para consultarlas sin internet desde todas las computadoras.
+#     guarda los resultados de los Retos, comparte una carpeta con videos y libros, y guarda
+#     enciclopedia, diccionario y simulaciones de ciencias (Kiwix) y Kolibri (videos y ejercicios
+#     de Khan Academy en español) para usarlos sin internet desde todas las computadoras.
 #
 #  Uso (con la computadora conectada por cable de red y CON internet solo durante la instalación):
 #     sudo bash instalar.sh --clave-maestro CLAVE
@@ -48,7 +51,7 @@ while [ $# -gt 0 ]; do
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
     --servidor) SERVIDOR=1; shift ;;
     --wikipedia) WIKIPEDIA=1; SERVIDOR=1; shift ;;
-    -h|--help|--ayuda) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help|--ayuda) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) rojo "Opción no reconocida: $1"; exit 1 ;;
   esac
 done
@@ -189,6 +192,7 @@ After=network.target
 ExecStart=/usr/bin/python3 /usr/local/bin/zona050-red
 Restart=always
 DynamicUser=yes
+StateDirectory=aula-red
 [Install]
 WantedBy=multi-user.target
 SERVICIO
@@ -348,6 +352,8 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   paso "Cuenta del maestro"
   id maestro >/dev/null 2>&1 || useradd -m -s /bin/bash -c "Maestro" maestro
   echo "maestro:$CLAVE_MAESTRO" | chpasswd
+  # La misma clave abre el tablero del maestro de «Retos Zona 050» (se guarda solo su huella, no la clave)
+  mkdir -p /etc/aula; printf '%s' "$CLAVE_MAESTRO" | sha256sum | cut -d' ' -f1 > /etc/aula/clave-maestro.sha256; chmod 644 /etc/aula/clave-maestro.sha256
   for g in audio video plugdev lpadmin; do usermod -aG "$g" maestro 2>/dev/null || true; done
   ESC=/home/maestro/Escritorio; mkdir -p "$ESC"
   acceso() { # archivo nombre exec icono
@@ -358,6 +364,7 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   acceso aula "Aula Zona 050 (pantalla del alumno)" "aula-inicio" applications-education
   acceso youtube "YouTube" "firefox --new-window https://www.youtube.com/" multimedia-video-player
   acceso biblioteca "Biblioteca sin internet" "firefox --new-window http://localhost:8050/" accessories-dictionary
+  acceso retos-maestro "Retos · avance de mis alumnos" "firefox --new-window http://localhost:8050/retos/maestro.html" x-office-spreadsheet
   acceso word "Documentos (Word)" "libreoffice --writer" libreoffice-writer
   acceso excel "Hojas de cálculo (Excel)" "libreoffice --calc" libreoffice-calc
   acceso powerpoint "Presentaciones (PowerPoint)" "libreoffice --impress" libreoffice-impress
@@ -424,9 +431,22 @@ KIWIX
   else
     amarillo "  ! No se pudo instalar Kiwix; la enciclopedia quedará pendiente."
   fi
+  # Kolibri: videos y ejercicios de Khan Academy y otros canales, sin internet (puerto 8080)
+  if ! dpkg -s kolibri >/dev/null 2>&1; then
+    echo "  Instalando Kolibri…"
+    instalar software-properties-common
+    if add-apt-repository -y ppa:learningequality/kolibri >/dev/null 2>&1 && apt-get update -q >/dev/null 2>&1; then
+      DEBIAN_FRONTEND=noninteractive $APT install kolibri >/dev/null 2>&1 && echo "  + Kolibri" || amarillo "  ! no se pudo instalar Kolibri"
+    else amarillo "  ! no se pudo agregar el repositorio de Kolibri"; fi
+  fi
+  if dpkg -s kolibri >/dev/null 2>&1; then
+    systemctl enable kolibri >/dev/null 2>&1; systemctl restart kolibri >/dev/null 2>&1
+    if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then ufw allow 8080/tcp >/dev/null; fi
+  fi
   systemctl restart zona050-red.service >/dev/null 2>&1
   if id maestro >/dev/null 2>&1; then
     ESC=/home/maestro/Escritorio; mkdir -p "$ESC"
+    dpkg -s kolibri >/dev/null 2>&1 && printf '[Desktop Entry]\nType=Application\nName=Kolibri (videos y ejercicios sin internet)\nExec=firefox --new-window http://localhost:8080/\nIcon=applications-education\nTerminal=false\n' > "$ESC/kolibri.desktop" && chmod 755 "$ESC/kolibri.desktop" && chown maestro:maestro "$ESC/kolibri.desktop"
     printf '[Desktop Entry]\nType=Application\nName=Carpeta de la escuela (la ven los alumnos)\nExec=xdg-open /srv/aula/compartido\nIcon=folder-publicshare\nTerminal=false\n' > "$ESC/carpeta-escuela.desktop"
     chmod 755 "$ESC/carpeta-escuela.desktop"; chown maestro:maestro "$ESC/carpeta-escuela.desktop"
   fi

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retos Zona 050</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0}body{font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:#F3F7FA;color:#0F3B5F}
+header{background:#0F3B5F;color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px}header h1{margin:0;font-size:24px}header .sub{opacity:.75;font-size:14px}header .esp{flex:1}
+header button{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:8px 14px;font-size:15px;font-weight:700;cursor:pointer}
+main{padding:20px 22px;max-width:1000px;margin:0 auto}
+.marca{display:flex;align-items:center;gap:10px;color:#fff}.marca img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:14px;line-height:1.15}.marca small{display:block;font-size:11px;opacity:.75;font-style:italic}
+.firma{display:flex;flex-direction:column;align-items:center;gap:4px;margin:26px 0 8px;opacity:.75}.firma span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:170px}
+h2{font-size:28px;margin:6px 0 12px}
+label.campo{display:block;font-size:18px;font-weight:700;margin:12px 0}
+input,select{font-size:20px;padding:10px 14px;border-radius:12px;border:2px solid #D6E3EC;margin-top:6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.chip{font-size:20px;font-weight:800;padding:10px 18px;border-radius:14px;border:2px solid #D6E3EC;background:#fff;color:#0F3B5F;cursor:pointer}.chip[aria-pressed=true]{background:#0F3B5F;color:#fff;border-color:#0F3B5F}
+.btn{border:0;border-radius:14px;padding:14px 22px;font-size:19px;font-weight:800;cursor:pointer;background:#E8772E;color:#fff}.btn.sec{background:#fff;color:#0F3B5F;border:2px solid #D6E3EC}
+.tarjetas{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));margin-top:10px}
+.tarjeta{background:#fff;border:2px solid #D6E3EC;border-radius:20px;padding:18px;cursor:pointer;text-align:left;font:inherit;color:inherit}.tarjeta:hover{border-color:#E8772E;background:#FFF6EE}.tarjeta .e{font-size:48px}.tarjeta b{display:block;font-size:20px;margin-top:4px}.tarjeta span{color:#5F6B76;font-size:14px}
+.prog{height:12px;background:#E3ECF2;border-radius:9px;overflow:hidden;margin:6px 0 18px}.prog i{display:block;height:100%;background:#2E9E5B;transition:width .3s}
+.preg{background:#fff;border:2px solid #D6E3EC;border-radius:22px;padding:24px}
+.preg .q{font-size:34px;font-weight:800;margin:0 0 18px;line-height:1.25}.preg .q.t{font-size:24px}
+.texto{background:#FFF8EC;border:2px solid #F3D9B1;border-radius:16px;padding:16px 18px;font-size:20px;line-height:1.5;margin-bottom:16px}
+.ops{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.op{font-size:26px;font-weight:800;padding:18px;border-radius:16px;border:3px solid #D6E3EC;background:#F8FAFC;color:#0F3B5F;cursor:pointer;text-align:center}.op:hover{border-color:#E8772E}
+.op.bien{background:#DDF1E6;border-color:#2E9E5B;color:#14532d}.op.mal{background:#FBE4E1;border-color:#C0392B;color:#7f1d1d}
+.res{text-align:center}.res .e{font-size:90px}.res b{font-size:40px;display:block}
+.aviso{background:#FFF6EE;border:2px solid #F3C7A1;border-radius:14px;padding:12px 16px;margin-top:14px;font-size:15px}
+</style>
+</head>
+<body>
+<header><span style="font-size:34px">🏅</span><div><h1>Retos Zona 050</h1><div class="sub">Practica un poquito cada día · funciona sin internet</div></div><div class="esp"></div><button id="bMenu" hidden>← Retos</button>
+<div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
+<main id="app"></main>
+<script src="banco.js"></script>
+<script>
+const $ = s => document.querySelector(s), app = $("#app"), esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1)), baraja = L => { L = L.slice(); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L; };
+const FIRMA = `<div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>`;
+const SRV_CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servidor:8050", location.origin])];
+let SRV = "", A = (() => { try { return JSON.parse(sessionStorage.getItem("rz-alumno") || "null"); } catch (e) { return null; } })();
+$("#bMenu").onclick = () => menu();
+
+/* ---------- generadores de preguntas (opción múltiple) ---------- */
+function opsNum(c, rango) { const S = new Set([c]); let n = 0; while (S.size < 4 && n++ < 60) { const d = c + ri(-rango, rango); if (d >= 0 && d !== c) S.add(d); } let k = 1; while (S.size < 4) S.add(c + k++); return baraja([...S]).map(String); }
+function q(txt, c, ops) { return { q: txt, c: String(c), ops: ops || opsNum(c, Math.max(3, Math.round(c * 0.2))) }; }
+const GEN = {
+  calculo: g => { if (g === 1) { const a = ri(1, 9), b = ri(1, 10 - a); return Math.random() < .6 ? q(`${a} + ${b} =`, a + b) : q(`${a + b} − ${a} =`, b); }
+    if (g === 2) { const a = ri(10, 60), b = ri(2, 30); return Math.random() < .5 ? q(`${a} + ${b} =`, a + b) : q(`${a + b} − ${b} =`, a); }
+    if (g === 3) { const t = ri(0, 2); if (t === 0) { const a = ri(100, 500), b = ri(20, 300); return q(`${a} + ${b} =`, a + b); } if (t === 1) { const a = ri(200, 900), b = ri(10, 150); return q(`${a} − ${b} =`, a - b); } const a = ri(2, 5), b = ri(2, 10); return q(`${a} × ${b} =`, a * b); }
+    if (g === 4) { const t = ri(0, 2); if (t === 0) { const a = ri(12, 49), b = ri(2, 9); return q(`${a} × ${b} =`, a * b); } if (t === 1) { const b = ri(2, 9), c = ri(3, 12); return q(`${b * c} ÷ ${b} =`, c); } const a = ri(1000, 5000), b = ri(100, 999); return q(`${a} − ${b} =`, a - b); }
+    if (g === 5) { const t = ri(0, 2); if (t === 0) { const a = ri(11, 99), b = ri(11, 25); return q(`${a} × ${b} =`, a * b); } if (t === 1) { const a = ri(10, 90) / 10, b = ri(10, 90) / 10; const c = Math.round((a + b) * 10) / 10; return q(`${a} + ${b} =`, c, baraja([c, Math.round((c + .1) * 10) / 10, Math.round((c - 1) * 10) / 10, Math.round((c + 1) * 10) / 10]).map(String)); } const b = ri(3, 12), c = ri(12, 60); return q(`${b * c} ÷ ${b} =`, c); }
+    const t = ri(0, 2); if (t === 0) { const p = [10, 20, 25, 50][ri(0, 3)], n = [40, 60, 80, 100, 120, 200, 300][ri(0, 6)]; return q(`${p}% de ${n} =`, n * p / 100); }
+    if (t === 1) { const a = ri(100, 999) / 100, b = ri(2, 5); const c = Math.round(a * b * 100) / 100; return q(`${a} × ${b} =`, c, baraja([c, Math.round((c + 1) * 100) / 100, Math.round(c * 10 * 100) / 100, Math.round((c - .1) * 100) / 100]).map(String)); }
+    const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9); return q(`${a} × ${b} + ${c} =`, a * b + c); },
+  tablas: g => { const a = g <= 3 ? ri(2, 5) : ri(2, 10), b = ri(1, 10); return q(`${a} × ${b} =`, a * b); },
+  fracciones: g => { const t = ri(0, 2);
+    if (t === 0) { const d = [2, 3, 4, 5, 6, 8][ri(0, 5)], n = ri(1, d - 1), k = ri(2, 4); const c = `${n * k}/${d * k}`; return { q: `¿Qué fracción es igual a ${n}/${d}?`, c, ops: baraja([c, `${n + 1}/${d * k}`, `${n * k}/${d}`, `${n}/${d * k}`]) }; }
+    if (t === 1) { const d = [4, 5, 6, 8, 10][ri(0, 4)], a = ri(1, d - 2), b = ri(1, d - a - 1); const c = `${a + b}/${d}`; return { q: `${a}/${d} + ${b}/${d} =`, c, ops: baraja([c, `${a + b}/${d * 2}`, `${a * b}/${d}`, `${Math.abs(a - b) || 1}/${d}`]) }; }
+    const L = [["1/2", "1/4"], ["3/4", "1/2"], ["2/3", "1/3"], ["1/3", "1/5"], ["5/6", "2/3"], ["3/5", "1/2"]][ri(0, 5)]; return { q: "¿Cuál fracción es mayor?", c: L[0], ops: baraja(L) }; },
+  problemas: g => { const t = ri(0, 3);
+    if (g <= 2) { const a = ri(3, 9), b = ri(1, 8); return t % 2 ? q(`Ana tenía ${a} fresas y su abuela le dio ${b} más. ¿Cuántas tiene?`, a + b) : q(`Había ${a + b} pájaros en un cable y se fueron ${b}. ¿Cuántos quedaron?`, a); }
+    if (g <= 4) { if (t === 0) { const c = ri(3, 9), p = ri(5, 12); return q(`En el campo llenaron ${c} cajas con ${p} jitomates cada una. ¿Cuántos jitomates juntaron?`, c * p); }
+      if (t === 1) { const n = ri(3, 8), c = ri(4, 12); return q(`Se reparten ${n * c} lápices entre ${n} equipos por igual. ¿Cuántos le tocan a cada equipo?`, c); }
+      const a = ri(120, 450), b = ri(30, 110); return q(`Una pipa traía ${a} litros de agua y se usaron ${b}. ¿Cuántos litros quedan?`, a - b); }
+    if (t === 0) { const p = ri(12, 35), n = ri(3, 9); return q(`Un kilo de fresa cuesta $${p}. ¿Cuánto cuestan ${n} kilos?`, p * n); }
+    if (t === 1) { const n = [20, 40, 50, 80, 100][ri(0, 4)]; return q(`En un grupo de ${n} alumnos, el 25% usa lentes. ¿Cuántos usan lentes?`, n / 4); }
+    if (t === 2) { const k = ri(60, 90), h = ri(2, 5); return q(`Un camión avanza ${k} km cada hora. ¿Cuántos km recorre en ${h} horas?`, k * h); }
+    const a = ri(150, 400), b = ri(150, 400); return q(`Una escuela juntó ${a} kg de papel en marzo y ${b} kg en abril. ¿Cuántos kg juntó en total?`, a + b); },
+  ortografia: g => { const L = ORTOGRAFIA.filter(x => g >= x.g[0] && g <= x.g[1]), x = L[ri(0, L.length - 1)]; return { q: x.p || "¿Cuál está bien escrita?", c: x.ops[0], ops: baraja(x.ops), t: 1 }; }
+};
+const AREAS = [["calculo", "🧮", "Cálculo mental", "Sumas, restas y más, de cabeza", 1], ["tablas", "✖️", "Tablas de multiplicar", "Para dominarlas", 2], ["problemas", "🧩", "Problemas", "Situaciones de la vida diaria", 1],
+  ["fracciones", "🍕", "Fracciones", "Partes de un entero", 3], ["ortografia", "✍️", "Ortografía", "Escribe bien las palabras", 1], ["lectura", "📖", "Lectura", "Lee y contesta", 1]];
+function armarReto(area, g) {
+  if (area === "lectura") { const L = LECTURAS.filter(x => g >= x.g[0] && g <= x.g[1]), x = L[ri(0, L.length - 1)]; return x.q.map(([p, ops]) => ({ q: p, c: ops[0], ops: baraja(ops), texto: x, t: 1 })); }
+  const out = [], vistos = new Set(); let n = 0; while (out.length < 10 && n++ < 200) { const p = GEN[area](g); if (vistos.has(p.q)) continue; vistos.add(p.q); out.push(p); } return out; }
+
+/* ---------- servidor ---------- */
+async function buscarSrv() { for (const s of SRV_CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const j = await (await fetch(s + "/api/ping", { signal: c.signal })).json(); clearTimeout(t); if (j.ok && j.servidor) return SRV = s; } catch (e) {} } return ""; }
+function pendientes() { try { return JSON.parse(localStorage.getItem("rz-pend") || "[]"); } catch (e) { return []; } }
+async function enviar(r) { const L = pendientes(); L.push(r); try { localStorage.setItem("rz-pend", JSON.stringify(L)); } catch (e) {}
+  if (!SRV) await buscarSrv(); if (!SRV) return false; const quedan = [];
+  for (const x of pendientes()) { try { const j = await (await fetch(SRV + "/api/retos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(x) })).json(); if (!j.ok) quedan.push(x); } catch (e) { quedan.push(x); } }
+  try { localStorage.setItem("rz-pend", JSON.stringify(quedan)); } catch (e) {} return quedan.length === 0; }
+
+/* ---------- pantallas ---------- */
+function entrada() { $("#bMenu").hidden = true; let g = A ? A.grado : 0, gr = A ? A.grupo : "";
+  app.innerHTML = `<h2>¡Hola! ¿Quién va a practicar?</h2>
+   <div class="campo" style="font-size:18px;font-weight:700">¿En qué grado vas?<div class="chips" id="cG">${[1, 2, 3, 4, 5, 6].map(n => `<button class="chip" data-g="${n}" aria-pressed="${g === n}">${n}.°</button>`).join("")}</div></div>
+   <div class="campo" style="font-size:18px;font-weight:700;margin-top:14px">¿Tu grupo?<div class="chips" id="cGr">${["A", "B", "C", "D", "Único"].map(x => `<button class="chip" data-gr="${x}" aria-pressed="${gr === x}">${x}</button>`).join("")}</div></div>
+   <label class="campo">Escribe tu nombre completo<br><input id="nom" maxlength="40" value="${esc(A ? A.nombre : "")}" placeholder="Nombre y apellidos" style="width:min(460px,100%)"></label>
+   <button class="btn" id="bOk">Empezar ▶</button>${FIRMA}`;
+  document.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { g = +b.dataset.g; document.querySelectorAll("[data-g]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+  document.querySelectorAll("[data-gr]").forEach(b => b.onclick = () => { gr = b.dataset.gr; document.querySelectorAll("[data-gr]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+  $("#bOk").onclick = () => { const n = $("#nom").value.trim().replace(/\s+/g, " "); if (!g) return alert("Elige tu grado."); if (!gr) return alert("Elige tu grupo."); if (n.length < 3) return alert("Escribe tu nombre.");
+    A = { grado: g, grupo: gr, nombre: n }; try { sessionStorage.setItem("rz-alumno", JSON.stringify(A)); } catch (e) {} menu(); }; }
+function menu() { if (!A) return entrada(); $("#bMenu").hidden = true;
+  app.innerHTML = `<h2>Hola, ${esc(A.nombre.split(" ")[0])} 👋</h2><p style="margin:-6px 0 6px;color:#5F6B76">${A.grado}.° ${A.grupo === "Único" ? "" : A.grupo} · elige un reto de 10 preguntas <button class="btn sec" id="bCam" style="padding:6px 12px;font-size:14px;margin-left:8px">No soy yo</button></p>
+   <div class="tarjetas">${AREAS.filter(a => A.grado >= a[4]).map(([k, e, t, d]) => `<button class="tarjeta" data-a="${k}"><div class="e">${e}</div><b>${t}</b><span>${d}</span></button>`).join("")}</div>
+   <p id="nPend" class="aviso" hidden></p>${FIRMA}`;
+  $("#bCam").onclick = () => { A = null; try { sessionStorage.removeItem("rz-alumno"); } catch (e) {} entrada(); };
+  document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => reto(b.dataset.a));
+  const p = pendientes().length; if (p) { const n = $("#nPend"); n.hidden = false; n.textContent = `Hay ${p} reto${p === 1 ? "" : "s"} guardado${p === 1 ? "" : "s"} en esta computadora que se enviarán a tu maestro cuando se encuentre el servidor de la escuela.`; } }
+function reto(area) { $("#bMenu").hidden = false; const P = armarReto(area, A.grado), t0 = Date.now(); let i = 0, ok = 0, bloqueo = false; const nombreArea = AREAS.find(a => a[0] === area)[2];
+  const pinta = () => { const p = P[i];
+    app.innerHTML = `<p style="margin:0;font-weight:700">${nombreArea} · pregunta ${i + 1} de ${P.length}</p><div class="prog"><i style="width:${100 * i / P.length}%"></i></div>
+     <div class="preg">${p.texto ? `<div class="texto"><b>${esc(p.texto.t)}</b><br>${esc(p.texto.x)}</div>` : ""}<p class="q ${p.t ? "t" : ""}">${esc(p.q)}</p>
+     <div class="ops">${p.ops.map(o => `<button class="op" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
+    document.querySelectorAll("[data-o]").forEach(b => b.onclick = () => { if (bloqueo) return; bloqueo = true; const bien = b.dataset.o === p.c; if (bien) ok++;
+      b.classList.add(bien ? "bien" : "mal"); if (!bien) document.querySelectorAll("[data-o]").forEach(x => { if (x.dataset.o === p.c) x.classList.add("bien"); });
+      setTimeout(() => { bloqueo = false; i++; if (i < P.length) pinta(); else fin(); }, bien ? 700 : 1700); }); };
+  const fin = async () => { const pct = Math.round(100 * ok / P.length), est = pct >= 90 ? "🏆" : pct >= 70 ? "⭐" : pct >= 50 ? "👍" : "💪";
+    app.innerHTML = `<div class="preg res"><div class="e">${est}</div><b>${ok} de ${P.length}</b><p style="font-size:22px">${pct >= 90 ? "¡Excelente trabajo!" : pct >= 70 ? "¡Muy bien!" : pct >= 50 ? "¡Vas bien! Sigue practicando." : "¡No te rindas! Inténtalo otra vez."}</p>
+     <p id="envio" style="color:#5F6B76">Guardando tu resultado…</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn" id="bOtra">Otro reto igual</button><button class="btn sec" id="bVolver">Elegir otro reto</button></div></div>`;
+    $("#bOtra").onclick = () => reto(area); $("#bVolver").onclick = menu;
+    const r = Object.assign({}, A, { area, aciertos: ok, total: P.length, seg: Math.round((Date.now() - t0) / 1000), fecha: new Date().toISOString() });
+    const ok2 = await enviar(r); const e = $("#envio"); if (e) e.textContent = ok2 ? "✔ Tu resultado llegó a tu maestro." : "Tu resultado quedó guardado y se enviará cuando se encuentre el servidor de la escuela."; };
+  pinta(); }
+menu();
+</script>
+</body>
+</html>

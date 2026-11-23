@@ -7,13 +7,16 @@
 #       · comparte la carpeta /srv/aula/compartido (videos, PDF, audios que suba el maestro);
 #       · informa qué libros sin internet (Kiwix: enciclopedia, diccionario, simulaciones) hay.
 # Solo usa la biblioteca estándar de Python 3. Supervisión Escolar Zona 050 · Mtro. Carlos Ortega.
-import json, os, re, secrets, socket, threading, time, html, urllib.parse
+import json, os, re, secrets, socket, threading, time, html, urllib.parse, hashlib, datetime
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 PUERTO = int(os.environ.get("AULA_PUERTO", "8050"))
 WEB = os.environ.get("AULA_WEB", "/usr/share/aula/web")
 COMPARTIDO = os.environ.get("AULA_COMPARTIDO", "/srv/aula/compartido")
 KIWIX = os.environ.get("AULA_KIWIX", "/srv/aula/kiwix")
+DATOS = os.environ.get("AULA_DATOS") or os.environ.get("STATE_DIRECTORY") or "/var/lib/aula-red"
+CLAVE = os.environ.get("AULA_CLAVE_FILE", "/etc/aula/clave-maestro.sha256")
+AREAS = {"calculo", "tablas", "problemas", "fracciones", "ortografia", "lectura"}
 SALAS, CANDADO = {}, threading.Lock()
 ES_SERVIDOR = os.environ.get("AULA_SERVIDOR") == "1" or socket.gethostname() == "aula-servidor"
 DURA = 3 * 3600          # una sala sin movimiento se borra a las 3 horas
@@ -27,7 +30,7 @@ def publica(s):
     return {k: s[k] for k in ("id", "blancas", "negras", "movs", "estado", "resultado", "v", "creada")}
 
 def nombre_limpio(t):
-    t = re.sub(r"\s+", " ", str(t or "")).strip()[:24]
+    t = re.sub(r"\s+", " ", str(t or "")).strip()[:40]
     return t or "Jugador"
 
 TIPOS = {".zim": "application/octet-stream", ".mp4": "video/mp4", ".webm": "video/webm", ".mp3": "audio/mpeg", ".pdf": "application/pdf", ".js": "text/javascript", ".mjs": "text/javascript"}
@@ -95,6 +98,8 @@ class Manejador(SimpleHTTPRequestHandler):
             except Exception:
                 pass
             return self.json({"kiwix": libros, "compartido": comp})
+        if ruta == "/api/retos/resumen":
+            return self.resumen()
         if ruta == "/compartido" or ruta.startswith("/compartido/"):
             return self.compartido(ruta)
         return super().do_GET()
@@ -127,10 +132,63 @@ class Manejador(SimpleHTTPRequestHandler):
         self.path = "/" + urllib.parse.quote(os.path.basename(dest))
         return super().do_GET()
 
-    # ---------- POST (ajedrez en red) ----------
+    # ---------- Retos Zona 050: resultados de los alumnos ----------
+    def clave_ok(self, c):
+        try:
+            h = open(CLAVE).read().strip()
+        except Exception:
+            return None
+        return bool(c) and hashlib.sha256(c.encode("utf-8")).hexdigest() == h
+
+    def resumen(self):
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ok = self.clave_ok((q.get("clave") or [""])[0])
+        if ok is None:
+            return self.json({"error": "Esta computadora no tiene configurada la clave del maestro."}, 503)
+        if not ok:
+            return self.json({"error": "Clave incorrecta."}, 403)
+        desde = (q.get("desde") or [""])[0]
+        al = {}
+        try:
+            with open(os.path.join(DATOS, "retos.jsonl"), encoding="utf-8") as f:
+                for ln in f:
+                    try:
+                        r = json.loads(ln)
+                    except Exception:
+                        continue
+                    if desde and r.get("fecha", "") < desde:
+                        continue
+                    k = (r["grado"], r["grupo"], r["nombre"].lower())
+                    a = al.setdefault(k, {"grado": r["grado"], "grupo": r["grupo"], "nombre": r["nombre"], "n": 0, "ac": 0, "tot": 0, "ult": "", "areas": {}})
+                    a["n"] += 1; a["ac"] += r["aciertos"]; a["tot"] += r["total"]; a["ult"] = max(a["ult"], r.get("fecha", ""))
+                    x = a["areas"].setdefault(r["area"], {"n": 0, "ac": 0, "tot": 0})
+                    x["n"] += 1; x["ac"] += r["aciertos"]; x["tot"] += r["total"]
+        except FileNotFoundError:
+            pass
+        L = sorted(al.values(), key=lambda a: (a["grado"], a["grupo"], a["nombre"].lower()))
+        return self.json({"alumnos": L, "equipo": socket.gethostname()})
+
+    def guardar_reto(self, d):
+        try:
+            r = {"grado": int(d.get("grado")), "grupo": str(d.get("grupo") or "")[:8], "nombre": nombre_limpio(d.get("nombre"))[:40],
+                 "area": str(d.get("area")), "aciertos": int(d.get("aciertos")), "total": int(d.get("total")),
+                 "seg": int(d.get("seg") or 0), "fecha": str(d.get("fecha") or datetime.datetime.now().isoformat())[:25]}
+        except Exception:
+            return self.json({"error": "Datos incompletos."}, 400)
+        if not (1 <= r["grado"] <= 6) or r["area"] not in AREAS or not (0 <= r["aciertos"] <= r["total"] <= 50):
+            return self.json({"error": "Datos no válidos."}, 400)
+        os.makedirs(DATOS, exist_ok=True)
+        with CANDADO:
+            with open(os.path.join(DATOS, "retos.jsonl"), "a", encoding="utf-8") as f:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        return self.json({"ok": True})
+
+    # ---------- POST (ajedrez en red y retos) ----------
     def do_POST(self):
         ruta = urllib.parse.urlparse(self.path).path
         d = self.cuerpo()
+        if ruta == "/api/retos":
+            return self.guardar_reto(d)
         with CANDADO:
             limpiar()
             if ruta == "/api/salas":

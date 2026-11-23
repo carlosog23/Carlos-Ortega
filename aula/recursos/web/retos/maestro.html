@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retos Zona 050 · Tablero del maestro</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Ubuntu","Noto Sans",system-ui,sans-serif;background:#F3F7FA;color:#0F3B5F}
+header{background:#0F3B5F;color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px}header h1{margin:0;font-size:22px}header .sub{opacity:.75;font-size:14px}header .esp{flex:1}
+.marca{display:flex;align-items:center;gap:10px}.marca img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:14px;line-height:1.15}.marca small{display:block;font-size:11px;opacity:.75;font-style:italic}
+.firma{display:flex;flex-direction:column;align-items:center;gap:4px;margin:26px 0 8px;opacity:.75}.firma span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:170px}
+main{padding:18px 22px;max-width:1200px;margin:0 auto}
+.card{background:#fff;border:2px solid #D6E3EC;border-radius:18px;padding:16px;margin-top:14px}
+input,select{font-size:17px;padding:8px 12px;border-radius:10px;border:2px solid #D6E3EC}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-size:16px;font-weight:800;cursor:pointer;background:#E8772E;color:#fff}.btn.sec{background:#fff;color:#0F3B5F;border:2px solid #D6E3EC}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:14px}.kpi{background:#fff;border:2px solid #D6E3EC;border-radius:16px;padding:12px 16px}.kpi b{font-size:30px;display:block}.kpi span{color:#5F6B76;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:15px}th,td{padding:8px 10px;border-bottom:1px solid #E3ECF2;text-align:left}th{font-size:13px;color:#5F6B76;text-transform:uppercase;letter-spacing:.04em;cursor:pointer}td.c,th.c{text-align:center}
+.p{display:inline-block;min-width:52px;padding:3px 8px;border-radius:99px;font-weight:800;text-align:center}.p.v{background:#DDF1E6;color:#1E7A45}.p.a{background:#FFF1D6;color:#8A5A08}.p.r{background:#FBE4E1;color:#A3261B}.p.n{color:#B0BAC4}
+.apoyo li{margin:4px 0}
+@media print{header,.noimp{display:none}.card{border:0}}
+</style>
+</head>
+<body>
+<header><span style="font-size:30px">📊</span><div><h1>Retos Zona 050 · Tablero del maestro</h1><div class="sub">El avance de sus alumnos en la práctica diaria</div></div><div class="esp"></div>
+<div class="marca"><img src="/img/zona050.png" alt="Zona Escolar 050"><span><b>Zona Escolar 050</b><small>Responsabilidad y superación</small></span></div></header>
+<main id="app"></main>
+<script>
+const $ = s => document.querySelector(s), app = $("#app"), esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const FIRMA = `<div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>`;
+const AREAS = [["calculo", "Cálculo"], ["tablas", "Tablas"], ["problemas", "Problemas"], ["fracciones", "Fracciones"], ["ortografia", "Ortografía"], ["lectura", "Lectura"]];
+const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servidor:8050", location.origin])];
+let SRV = "", CLAVE = (() => { try { return sessionStorage.getItem("rz-clave") || ""; } catch (e) { return ""; } })(), DATOS = null, F = { grado: "", grupo: "", per: "30", orden: "nombre" };
+const pct = (ac, tot) => tot ? Math.round(100 * ac / tot) : null, pill = v => v == null ? `<span class="p n">—</span>` : `<span class="p ${v >= 80 ? "v" : v >= 60 ? "a" : "r"}">${v}%</span>`;
+async function srv() { for (const s of CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const j = await (await fetch(s + "/api/ping", { signal: c.signal })).json(); clearTimeout(t); if (j.ok && j.servidor) return SRV = s; } catch (e) {} } return ""; }
+function pedirClave(msg) {
+  app.innerHTML = `<div class="card" style="max-width:460px;margin:30px auto"><h2 style="margin-top:0">Entrar al tablero</h2><p>Escriba la clave de la cuenta Maestro de las computadoras de la escuela.</p>${msg ? `<p style="color:#A3261B;font-weight:700">${esc(msg)}</p>` : ""}
+   <div class="fila"><input type="password" id="cl" placeholder="Clave del maestro"><button class="btn" id="ok">Entrar</button></div></div>${FIRMA}`;
+  const go = () => { CLAVE = $("#cl").value; try { sessionStorage.setItem("rz-clave", CLAVE); } catch (e) {} cargar(); }; $("#ok").onclick = go; $("#cl").onkeydown = e => { if (e.key === "Enter") go(); }; $("#cl").focus(); }
+async function cargar() {
+  if (!CLAVE) return pedirClave(); app.innerHTML = `<p>Conectando con el servidor de la escuela…</p>`;
+  if (!SRV && !(await srv())) { app.innerHTML = `<div class="card">No se encontró el servidor de la escuela. Debe estar encendido y en la misma red.</div>`; return; }
+  const desde = F.per === "todo" ? "" : new Date(Date.now() - (+F.per) * 864e5).toISOString().slice(0, 10);
+  let j; try { j = await (await fetch(`${SRV}/api/retos/resumen?clave=${encodeURIComponent(CLAVE)}&desde=${desde}`)).json(); } catch (e) { j = { error: "No se pudo leer el servidor." }; }
+  if (j.error) { if (/clave/i.test(j.error)) { CLAVE = ""; try { sessionStorage.removeItem("rz-clave"); } catch (e) {} return pedirClave(j.error); } app.innerHTML = `<div class="card">${esc(j.error)}</div>`; return; }
+  DATOS = j.alumnos || []; pinta(); }
+function pinta() {
+  const grados = [...new Set(DATOS.map(a => a.grado))].sort(), grupos = [...new Set(DATOS.filter(a => !F.grado || a.grado == F.grado).map(a => a.grupo))].sort();
+  let L = DATOS.filter(a => (!F.grado || a.grado == F.grado) && (!F.grupo || a.grupo === F.grupo)).map(a => Object.assign({ pc: pct(a.ac, a.tot) }, a));
+  L.sort(F.orden === "pct" ? (x, y) => (x.pc ?? 999) - (y.pc ?? 999) : F.orden === "n" ? (x, y) => y.n - x.n : (x, y) => x.nombre.localeCompare(y.nombre, "es"));
+  const usadas = AREAS.filter(([k]) => L.some(a => a.areas[k])), retos = L.reduce((s, a) => s + a.n, 0), ac = L.reduce((s, a) => s + a.ac, 0), tot = L.reduce((s, a) => s + a.tot, 0);
+  const apoyo = L.filter(a => a.pc != null && a.pc < 60);
+  const porArea = usadas.map(([k, t]) => { const x = L.reduce((s, a) => { const r = a.areas[k]; if (r) { s.ac += r.ac; s.tot += r.tot; } return s; }, { ac: 0, tot: 0 }); return [t, pct(x.ac, x.tot)]; });
+  app.innerHTML = `<div class="fila noimp" style="margin-top:4px">
+    <select id="fG"><option value="">Todos los grados</option>${grados.map(g => `<option value="${g}" ${F.grado == g ? "selected" : ""}>${g}.° grado</option>`).join("")}</select>
+    <select id="fGr"><option value="">Todos los grupos</option>${grupos.map(g => `<option ${F.grupo === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select>
+    <select id="fP">${[["7", "Últimos 7 días"], ["30", "Últimos 30 días"], ["90", "Últimos 3 meses"], ["todo", "Todo el ciclo"]].map(([v, t]) => `<option value="${v}" ${F.per === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <button class="btn sec" id="bAct">🔄 Actualizar</button><button class="btn sec" id="bImp">🖨️ Imprimir</button><button class="btn sec" id="bSal">Salir</button></div>
+   <div class="kpis"><div class="kpi"><b>${L.length}</b><span>Alumnos que practicaron</span></div><div class="kpi"><b>${retos}</b><span>Retos completados</span></div><div class="kpi"><b>${pct(ac, tot) ?? "—"}${tot ? "%" : ""}</b><span>Aciertos en promedio</span></div><div class="kpi"><b>${apoyo.length}</b><span>Necesitan apoyo (menos de 60%)</span></div></div>
+   ${porArea.length ? `<div class="card"><b>Por área</b><div class="fila" style="margin-top:8px">${porArea.map(([t, v]) => `<span>${t} ${pill(v)}</span>`).join("")}</div></div>` : ""}
+   ${apoyo.length ? `<div class="card"><b>Para acompañar de cerca</b><ul class="apoyo">${apoyo.slice(0, 15).map(a => `<li>${esc(a.nombre)} (${a.grado}.° ${esc(a.grupo)}) ${pill(a.pc)} · más bajo en ${(() => { const w = usadas.map(([k, t]) => [t, a.areas[k] ? pct(a.areas[k].ac, a.areas[k].tot) : null]).filter(x => x[1] != null).sort((x, y) => x[1] - y[1])[0]; return w ? `${w[0]} (${w[1]}%)` : "—"; })()}</li>`).join("")}</ul></div>` : ""}
+   <div class="card" style="overflow:auto">${L.length ? `<table><thead><tr><th data-o="nombre">Alumno(a)</th><th class="c">Grado</th><th class="c" data-o="n">Retos</th><th class="c" data-o="pct">General</th>${usadas.map(([, t]) => `<th class="c">${t}</th>`).join("")}<th>Último</th></tr></thead>
+     <tbody>${L.map(a => `<tr><td><b>${esc(a.nombre)}</b></td><td class="c">${a.grado}.° ${esc(a.grupo)}</td><td class="c">${a.n}</td><td class="c">${pill(a.pc)}</td>${usadas.map(([k]) => `<td class="c">${a.areas[k] ? pill(pct(a.areas[k].ac, a.areas[k].tot)) : pill(null)}</td>`).join("")}<td>${a.ult ? new Date(a.ult).toLocaleDateString("es-MX", { day: "numeric", month: "short" }) : ""}</td></tr>`).join("")}</tbody></table>`
+     : `<p>Todavía no hay retos en este periodo. Cuando los alumnos practiquen en «Retos Zona 050», aquí verá su avance.</p>`}</div>
+   <p class="noimp" style="color:#5F6B76;font-size:13px">Toque «Alumno(a)», «Retos» o «General» para ordenar. Verde: 80% o más · amarillo: 60 a 79% · rojo: menos de 60%.</p>${FIRMA}`;
+  $("#fG").onchange = e => { F.grado = e.target.value; F.grupo = ""; pinta(); }; $("#fGr").onchange = e => { F.grupo = e.target.value; pinta(); };
+  $("#fP").onchange = e => { F.per = e.target.value; cargar(); }; $("#bAct").onclick = cargar; $("#bImp").onclick = () => print();
+  $("#bSal").onclick = () => { CLAVE = ""; try { sessionStorage.removeItem("rz-clave"); } catch (e) {} pedirClave(); };
+  document.querySelectorAll("[data-o]").forEach(th => th.onclick = () => { F.orden = th.dataset.o; pinta(); }); }
+cargar();
+</script>
+</body>
+</html>

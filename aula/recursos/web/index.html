@@ -12,7 +12,7 @@ h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 
 .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .c{display:block;background:#fff;border:2px solid #D6E3EC;border-radius:18px;padding:16px;text-decoration:none;color:inherit}
 .c:hover{border-color:#E8772E;background:#FFF6EE}.c .e{font-size:44px}.c b{display:block;font-size:19px;margin-top:4px}.c span{color:#5F6B76;font-size:14px}
-.c.off{opacity:.5;pointer-events:none}.estado{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:#E3ECF2}
+.c.off{opacity:.5;pointer-events:none}.estado{display:table;margin-top:8px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:#E3ECF2}
 .estado.ok{background:#DDF1E6;color:#1E7A45}
 .pie{margin-top:28px;color:#5F6B76;font-size:13px;text-align:center}
 .marca{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}.marca img{width:46px;height:46px;border-radius:50%;background:#fff;padding:3px}.marca b{display:block;font-size:14px;line-height:1.15}.marca small{display:block;font-size:11px;opacity:.75;font-style:italic}.firma{display:flex;flex-direction:column;align-items:center;gap:4px;margin:26px 0 8px;opacity:.75}.firma span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5F6B76}.firma img{width:170px;height:auto}header{display:flex;align-items:center;gap:16px}header .t{flex:1}
@@ -23,6 +23,7 @@ h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 
 <main>
   <h2>En esta computadora</h2>
   <div class="grid">
+    <a class="c" href="/retos/"><div class="e">🎯</div><b>Retos Zona 050</b><span>Práctica diaria: cálculo, tablas, problemas, fracciones, ortografía y lectura</span></a>
     <a class="c" href="/ajedrez/"><div class="e">♞</div><b>Ajedrez</b><span>Contra la computadora, con un compañero o en red con otra computadora</span></a>
     <a class="c" href="/ef/index.html"><div class="e">🤸</div><b>Educación Física en el salón</b><span>Juegos y activaciones para días de lluvia</span></a>
   </div>
@@ -32,6 +33,7 @@ h2{font-size:21px;margin:22px 0 4px}.nota{color:#5F6B76;font-size:14px;margin:0 
   <div class="grid" id="gSrv">
     <a class="c off" id="cKiwix" href="#"><div class="e">📖</div><b>Enciclopedia, diccionario y ciencias</b><span>Vikidia (enciclopedia para niños), diccionario, simulaciones de ciencias y matemáticas (PhET)</span><div class="estado" id="eKiwix">…</div></a>
     <a class="c off" id="cComp" href="#"><div class="e">📂</div><b>Carpeta de la escuela</b><span>Videos, libros en PDF, audios y materiales que deja el maestro</span><div class="estado" id="eComp">…</div></a>
+    <a class="c off" id="cKol" href="#"><div class="e">🎬</div><b>Kolibri: videos y ejercicios</b><span>Clases en video y ejercicios de Khan Academy en español, sin internet</span><div class="estado" id="eKol">…</div></a>
     <a class="c off" id="cAj" href="#"><div class="e">🏫</div><b>Ajedrez en red</b><span>Partidas entre computadoras de la escuela</span><div class="estado" id="eAj">…</div></a>
   </div>
   <div class="firma"><span>Desarrollado por</span><img src="/img/firma-autor.svg" alt="Maestro Carlos Ortega"></div>
@@ -42,7 +44,7 @@ const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servid
   let srv = "", host = "";
   for (const s of CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const r = await fetch(s + "/api/ping", { signal: c.signal }); clearTimeout(t); const j = await r.json(); if (j.ok && j.servidor) { srv = s; host = new URL(s).hostname; break; } } catch (e) {} }
   const n = document.getElementById("nSrv");
-  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
+  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eKol", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
   n.textContent = "Conectado al servidor de la escuela.";
   let b = {}; try { b = await (await fetch(srv + "/api/biblioteca")).json(); } catch (e) {}
   const pon = (c, e, url, txt, ok) => { const a = document.getElementById(c); a.href = url; a.classList.toggle("off", !ok); const s = document.getElementById(e); s.textContent = txt; s.classList.toggle("ok", ok); };
@@ -50,6 +52,8 @@ const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servid
   pon("cKiwix", "eKiwix", `http://${host}:8051/`, nk ? `${nk} libro${nk === 1 ? "" : "s"} disponible${nk === 1 ? "" : "s"}` : "Aún no se cargan", nk > 0);
   pon("cComp", "eComp", srv + "/compartido/", b.compartido ? `${b.compartido} archivo${b.compartido === 1 ? "" : "s"}` : "Vacía por ahora", true);
   pon("cAj", "eAj", "/ajedrez/", "Disponible", true);
+  try { const c = new AbortController(), t = setTimeout(() => c.abort(), 3000); await fetch(`http://${host}:8080/`, { mode: "no-cors", signal: c.signal }); clearTimeout(t); pon("cKol", "eKol", `http://${host}:8080/`, "Disponible", true); }
+  catch (e) { pon("cKol", "eKol", "#", "No instalado en el servidor", false); }
 })();
 </script>
 </body>

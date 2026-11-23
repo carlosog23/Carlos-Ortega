@@ -1,0 +1,52 @@
+/* Retos Zona 050 · banco de ortografía y lecturas (contenido propio de la Supervisión Escolar Zona 050).
+   g: [grado mínimo, grado máximo]. En ortografía la primera opción es la correcta (se barajan al mostrarse). */
+window.ORTOGRAFIA = [
+  { g: [1, 2], ops: ["vaca", "baca"] }, { g: [1, 2], ops: ["burro", "vurro"] }, { g: [1, 2], ops: ["casa", "kasa"] },
+  { g: [1, 2], ops: ["queso", "keso"] }, { g: [1, 2], ops: ["gato", "jato"] }, { g: [1, 2], ops: ["zapato", "sapato"] },
+  { g: [1, 2], ops: ["perro", "pero"], p: "¿Cómo se escribe el animal que ladra?" }, { g: [1, 2], ops: ["hoja", "oja"] },
+  { g: [1, 2], ops: ["huevo", "uevo"] }, { g: [1, 2], ops: ["llave", "yave"] }, { g: [1, 2], ops: ["guitarra", "gitarra"] },
+  { g: [1, 3], ops: ["playa", "plalla"] }, { g: [1, 3], ops: ["mar", "marr"] }, { g: [1, 3], ops: ["fresa", "frreza"] },
+  { g: [2, 4], ops: ["cereza", "serésa"] }, { g: [2, 4], ops: ["cielo", "sielo"] }, { g: [2, 4], ops: ["hormiga", "ormiga"] },
+  { g: [2, 4], ops: ["bicicleta", "visicleta"] }, { g: [2, 4], ops: ["jirafa", "girafa"] }, { g: [2, 4], ops: ["gente", "jente"] },
+  { g: [2, 4], ops: ["lluvia", "yuvia"] }, { g: [2, 4], ops: ["calle", "caye"] }, { g: [2, 4], ops: ["escuela", "escuéla"] },
+  { g: [2, 5], ops: ["árbol", "arbol"] }, { g: [2, 5], ops: ["camión", "camion"] }, { g: [2, 5], ops: ["lápiz", "lapiz"] },
+  { g: [3, 5], ops: ["había", "abía"] }, { g: [3, 5], ops: ["iba", "iva"] }, { g: [3, 5], ops: ["llevaba", "llevava"] },
+  { g: [3, 5], ops: ["cantaba", "cantava"] }, { g: [3, 6], ops: ["felices", "felizes"] }, { g: [3, 6], ops: ["lápices", "lápizes"] },
+  { g: [3, 6], ops: ["nubes", "nuves"] }, { g: [3, 6], ops: ["hierba", "yerva"] }, { g: [3, 6], ops: ["vivir", "bivir"] },
+  { g: [3, 6], ops: ["haber", "aber"] }, { g: [3, 6], ops: ["ahora", "aora"] }, { g: [3, 6], ops: ["examen", "exámen"] },
+  { g: [4, 6], ops: ["canción", "cancion"] }, { g: [4, 6], ops: ["música", "musica"] }, { g: [4, 6], ops: ["México", "Méjico"] },
+  { g: [4, 6], ops: ["cosecha", "kosecha"] }, { g: [4, 6], ops: ["agricultor", "agrikultor"] }, { g: [4, 6], ops: ["vecino", "becino"] },
+  { g: [4, 6], ops: ["exhibición", "exibición"] }, { g: [4, 6], ops: ["ahorro", "aorro"] }, { g: [4, 6], ops: ["huésped", "uésped"] },
+  { g: [4, 6], ops: ["Él vino a la escuela.", "El vino a la escuela."], p: "¿Cuál oración está bien escrita?" },
+  { g: [4, 6], ops: ["¿Qué quieres comer?", "¿Que quieres comer?"], p: "¿Cuál pregunta está bien escrita?" },
+  { g: [5, 6], ops: ["Ahí está mi mochila.", "Hay está mi mochila."], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["¡Ay, me pegué!", "¡Hay, me pegué!"], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["Hay muchas fresas.", "Ay muchas fresas."], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["Voy a hacer la tarea.", "Voy a ser la tarea."], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["Tú tienes razón.", "Tu tienes razón."], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["Mi papá trabaja en el campo.", "Mí papá trabaja en el campo."], p: "¿Cuál oración está bien escrita?" },
+  { g: [5, 6], ops: ["investigación", "investigasión"] }, { g: [5, 6], ops: ["construcción", "construcsión"] },
+  { g: [5, 6], ops: ["exacto", "esacto"] }, { g: [5, 6], ops: ["conclusión", "concluzión"] }, { g: [5, 6], ops: ["democracia", "democrasia"] },
+  { g: [5, 6], ops: ["energía", "enerjía"] }, { g: [5, 6], ops: ["geografía", "jeografía"] }
+];
+
+window.LECTURAS = [
+  { g: [1, 2], t: "El perro Canelo", x: "Canelo es un perro café. Vive con Ana en una casa cerca del mar. Todas las mañanas Canelo acompaña a Ana a la escuela y la espera en la puerta.",
+    q: [["¿De qué color es Canelo?", ["Café", "Negro", "Blanco"]], ["¿Dónde vive Canelo?", ["Cerca del mar", "En la ciudad", "En un rancho"]], ["¿Qué hace Canelo en las mañanas?", ["Acompaña a Ana a la escuela", "Duerme todo el día", "Juega en el mar"]]] },
+  { g: [1, 2], t: "Las fresas", x: "Luis fue al campo con su abuelo. Juntaron fresas rojas y dulces. Al llegar a casa, su mamá hizo agua de fresa para toda la familia.",
+    q: [["¿Con quién fue Luis al campo?", ["Con su abuelo", "Con su maestra", "Con su hermana"]], ["¿Cómo eran las fresas?", ["Rojas y dulces", "Verdes y agrias", "Pequeñas y amarillas"]], ["¿Qué hizo su mamá?", ["Agua de fresa", "Un pastel", "Una sopa"]]] },
+  { g: [1, 2], t: "El papalote", x: "Hacía mucho viento. Sofía y Mateo subieron a una loma con su papalote azul. El papalote voló muy alto, hasta que se atoró en un árbol. Su papá les ayudó a bajarlo.",
+    q: [["¿Cómo estaba el día?", ["Con mucho viento", "Con lluvia", "Muy caluroso"]], ["¿De qué color era el papalote?", ["Azul", "Rojo", "Verde"]], ["¿Quién les ayudó?", ["Su papá", "Su maestro", "Un vecino"]]] },
+  { g: [3, 4], t: "La ballena gris", x: "Cada invierno, las ballenas grises viajan miles de kilómetros desde los mares fríos del norte hasta las lagunas de Baja California. Ahí nacen sus crías, porque el agua es tibia y tranquila. En primavera regresan al norte para alimentarse.",
+    q: [["¿A dónde llegan las ballenas grises en invierno?", ["A las lagunas de Baja California", "A los ríos del sur", "A los mares del norte"]], ["¿Por qué nacen ahí sus crías?", ["Porque el agua es tibia y tranquila", "Porque hay mucha comida", "Porque no hay personas"]], ["¿Cuándo regresan al norte?", ["En primavera", "En invierno", "En otoño"]]] },
+  { g: [3, 4], t: "El huerto de la escuela", x: "Los alumnos de cuarto grado sembraron un huerto. Primero limpiaron la tierra y le pusieron abono. Después sembraron rábanos, cilantro y calabaza. Cada grupo riega el huerto un día de la semana. En un mes cosecharon los primeros rábanos.",
+    q: [["¿Qué hicieron primero?", ["Limpiaron la tierra y pusieron abono", "Sembraron calabaza", "Cosecharon rábanos"]], ["¿Qué sembraron?", ["Rábanos, cilantro y calabaza", "Fresas y tomates", "Maíz y frijol"]], ["¿Cuánto tardaron en cosechar los primeros rábanos?", ["Un mes", "Una semana", "Un año"]]] },
+  { g: [3, 4], t: "El agua que tomamos", x: "En el valle, el agua es muy valiosa porque llueve poco. Muchas familias la reciben en pipas y la guardan en tambos. Para cuidarla, conviene cerrar la llave al lavarse los dientes y reutilizar el agua para regar las plantas.",
+    q: [["¿Por qué el agua es muy valiosa en el valle?", ["Porque llueve poco", "Porque es muy cara", "Porque está salada"]], ["¿Cómo reciben el agua muchas familias?", ["En pipas", "En botellas", "Por el río"]], ["¿Qué se recomienda para cuidarla?", ["Cerrar la llave al lavarse los dientes", "Bañarse dos veces al día", "Lavar el carro todos los días"]]] },
+  { g: [5, 6], t: "Los jornaleros del valle", x: "El valle de San Quintín es una de las regiones agrícolas más importantes del país. Miles de familias, muchas llegadas de Oaxaca y Guerrero, trabajan en la siembra y la cosecha de fresa, jitomate y otras hortalizas que se venden en México y en el extranjero. Su trabajo es esencial, aunque a menudo es pesado y empieza antes del amanecer.",
+    q: [["¿Qué idea principal expresa el texto?", ["El trabajo de los jornaleros es esencial para la región", "La fresa solo se vende en México", "En el valle no se siembra nada"]], ["¿De dónde llegaron muchas familias?", ["De Oaxaca y Guerrero", "De Sonora y Sinaloa", "Del extranjero"]], ["¿Qué significa «esencial» en el texto?", ["Muy importante, necesario", "Muy fácil", "Poco conocido"]]] },
+  { g: [5, 6], t: "El reciclaje en la escuela", x: "Una escuela de la zona decidió separar su basura. Pusieron tres botes: uno para orgánicos, otro para plástico y otro para papel. Con los orgánicos hicieron composta para el huerto, y el plástico lo vendieron para comprar libros. En tres meses, la basura que tiraban se redujo a la mitad.",
+    q: [["¿Cuántos botes pusieron?", ["Tres", "Dos", "Cuatro"]], ["¿Para qué usaron los orgánicos?", ["Para hacer composta", "Para vender", "Para hacer papel"]], ["¿Cuál fue el resultado?", ["La basura se redujo a la mitad", "Compraron un huerto", "Ya no hubo basura"]]] },
+  { g: [5, 6], t: "Una noticia en la comunidad", x: "Este sábado, el comité de padres de familia organizará una faena para pintar los salones. Se pide a cada familia llevar una brocha y agua para beber. La actividad empezará a las ocho de la mañana y terminará con una comida compartida en el patio.",
+    q: [["¿Qué tipo de texto es?", ["Un aviso o noticia", "Un cuento", "Un poema"]], ["¿Qué deben llevar las familias?", ["Una brocha y agua", "Pintura y comida", "Libros y cuadernos"]], ["¿Cómo terminará la actividad?", ["Con una comida compartida", "Con un partido de futbol", "Con una ceremonia"]]] }
+];
