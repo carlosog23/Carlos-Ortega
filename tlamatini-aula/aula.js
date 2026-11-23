@@ -145,6 +145,8 @@ async function tlpValidar(tok) { const srv = ACC && ACC.tequio; let j = null;
 /* ---------------- navegación ---------------- */
 let S = { v: "inicio" }; const PILA = [];
 function ir(v, p = {}, reemplazar) { if (!reemplazar) { PILA.push(S); history.pushState({ n: PILA.length }, ""); } S = Object.assign({ v }, p); pintar(); window.scrollTo(0, 0); }
+/* regresar a la pantalla anterior; si no hay a dónde (se llegó directo), vuelve al inicio */
+function volver() { if (PILA.length) history.back(); else { S = { v: "inicio" }; pintar(); window.scrollTo(0, 0); } }
 function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(0, 0); }
 window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(); if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
@@ -152,7 +154,7 @@ let ACCESO_OK = false;
 function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
   else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (CAP ? `<div class="banda-demo">Capacitación · datos ficticios · puede usar todo <button id="dReini">Reiniciar datos</button> <button id="dSalir">Salir</button></div>` : DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
-  const b = $("#atras"); if (b) b.onclick = () => history.back(); const dr = $("#dReini"); if (dr) dr.onclick = async () => { if (!(await confirmar("Se borrará lo que se haya practicado y se volverán a cargar los datos de capacitación.", "Reiniciar"))) return; try { localStorage.removeItem(CLAVE); indexedDB.deleteDatabase((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + "-cap"); } catch (e) {} location.reload(); };
+  const b = $("#atras"); if (b) b.onclick = volver; const dr = $("#dReini"); if (dr) dr.onclick = async () => { if (!(await confirmar("Se borrará lo que se haya practicado y se volverán a cargar los datos de capacitación.", "Reiniciar"))) return; try { localStorage.removeItem(CLAVE); indexedDB.deleteDatabase((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + "-cap"); } catch (e) {} location.reload(); };
   const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-cap"); sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
 const barra = (eb, t, der = "") => `<header class="top"><div class="top-in"><button class="back" id="atras" aria-label="Regresar">${ic("atras")}</button><div style="min-width:0"><div class="eb">${eb}</div><h1>${t}</h1></div><div class="der">${der}</div></div></header>`;
@@ -221,11 +223,11 @@ function enlazarFormGrupo(g, nuevo) { const sel = new Set(g.grados || []), sec =
       if (!L.length) return toast(ds.size ? "Esas disciplinas no se imparten en el grado elegido." : "Elija la disciplina (o las disciplinas) que imparte.");
       Object.assign(datos, { nivel: "sec", mod: val("gMo") || "general", discs: DISC_SEC.map(x => x[0]).filter(n => L.includes(n)) }); }
     if (APP_PRE || (APP_ESP && (g.id ? esPre(g) : S.nivelNuevo === "pre"))) datos.nivel = "pre";
-    if (g.id) { Object.assign(g, datos); guardar(); history.back(); toast("Grupo guardado."); return; }
+    if (g.id) { Object.assign(g, datos); guardar(); volver(); toast("Grupo guardado."); return; }
     const letras = sec ? [...new Set(datos.grupo.split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean))] : [datos.grupo];
     const nuevos = (letras.length ? letras : [""]).map(l => Object.assign({ id: uid(), alumnos: [] }, datos, { grupo: l }));
     D.grupos.push(...nuevos); D.gact = nuevos[0].id; S.nivelNuevo = null; const y = yo(); if (!D.docente.nombre) D.docente.nombre = y.nombre; if (!D.docente.correo) D.docente.correo = y.correo; guardar();
-    if (nuevo) { S = { v: "grupo", id: nuevos[0].id, nuevo: true }; pintar(); } else { history.back(); } toast(nuevos.length > 1 ? `Se registraron ${nuevos.length} grupos (${letras.join(", ")}). Ahora agregue a los alumnos de cada uno.` : "Grupo registrado. Ahora agregue a sus alumnos.", 4000); };
+    if (nuevo) { S = { v: "inicio" }; ir("grupo", { id: nuevos[0].id, nuevo: true }); } else { volver(); } toast(nuevos.length > 1 ? `Se registraron ${nuevos.length} grupos (${letras.join(", ")}). Ahora agregue a los alumnos de cada uno.` : "Grupo registrado. Ahora agregue a sus alumnos.", 4000); };
   $("#gB") && ($("#gB").onclick = async () => { if (!(await confirmar("Se borrará el grupo con sus alumnos y su asistencia. Las planeaciones se conservan.", "Borrar"))) return; D.grupos = D.grupos.filter(x => x !== g); D.gact = (D.grupos[0] || {}).id || ""; guardar(); ir("inicio", {}, true); }); }
 VISTAS.grupoForm = () => barra("Mi grupo", S.id ? "Editar grupo" : "Agregar grupo") + `<main class="wrap mt">${formGrupoHTML(grDe(S.id) || {})}</main>`;
 ENLAZAR.grupoForm = () => enlazarFormGrupo(grDe(S.id) || {}, false);
@@ -630,7 +632,7 @@ ENLAZAR.plan = () => { const p = plDe(S.id); if (!p) return; const s = i => p.se
   $$("[data-ev]").forEach(b => b.onclick = () => ir("evaluar", { pid: p.id, i: +b.dataset.ev }));
   $("#plCtx") && ($("#plCtx").onclick = async () => { const gg = grDe(p.gid); if (p.sesiones.some(x => x.ia || x.inicio.txt) && !(await confirmar("Tlami reescribirá el inicio, el desarrollo, el cierre y la evaluación de las sesiones con la lectura de la realidad del grupo. Lo que usted escribió en ellas se reemplaza.", "Contextualizar"))) return;
     if (await contextualizar(p, gg)) { re(); toast("<b>Listo.</b> La planeación quedó contextualizada. Revise cada sesión."); } });
-  $("#plB").onclick = async () => { if (!(await confirmar("Se borrará esta planeación.", "Borrar"))) return; D.planes = D.planes.filter(x => x !== p); guardar(); history.back(); };
+  $("#plB").onclick = async () => { if (!(await confirmar("Se borrará esta planeación.", "Borrar"))) return; D.planes = D.planes.filter(x => x !== p); guardar(); volver(); };
   $("#plRec").onclick = () => dlg(`<h3>Recorrer fechas</h3><p class="small muted mb">Si un día no hubo clase, las sesiones pendientes se acomodan de nuevo en días de clase desde la fecha que elija.</p><label class="campo"><span>Desde</span><input type="date" id="rD" value="${hoy()}"></label><div class="fila fin"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Recorrer</button></div>`, v => {
     v.querySelector("#rX").onclick = cerrarDlg; v.querySelector("#rOk").onclick = async () => { await calendario(); const pend = p.sesiones.filter(x => !x.hecho), f = diasHabiles(val("rD") || hoy(), pend.length); pend.forEach((x, i) => x.fecha = f[i] || ""); guardar(); cerrarDlg(); re(); toast("Fechas recorridas."); }; });
   $("#plI").onclick = () => imprimir(docPlan(p), true); };
@@ -690,7 +692,7 @@ ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(
       v.querySelector("#oX").onclick = cerrarDlg; v.querySelector("#oOk").onclick = () => { const t = val("oT").trim(); r.obs = r.obs || {}; if (t) r.obs[a.id] = t; else delete r.obs[a.id]; guardar(); re(); }; }); });
   let quien = null; $$("[data-evf]").forEach(b => b.onclick = () => { quien = b.dataset.evf; $("#evCam").click(); });
   $("#evCam").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !quien) return; await nuevaFoto(f, { al: quien, pid: p.id, ses: S.i, campo: p.disc || p.campo, t: s.fase }); re(); };
-  $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
+  $("#evOk").onclick = () => { volver(); toast("Evaluación guardada."); }; };
 
 /* ---------- portafolio: fotos en IndexedDB ---------- */
 function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + (CAP ? "-cap" : DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
@@ -936,7 +938,7 @@ async function compartirDin(d) { if (!(await confirmar(`«${d.n}» se publicará
   toast("Compartiendo…"); try { const j = await aulaPost("aulaDinPublicar", { din: d }); d.pub = j.id; guardar(); ZONA = null; re(); toast(j.actualizada ? "Se actualizó en el banco de la zona." : "<b>¡Gracias!</b> Su dinámica ya está en el banco de la zona.", 3500); }
   catch (e) { toast(esc(e.message), 4000); } }
 async function retirarDin(d) { if (!(await confirmar("La dinámica dejará de verse en el banco de la zona. Quienes ya la guardaron la conservan.", "Retirar"))) return;
-  try { await aulaPost("aulaDinRetirar", { id: d.pub || d.id }); const m = D.mias.find(x => x.pub === (d.pub || d.id)); if (m) delete m.pub; guardar(); ZONA = null; toast("Retirada del banco de la zona."); if (d.zona) history.back(); else re(); }
+  try { await aulaPost("aulaDinRetirar", { id: d.pub || d.id }); const m = D.mias.find(x => x.pub === (d.pub || d.id)); if (m) delete m.pub; guardar(); ZONA = null; toast("Retirada del banco de la zona."); if (d.zona) volver(); else re(); }
   catch (e) { toast(esc(e.message), 4000); } }
 
 /* =================================================================== VISITA DE ACOMPAÑAMIENTO */
