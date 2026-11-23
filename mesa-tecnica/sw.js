@@ -1,5 +1,5 @@
 /* Mesa Técnica · Zona 050: usa la red cuando hay y guarda copia para abrir sin internet */
-const VERSION = "mesa-2026-11-23a";
+const VERSION = "mesa-2026-11-23b";
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(VERSION).then(c => c.addAll(["./", "manifest.webmanifest", "img/icono-192.png", "img/icono-512.png", "img/zona050-blanco-320.png", "firma-autor.svg", "fondos/fondo-app.jpg"]))); });
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", e => {

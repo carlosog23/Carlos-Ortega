@@ -91,6 +91,24 @@ dialog p{color:var(--mu);margin:0 0 14px}
 .quien button{display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
 .quien button i{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--az);font-style:normal;font-weight:800}
 .quien button b{display:block}.quien button span{display:block;font-size:13px;color:var(--mu)}
+.bloqueo{position:fixed;inset:0;z-index:40;background:var(--n0) url("fondos/fondo-app.jpg") center/cover;display:flex;align-items:center;justify-content:center;padding:20px}
+.bloqueo::before{content:"";position:absolute;inset:0;background:rgba(6,26,44,.6)}
+.bq{position:relative;text-align:center;width:100%;max-width:380px}
+.bq img{width:110px}
+.bq h3{margin:14px 0 2px;font-size:24px}.bq p{margin:0 0 18px;color:var(--mu);font-size:15px;min-height:20px}
+.bq p.err{color:#FF8A80}
+.puntos{display:flex;justify-content:center;gap:16px;margin-bottom:22px}
+.puntos i{width:18px;height:18px;border-radius:50%;border:2px solid var(--az2)}
+.puntos i.on{background:var(--oro);border-color:var(--oro)}
+.puntos.mal{animation:temb .35s}
+@keyframes temb{0%,100%{transform:none}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+.tecl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tecl button{height:72px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);font-size:28px;font-weight:600;color:#fff;width:72px;justify-self:center}
+.tecl button:active{background:rgba(255,255,255,.2)}
+.tecl .t{font-size:14px;border:0;background:transparent;color:var(--az2);font-weight:700}
+.bq .lnk{background:none;border:0;color:var(--mu);font-size:14px;margin-top:18px;text-decoration:underline}
+.fijar{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;color:var(--mu)}
+.fijar input{width:22px;height:22px;accent-color:var(--oro)}
 .inst{display:none}
 [hidden]{display:none!important}
 @media(max-width:860px){.hola{grid-template-columns:1fr}.reloj{display:none}}
@@ -138,6 +156,7 @@ dialog p{color:var(--mu);margin:0 0 14px}
  <ol class="pasos">
   <li><b>Nombre y cuenta.</b> En Ajustes → Acerca de la tableta, póngale de nombre <b>Mesa Técnica 050 · 01</b> (o 02). Entre con la cuenta de Google de quien la va a usar (de preferencia la institucional @bcedu.mx).</li>
   <li><b>Fondos de la zona.</b> Abajo descargue los fondos. Abra Galería o Fotos, toque el fondo → ⋮ → <b>Establecer como fondo</b>: el de «inicio» para la pantalla de inicio y el de «bloqueo» para la pantalla de bloqueo.</li>
+  <li><b>Su usuario y PIN.</b> Al abrir esta app por primera vez elija su nombre y cree un PIN de 4 números. Si la tableta es suya, deje marcada la casilla: siempre abrirá con su nombre y sus escuelas, y pedirá el PIN al volver después de 5 minutos.</li>
   <li><b>Instalar esta app.</b> Abra esta página en <b>Chrome</b>, toque «Instalar en esta tableta» (o ⋮ → <b>Instalar app</b>). Póngala en la barra de abajo de la pantalla de inicio.</li>
   <li><b>Entrar a Tequio y Tlamatini una vez.</b> Abra en Chrome <b>su enlace personal</b> de Tequio y de Tlamatini (el que llegó por correo). La tableta lo recuerda y desde aquí ya entra directo.</li>
   <li><b>Apps de Google.</b> Instale o actualice desde Play Store: Drive, Gmail, Calendar, Meet y WhatsApp. En Drive active «Disponible sin conexión» en las carpetas de las escuelas que más visita.</li>
@@ -154,10 +173,18 @@ dialog p{color:var(--mu);margin:0 0 14px}
  <div class="firma"><span>Desarrollado por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega"></div>
 </div>
 
+<div class="bloqueo" id="bloqueo" hidden role="dialog" aria-modal="true" aria-label="Escriba su PIN">
+ <div class="bq"><img src="img/zona050-blanco-320.png" alt="Zona Escolar 050"><h3 id="bqNom"></h3><p id="bqMsg"></p>
+  <div class="puntos" id="puntos"><i></i><i></i><i></i><i></i></div>
+  <div class="tecl" id="tecl"></div>
+  <button class="lnk" id="bqOtro">No soy yo · cambiar de persona</button>
+ </div>
+</div>
 <dialog id="dQuien"><div class="in">
  <h3>¿Quién usa esta tableta?</h3>
  <p>Se acomodan sus escuelas y su saludo. Lo puede cambiar cuando quiera tocando su nombre arriba.</p>
  <div class="quien" id="quien"></div>
+ <label class="fijar"><input type="checkbox" id="chFija" checked> Esta tableta es mía: abrir siempre con mi nombre y pedir mi PIN</label>
 </div></dialog>
 
 <script>
@@ -245,8 +272,53 @@ function pintaYo() {
   reloj(); escuelas();
 }
 $("#quien").innerHTML = MESA.map(m => `<button data-yo="${m.id}"><i>${m.ini}</i><span><b>${esc(m.nom)}</b><span>${esc(m.rol)}</span></span></button>`).join("");
-$("#quien").onclick = e => { const b = e.target.closest("[data-yo]"); if (!b) return; guarda("mt-yo", b.dataset.yo); filtro = b.dataset.yo === "sup" ? "todas" : "mias"; $("#dQuien").close(); pintaYo(); };
-$("#bYo").onclick = () => $("#dQuien").showModal();
+$("#quien").onclick = e => { const b = e.target.closest("[data-yo]"); if (!b) return; const id = b.dataset.yo; $("#dQuien").close();
+  guarda("mt-fija", $("#chFija").checked ? "1" : "0");
+  pedirPin(id, lee("mt-pin-" + id) ? "entrar" : "crear"); };
+$("#bYo").onclick = () => { const yo = lee("mt-yo"); if (yo && lee("mt-fija") === "1" && lee("mt-pin-" + yo)) pedirPin(yo, "soltar"); else $("#dQuien").showModal(); };
+
+/* ---------- PIN por persona (se guarda cifrado solo en esta tableta) ---------- */
+async function huella(id, pin) { try { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("mesa050|" + id + "|" + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); } catch (e) { return "p" + id + pin; } }
+let PIN = { id: "", modo: "", txt: "", primero: "" };
+function pedirPin(id, modo) {
+  const m = MESA.find(x => x.id === id); PIN = { id, modo, txt: "", primero: "" };
+  $("#bqNom").textContent = m.nom;
+  msgPin(modo === "crear" ? "Cree un PIN de 4 números para esta tableta" : modo === "soltar" ? "Escriba su PIN para cambiar de persona" : "Escriba su PIN");
+  $("#bqOtro").textContent = modo === "soltar" ? "Cancelar" : "No soy yo · cambiar de persona";
+  $("#bloqueo").hidden = false; puntos();
+}
+function msgPin(t, err) { const p = $("#bqMsg"); p.textContent = t; p.className = err ? "err" : ""; }
+function puntos() { document.querySelectorAll("#puntos i").forEach((d, i) => d.classList.toggle("on", i < PIN.txt.length)); }
+function sacude() { const p = $("#puntos"); p.classList.remove("mal"); void p.offsetWidth; p.classList.add("mal"); try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} }
+async function tecla(k) {
+  if (k === "←") { PIN.txt = PIN.txt.slice(0, -1); return puntos(); }
+  if (k === "olvide") { if (!confirmarOlvido()) return; return; }
+  if (PIN.txt.length >= 4) return; PIN.txt += k; puntos(); if (PIN.txt.length < 4) return;
+  await new Promise(r => setTimeout(r, 120));
+  const h = await huella(PIN.id, PIN.txt);
+  if (PIN.modo === "crear") {
+    if (!PIN.primero) { PIN.primero = PIN.txt; PIN.txt = ""; puntos(); return msgPin("Escríbalo otra vez para confirmar"); }
+    if (PIN.primero !== PIN.txt) { PIN.primero = ""; PIN.txt = ""; puntos(); sacude(); return msgPin("No coincidieron. Cree su PIN de nuevo", true); }
+    guarda("mt-pin-" + PIN.id, h); return entra(PIN.id);
+  }
+  if (h !== lee("mt-pin-" + PIN.id)) { PIN.txt = ""; puntos(); sacude(); return msgPin("PIN incorrecto. Intente de nuevo", true); }
+  if (PIN.modo === "soltar") { $("#bloqueo").hidden = true; return $("#dQuien").showModal(); }
+  entra(PIN.id);
+}
+function confirmarOlvido() {
+  PIN.modo = "crear"; PIN.txt = ""; PIN.primero = ""; puntos();
+  msgPin("Cree un PIN nuevo de 4 números"); return true;
+}
+function entra(id) { guarda("mt-yo", id); filtro = id === "sup" ? "todas" : "mias"; $("#bloqueo").hidden = true; ocultoDesde = 0; pintaYo(); }
+$("#tecl").innerHTML = ["1","2","3","4","5","6","7","8","9","olvide","0","←"].map(k => k === "olvide" ? `<button class="t" data-k="olvide">Olvidé<br>mi PIN</button>` : `<button data-k="${k}" aria-label="${k === "←" ? "Borrar" : k}">${k}</button>`).join("");
+$("#tecl").onclick = e => { const b = e.target.closest("[data-k]"); if (b) tecla(b.dataset.k); };
+addEventListener("keydown", e => { if ($("#bloqueo").hidden) return; if (/^\d$/.test(e.key)) tecla(e.key); else if (e.key === "Backspace") tecla("←"); });
+$("#bqOtro").onclick = () => { $("#bloqueo").hidden = true; if (PIN.modo === "soltar") return; $("#dQuien").showModal(); };
+/* al volver a la app después de 5 minutos fuera, se vuelve a pedir el PIN */
+let ocultoDesde = 0;
+document.addEventListener("visibilitychange", () => { const yo = lee("mt-yo");
+  if (document.hidden) { ocultoDesde = Date.now(); return; }
+  if (yo && lee("mt-fija") === "1" && lee("mt-pin-" + yo) && ocultoDesde && Date.now() - ocultoDesde > 5 * 60 * 1000 && $("#bloqueo").hidden) pedirPin(yo, "entrar"); });
 
 /* ---------- escuelas ---------- */
 const ATP = id => (MESA.find(m => m.id === id) || {}).corto || "";
@@ -264,7 +336,9 @@ function escuelas() {
 }
 $("#filtros").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; filtro = b.dataset.f; escuelas(); };
 pintaYo();
-if (!lee("mt-yo")) setTimeout(() => { try { $("#dQuien").showModal(); } catch (e) {} }, 400);
+(() => { const yo = lee("mt-yo");
+  if (yo && lee("mt-fija") === "1" && lee("mt-pin-" + yo)) pedirPin(yo, "entrar");
+  else if (!yo) setTimeout(() => { try { $("#dQuien").showModal(); } catch (e) {} }, 400); })();
 
 /* ---------- instalar y sin conexión ---------- */
 let prompt = null;
