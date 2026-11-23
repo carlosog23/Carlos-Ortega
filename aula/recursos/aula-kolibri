@@ -1,0 +1,56 @@
+#!/bin/bash
+# aula-kolibri · Supervisión Escolar Zona 050
+# Baja a Kolibri (en el servidor de la escuela) canales ligeros en español, para usarlos sin internet:
+#   - Book Dash: cuentos ilustrados (solo los que están en español)
+#   - WiiXii: matemáticas con juegos, acertijos y retos
+#   - Ciensación: experimentos cortos de ciencias
+#   - CommonLit (Español): cuentos, poemas y textos para la comprensión lectora
+# Solo funciona con internet. Se puede volver a correr: baja lo que falte y actualiza lo que haya cambiado.
+command -v kolibri >/dev/null 2>&1 || { echo "Kolibri no está instalado en esta computadora."; exit 1; }
+
+# Kolibri corre con su propio usuario; los canales se importan con ese mismo usuario
+KU=$(head -1 /etc/kolibri/username 2>/dev/null | tr -d '[:space:]'); [ -n "$KU" ] || KU=kolibri
+id "$KU" >/dev/null 2>&1 || { echo "No encontré el usuario de Kolibri ($KU)."; exit 1; }
+KOLIBRI_HOME="$(getent passwd "$KU" | cut -d: -f6)/.kolibri"
+for f in /etc/kolibri/conf.d/*.conf; do [ -f "$f" ] && . "$f"; done   # puede cambiar KOLIBRI_HOME
+k() { sudo -u "$KU" -H env KOLIBRI_HOME="$KOLIBRI_HOME" kolibri manage "$@"; }
+
+# Nodos en español de un canal (sirve para canales con cuentos en muchos idiomas)
+nodos_es() {
+  python3 - "$KOLIBRI_HOME/content/databases/$1.sqlite3" <<'PY'
+import sqlite3, sys
+try:
+    db = sqlite3.connect("file:" + sys.argv[1] + "?mode=ro", uri=True)
+    q = "select id from content_contentnode where kind != 'topic' and lower(coalesce(lang_id, '')) like 'es%'"
+    ids = [r[0] for r in db.execute(q)]
+    if not ids:  # el idioma puede venir solo en las carpetas
+        q = ("select id from content_contentnode where kind = 'topic' and (lower(coalesce(lang_id, '')) like 'es%' "
+             "or lower(title) in ('español', 'espanol', 'spanish', 'español (spanish)'))")
+        ids = [r[0] for r in db.execute(q)]
+    print(",".join(ids))
+except Exception:
+    print("")
+PY
+}
+
+mal=0
+canal() { # id nombre [es]
+  echo "→ $2"
+  if ! k importchannel network "$1" >/dev/null 2>&1; then
+    echo "  ! no se pudo conectar (¿hay internet?)"; mal=$((mal+1)); return; fi
+  if [ "${3:-}" = es ]; then
+    local n; n=$(nodos_es "$1")
+    [ -n "$n" ] || { echo "  ! no encontré contenido en español en este canal"; mal=$((mal+1)); return; }
+    k importcontent --node_ids "$n" network "$1" >/dev/null 2>&1
+  else
+    k importcontent network "$1" >/dev/null 2>&1
+  fi && echo "  ✔ listo" || { echo "  ! se cortó la descarga; se continúa la próxima vez"; mal=$((mal+1)); }
+}
+
+echo "Bajando contenidos en español para Kolibri (puede tardar; se puede seguir usando la computadora)…"
+canal 2d7b056d668a58ee9244ccf76108cbdb "Book Dash · cuentos ilustrados en español" es
+canal b06dd546e8ba4b44bf921862c9948ffe "WiiXii · matemáticas con juegos y acertijos"
+canal 07cd1633691b4473b6fda08caf826253 "Ciensación · experimentos de ciencias"
+canal e0bba57cf3475efbbafc3623c4ea6332 "CommonLit (Español) · lecturas para la comprensión lectora"
+if [ "$mal" = 0 ]; then echo "Kolibri: contenidos listos."; else echo "Kolibri: $mal canal(es) con problema; vuelva a tocar el ícono cuando haya internet."; fi
+[ "$mal" = 0 ]

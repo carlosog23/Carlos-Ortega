@@ -11,14 +11,15 @@
 #   - YouTube en modo restringido, sin publicidad y ligero para equipos antiguos.
 #   - Educación Física en el salón para días de lluvia (app propia, sin internet).
 #   - Biblioteca sin internet: ajedrez (también en red entre computadoras), juegos de mente,
-#     sudoku, geografía y mecanografía. Funciona aunque la escuela no tenga internet.
+#     sudoku, geografía, mecanografía y un planetario (Stellarium). Funciona aunque la escuela no tenga internet.
 #   - Aprende a programar: Laberinto y la tortuga que dibuja, con bloques en español.
-#   - Retos Zona 050: práctica diaria (cálculo, tablas, problemas, fracciones, ortografía, lectura)
-#     con un tablero para que el maestro vea el avance de cada alumno.
+#   - Retos Zona 050: práctica diaria (cálculo, tablas, problemas, fracciones, ortografía y
+#     comprensión lectora con lecturas de cada grado) con un tablero para que el maestro vea el avance.
 #   - Una computadora puede ser el «servidor de la escuela» (--servidor): organiza el ajedrez en red,
 #     guarda los resultados de los Retos, comparte una carpeta con videos y libros, y guarda
 #     enciclopedia, diccionario y simulaciones de ciencias (Kiwix) y Kolibri (videos y ejercicios
-#     de Khan Academy en español) para usarlos sin internet desde todas las computadoras.
+#     de Khan Academy en español, cuentos ilustrados, matemáticas con juegos y experimentos de ciencias)
+#     para usarlos sin internet desde todas las computadoras.
 #
 #  Uso (con la computadora conectada por cable de red y CON internet solo durante la instalación):
 #     sudo bash instalar.sh --clave-maestro CLAVE
@@ -52,7 +53,7 @@ while [ $# -gt 0 ]; do
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
     --servidor) SERVIDOR=1; shift ;;
     --wikipedia) WIKIPEDIA=1; SERVIDOR=1; shift ;;
-    -h|--help|--ayuda) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help|--ayuda) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) rojo "Opción no reconocida: $1"; exit 1 ;;
   esac
 done
@@ -151,7 +152,7 @@ instalar firefox firefox-locale-es language-pack-es language-pack-gnome-es \
   libavcodec-extra ffmpeg i965-va-driver va-driver-all \
   zram-tools cups cups-filters printer-driver-all hplip system-config-printer \
   avahi-daemon libnss-mdns python3 \
-  gbrainy gnome-sudoku klavaro kgeography
+  gbrainy gnome-sudoku klavaro kgeography stellarium mesa-utils
 verde "Programas instalados."
 
 # Quita programas que no usan los alumnos y gastan memoria
@@ -184,6 +185,8 @@ rm -rf "$DIR_AULA/ef"; cp -r "$DIR_RECURSOS/ef" "$DIR_AULA/ef"
 # Biblioteca sin internet (ajedrez y más) y el servicio de la red de la escuela (puerto 8050)
 rm -rf "$DIR_AULA/web"; cp -r "$DIR_RECURSOS/web" "$DIR_AULA/web"; cp -r "$DIR_RECURSOS/ef" "$DIR_AULA/web/ef"
 install -m 755 "$DIR_RECURSOS/zona050-red.py" /usr/local/bin/zona050-red
+# Planetario: el lanzador revisa si el video es muy antiguo y, si hace falta, usa dibujo por software
+if command -v stellarium >/dev/null 2>&1; then install -m 755 "$DIR_RECURSOS/aula-planetario" /usr/local/bin/aula-planetario; fi
 chmod -R a+rX "$DIR_AULA"
 cat > /etc/systemd/system/zona050-red.service <<'SERVICIO'
 [Unit]
@@ -444,10 +447,15 @@ KIWIX
   if dpkg -s kolibri >/dev/null 2>&1; then
     systemctl enable kolibri >/dev/null 2>&1; systemctl restart kolibri >/dev/null 2>&1
     if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then ufw allow 8080/tcp >/dev/null; fi
+    # Canales ligeros en español (cuentos ilustrados, matemáticas con juegos, ciencias, lecturas): en segundo plano
+    install -m 755 "$DIR_RECURSOS/aula-kolibri" /usr/local/bin/aula-kolibri
+    echo "  Los contenidos en español de Kolibri se descargan en segundo plano (avance en /var/log/aula-kolibri.log)."
+    ( sleep 20; /usr/local/bin/aula-kolibri ) > /var/log/aula-kolibri.log 2>&1 &
   fi
   systemctl restart zona050-red.service >/dev/null 2>&1
   if id maestro >/dev/null 2>&1; then
     ESC=/home/maestro/Escritorio; mkdir -p "$ESC"
+    dpkg -s kolibri >/dev/null 2>&1 && printf '[Desktop Entry]\nType=Application\nName=Kolibri · bajar o actualizar contenidos (con internet)\nExec=pkexec /usr/local/bin/aula-kolibri\nIcon=emblem-downloads\nTerminal=true\n' > "$ESC/kolibri-contenidos.desktop" && chmod 755 "$ESC/kolibri-contenidos.desktop" && chown maestro:maestro "$ESC/kolibri-contenidos.desktop"
     dpkg -s kolibri >/dev/null 2>&1 && printf '[Desktop Entry]\nType=Application\nName=Kolibri (videos y ejercicios sin internet)\nExec=firefox --new-window http://localhost:8080/\nIcon=applications-education\nTerminal=false\n' > "$ESC/kolibri.desktop" && chmod 755 "$ESC/kolibri.desktop" && chown maestro:maestro "$ESC/kolibri.desktop"
     printf '[Desktop Entry]\nType=Application\nName=Carpeta de la escuela (la ven los alumnos)\nExec=xdg-open /srv/aula/compartido\nIcon=folder-publicshare\nTerminal=false\n' > "$ESC/carpeta-escuela.desktop"
     chmod 755 "$ESC/carpeta-escuela.desktop"; chown maestro:maestro "$ESC/carpeta-escuela.desktop"

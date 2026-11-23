@@ -1,0 +1,10 @@
+#!/bin/sh
+# aula-planetario · Supervisión Escolar Zona 050
+# Abre Stellarium (planetario). Si el video de la computadora es muy antiguo para Stellarium
+# (OpenGL menor a 3.0, como en varias Dell y HP con Core 2 Duo), lo abre con dibujo por software:
+# va más lento, pero funciona.
+v=$(glxinfo -B 2>/dev/null | sed -n 's/^ *OpenGL version string: *\([0-9][0-9]*\)\.\([0-9]\).*/\1\2/p' | head -1)
+if [ -z "$v" ] || [ "$v" -lt 30 ]; then
+  export LIBGL_ALWAYS_SOFTWARE=1
+fi
+exec stellarium "$@"
