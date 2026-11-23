@@ -56,8 +56,9 @@ const ICONOS = {
 };
 
 /* ---------------- datos ---------------- */
-const DEMO = (() => { let on = false; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
-const CLAVE = (APP_PRE ? "aula-pre-" : APP_ESP ? "aula-esp-" : "aula-") + (DEMO ? "demo" : "datos");
+const CAP = (() => { let on = false; try { on = sessionStorage.getItem("aula-cap") === "1"; } catch (e) {} if (/[#&]capacitacion\b/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-cap", "1"); sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
+const DEMO = (() => { let on = CAP; try { on = sessionStorage.getItem("aula-demo") === "1"; } catch (e) {} if (/[#&]demo(?![\w-])/.test(location.hash)) { on = true; try { sessionStorage.setItem("aula-demo", "1"); } catch (e) {} history.replaceState(null, "", location.pathname); } return on; })();
+const CLAVE = (APP_PRE ? "aula-pre-" : APP_ESP ? "aula-esp-" : "aula-") + (CAP ? "cap" : DEMO ? "demo" : "datos");
 const VACIO = () => ({ v: 1, docente: { nombre: "", correo: "" }, grupos: [], gact: "", planes: [], exams: [], asis: {}, favs: [], mias: [], reg: [], fotos: [], bol: {}, cfg: {} });
 let D = cargar();
 function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
@@ -150,8 +151,9 @@ const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
 function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
   else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
-  const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
-  const b = $("#atras"); if (b) b.onclick = () => history.back(); const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
+  const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (CAP ? `<div class="banda-demo">Capacitación · datos ficticios · puede usar todo <button id="dReini">Reiniciar datos</button> <button id="dSalir">Salir</button></div>` : DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
+  const b = $("#atras"); if (b) b.onclick = () => history.back(); const dr = $("#dReini"); if (dr) dr.onclick = async () => { if (!(await confirmar("Se borrará lo que se haya practicado y se volverán a cargar los datos de capacitación.", "Reiniciar"))) return; try { localStorage.removeItem(CLAVE); indexedDB.deleteDatabase((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + "-cap"); } catch (e) {} location.reload(); };
+  const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-cap"); sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
 const barra = (eb, t, der = "") => `<header class="top"><div class="top-in"><button class="back" id="atras" aria-label="Regresar">${ic("atras")}</button><div style="min-width:0"><div class="eb">${eb}</div><h1>${t}</h1></div><div class="der">${der}</div></div></header>`;
 function toast(h, ms = 2800) { const t = $("#toast"); t.innerHTML = h; t.classList.add("ver"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("ver"), ms); }
@@ -688,7 +690,7 @@ ENLAZAR.evaluar = () => { const p = plDe(S.pid); if (!p) return; const g = grDe(
   $("#evOk").onclick = () => { history.back(); toast("Evaluación guardada."); }; };
 
 /* ---------- portafolio: fotos en IndexedDB ---------- */
-function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + (DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
+function idb() { return idb.p || (idb.p = new Promise((ok, no) => { const r = indexedDB.open((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + (CAP ? "-cap" : DEMO ? "-demo" : ""), 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); })); }
 async function idbOp(modo, fn) { const db = await idb(); return new Promise((ok, no) => { const t = db.transaction("f", modo), q = fn(t.objectStore("f")); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }); }
 const FOTO = {}; const fotoGet = async id => FOTO[id] || (FOTO[id] = await idbOp("readonly", s => s.get(id)).catch(() => null));
 function comprimir(file, max = 1280, q = .72) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", q)); }; im.onerror = no; im.src = r.result; }; r.onerror = no; r.readAsDataURL(file); }); }
@@ -1101,7 +1103,8 @@ ENLAZAR.ajustes = () => { $("#yAdm") && ($("#yAdm").onclick = () => ir("admin"))
   $("#yL").onclick = () => $("#fR").click(); $("#fR").onchange = async e => { try { const x = JSON.parse(await e.target.files[0].text()); if (!x.v || !Array.isArray(x.grupos)) throw 0; if (!(await confirmar("Se reemplazarán los datos de este dispositivo por los del respaldo.", "Cargar"))) return; D = Object.assign(VACIO(), x); guardar(); ir("inicio", {}, true); toast("Respaldo cargado."); } catch (er) { toast("Ese archivo no es un respaldo de Tlamatini Aula."); } }; };
 
 /* =================================================================== ARRANQUE */
-function arrancarDatos() { if (DEMO && APP_PRE && !D.grupos.length) { const g = { id: "gdemop", nivel: "pre", cct: "02DJN9999Z", escuela: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", grados: [3], grupo: "A", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
+async function arrancarDatos() { if (CAP && !APP_PRE && !APP_ESP) { if (D.grupos.length) return; for (let i = 0; i < 100 && typeof capSembrar !== "function"; i++) await new Promise(r => setTimeout(r, 50)); if (typeof capSembrar === "function") return capSembrar(); }
+  if (DEMO && APP_PRE && !D.grupos.length) { const g = { id: "gdemop", nivel: "pre", cct: "02DJN9999Z", escuela: "Jardín de Niños «Rosaura Zapata» (ejemplo)", turno: "Matutino", grados: [3], grupo: "A", dir: "Elena Ejemplo Rivas", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Ana Sofía Ejemplo Ruiz", "Bruno Muestra Díaz", "Camila Ficticia López", "Diego Prueba Soto", "Elena Ejemplo Cruz", "Fernando Demo Ríos", "Gabriela Muestra Peña", "Hugo Ficticio Lara", "Itzel Ejemplo Mora", "Joaquín Prueba Vega"].forEach(n => g.alumnos.push({ id: uid(), nombre: n, g: 3 }));
     D.grupos.push(g); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); return; }
   if (DEMO && APP_ESP) { if (!D.docente.nombre) { D.docente.nombre = "Mtra. Sofía Ejemplo Vega"; guardar(); } return; }
@@ -1110,7 +1113,7 @@ function arrancarDatos() { if (DEMO && APP_PRE && !D.grupos.length) { const g = 
     const g2 = { id: "gdemo2", nivel: "sec", mod: "general", discs: ["Matemáticas", "Formación Cívica y Ética"], cct: "02DES9999Z", escuela: "Escuela Secundaria General «Benito Juárez» (ejemplo)", turno: "Matutino", grados: [2], grupo: "B", dir: "Rosa Ejemplo Valdez", cargoDir: "Directora", loc: "Camalú", alumnos: [] };
     ["Alondra Ejemplo Ramos", "Brandon Muestra Castro", "Citlali Ficticia Ortiz", "Daniel Prueba Mendoza", "Estrella Ejemplo Núñez", "Francisco Demo Ibarra", "Guadalupe Muestra Salas", "Héctor Ficticio Rangel", "Iris Ejemplo Torres", "Jorge Prueba Arce"].forEach(n => g2.alumnos.push({ id: uid(), nombre: n, g: 2 }));
     D.grupos.push(g, g2); D.gact = g.id; D.docente.nombre = "Mtra. Laura Ejemplo Ruiz"; guardar(); } }
-window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
+window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|capacitacion\b|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
-  calendario(); ACCESO_OK = await acceso(); arrancarDatos(); pintar(); if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
+  calendario(); ACCESO_OK = await acceso(); await arrancarDatos(); pintar(); if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();

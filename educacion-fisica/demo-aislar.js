@@ -4,11 +4,11 @@
    - Simula el servidor: no se envía ningún correo, no se conecta Google y no se pide enlace de acceso. */
 "use strict";
 (function () {
-  const P = "demo:", sp = Storage.prototype, g = sp.getItem, s = sp.setItem, r = sp.removeItem;
+  const CAP = /[?&#]capacitacion/.test(location.search + location.hash), P = CAP ? "cap:" : "demo:", sp = Storage.prototype, g = sp.getItem, s = sp.setItem, r = sp.removeItem;
   sp.getItem = function (k) { return g.call(this, P + k); };
   sp.setItem = function (k, v) { return s.call(this, P + k, v); };
   sp.removeItem = function (k) { return r.call(this, P + k); };
-  window.ULAMA_DEMO = true;
+  window.ULAMA_DEMO = true; window.ULAMA_CAP = CAP;
   window.demoReiniciar = function () { for (const st of [localStorage, sessionStorage]) { const ks = []; for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k && k.startsWith(P)) ks.push(k); } ks.forEach(k => r.call(st, k)); } location.reload(); };
   let listo; window.DEMO_LISTO = new Promise(ok => listo = ok); window.demoListo = () => listo();
   const json = o => new Response(JSON.stringify(o), { status: 200, headers: { "Content-Type": "application/json" } });

@@ -345,6 +345,21 @@ const DEMOS={
  preescolar:[{t:"Enlace para docentes",u:GH+"evaluacion-preescolar/",n:"La app es abierta: cualquiera con el enlace puede usarla."}],
  pagina:[{t:"Página pública de la zona",u:GH+"zona050/",n:"Abierta a familias, comunidad y personal."}]
 };
+/* Capacitación: apps ya cargadas con datos ficticios, listas para capacitar desde cualquier dispositivo */
+const CAPAC=[
+ ["aula",{t:"Tlamatini Aula · Primaria (Zona 050)",u:GH+"tlamatini-aula/#capacitacion",n:"Las 14 escuelas de la zona, cada una con su grupo y alumnos ficticios: pase de lista, planeaciones con sesiones dadas y evaluadas, exámenes calificados, boleta del trimestre y lectura de la realidad. Las fechas se ajustan solas al día en que se abre."}],
+ ["ulama",{t:"Ulama · Educación Física (Zona 050)",u:GH+"educacion-fisica/demo.html?capacitacion",n:"Escuelas de la zona (Belisario Domínguez, 13 de Septiembre y Margarita Maza de Juárez) con maestros y alumnos ficticios: planeaciones, clases ya dadas con asistencia, evaluaciones y observaciones."}],
+ ["aulapre",{t:"Tlamatini Aula Preescolar",u:GH+"aula-preescolar/#capacitacion",n:"Un 3.° A de jardín ficticio listo para planear, evaluar y practicar la evaluación cualitativa."}],
+ ["aulaesp",{t:"Tlamatini Aula Especial (USAER y CAM)",u:GH+"aula-especial/#capacitacion",n:"Una USAER ficticia con escuelas y alumnos en seguimiento, agenda y documentos."}],
+ ["tlamatini",{t:"Tlamatini · formatos y gestión",u:GH+"formatos-ppie/#demo",n:"Escuela de ejemplo con alumnos y personal para generar documentos reales en PDF y Word.",vig:true}],
+ ["tequio",{t:"Tequio · como director",u:GH+"tequio/#consulta=director",n:"Lo que ve un director, con datos ficticios, solo para ver."}]
+];
+function capSeccion(){
+  const filas=CAPAC.map(([id,d])=>{const a=APPS.find(x=>x.id===id);return a?demoHTML(a,d,true):""}).join("");
+  return`<section class="section fade"><div class="sec-h"><h2>Capacitación</h2><span class="eyebrow">${CAPAC.length}</span></div>
+  <p style="margin:-4px 0 12px;color:var(--muted);font-size:.9rem">Apps ya cargadas con datos ficticios, listas para capacitar desde cualquier computadora o celular. No hay que cargar nada. Lo que practiquen se queda en ese dispositivo, aparte de los datos reales, y cada app tiene un botón para reiniciar los datos.</p>
+  <div class="demos">${filas}</div></section>`;
+}
 let VIG_TLM=null;
 fetch("../formatos-ppie/formatos/acceso.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.demoVence){VIG_TLM=j.demoVence;if(mode==="use")renderUse();else if(mode==="admin")drawDetail()}}).catch(()=>{});
 function vigHTML(){
@@ -459,6 +474,7 @@ function renderUse(){
     <input id="q" placeholder="Buscar app… (escribe y presiona Enter)" autocomplete="off"><kbd>Ctrl K</kbd>
   </label>
   ${rec.length?`<section class="section fade"><div class="sec-h"><h2>Recientes</h2></div><div class="recent">${rec.map(a=>`<a class="chipapp" href="${esc(cfg(a).url)}" target="_blank" rel="noopener" data-open="${a.id}"><span class="ico" style="--c:${a.c}">${svg(a.id)}</span>${a.name}</a>`).join("")}</div></section>`:""}
+  ${capSeccion()}
   <div id="groups"></div>
   ${demosSeccion()}`;
   const q=document.getElementById("q");

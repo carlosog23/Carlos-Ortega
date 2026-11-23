@@ -11,7 +11,7 @@
   const AP = ["García", "Hernández", "López", "Martínez", "González", "Pérez", "Rodríguez", "Sánchez", "Ramírez", "Cruz", "Flores", "Gómez", "Morales", "Vázquez", "Reyes", "Jiménez", "Torres", "Díaz", "Gutiérrez", "Ruiz", "Mendoza", "Aguilar", "Ortiz", "Castillo", "Romero", "Herrera", "Medina", "Chávez", "Ríos", "Vargas", "Silva", "Castro", "Ramos", "Domínguez", "Salazar", "Navarro"];
   const alumnoNom = () => `${uno(AP)} ${uno(AP)} ${azar() < .5 ? uno(NOM_H) : uno(NOM_M)}`;
 
-  const ESC = [
+  let ESC = [
     { nombre: "Esc. Prim. Benito Juárez", cct: "02DPR9901A", turno: "Matutino", zona: "999", localidad: "Colonia Las Flores", dias: [1, 3], dirTrato: "Mtra.", director: "Rosa María Delgado Fuentes", correo: "direccion.benitojuarez@ejemplo.mx", supEF: "Mtro. Ricardo Soto Lara", supCorreo: "supervision.ef@ejemplo.mx",
       grupos: [[1, "A", "Mtra. Laura Peña Ochoa"], [2, "A", "Mtra. Gabriela Ibarra Luna"], [3, "A", "Mtro. Óscar Villa Campos"], [4, "A", "Mtra. Claudia Mora Rubio"], [5, "A", "Mtro. Jorge Lugo Serna"], [6, "A", "Mtra. Patricia Rivas Cano"]], hora: ["08:00", "08:50", "09:40", "10:30", "11:20", "12:10"] },
     { nombre: "Esc. Prim. Niños Héroes", cct: "02DPR9902B", turno: "Vespertino", zona: "999", localidad: "Ejido El Mirador", dias: [2, 4], dirTrato: "Mtro.", director: "Alberto Quintero Salas", correo: "direccion.ninosheroes@ejemplo.mx", supEF: "Mtro. Ricardo Soto Lara", supCorreo: "supervision.ef@ejemplo.mx",
@@ -19,6 +19,16 @@
     { nombre: "Esc. Prim. Emiliano Zapata (multigrado)", cct: "02DPR9903C", turno: "Matutino", zona: "999", localidad: "Rancho Agua Clara", dias: [5], dirTrato: "Mtro.", director: "Felipe Arce Montaño (encargado)", correo: "direccion.emilianozapata@ejemplo.mx", supEF: "Mtra. Leticia Bravo Ochoa", supCorreo: "supervisora.ef@ejemplo.mx",
       grupos: [[2, "A", "Mtro. Felipe Arce Montaño"], [5, "A", "Mtra. Norma Cuevas Ríos"]], hora: ["09:00", "10:00"] }
   ];
+  /* Capacitación (demo.html?capacitacion): escuelas reales de la Zona 050, con maestros y alumnos ficticios */
+  if (window.ULAMA_CAP) ESC = [
+    { nombre: "Esc. Prim. Belisario Domínguez", cct: "02DPR0210Z", turno: "Matutino", zona: "050", localidad: "Camalú", dias: [1, 3], dirTrato: "Mtro.", director: "Luis Ángel Bandala Guerrero", correo: "direccion.belisario@ejemplo.mx", supEF: "Mtro. Víctor Hernández Zúñiga", supCorreo: "supervision.ef@ejemplo.mx",
+      grupos: [[1, "A", "Mtra. Laura Peña Ochoa"], [2, "A", "Mtra. Gabriela Ibarra Luna"], [3, "A", "Mtro. Óscar Villa Campos"], [4, "A", "Mtra. Claudia Mora Rubio"], [5, "A", "Mtro. Jorge Lugo Serna"], [6, "A", "Mtra. Patricia Rivas Cano"]], hora: ["08:00", "08:50", "09:40", "10:30", "11:20", "12:10"] },
+    { nombre: "Esc. Prim. 13 de Septiembre", cct: "02DPR0077J", turno: "Vespertino", zona: "050", localidad: "Camalú", dias: [2, 4], dirTrato: "Mtra.", director: "Cecilia Gómez Martínez", correo: "direccion.13septiembre@ejemplo.mx", supEF: "Mtro. Víctor Hernández Zúñiga", supCorreo: "supervision.ef@ejemplo.mx",
+      grupos: [[3, "A", "Mtra. Karla Acosta Valle"], [4, "A", "Mtro. Raúl Bernal Cota"], [5, "A", "Mtra. Silvia Robles Meza"], [6, "A", "Mtro. Manuel Osuna Paz"]], hora: ["14:00", "14:50", "15:40", "16:30"] },
+    { nombre: "Esc. Prim. Margarita Maza de Juárez (multigrado)", cct: "02DPR0378F", turno: "Matutino", zona: "050", localidad: "Hacienda Sinaloa", dias: [5], dirTrato: "Mtra.", director: "Adriana Valentina Zavala Cruz (encargada)", correo: "direccion.margaritamaza@ejemplo.mx", supEF: "Mtro. Víctor Hernández Zúñiga", supCorreo: "supervision.ef@ejemplo.mx",
+      grupos: [[2, "A", "Mtra. Norma Cuevas Ríos"], [5, "A", "Mtra. Adriana Valentina Zavala Cruz"]], hora: ["09:00", "10:00"] }
+  ];
+  const haceDias = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const CONT = { 3: "Capacidades y habilidades motrices.", 4: "Pensamiento lúdico, estratégico y creativo.", 5: "Interacción motriz." };
   const INSTR = { 3: "rubrica", 4: "escala", 5: "cotejo" };
   const OBS_B = ["Propone estrategias a su equipo y ayuda a los demás.", "Muestra mucho entusiasmo; anima a sus compañeros.", "Coordina muy bien sus movimientos en los desplazamientos.", "Respeta los acuerdos y sabe esperar su turno.", "Mejoró mucho en el control del balón."];
@@ -43,7 +53,7 @@
       gs.forEach(g => (porFase[faseDe(g.grado)] = porFase[faseDe(g.grado)] || []).push(g));
       Object.entries(porFase).forEach(([fase, lista]) => { const cont = BANCO_EF[fase].find(c => c.c === CONT[fase]) || BANCO_EF[fase][0];
         const pdas = {}; [...new Set(lista.map(g => g.grado))].sort().forEach(gr => pdas[gr] = (cont.pda || {})[gr] || "");
-        const n = e.dias.length === 1 ? 8 : 12, ini = e.dias.length === 1 ? "2026-10-02" : "2026-10-12";
+        const n = e.dias.length === 1 ? 8 : 12, ini = window.ULAMA_CAP ? (e.dias.length === 1 ? haceDias(56) : haceDias(42)) : e.dias.length === 1 ? "2026-10-02" : "2026-10-12";
         const p = crearPlan({ escId: e.id, grupos: lista.map(g => g.id), titulo: cont.c.replace(/\.$/, ""), cont: cont.c, pdas, ini, min: 50, n, instr: INSTR[fase], proposito: "Que las y los alumnos mejoren su desempeño motriz jugando en colaboración y con respeto a los acuerdos." });
         D.planes.push(p);
         lista.forEach(g => { const fechas = fechasClase(g, p.ini, p.sesiones.length), al = g.alumnos;
@@ -64,5 +74,6 @@
     guardar(true);
   }
   try { if (!D.cfg.demo) sembrar(); } catch (e) { console.error("No se pudo preparar la demo", e); }
+  if (window.ULAMA_CAP) { document.title = "Ulama · Capacitación"; const b = document.querySelector(".proto b"); if (b) { b.textContent = "CAPACITACIÓN"; if (b.nextSibling) b.nextSibling.textContent = " · Escuelas de la Zona 050 con maestros y alumnos ficticios · No se envía ningún correo · "; } }
   window.demoListo();
 })();
