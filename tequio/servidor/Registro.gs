@@ -100,7 +100,7 @@ const PUBLICAS = {
     return { llave: llave, estado: 'activa', versionVigente: vigente_() };
   },
   // Hoja de captura (tequio/hoja.html): la supervisión nueva llena sus datos con su código de invitación.
-  // Se guarda una sola hoja por zona (la última enviada) y llega aviso por correo al administrador.
+  // Se guarda una sola hoja por zona (la última enviada, en la pestaña «Hojas de captura») y llega aviso por correo al administrador.
   hojaGuardar: d => {
     const inv = invitacionValida_(d.codigo);
     const cache = CacheService.getScriptCache(), kk = 'hoja-' + inv.numero, n = (parseInt(cache.get(kk), 10) || 0) + 1;
@@ -108,36 +108,46 @@ const PUBLICAS = {
     cache.put(kk, String(n), 3600);
     const h = d.hoja || {}, json = JSON.stringify(h);
     if (json.length > 15000000) throw new Error('La hoja pesa demasiado (revise el tamaño del logo, la firma o el sello).');
-    const p = PropertiesService.getScriptProperties(), nombre = 'Hoja de alta · Zona ' + inv.numero + '.json';
-    let f = null; try { f = p.getProperty('HOJA_' + inv.numero) ? DriveApp.getFileById(p.getProperty('HOJA_' + inv.numero)) : null; } catch (e) { f = null; }
-    if (f && !f.isTrashed()) f.setContent(json); else { f = carpetaHojas_().createFile(Utilities.newBlob(json, 'application/json', nombre)); p.setProperty('HOJA_' + inv.numero, f.getId()); }
+    const p = PropertiesService.getScriptProperties();
+    guardarHoja_(inv.numero, json);
+    const url = SpreadsheetApp.openById(p.getProperty('SHEET_ID')).getUrl();
     const s = h.supervision || {}, esc = (h.escuelas || []).length, atp = (h.atps || []).length;
     const idx = JSON.parse(p.getProperty('HOJAS_IDX') || '{}');
-    idx[inv.numero] = { numero: inv.numero, para: String(s.supervisor || inv.para).slice(0, 120), fecha: ahora_(), escuelas: esc, atps: atp, url: f.getUrl(), codigo: inv.codigo };
+    idx[inv.numero] = { numero: inv.numero, para: String(s.supervisor || inv.para).slice(0, 120), fecha: ahora_(), escuelas: esc, atps: atp, url: url, codigo: inv.codigo };
     p.setProperty('HOJAS_IDX', JSON.stringify(idx));
     bitacora_('zona ' + inv.numero, 'hoja de captura', esc + ' escuelas, ' + atp + ' ATP');
     try {
       MailApp.sendEmail({ to: ADMIN_CORREOS, subject: 'Tequio · Hoja de captura de la Zona ' + inv.numero, name: 'Tequio · Registro central',
         htmlBody: '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5"><p><b>' + esc_(idx[inv.numero].para) + '</b> envió la hoja de captura de la <b>Zona ' + esc_(inv.numero) + '</b> (' + esc_(inv.sostenimiento) + ').</p>' +
           '<pre style="font-family:Arial,sans-serif;white-space:pre-wrap">' + esc_(String(d.resumen || '').slice(0, 8000)) + '</pre>' +
-          '<p>Al instalar Tequio con el código <b>' + esc_(inv.codigo) + '</b>, el asistente carga solo estos datos. El archivo quedó en el Drive de esta cuenta: <a href="' + f.getUrl() + '">' + esc_(nombre) + '</a>.</p></div>' });
+          '<p>Al instalar Tequio con el código <b>' + esc_(inv.codigo) + '</b>, el asistente carga solo estos datos. También aparece en su consola, en «Hojas de captura recibidas».</p></div>' });
     } catch (e) {}
     return { fecha: idx[inv.numero].fecha };
   },
   // El asistente de instalación (o la misma hoja, en otro equipo) recupera la hoja guardada de esa zona
   hojaLeer: d => {
-    const inv = invitacionValida_(d.codigo), id = PropertiesService.getScriptProperties().getProperty('HOJA_' + inv.numero);
-    if (!id) return { hoja: null };
-    try { const f = DriveApp.getFileById(id); return { hoja: f.isTrashed() ? null : JSON.parse(f.getBlob().getDataAsString()) }; } catch (e) { return { hoja: null }; }
+    const inv = invitacionValida_(d.codigo), t = leerHoja_(inv.numero);
+    try { return { hoja: t ? JSON.parse(t) : null }; } catch (e) { return { hoja: null }; }
   }
 };
-function carpetaHojas_() {
-  const p = PropertiesService.getScriptProperties();
-  try { if (p.getProperty('HOJAS_CARPETA')) return DriveApp.getFolderById(p.getProperty('HOJAS_CARPETA')); } catch (e) {}
-  const c = DriveApp.createFolder('Tequio · Hojas de alta de supervisiones'); p.setProperty('HOJAS_CARPETA', c.getId()); return c;
+// Las hojas de captura se guardan en la pestaña «Hojas de captura» del mismo registro (sin permisos nuevos):
+// el texto va en trozos de 40 000 caracteres por fila, porque una celda no admite más de 50 000.
+function pestanaHojas_() {
+  const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+  let sh = ss.getSheetByName('Hojas de captura');
+  if (!sh) { sh = ss.insertSheet('Hojas de captura'); sh.getRange(1, 1, 1, 3).setValues([['zona', 'parte', 'texto']]).setFontWeight('bold').setBackground('#1E2A40').setFontColor('#FFFFFF'); sh.setFrozenRows(1); }
+  return sh;
 }
-// Ejecútela UNA vez desde el editor después de pegar esta versión: Google pide permiso para usar el Drive (hojas de captura).
-function autorizarHojas() { carpetaHojas_(); Logger.log('Listo: la carpeta de hojas de captura está en el Drive de esta cuenta.'); }
+function guardarHoja_(numero, json) {
+  const sh = pestanaHojas_(), n = sh.getLastRow();
+  if (n > 1) { const z = sh.getRange(2, 1, n - 1, 1).getValues(); for (let i = z.length - 1; i >= 0; i--) if (String(z[i][0]) === numero) sh.deleteRow(i + 2); }
+  const filas = []; for (let i = 0, k = 0; i < json.length; i += 40000, k++) filas.push([numero, String(k), '~' + json.slice(i, i + 40000)]);
+  const r = sh.getRange(sh.getLastRow() + 1, 1, filas.length, 3); r.setNumberFormat('@'); r.setValues(filas);
+}
+function leerHoja_(numero) {
+  const sh = pestanaHojas_(), n = sh.getLastRow(); if (n < 2) return '';
+  return sh.getRange(2, 1, n - 1, 3).getValues().filter(r => String(r[0]) === numero).sort((a, b) => +a[1] - +b[1]).map(r => String(r[2]).slice(1)).join('');
+}
 
 // Acciones del servidor de una zona (con la llave que recibió al registrarse)
 const ZONA_ACC = {
