@@ -264,3 +264,34 @@ function avisoSepararTodasHTML() { const L = D.planes.filter(p => gradosDePlan(p
 async function accionSeparar(lista) { const n = lista.reduce((t, p) => t + gradosDePlan(p).length, 0);
   if (!(await confirmar(`Se ${lista.length > 1 ? `separarán ${lista.length} planeaciones` : "separará la planeación"} en ${n}, una por grado. Las clases y evaluaciones registradas se conservan en la de su grado.`, "Separar"))) return null;
   const out = lista.flatMap(separarPlan); guardar(); return out; }
+
+/* ---------- volver a generar los juegos de una planeación ya hecha ----------
+   Cambia los juegos de las sesiones que aún no se dan (en ningún grupo), sin repetir dentro de la planeación.
+   Respeta las sesiones ya dadas y las actividades propias de la maestra o el maestro. */
+const juegosDeSes = s => [s.act, ...(s.ppal || []), s.calma, s.planB].filter(Boolean);
+function repetidosPlan(p) { const c = {}, pend = new Set(), dadas = sesionesDadasPlan(p);
+  p.sesiones.forEach(s => [...(s.ppal || []), s.act].filter(Boolean).forEach(k => { c[k] = (c[k] || 0) + 1; if (!dadas.has(s.id)) pend.add(k); }));
+  return Object.keys(c).filter(k => c[k] > 1 && pend.has(k) && !FIJOS.includes(k) && !(JUEGOS[k] || {}).propio).length; }
+function sesionesDadasPlan(p) { const set = new Set(); p.grupos.forEach(g => sesionesDadas(g, p.id).forEach(id => set.add(id))); return set; }
+function regenerarPlan(p, todas) { const fases = fasesDeGrupos(p.grupos), dadas = todas ? new Set() : sesionesDadasPlan(p), ya = new Set(), rec = usadosRecientes(p.grupos, p.id), vistos = {};
+  p.sesiones.filter(s => dadas.has(s.id)).forEach(s => juegosDeSes(s).forEach(k => ya.add(k)));
+  let n = 0; const mia = k => k && JUEGOS[k] && JUEGOS[k].propio;
+  p.sesiones.forEach(s => { vistos[s.est] = (vistos[s.est] || 0) + 1; if (dadas.has(s.id) || s.est === "Mi actividad") return;
+    const guarda = { act: s.act, calma: s.calma, planB: s.planB }, ppalMias = (s.ppal || []).map(k => mia(k) ? k : null);
+    const base = EF_SESIONES.find(b => b.est === s.est) || null;
+    if (base && vistos[s.est] > 1) s.t = s.t.replace(/\s·\s(segunda vuelta|vuelta \d+)$/, "");
+    variarSesion(s, fases, ya, rec, base, vistos[s.est] === 1 && !rec.has((base || {}).ppal ? base.ppal[0] : ""), vistos[s.est] > 1);
+    Object.keys(guarda).forEach(k => { if (mia(guarda[k])) s[k] = guarda[k]; }); ppalMias.forEach((k, i) => { if (k) s.ppal[i] = k; });
+    n++; });
+  return { n, dadas: dadas.size }; }
+function regenerarHTML(p) { const r = repetidosPlan(p);
+  return `<div class="aviso mt" ${r ? 'style="background:var(--rojo-s);border-color:#E8C3BE"' : ""}><span style="flex:1">${r ? `<b>Esta planeación repite ${r} juego${r > 1 ? "s" : ""}.</b> ` : ""}Puede volver a generar los juegos para que salgan distintos y no se repitan. Sus actividades propias no se tocan.</span><button class="btn s ${r ? "p" : ""}" id="bRegen">${ic("play", 16)} Volver a generar juegos</button></div>`; }
+function accionRegenerar(lista) { return new Promise(ok => {
+  const dadas = lista.reduce((t, p) => t + sesionesDadasPlan(p).size, 0);
+  dlg(`<h3>Volver a generar los juegos</h3><p class="mb">${lista.length > 1 ? `Se generan de nuevo los juegos de ${lista.length} planeaciones.` : "Ulama elige juegos nuevos del fichero, distintos en cada sesión."} Sus actividades propias no se cambian.</p>
+   ${dadas ? `<label class="small" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="rgT"> <span>Cambiar también las ${dadas} sesiones que ya se dieron. Si lo marca, en el registro de esas clases aparecerán los juegos nuevos en lugar de los que se jugaron.</span></label>` : ""}
+   <div class="fila fin mt"><button class="btn" id="rgX">Cancelar</button><button class="btn p" id="rgOk">Generar de nuevo</button></div>`, v => {
+    v.querySelector("#rgX").onclick = () => { cerrarDlg(); ok(null); };
+    v.querySelector("#rgOk").onclick = () => { const todas = !!(v.querySelector("#rgT") && v.querySelector("#rgT").checked); const n = lista.map(p => regenerarPlan(p, todas)).reduce((t, x) => t + x.n, 0); guardar(); cerrarDlg(); ok(n); }; }); }); }
+function avisoRepetidasHTML() { const L = D.planes.filter(p => repetidosPlan(p) > 0); if (!L.length) return "";
+  return `<div class="aviso mt" style="background:var(--rojo-s);border-color:#E8C3BE"><span style="flex:1"><b>${L.length} planeaci${L.length > 1 ? "ones repiten" : "ón repite"} juegos.</b> Puede generarlas de nuevo con juegos distintos; lo ya dado no se toca.</span><button class="btn s p" id="bRegenT">Generar de nuevo</button></div>`; }
