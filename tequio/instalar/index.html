@@ -149,7 +149,7 @@ function p1() {
   <p style="margin:0 0 8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px;color:var(--terra-d)">Lo que acordamos juntos, lo caminamos juntos</p>
   <h1>Bienvenido a Tequio</h1>
   <p class="lead">En unos pasos tu supervisión tendrá su propio espacio de asesoría y seguimiento: agenda, acuerdos, evidencias, SisAT, EIA, oficios y más, con los datos de tus escuelas.</p>
-  <div class="note" style="margin-bottom:20px"><b>Ten a la mano:</b> la cuenta de Google de tu supervisión, la lista de tus escuelas (en Excel o en la plantilla que te damos), los correos de tus ATP y el logo de tu zona. Tus datos se guardan en el Drive de tu supervisión; nadie más los ve.</div>
+  <div class="note" style="margin-bottom:20px"><b>Ten a la mano:</b> la cuenta de Google de tu supervisión, la lista de tus escuelas (en Excel o en la plantilla que te damos), los correos de tus ATP y el logo de tu zona. Tus datos se guardan en el Drive de tu supervisión; nadie más los ve.<br><b>¿Ya llenaste tu <a href="../hoja.html">hoja de captura</a>?</b> Al escribir tu código, sus datos se cargan solos.</div>
   <div class="g2">
     <div><label for="cod">Código de invitación</label><input id="cod" value="${esc(E.codigo)}" placeholder="TQ-XXXX-XXXX" autocomplete="off" style="font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase">
       <p class="hint">Te lo entrega el administrador de Tequio. Es para una sola supervisión y vence.</p></div>
@@ -171,6 +171,18 @@ function p1() {
       if (!REGISTRO) throw new Error('El administrador todavía no activa las instalaciones. Inténtalo más tarde.');
       const r = await post(REGISTRO, { accion: 'validarInvitacion', datos: { codigo: c } });
       E.codigo = c; E.inv = r.invitacion;
+      // Si la supervisión ya llenó su hoja de captura (tequio/hoja.html), sus datos se cargan solos
+      try {
+        const h = (await post(REGISTRO, { accion: 'hojaLeer', datos: { codigo: c } })).hoja;
+        if (h && h.p && !E.escuelas.length && !E.p.sede) {
+          Object.assign(E.p, h.p); E.p.autoridades = (h.p.autoridades || []).filter(a => a.municipio);
+          ['logo', 'firma', 'sello'].forEach(k => { if (h[k]) E[k] = h[k]; });
+          E.escuelas = (h.escuelas || []).map(e => Object.assign({ cargo: 'Director(a)' }, e, { cct: String(e.cct || '').toUpperCase() }));
+          E.atps = (h.atps || []).filter(a => a.nombre).map(a => ({ nombre: a.nombre, correo: a.correo || '', whatsapp: a.whatsapp || '', escuelas: a.escuelas || [] }));
+          E.deHoja = h.fecha || true; guardar();
+          aviso('Se cargó su hoja de captura: ' + E.escuelas.length + ' escuelas y ' + E.atps.length + ' ATP. Revise cada paso.', 6000);
+        }
+      } catch (e) {}
       if (!E.p.nombre && r.invitacion.para) { const m = r.invitacion.para.match(/^(Mtro\.|Mtra\.|Profr\.|Profra\.|Lic\.|Dr\.|Dra\.)\s*(.*)$/i); if (m) { E.p.titulo = m[1]; E.p.nombre = m[2]; } else E.p.nombre = r.invitacion.para; }
       if (!E.p.correoInstitucional && /@bcedu\.mx$/i.test(r.invitacion.correo || '')) E.p.correoInstitucional = r.invitacion.correo;
       ir(2);

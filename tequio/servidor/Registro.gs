@@ -22,6 +22,7 @@ const TZ = 'America/Tijuana';
 const ADMIN_CORREOS = 'tequio023@gmail.com,carlosog23@gmail.com';
 const CONSOLA = 'https://carlosog23.github.io/Carlos-Ortega/tequio/consola/';
 const INSTALADOR = 'https://carlosog23.github.io/Carlos-Ortega/tequio/instalar/';
+const HOJA_ALTA = 'https://carlosog23.github.io/Carlos-Ortega/tequio/hoja.html';
 
 const HOJAS = {
   zonas: ['numero', 'nivel', 'sostenimiento', 'supervisor', 'correo', 'municipios', 'url', 'version', 'grupo', 'estado', 'motivo',
@@ -97,8 +98,46 @@ const PUBLICAS = {
     inv.estado = 'usada'; inv.usada = ahora; guardar_('inv', inv, 'codigo');
     bitacora_('zona ' + inv.numero, 'registro', 'Instalación terminada');
     return { llave: llave, estado: 'activa', versionVigente: vigente_() };
+  },
+  // Hoja de captura (tequio/hoja.html): la supervisión nueva llena sus datos con su código de invitación.
+  // Se guarda una sola hoja por zona (la última enviada) y llega aviso por correo al administrador.
+  hojaGuardar: d => {
+    const inv = invitacionValida_(d.codigo);
+    const cache = CacheService.getScriptCache(), kk = 'hoja-' + inv.numero, n = (parseInt(cache.get(kk), 10) || 0) + 1;
+    if (n > 10) throw new Error('La hoja se envió muchas veces seguidas. Intente más tarde.');
+    cache.put(kk, String(n), 3600);
+    const h = d.hoja || {}, json = JSON.stringify(h);
+    if (json.length > 15000000) throw new Error('La hoja pesa demasiado (revise el tamaño del logo, la firma o el sello).');
+    const p = PropertiesService.getScriptProperties(), nombre = 'Hoja de alta · Zona ' + inv.numero + '.json';
+    let f = null; try { f = p.getProperty('HOJA_' + inv.numero) ? DriveApp.getFileById(p.getProperty('HOJA_' + inv.numero)) : null; } catch (e) { f = null; }
+    if (f && !f.isTrashed()) f.setContent(json); else { f = carpetaHojas_().createFile(Utilities.newBlob(json, 'application/json', nombre)); p.setProperty('HOJA_' + inv.numero, f.getId()); }
+    const s = h.supervision || {}, esc = (h.escuelas || []).length, atp = (h.atps || []).length;
+    const idx = JSON.parse(p.getProperty('HOJAS_IDX') || '{}');
+    idx[inv.numero] = { numero: inv.numero, para: String(s.supervisor || inv.para).slice(0, 120), fecha: ahora_(), escuelas: esc, atps: atp, url: f.getUrl(), codigo: inv.codigo };
+    p.setProperty('HOJAS_IDX', JSON.stringify(idx));
+    bitacora_('zona ' + inv.numero, 'hoja de captura', esc + ' escuelas, ' + atp + ' ATP');
+    try {
+      MailApp.sendEmail({ to: ADMIN_CORREOS, subject: 'Tequio · Hoja de captura de la Zona ' + inv.numero, name: 'Tequio · Registro central',
+        htmlBody: '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5"><p><b>' + esc_(idx[inv.numero].para) + '</b> envió la hoja de captura de la <b>Zona ' + esc_(inv.numero) + '</b> (' + esc_(inv.sostenimiento) + ').</p>' +
+          '<pre style="font-family:Arial,sans-serif;white-space:pre-wrap">' + esc_(String(d.resumen || '').slice(0, 8000)) + '</pre>' +
+          '<p>Al instalar Tequio con el código <b>' + esc_(inv.codigo) + '</b>, el asistente carga solo estos datos. El archivo quedó en el Drive de esta cuenta: <a href="' + f.getUrl() + '">' + esc_(nombre) + '</a>.</p></div>' });
+    } catch (e) {}
+    return { fecha: idx[inv.numero].fecha };
+  },
+  // El asistente de instalación (o la misma hoja, en otro equipo) recupera la hoja guardada de esa zona
+  hojaLeer: d => {
+    const inv = invitacionValida_(d.codigo), id = PropertiesService.getScriptProperties().getProperty('HOJA_' + inv.numero);
+    if (!id) return { hoja: null };
+    try { const f = DriveApp.getFileById(id); return { hoja: f.isTrashed() ? null : JSON.parse(f.getBlob().getDataAsString()) }; } catch (e) { return { hoja: null }; }
   }
 };
+function carpetaHojas_() {
+  const p = PropertiesService.getScriptProperties();
+  try { if (p.getProperty('HOJAS_CARPETA')) return DriveApp.getFolderById(p.getProperty('HOJAS_CARPETA')); } catch (e) {}
+  const c = DriveApp.createFolder('Tequio · Hojas de alta de supervisiones'); p.setProperty('HOJAS_CARPETA', c.getId()); return c;
+}
+// Ejecútela UNA vez desde el editor después de pegar esta versión: Google pide permiso para usar el Drive (hojas de captura).
+function autorizarHojas() { carpetaHojas_(); Logger.log('Listo: la carpeta de hojas de captura está en el Drive de esta cuenta.'); }
 
 // Acciones del servidor de una zona (con la llave que recibió al registrarse)
 const ZONA_ACC = {
@@ -114,7 +153,8 @@ const ZONA_ACC = {
 // Consola del administrador
 const ADMIN = {
   resumen: () => ({ zonas: leer_('zonas').filter(z => z.estado !== 'baja').map(sinLlave_), invitaciones: leer_('inv').map(i => Object.assign(i, { estado: estadoInv_(i) })),
-    versionVigente: vigente_(), aviso: JSON.parse(PropertiesService.getScriptProperties().getProperty('AVISO') || 'null'), instalador: INSTALADOR }),
+    versionVigente: vigente_(), aviso: JSON.parse(PropertiesService.getScriptProperties().getProperty('AVISO') || 'null'), instalador: INSTALADOR, hojaUrl: HOJA_ALTA,
+    hojas: Object.values(JSON.parse(PropertiesService.getScriptProperties().getProperty('HOJAS_IDX') || '{}')) }),
   crearInvitacion: d => {
     const numero = String(d.numero || '').trim();
     if (!/^\d{1,4}$/.test(numero)) throw new Error('Escriba el número de zona (solo dígitos).');
@@ -133,8 +173,10 @@ const ADMIN = {
     if (!inv || !inv.correo) throw new Error('La invitación no tiene correo.');
     MailApp.sendEmail({ to: inv.correo, subject: 'Tequio · Su acceso para instalar Tequio en la Zona ' + inv.numero, name: 'Tequio · Mtro. Carlos Gabriel Ortega Gutiérrez',
       htmlBody: '<p>Estimado(a) ' + esc_(inv.para) + ':</p><p>Le comparto su acceso para instalar <b>Tequio</b> en la Supervisión Escolar Zona ' + inv.numero + '.</p>' +
-        '<ol><li>Entre a <a href="' + INSTALADOR + '">' + INSTALADOR + '</a></li><li>Escriba el código <b style="font-family:monospace;font-size:16px">' + inv.codigo + '</b></li>' +
-        '<li>Tenga a la mano la cuenta de Google de su supervisión, la lista de sus escuelas y los correos de sus ATP.</li></ol>' +
+        '<p><b>Primero</b>, llene con calma la hoja de captura de su zona (se guarda sola y puede terminarla después): <a href="' + HOJA_ALTA + '#inv=' + inv.codigo + '">Abrir mi hoja de captura</a>.</p>' +
+        '<p><b>Después</b>, para instalar:</p>' +
+        '<ol><li>Entre a <a href="' + INSTALADOR + '">' + INSTALADOR + '</a></li><li>Escriba el código <b style="font-family:monospace;font-size:16px">' + inv.codigo + '</b>; sus datos de la hoja se cargan solos.</li>' +
+        '<li>Use la cuenta de Google de su supervisión.</li></ol>' +
         '<p>El código es de un solo uso y vence el ' + inv.vence + '.</p><p>Mtro. Carlos Gabriel Ortega Gutiérrez<br><i>Tequio · Lo que acordamos juntos, lo caminamos juntos</i></p>' });
     return {};
   },

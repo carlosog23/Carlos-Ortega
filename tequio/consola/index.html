@@ -163,10 +163,15 @@ function vInvitaciones() {
     <section style="flex:2 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
       ${n ? `<div class="code"><span style="font-size:14px;color:#E9D8BA">Código para la Zona ${esc(n.numero)}</span><b>${esc(n.codigo)}</b><span style="font-size:14px;color:#E9D8BA">Vence el ${fecha(n.vence)} · un solo uso</span></div>
         <div class="msg" id="msg">${esc(mensajeInv(n))}</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">${n.correo ? '<button class="btn pri" id="mandar">Enviar por correo</button>' : ''}<a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(mensajeInv(n))}">Enviar por WhatsApp</a><button class="btn sec" id="copiar">Copiar</button></div>`
+        <div style="display:flex;gap:10px;flex-wrap:wrap">${n.correo ? '<button class="btn pri" id="mandar">Enviar por correo</button>' : ''}<a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(mensajeInv(n))}">Enviar por WhatsApp</a><button class="btn sec" id="copiar">Copiar</button><a class="btn sec" target="_blank" rel="noopener" href="${esc(hojaDe(n))}">Abrir la hoja de captura</a></div>`
       : '<div class="card"><p class="small" style="margin:0">Al generar la invitación aparecerá aquí el código con el mensaje listo para enviar.</p></div>'}
     </section>
   </div>
+  <section class="card" style="margin-top:18px"><h2>Hojas de captura recibidas</h2>
+    ${(D.hojas || []).length ? `<div class="tbl"><table><thead><tr><th>Zona</th><th>Supervisor(a)</th><th>Escuelas</th><th>ATP</th><th>Enviada</th><th><span style="position:absolute;left:-9999px">Archivo</span></th></tr></thead><tbody>
+      ${D.hojas.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).map(h => `<tr><td>${esc(h.numero)}</td><td>${esc(h.para)}</td><td>${esc(h.escuelas)}</td><td>${esc(h.atps)}</td><td>${fecha(String(h.fecha).slice(0, 10))}</td><td><a class="lk" href="${esc(h.url)}" target="_blank" rel="noopener">Ver archivo</a></td></tr>`).join('')}
+    </tbody></table></div>` : '<p class="small">Aún no llega ninguna. Cuando una supervisión envíe su hoja, aparece aquí y le llega un correo.</p>'}
+  </section>
   <section class="card" style="margin-top:18px"><h2>Invitaciones enviadas</h2>
     ${D.invitaciones.length ? `<div class="tbl"><table><thead><tr><th>Código</th><th>Zona</th><th>Para</th><th>Sostenimiento</th><th>Vence</th><th>Estado</th><th><span style="position:absolute;left:-9999px">Acción</span></th></tr></thead><tbody>
       ${D.invitaciones.slice().reverse().map(i => `<tr><td style="font-family:ui-monospace,monospace">${esc(i.codigo)}</td><td>${esc(i.numero)}</td><td>${esc(i.para)}</td><td>${esc(i.sostenimiento)}</td><td>${fecha(i.vence)}</td><td><span class="st s-${esc(i.estado)}">${ESTADO[i.estado] || esc(i.estado)}</span></td>
@@ -185,7 +190,8 @@ function vInvitaciones() {
     accion(b, async () => { const r = await api('anularInvitacion', { codigo: b.dataset.anular }); Object.assign(D.invitaciones.find(i => i.codigo === r.invitacion.codigo), r.invitacion); if (vista.nueva && vista.nueva.codigo === r.invitacion.codigo) vista.nueva = null; vInvitaciones(); pintarCuenta(); }); });
   $$('[data-renovar]').forEach(b => b.onclick = () => accion(b, async () => { const r = await api('renovarInvitacion', { codigo: b.dataset.renovar }); D = await api('resumen'); vista.nueva = r.invitacion; vInvitaciones(); pintarCuenta(); }));
 }
-const mensajeInv = n => `Estimado(a) ${n.para}:\nLe comparto su acceso para instalar Tequio en la Zona ${n.numero}.\n1. Entre a: ${D.instalador}\n2. Escriba el código ${n.codigo}\n3. Use la cuenta de Google de su supervisión.\nEl código es de un solo uso y vence el ${fecha(n.vence)}.\n\nMtro. Carlos Gabriel Ortega Gutiérrez`;
+const hojaDe = n => (D.hojaUrl || 'https://carlosog23.github.io/Carlos-Ortega/tequio/hoja.html') + '#inv=' + n.codigo;
+const mensajeInv = n => `Estimado(a) ${n.para}:\nLe comparto su acceso para dar de alta Tequio en la Zona ${n.numero}.\n\nPrimero, llene con calma su hoja de captura (se guarda sola y puede terminarla después):\n${hojaDe(n)}\n\nDespués, para instalar:\n1. Entre a: ${D.instalador}\n2. Escriba el código ${n.codigo} (los datos de su hoja se cargan solos)\n3. Use la cuenta de Google de su supervisión.\nEl código es de un solo uso y vence el ${fecha(n.vence)}.\n\nMtro. Carlos Gabriel Ortega Gutiérrez`;
 function pintarCuenta() { const b = $('[data-sec="invitaciones"]'); if (b) b.innerHTML = 'Invitaciones' + (invPend().length ? `<span class="cnt">${invPend().length}</span>` : ''); }
 
 /* ---------- Versiones y avisos ---------- */
