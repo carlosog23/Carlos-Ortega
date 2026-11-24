@@ -17,7 +17,7 @@ const MIA = { archivos: [], texto: '', pegar: false, accion: 'mejorar', pedidos:
 function miaServidor() {
   try { if (sessionStorage.getItem('tlm-demo') === '1') return null; } catch (e) {}
   const c = miaLs.get('tequio.cfg', null); if (c && c.s && c.k) return { s: c.s, k: c.k };
-  const tok = miaLs.get('acc-token', ''), s = (miaLs.get('acc-cache', {}) || {}).tequio || '';
+  const tok = miaLs.get('acc-token', '') || miaLs.get('tlp-token', ''), s = (miaLs.get('acc-cache', {}) || {}).tequio || '';
   return s && tok ? { s, tok } : null;
 }
 function miaQuien() { const p = miaLs.get('ppie-perfil', {}) || {}; return { nombre: String(p.minombre || '').trim(), escuela: String(p.escuela || '').trim(), cct: String(p.cct || '').trim(), cargo: String(p.micargo || '').trim() }; }
@@ -32,7 +32,7 @@ async function miaPost(datos) {
 }
 function miaError(e) {
   const m = String(e && e.message || e);
-  if (m === 'sinservidor') return 'Para mejorar su planeación se necesita su enlace de acceso de Tlamatini e internet. Abra Tlamatini desde su enlace y vuelva a intentarlo.';
+  if (m === 'sinservidor') return 'Para usar la IA, Tlamatini necesita su enlace personal (el que le llegó por correo o WhatsApp) e internet. Abra Tlamatini una vez desde ese enlace en este equipo y vuelva a intentarlo.';
   if (/Acción desconocida|no es válido o fue anulado|no está vigente/i.test(m)) return 'El servidor de la Supervisión todavía no tiene esta función, o su enlace ya no está vigente. Avise a la Supervisión.';
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'No se pudo conectar con el servidor. Revise su internet e intente de nuevo.';
   return m;

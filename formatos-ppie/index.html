@@ -4136,7 +4136,7 @@ async function salExcel(btn){const t=btn.textContent;btn.disabled=true;btn.textC
    Se piden al servidor de Tequio con el enlace de Tequio de este dispositivo o con el enlace de acceso de Tlamatini, y se guardan aquí para usarlos sin internet. */
 function tqiServidor(){let c=null;try{c=JSON.parse(localStorage.getItem("tequio.cfg")||"null")}catch(e){}
   if(c&&c.s&&c.k)return{s:c.s,k:c.k};
-  const tok=store.get("acc-token",""),s=(ACC&&ACC.tequio)||(store.get("acc-cache",{})||{}).tequio||"";
+  const tok=store.get("acc-token","")||store.get("tlp-token",""),s=(ACC&&ACC.tequio)||(store.get("acc-cache",{})||{}).tequio||"";
   return s&&tok?{s,tok}:null}
 function tqiEscuelaZona(cct){if(!cct)return false;if(ZONA_TQ)return(ZONA_TQ.escuelas||[]).some(e=>e.cct===cct);return typeof ESCUELAS_050!=="undefined"&&ESCUELAS_050.some(e=>e[1]===cct)}
 const tqiCache=cct=>store.get("tqi-"+cct,null);

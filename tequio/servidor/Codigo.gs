@@ -3130,7 +3130,7 @@ function minutaEnviar_(q) {
   const d = q.datos || {}, yo = usuario_(q.k);
   let cct = String((d.minuta || {}).cct || '').toUpperCase().trim();
   if (yo && yo.rol === 'director') cct = cctDe_(yo);
-  else if (!yo && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente.');
+  else if (!yo && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace no está vigente.');
   const esc = leer_('dir').find(c => c.tipo === 'director' && c.cct === cct);
   if (!esc) throw new Error('La C.C.T. ' + (cct || '(vacía)') + ' no es de una escuela de la zona. Revise el dato de la escuela en la minuta.');
   const m = d.minuta || {};
@@ -3206,7 +3206,7 @@ Object.assign(ACCIONES, MINUTA_ACCIONES);
 /** Quién escribe: entra con el enlace de Tequio (k) o con un enlace vigente de Tlamatini (tok). Devuelve una clave para los límites. */
 function tlamiQuien_(q, tope, que) {
   const d = q.datos || {};
-  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente.');
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace no está vigente.');
   const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const p = d.quien || {};
   const quien = { nombre: limpio(p.nombre, 80), escuela: limpio(p.escuela, 90), cct: limpio(p.cct, 12).toUpperCase(), cargo: limpio(p.cargo, 60) };
@@ -3284,7 +3284,7 @@ function tlamiSolicitud_(q) {
  *  y con la llave de su equipo: solo ese equipo puede cambiar o borrar sus avisos. Nada de la agenda se guarda aquí salvo el aviso pendiente. */
 function recProgramar_(q) {
   const d = q.datos || {};
-  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
   const llave = String(d.llave || ''); if (llave.length < 16) throw new Error('Falta la llave del equipo.');
   const correo = String(d.correo || '').trim().toLowerCase();
   if (!/^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/.test(correo)) throw new Error('El correo no es válido.');
@@ -3303,7 +3303,7 @@ function recProgramar_(q) {
 }
 function recBorrar_(q) {
   const d = q.datos || {};
-  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace de Tlamatini no está vigente.');
   const llave = String(d.llave || ''), h = sha_(llave), id = 'rec-' + sha_(llave + '|' + String(d.id || '')).slice(0, 18);
   const l = leer_('rcd'), resto = l.filter(x => !(x.id === id && x.llave === h));
   if (resto.length !== l.length) reemplazarTodo_('rcd', resto);
@@ -3440,7 +3440,7 @@ function usoTequio_(yo, accion) {
 /** Tlamatini suma los documentos que generó una persona. Entra con el enlace de Tequio (k) o con un enlace vigente de Tlamatini (tok). */
 function tlaUso_(q) {
   const d = q.datos || {};
-  if (!usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente.');
+  if (!usuario_(q.k) && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace no está vigente.');
   const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const cct = limpio(d.cct, 12).toUpperCase(), nombre = limpio(d.nombre, 80) || '(sin nombre)';
   const enDir = cct ? leer_('dir').find(c => c.tipo === 'director' && c.cct === cct) : null;
@@ -5985,7 +5985,7 @@ function ulamaRevPermiso_(cod) {
 function ulamaRegistro_(q) {
   const d = q.datos || {};
   const ul = ulamaEnlace_(d.tok);
-  if (!ul && !usuario_(q.k) && !tlmEnlace_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
+  if (!ul && !usuario_(q.k) && !tlmEnlace_(d.tok) && !tlpVigente_(d.tok)) throw new Error('El enlace no está vigente. Pida uno nuevo a la Supervisión.');
   const cache = CacheService.getScriptCache(), kk = 'ulReg-' + sha_(String(d.tok || q.k)).slice(0, 20), n = (parseInt(cache.get(kk), 10) || 0) + 1;
   if (n > 6) throw new Error('Ya envió su registro varias veces. Intente más tarde.');
   cache.put(kk, String(n), 3600);
