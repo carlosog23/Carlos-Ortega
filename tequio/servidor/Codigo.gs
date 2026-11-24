@@ -3733,7 +3733,7 @@ function gemini_(prompt, op) {
     if (c === 404) {  // el modelo guardado ya no existe: se prueban los que ofrece la clave hasta dar con uno que conteste
       const otro = modeloGeminiProbar_(key, modelo);
       if (otro && intento === 0) continue;
-      throw new Error('Gemini no tiene disponible el modelo «' + modelo + '» para esta clave. Revise la clave en Oficios → Configuración.');
+      throw new Error('Gemini no tiene disponible el modelo «' + modelo + '» para esta clave. Revise la clave en Oficios → Configuración.' + ' (' + String(r.getContentText()).replace(/\s+/g, ' ').slice(0, 220) + ')');
     }
     let j = {};
     try { j = JSON.parse(r.getContentText()); } catch (e) {}
