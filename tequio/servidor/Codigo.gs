@@ -3717,8 +3717,8 @@ function gemini_(prompt, op) {
   op = op || {};
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!key) throw new Error('Falta configurar la clave de Gemini en Oficios → Configuración.');
-  let sinThink = false, saturado = 0;
-  const RESPALDO = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
+  let sinThink = false, saturado = 0, cambios = 0;
+  const RESPALDO = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
   for (let intento = 0; intento < 2; intento++) {
     // Si el modelo está saturado (5xx), se espera un poco y se prueba con modelos de respaldo
     const modelo = saturado ? RESPALDO[(saturado - 1) % RESPALDO.length] : modeloGemini_(key, false);
@@ -3733,7 +3733,8 @@ function gemini_(prompt, op) {
     if (c === 404) {  // el modelo guardado ya no existe: se prueban los que ofrece la clave hasta dar con uno que conteste
       const sug = (String(r.getContentText()).match(/use models\/([\w.-]+)/) || [])[1];
       const otro = modeloGeminiProbar_(key, modelo, sug);
-      if (otro && intento === 0) continue;
+      // se vuelve a intentar con el modelo que sí respondió (hasta 3 veces), sin contar como intento
+      if (otro && cambios < 3) { cambios++; saturado = 0; intento--; continue; }
       throw new Error('Gemini no tiene disponible el modelo «' + modelo + '» para esta clave. Revise la clave en Oficios → Configuración.' + ' (' + String(r.getContentText()).replace(/\s+/g, ' ').slice(0, 220) + ')');
     }
     let j = {};
