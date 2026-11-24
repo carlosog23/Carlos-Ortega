@@ -3739,7 +3739,10 @@ function gemini_(prompt, op) {
     }
     let j = {};
     try { j = JSON.parse(r.getContentText()); } catch (e) {}
-    if (c === 429) throw new Error('Se alcanzó el límite gratuito de Gemini por ahora. Espere un minuto e intente de nuevo.');
+    if (c === 429) {   // el límite gratuito es por modelo: se prueba otro antes de rendirse
+      if (cambios < 3) { const otro = modeloGeminiProbar_(key, modelo); if (otro && otro !== modelo) { cambios++; saturado = 0; intento--; continue; } }
+      throw new Error('Se alcanzó el límite gratuito de Gemini por ahora. Espere un minuto e intente de nuevo.');
+    }
     if (c === 400 || c === 403) throw new Error('Gemini rechazó la clave. Revísela en Oficios → Configuración.' + (j.error && j.error.message ? ' (' + j.error.message + ')' : ''));
     if (c >= 500 && saturado < 4) { saturado++; Utilities.sleep(1500 * saturado); intento--; continue; }
     if (c !== 200) throw new Error('Gemini no respondió (' + c + '). Intente de nuevo.');
@@ -3766,13 +3769,13 @@ function modeloGeminiProbar_(key, malo, sug) {
   lista.sort((a, b) => (/(exp|preview)/.test(a) - /(exp|preview)/.test(b)) || (/lite/.test(a) - /lite/.test(b)) || ver(b) - ver(a) || a.length - b.length);
   ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'].forEach(n => { if (lista.indexOf(n) < 0) lista.push(n); });
   if (sug) lista = [sug].concat(lista.filter(n => n !== sug));
-  lista = lista.filter(n => n !== malo).slice(0, 10);
+  lista = lista.filter(n => n !== malo).slice(0, 6);
   for (let i = 0; i < lista.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + lista[i] + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Responde solo: ok' }] }], generationConfig: { maxOutputTokens: 20 } }) });
     const c = r.getResponseCode();
-    if (c !== 404 && c !== 403) { p.setProperty('GEMINI_MODELO', lista[i]); return lista[i]; }
+    if (c === 200) { p.setProperty('GEMINI_MODELO', lista[i]); return lista[i]; }
   }
   return '';
 }
