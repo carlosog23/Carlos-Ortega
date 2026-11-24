@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-24-0330';
+const PUBLICACION = '2026-11-24-0530';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1188,11 +1188,12 @@ function pestanasTodas() {
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas', 'consultas']],
-  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'evidencias', 'cte', 'minutas', 'seguimiento', 'campo', 'visitas', 'asistencia']],
+  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'seguimiento', 'campo', 'visitas', 'evidencias', 'cte', 'minutas', 'asistencia']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
-  ['documentos', 'Documentos', 'i-lapiz', ['correos', 'oficios', 'informe', 'tramites', 'norma', 'directorio', 'herramientas', 'relweb']],
+  ['oficios', 'Oficios y trámites', 'i-lapiz', ['oficios', 'correos', 'tramites', 'informe']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
-  ['finanzas', 'Recursos financieros', 'i-pesos', ['finanzas']]
+  ['finanzas', 'Recursos financieros', 'i-pesos', ['finanzas']],
+  ['consulta', 'Herramientas', 'i-tlm', ['directorio', 'norma', 'herramientas', 'relweb']]
 ];
 const LAT_ARRIBA = ['pendientes', 'enlaces'];
 let latAbiertos = new Set((() => { try { return JSON.parse(localStorage.getItem('tequio.lat') || '[]'); } catch (e) { return []; } })());
