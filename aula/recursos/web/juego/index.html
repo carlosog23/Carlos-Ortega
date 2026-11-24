@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tlamatini · El camino del saber</title>
+<meta name="theme-color" content="#24427A">
+<meta name="description" content="Videojuego educativo de Tlamatini para alumnos de primaria, grupos completos y maestros. Funciona sin internet.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/icono-192.png">
+<style>
+:root{--anil:#24427A;--anil2:#1A3160;--terra:#C2603A;--ambar:#E8A33D;--crema:#FBF6EC;--crema2:#F4E1C1;--tinta:#1E2A40;--mu:#6B7280;--ok:#2E9E5B;--mal:#C0392B;--r:22px}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:"Ubuntu","Nunito","Noto Sans","Segoe UI",system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+.fondo{position:fixed;inset:0;z-index:-1;background:radial-gradient(900px 600px at 85% -10%,#FCE6C4 0%,transparent 60%),radial-gradient(700px 500px at -10% 110%,#E7EEF8 0%,transparent 60%),var(--crema)}
+.fondo svg{position:absolute;bottom:0;left:0;width:100%;height:120px;opacity:.12}
+header{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 18px 10px}
+header .t{font-weight:800;font-size:20px;color:var(--anil);line-height:1.05}header .t small{display:block;font-size:12px;letter-spacing:.18em;color:var(--terra);font-weight:700}
+header .esp{flex:1}
+.ico{width:46px;height:46px;border-radius:14px;border:0;background:#fff;box-shadow:0 2px 0 rgba(36,66,122,.15);font-size:22px;display:grid;place-items:center}
+.sem{display:flex;align-items:center;gap:6px;background:#fff;border-radius:30px;padding:8px 14px;font-weight:800;color:var(--terra);box-shadow:0 2px 0 rgba(36,66,122,.12)}
+main{max-width:1100px;margin:0 auto;padding:6px 18px 30px}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.05;margin:6px 0 6px;color:var(--anil)}
+h2{font-size:26px;margin:4px 0 12px;color:var(--anil)}
+.sub{color:var(--mu);font-size:17px;margin:0 0 18px}
+.btn{border:0;border-radius:18px;padding:16px 24px;font-size:19px;font-weight:800;background:var(--terra);color:#fff;box-shadow:0 5px 0 #8E4126;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #8E4126}
+.btn.az{background:var(--anil);box-shadow:0 5px 0 #13264A}.btn.az:active{box-shadow:0 2px 0 #13264A}
+.btn.bl{background:#fff;color:var(--anil);box-shadow:0 5px 0 #D7CDB8}.btn.bl:active{box-shadow:0 2px 0 #D7CDB8}
+.btn.am{background:var(--ambar);color:#3B2A08;box-shadow:0 5px 0 #A87420}
+.fila{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+/* ---- inicio ---- */
+.portada{display:grid;grid-template-columns:1fr 1.1fr;gap:20px;align-items:center;min-height:calc(100vh - 120px)}
+.tlami{width:100%;max-width:330px;display:block;margin:0 auto}
+.bob{animation:bob 3.2s ease-in-out infinite;transform-origin:120px 200px}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.orbit{animation:spin 14s linear infinite;transform-origin:120px 112px}@keyframes spin{to{transform:rotate(360deg)}}
+.halo{animation:halo 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes halo{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.6;transform:scale(1.35)}}
+.eye{animation:blink 4.5s infinite;transform-box:fill-box;transform-origin:center}@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.modos{display:grid;gap:14px}
+.modo{display:flex;align-items:center;gap:16px;text-align:left;border:0;border-radius:var(--r);padding:18px 20px;background:#fff;box-shadow:0 6px 0 rgba(36,66,122,.14);transition:transform .1s}
+.modo:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(36,66,122,.14)}
+.modo .e{font-size:46px;width:70px;height:70px;border-radius:20px;display:grid;place-items:center;flex:none}
+.modo b{display:block;font-size:22px;color:var(--anil)}.modo span{color:var(--mu);font-size:15px}
+/* ---- globo de Tlami ---- */
+.dice{display:flex;align-items:flex-end;gap:10px;margin:6px 0 16px}
+.dice svg{width:74px;flex:none}
+.globo{position:relative;background:#fff;border-radius:20px;padding:12px 16px;font-size:17px;box-shadow:0 3px 0 rgba(36,66,122,.12);max-width:640px}
+.globo::before{content:"";position:absolute;left:-10px;bottom:14px;border:10px solid transparent;border-right-color:#fff;border-left:0}
+/* ---- chips y campos ---- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.chip{border:2px solid #E3D8C3;background:#fff;border-radius:16px;padding:12px 18px;font-size:19px;font-weight:800;color:var(--anil)}
+.chip[aria-pressed=true]{background:var(--anil);border-color:var(--anil);color:#fff}
+label.l{display:block;font-weight:800;font-size:17px;margin:12px 0 4px;color:var(--anil)}
+input.tx{font:inherit;font-size:20px;padding:12px 16px;border-radius:14px;border:2px solid #E3D8C3;width:min(420px,100%);background:#fff}
+/* ---- mapa ---- */
+.camino{position:relative;display:grid;gap:18px;margin-top:8px;padding:6px 0 20px}
+.camino::before{content:"";position:absolute;left:50%;top:30px;bottom:40px;width:8px;margin-left:-4px;background:repeating-linear-gradient(180deg,var(--ambar) 0 18px,transparent 18px 30px);border-radius:4px;opacity:.6}
+.est{position:relative;display:flex;align-items:center;gap:16px;width:min(470px,92%);border:0;text-align:left;border-radius:26px;padding:16px 18px;background:#fff;box-shadow:0 6px 0 rgba(36,66,122,.14)}
+.est:nth-child(odd){justify-self:start}.est:nth-child(even){justify-self:end}
+.est .e{font-size:44px;width:76px;height:76px;border-radius:22px;display:grid;place-items:center;flex:none}
+.est b{display:block;font-size:20px;color:var(--anil)}.est small{display:block;color:var(--mu);font-size:14px}
+.est .st{font-size:22px;letter-spacing:2px;color:var(--ambar);margin-top:4px}
+.est[disabled]{opacity:.55;filter:grayscale(.6);cursor:not-allowed}
+.est .aqui{position:absolute;right:-14px;top:-18px;width:58px}
+.meta{justify-self:center!important;background:linear-gradient(135deg,#FFF4D6,#FCE0B0)!important}
+/* ---- juego ---- */
+.barra{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.barra .p{flex:1;height:14px;background:#EADFCB;border-radius:9px;overflow:hidden}.barra .p i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.pregunta{display:flex;align-items:center;gap:12px;background:var(--anil);color:#fff;border-radius:20px;padding:14px 18px;margin-bottom:12px}
+.pregunta b{flex:1;font-size:clamp(22px,3.6vw,34px);line-height:1.15}
+.pregunta .ico{background:rgba(255,255,255,.15);color:#fff;box-shadow:none}
+.campo{position:relative;height:min(58vh,520px);border-radius:26px;overflow:hidden;box-shadow:inset 0 0 0 3px rgba(36,66,122,.12)}
+.campo.valle{background:linear-gradient(#BFE3F7 0 55%,#9BCB6A 55% 100%)}
+.campo.valle::after{content:"";position:absolute;left:0;right:0;bottom:0;height:45%;background:repeating-linear-gradient(90deg,transparent 0 46px,rgba(80,120,40,.25) 46px 52px)}
+.campo.mar{background:linear-gradient(#7DC4E8,#2D7FB8 60%,#1F5E8C)}
+.campo.mar::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 60px,rgba(255,255,255,.07) 60px 64px)}
+.obj{position:absolute;z-index:2;border:0;background:#fff;border-radius:22px;padding:10px 16px;font-size:clamp(20px,3vw,28px);font-weight:800;color:var(--tinta);box-shadow:0 6px 16px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;white-space:nowrap;will-change:transform}
+.obj .em{font-size:34px}
+.obj.pez .em{display:inline-block;transform:scaleX(-1)}
+.obj.mal{background:#FBE4E1;color:var(--mal);animation:temb .3s}
+.obj.bien{background:#DDF1E6;color:var(--ok);transform:scale(1.15)!important}
+@keyframes temb{0%,100%{margin-left:0}25%{margin-left:-8px}75%{margin-left:8px}}
+.aviso{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;background:#fff;border-radius:20px;padding:14px 22px;font-size:22px;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.2);text-align:center}
+/* puertas */
+.puertas{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;perspective:900px}
+.puerta{position:relative;border:0;background:transparent;padding:0;min-height:260px}
+.puerta .marco{position:absolute;inset:0;border-radius:110px 110px 18px 18px;background:#8E6B4A;box-shadow:inset 0 0 0 10px #6F4F33}
+.puerta .tras{position:absolute;inset:14px;border-radius:96px 96px 10px 10px;background:#FFF6E2;display:grid;place-items:center;font-size:60px}
+.puerta .hoja{position:absolute;inset:14px;border-radius:96px 96px 10px 10px;background:linear-gradient(90deg,#C98B57,#B5773F);transform-origin:left center;transition:transform .6s;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;font-size:clamp(16px,2.2vw,22px);font-weight:800;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);box-shadow:inset 0 0 0 4px rgba(0,0,0,.08)}
+.puerta .hoja::after{content:"";position:absolute;right:16px;top:55%;width:12px;height:12px;border-radius:50%;background:var(--ambar)}
+.puerta.abierta .hoja{transform:rotateY(-105deg)}
+.puerta.abierta .hoja{color:transparent;text-shadow:none}
+.puerta .lbl{position:absolute;left:0;right:0;bottom:-34px;text-align:center;font-weight:800;color:var(--anil);font-size:18px}
+.puertas{margin-bottom:40px}
+/* memoria */
+.memo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.carta{position:relative;aspect-ratio:1/1;border:0;padding:0;background:transparent;perspective:600px}
+.carta .in{position:absolute;inset:0;transition:transform .4s;transform-style:preserve-3d}
+.carta.vuelta .in,.carta.par .in{transform:rotateY(180deg)}
+.carta .a,.carta .b{position:absolute;inset:0;border-radius:18px;display:grid;place-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;font-weight:800;font-size:clamp(20px,3.4vw,32px)}
+.carta .a{background:linear-gradient(135deg,var(--anil),#33589C);color:var(--ambar);font-size:38px;box-shadow:0 5px 0 #13264A}
+.carta .b{background:#fff;color:var(--anil);transform:rotateY(180deg);box-shadow:0 5px 0 #D7CDB8}
+.carta.par .b{background:#DDF1E6;color:var(--ok)}
+/* lectura y opciones */
+.texto{background:#fff;border-radius:20px;padding:18px 20px;font-size:clamp(18px,2.4vw,22px);line-height:1.55;box-shadow:0 4px 0 rgba(36,66,122,.1);margin-bottom:14px}
+.texto b{display:block;color:var(--terra);font-size:1.1em;margin-bottom:4px}
+.ops{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.op{border:3px solid #E3D8C3;background:#fff;border-radius:18px;padding:16px;font-size:clamp(18px,2.4vw,22px);font-weight:700;text-align:left;color:var(--tinta)}
+.op .l{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--crema2);color:var(--anil);font-weight:800;margin-right:10px}
+.op.bien{border-color:var(--ok);background:#DDF1E6}.op.mal{border-color:var(--mal);background:#FBE4E1}
+.op:disabled{cursor:default}
+.nivel{display:inline-block;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--crema2);color:var(--terra);margin-bottom:6px}
+/* resultado */
+.res{text-align:center;background:#fff;border-radius:28px;padding:26px;box-shadow:0 8px 0 rgba(36,66,122,.12);max-width:620px;margin:10px auto}
+.res .estrellas{font-size:64px;letter-spacing:8px;color:var(--ambar)}
+.res .estrellas .off{color:#E5DCCB}
+.res h2{font-size:34px}
+/* duelo */
+.marcador{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:12px}
+.eq{border-radius:18px;padding:10px 14px;color:#fff;display:flex;align-items:center;gap:10px;opacity:.6;transition:opacity .2s,transform .2s}
+.eq.turno{opacity:1;transform:scale(1.04);box-shadow:0 0 0 4px #fff,0 0 0 7px var(--ambar)}
+.eq .e{font-size:34px}.eq b{display:block;font-size:17px}.eq span{font-size:26px;font-weight:800}
+.reloj{height:16px;border-radius:9px;background:#EADFCB;overflow:hidden;margin:6px 0 12px}.reloj i{display:block;height:100%;background:var(--ambar);transition:width 1s linear}
+.duelo .op{font-size:clamp(20px,3vw,30px);padding:22px}
+.podio{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:20px 0}
+.podio div{border-radius:18px 18px 0 0;color:#fff;text-align:center;padding:12px;width:150px}
+.podio .e{font-size:46px}.podio b{display:block}.podio span{font-size:30px;font-weight:800}
+/* maestro */
+.vidas{font-size:26px;letter-spacing:3px}
+.plan{white-space:pre-line;font-size:clamp(18px,2.3vw,22px);line-height:1.5}
+.expl{margin-top:14px;padding:16px 18px;border-radius:18px;background:#FFF8EC;border:2px solid #F3D9B1;font-size:17px;line-height:1.5}
+.expl small{display:block;margin-top:8px;color:var(--mu);font-size:14px}
+/* diploma */
+.diploma{position:relative;background:#fff;border-radius:16px;padding:40px 36px;text-align:center;border:10px double var(--ambar);max-width:900px;margin:0 auto}
+.diploma h1{font-size:46px;margin:6px 0}.diploma .nom{font-size:40px;font-weight:800;color:var(--terra);border-bottom:2px solid #E3D8C3;display:inline-block;padding:0 20px 4px;margin:10px 0}
+.diploma .firma{display:flex;justify-content:center;gap:60px;margin-top:30px;flex-wrap:wrap}
+.diploma .firma div{min-width:220px;border-top:2px solid var(--tinta);padding-top:6px;font-size:14px}
+.pie{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:26px;opacity:.85}
+.pie span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mu)}.pie img{width:160px}
+.confeti{position:fixed;top:-20px;width:12px;height:18px;z-index:60;pointer-events:none;animation:caer linear forwards}
+@keyframes caer{to{transform:translateY(110vh) rotate(720deg)}}
+[hidden]{display:none!important}
+@media(max-width:760px){.portada{grid-template-columns:1fr;min-height:0}.tlami{max-width:200px}.puertas{gap:8px}.puerta{min-height:200px}.memo{grid-template-columns:repeat(3,1fr)}.camino::before{left:30px}.est{justify-self:stretch!important;width:100%}}
+@media print{header,.no-imp,.pie{display:none!important}body{background:#fff}main{padding:0}.diploma{border-width:8px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="fondo"><svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 110 H120 V90 H200 V70 H280 V50 H360 V30 H440 V50 H520 V70 H600 V90 H680 V70 H760 V50 H840 V30 H920 V50 H1000 V70 H1080 V90 H1200" fill="none" stroke="#24427A" stroke-width="10"/></svg></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+ <symbol id="tlami" viewBox="0 0 240 250">
+  <ellipse cx="120" cy="238" rx="58" ry="7" fill="#000" opacity=".18"/>
+  <g class="bob">
+   <g class="orbit" fill="#E3925A"><circle cx="120" cy="18" r="4.2"/><circle cx="212" cy="112" r="3.4"/><circle cx="120" cy="206" r="2.8" opacity=".7"/><circle cx="30" cy="112" r="3.6"/><circle cx="185" cy="45" r="2.6"/><circle cx="55" cy="180" r="2.4" opacity=".7"/></g>
+   <path d="M58 150 Q34 162 36 186" stroke="#C2603A" stroke-width="11" fill="none" stroke-linecap="round"/>
+   <path d="M182 150 Q206 140 210 116" stroke="#C2603A" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="210" cy="112" r="8" fill="#C2603A"/>
+   <path d="M120 40 C178 40 196 86 196 132 C196 186 162 214 120 214 C78 214 44 186 44 132 C44 86 62 40 120 40Z" fill="#F4E1C1" stroke="#24427A" stroke-width="5"/>
+   <path d="M72 198 H88 V186 H102 V174 H116 V162 H128 A22 22 0 0 0 128 118 A15 15 0 0 0 128 148 A9 9 0 0 0 128 130" fill="none" stroke="#24427A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+   <circle class="halo" cx="128" cy="139" r="9" fill="#E8A33D"/><circle cx="128" cy="139" r="4.2" fill="#E8A33D"/>
+   <ellipse class="eye" cx="98" cy="76" rx="7.5" ry="9" fill="#1E2A40"/><ellipse class="eye" cx="142" cy="76" rx="7.5" ry="9" fill="#1E2A40"/>
+   <circle cx="100.5" cy="72.5" r="2.4" fill="#fff"/><circle cx="144.5" cy="72.5" r="2.4" fill="#fff"/>
+   <ellipse cx="84" cy="92" rx="7" ry="4" fill="#E3925A" opacity=".55"/><ellipse cx="156" cy="92" rx="7" ry="4" fill="#E3925A" opacity=".55"/>
+   <path d="M109 94 Q120 103 131 94" stroke="#1E2A40" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+ </symbol></defs></svg>
+
+<header>
+ <button class="ico" id="bCasa" aria-label="Inicio" hidden>🏠</button>
+ <div class="t"><small>TLAMATINI</small>El camino del saber</div>
+ <div class="esp"></div>
+ <div class="sem" id="sem" hidden title="Semillas de cacao ganadas">🌰 <span id="nSem">0</span></div>
+ <button class="ico" id="bSon" aria-label="Sonido">🔊</button>
+</header>
+<main id="app"></main>
+
+<script>
+"use strict";
+/* © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Tlamatini · El camino del saber */
+const $ = s => document.querySelector(s), app = $("#app");
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const baraja = L => { L = L.slice(); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L; };
+const espera = ms => new Promise(r => setTimeout(r, ms));
+const guarda = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const lee = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+const TLAMI = (w = 74) => `<svg viewBox="0 0 240 250" width="${w}" aria-hidden="true"><use href="#tlami"/></svg>`;
+let GEN = 0; const nueva = () => ++GEN;
+const FIRMA = `<div class="pie"><span>Desarrollado por</span><img src="firma-autor.svg" alt="Maestro Carlos Ortega"></div>`;
+
+/* ---------------- sonido y voz ---------------- */
+let sonido = lee("tlj-son", true), AC = null;
+function tono(f, d = .12, tipo = "sine", v = .14) { if (!sonido) return; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(); o.type = tipo; o.frequency.value = f; g.gain.setValueAtTime(v, AC.currentTime); g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + d); } catch (e) {} }
+const SND = { ok() { tono(660, .1); setTimeout(() => tono(990, .16), 90); }, mal() { tono(180, .25, "square", .06); }, gana() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tono(f, .2), i * 130)); }, tic() { tono(1200, .03, "sine", .05); } };
+function leer(t) { try { if (!("speechSynthesis" in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(t).replace(/[×]/g, " por ").replace(/[÷]/g, " entre ").replace(/−/g, " menos ")); u.lang = "es-MX"; u.rate = .95; speechSynthesis.speak(u); } catch (e) {} }
+$("#bSon").onclick = () => { sonido = !sonido; guarda("tlj-son", sonido); $("#bSon").textContent = sonido ? "🔊" : "🔇"; };
+$("#bSon").textContent = sonido ? "🔊" : "🔇";
+$("#bCasa").onclick = () => inicio();
+
+/* ---------------- cargar los bancos (sirven en GitHub y en Aula Zona 050) ---------------- */
+function cargar(src) { return new Promise(r => { const s = document.createElement("script"); s.src = src; s.onload = () => r(true); s.onerror = () => { s.remove(); r(false); }; document.head.appendChild(s); }); }
+async function primero(rutas) { for (const u of rutas) if (await cargar(u)) return true; return false; }
+const LISTO = (async () => {
+  await primero(["trivia.js"]);
+  await primero(["../retos/banco.js", "../aula/recursos/web/retos/banco.js"]);
+  await primero(["../retos/lecturas.js", "../aula/recursos/web/retos/lecturas.js"]);
+})();
+let MAESTROS = null;
+async function bancoMaestros() {
+  if (MAESTROS) return MAESTROS;
+  for (const f of ["estudio-banco.js", "estudio-banco2.js", "estudio-banco3.js", "estudio-banco4.js", "estudio-banco5.js"]) await primero(["../tlamatini-aula/" + f]);
+  try { MAESTROS = { banco: EST_BANCO, areas: EST_AREAS, formatos: EST_FORMATOS }; } catch (e) { MAESTROS = { banco: [] }; }
+  return MAESTROS;
+}
+
+/* ---------------- generadores de preguntas por grado ---------------- */
+const num = x => String(Math.round(x * 100) / 100);
+function opsNum(c, n = 4) {
+  const S = new Set([num(c)]), paso = Number.isInteger(c) ? 1 : .5; let k = 0;
+  while (S.size < n && k++ < 80) { const d = (ri(1, 4) * (Math.random() < .5 ? -1 : 1)) * (c > 40 ? ri(1, 3) : 1) * paso; const v = c + d; if (v >= 0) S.add(num(v)); }
+  return baraja([...S]);
+}
+function mate(g) {
+  let q, c; const t = Math.random();
+  if (g === 1) { if (t < .6) { const a = ri(1, 10), b = ri(1, 9); q = `${a} + ${b}`; c = a + b; } else { const a = ri(5, 15), b = ri(1, a - 1); q = `${a} − ${b}`; c = a - b; } }
+  else if (g === 2) { if (t < .4) { const a = ri(10, 59), b = ri(5, 39); q = `${a} + ${b}`; c = a + b; } else if (t < .8) { const a = ri(20, 99), b = ri(5, a - 5); q = `${a} − ${b}`; c = a - b; } else { const a = ri(5, 25); q = `El doble de ${a}`; c = 2 * a; } }
+  else if (g === 3) { if (t < .55) { const a = ri(2, 5), b = ri(1, 10); q = `${a} × ${b}`; c = a * b; } else if (t < .8) { const a = ri(100, 599), b = ri(50, 399); q = `${a} + ${b}`; c = a + b; } else { const a = ri(200, 900), b = ri(50, a - 50); q = `${a} − ${b}`; c = a - b; } }
+  else if (g === 4) { if (t < .5) { const a = ri(3, 10), b = ri(3, 10); q = `${a} × ${b}`; c = a * b; } else if (t < .8) { const a = ri(2, 9), b = ri(2, 10); q = `${a * b} ÷ ${a}`; c = b; } else { const a = ri(10, 50) * 10; q = `La mitad de ${a}`; c = a / 2; } }
+  else if (g === 5) { if (t < .35) { const a = ri(12, 49), b = ri(3, 9); q = `${a} × ${b}`; c = a * b; } else if (t < .65) { const d = [2, 4, 5, 10][ri(0, 3)], m = ri(2, 12) * d; q = `1/${d} de ${m}`; c = m / d; } else { const a = ri(1, 9) + [.5, .25, .75][ri(0, 2)], b = ri(1, 9) + .5; q = `${num(a)} + ${num(b)}`; c = a + b; } }
+  else { if (t < .35) { const p = [10, 25, 50, 20][ri(0, 3)], m = ri(2, 20) * 20; q = `${p}% de ${m}`; c = m * p / 100; } else if (t < .6) { const a = ri(4, 15); q = `${a}²`; c = a * a; } else if (t < .8) { const a = ri(11, 99) / 10; q = `${num(a)} × 10`; c = a * 10; } else { const a = ri(3, 12), b = ri(12, 40); q = `${a * b} ÷ ${a}`; c = b; } }
+  return { q: q.startsWith("El ") || q.startsWith("La ") ? q + " es…" : q + " = ?", c: num(c), ops: opsNum(c, 4) };
+}
+const ORTO_RESPALDO = [{ g: [1, 6], ops: ["casa", "kasa"] }, { g: [1, 6], ops: ["vaca", "baca"] }, { g: [1, 6], ops: ["hoja", "oja"] }, { g: [2, 6], ops: ["jirafa", "girafa"] }, { g: [2, 6], ops: ["cielo", "sielo"] }, { g: [3, 6], ops: ["había", "abía"] }];
+function ortografia(g) {
+  const B = (window.ORTOGRAFIA || ORTO_RESPALDO).filter(x => g >= x.g[0] && g <= x.g[1]), x = B[ri(0, B.length - 1)] || ORTO_RESPALDO[0];
+  return { q: x.p || "¿Cuál está bien escrita?", c: x.ops[0], ops: baraja(x.ops) };
+}
+function trivia(g) {
+  const B = (window.TRIVIA || []).filter(x => g >= x.g[0] && g <= x.g[1]); if (!B.length) return mate(g);
+  const x = B[ri(0, B.length - 1)]; return { q: x.q, c: x.o[0], ops: baraja(x.o) };
+}
+function sinRepetir(gen, g, n) { const out = [], vistos = new Set(); let k = 0; while (out.length < n && k++ < n * 20) { const p = gen(g), k2 = p.q + "|" + p.c; if (vistos.has(k2)) continue; vistos.add(k2); out.push(p); } return out; }
+
+/* ---------------- perfil del alumno ---------------- */
+let P = lee("tlj-perfil", null);
+const guardaP = () => guarda("tlj-perfil", P);
+function semillas() { $("#sem").hidden = !P; if (P) $("#nSem").textContent = P.sem || 0; }
+
+/* ---------------- confeti ---------------- */
+function confeti() { const C = ["#E8A33D", "#C2603A", "#24427A", "#2E9E5B", "#E3925A"]; for (let i = 0; i < 60; i++) { const d = document.createElement("i"); d.className = "confeti"; d.style.left = Math.random() * 100 + "vw"; d.style.background = C[i % C.length]; d.style.animationDuration = (1.6 + Math.random() * 1.8) + "s"; d.style.animationDelay = Math.random() * .6 + "s"; document.body.appendChild(d); setTimeout(() => d.remove(), 4200); } }
+
+/* =================================================================
+   PANTALLA DE INICIO
+   ================================================================= */
+function inicio() {
+  nueva();
+  $("#bCasa").hidden = true; semillas(); try { speechSynthesis.cancel(); } catch (e) {}
+  app.innerHTML = `<section class="portada">
+   <div><svg class="tlami" viewBox="0 0 240 250" aria-label="Tlami, el acompañante de Tlamatini"><use href="#tlami"/></svg></div>
+   <div><h1>¡Hola! Soy Tlami.</h1><p class="sub">Vamos a recorrer juntos el camino del saber, de la costa a la sierra. ¿Quién va a jugar?</p>
+    <div class="modos">
+     <button class="modo" data-m="aventura"><span class="e" style="background:#FFF1D6">🧭</span><span><b>Aventura</b><span>Para alumnos: cinco lugares de Baja California con retos de tu grado.</span></span></button>
+     <button class="modo" data-m="duelo"><span class="e" style="background:#E3ECF8">🏆</span><span><b>Duelo en el salón</b><span>Todo el grupo por equipos. Ideal para proyectar en el pizarrón.</span></span></button>
+     <button class="modo" data-m="maestro"><span class="e" style="background:#F6E3DA">📚</span><span><b>Reto del maestro</b><span>Para docentes: preparación USICAMM jugando, con la explicación de cada respuesta.</span></span></button>
+    </div></div></section>${FIRMA}`;
+  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { SND.tic(); ({ aventura: aventuraInicio, duelo: dueloInicio, maestro: maestroInicio })[b.dataset.m](); });
+}
+
+/* =================================================================
+   AVENTURA (alumnos)
+   ================================================================= */
+const ESTACIONES = [
+  { id: "valle", e: "🍓", bg: "#FDE2E2", lugar: "Valle de San Quintín", juego: "Cosecha de números", desc: "Toca la fruta con la respuesta antes de que caiga." },
+  { id: "bahia", e: "🐟", bg: "#DDEFFB", lugar: "Bahía de San Quintín", juego: "Pesca de palabras", desc: "Atrapa el pez con la palabra bien escrita." },
+  { id: "mision", e: "⛪", bg: "#F5E6D3", lugar: "Misión de Santo Domingo", juego: "Las tres puertas", desc: "Solo una puerta guarda la respuesta correcta." },
+  { id: "sierra", e: "🔭", bg: "#E6E4F7", lugar: "Sierra de San Pedro Mártir", juego: "Memoria de estrellas", desc: "Encuentra las parejas: operación y resultado." },
+  { id: "desierto", e: "🌵", bg: "#E5F3E2", lugar: "Desierto de los cirios", juego: "El oasis de la lectura", desc: "Lee con calma y contesta." }
+];
+function aventuraInicio() {
+  nueva();
+  $("#bCasa").hidden = false;
+  if (P && P.nombre) return mapa();
+  let g = 0;
+  app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">¡Qué gusto! Antes de empezar dime tu nombre y en qué grado vas. Así te preparo retos a tu medida.</div></div>
+   <label class="l" for="nom">Tu nombre</label><input class="tx" id="nom" maxlength="30" autocomplete="off" placeholder="Escribe tu nombre">
+   <label class="l">Tu grado</label><div class="chips" id="gr">${[1, 2, 3, 4, 5, 6].map(n => `<button class="chip" data-g="${n}" aria-pressed="false">${n}.°</button>`).join("")}</div>
+   <button class="btn" id="bVamos">¡Vamos al camino!</button><p id="err" style="color:var(--mal);font-weight:700"></p>`;
+  $("#gr").onclick = e => { const b = e.target.closest("[data-g]"); if (!b) return; g = +b.dataset.g; $("#gr").querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b)); };
+  $("#bVamos").onclick = () => { const n = $("#nom").value.trim().replace(/\s+/g, " "); if (!n) return $("#err").textContent = "Escribe tu nombre."; if (!g) return $("#err").textContent = "Elige tu grado."; P = { nombre: n, grado: g, est: {}, sem: 0 }; guardaP(); SND.ok(); mapa(); };
+  setTimeout(() => { const n = $("#nom"); if (n) n.focus(); }, 100);
+}
+function mapa() {
+  nueva();
+  $("#bCasa").hidden = false; semillas();
+  const desbloq = i => i === 0 || (P.est[ESTACIONES[i - 1].id] || 0) >= 1, actual = ESTACIONES.findIndex((s, i) => desbloq(i) && !P.est[s.id]);
+  const todas = ESTACIONES.every(s => (P.est[s.id] || 0) >= 1), total = ESTACIONES.reduce((s, x) => s + (P.est[x.id] || 0), 0);
+  app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">${todas ? `¡Lo lograste, <b>${esc(P.nombre)}</b>! Llegaste al final del camino con ${total} estrellas. Puedes volver a jugar para ganar más.` : `<b>${esc(P.nombre)}</b> (${P.grado}.°), sigue el camino. Gana al menos una estrella ⭐ en cada lugar para abrir el siguiente.`}</div></div>
+   <div class="camino">${ESTACIONES.map((s, i) => { const st = P.est[s.id] || 0, ok = desbloq(i);
+      return `<button class="est" data-i="${i}" ${ok ? "" : "disabled"}><span class="e" style="background:${s.bg}">${ok ? s.e : "🔒"}</span><span><small>${esc(s.lugar)}</small><b>${esc(s.juego)}</b><small>${esc(s.desc)}</small><span class="st">${"★".repeat(st)}<span style="color:#E5DCCB">${"★".repeat(3 - st)}</span></span></span>${i === actual ? `<span class="aqui">${TLAMI(58)}</span>` : ""}</button>`; }).join("")}
+    <button class="est meta" id="bMeta" ${todas ? "" : "disabled"}><span class="e" style="background:#fff">${todas ? "🏆" : "🔒"}</span><span><small>Final del camino</small><b>Mi reconocimiento</b><small>${todas ? "Imprímelo o enséñaselo a tu maestro." : "Se abre al terminar los cinco lugares."}</small></span></button>
+   </div>
+   <div class="fila no-imp"><button class="btn bl" id="bOtro">Cambiar de jugador</button></div>`;
+  app.querySelectorAll(".est[data-i]").forEach(b => b.onclick = () => estacion(+b.dataset.i));
+  $("#bMeta").onclick = diploma;
+  $("#bOtro").onclick = () => { if (confirm("¿Cambiar de jugador? Se borrará el avance de " + P.nombre + " en este equipo.")) { P = null; try { localStorage.removeItem("tlj-perfil"); } catch (e) {} semillas(); aventuraInicio(); } };
+}
+async function estacion(i) {
+  await LISTO; const s = ESTACIONES[i], g = P.grado;
+  let r;
+  if (s.id === "valle") r = await juegoMovil(s, sinRepetir(mate, g, 8), "caer");
+  else if (s.id === "bahia") r = await juegoMovil(s, sinRepetir(ortografia, g, 8), "nadar");
+  else if (s.id === "mision") r = await juegoPuertas(s, sinRepetir(trivia, g, 6));
+  else if (s.id === "sierra") r = await juegoMemoria(s, g);
+  else r = await juegoLectura(s, g);
+  if (!r) return;
+  nueva();
+  const est = r.est, antes = P.est[s.id] || 0, gan = r.ok * 5 + est * 10;
+  P.est[s.id] = Math.max(antes, est); P.sem = (P.sem || 0) + gan; guardaP(); semillas();
+  if (est >= 2) { SND.gana(); confeti(); }
+  const frase = est === 3 ? "¡Increíble! Eres todo un tlamatini." : est === 2 ? "¡Muy bien! Casi perfecto." : est === 1 ? "¡Lo lograste! Puedes intentarlo otra vez para ganar más estrellas." : "No pasa nada, así se aprende. ¡Inténtalo de nuevo!";
+  app.innerHTML = `<div class="res"><div class="estrellas">${"★".repeat(est)}<span class="off">${"★".repeat(3 - est)}</span></div><h2>${esc(s.juego)}</h2>
+   <p style="font-size:20px">${r.texto}</p><p style="font-size:18px">${frase}</p><p style="font-weight:800;color:var(--terra);font-size:20px">+${gan} semillas de cacao 🌰</p>
+   <div class="fila" style="justify-content:center"><button class="btn" id="bSig">${est >= 1 && i < 4 ? "Seguir el camino" : "Volver al camino"}</button><button class="btn bl" id="bRep">Jugar otra vez</button></div></div>`;
+  $("#bSig").onclick = mapa; $("#bRep").onclick = () => estacion(i);
+}
+const estrellas = (ok, n) => { const p = ok / n; return p >= .85 ? 3 : p >= .6 ? 2 : p >= .35 ? 1 : 0; };
+function cabeza(s, i, n, q) {
+  return `<div class="barra"><span style="font-weight:800;color:var(--anil)">${s.e} ${esc(s.juego)}</span><span class="p"><i style="width:${100 * i / n}%"></i></span><span style="font-weight:800">${i + 1}/${n}</span></div>
+   <div class="pregunta"><b id="q">${esc(q)}</b><button class="ico" id="bLeer" aria-label="Escuchar la pregunta">🔈</button></div>`;
+}
+const atarLeer = q => { const b = $("#bLeer"); if (b) b.onclick = () => leer(q); };
+
+/* ---- 1 y 2: objetos que caen (frutas) o nadan (peces) ---- */
+async function juegoMovil(s, P0, modo) {
+  let ok = 0; const n = P0.length, dur = modo === "caer" ? [0, 9, 8.5, 8, 7.5, 7, 6.5][P.grado] : [0, 9.5, 9, 8.5, 8, 7.5, 7][P.grado];
+  const FR = ["🍓", "🍅", "🥒", "🌶️", "🍓"], g0 = nueva();
+  for (let i = 0; i < n; i++) {
+    if (g0 !== GEN) return null;
+    const p = P0[i]; app.innerHTML = cabeza(s, i, n, p.q) + `<div class="campo ${modo === "caer" ? "valle" : "mar"}" id="campo"></div>`; atarLeer(p.q);
+    const C = $("#campo"), W = C.clientWidth, H = C.clientHeight;
+    const res = await new Promise(fin => {
+      let primero = true, cerrado = false; const carriles = baraja(p.ops.map((_, k) => k));
+      const cierra = v => { if (cerrado) return; cerrado = true; fin(v); };
+      p.ops.forEach((o, k) => {
+        const b = document.createElement("button"); b.className = "obj" + (modo === "nadar" ? " pez" : "");
+        b.innerHTML = `<span class="em">${modo === "caer" ? FR[k % FR.length] : "🐟"}</span><span>${esc(o)}</span>`;
+        C.appendChild(b);
+        const lane = carriles[k], L = p.ops.length, retraso = k * (modo === "caer" ? .7 : 1.1) + Math.random() * .4;
+        if (modo === "caer") { b.style.left = `calc(${(lane + .5) * 100 / L}% - ${b.offsetWidth / 2}px)`; b.style.top = "-80px"; }
+        else { b.style.top = `calc(${(lane + .5) * 100 / L}% - ${b.offsetHeight / 2}px)`; b.style.left = -b.offsetWidth - 20 + "px"; }
+        const fin2 = modo === "caer" ? `translateY(${H + 100}px)` : `translateX(${W + b.offsetWidth + 60}px)`;
+        b.style.transition = `transform ${dur}s linear ${retraso}s`;
+        requestAnimationFrame(() => requestAnimationFrame(() => b.style.transform = fin2));
+        b.onclick = () => {
+          if (cerrado || b.disabled) return;
+          if (o === p.c) { const m = getComputedStyle(b).transform; b.style.transition = "none"; b.style.transform = m; b.classList.add("bien"); SND.ok(); C.querySelectorAll(".obj").forEach(x => { if (x !== b) x.style.opacity = ".25"; }); setTimeout(() => cierra(primero), 650); }
+          else { primero = false; b.disabled = true; b.classList.add("mal"); SND.mal(); }
+        };
+        if (o === p.c) b.addEventListener("transitionend", () => { if (cerrado) return; SND.mal(); const a = document.createElement("div"); a.className = "aviso"; a.innerHTML = `¡Se ${modo === "caer" ? "cayó" : "escapó"}! Era <b style="color:var(--ok)">${esc(p.c)}</b>`; C.appendChild(a); setTimeout(() => cierra(false), 1500); });
+      });
+    });
+    if (g0 !== GEN) return null;
+    if (res) ok++;
+  }
+  return { ok, est: estrellas(ok, n), texto: `Acertaste <b>${ok} de ${n}</b> al primer intento.` };
+}
+
+/* ---- 3: las tres puertas ---- */
+async function juegoPuertas(s, P0) {
+  let ok = 0; const n = P0.length, g0 = nueva();
+  for (let i = 0; i < n; i++) {
+    const p = P0[i], ops = p.ops.slice(0, 3); if (!ops.includes(p.c)) ops[ri(0, 2)] = p.c;
+    app.innerHTML = cabeza(s, i, n, p.q) + `<div class="puertas">${ops.map(o => `<button class="puerta" data-o="${esc(o)}"><span class="marco"></span><span class="tras">${o === p.c ? "🏆" : "🕸️"}</span><span class="hoja">${esc(o)}</span><span class="lbl">${esc(o)}</span></button>`).join("")}</div>`;
+    atarLeer(p.q);
+    const bien = await new Promise(fin => app.querySelectorAll(".puerta").forEach(b => b.onclick = () => {
+      app.querySelectorAll(".puerta").forEach(x => x.onclick = null); b.classList.add("abierta");
+      const v = b.dataset.o === p.c; v ? SND.ok() : SND.mal();
+      if (!v) setTimeout(() => app.querySelectorAll(".puerta").forEach(x => { if (x.dataset.o === p.c) x.classList.add("abierta"); }), 700);
+      setTimeout(() => fin(v), v ? 1200 : 2100);
+    }));
+    if (g0 !== GEN) return null;
+    if (bien) ok++;
+  }
+  return { ok, est: estrellas(ok, n), texto: `Abriste <b>${ok} de ${n}</b> puertas correctas.` };
+}
+
+/* ---- 4: memoria (operación y resultado) ---- */
+async function juegoMemoria(s, g) {
+  const pares = [], usados = new Set();
+  while (pares.length < 6) {
+    let a, b, q, c;
+    if (g <= 2) { a = ri(1, 9); b = ri(1, 9); q = `${a}+${b}`; c = a + b; }
+    else if (g <= 4) { a = ri(2, g === 3 ? 5 : 9); b = ri(2, 9); q = `${a}×${b}`; c = a * b; }
+    else { a = ri(3, 12); b = ri(3, 12); q = Math.random() < .5 ? `${a}×${b}` : `${a * b}÷${a}`; c = q.includes("÷") ? b : a * b; }
+    if (usados.has(c)) continue; usados.add(c); pares.push([q, String(c)]);
+  }
+  const g0 = nueva(); const cartas = baraja(pares.flatMap(([q, c], k) => [{ k, t: q }, { k, t: c }]));
+  app.innerHTML = `<div class="barra"><span style="font-weight:800;color:var(--anil)">${s.e} ${esc(s.juego)}</span><span class="p"><i id="pm" style="width:0"></i></span><span style="font-weight:800" id="mov">0 jugadas</span></div>
+   <div class="pregunta"><b>Encuentra cada operación con su resultado</b></div>
+   <div class="memo">${cartas.map((c, i) => `<button class="carta" data-i="${i}" aria-label="Carta"><span class="in"><span class="a">✦</span><span class="b">${esc(c.t)}</span></span></button>`).join("")}</div>`;
+  return await new Promise(fin => {
+    let abierta = null, bloq = false, mov = 0, hechos = 0;
+    app.querySelectorAll(".carta").forEach(b => b.onclick = () => {
+      if (bloq || b.classList.contains("vuelta") || b.classList.contains("par")) return;
+      b.classList.add("vuelta"); SND.tic();
+      if (!abierta) { abierta = b; return; }
+      mov++; $("#mov").textContent = mov + " jugadas";
+      const A = cartas[+abierta.dataset.i], B = cartas[+b.dataset.i];
+      if (A.k === B.k) { abierta.classList.add("par"); b.classList.add("par"); SND.ok(); abierta = null; hechos++; $("#pm").style.width = (100 * hechos / 6) + "%";
+        if (hechos === 6) setTimeout(() => g0 === GEN && fin({ ok: 6, est: mov <= 9 ? 3 : mov <= 13 ? 2 : 1, texto: `Encontraste las 6 parejas en <b>${mov} jugadas</b>.` }), 700); }
+      else { bloq = true; const x = abierta; abierta = null; setTimeout(() => { x.classList.remove("vuelta"); b.classList.remove("vuelta"); bloq = false; }, 900); }
+    });
+  });
+}
+
+/* ---- 5: lectura ---- */
+async function juegoLectura(s, g) {
+  const L = (window.LECTURAS_COMP || []).filter(x => x.g === g);
+  if (!L.length) { const P0 = sinRepetir(trivia, g, 5); return juegoPuertas(s, P0); }
+  const vistas = lee("tlj-leidas", []), libres = L.filter(x => !vistas.includes(x.t)), x = (libres.length ? libres : L)[ri(0, (libres.length ? libres : L).length - 1)];
+  guarda("tlj-leidas", [...vistas.slice(-20), x.t]);
+  const NV = window.NIVELES_LECTURA || {}; let ok = 0; const n = x.q.length, g0 = nueva();
+  for (let i = 0; i < n; i++) {
+    const [nv, q, o] = x.q[i], ops = baraja(o);
+    app.innerHTML = `<div class="barra"><span style="font-weight:800;color:var(--anil)">${s.e} ${esc(s.juego)}</span><span class="p"><i style="width:${100 * i / n}%"></i></span><span style="font-weight:800">${i + 1}/${n}</span></div>
+     <div class="texto"><b>${esc(x.t)}</b>${esc(x.x)} <button class="ico" id="bLeerT" aria-label="Escuchar la lectura" style="display:inline-grid;vertical-align:middle;margin-left:6px">🔈</button></div>
+     ${NV[nv] ? `<span class="nivel">${esc(NV[nv])}</span>` : ""}<h2 style="margin-top:0">${esc(q)}</h2>
+     <div class="ops">${ops.map((t, k) => `<button class="op" data-o="${esc(t)}"><span class="l">${"ABC"[k]}</span>${esc(t)}</button>`).join("")}</div>`;
+    $("#bLeerT").onclick = () => leer(x.t + ". " + x.x);
+    const v = await new Promise(fin => app.querySelectorAll(".op").forEach(b => b.onclick = () => {
+      app.querySelectorAll(".op").forEach(z => z.disabled = true); const bien = b.dataset.o === o[0];
+      b.classList.add(bien ? "bien" : "mal"); if (!bien) app.querySelectorAll(".op").forEach(z => { if (z.dataset.o === o[0]) z.classList.add("bien"); });
+      bien ? SND.ok() : SND.mal(); setTimeout(() => fin(bien), bien ? 900 : 1900);
+    }));
+    if (g0 !== GEN) return null;
+    if (v) ok++;
+  }
+  return { ok, est: ok === n ? 3 : ok >= n - 1 ? 2 : ok >= 2 ? 1 : 0, texto: `Leíste «${esc(x.t)}» y contestaste bien <b>${ok} de ${n}</b>.` };
+}
+
+/* ---- reconocimiento ---- */
+function diploma() {
+  nueva();
+  const total = ESTACIONES.reduce((s, x) => s + (P.est[x.id] || 0), 0), hoy = new Date().toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  app.innerHTML = `<div class="diploma">${TLAMI(110)}<p style="letter-spacing:.2em;color:var(--terra);font-weight:800;margin:6px 0 0">TLAMATINI · EL CAMINO DEL SABER</p>
+   <h1>Reconocimiento</h1><p style="font-size:18px">se otorga a</p><div class="nom">${esc(P.nombre)}</div>
+   <p style="font-size:19px;max-width:620px;margin:10px auto">alumno(a) de ${P.grado}.° grado, por recorrer el camino del saber del Valle de San Quintín al Desierto de los cirios, con <b>${total} de 15 estrellas</b> y <b>${P.sem || 0} semillas de cacao</b>.</p>
+   <p style="color:var(--mu)">${hoy}</p>
+   <div class="firma"><div>Maestra o maestro de grupo</div><div>Madre, padre o tutor</div></div></div>
+   <div class="fila no-imp" style="justify-content:center;margin-top:18px"><button class="btn" onclick="print()">🖨️ Imprimir</button><button class="btn bl" id="bVolver">Volver al camino</button></div>`;
+  $("#bVolver").onclick = mapa; confeti(); SND.gana();
+}
+
+/* =================================================================
+   DUELO EN EL SALÓN (equipos)
+   ================================================================= */
+const EQUIPOS = [{ n: "Águilas", e: "🦅", c: "#C2603A" }, { n: "Jaguares", e: "🐆", c: "#24427A" }, { n: "Coyotes", e: "🐺", c: "#7A5C2E" }, { n: "Ballenas", e: "🐋", c: "#1F7A8C" }];
+function dueloInicio() {
+  nueva();
+  $("#bCasa").hidden = false; let cfg = { eq: 2, g: 3, r: 5 };
+  const pinta = () => {
+    app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">¡Duelo en el salón! Formen equipos. En cada turno un equipo contesta; si acierta rápido gana más puntos. El maestro toca la respuesta que diga el equipo.</div></div>
+     <label class="l">¿Cuántos equipos?</label><div class="chips">${[2, 3, 4].map(k => `<button class="chip" data-eq="${k}" aria-pressed="${cfg.eq === k}">${k} equipos</button>`).join("")}</div>
+     <div class="fila" style="margin:-4px 0 10px">${EQUIPOS.slice(0, cfg.eq).map(t => `<span style="background:${t.c};color:#fff;border-radius:14px;padding:8px 14px;font-weight:800">${t.e} ${t.n}</span>`).join("")}</div>
+     <label class="l">Grado</label><div class="chips">${[1, 2, 3, 4, 5, 6].map(k => `<button class="chip" data-g="${k}" aria-pressed="${cfg.g === k}">${k}.°</button>`).join("")}</div>
+     <label class="l">Preguntas por equipo</label><div class="chips">${[3, 5, 7].map(k => `<button class="chip" data-r="${k}" aria-pressed="${cfg.r === k}">${k}</button>`).join("")}</div>
+     <div class="fila"><button class="btn" id="bJugar">¡A jugar!</button><button class="btn bl" id="bFull">⛶ Pantalla completa</button></div>`;
+    app.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => { cfg.eq = +b.dataset.eq; pinta(); });
+    app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { cfg.g = +b.dataset.g; pinta(); });
+    app.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { cfg.r = +b.dataset.r; pinta(); });
+    $("#bFull").onclick = () => { try { document.documentElement.requestFullscreen(); } catch (e) {} };
+    $("#bJugar").onclick = () => duelo(cfg);
+  };
+  pinta();
+}
+async function duelo(cfg) {
+  await LISTO;
+  const T = EQUIPOS.slice(0, cfg.eq).map(t => Object.assign({ p: 0 }, t)), total = cfg.eq * cfg.r, g0 = nueva();
+  const gens = [mate, trivia, ortografia], banco = []; const vistos = new Set();
+  for (let k = 0; banco.length < total && k < total * 20; k++) { const q = gens[banco.length % 3](cfg.g), k2 = q.q + "|" + q.c; if (!vistos.has(k2)) { vistos.add(k2); banco.push(q); } }
+  for (let i = 0; i < total; i++) {
+    const t = i % cfg.eq, p = banco[i], ops = p.ops.slice(0, 4); if (!ops.includes(p.c)) ops[0] = p.c;
+    const marc = () => `<div class="marcador">${T.map((x, k) => `<div class="eq ${k === t ? "turno" : ""}" style="background:${x.c}"><span class="e">${x.e}</span><span><b>${x.n}</b><span>${x.p}</span></span></div>`).join("")}</div>`;
+    app.innerHTML = `${marc()}<p style="margin:0;font-weight:800;color:var(--terra)">Turno de ${T[t].e} ${T[t].n} · pregunta ${Math.floor(i / cfg.eq) + 1} de ${cfg.r}</p>
+     <div class="reloj"><i id="rl" style="width:100%"></i></div>
+     <div class="pregunta"><b>${esc(p.q)}</b><button class="ico" id="bLeer" aria-label="Escuchar">🔈</button></div>
+     <div class="ops duelo">${baraja(ops).map((o, k) => `<button class="op" data-o="${esc(o)}"><span class="l">${"ABCD"[k]}</span>${esc(o)}</button>`).join("")}</div>
+     <div class="fila" style="margin-top:14px"><button class="btn am" id="bSig" hidden>Siguiente turno ➜</button></div>`;
+    atarLeer(p.q);
+    const LIM = 25; let quedan = LIM; requestAnimationFrame(() => { $("#rl").style.width = "100%"; });
+    await new Promise(fin => {
+      let hecho = false;
+      const tick = setInterval(() => { quedan--; const r = $("#rl"); if (r) r.style.width = (100 * quedan / LIM) + "%"; if (quedan <= 5 && quedan > 0) SND.tic(); if (quedan <= 0) resolver(null); }, 1000);
+      function resolver(b) {
+        if (hecho) return; hecho = true; clearInterval(tick);
+        app.querySelectorAll(".op").forEach(z => { z.disabled = true; if (z.dataset.o === p.c) z.classList.add("bien"); });
+        if (b && b.dataset.o === p.c) { const pts = 100 + quedan * 4; T[t].p += pts; SND.ok(); b.insertAdjacentHTML("beforeend", ` <b style="color:var(--ok)">+${pts}</b>`); }
+        else { if (b) b.classList.add("mal"); SND.mal(); }
+        app.querySelector(".marcador").outerHTML = marc();
+        $("#bSig").hidden = false; $("#bSig").textContent = i === total - 1 ? "Ver resultados 🏆" : "Siguiente turno ➜"; $("#bSig").onclick = fin;
+      }
+      app.querySelectorAll(".op").forEach(b => b.onclick = () => resolver(b));
+      const vig = setInterval(() => { if (g0 !== GEN) { clearInterval(vig); clearInterval(tick); } }, 500);
+    });
+    if (g0 !== GEN) return;
+  }
+  const O = T.slice().sort((a, b) => b.p - a.p), alto = [170, 120, 90, 70], orden = O.length >= 3 ? [O[1], O[0], O[2], O[3]].filter(Boolean) : [O[0], O[1]];
+  SND.gana(); confeti();
+  app.innerHTML = `<h1 style="text-align:center">¡Ganan ${O[0].e} ${O[0].n}!</h1>${O[1] && O[0].p === O[1].p ? `<p class="sub" style="text-align:center">¡Empate en primer lugar!</p>` : ""}
+   <div class="podio">${orden.map(x => { const pos = O.indexOf(x); return `<div style="background:${x.c};height:${alto[pos] + 80}px"><span class="e">${x.e}</span><b>${pos + 1}.° ${x.n}</b><span>${x.p}</span></div>`; }).join("")}</div>
+   <div class="fila" style="justify-content:center"><button class="btn" id="bOtra">Otra ronda</button><button class="btn bl" id="bIni">Inicio</button></div>`;
+  $("#bOtra").onclick = () => duelo(cfg); $("#bIni").onclick = inicio;
+}
+
+/* =================================================================
+   RETO DEL MAESTRO (USICAMM)
+   ================================================================= */
+const PERFILES = [["", "Todos"], ["doc", "Docente"], ["dir", "Dirección"], ["sup", "Supervisión"], ["atp", "ATP"]];
+async function maestroInicio() {
+  nueva();
+  $("#bCasa").hidden = false; app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">Preparando el banco de reactivos…</div></div>`;
+  const M = await bancoMaestros();
+  if (!M.banco.length) { app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">El Reto del maestro es para docentes y usa el banco de reactivos de Tlamatini Aula. Ábrelo desde la página en línea del juego (carlosog23.github.io/Carlos-Ortega/tlamatini-juego); después funciona también sin internet.</div></div><button class="btn" id="bV">Volver</button>`; $("#bV").onclick = inicio; return; }
+  let cfg = lee("tlj-mcfg", { per: "", area: "" });
+  const pinta = () => {
+    const n = filtra(M, cfg).length;
+    app.innerHTML = `<div class="dice">${TLAMI()}<div class="globo">Maestra, maestro: 10 reactivos al estilo USICAMM, tres vidas ❤️❤️❤️. Después de cada respuesta te explico por qué y en qué documento se fundamenta.</div></div>
+     <label class="l">Tu perfil</label><div class="chips">${PERFILES.map(([k, t]) => `<button class="chip" data-p="${k}" aria-pressed="${cfg.per === k}">${t}</button>`).join("")}</div>
+     <label class="l">Tema</label><div class="chips">${[["", "Todos los temas"], ...Object.entries(M.areas)].map(([k, t]) => `<button class="chip" data-a="${k}" aria-pressed="${cfg.area === k}" style="font-size:16px">${esc(t)}</button>`).join("")}</div>
+     <p class="sub">${n} reactivos disponibles con esa elección.${lee("tlj-mejor-" + cfg.per + "-" + cfg.area, null) != null ? ` Tu mejor marca: <b>${lee("tlj-mejor-" + cfg.per + "-" + cfg.area, 0)} de 10</b>.` : ""}</p>
+     <button class="btn az" id="bIniM" ${n < 10 ? "disabled" : ""}>Empezar el reto</button>`;
+    app.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { cfg.per = b.dataset.p; guarda("tlj-mcfg", cfg); pinta(); });
+    app.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { cfg.area = b.dataset.a; guarda("tlj-mcfg", cfg); pinta(); });
+    $("#bIniM").onclick = () => retoMaestro(M, cfg);
+  };
+  pinta();
+}
+const filtra = (M, cfg) => M.banco.filter(x => (!cfg.area || x.a === cfg.area) && (!cfg.per || !x.per || !x.per.length || x.per.includes(cfg.per)));
+async function retoMaestro(M, cfg) {
+  const R = baraja(filtra(M, cfg)).slice(0, 10), g0 = nueva(); let vidas = 3, ok = 0, i = 0;
+  for (; i < R.length && vidas > 0; i++) {
+    const x = R[i], orden = baraja(x.o.map((t, k) => k));
+    app.innerHTML = `<div class="barra"><span class="vidas">${"❤️".repeat(vidas)}${"🤍".repeat(3 - vidas)}</span><span class="p"><i style="width:${100 * i / R.length}%"></i></span><span style="font-weight:800">${i + 1}/${R.length}</span></div>
+     <span class="nivel">${esc(M.areas[x.a] || "")}${M.formatos && M.formatos[x.f] ? " · " + esc(M.formatos[x.f]) : ""}</span>
+     <div class="texto plan">${esc(x.p)}</div>
+     <div class="ops">${orden.map((k, j) => `<button class="op" data-k="${k}"><span class="l">${"ABC"[j]}</span>${esc(x.o[k])}</button>`).join("")}</div><div id="ex"></div>`;
+    await new Promise(fin => app.querySelectorAll(".op").forEach(b => b.onclick = () => {
+      app.querySelectorAll(".op").forEach(z => { z.disabled = true; if (+z.dataset.k === x.k) z.classList.add("bien"); });
+      const bien = +b.dataset.k === x.k; if (bien) { ok++; SND.ok(); } else { b.classList.add("mal"); vidas--; SND.mal(); }
+      $("#ex").innerHTML = `<div class="expl"><b style="color:${bien ? "var(--ok)" : "var(--mal)"}">${bien ? "¡Correcto!" : "No es esa."}</b> ${esc(x.e || "")}${x.fu ? `<small>Fundamento: ${esc(x.fu)}</small>` : ""}</div>
+        <div class="fila" style="margin-top:12px"><button class="btn az" id="bC">${vidas > 0 && i < R.length - 1 ? "Siguiente ➜" : "Ver resultado"}</button></div>`;
+      $("#bC").onclick = fin; $("#bC").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }));
+    if (g0 !== GEN) return;
+  }
+  const k = "tlj-mejor-" + cfg.per + "-" + cfg.area, mejor = Math.max(lee(k, 0), ok); guarda(k, mejor);
+  if (ok >= 8) { SND.gana(); confeti(); }
+  app.innerHTML = `<div class="res">${TLAMI(110)}<h2>${vidas > 0 ? "¡Reto completado!" : "Se acabaron las vidas"}</h2>
+   <p style="font-size:22px">Acertaste <b>${ok} de ${i}</b> reactivos.</p><p>Tu mejor marca en este tema: <b>${mejor} de 10</b>.</p>
+   <p class="sub">${ok >= 8 ? "Excelente dominio. ¡Sigue así!" : ok >= 5 ? "Vas bien: repasa las explicaciones de los que fallaste." : "Cada reactivo que fallas es uno que ya no se te olvidará. ¡Otra vez!"}</p>
+   <div class="fila" style="justify-content:center"><button class="btn az" id="bOtra">Otro reto</button><button class="btn bl" id="bTema">Cambiar tema</button></div></div>`;
+  $("#bOtra").onclick = () => retoMaestro(M, cfg); $("#bTema").onclick = maestroInicio;
+}
+
+inicio();
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
