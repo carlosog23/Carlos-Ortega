@@ -100,13 +100,18 @@ function opcionesJuego(sel, ests, fases, vacia) {
     ${fuera ? `<optgroup label="Actual">${op(sel)}</optgroup>` : ""}
     <optgroup label="Sugeridas para este momento">${sug.map(op).join("")}</optgroup>
     ${Object.keys(resto).sort((a, b) => a.localeCompare(b, "es")).map(e => `<optgroup label="${esc(e)}">${orden(resto[e]).map(op).join("")}</optgroup>`).join("")}`; }
+function descJuego(k) { const j = JUEGOS[k]; if (!j || j.propio) return "";
+  const mat = (j.mat || []).map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]).join(", ");
+  return `<div class="small" style="background:var(--hilo2);border-radius:12px;padding:10px 12px;margin:-4px 0 12px"><b>${esc(j.n)}</b> · ${esc(j.est)} · ${j.min || 10} min${mat ? " · " + esc(mat) : ""}
+   <ol style="margin:6px 0 0;padding-left:18px">${(j.reglas || []).map(r => `<li>${esc(r)}</li>`).join("")}</ol>${j.facil ? `<p style="margin:6px 0 0"><b>Más fácil:</b> ${esc(j.facil)}</p>` : ""}${j.seg ? `<p style="margin:4px 0 0"><b>Cuidado:</b> ${esc(j.seg)}</p>` : ""}</div>`; }
 function campoJuego(id, et, sel, ests, fases, vacia) { const j = JUEGOS[sel], mia = j && j.propio;
   return `<label class="campo"><span>${et}</span><select id="${id}" data-jsel="${id}">${opcionesJuego(sel, ests, fases, vacia)}</select></label>
+   <div id="${id}_d">${descJuego(sel)}</div>
    <div id="${id}_p" class="card" style="margin:-4px 0 12px;padding:12px;${mia ? "" : "display:none"}"><p class="small muted" style="margin:0 0 6px">${mia ? "Su actividad (puede corregirla):" : "Escriba su idea. Se guarda en «Mis actividades» para usarla otra vez."}</p>
     <label class="campo"><span>Nombre</span><input id="${id}_n" value="${mia ? esc(j.n) : ""}" placeholder="Ej. Carrera de canguros"></label>
     <label class="campo" style="margin:0"><span>Cómo se juega (una indicación por renglón)</span><textarea id="${id}_r" rows="3">${mia ? esc((j.reglas || []).join("\n")) : ""}</textarea></label></div>`; }
 function enlazarCamposJuego(v) { v.querySelectorAll("[data-jsel]").forEach(s => s.onchange = () => { const id = s.dataset.jsel, j = JUEGOS[s.value], box = v.querySelector("#" + id + "_p");
-  const nuevo = s.value === "__propia", mia = j && j.propio; box.style.display = nuevo || mia ? "" : "none";
+  const nuevo = s.value === "__propia", mia = j && j.propio; box.style.display = nuevo || mia ? "" : "none"; v.querySelector("#" + id + "_d").innerHTML = descJuego(s.value);
   v.querySelector("#" + id + "_n").value = mia ? j.n : ""; v.querySelector("#" + id + "_r").value = mia ? (j.reglas || []).join("\n") : "";
   if (nuevo) v.querySelector("#" + id + "_n").focus(); }); }
 function leerCampoJuego(id, est) { const s = val(id); if (!s) return "";
