@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-23-2200';
+const PUBLICACION = '2026-11-23-2230';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -16563,7 +16563,7 @@ function vNorma() {
   $$('[data-nrej]').forEach(b => b.onclick = () => { $('#nr-q').value = b.dataset.nrej; ir(); });
 }
 function normaTarjeta(h) {
-  const cita = s => esc(s).replace(/\[(\d+)\]/g, '<sup><b>[$1]</b></sup>').replace(/\n/g, '<br>');
+  const cita = s => esc(s).replace(/\[(\d+(?:,\s*\d+)*)\]/g, '<sup><b>[$1]</b></sup>').replace(/\n/g, '<br>');
   return `<div class="tarjeta pad" style="margin-top:12px">
     <div class="peq" style="margin-bottom:6px">Pregunta</div><div style="font-weight:600;margin-bottom:10px">${esc(h.q)}</div>
     ${!h.P.length ? '<div class="aviso-caja peq">No encontré nada sobre eso en los documentos normativos que tiene Tlamatini. Pruebe con otras palabras, o consulte directamente la normativa o a la Jefatura.</div>' : ''}
