@@ -28,6 +28,8 @@ if(/[?&]campo\b/.test(location.search)){document.getElementById('l-manifest').hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,600..800&family=Inter:wght@400;500;600;700&display=swap">
+<script>try{if(/[#&]diseno-anil\b/.test(location.hash))localStorage.setItem("tequio.diseno","anil");if(/[#&]diseno-clasico\b/.test(location.hash))localStorage.removeItem("tequio.diseno");if(localStorage.getItem("tequio.diseno")==="anil")document.documentElement.dataset.diseno="anil"}catch(e){}</script>
 <style>
 :root{
   --indigo:#24427A; --indigo-d:#1F3A6B; --tinta:#1E2A40; --terra:#C2603A; --terra-d:#A9512F; --ambar:#E8A33D;
@@ -763,6 +765,85 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .cns-t td{padding:8px 10px;border-bottom:1px solid var(--borde);vertical-align:top}
 .cns-t .d{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cns-caja{overflow-x:auto}
+/* ================= Diseño «Añil» (2026) =================
+   IDEA: el tequio es trabajo comunitario y el textil es su emblema: añil (índigo natural) como campo dominante,
+   grana cochinilla para lo que importa y maíz como chispa; una greca tejida separa la barra del contenido.
+   Se activa con html[data-diseno="anil"]; el diseño clásico queda intacto. Los oficios (.hoja) no se tocan. */
+html[data-diseno="anil"]{--indigo:#16338A;--indigo-d:#0D2266;--tinta:#141826;--terra:#C8102E;--terra-d:#A00C24;--ambar:#F2B705;
+  --crema:#FFFFFF;--arena:#FCE8EB;--arena-2:#F1F2F6;--papel:#FFFFFF;--borde:#E2E4EC;--gris:#596075;--aviso-f:#FFF6D8;
+  --radio:16px;--sombra:0 1px 2px rgba(13,34,102,.05);--anil-campo:#0D2266}
+html[data-diseno="anil"] body{font-family:Inter,'Source Sans 3',system-ui,sans-serif;background:#fff;letter-spacing:-.003em}
+html[data-diseno="anil"] h1,html[data-diseno="anil"] h2,html[data-diseno="anil"] h3{font-family:Archivo,'Source Sans 3',sans-serif;font-weight:800;font-stretch:108%;letter-spacing:-.018em;color:#0D1B44}
+html[data-diseno="anil"] .titulo-vista{margin-bottom:18px}
+html[data-diseno="anil"] .titulo-vista h1{font-size:clamp(28px,3.4vw,38px);line-height:1.05}
+/* Barra superior: el mismo campo de añil que el menú, con la greca tejida abajo */
+html[data-diseno="anil"] .barra{background:var(--anil-campo);border-bottom:0}
+html[data-diseno="anil"] .barra::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:7px;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='7'%3E%3Crect width='28' height='7' fill='%230D2266'/%3E%3Cpath d='M0 7V3h4V0h6v3h4v4h-3V4H7V1H5v3H3v3z' fill='%23C8102E'/%3E%3Cpath d='M14 7V3h4V0h6v3h4v4h-3V4h-4V1h-2v3h-2v3z' fill='%23F2B705'/%3E%3C/svg%3E") repeat-x}
+html[data-diseno="anil"] .marca b{font-family:Archivo,sans-serif;font-weight:800;font-stretch:112%;letter-spacing:-.01em;font-size:25px}
+html[data-diseno="anil"] .marca small{font-family:Inter,sans-serif;font-style:normal;color:#AFC0EE;font-size:12px}
+html[data-diseno="anil"] .barra .yo{color:#AFC0EE}
+html[data-diseno="anil"] .barra-ico button{color:#C9D5F5}
+/* Menú lateral: campo de añil a todo lo alto */
+html[data-diseno="anil"] .lateral{background:var(--anil-campo);border-right:0;padding-top:22px;color:#fff;scrollbar-color:#33489a transparent}
+html[data-diseno="anil"] .lat-c{color:#E9EDFA;font-weight:600;border-radius:999px;padding:10px 14px}
+html[data-diseno="anil"] .lat-c svg{color:#8FA5E6}
+html[data-diseno="anil"] .lat-c .cv{color:#8FA5E6}
+html[data-diseno="anil"] .lat-c:hover{background:rgba(255,255,255,.08)}
+html[data-diseno="anil"] .lat-c[aria-current="true"]{background:#fff;color:var(--anil-campo)}
+html[data-diseno="anil"] .lat-c[aria-current="true"] svg{color:var(--terra)}
+html[data-diseno="anil"] .lat-sub{padding-left:26px}
+html[data-diseno="anil"] .lat-sub button{color:#C3CDEE;border-left:2px solid rgba(255,255,255,.14);border-radius:0 999px 999px 0}
+html[data-diseno="anil"] .lat-sub button:hover{background:rgba(255,255,255,.08);color:#fff}
+html[data-diseno="anil"] .lat-sub button[aria-current="true"]{background:#fff;color:var(--anil-campo);font-weight:700;border-left-color:var(--ambar)}
+html[data-diseno="anil"] .lat-sep{background:rgba(255,255,255,.14)}
+html[data-diseno="anil"] .migas-sec{color:var(--gris)}
+html[data-diseno="anil"] main{padding-top:30px}
+/* Tarjetas y controles */
+html[data-diseno="anil"] .tarjeta{border-radius:18px;box-shadow:none;border-color:var(--borde)}
+html[data-diseno="anil"] .boton{border-radius:999px;padding:9px 18px;font-weight:600}
+html[data-diseno="anil"] .boton.chico{border-radius:999px;padding:5px 12px}
+html[data-diseno="anil"] .boton.sec{background:#fff;color:var(--indigo);border-color:#CDD3E4}
+html[data-diseno="anil"] .boton.sec:hover{background:var(--arena-2)}
+html[data-diseno="anil"] .icono-btn{border-radius:999px}
+html[data-diseno="anil"] .campo input,html[data-diseno="anil"] .campo select,html[data-diseno="anil"] .campo textarea,html[data-diseno="anil"] .filtros select,html[data-diseno="anil"] .filtros input{border-radius:12px;border-color:#D3D8E6}
+html[data-diseno="anil"] .campo input:focus,html[data-diseno="anil"] .campo select:focus,html[data-diseno="anil"] .campo textarea:focus,html[data-diseno="anil"] .boton:focus-visible{outline:3px solid #9FB4F0;outline-offset:1px}
+html[data-diseno="anil"] .seg-op{border-radius:999px;border-color:#CDD3E4}
+html[data-diseno="anil"] .seg-op button[aria-pressed="true"]{background:var(--anil-campo)}
+html[data-diseno="anil"] .chip{background:#EEF0F6;color:#3D4560}
+html[data-diseno="anil"] .chip.indigo{background:#E4EAFB;color:var(--indigo)}
+html[data-diseno="anil"] .chip.terra{background:#FCE8EB;color:var(--terra-d)}
+/* Listas con fecha: la fecha como pequeña etiqueta tejida */
+html[data-diseno="anil"] .act{padding:14px 16px}
+html[data-diseno="anil"] .act:hover{background:#F7F8FB}
+html[data-diseno="anil"] .act .fecha{background:var(--anil-campo);border-radius:12px;padding:6px 0 5px;box-shadow:inset 0 -3px 0 var(--terra)}
+html[data-diseno="anil"] .act .fecha b{font-family:Archivo,sans-serif;font-weight:800;color:#fff}
+html[data-diseno="anil"] .act .fecha span{color:var(--ambar)}
+/* Calendario */
+html[data-diseno="anil"] .cal-cab h2{font-size:24px}
+html[data-diseno="anil"] .dia{border-radius:12px}
+html[data-diseno="anil"] .dia.finde{background:#F9FAFC;border-radius:8px}
+html[data-diseno="anil"] .dia.sel{background:#EEF2FD;border-color:var(--indigo)}
+html[data-diseno="anil"] .dia .ev{background:#E4EAFB}
+/* Avisos, ventanas */
+html[data-diseno="anil"] .aviso-caja{border-radius:14px;border-color:#F0DC97}
+html[data-diseno="anil"] .velo{background:rgba(13,27,68,.5)}
+html[data-diseno="anil"] .modal{border-radius:22px;box-shadow:0 30px 70px rgba(13,27,68,.28)}
+html[data-diseno="anil"] .modal-cab{background:#fff;padding:18px 20px 12px}
+html[data-diseno="anil"] .modal-cab h2{font-size:24px}
+html[data-diseno="anil"] .modal-pie{background:#F7F8FB}
+html[data-diseno="anil"] .nav-movil{background:#fff}
+html[data-diseno="anil"] .pie{color:#8A90A3}
+html[data-diseno="anil"] .disenos{display:flex;gap:4px;margin:14px 8px 0;padding:4px;border-radius:999px;background:rgba(255,255,255,.08)}
+html[data-diseno="anil"] .disenos button{color:#C3CDEE}
+html[data-diseno="anil"] .disenos button[aria-pressed="true"]{background:#fff;color:var(--anil-campo)}
+@media (max-width:760px){html[data-diseno="anil"] .lateral{padding-top:22px}}
+/* Selector de diseño (al pie del menú) */
+.disenos{display:flex;gap:4px;margin:14px 8px 0;padding:4px;border-radius:999px;background:var(--arena-2)}
+.disenos button{flex:1;border:0;background:none;border-radius:999px;padding:7px 8px;font:inherit;font-size:13px;font-weight:600;color:var(--gris);cursor:pointer;min-height:34px}
+.disenos button[aria-pressed="true"]{background:var(--papel);color:var(--indigo);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.disenos-t{font-size:12px;color:var(--gris);margin:18px 16px 0}
+html[data-diseno="anil"] .disenos-t{color:#8FA5E6}
 </style>
 </head>
 <body>
@@ -1043,7 +1124,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-24-0530';
+const PUBLICACION = '2026-11-24-0600';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -1267,13 +1348,16 @@ function pintar() {
   <div id="vid-caja"></div>
   <div id="asi-caja"></div>
   <div class="marco" id="marco">
-  <aside class="lateral" id="lateral" aria-label="Secciones">${lateralHTML(tabs)}</aside>
+  <aside class="lateral" id="lateral" aria-label="Secciones">${lateralHTML(tabs)}<p class="disenos-t">Diseño</p><div class="disenos" role="group" aria-label="Diseño de Tequio"><button type="button" data-diseno="clasico" aria-pressed="${document.documentElement.dataset.diseno !== 'anil'}">Clásico</button><button type="button" data-diseno="anil" aria-pressed="${document.documentElement.dataset.diseno === 'anil'}">Añil</button></div></aside>
   <div class="velo-lat" id="velo-lat"></div>
   <div><main><div class="envoltura">${migasSec(tabs)}<div id="vista"></div></div></main>
   <div class="pie">${esc(ZONA.nombreNo)} · ${esc(ZONA.nivelSost)} · ${esc(ZONA.inst)}${esc(ZONA.lemaTxt)}</div>
   </div></div>`;
   $$('[data-grp]').forEach(b => b.onclick = () => { const g = b.parentElement, ab = g.classList.toggle('abierto'); b.setAttribute('aria-expanded', ab); ab ? latAbiertos.add(b.dataset.grp) : latAbiertos.delete(b.dataset.grp); try { localStorage.setItem('tequio.lat', JSON.stringify([...latAbiertos])); } catch (e) {} });
   $('#b-menu').onclick = () => $('#marco').classList.add('lat-abierta');
+  $$('.disenos [data-diseno]').forEach(b => b.onclick = () => { const n = b.dataset.diseno === 'anil'; try { n ? localStorage.setItem('tequio.diseno', 'anil') : localStorage.removeItem('tequio.diseno'); } catch (e) {}
+    if (n) document.documentElement.dataset.diseno = 'anil'; else delete document.documentElement.dataset.diseno;
+    const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = n ? '#0D2266' : '#1F3A6B'; pintar(); });
   if ($('#b-instalar')) $('#b-instalar').onclick = tqInstalar;
   $('#velo-lat').onclick = () => $('#marco').classList.remove('lat-abierta');
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; if (vista.tab === 'consultas') { CNS = null; vista.cnsVer = null; vista.cnsRes = null; } pintar(); window.scrollTo(0, 0); });
