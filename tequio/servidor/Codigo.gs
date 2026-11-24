@@ -3718,7 +3718,7 @@ function gemini_(prompt, op) {
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!key) throw new Error('Falta configurar la clave de Gemini en Oficios → Configuración.');
   let sinThink = false, saturado = 0;
-  const RESPALDO = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+  const RESPALDO = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
   for (let intento = 0; intento < 2; intento++) {
     // Si el modelo está saturado (5xx), se espera un poco y se prueba con modelos de respaldo
     const modelo = saturado ? RESPALDO[(saturado - 1) % RESPALDO.length] : modeloGemini_(key, false);
@@ -3731,7 +3731,8 @@ function gemini_(prompt, op) {
     // Algunos modelos no aceptan apagar el «razonamiento»: se repite sin esa opción
     if (c === 400 && op.sinPensar && !sinThink && /think/i.test(r.getContentText())) { sinThink = true; intento--; continue; }
     if (c === 404) {  // el modelo guardado ya no existe: se prueban los que ofrece la clave hasta dar con uno que conteste
-      const otro = modeloGeminiProbar_(key, modelo);
+      const sug = (String(r.getContentText()).match(/use models\/([\w.-]+)/) || [])[1];
+      const otro = modeloGeminiProbar_(key, modelo, sug);
       if (otro && intento === 0) continue;
       throw new Error('Gemini no tiene disponible el modelo «' + modelo + '» para esta clave. Revise la clave en Oficios → Configuración.' + ' (' + String(r.getContentText()).replace(/\s+/g, ' ').slice(0, 220) + ')');
     }
@@ -3750,7 +3751,7 @@ function gemini_(prompt, op) {
 
 // Elige el modelo «Flash» más reciente disponible para la clave y lo recuerda
 // Prueba los modelos «flash» que ofrece la clave (y algunos conocidos) con una petición mínima; guarda el primero que responda.
-function modeloGeminiProbar_(key, malo) {
+function modeloGeminiProbar_(key, malo, sug) {
   const p = PropertiesService.getScriptProperties();
   let lista = [];
   try {
@@ -3763,13 +3764,14 @@ function modeloGeminiProbar_(key, malo) {
   const ver = n => parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
   lista.sort((a, b) => (/(exp|preview)/.test(a) - /(exp|preview)/.test(b)) || (/lite/.test(a) - /lite/.test(b)) || ver(b) - ver(a) || a.length - b.length);
   ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'].forEach(n => { if (lista.indexOf(n) < 0) lista.push(n); });
+  if (sug) lista = [sug].concat(lista.filter(n => n !== sug));
   lista = lista.filter(n => n !== malo).slice(0, 10);
   for (let i = 0; i < lista.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + lista[i] + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Responde solo: ok' }] }], generationConfig: { maxOutputTokens: 20 } }) });
     const c = r.getResponseCode();
-    if (c === 200 || c === 429 || c >= 500) { p.setProperty('GEMINI_MODELO', lista[i]); return lista[i]; }
+    if (c !== 404 && c !== 403) { p.setProperty('GEMINI_MODELO', lista[i]); return lista[i]; }
   }
   return '';
 }
@@ -3777,7 +3779,7 @@ function modeloGeminiProbar_(key, malo) {
 function modeloGemini_(key, forzar) {
   const p = PropertiesService.getScriptProperties();
   if (!forzar && p.getProperty('GEMINI_MODELO')) return p.getProperty('GEMINI_MODELO');
-  let elegido = 'gemini-2.5-flash';
+  let elegido = 'gemini-flash-latest';
   try {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key), { muteHttpExceptions: true });
     if (r.getResponseCode() === 200) {
