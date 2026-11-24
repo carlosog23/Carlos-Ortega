@@ -246,13 +246,15 @@ const HOJAS = {
   // Consultas de la Supervisión (asistencia a eventos, menú, preguntas). Las respuestas las ven la Supervisión y los ATP a quienes les dio acceso. Nada se borra: se archiva.
   cns: ['id', 'titulo', 'descripcion', 'fecha', 'hora', 'lugar', 'cierre', 'preguntas', 'participantes', 'estado', 'codigo', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'acceso'],
   cnr: ['id', 'consulta', 'persona', 'nombre', 'respuestas', 'datos', 'fecha', 'actualizado', 'veces'],
+  // Trámites en seguimiento ante la DAP, la Jefatura y otras instancias (licencias, interinatos, solicitudes…). historial: [{ f, por, texto }]
+  tra: ['id', 'tipo', 'asunto', 'persona', 'cct', 'instancia', 'oficioId', 'folio', 'fechaInicio', 'estado', 'proxima', 'responsable', 'notas', 'historial', 'creadoPor', 'creado', 'actualizado', 'cerrado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
-const NOMBRES = { adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
+const NOMBRES = { tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 77;
+const VERSION = 78;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -587,7 +589,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -598,6 +600,39 @@ const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia',
 const ACCIONES = {
   // Ayudante de Tequio: conversa con Gemini sobre cómo usar Tequio (sin bloqueo, porque Gemini tarda)
   ayudante: (yo, d) => ayudante_(yo, d),
+  // Trámites en seguimiento (Mesa Técnica). Cada guardado agrega su movimiento al historial.
+  guardarTramite: (yo, d) => {
+    soloMesa_(yo);
+    const t = (v, n) => String(v == null ? '' : v).trim().slice(0, n), f = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+    const prev = d.id ? buscar_('tra', String(d.id)) : null;
+    if (d.id && !prev) throw new Error('No se encontró el trámite.');
+    const asunto = t(d.asunto, 200);
+    if (!asunto) throw new Error('Escriba el asunto del trámite.');
+    const EST = ['enviado', 'proceso', 'falta', 'resuelto', 'cancelado'], estado = EST.indexOf(d.estado) >= 0 ? d.estado : 'enviado';
+    const ESTT = { enviado: 'Enviado, sin respuesta', proceso: 'En proceso', falta: 'Le falta algo', resuelto: 'Resuelto', cancelado: 'Cancelado' };
+    const hist = prev && Array.isArray(prev.historial) ? prev.historial : [];
+    const mov = t(d.movimiento, 1000);
+    if (!prev) hist.push({ f: ahora_(), por: yo.nombre, texto: 'Se registró el trámite (' + ESTT[estado] + ').' });
+    else if (prev.estado !== estado) hist.push({ f: ahora_(), por: yo.nombre, texto: 'Cambió a: ' + ESTT[estado] + '.' });
+    if (mov) hist.push({ f: ahora_(), por: yo.nombre, texto: mov });
+    const o = { id: prev ? prev.id : 'tra-' + Utilities.getUuid().slice(0, 8), tipo: t(d.tipo, 20) || 'otro', asunto: asunto, persona: t(d.persona, 120), cct: t(d.cct, 12),
+      instancia: t(d.instancia, 20) || 'otra', oficioId: t(d.oficioId, 60), folio: t(d.folio, 60), fechaInicio: f(d.fechaInicio) || ahora_().slice(0, 10), estado: estado,
+      proxima: f(d.proxima), responsable: t(d.responsable, 120), notas: prev ? prev.notas : t(d.notas, 2000), historial: hist.slice(-80),
+      creadoPor: prev ? prev.creadoPor : yo.id, creado: prev ? prev.creado : ahora_(), actualizado: ahora_(),
+      cerrado: estado === 'resuelto' || estado === 'cancelado' ? (prev && prev.cerrado ? prev.cerrado : ahora_()) : '' };
+    guardar_('tra', o);
+    return { tra: o };
+  },
+  borrarTramite: (yo, d) => {
+    soloAdmin_(yo);
+    const sh = hoja_('tra'), n = sh.getLastRow();
+    if (n < 2) return { ok: true };
+    const ids = sh.getRange(2, 1, n - 1, 1).getValues().map(r => String(r[0])), i = ids.indexOf(String(d.id || ''));
+    if (i >= 0) sh.deleteRow(i + 2);
+    return { ok: true };
+  },
+  // Pregúntale a la norma: Gemini redacta la respuesta usando SOLO los pasajes normativos que encontró la página
+  norma: (yo, d) => norma_(yo, d),
   // Solicitudes que el personal le dejó a Tlami: solo la Supervisión las ve y las atiende
   solicitudes: (yo) => { soloAdmin_(yo); return { solicitudes: leer_('sol').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))) }; },
   solicitudEstado: (yo, d) => {
@@ -757,6 +792,7 @@ const ACCIONES = {
     cue: leer_('cue').filter(c => c.activo),
     rev: leer_('rev').filter(r => r.ciclo === cicloVis_()).map(revPublica_),
     ate: leer_('ate').filter(a => visible_(yo, a)),
+    tra: yo.rol === 'admin' || yo.rol === 'atp' ? leer_('tra') : undefined,
     iaDirectorio: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY'),
     version: VERSION,
     cuota: MailApp.getRemainingDailyQuota()
@@ -3303,6 +3339,30 @@ function asegurarRecordatorios_() {
 /* ===================== Ayudante de Tequio ===================== */
 /** Una vuelta de conversación: recibe el mensaje, lo anterior, el catálogo de apartados que esa persona ve en Tequio
  *  y un resumen de sus pendientes (sin nombres de alumnos); responde qué apartado le sirve y cómo hacerlo. */
+function norma_(yo, d) {
+  soloMesa_(yo);
+  const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const cache = CacheService.getScriptCache(), kk = 'nrm-' + String(yo.id).slice(0, 40);
+  const n = (parseInt(cache.get(kk), 10) || 0) + 1;
+  if (n > 40) throw new Error('Ya hizo muchas preguntas seguidas. Espere un rato e intente de nuevo.');
+  cache.put(kk, String(n), 3600);
+  const pregunta = limpio(d.pregunta, 500);
+  if (!pregunta) throw new Error('Escriba su pregunta.');
+  const pas = (Array.isArray(d.pasajes) ? d.pasajes : []).slice(0, 8).map((p, i) => '[' + (i + 1) + '] (' + limpio(p.fu, 300) + ') ' + limpio(p.txt, 1500)).join('\n\n');
+  if (!pas) throw new Error('No hay pasajes para contestar.');
+  const prompt = [
+    'Eres asesor normativo de una Supervisión Escolar de primaria en Baja California, México. Contestas a ' + (yo.rol === 'admin' ? 'el Supervisor Escolar' : 'un Asesor Técnico Pedagógico de la zona') + ', en español de México, de usted, claro y breve (máximo 180 palabras).',
+    'REGLAS ESTRICTAS:',
+    '1. Usa ÚNICAMENTE la información de los PASAJES. No agregues artículos, números, plazos ni documentos que no estén en ellos.',
+    '2. Después de cada afirmación pon entre corchetes el número del pasaje que la sostiene, por ejemplo [2].',
+    '3. Al final escribe una línea que empiece con «Fundamento:» y nombre los documentos y artículos citados, tal como aparecen en los pasajes.',
+    '4. Si los pasajes no responden la pregunta, o solo en parte, dilo con claridad («Los documentos que tengo no lo dicen») y sugiere a qué tipo de documento o instancia acudir, sin inventar su contenido.',
+    '5. No uses markdown, ni negritas, ni viñetas con asterisco.',
+    '', 'PASAJES:', pas, '', 'PREGUNTA: ' + pregunta
+  ].join('\n');
+  return { respuesta: gemini_(prompt, { temperatura: 0.2, max: 1200, sinPensar: true }) };
+}
+
 function ayudante_(yo, d) {
   const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const cache = CacheService.getScriptCache(), kk = 'ayu-' + String(yo.id).slice(0, 40);
