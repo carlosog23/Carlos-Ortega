@@ -3005,7 +3005,7 @@ function minutaIA_(d) {
 function minutaGemini_(prompt) {
   let crudo = '';
   for (let n = 0; ; n++) {
-    try { crudo = gemini_(prompt, { json: true, temperatura: 0.2, max: 8192 }); break; }
+    try { crudo = gemini_(prompt, { json: true, temperatura: 0.2, max: 8192, sinPensar: true }); break; }
     catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (n + 1)); }
   }
   try { return JSON.parse(crudo.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (e) { throw new Error('La IA no devolvió una respuesta clara. Intente de nuevo.'); }
@@ -3253,7 +3253,7 @@ function tlami_(q) {
   let j = {};
   let crudo = '';
   for (let n = 0; ; n++) {   // Gemini a veces contesta «saturado» (500-504): se reintenta un par de veces
-    try { crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096 }); break; }
+    try { crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096, sinPensar: true }); break; }
     catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (n + 1)); }
   }
   try { j = JSON.parse(crudo.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (e) { j = { respuesta: crudo }; }
@@ -3404,7 +3404,7 @@ function ayudante_(yo, d) {
   ].filter(x => x !== '').join('\n');
   let crudo = '';
   for (let k = 0; ; k++) {   // Gemini a veces contesta «saturado» (500-504): se reintenta un par de veces
-    try { crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096 }); break; }
+    try { crudo = gemini_(prompt, { json: true, temperatura: 0.3, max: 4096, sinPensar: true }); break; }
     catch (e) { if (k >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (k + 1)); }
   }
   let j = {};
@@ -6031,7 +6031,7 @@ function aulaQuien_(q, tope, que) {
 function aulaJSON_(prompt, temp, op) {
   op = op || {}; let crudo = '';
   for (let n = 0; ; n++) {   // Gemini a veces contesta «saturado» (500-504): se reintenta un par de veces
-    try { crudo = gemini_(prompt, { json: true, temperatura: temp == null ? 0.5 : temp, max: op.max || 8192, archivos: op.archivos }); break; }
+    try { crudo = gemini_(prompt, { json: true, temperatura: temp == null ? 0.5 : temp, max: op.max || 8192, archivos: op.archivos, sinPensar: true }); break; }
     catch (e) { if (n >= 2 || !/\(5\d\d\)/.test(String(e.message))) throw e; Utilities.sleep(1500 * (n + 1)); }
   }
   try { return JSON.parse(crudo.replace(/^```(json)?/i, '').replace(/```$/, '').trim()); } catch (e) { throw new Error('Tlami no pudo terminar la respuesta. Intente de nuevo.'); }

@@ -317,3 +317,12 @@ function matEditorHTML(s) { return `<div class="campo"><span>Material de la sesi
 function matEditorVivo(v) { const act = () => { const x = { act: val("sA"), ppal: [val("sJ"), val("sJ2")], calma: val("sK"), planB: val("sB") }, L = matJuegos([x.act, ...x.ppal, x.calma, x.planB]).map(matNom);
   const e = v.querySelector("#sMatA"); if (e) e.textContent = L.join(", ") || "Los juegos elegidos no necesitan material."; };
   v.querySelectorAll("[data-jsel]").forEach(s => s.addEventListener("change", act)); }
+
+/* ---------- una sola fuente de PDA: el programa oficial de Tlamatini (formatos/pda.json) ----------
+   Ulama trae su copia para funcionar sin internet; al abrir, la actualiza con la de Tlamatini si cambió. */
+(async function pdaDeTlamatini() {
+  try { const r = await fetch("../formatos-ppie/formatos/pda.json", { cache: "no-cache" }); if (!r.ok) return; const P = await r.json(), C = P && P.campos && P.campos["De lo Humano y lo Comunitario"]; if (!C) return;
+    let n = 0; Object.keys(BANCO_EF).forEach(f => (BANCO_EF[f] || []).forEach(x => { const y = (C[f] || []).find(z => z.c === x.c); if (!y || !y.pda) return;
+      Object.keys(x.pda).forEach(g => { if (y.pda[g] && y.pda[g] !== x.pda[g]) { x.pda[g] = y.pda[g]; n++; } }); }));
+    if (n && typeof pintar === "function" && /planNueva/.test(S.v || "")) pintar();
+  } catch (e) { /* sin internet: se usa la copia de Ulama */ } })();

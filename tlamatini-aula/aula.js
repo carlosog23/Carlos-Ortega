@@ -449,8 +449,11 @@ VISTAS.planes = () => { const g = gAct(), L = D.planes.filter(p => p.gid === (g 
   ${typeof avAplica === "function" && avAplica(g) ? `<section class="card mt guia-card"><h3>${ic("camara", 18)} ¿Trabaja con guía de editorial?</h3><p class="small">Tómeles foto a las páginas que va a ver (o a su planeación de editorial). Tlami reconoce los contenidos, le arma la planeación con las actividades de su guía${g.lectura ? " y la <b>contextualiza</b> con su grupo" : ""}, y las páginas quedan guardadas junto a su planeación.</p>
    <div class="fila mt"><label class="btn p" style="cursor:pointer">${ic("camara", 18)} Planear con mi guía<input type="file" id="pGuia" multiple accept="image/*" hidden></label></div>
    <p class="small muted mt">${ic("check", 14)} Lo que hace aquí se queda en su celular. Nadie más lo ve; Tlami solo lee sus fotos para ayudarle y no las guarda en ningún otro lado.</p></section>` : ""}
-  <div class="lista mt">${L.map(p => { const hechas = p.sesiones.filter(s => s.hecho).length; return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:${(DIN_CATS[{ L: "lengua", S: "ciencia", E: "convive", H: "integracion" }[CAMPO_COD[p.campo]]] || ["", "#24427A"])[1]}22">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${p.guia ? "Con guía · " : ""}${esc(p.disc || p.campo)} · ${esc(METODOS[p.metodo].n)} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small><span class="barra-p"><i style="width:${Math.round(100 * hechas / p.sesiones.length)}%"></i></span></span><span class="tag ${hechas === p.sesiones.length ? "" : "g"}">${hechas}/${p.sesiones.length}</span></button>`; }).join("") || `<div class="vacio">Aún no tiene proyectos. Toque «Nuevo» para planear con los contenidos y PDA de su grado.</div>`}</div></main>`; };
+  <div class="lista mt">${L.map(p => { const hechas = p.sesiones.filter(s => s.hecho).length; return `<button class="it btnit" data-p="${p.id}"><span class="av" style="background:${(DIN_CATS[{ L: "lengua", S: "ciencia", E: "convive", H: "integracion" }[CAMPO_COD[p.campo]]] || ["", "#24427A"])[1]}22">${ic("plan", 18)}</span><span class="tx"><b>${esc(p.titulo)}</b><small>${p.guia ? "Con guía · " : ""}${esc(p.disc || p.campo)} · ${esc(METODOS[p.metodo].n)} · ${p.sesiones.length} sesiones desde ${fCorta(p.ini)}</small><span class="barra-p"><i style="width:${Math.round(100 * hechas / p.sesiones.length)}%"></i></span></span><span class="tag ${hechas === p.sesiones.length ? "" : "g"}">${hechas}/${p.sesiones.length}</span></button>`; }).join("") || `<div class="vacio">Aún no tiene proyectos. Toque «Nuevo» para planear con los contenidos y PDA de su grado.</div>`}</div>${tlmPlanes(g).length ? `<h2 class="sec-t" style="font-size:20px">Hechas en Tlamatini</h2><div class="lista">${tlmPlanes(g).map(h => `<a class="it btnit" style="text-decoration:none;color:inherit" href="../formatos-ppie/planeacion.html#plan=${encodeURIComponent(h.id)}"><span class="av">${ic("plan", 18)}</span><span class="tx"><b>${esc(h.titulo)}</b><small>${esc(h.grados || "")} · ${h.n} sesiones${h.desde ? " desde " + fCorta(h.desde) : ""}</small></span><span class="tag g">Abrir</span></a>`).join("")}</div>` : ""}</main>`; };
 ENLAZAR.planes = () => { $("#pN").onclick = () => lecRecordar(gAct(), () => ir("planNueva")); $("#pGuia") && ($("#pGuia").onchange = async e => { const L = [...e.target.files]; e.target.value = ""; if (!L.length) return; const pda = await programa(); if (!pda) return toast("Conéctese a internet una vez para cargar el programa."); lecRecordar(gAct(), () => avSubir(gAct(), pda, L, true)); }); $$("[data-p]").forEach(b => b.onclick = () => ir("plan", { id: b.dataset.p })); };
+/* Planeaciones hechas en Tlamatini en este mismo dispositivo, del grado de este grupo */
+function tlmPlanes(g) { const H = LS("plan-tlm"); if (!Array.isArray(H) || !g) return []; const gr = (g.grados || []).map(String);
+  return H.filter(h => h && h.plan && (!gr.length || (h.plan.grados || []).map(String).some(x => gr.includes(x)))).slice(0, 6); }
 /* asistente para planear */
 VISTAS.planNueva = () => { const g = gAct(); if (!g) return VISTAS.inicio(); const P = S.P = S.P || { campo: "", sel: {}, metodo: "", escenario: "aula", ejes: [], titulo: "", proposito: "", ini: diasHabiles(hoy(), 1)[0] || hoy(), n: 5, min: 50, producto: "" };
   const fases = [...new Set(g.grados.map(faseDe))];
@@ -516,8 +519,19 @@ async function lecLeer(files) { const out = { archivos: [], texto: "", nombres: 
     out.nombres.push(n); }
   out.archivos.forEach(a => pesa += a.data.length); if (pesa > 18e6) throw new Error("Los archivos pesan mucho. Suba menos páginas o fotos.");
   out.texto = out.texto.slice(0, 60000); return out; }
+/* La lectura de la realidad que el docente ya tiene en Tlamatini (subida al planear o publicada por la Supervisión): no se pide dos veces */
+function lecTlm(g) { const L = LS("plan-lectura-subida");
+  if (Array.isArray(L) && L.length) { const ar = L.filter(a => a.data && a.tipo).map(a => ({ tipo: a.tipo, data: a.data })), tx = L.filter(a => a.texto).map(a => a.texto).join("\n\n").slice(0, 60000);
+    if (ar.length || tx.length > 40) return { archivos: ar, texto: tx, nombres: L.map(a => a.nombre || "archivo"), desde: "la que subió al planear en Tlamatini" }; }
+  const c = g && g.cct && LS("tqi-" + g.cct), Dq = c && c.d; if (Dq) { const gr = (g.grados || []).map(String);
+    const G = (Dq.grupos || []).find(x => gr.includes(String(x.grado)) && (!g.grupo || String(x.grupo || "").toUpperCase() === String(g.grupo).toUpperCase())) || (Dq.grupos || []).find(x => gr.includes(String(x.grado)));
+    const txt = v => { const o = []; const w = x => { if (x == null) return; if (typeof x === "string" || typeof x === "number") o.push(String(x)); else if (Array.isArray(x)) x.forEach(w); else if (typeof x === "object") Object.entries(x).forEach(([k, v]) => { if (typeof v === "string" && v.trim()) o.push(k + ": " + v); else w(v); }); }; w(v); return o.join("\n"); };
+    const t = G ? txt(G.datos) : Dq.escuelaIns ? txt(Dq.escuelaIns.datos) : ""; if (t.replace(/\s/g, "").length > 60) return { archivos: [], texto: t.slice(0, 60000), nombres: ["Lectura publicada en Tequio"], desde: "la que publicó la Supervisión en Tequio" }; }
+  return null; }
 async function lecSubir(g, files, listo) { let L;
   try { L = await lecLeer(files); } catch (e) { return tlamiError(e); }
+  return lecProcesar(g, L, listo); }
+async function lecProcesar(g, L, listo) {
   if (!L.archivos.length && L.texto.replace(/\s/g, "").length < 40) return tlamiError(new Error("El documento no tiene texto que se pueda leer."));
   tlamiEspera("Leyendo la lectura de la realidad de su grupo para tomarla en cuenta al planear.");
   try { const j = await aulaPost("aulaIA", { modo: "lectura", grados: g.grados, nivel: nivelTxt(g), archivos: L.archivos, texto: L.texto }, 180000), r = j.r || {};
@@ -538,9 +552,10 @@ function lecCard(g, P) { const l = g.lectura;
      <label class="rev-chk mt"><input type="checkbox" id="lecUsa" ${P.ctx === false ? "" : "checked"}> Contextualizar esta planeación con ella (Tlami ajusta el problema, las actividades y los ejemplos a su grupo y su comunidad)</label>
      <div class="fila mt"><button class="btn s" id="lecV">Ver o corregir</button><label class="btn s" style="cursor:pointer">Reemplazar<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s r" id="lecQ">Quitar</button></div>`
    : `<p class="small">Súbala en <b>PDF, Word o fotos</b> y Tlami contextualiza la planeación con ella: el problema, las actividades y los ejemplos partirán de lo que usted conoce de su grupo y su comunidad. Se queda guardada en el grupo para las siguientes planeaciones.</p>
-     <p class="small muted">Si no la tiene a la mano, puede escribirla aquí en unos minutos. Sin ella la planeación se arma igual, pero menos ligada a su grupo.</p><div class="fila mt"><label class="btn s" style="cursor:pointer">${ic("bajar", 16)} Subir lectura de la realidad<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s" id="lecE">${ic("lapiz", 16)} Escribirla aquí</button></div>`}</section>`; }
+     <p class="small muted">Si no la tiene a la mano, puede escribirla aquí en unos minutos. Sin ella la planeación se arma igual, pero menos ligada a su grupo.</p><div class="fila mt"><label class="btn s" style="cursor:pointer">${ic("bajar", 16)} Subir lectura de la realidad<input type="file" id="lecF" multiple accept=".pdf,.docx,image/*" hidden></label><button class="btn s" id="lecE">${ic("lapiz", 16)} Escribirla aquí</button></div>${lecTlm(g) ? `<div class="aviso mt"><span style="flex:1">Ya tiene una lectura de la realidad en Tlamatini (${esc(lecTlm(g).desde)}).</span><button class="btn s p" id="lecTlm">Usar esa</button></div>` : ""}`}</section>`; }
 function lecCablear(g, P, repinta) {
   $("#lecE") && ($("#lecE").onclick = () => lecGuiada(g, repinta));
+  $("#lecTlm") && ($("#lecTlm").onclick = () => { const L = lecTlm(g); if (L) lecProcesar(g, L, repinta); });
   const f = $("#lecF"); if (f) f.onchange = () => { const L = [...f.files]; f.value = ""; if (L.length) lecSubir(g, L, repinta); };
   $("#lecUsa") && ($("#lecUsa").onchange = e => { P.ctx = e.target.checked; });
   $("#lecV") && ($("#lecV").onclick = () => lecVer(g, repinta));
@@ -816,7 +831,12 @@ async function docInformes(g, T, solo) { const F = filasBoleta(g, T).filter(x =>
 function srvAula() { const s = (ACC && ACC.tequio) || (LS("acc-cache") || {}).tequio || ""; const cfg = LS("tequio.cfg") || {}, pase = LS("tequio-pase") || {};
   return s ? { s, k: cfg.k || pase.k || "", tok: LS("tlp-token") || LS("acc-token") || "" } : null; }
 const quienAula = () => { const g = gAct(); return { nombre: yo().nombre, escuela: g ? String(g.escuela || "") + (g.cct ? " · " + g.cct : "") : "" }; };
+/* Si falla por algo pasajero (señal o servidor saturado), se reintenta una vez sola antes de avisar */
 async function aulaPost(accion, datos, ms = 70000) {
+  try { return await aulaPost1(accion, datos, ms); }
+  catch (e) { if (!/No se pudo conectar|\(5\d\d\)|saturad|no pudo terminar la respuesta|no respondió/i.test(String(e.message))) throw e;
+    await new Promise(r => setTimeout(r, 3500)); return aulaPost1(accion, datos, ms); } }
+async function aulaPost1(accion, datos, ms = 70000) {
   if (DEMO) return demoPost(accion, datos);
   const sv = srvAula(); if (!sv) throw new Error("Esta app no encontró el servidor de la zona. Abra Tlamatini Aula con su enlace personal.");
   if (navigator.onLine === false) throw new Error("No hay internet en este momento.");
@@ -1163,10 +1183,12 @@ let LEC_AVISO = false;
 function lecRecordar(g, seguir) { if (!lecPend(g) || LEC_AVISO) return seguir(); LEC_AVISO = true;
   dlg(`<h3>Antes de planear: su lectura de la realidad</h3><p class="small">Su planeación saldrá <b>contextualizada</b> con su grupo y su comunidad si Tlami conoce su lectura de la realidad. No es obligatoria: puede seguir sin ella.</p>
     <div class="lista mt"><label class="it btnit" style="cursor:pointer"><span class="av">${ic("bajar", 18)}</span><span class="tx"><b>Subirla ahora</b><small>PDF, Word o fotos</small></span><input type="file" id="lrdF" multiple accept=".pdf,.docx,image/*" hidden></label>
-     <button class="it btnit" id="lrdE"><span class="av">${ic("lapiz", 18)}</span><span class="tx"><b>Escribirla aquí</b><small>Unas preguntas sencillas, unos minutos</small></span></button></div>
+     <button class="it btnit" id="lrdE"><span class="av">${ic("lapiz", 18)}</span><span class="tx"><b>Escribirla aquí</b><small>Unas preguntas sencillas, unos minutos</small></span></button>
+     ${lecTlm(g) ? `<button class="it btnit" id="lrdT"><span class="av">${ic("check", 18)}</span><span class="tx"><b>Usar la que ya tengo en Tlamatini</b><small>${esc(lecTlm(g).desde)}</small></span></button>` : ""}</div>
     <div class="fila fin mt"><button class="btn" id="lrdS">Seguir sin ella</button></div>`, v => {
     v.querySelector("#lrdS").onclick = () => { cerrarDlg(); seguir(); };
     v.querySelector("#lrdE").onclick = () => lecGuiada(g, seguir);
+    v.querySelector("#lrdT") && (v.querySelector("#lrdT").onclick = () => { const L = lecTlm(g); if (L) lecProcesar(g, L, seguir); });
     v.querySelector("#lrdF").onchange = e => { const L = [...e.target.files]; if (L.length) lecSubir(g, L, seguir); }; }); }
 /* escribir la lectura de la realidad con preguntas guiadas */
 function lecGuiada(g, listo) { const Q = [["Su grupo", "¿Cuántos alumnos son, de qué edades, cómo aprenden mejor y qué les interesa?", "Ej. 22 alumnos de 9 y 10 años; aprenden mejor en equipo y con actividades prácticas; les gusta el fútbol y los animales."],
@@ -1184,4 +1206,5 @@ function lecGuiada(g, listo) { const Q = [["Su grupo", "¿Cuántos alumnos son, 
 window.addEventListener("hashchange", () => { if (/[#&](demo(?![\w-])|capacitacion\b|t=|acceso=|rev=|admin)/.test(location.hash)) location.reload(); });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => { $("#app").innerHTML = `<p style="margin-top:40vh;text-align:center;color:#6A5C4C">Abriendo Tlamatini Aula…</p>`; const rv = (location.hash.match(/[#&]rev=([A-Za-z0-9]{6})/) || [])[1], adm = /[#&]admin\b/.test(location.hash); if (rv || adm) history.replaceState(null, "", location.pathname);
-  calendario(); ACCESO_OK = await acceso(); await arrancarDatos(); pintar(); if (AUTO_G && ACCESO_OK) { S = { v: "inicio" }; PILA.length = 0; ir("grupo", { id: AUTO_G, nuevo: true }); toast("<b>Ya está registrado su grupo</b> con los datos de su escuela. Ahora agregue a sus alumnos.", 5000); } if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, AUTO_G ? 9000 : 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();
+  calendario(); ACCESO_OK = await acceso(); await arrancarDatos(); pintar(); if (AUTO_G && ACCESO_OK) { S = { v: "inicio" }; PILA.length = 0; ir("grupo", { id: AUTO_G, nuevo: true }); toast("<b>Ya está registrado su grupo</b> con los datos de su escuela. Ahora agregue a sus alumnos.", 5000); } { const mp = (location.hash.match(/[#&]plan=([\w-]+)/) || [])[1], pp = mp && ACCESO_OK && D.planes.find(x => x.id === decodeURIComponent(mp)); if (pp) { history.replaceState(null, "", location.pathname); if (pp.gid) D.gact = pp.gid; S = { v: "inicio" }; PILA.length = 0; ir("plan", { id: pp.id }); } }
+  if (!rv && !adm && ACCESO_OK) setTimeout(invitarInstalar, AUTO_G ? 9000 : 1600); if (rv) { if (!ACC) ACC = LS("acc-cache"); S = { v: "revisar" }; abrirCodigo(rv); } else if (adm && ACCESO_OK && esAdmin()) { S = { v: "admin" }; pintar(); } })();

@@ -48,9 +48,23 @@ function plLectura() {
     if (G) { const t = plTxt(G.datos, 1300); if (t.length > 60) return { fuente: 'Tequio', txt: t, quien: 'la lectura de la realidad de su grupo (' + plGr(G.grado) + (G.grupo ? ' ' + G.grupo : '') + ') que publicó la Supervisión' }; } }
     if (D && D.escuelaIns) { const t = plTxt(D.escuelaIns.datos, 1300); if (t.length > 60) return { fuente: 'Tequio', txt: t, quien: 'la lectura de la realidad de su escuela que publicó la Supervisión' }; } }
   const dx = incLS.get('ppie-dx', null); if (dx) { const t = plTxt(dx, 1300); if (t.length > 60) return { fuente: 'Tlamatini', txt: t, quien: 'la lectura de la realidad que usted guardó en Tlamatini' }; }
+  const au = plLecAula(y); if (au) return au;
   return null;
 }
 
+/* Las planeaciones que el docente hizo en Tlamatini Aula en este mismo dispositivo (para no buscarlas en otra app) */
+function plDeAula() { const out = [];
+  [['aula-datos', '../tlamatini-aula/index.html'], ['aula-pre-datos', '../aula-preescolar/index.html'], ['aula-esp-datos', '../aula-especial/index.html']].forEach(([k, url]) => {
+    const D = incLS.get(k, null); if (!D || !Array.isArray(D.planes)) return;
+    D.planes.slice().sort((a, b) => String(b.ini || '').localeCompare(String(a.ini || ''))).slice(0, 8).forEach(p => { const g = (D.grupos || []).find(x => x.id === p.gid) || {};
+      out.push({ titulo: p.titulo || 'Planeación', grupo: (g.grados || []).map(x => x + '.°').join(' y ') + (g.grupo ? ' ' + g.grupo : ''), n: (p.sesiones || []).length, desde: p.ini || '', url: url + '#plan=' + encodeURIComponent(p.id) }); }); });
+  return out.slice(0, 8); }
+/* La lectura de la realidad que el docente ya subió en Tlamatini Aula (mismo dispositivo): no se pide dos veces */
+function plLecAula(y) { y = y || plYo();
+  for (const k of ['aula-datos', 'aula-pre-datos', 'aula-esp-datos']) { const D = incLS.get(k, null); if (!D || !Array.isArray(D.grupos)) continue;
+    const G = D.grupos.filter(g => g.lectura && g.lectura.sint), g = G.find(x => (x.grados || []).map(String).includes(String(y.grado))) || (G.length === 1 ? G[0] : null);
+    if (g) return { fuente: 'Tlamatini Aula', txt: String(g.lectura.sint).slice(0, 3500), quien: 'la lectura de la realidad que usted subió en Tlamatini Aula' }; }
+  return null; }
 /* ---------- lectura de la realidad que sube el docente (opcional: PDF, Word o fotos) ----------
    Si la sube, la IA contextualiza la planeación con ella; si no, la planeación se arma igual.
    Se guarda en este dispositivo para las siguientes planeaciones (si cabe). */
@@ -148,6 +162,7 @@ function vInicio() {
     <div class="paso-t"><span class="n">3</span><h2>¿Algo más que deba saber?</h2></div>
     <label class="sr" for="nota">Algo más (opcional)</label><textarea class="nota" id="nota" placeholder="Opcional. Ej.: no tenemos internet ni proyector; los jueves hay Educación Física a primera hora.">${esc(E.nota)}</textarea>
     ${H.length ? `<div class="paso-t"><span class="n">↺</span><h2>Mis planeaciones</h2></div><div style="display:grid;gap:8px">${H.map(h => `<div class="cont" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><button data-abrir="${esc(h.id)}" style="all:unset;cursor:pointer;flex:1"><b style="font-size:15.5px">${esc(h.titulo)}</b><small style="display:block;color:var(--gris)">${esc(h.grados)} · ${h.n} sesiones · del ${esc(fCorta(h.desde))}</small></button><button class="btn sec chico" data-borrar="${esc(h.id)}" aria-label="Borrar">${ic('x', 'style="width:14px;height:14px"')}</button></div>`).join('')}</div>` : ''}
+    ${plDeAula().length ? `<div class="paso-t"><span class="n">↗</span><h2>Sus planeaciones en Tlamatini Aula</h2></div><div style="display:grid;gap:8px">${plDeAula().map(p => `<a class="cont" style="display:flex;justify-content:space-between;align-items:center;gap:10px;text-decoration:none;color:inherit" href="${p.url}"><span><b style="font-size:15.5px">${esc(p.titulo)}</b><small style="display:block;color:var(--gris)">${esc(p.grupo)} · ${p.n} sesiones${p.desde ? ' · del ' + esc(fCorta(p.desde)) : ''}</small></span><span class="btn sec chico">Abrir en Aula</span></a>`).join('')}</div>` : ''}
    </div>
    <aside class="previa" aria-label="Su planeación hasta ahora"><p class="t">Su planeación hasta ahora</p>
      <h3>${resumen ? esc(resumen.slice(0, 120)) : 'Elija qué va a trabajar'}</h3>
@@ -232,6 +247,10 @@ function plGuardar() {
 incLS.set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 
 /* ---------- armar con la IA ---------- */
+/* Pide la planeación a la IA (con un reintento automático si algo pasajero falla), avisando en pantalla. */
+async function plPostReintentar(datos) {
+  try { return await miaPost(datos, () => { const el = $('#armErr'); if (el) el.innerHTML = `<p style="margin-top:16px;color:var(--gris)">La IA tardó en contestar; lo intento de nuevo automáticamente…</p>`; }); }
+  finally { const el = $('#armErr'); if (el && /intento de nuevo/.test(el.textContent)) el.innerHTML = ''; } }
 function vArmando() {
   if (E.modo === 'ef') return vArmandoEF();
   const gr = [...E.grados].sort(), y = plYo(), r = diasClase(E.ini, E.dur);
@@ -242,7 +261,8 @@ function vArmando() {
     <h2>Tejiendo su planeación…</h2><p style="color:var(--gris)">Toma de 30 segundos a 2 minutos. No cierre esta pantalla.</p>
     <ul class="pasos" aria-live="polite">${pasos.map((p, i) => `<li data-p="${i}"><span class="b">${ic('check', 'style="width:14px;height:14px"')}</span>${esc(p)}</li>`).join('')}</ul>
     <div id="armErr"></div></div></div></main>`;
-  pasos.forEach((_, i) => setTimeout(() => { const li = $(`[data-p="${i}"]`); if (li) li.classList.add('ok'); }, 5000 * (i + 1)));
+  // avance aproximado: el último paso solo se marca cuando la planeación ya llegó
+  const TM = pasos.slice(0, -1).map((_, i) => setTimeout(() => { const li = $(`[data-p="${i}"]`); if (li) li.classList.add('ok'); }, 6000 * (i + 1)));
   (async () => {
     try {
       if (!miaServidor()) throw new Error('sinservidor');
@@ -254,11 +274,12 @@ function vArmando() {
       const nota = [lec ? 'Lectura de la realidad (' + lec.fuente + '): ' + lec.txt : '', E.nota.trim() ? 'Indicaciones del docente: ' + E.nota.trim() : '', gr.length > 1 ? 'Grupo multigrado: ' + gr.map(plGr).join(' y ') + '.' : ''].filter(Boolean).join('\n').slice(0, 1990);
       const durTxt = ({ dia: '1 día', semana: '1 semana', '2semanas': '2 semanas', '3semanas': '3 semanas', mes: '1 mes' })[E.dur] + ` (${r.dias.length} días de clase)`;
       const lecArch = PL_LECA.filter(a => a.data && a.tipo).map(a => ({ tipo: a.tipo, data: a.data })), lecTxt = PL_LECA.filter(a => a.texto).map(a => a.texto).join('\n\n').slice(0, 60000);
-      const j = await miaPost({ modo: 'nueva', formato: PL_FORMATO, nota, programa, lecturaArchivos: lecArch, lectura: lecTxt, datos: { docente: y.nombre, escuela: [y.escuela, y.cct, y.loc].filter(Boolean).join(' · '), grados: gr.map(plGr), grupo: plGrupoTxt(y), tema: tema.slice(0, 890), duracion: durTxt, fechas: r.dias.map(fCorta) } });
+      const j = await plPostReintentar({ modo: 'nueva', formato: PL_FORMATO, nota, programa, lecturaArchivos: lecArch, lectura: lecTxt, datos: { docente: y.nombre, escuela: [y.escuela, y.cct, y.loc].filter(Boolean).join(' · '), grados: gr.map(plGr), grupo: plGrupoTxt(y), tema: tema.slice(0, 890), duracion: durTxt, fechas: r.dias.map(fCorta) } });
+      TM.forEach(clearTimeout); $$('.pasos li').forEach(li => li.classList.add('ok'));
       E.plan = plDesdeIA(j.documento || {}, r, gr); if (PL_LECA.length) E.plan.meta.lectura = PL_LECA.map(a => a.nombre); plGuardar();
       E.vista = 'plan'; E.tab = 'sesiones'; E.abierta = 0; pintar(); scrollTo(0, 0); toast('<b>Lista.</b> Revise, ajuste lo que quiera y dé su clase.');
     } catch (e) {
-      const m = miaError(e), el = $('#armErr'); if (!el) return;
+      TM.forEach(clearTimeout); const m = miaError(e), el = $('#armErr'); if (!el) return;
       $$('.pasos li').forEach(li => li.classList.remove('ok'));
       el.innerHTML = `<div style="margin-top:18px;padding:14px 16px;border-radius:14px;background:var(--rojo-s,#F7E1DD);color:var(--rojo,#A3322A)"><b>No se pudo armar la planeación.</b><br>${esc(m)}</div>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button class="btn sec" id="armVol">Regresar</button><button class="btn maiz" id="armOtra">${ic('chispa')}Intentar de nuevo</button></div>`;

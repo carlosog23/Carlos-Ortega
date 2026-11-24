@@ -21,7 +21,13 @@ function miaServidor() {
   return s && tok ? { s, tok } : null;
 }
 function miaQuien() { const p = miaLs.get('ppie-perfil', {}) || {}; return { nombre: String(p.minombre || '').trim(), escuela: String(p.escuela || '').trim(), cct: String(p.cct || '').trim(), cargo: String(p.micargo || '').trim() }; }
-async function miaPost(datos) {
+/* Si la IA falla por algo pasajero (señal, servidor saturado, respuesta cortada, límite por minuto), se reintenta una vez sola. */
+const miaPasajero = m => /tard[oó] demasiado|No se pudo conectar|Failed to fetch|NetworkError|Load failed|\(5\d\d\)|saturad|no devolvió una planeación completa|límite gratuito|no respondió/i.test(m);
+async function miaPost(datos, alReintentar) {
+  try { return await miaPost1(datos); }
+  catch (e) { const m = String(e && e.message || e); if (!miaPasajero(m)) throw e; if (alReintentar) alReintentar(m);
+    await new Promise(r => setTimeout(r, /límite/i.test(m) ? 25000 : 4000)); return miaPost1(datos); } }
+async function miaPost1(datos) {
   const sv = miaServidor(); if (!sv) throw new Error('sinservidor'); if (navigator.onLine === false) throw new Error('Sin internet. Conéctese e intente de nuevo.');
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 330000);
   try {
