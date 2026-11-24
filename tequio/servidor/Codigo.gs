@@ -3721,7 +3721,7 @@ function gemini_(prompt, op) {
   const RESPALDO = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
   for (let intento = 0; intento < 2; intento++) {
     // Si el modelo está saturado (5xx), se espera un poco y se prueba con modelos de respaldo
-    const modelo = saturado ? RESPALDO[(saturado - 1) % RESPALDO.length] : modeloGemini_(key, intento > 0);
+    const modelo = saturado ? RESPALDO[(saturado - 1) % RESPALDO.length] : modeloGemini_(key, false);
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ role: 'user', parts: (op.archivos ? op.archivos.map(x => ({ inline_data: { mime_type: x.tipo, data: x.data } })) : op.archivo ? [{ inline_data: { mime_type: op.tipo || 'application/pdf', data: op.archivo } }] : []).concat([{ text: prompt }]) }],
@@ -3730,7 +3730,11 @@ function gemini_(prompt, op) {
     const c = r.getResponseCode();
     // Algunos modelos no aceptan apagar el «razonamiento»: se repite sin esa opción
     if (c === 400 && op.sinPensar && !sinThink && /think/i.test(r.getContentText())) { sinThink = true; intento--; continue; }
-    if (c === 404 && intento === 0) { PropertiesService.getScriptProperties().deleteProperty('GEMINI_MODELO'); continue; }
+    if (c === 404) {  // el modelo guardado ya no existe: se prueban los que ofrece la clave hasta dar con uno que conteste
+      const otro = modeloGeminiProbar_(key, modelo);
+      if (otro && intento === 0) continue;
+      throw new Error('Gemini no tiene disponible el modelo «' + modelo + '» para esta clave. Revise la clave en Oficios → Configuración.');
+    }
     let j = {};
     try { j = JSON.parse(r.getContentText()); } catch (e) {}
     if (c === 429) throw new Error('Se alcanzó el límite gratuito de Gemini por ahora. Espere un minuto e intente de nuevo.');
@@ -3745,6 +3749,31 @@ function gemini_(prompt, op) {
 }
 
 // Elige el modelo «Flash» más reciente disponible para la clave y lo recuerda
+// Prueba los modelos «flash» que ofrece la clave (y algunos conocidos) con una petición mínima; guarda el primero que responda.
+function modeloGeminiProbar_(key, malo) {
+  const p = PropertiesService.getScriptProperties();
+  let lista = [];
+  try {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key), { muteHttpExceptions: true });
+    if (r.getResponseCode() === 200) lista = (JSON.parse(r.getContentText()).models || [])
+      .filter(m => (m.supportedGenerationMethods || []).indexOf('generateContent') >= 0)
+      .map(m => String(m.name).replace(/^models\//, ''))
+      .filter(n => /^gemini-/.test(n) && /flash/.test(n) && !/(image|tts|audio|live|embedding|robotics|computer|thinking)/.test(n));
+  } catch (e) {}
+  const ver = n => parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+  lista.sort((a, b) => (/(exp|preview)/.test(a) - /(exp|preview)/.test(b)) || (/lite/.test(a) - /lite/.test(b)) || ver(b) - ver(a) || a.length - b.length);
+  ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'].forEach(n => { if (lista.indexOf(n) < 0) lista.push(n); });
+  lista = lista.filter(n => n !== malo).slice(0, 10);
+  for (let i = 0; i < lista.length; i++) {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + lista[i] + ':generateContent?key=' + encodeURIComponent(key), {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Responde solo: ok' }] }], generationConfig: { maxOutputTokens: 20 } }) });
+    const c = r.getResponseCode();
+    if (c === 200 || c === 429 || c >= 500) { p.setProperty('GEMINI_MODELO', lista[i]); return lista[i]; }
+  }
+  return '';
+}
+
 function modeloGemini_(key, forzar) {
   const p = PropertiesService.getScriptProperties();
   if (!forzar && p.getProperty('GEMINI_MODELO')) return p.getProperty('GEMINI_MODELO');
