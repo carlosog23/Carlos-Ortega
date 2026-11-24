@@ -1043,7 +1043,7 @@ function poner(lista, obj) { const i = lista.findIndex(x => x.id === obj.id); if
 
 // Cada publicación de Tequio cambia esta marca. Si alguien tiene la página abierta desde antes, se actualiza sola
 // para que nunca se envíe un informe con una versión vieja.
-const PUBLICACION = '2026-11-23-2230';
+const PUBLICACION = '2026-11-24-0330';
 async function hayVersionNueva() {
   try {
     const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
@@ -15434,20 +15434,91 @@ function eoDestinos() {
 }
 const EO_DEST_ETQ = { sup: 'Supervisión 050', jefe: 'Jefe de Departamento', padres: 'Padres de familia', personal: 'Personal de la escuela', otro: 'Otra persona' };
 // Imagen elegida → PNG ligero (conserva la transparencia)
-function eoImagen(file, max) {
-  return new Promise((ok, mal) => {
-    if (!file) return ok(null);
-    if (!/^image\//.test(file.type)) return mal(new Error('Elija una imagen (PNG o JPG).'));
-    const r = new FileReader();
-    r.onerror = () => mal(new Error('No se pudo leer la imagen.'));
-    r.onload = () => { const im = new Image(); im.onerror = () => mal(new Error('No se pudo abrir la imagen.'));
-      im.onload = () => { const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)); const w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
-        const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d'); cx.imageSmoothingQuality = 'high'; cx.drawImage(im, 0, 0, w, h);
-        ok({ src: cv.toDataURL('image/png'), w, h }); };
-      im.src = r.result; };
-    r.readAsDataURL(file);
-  });
-}
+/* ---- Imágenes del membrete (logo, firma y sello): se limpian y se dejan en alta calidad ----
+   Si suben una FOTO de la firma o del sello en papel: se corrige la luz, se quita el fondo (queda transparente),
+   se limpia el color de la tinta y se recorta. Si el logo viene con fondo blanco, se quita ese fondo; si es pequeño,
+   se agranda con inteligencia artificial (ESRGAN de Tlamatini) en el propio dispositivo, sin enviar nada a internet. */
+const EO_MAX = { logo: 1200, firma: 1400, sello: 1000 };
+const eoLienzo = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+const eoCargarImg = src => new Promise((ok, mal) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => mal(new Error('No se pudo abrir la imagen.')); im.src = src; });
+function eoTieneAlfa(c) { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] < 200) n++; return n > d.length / 16 * 0.02; }
+function eoRecortar(c, umbral = 24, margen = 0.03) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > umbral) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return c; const m = Math.round(Math.max(x1 - x0, y1 - y0) * margen);
+  x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(W - 1, x1 + m); y1 = Math.min(H - 1, y1 + m);
+  const r = eoLienzo(x1 - x0 + 1, y1 - y0 + 1); r.getContext('2d').drawImage(c, x0, y0, r.width, r.height, 0, 0, r.width, r.height); return r; }
+function eoEscalar(c, max) { const k = Math.min(1, max / Math.max(c.width, c.height)); if (k === 1) return c;
+  const r = eoLienzo(c.width * k, c.height * k), x = r.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, r.width, r.height); return r; }
+/* Firma o sello en papel → tinta limpia sobre fondo transparente */
+function eoTinta(c, tipo) {
+  const W = c.width, H = c.height, x = c.getContext('2d'), id = x.getImageData(0, 0, W, H), d = id.data, N = W * H;
+  const L = new Float32Array(N); for (let i = 0; i < N; i++) L[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  // Fondo (papel) por zonas: el valor claro típico de cada celda, interpolado; así se corrigen sombras y luz dispareja
+  const T = Math.max(16, Math.round(Math.max(W, H) / 24)), GX = Math.ceil(W / T), GY = Math.ceil(H / T), G = new Float32Array(GX * GY);
+  for (let gy = 0; gy < GY; gy++) for (let gx = 0; gx < GX; gx++) { const v = [];
+    for (let y = gy * T; y < Math.min(H, (gy + 1) * T); y += 2) for (let xx = gx * T; xx < Math.min(W, (gx + 1) * T); xx += 2) v.push(L[y * W + xx]);
+    v.sort((a, b) => a - b); G[gy * GX + gx] = v.length ? v[Math.floor(v.length * 0.85)] : 255; }
+  const fondo = (xx, y) => { const fx = Math.min(GX - 1, Math.max(0, xx / T - 0.5)), fy = Math.min(GY - 1, Math.max(0, y / T - 0.5)), ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.min(GX - 1, ax + 1), by = Math.min(GY - 1, ay + 1), tx = fx - ax, ty = fy - ay;
+    return (G[ay * GX + ax] * (1 - tx) + G[ay * GX + bx] * tx) * (1 - ty) + (G[by * GX + ax] * (1 - tx) + G[by * GX + bx] * tx) * ty; };
+  const A = new Float32Array(N); let sr = 0, sg = 0, sb = 0, sn = 0;
+  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) { const i = y * W + xx, B = Math.max(40, fondo(xx, y));
+    // qué tan oscuro es respecto al papel, y qué tan «de color» (los sellos azules o morados se ven poco oscuros pero muy saturados)
+    const osc = Math.max(0, (B - L[i]) / B), r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], sat = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+    const s = Math.max(osc, tipo === 'sello' ? sat * 0.9 : sat * 0.5); const a = Math.min(1, Math.max(0, (s - 0.10) / 0.22)); A[i] = a * a * (3 - 2 * a);
+    if (A[i] > 0.85) { sr += r; sg += g; sb += b; sn++; } }
+  // Color de la tinta: el promedio de los trazos firmes, más intenso y oscuro
+  let cr = 25, cg = 30, cb = 60;
+  if (sn) { cr = sr / sn; cg = sg / sn; cb = sb / sn; const mx = Math.max(cr, cg, cb), mn = Math.min(cr, cg, cb);
+    if (mx - mn < 28) { cr = cg = cb = 22; }   // tinta negra o gris → negro
+    else { const k = (tipo === 'sello' ? 150 : 110) / mx; cr = Math.min(255, cr * k); cg = Math.min(255, cg * k); cb = Math.min(255, cb * k); } }
+  for (let i = 0; i < N; i++) { const a = A[i] < 0.06 ? 0 : A[i]; d[i * 4] = cr; d[i * 4 + 1] = cg; d[i * 4 + 2] = cb; d[i * 4 + 3] = Math.round(a * 255); }
+  x.putImageData(id, 0, 0); return c; }
+/* Logo con fondo blanco o liso: se quita el fondo que toca las orillas (lo blanco de adentro del logo se respeta) */
+function eoQuitarFondoLogo(c) {
+  const W = c.width, H = c.height, x = c.getContext('2d'), id = x.getImageData(0, 0, W, H), d = id.data;
+  const borde = []; for (let i = 0; i < W; i += 4) borde.push(i, (H - 1) * W + i); for (let j = 0; j < H; j += 4) borde.push(j * W, j * W + W - 1);
+  let r0 = 0, g0 = 0, b0 = 0; borde.forEach(p => { r0 += d[p * 4]; g0 += d[p * 4 + 1]; b0 += d[p * 4 + 2]; }); r0 /= borde.length; g0 /= borde.length; b0 /= borde.length;
+  const dist = p => Math.abs(d[p * 4] - r0) + Math.abs(d[p * 4 + 1] - g0) + Math.abs(d[p * 4 + 2] - b0);
+  if (borde.filter(p => dist(p) < 60).length < borde.length * 0.7) return false;   // la orilla no es un fondo liso: se deja igual
+  const vis = new Uint8Array(W * H), pila = borde.filter(p => dist(p) < 60);
+  while (pila.length) { const p = pila.pop(); if (vis[p]) continue; const dd = dist(p); if (dd >= 70) continue; vis[p] = 1;
+    d[p * 4 + 3] = dd < 35 ? 0 : Math.round((dd - 35) / 35 * 255);
+    const px = p % W; if (px > 0) pila.push(p - 1); if (px < W - 1) pila.push(p + 1); if (p >= W) pila.push(p - W); if (p < W * (H - 1)) pila.push(p + W); }
+  x.putImageData(id, 0, 0); return true; }
+async function eoAgrandar(c, aviso) {   // ESRGAN de Tlamatini, en el dispositivo
+  const L = '../formatos-ppie/lib/', m = Math.max(c.width, c.height), sc = m <= 260 ? 4 : 2;
+  if (aviso) aviso('Mejorando la nitidez del logo…');
+  await cargarScript(L + 'tf.min.js'); await cargarScript(L + 'upscaler.min.js'); await cargarScript(L + 'esrgan/x' + sc + '/def.min.js');
+  const def = window['ESRGANSlim' + sc + 'x'], up = new Upscaler({ model: Object.assign({}, def, { path: new URL(L + 'esrgan/x' + sc + '/model.json', location.href).href }) });
+  const alfa = eoTieneAlfa(c), base = eoLienzo(c.width, c.height), bx = base.getContext('2d'); bx.fillStyle = '#fff'; bx.fillRect(0, 0, base.width, base.height); bx.drawImage(c, 0, 0);
+  try { const out = await up.upscale(await eoCargarImg(base.toDataURL('image/png')), { output: 'base64', patchSize: 64, padding: 6 });
+    const oi = await eoCargarImg(out), r = eoLienzo(oi.naturalWidth, oi.naturalHeight), rx = r.getContext('2d'); rx.drawImage(oi, 0, 0);
+    if (alfa) { const a = eoLienzo(r.width, r.height), ax = a.getContext('2d'); ax.imageSmoothingQuality = 'high'; ax.drawImage(c, 0, 0, r.width, r.height);
+      const ad = ax.getImageData(0, 0, r.width, r.height).data, rd = rx.getImageData(0, 0, r.width, r.height); for (let i = 3; i < rd.data.length; i += 4) rd.data[i] = ad[i]; rx.putImageData(rd, 0, 0); }
+    return r; } finally { try { up.dispose(); } catch (e) {} } }
+/* Lee el archivo y devuelve { src, w, h, orig, mejorada, nota } */
+async function eoImagen(file, tipo, avisar) {
+  if (!file) return null;
+  if (!/^image\//.test(file.type) && !/\.(heic|heif)$/i.test(file.name || '')) throw new Error('Elija una imagen (foto, PNG o JPG).');
+  const url = URL.createObjectURL(file); let im;
+  try { im = await eoCargarImg(url); } catch (e) { throw new Error('No se pudo abrir la imagen. Si es una foto del iPhone (HEIC), tómele captura de pantalla y suba la captura.'); } finally { setTimeout(() => URL.revokeObjectURL(url), 2000); }
+  let c = eoLienzo(im.naturalWidth, im.naturalHeight); c.getContext('2d').drawImage(im, 0, 0);
+  c = eoEscalar(c, tipo === 'logo' ? 1600 : 2200);
+  const orig = eoEscalar(c, EO_MAX[tipo]), notas = [];
+  const alfa = eoTieneAlfa(c);
+  if (tipo === 'firma' || tipo === 'sello') {
+    if (!alfa) { if (avisar) avisar('Quitando el fondo y limpiando la tinta…'); await new Promise(r => setTimeout(r, 30)); c = eoTinta(c, tipo); notas.push('se quitó el fondo y se limpió la tinta'); }
+    c = eoRecortar(c, 30);
+  } else {
+    if (!alfa && eoQuitarFondoLogo(c)) notas.push('se quitó el fondo');
+    c = eoRecortar(c, 10, 0.01);
+    if (Math.max(c.width, c.height) < 600) { try { c = await eoAgrandar(c, avisar); notas.push('se mejoró la nitidez'); } catch (e) { /* sin internet o equipo lento: se queda como está */ } }
+  }
+  c = eoEscalar(c, EO_MAX[tipo]);
+  const pack = cv => ({ src: cv.toDataURL('image/png'), w: cv.width, h: cv.height });
+  return Object.assign(pack(c), { orig: pack(orig), nota: notas.join(', ') }); }
+
 const eoAjusta = (img, bw, bh) => { const k = Math.min(bw / img.w, bh / img.h); return { w: Math.round(img.w * k), h: Math.round(img.h * k) }; };
 
 /* ---- La hoja con el membrete de la escuela ---- */
@@ -15807,12 +15878,12 @@ function formMembreteEsc() {
   const c = EO.cfg, anio = hoy().slice(0, 4);
   const img = { logo: c.logo, firma: c.firma, sello: c.sello };
   const caja = (k, et, ay) => `<div class="campo"><span class="et">${et}</span>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div id="m-v-${k}" style="width:84px;height:84px;border:1px dashed var(--borde);border-radius:9px;display:grid;place-items:center;background:#fff;overflow:hidden"></div>
-      <label class="boton sec chico" style="cursor:pointer">Elegir imagen<input type="file" accept="image/png,image/jpeg,image/webp" id="m-f-${k}" style="display:none"></label>
-      <button type="button" class="boton peligro chico" id="m-q-${k}">Quitar</button></div><div class="ayuda">${ay}</div></div>`;
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div id="m-v-${k}" style="width:120px;height:96px;background-image:linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%),linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%);background-size:14px 14px;background-position:0 0,7px 7px;background-color:#fff;border:1px dashed var(--borde);border-radius:9px;display:grid;place-items:center;overflow:hidden"></div>
+      <label class="boton sec chico" style="cursor:pointer">Subir foto o imagen<input type="file" accept="image/*" id="m-f-${k}" style="display:none"></label>
+      <button type="button" class="boton peligro chico" id="m-q-${k}">Quitar</button>${k === 'logo' ? `<button type="button" class="boton sec chico" id="m-tl" style="display:none">Usar el logo que tiene Tlamatini</button>` : ''}</div><div class="ayuda" id="m-n-${k}" style="color:var(--verde,#1E7A4C)"></div><div class="ayuda">${ay}</div></div>`;
   modal('Membrete y firma de la escuela', `
     <p class="peq" style="margin-top:0">Estos datos se guardan solo en este dispositivo y aparecen en todos los oficios de la escuela. El logo de ISEP siempre va a la izquierda.</p>
-    ${caja('logo', 'Logo de la escuela', 'Va a la derecha del membrete. Use la imagen más nítida que tenga (de preferencia PNG con fondo transparente).')}
+    ${caja('logo', 'Logo de la escuela', 'Va a la derecha del membrete. Puede subir el archivo o una foto: Tequio le quita el fondo blanco y, si es pequeño, lo hace más nítido.')}
     <div class="campo"><label for="m-es">Nombre de la escuela</label><input id="m-es" value="${esc(c.escuela)}"></div>
     <div class="fila">
       <div class="campo"><label for="m-cct">C.C.T.</label><input id="m-cct" value="${esc(c.cct)}" readonly></div>
@@ -15836,17 +15907,29 @@ function formMembreteEsc() {
       <div class="campo"><label for="m-ul">Último oficio hecho en ${anio}</label><input id="m-ul" type="number" min="0" max="9999" value="${eoSiguiente(anio) - 1}"></div>
     </div>
     <div class="ayuda" id="m-ej" style="margin:-6px 0 12px"></div>
-    ${caja('firma', 'Firma digital (opcional)', 'Foto o escaneo de la firma en hoja blanca; se usa solo cuando marque la casilla en el oficio.')}
-    ${caja('sello', 'Sello de la escuela (opcional)', 'Se coloca a la derecha de la firma cuando marque la casilla.')}`,
+    ${caja('firma', 'Firma digital (opcional)', 'Firme con pluma azul o negra en una hoja blanca y tómele foto de cerca, con buena luz y sin sombras. Tequio quita el papel y deja solo la tinta. Se usa cuando marque la casilla en el oficio.')}
+    ${caja('sello', 'Sello de la escuela (opcional)', 'Selle una hoja blanca, tómele foto de frente y súbala: Tequio quita el papel y deja el sello nítido y transparente. Se coloca a la derecha de la firma cuando marque la casilla.')}`,
     '<button class="boton sec" id="m-no">Cancelar</button><button class="boton terra" id="m-si">Guardar</button>');
-  const ver = k => { $('#m-v-' + k).innerHTML = img[k] ? `<img src="${img[k].src}" alt="" style="max-width:80px;max-height:80px">` : '<span class="ayuda">Sin imagen</span>'; $('#m-q-' + k).style.display = img[k] ? '' : 'none'; };
+  const alt = {};
+  const ver = k => { $('#m-v-' + k).innerHTML = img[k] ? `<img src="${img[k].src}" alt="" style="width:100%;height:100%;object-fit:contain;padding:4px">` : '<span class="ayuda">Sin imagen</span>'; $('#m-q-' + k).style.display = img[k] ? '' : 'none';
+    const a = alt[k], n = $('#m-n-' + k); if (!n) return;
+    n.innerHTML = img[k] ? (a && a.nota ? `Listo: ${esc(a.nota)} (${img[k].w}×${img[k].h} px). <button type="button" class="enlace" id="m-t-${k}" style="background:none;border:0;color:var(--azul,#1F3A6B);text-decoration:underline;cursor:pointer;padding:0;font:inherit">${a.usa === 'mejor' ? 'Usar la imagen original' : 'Usar la mejorada'}</button>` : `${img[k].w}×${img[k].h} px${Math.max(img[k].w, img[k].h) < 400 ? ' · se ve pequeña: si tiene una más grande, súbala' : ''}`) : '';
+    const t = $('#m-t-' + k); if (t) t.onclick = () => { a.usa = a.usa === 'mejor' ? 'orig' : 'mejor'; img[k] = a.usa === 'mejor' ? a.mejor : a.orig; ver(k); }; };
   const ej = () => { const n = (+$('#m-ul').value || 0) + 1; $('#m-ej').textContent = 'El siguiente oficio será el ' + ($('#m-pr').value || '') + String(n).padStart(3, '0') + '/' + anio + '. Si ya hacía oficios a mano, escriba el último número que usó.'; };
   ['logo', 'firma', 'sello'].forEach(k => {
     ver(k);
-    $('#m-f-' + k).onchange = async e => { try { img[k] = await eoImagen(e.target.files[0], k === 'logo' ? 700 : 600); ver(k); } catch (er) { aviso(esc(er.message), 'mal'); } };
+    $('#m-f-' + k).onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      const box = $('#m-v-' + k); box.innerHTML = '<span class="ayuda" style="text-align:center;padding:4px">Mejorando…</span>';
+      try { const r = await eoImagen(f, k, t => { const n = $('#m-n-' + k); if (n) n.textContent = t; }); img[k] = { src: r.src, w: r.w, h: r.h }; alt[k] = { mejor: img[k], orig: r.orig, nota: r.nota, usa: 'mejor' }; ver(k); }
+      catch (er) { ver(k); aviso(esc(er.message), 'mal'); } };
     $('#m-q-' + k).onclick = () => { img[k] = null; ver(k); };
   });
   $('#m-ul').oninput = ej; $('#m-pr').oninput = ej; ej();
+  // Logo de la escuela que ya está en Tlamatini (si existe)
+  (async () => { for (const ext of ['png', 'jpg']) { try { const u = '../formatos-ppie/img/escuelas/' + EO.cct + '.' + ext, r = await fetch(u, { method: 'HEAD' }); if (!r.ok) continue;
+    const b = $('#m-tl'); if (!b) return; b.style.display = ''; b.onclick = async () => { $('#m-v-logo').innerHTML = '<span class="ayuda">Cargando…</span>';
+      try { const bl = await (await fetch(u)).blob(), rr = await eoImagen(new File([bl], 'logo.' + ext, { type: bl.type || 'image/' + (ext === 'jpg' ? 'jpeg' : 'png') }), 'logo', t => { const n = $('#m-n-logo'); if (n) n.textContent = t; });
+        img.logo = { src: rr.src, w: rr.w, h: rr.h }; alt.logo = { mejor: img.logo, orig: rr.orig, nota: rr.nota || 'logo de Tlamatini', usa: 'mejor' }; ver('logo'); } catch (e) { ver('logo'); aviso(esc(e.message), 'mal'); } }; return; } catch (e) {} } })();
   $('#m-no').onclick = cerrarModal;
   $('#m-si').onclick = () => {
     const ul = Math.max(0, Math.floor(+$('#m-ul').value || 0));
