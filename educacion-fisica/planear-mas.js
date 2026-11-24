@@ -128,16 +128,17 @@ function editarSesion(p, s, re) {
    ${campoJuego("sJ2", "Segundo juego (opcional)", (s.ppal || [])[1], ests, fases, true)}
    ${campoJuego("sK", "Vuelta a la calma", s.calma, ROL_EST.calma, fases, true)}
    ${campoJuego("sB", "Plan B: si llueve o hace mucho calor (opcional)", s.planB, ROL_EST.planB, fases, true)}
+   ${matEditorHTML(s)}
    <label class="campo"><span>Preguntas para el cierre (una por renglón)</span><textarea id="sQ" rows="3">${esc((s.cierre || []).join("\n"))}</textarea></label>
    <label class="campo"><span>Qué observar para evaluar</span><textarea id="sE">${esc(s.eval || "")}</textarea></label>
    <label class="campo"><span>Mis ideas y notas para esta sesión</span><textarea id="sN" rows="4" placeholder="Variantes, adaptaciones para su grupo, material extra, lo que usted quiera agregar">${esc(s.nota || "")}</textarea></label>
    <div class="fila fin"><button class="btn" id="sX">Cancelar</button><button class="btn p" id="sOk">Guardar</button></div>`, v => {
-    enlazarCamposJuego(v); v.querySelector("#sX").onclick = cerrarDlg;
+    enlazarCamposJuego(v); matEditorVivo(v); v.querySelector("#sX").onclick = cerrarDlg;
     v.querySelector("#sOk").onclick = () => { const antes = (s.ppal || [])[0];
       if (val("sJ") === "__propia" && !val("sJ_n").trim()) return toast("Escriba el nombre de su juego principal.");
       const act = leerCampoJuego("sA", "Mi actividad"), j1 = leerCampoJuego("sJ", "Mi actividad"), j2 = leerCampoJuego("sJ2", "Mi actividad"), calma = leerCampoJuego("sK", "Mi actividad"), pb = leerCampoJuego("sB", "Mi actividad");
       Object.assign(s, { t: val("sT"), para: val("sP"), charla: val("sC"), act, ppal: [j1, j2].filter(Boolean), calma, planB: pb,
-        cierre: val("sQ").split("\n").map(x => x.trim()).filter(Boolean), eval: val("sE"), nota: val("sN").trim() });
+        cierre: val("sQ").split("\n").map(x => x.trim()).filter(Boolean), eval: val("sE"), nota: val("sN").trim(), matExtra: val("sMat").trim() });
       if (j1 !== antes) s.mg = null; guardar(); cerrarDlg(); re(); toast("Sesión guardada."); }; }); }
 function formPropia(k, listo) { const j = k ? D.propios[k] : null;
   dlg(`<h3>${j ? "Editar mi actividad" : "Nueva actividad propia"}</h3>
@@ -300,3 +301,19 @@ function accionRegenerar(lista) { return new Promise(ok => {
     v.querySelector("#rgOk").onclick = () => { const todas = !!(v.querySelector("#rgT") && v.querySelector("#rgT").checked); const n = lista.map(p => regenerarPlan(p, todas)).reduce((t, x) => t + x.n, 0); guardar(); cerrarDlg(); ok(n); }; }); }); }
 function avisoRepetidasHTML() { const L = D.planes.filter(p => repetidosPlan(p) > 0); if (!L.length) return "";
   return `<div class="aviso mt" style="background:var(--rojo-s);border-color:#E8C3BE"><span style="flex:1"><b>${L.length} planeaci${L.length > 1 ? "ones repiten" : "ón repite"} juegos.</b> Puede generarlas de nuevo con juegos distintos; lo ya dado no se toca.</span><button class="btn s p" id="bRegenT">Generar de nuevo</button></div>`; }
+
+/* ---------- material de la sesión: el de los juegos elegidos + lo que agregue la maestra o el maestro ---------- */
+const matNom = m => (EF_MAT.find(x => x[0] === m) || [m, m])[1];
+function matJuegos(ks) { const M = new Set(); ks.filter(Boolean).forEach(k => ((JUEGOS[k] || {}).mat || []).forEach(m => M.add(m))); return [...M]; }
+function materialSesion(s) { const auto = matJuegos([s.act, ...(s.ppal || []), s.calma, s.planB]).map(matNom), extra = String(s.matExtra || "").split(/\n|,/).map(x => x.trim()).filter(Boolean);
+  const n = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/)[0].replace(/s$/, ""), ex = extra.map(x => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  return auto.filter(a => !ex.some(e => e.includes(n(a)))).concat(extra); }
+function sustitutos(s) { return matJuegos([s.act, ...(s.ppal || []), s.calma, s.planB]).filter(m => EF_SUST[m]).map(m => `${matNom(m)}: ${EF_SUST[m]}`); }
+function materialPlan(p) { const M = new Map(); p.sesiones.forEach(s => materialSesion(s).forEach(x => { const k = x.toLowerCase(); if (!M.has(k)) M.set(k, x); })); return [...M.values()]; }
+function matSesionHTML(s) { const L = materialSesion(s), su = sustitutos(s);
+  return `<div class="mom"><b>Material</b><div><p class="small">${L.length ? esc(L.join(", ")) : "Sin material"}</p>${su.length ? `<p class="small muted mt">Si no tiene: ${esc(su.join(" · "))}</p>` : ""}</div></div>`; }
+function matEditorHTML(s) { return `<div class="campo"><span>Material de la sesión</span><p class="small" id="sMatA" style="margin:4px 0 8px">${esc(materialSesion(Object.assign({}, s, { matExtra: "" })).join(", ") || "Los juegos elegidos no necesitan material.")}</p>
+   <textarea id="sMat" rows="2" placeholder="Agregue otro material o cantidades, por ejemplo: 20 pelotas, bocina, 4 aros">${esc(s.matExtra || "")}</textarea><small>El de los juegos se pone solo; aquí agregue lo demás.</small></div>`; }
+function matEditorVivo(v) { const act = () => { const x = { act: val("sA"), ppal: [val("sJ"), val("sJ2")], calma: val("sK"), planB: val("sB") }, L = matJuegos([x.act, ...x.ppal, x.calma, x.planB]).map(matNom);
+  const e = v.querySelector("#sMatA"); if (e) e.textContent = L.join(", ") || "Los juegos elegidos no necesitan material."; };
+  v.querySelectorAll("[data-jsel]").forEach(s => s.addEventListener("change", act)); }

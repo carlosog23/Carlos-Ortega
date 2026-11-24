@@ -9,7 +9,8 @@
   const lunes = k => { const d = dF(k), w = d.getDay() || 7; d.setDate(d.getDate() - w + 1); return iso(d); };
   const horaDe = g => String(g.horario || g.hora || "").trim();
   const minutos = h => { const m = String(h).match(/(\d{1,2})[:.](\d{2})/); if (!m) return 9999; let x = +m[1]; if (x < 6) x += 12; return x * 60 + +m[2]; };
-  const material = s => { const ks = [s.act, ...(s.ppal || []), s.calma, s.planB].filter(Boolean), M = new Set(); ks.forEach(k => (J(k).mat || []).forEach(m => M.add(m)));
+  const material = s => typeof materialSesion === "function" ? materialSesion(s) : material0(s);
+  const material0 = s => { const ks = [s.act, ...(s.ppal || []), s.calma, s.planB].filter(Boolean), M = new Set(); ks.forEach(k => (J(k).mat || []).forEach(m => M.add(m)));
     return [...M].map(m => (EF_MAT.find(x => x[0] === m) || [m, m])[1]); };
   const corta = n => String(n || "").replace(/^\s*(esc(uela)?\.?\s*)?(prim(aria)?\.?\s*)?/i, "").replace(/\s*\(.*\)$/, "").split(" ").slice(0, 3).join(" ");
   const reglas = k => (J(k).reglas || []).join(" ");
