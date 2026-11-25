@@ -365,6 +365,13 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   }
   acceso tlamatini "Tlamatini" "firefox --new-window https://carlosog23.github.io/Carlos-Ortega/formatos-ppie/" applications-office
   acceso tlamatini-aula "Tlamatini Aula" "firefox --new-window https://carlosog23.github.io/Carlos-Ortega/tlamatini-aula/" applications-education
+  acceso misioneros "Misioneros del Inglés" "firefox --new-window https://carlosog23.github.io/misioneros-del-ingles/?equipo=compartido" applications-education
+  acceso gmail "Gmail" "firefox --new-window https://mail.google.com/" mail-client
+  acceso drive "Drive" "firefox --new-window https://drive.google.com/" folder-remote
+  acceso classroom "Classroom" "firefox --new-window https://classroom.google.com/" applications-education
+  acceso meet "Meet (videollamadas)" "firefox --new-window https://meet.google.com/" camera-web
+  acceso relweb "RELweb" "firefox --new-window https://rel.educacionbc.edu.mx/" x-office-document
+  acceso claude "Claude (asistente de IA)" "firefox --new-window https://claude.ai/" help-browser
   acceso aula "Aula Zona 050 (pantalla del alumno)" "aula-inicio" applications-education
   acceso youtube "YouTube" "firefox --new-window https://www.youtube.com/" multimedia-video-player
   acceso biblioteca "Biblioteca sin internet" "firefox --new-window http://localhost:8050/" accessories-dictionary
