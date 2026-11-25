@@ -502,6 +502,18 @@ ENLAZAR.planes = () => { $("#bNP").onclick = () => ir("planNueva", {}); $("#bReg
   $$("[data-bp]").forEach(b => b.onclick = async ev => { ev.stopPropagation(); const p = plDe(b.dataset.bp); if (!(await confirmar(`¿Eliminar la planeación «${p.titulo}»? Las clases y evaluaciones que ya registró se conservan.`, "Eliminar"))) return;
     D.planes = D.planes.filter(x => x !== p); guardar(); pintar(); toast("Planeación eliminada."); }); };
 
+/* Mismo grado en varias escuelas: una casilla por grado elegido para planear igual a todos sus grupos y escoger en qué escuelas */
+const escConGrado = gr => D.escuelas.filter(es => gruposDe(es.id).some(g => String(g.grado) === String(gr)));
+const gruposGradoEsc = (gr, escId) => gruposDe(escId).filter(g => String(g.grado) === String(gr));
+function panelMismoGrado(P, grados) { P.mg = P.mg || {};
+  return grados.filter(gr => escConGrado(gr).length > 1).map(gr => { const escs = escConGrado(gr), on = !!P.mg[gr];
+    const marcadas = escs.filter(es => gruposGradoEsc(gr, es.id).every(g => P.grupos.includes(g.id))).length;
+    return `<div class="card mt" style="background:var(--papel2);padding:12px 14px">
+     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-mg="${gr}" ${on ? "checked" : ""} style="width:22px;height:22px;margin-top:2px;flex-shrink:0"><span><b>Planear igual para todos mis grupos de ${gr}.°</b><br><small class="muted">Usted da ${gr}.° en ${escs.length} escuelas. Se crea la misma planeación para cada escuela que elija, con sus propios datos y fechas.</small></span></label>
+     ${on ? `<p class="small mt" style="font-weight:700;padding-left:32px">¿En qué escuelas? <span class="muted" style="font-weight:400">(${marcadas} de ${escs.length})</span></p>
+      <div style="padding-left:32px">${escs.map(es => { const gs = gruposGradoEsc(gr, es.id), sel = gs.every(g => P.grupos.includes(g.id));
+        return `<label style="display:flex;gap:10px;align-items:center;margin:8px 0;cursor:pointer"><input type="checkbox" data-mge="${gr}|${es.id}" ${sel ? "checked" : ""} style="width:20px;height:20px;flex-shrink:0"><span><b>${esc(es.nombre)}</b> <small class="muted">· ${gs.map(grNom).join(", ")}</small></span></label>`; }).join("")}
+      <div class="fila mt"><button class="btn s" data-mgt="${gr}|1">Todas</button><button class="btn s" data-mgt="${gr}|0">Ninguna</button></div></div>` : ""}</div>`; }).join(""); }
 /* Contenidos de EF: son los mismos 5 en cada fase (con su redacción y PDA por grado), así se puede planear a la vez para grupos de distintas fases */
 const contDe = (ci, gr) => (BANCO_EF[faseDe(gr)] || [])[ci];
 VISTAS.planNueva = () => { const P = S.f = S.f || { modo: "una", escId: (D.escuelas[0] || {}).id, grupos: [], ci: null, ini: proxLunes(), sem: 4, min: 50, instr: "rubrica" };
@@ -519,7 +531,7 @@ VISTAS.planNueva = () => { const P = S.f = S.f || { modo: "una", escId: (D.escue
     <p class="small muted mt">Se crea una planeación por escuela, con el mismo contenido y las mismas sesiones; cada una lleva los datos de su escuela y de su supervisor(a) de Educación Física.</p>`
    : `<label class="campo"><span>Escuela</span><select id="pE">${D.escuelas.map(x => `<option value="${x.id}" ${x.id === P.escId ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</select></label>
     <div class="fila" style="justify-content:space-between"><span style="font-size:14px;font-weight:700;color:var(--gris)">Grupos</span>${e && gruposDe(e.id).length > 1 ? `<button class="btn s" data-tesc="${e.id}">Todos</button>` : ""}</div><div class="chips mt" id="pG">${e ? chipsG(e) : ""}</div>
-    ${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Revisa: <b>${esc(e.supEF)}</b>, supervisor(a) de Educación Física.</p>` : ""}`}` : `<div class="vacio">Primero registre una escuela.</div>`}</section>
+    ${e && e.supEF ? `<p class="small muted mt">${ic("sup", 16)} Revisa: <b>${esc(e.supEF)}</b>, supervisor(a) de Educación Física.</p>` : ""}`}${panelMismoGrado(P, grados)}` : `<div class="vacio">Primero registre una escuela.</div>`}</section>
   ${faseMax ? `<section class="card mt"><h3>2. ¿Qué van a aprender?</h3><p class="small muted mb">De lo Humano y lo Comunitario · Educación Física${grados.length > 1 ? ` · ${grados.map(g => g + ".°").join(", ")}` : ""}</p>
    <div class="lista">${conts.map((c, i) => `<button class="it btnit" data-ci="${i}" style="${i === ci ? "box-shadow:0 0 0 2px var(--jade)" : ""}"><span class="av" style="${i === ci ? "background:var(--jade);color:#fff" : ""}">${i === ci ? ic("check", 18) : ""}</span><span class="tx"><b>${esc(c.c)}</b></span></button>`).join("")}</div>
    ${hay ? `<div class="mt">${grados.map(gr => { const c = contDe(ci, gr); return `<div class="aviso v mt"><span>${pdaHTML(gr, (c && c.pda || {})[gr] || "—", true)}</span></div>`; }).join("")}</div>` : ""}</section>` : ""}
@@ -544,6 +556,15 @@ ENLAZAR.planNueva = () => { const P = S.f; const re = () => { const y = window.s
   $$("[data-tesc]").forEach(b => b.onclick = () => { lee(); const ids = gruposDe(b.dataset.tesc).map(g => g.id), todos = ids.every(id => P.grupos.includes(id));
     P.grupos = todos ? P.grupos.filter(id => !ids.includes(id)) : [...new Set([...P.grupos, ...ids])]; P.n = null; re(); });
   $("#pTodo") && ($("#pTodo").onclick = () => { lee(); P.grupos = D.grupos.filter(g => escDe(g.escId)).map(g => g.id); P.n = null; re(); });
+  $$("[data-mg]").forEach(cb => cb.onchange = () => { lee(); const gr = cb.dataset.mg; P.mg = P.mg || {}; P.mg[gr] = cb.checked;
+    const ids = D.grupos.filter(g => String(g.grado) === gr && escDe(g.escId)).map(g => g.id);
+    if (cb.checked) P.grupos = [...new Set([...P.grupos, ...ids])];
+    else P.grupos = P.grupos.filter(id => !ids.includes(id) || (grDe(id) || {}).escId === P.escId);
+    P.n = null; re(); });
+  $$("[data-mge]").forEach(cb => cb.onchange = () => { lee(); const [gr, escId] = cb.dataset.mge.split("|"), ids = gruposGradoEsc(gr, escId).map(g => g.id);
+    P.grupos = cb.checked ? [...new Set([...P.grupos, ...ids])] : P.grupos.filter(id => !ids.includes(id)); P.n = null; re(); });
+  $$("[data-mgt]").forEach(b => b.onclick = () => { lee(); const [gr, si] = b.dataset.mgt.split("|"), ids = D.grupos.filter(g => String(g.grado) === gr && escDe(g.escId)).map(g => g.id);
+    P.grupos = si === "1" ? [...new Set([...P.grupos, ...ids])] : P.grupos.filter(id => !ids.includes(id)); P.n = null; re(); });
   $("#pNada") && ($("#pNada").onclick = () => { lee(); P.grupos = []; re(); });
   $$("[data-ci]").forEach(b => b.onclick = () => { lee(); P.ci = +b.dataset.ci; P.titulo = ""; re(); });
   if ($("#pS")) { $("#pS").onchange = () => { lee(); P.n = null; re(); }; $("#pI").onchange = () => { lee(); re(); }; }
