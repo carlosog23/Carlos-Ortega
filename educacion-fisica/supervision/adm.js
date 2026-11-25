@@ -73,8 +73,11 @@ async function docIncAdm(mes) { const isep = await aDataURL(ISEP).catch(() => ""
 (function () { const a = D.crono.find(x => /incidencias administrativas/i.test(x.act)); if (a && !a.liga) { a.liga = "incAdm"; guardar(); }
   const acc = accionCrono; accionCrono = function (a, k) { acc(a, k); if (a.liga === "incAdm") { const box = $("#velo .dlg"); if (box && !$("#aIA")) { const b = document.createElement("button"); b.className = "btn p full mb"; b.id = "aIA"; b.innerHTML = `${ic("doc", 16)} Abrir el reporte de incidencias administrativas`; b.onclick = () => ir("incAdm", { amM: /^\d{4}-\d{2}$/.test(k) ? k : k.slice(0, 7) }); box.insertBefore(b, box.querySelector(".fila")); } } }; })();
 /* Zona 041: maestros con licencia por todo el ciclo 2026-2027 (se conservan como inactivos) */
-(function () { if (!D.cfg || !D.cfg.listo || D.cicloCfg.inact041 || !D.escuelas.some(e => e.zona === "041")) return;
+function admInactivos041() { if (!D.cfg || !D.cfg.listo || D.cicloCfg.inact041 || !D.escuelas.some(e => e.zona === "041")) return false;
   ["Xelica Araceli Cisneros Aviña", "Jorge Francisco Zapata García"].forEach(n => { let m = D.maestros.find(x => nrm(x.nombre) === nrm(n));
     if (!m) { m = { id: uid(), nombre: n, correo: "", escuelas: [] }; D.maestros.push(m); } m.inactivo = true; m.motivoInactivo = m.motivoInactivo || "Licencia por todo el ciclo 2026-2027"; });
-  D.cicloCfg.inact041 = true; guardar(); })();
+  D.cicloCfg.inact041 = true; return true; }
+if (admInactivos041()) guardar();
+/* si la app se configura después (bienvenida), agregarlos al terminar */
+(function () { const g = guardar; guardar = function () { g(); if (admInactivos041()) g(); }; })();
 if (typeof S !== "undefined" && S.v === "inicio") pintar();
