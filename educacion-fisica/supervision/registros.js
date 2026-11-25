@@ -17,7 +17,7 @@ const IN_CAT = [
   { k: "comunicacion", n: "Comunicación y convivencia institucional", ind: ["Conducta que dificulta el trabajo colaborativo o la coordinación institucional.", "Actitud confrontativa durante una reunión o proceso de trabajo.", "Incumplimiento de canales o procedimientos de comunicación establecidos."] }
 ];
 const inIndTxt = key => { const [c, i] = key.split(":"), cat = IN_CAT.find(x => x.k === c); return cat ? cat.ind[+i] : ""; };
-const rgMaeOpts = sel => D.maestros.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es")).map(m => `<option value="${m.id}" ${m.id === sel ? "selected" : ""}>${esc(m.nombre)}</option>`).join("");
+const rgMaeOpts = sel => D.maestros.filter(m => !m.inactivo || m.id === sel).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es")).map(m => `<option value="${m.id}" ${m.id === sel ? "selected" : ""}>${esc(m.nombre)}</option>`).join("");
 const rgEscOpts = (sel, mId) => { const m = maeDe(mId), L = m && escuelasDe(m).length ? escuelasDe(m) : D.escuelas.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es")); return L.map(e => `<option value="${e.id}" ${e.id === sel ? "selected" : ""}>${esc(escNom(e))}</option>`).join(""); };
 const rgNomMae = x => { const m = maeDe(x.maeId); return x.persona || (m ? m.nombre : "—"); };
 const rgNomEsc = x => { const e = escDe(x.escId); return e ? e.nombre : (x.escNombre || ""); };
@@ -29,13 +29,13 @@ const rgMesVisitados = mes => { const s = new Set(); D.hojas.filter(h => h.activ
   D.visitas.filter(v => v.estado === "cerrada" && String(v.fecha).slice(0, 7) === mes && v.maestro && v.maestro.id).forEach(v => s.add(v.maestro.id)); return s; };
 
 /* =================================================================== HOJAS DE VISITA */
-VISTAS.hojas = () => { const mes = S.hvM || hoy().slice(0, 7), vis = rgMesVisitados(mes), sin = D.maestros.filter(m => !vis.has(m.id)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+VISTAS.hojas = () => { const mes = S.hvM || hoy().slice(0, 7), vis = rgMesVisitados(mes), sin = activos().filter(m => !vis.has(m.id)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const L = D.hojas.filter(h => h.activo !== false).sort((a, b) => (b.fecha + (b.hora || "")).localeCompare(a.fecha + (a.hora || "")));
   const meses = [...new Set([hoy().slice(0, 7), ...L.map(h => h.fecha.slice(0, 7))])].sort().reverse();
   return barra("Supervisión", "Hojas de visita", `<button class="btn s p" id="hvN">${ic("mas", 16)} Nueva</button>`) + `<main class="wrap">
    <p class="muted mt small">Registro de cada visita administrativa, pedagógica, deportiva o extra clase, con firmas. Para revisar planeaciones y evaluación con semáforo use «Iniciar revisión».</p>
    <section class="card mt"><div class="fila" style="justify-content:space-between"><h3>Visitas de ${ciMesNom(mes)}</h3><select id="hvM" style="max-width:150px">${meses.map(k => `<option value="${k}" ${k === mes ? "selected" : ""}>${ciMesNom(k)} ${k.slice(0, 4)}</option>`).join("")}</select></div>
-    <p class="mt"><b style="font-size:24px">${vis.size}</b> <span class="muted">de ${D.maestros.length} maestros visitados (hojas y revisiones)</span></p>
+    <p class="mt"><b style="font-size:24px">${vis.size}</b> <span class="muted">de ${activos().length} maestros visitados (hojas y revisiones)</span></p>
     ${sin.length ? `<details class="mt"><summary class="small" style="cursor:pointer;font-weight:700">Sin visita este mes (${sin.length})</summary><p class="small muted mt">${sin.map(m => esc(m.nombre)).join(" · ")}</p></details>` : ""}</section>
    <h2 class="sec-t">Hojas registradas</h2><div class="lista">${L.map(h => `<button class="it btnit" data-hv="${h.id}"><span class="av" style="font-size:11px;line-height:1.1;text-align:center">${dF(h.fecha).getDate()}<br>${MES[dF(h.fecha).getMonth()]}</span><span class="tx"><b>${esc(rgNomMae(h))}</b><small>${esc(rgNomEsc(h))} · ${(h.tipos || []).join(", ") || "Sin tipo"}${h.firmas && h.firmas.doc ? "" : " · <span style='color:var(--rojo)'>falta firma del docente</span>"}</small></span></button>`).join("") || `<div class="vacio">Aún no hay hojas de visita.</div>`}</div>
    <section class="card mt2"><h3>Formato en blanco</h3><p class="small muted mb">Para llenarla a mano cuando no traiga la tableta.</p><button class="btn" id="hvB">${ic("impr", 16)} Imprimir hoja en blanco</button></section>${pie()}</main>`; };
@@ -145,7 +145,7 @@ async function docIncidencia(x, blanco) { const td = "border:1px solid #333;padd
 
 /* =================================================================== enganches: inicio e informe */
 (function () { const base = VISTAS.inicio; VISTAS.inicio = () => { let h = base(); if (!D.cfg.listo) return h; const mes = hoy().slice(0, 7), n = rgMesVisitados(mes).size, ni = inActivas().length;
-  const puertas = `<button class="puerta" data-v="hojas" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("doc")}</span><b>Hojas de visita</b><span>${n} de ${D.maestros.length} maestros visitados en ${ciMesNom(mes)}</span></button>
+  const puertas = `<button class="puerta" data-v="hojas" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("doc")}</span><b>Hojas de visita</b><span>${n} de ${activos().length} maestros visitados en ${ciMesNom(mes)}</span></button>
    <button class="puerta" data-v="incidencias" style="--c:#A3322A;--c-s:#F7DEDA"><span class="ic">${ic("bandera")}</span><b>Incidencias del personal</b><span>${ni ? `${ni} registro${ni > 1 ? "s" : ""}` : "Registro con indicadores y firmas"}</span></button>`;
   return h.replace('<button class="puerta" data-v="historial"', puertas + '<button class="puerta" data-v="historial"'); }; })();
 (function () { const base = VISTAS.informe; VISTAS.informe = () => base().replace('<button class="btn" id="iImp">', `<button class="btn" id="iHoja">${ic("doc", 16)} Hoja de visita</button><button class="btn" id="iImp">`);
