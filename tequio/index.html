@@ -6647,7 +6647,7 @@ async function minPdf(m) {
    nadie ve las respuestas de los demás. Aquí se ven los resultados. Las consultas no se borran: se archivan.
    La Supervisión elige en cada consulta qué ATP pueden verla y darle seguimiento, y cuáles además llevar el control
    (editarla, cerrarla, archivarla y marcar anticipos). Requiere el servidor versión 66. */
-const CNS_VER = 66;
+const CNS_VER = 66, CNS_ABONO_VER = 80;   // v80: abono personalizado y captura de respuestas por la Supervisión
 const CNS_TIPOS = { asistencia: 'Asistencia (Sí / No)', menu: 'Menú con precios (servicio y anticipo)', opcion: 'Opción única', varias: 'Varias opciones', sino: 'Sí o No', texto: 'Respuesta abierta' };
 const cnsPesos = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cnsR2 = n => Math.round(n * 100) / 100;
@@ -6903,6 +6903,8 @@ function cnsTabla(c, resp) {
     const cuentas = r && va && r.datos && Array.isArray(r.datos.cuentas) ? r.datos.cuentas : [];
     return { p, r, va, cuentas, total: cnsR2(cuentas.reduce((a, x) => a + x.total, 0)), anticipo: cnsR2(cuentas.reduce((a, x) => a + x.anticipo, 0)), pagado: !!(r && r.datos && r.datos.pagado), pagadoMonto: r && r.datos ? Number(r.datos.pagadoMonto) || 0 : 0 };
   });
+  // Lo que ya entregó cada quien (abono personalizado o, si no se escribió cantidad, el anticipo) y lo que le resta
+  filas.forEach(f => { f.abonado = f.pagado ? cnsR2(f.pagadoMonto || f.anticipo) : 0; f.resta = cnsR2(Math.max(0, f.total - f.abonado)); });
   return { asisP, filas };
 }
 const cnsValor = (p, v) => v == null || v === '' ? '' : p.tipo === 'opcion' || p.tipo === 'menu' ? ((p.op || [])[v] || {}).t || '' : p.tipo === 'varias' ? (v || []).map(i => ((p.op || [])[i] || {}).t).filter(Boolean).join(', ') : String(v);
@@ -6934,7 +6936,7 @@ function vConsultaRes(id) {
     van.forEach(f => { const v = f.r.respuestas[p.k]; if (v != null && cnt[v] != null) cnt[v]++; });
     const cuentas = van.map(f => f.cuentas.find(x => x.k === p.k)).filter(Boolean);
     const tot = cnsR2(cuentas.reduce((a, x) => a + x.total, 0)), ant = cnsR2(cuentas.reduce((a, x) => a + x.anticipo, 0));
-    const rec = cnsR2(van.filter(f => f.pagado).reduce((a, f) => a + ((f.cuentas.find(x => x.k === p.k) || {}).anticipo || 0), 0));
+    const rec = cnsR2(van.reduce((a, f) => a + f.abonado, 0));
     const pedido = (p.op || []).map((o, i) => cnt[i] ? cnt[i] + ' × ' + o.t : '').filter(Boolean);
     h += `<div class="tarjeta pad" style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><h2 style="flex:1;margin:0;font-size:19px">${esc(p.t)} · pedido</h2>
       <button class="boton sec chico" id="cn-ped-${p.k}">${ico('i-copiar')}Copiar pedido para el restaurante</button></div>
@@ -6942,7 +6944,7 @@ function vConsultaRes(id) {
       ${(p.op || []).map((o, i) => `<tr${cnt[i] ? '' : ' style="color:var(--gris)"'}><td>${esc(o.t)}</td><td class="d">${cnsPesos(o.p)}</td><td class="d"><b>${cnt[i]}</b></td><td class="d">${cnsPesos(o.p * cnt[i])}</td></tr>`).join('')}
       </table></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px">
-        ${kpi(cnsPesos(tot), 'consumo total con ' + p.serv + ' % de servicio')}${kpi(cnsPesos(ant), 'anticipos esperados (' + p.ant + ' %)' + (p.antFecha ? ' · ' + fechaCorta(p.antFecha) : ''))}${kpi(cnsPesos(rec), 'anticipos recibidos', 'color:var(--ok)')}${kpi(cnsPesos(cnsR2(ant - rec)), 'anticipos por recibir', 'color:var(--alerta)')}
+        ${kpi(cnsPesos(tot), 'consumo total con ' + p.serv + ' % de servicio')}${kpi(cnsPesos(ant), 'anticipos esperados (' + p.ant + ' %)' + (p.antFecha ? ' · ' + fechaCorta(p.antFecha) : ''))}${kpi(cnsPesos(rec), 'abonos recibidos', 'color:var(--ok)')}${kpi(cnsPesos(cnsR2(Math.max(0, tot - rec))), 'resta por pagar del consumo', 'color:var(--alerta)')}
       </div></div>`;
     setTimeout(() => { const b = $('#cn-ped-' + p.k); if (b) b.onclick = () => copiar(`*${c.titulo}*\n${cnsCuando(c)}\n\nPedido (${cuentas.length} personas):\n${pedido.join('\n') || 'Sin platillos'}`, 'Pedido copiado'); });
   });
@@ -6957,35 +6959,92 @@ function vConsultaRes(id) {
   // Respuestas por persona
   const otras = c.preguntas.filter(p => p.tipo !== 'asistencia' && p.tipo !== 'menu');
   const menus = c.preguntas.filter(p => p.tipo === 'menu');
-  h += `<div class="tarjeta pad" style="margin-bottom:14px"><h2 style="margin:0 0 10px;font-size:19px">Respuestas por persona</h2><div class="cns-caja"><table class="cns-t">
-    <tr><th>Nombre</th>${asisP ? '<th>¿Asiste?</th>' : ''}${menus.map(p => `<th>${esc(p.t)}</th>`).join('')}${otras.map(p => `<th>${esc(p.t)}</th>`).join('')}${menus.length ? '<th class="d">Total</th><th class="d">Anticipo</th><th>Anticipo recibido</th>' : ''}</tr>
-    ${filas.map(f => `<tr><td><b>${esc(f.p.n)}</b><div class="ayuda">${esc(f.p.d || '')}${f.r ? ' · ' + esc(fechaCorta(String(f.r.actualizado).slice(0, 10))) + ' ' + esc(String(f.r.actualizado).slice(11, 16)) : ''}</div></td>
+  const ctl = c.puedo === 'control', antPct = menus.length ? menus[0].ant : 0;
+  h += `<div class="tarjeta pad" style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><h2 style="flex:1;margin:0;font-size:19px">Respuestas por persona</h2>
+    ${ctl ? `<button class="boton sec chico" id="cn-agr">${ico('i-mas')}Agregar persona</button>` : ''}</div><div class="cns-caja"><table class="cns-t">
+    <tr><th>Nombre</th>${asisP ? '<th>¿Asiste?</th>' : ''}${menus.map(p => `<th>${esc(p.t)}</th>`).join('')}${otras.map(p => `<th>${esc(p.t)}</th>`).join('')}${menus.length ? `<th class="d">Total</th><th class="d">Anticipo (${antPct} %)</th><th>Abono recibido</th><th class="d">Resta</th>` : ''}</tr>
+    ${filas.map(f => `<tr><td><b>${esc(f.p.n)}</b><div class="ayuda">${esc(f.p.d || '')}${f.r ? ' · ' + esc(fechaCorta(String(f.r.actualizado).slice(0, 10))) + ' ' + esc(String(f.r.actualizado).slice(11, 16)) : ''}${f.r && f.r.datos && f.r.datos.capturo ? ' · capturó la Supervisión' : ''}</div>${ctl ? `<button class="boton sec chico" style="margin-top:4px" data-cncap="${esc(f.p.id)}">${f.r ? 'Editar respuesta' : 'Capturar respuesta'}</button>` : ''}</td>
       ${asisP ? `<td>${!f.r ? '<span class="chip">Sin responder</span>' : f.va ? '<span class="chip ok">Sí</span>' : '<span class="chip mal">No</span>'}</td>` : ''}
       ${menus.map(p => `<td>${f.va ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
       ${otras.map(p => `<td>${f.r && (f.va || !asisP) ? esc(cnsValor(p, f.r.respuestas[p.k])) : ''}</td>`).join('')}
-      ${menus.length ? `<td class="d">${f.va ? cnsPesos(f.total) : ''}</td><td class="d">${f.va ? cnsPesos(f.anticipo) : ''}</td><td>${f.va ? `<label class="casilla" style="padding:0"><input type="checkbox" data-cnpag="${esc(f.p.id)}"${f.pagado ? ' checked' : ''}${c.puedo === 'control' ? '' : ' disabled'}>${f.pagado ? 'Recibido' : ''}</label>${f.pagado && f.pagadoMonto && f.pagadoMonto !== f.anticipo ? `<div class="chip aviso" style="white-space:normal">Cambió su platillo después: entregó ${cnsPesos(f.pagadoMonto)}</div>` : ''}` : ''}</td>` : ''}</tr>`).join('')}
+      ${menus.length ? `<td class="d">${f.va ? cnsPesos(f.total) : ''}</td><td class="d">${f.va ? cnsPesos(f.anticipo) : ''}</td><td>${f.va ? (f.pagado ? `<span class="chip ok">${cnsPesos(f.abonado)}</span>${f.abonado !== f.anticipo ? '<div class="ayuda">Abono personalizado</div>' : ''}` : '<span class="chip">Sin abono</span>') + (ctl ? `<div><button class="boton sec chico" style="margin-top:4px" data-cnabo="${esc(f.p.id)}">${f.pagado ? 'Modificar abono' : 'Registrar abono'}</button></div>` : '') : ''}</td><td class="d">${f.va ? (f.resta ? cnsPesos(f.resta) : '<span class="chip ok">Pagado</span>') : ''}</td>` : ''}</tr>`).join('')}
     </table></div></div>`;
   if (sin.length) h += `<div class="tarjeta pad"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1;margin:0;font-size:19px">Faltan por responder (${sin.length})</h2>
     <button class="boton sec chico" id="cn-falt">${ico('i-copiar')}Copiar recordatorio</button></div><p class="peq" style="margin-bottom:0">${sin.map(f => esc(f.p.n)).join(' · ')}</p></div>`;
   $('#vista').innerHTML = cab + h;
   enlazarCab();
   if ($('#cn-falt')) $('#cn-falt').onclick = () => copiar(`Recordatorio: *${c.titulo}*\nAún falta su respuesta de:\n${sin.map(f => '• ' + f.p.n).join('\n')}\n\nEntre aquí, elija su nombre y conteste:\n${c.enlace}`, 'Recordatorio copiado');
-  $$('[data-cnpag]').forEach(b => b.onchange = async () => {
-    b.disabled = true;
-    try { const r = await api('cnsMarcar', { id: c.id, persona: b.dataset.cnpag, pagado: b.checked }); const l = vista.cnsRes.resp, i = l.findIndex(x => x.id === r.respuesta.id); if (i >= 0) l[i] = r.respuesta; else l.push(r.respuesta); vConsultas(); }
-    catch (e) { aviso(e.message, 'mal', 6000); b.checked = !b.checked; b.disabled = false; }
-  });
+  $$('[data-cnabo]').forEach(b => b.onclick = () => cnsAbono(c, filas.find(f => f.p.id === b.dataset.cnabo)));
+  $$('[data-cncap]').forEach(b => b.onclick = () => cnsCaptura(c, filas.find(f => f.p.id === b.dataset.cncap)));
+  if ($('#cn-agr')) $('#cn-agr').onclick = () => cnsCaptura(c, null);
+}
+const cnsPideV80 = () => { if (!(cfg && cfg.demo) && (S.version || 0) < CNS_ABONO_VER) { aviso(`Para esto hay que actualizar el servidor de Tequio a la versión ${CNS_ABONO_VER}.`, 'mal', 7000); return true; } return false; };
+function cnsPonerResp(r) { const l = vista.cnsRes.resp, i = l.findIndex(x => x.id === r.id); if (i >= 0) l[i] = r; else l.push(r); }
+// Abono: por omisión el anticipo, pero se puede escribir cualquier cantidad (o quitarlo)
+function cnsAbono(c, f) {
+  if (!f || cnsPideV80()) return;
+  const ini = f.pagado ? f.abonado : f.anticipo;
+  modal('Abono · ' + esc(f.p.n), `<p class="peq" style="margin-top:0">Consumo total: <b>${cnsPesos(f.total)}</b> · anticipo sugerido: <b>${cnsPesos(f.anticipo)}</b>${f.pagado ? ` · abono registrado: <b>${cnsPesos(f.abonado)}</b>` : ''}</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="boton sec chico" data-cnq="${f.anticipo}">Anticipo · ${cnsPesos(f.anticipo)}</button><button class="boton sec chico" data-cnq="${f.total}">Todo el consumo · ${cnsPesos(f.total)}</button></div>
+    <div class="campo"><label for="cn-mon">Cantidad que entregó (pesos)</label><input id="cn-mon" type="number" inputmode="decimal" min="0" step="0.01" value="${ini}"></div>
+    <div class="ayuda" id="cn-mon-r"></div>`,
+    `${f.pagado ? '<button class="boton sec" id="cn-mon-q">Quitar abono</button>' : ''}<button class="boton sec" id="cn-mon-x">Cancelar</button><button class="boton" id="cn-mon-g">Guardar abono</button>`);
+  const inp = $('#cn-mon'), resto = () => { const m = Number(inp.value) || 0; $('#cn-mon-r').textContent = m > f.total ? 'La cantidad es mayor que el consumo total.' : 'Le restará pagar ' + cnsPesos(cnsR2(Math.max(0, f.total - m))) + ' el día del evento.'; };
+  inp.oninput = resto; resto();
+  $$('[data-cnq]').forEach(b => b.onclick = () => { inp.value = b.dataset.cnq; resto(); });
+  $('#cn-mon-x').onclick = cerrarModal;
+  const enviar = async (monto, btn) => {
+    btn.disabled = true;
+    try { const r = await api('cnsMarcar', { id: c.id, persona: f.p.id, monto }); cnsPonerResp(r.respuesta); cerrarModal(); aviso(monto > 0 ? 'Abono guardado.' : 'Abono quitado.', 'ok', 2500); vConsultas(); }
+    catch (e) { aviso(e.message, 'mal', 6000); btn.disabled = false; }
+  };
+  $('#cn-mon-g').onclick = () => { const m = cnsR2(Number(inp.value)); if (!isFinite(m) || m < 0) return aviso('Escriba una cantidad válida.', 'mal'); enviar(m, $('#cn-mon-g')); };
+  if ($('#cn-mon-q')) $('#cn-mon-q').onclick = () => enviar(0, $('#cn-mon-q'));
+}
+// La Supervisión captura o corrige la respuesta de alguien (o agrega a una persona nueva a la lista)
+function cnsCaptura(c, f) {
+  if (cnsPideV80()) return;
+  const r = f && f.r ? f.r.respuestas : {}, asisP = c.preguntas.find(p => p.tipo === 'asistencia');
+  const campo = p => {
+    const v = r[p.k], id = 'cn-cp-' + p.k;
+    if (p.tipo === 'asistencia' || p.tipo === 'sino') return `<div class="campo"><label for="${id}">${esc(p.t)}</label><select id="${id}"><option value="">—</option>${['Sí', 'No'].map(o => `<option${v === o ? ' selected' : ''}>${o}</option>`).join('')}</select></div>`;
+    if (p.tipo === 'menu' || p.tipo === 'opcion') return `<div class="campo" data-cnva="1"><label for="${id}">${esc(p.t)}</label><select id="${id}"><option value="">—</option>${(p.op || []).map((o, i) => `<option value="${i}"${v === i ? ' selected' : ''}>${esc(o.t)}${p.tipo === 'menu' ? ' · ' + cnsPesos(o.p) : ''}</option>`).join('')}</select></div>`;
+    if (p.tipo === 'varias') return `<div class="campo" data-cnva="1"><label>${esc(p.t)}</label>${(p.op || []).map((o, i) => `<label class="casilla"><input type="checkbox" data-cnvar="${p.k}" value="${i}"${(v || []).indexOf(i) >= 0 ? ' checked' : ''}>${esc(o.t)}</label>`).join('')}</div>`;
+    return `<div class="campo" data-cnva="1"><label for="${id}">${esc(p.t)}</label><input id="${id}" value="${esc(v || '')}"></div>`;
+  };
+  modal(f ? 'Respuesta de ' + esc(f.p.n) : 'Agregar persona', `${f ? '' : `<div class="campo"><label for="cn-cp-n">Nombre</label><input id="cn-cp-n" placeholder="Mtro. Nombre Apellido"></div>
+    <div class="campo"><label for="cn-cp-d">Escuela o función <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="cn-cp-d"></div>`}
+    ${c.preguntas.map(campo).join('')}<p class="ayuda" style="margin-bottom:0">Queda registrada como capturada por la Supervisión. Si la persona después contesta en el enlace, se guarda su última respuesta.</p>`,
+    `<button class="boton sec" id="cn-cp-x">Cancelar</button><button class="boton" id="cn-cp-g">Guardar</button>`);
+  if (!f) { const a = $('#cn-cp-' + (asisP ? asisP.k : '')); if (a) a.value = 'Sí'; }
+  const ver = () => { const no = asisP && $('#cn-cp-' + asisP.k).value === 'No'; $$('[data-cnva]').forEach(x => x.style.display = no ? 'none' : ''); };
+  if (asisP) { $('#cn-cp-' + asisP.k).onchange = ver; ver(); }
+  $('#cn-cp-x').onclick = cerrarModal;
+  $('#cn-cp-g').onclick = async () => {
+    const resp = {};
+    c.preguntas.forEach(p => {
+      const e = $('#cn-cp-' + p.k);
+      if (p.tipo === 'varias') resp[p.k] = $$(`[data-cnvar="${p.k}"]`).filter(x => x.checked).map(x => +x.value);
+      else if (p.tipo === 'menu' || p.tipo === 'opcion') resp[p.k] = e.value === '' ? null : +e.value;
+      else resp[p.k] = e.value;
+    });
+    const datos = { id: c.id, respuestas: resp };
+    if (f) datos.persona = f.p.id; else { datos.nuevo = { n: $('#cn-cp-n').value.trim(), d: $('#cn-cp-d').value.trim() }; if (!datos.nuevo.n) return aviso('Escriba el nombre de la persona.', 'mal'); }
+    const b = $('#cn-cp-g'); b.disabled = true; b.textContent = 'Guardando…';
+    try { const x = await api('cnsCapturar', datos); cnsPoner(x.consulta); if (x.respuesta) cnsPonerResp(x.respuesta); cerrarModal(); aviso('Respuesta guardada.', 'ok', 2500); vConsultas(); }
+    catch (e) { aviso(e.message, 'mal', 7000); b.disabled = false; b.textContent = 'Guardar'; }
+  };
 }
 async function cnsExcel(c, resp) {
   await cargarScript('lib/xlsx.full.min.js');
   const { asisP, filas } = cnsTabla(c, resp), menus = c.preguntas.filter(p => p.tipo === 'menu'), otras = c.preguntas.filter(p => p.tipo !== 'asistencia' && p.tipo !== 'menu');
   const aoa = [[c.titulo], [cnsCuando(c)], [],
-    ['Nombre', 'Escuela / función'].concat(asisP ? ['¿Asiste?'] : [], menus.map(p => p.t), otras.map(p => p.t), menus.length ? ['Precio', 'Servicio', 'Total', 'Anticipo', 'Resto', 'Anticipo recibido'] : [], ['Última respuesta'])];
+    ['Nombre', 'Escuela / función'].concat(asisP ? ['¿Asiste?'] : [], menus.map(p => p.t), otras.map(p => p.t), menus.length ? ['Precio', 'Servicio', 'Total', 'Anticipo sugerido', 'Abono recibido', 'Resta por pagar'] : [], ['Última respuesta'])];
   filas.forEach(f => {
     const cu = f.cuentas;
     aoa.push([f.p.n, f.p.d || ''].concat(asisP ? [f.r ? (f.va ? 'Sí' : 'No') : 'Sin responder'] : [], menus.map(p => f.va ? cnsValor(p, f.r.respuestas[p.k]) : ''),
       otras.map(p => f.r && (f.va || !asisP) ? cnsValor(p, f.r.respuestas[p.k]) : ''),
-      menus.length ? (f.va ? [cnsR2(cu.reduce((a, x) => a + x.precio, 0)), cnsR2(cu.reduce((a, x) => a + x.serv, 0)), f.total, f.anticipo, cnsR2(cu.reduce((a, x) => a + x.resto, 0)), f.pagado ? 'Sí' : 'No'] : ['', '', '', '', '', '']) : [],
+      menus.length ? (f.va ? [cnsR2(cu.reduce((a, x) => a + x.precio, 0)), cnsR2(cu.reduce((a, x) => a + x.serv, 0)), f.total, f.anticipo, f.abonado, f.resta] : ['', '', '', '', '', '']) : [],
       [f.r ? String(f.r.actualizado).replace('T', ' ').slice(0, 16) : '']));
   });
   const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);

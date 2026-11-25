@@ -254,7 +254,7 @@ const NOMBRES = { tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Diná
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 79;
+const VERSION = 80;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -4632,7 +4632,12 @@ const CNS_PUBLICAS = {
     if (c.estado !== 'abierta' || cnsCerradaPorFecha_(c)) throw new Error('Esta consulta ya cerró y no recibe respuestas.');
     const per = c.participantes.find(p => p.id === d.persona);
     if (!per) throw new Error('Elija su nombre de la lista.');
-    const ent = d.respuestas || {}, resp = {}, datos = {};
+    return cnsGuardarRespuesta_(c, per, d.respuestas, '');
+  }
+};
+// Revisa y guarda la respuesta de una persona (la contesta ella desde el enlace, o la captura la Supervisión)
+function cnsGuardarRespuesta_(c, per, ent, capturo) {
+    ent = ent || {}; const resp = {}, datos = {};
     const asisteP = c.preguntas.find(p => p.tipo === 'asistencia');
     if (asisteP) {
       if (['Sí', 'No'].indexOf(ent[asisteP.k]) < 0) throw new Error('Indique si asistirá.');
@@ -4653,10 +4658,10 @@ const CNS_PUBLICAS = {
     const id = c.id + '|' + per.id, previa = buscar_('cnr', id);
     if (previa && previa.datos && previa.datos.pagado) { datos.pagado = true; datos.pagadoMonto = previa.datos.pagadoMonto || 0; }   // lo que marcó la Supervisión no se pierde
     if (previa && previa.datos && previa.datos.nota) datos.nota = previa.datos.nota;
+    if (capturo) datos.capturo = capturo;
     guardar_('cnr', { id: id, consulta: c.id, persona: per.id, nombre: per.n, respuestas: resp, datos: datos, fecha: previa && previa.fecha ? previa.fecha : ahora_(), actualizado: ahora_(), veces: String((parseInt(previa && previa.veces, 10) || 0) + 1) });
     return { nombre: per.n, respuestas: resp, cuentas: datos.cuentas || [], va: va };
-  }
-};
+}
 
 /* ---- Lo de la Supervisión ---- */
 function cnsEnlace_(c) {
@@ -4740,7 +4745,29 @@ Object.assign(ACCIONES, {
     cnsPuede_(yo, c, 'ver');
     return { consulta: cnsPublica_(c, leer_('cnr'), yo), respuestas: leer_('cnr').filter(x => x.consulta === c.id) };
   },
-  // La Supervisión marca el anticipo recibido o deja una nota en la respuesta de una persona
+  // La Supervisión captura (o corrige) la respuesta de una persona; con d.nuevo { n, d } la agrega antes a la lista.
+  // Sirve aunque la consulta ya esté cerrada.
+  cnsCapturar: (yo, d) => {
+    soloMesa_(yo);
+    const c = buscar_('cns', d.id);
+    if (!c) throw new Error('No se encontró la consulta.');
+    cnsPuede_(yo, c, 'control');
+    let per = d.persona ? c.participantes.find(p => p.id === d.persona) : null;
+    if (!per && d.nuevo) {
+      const n = cnsTxt_(d.nuevo.n, 120);
+      if (!n) throw new Error('Escriba el nombre de la persona.');
+      per = c.participantes.find(p => p.n.toLowerCase() === n.toLowerCase());
+      if (!per) {
+        if (c.participantes.length >= 300) throw new Error('La lista ya tiene 300 personas.');
+        per = { id: 'pp-' + Utilities.getUuid().slice(0, 8), n: n, d: cnsTxt_(d.nuevo.d, 120) };
+        c.participantes.push(per); c.actualizado = ahora_(); guardar_('cns', c);
+      }
+    }
+    if (!per) throw new Error('No se encontró a la persona.');
+    cnsGuardarRespuesta_(c, per, d.respuestas, yo.nombre || 'Supervisión');
+    return { consulta: cnsPublica_(c, leer_('cnr'), yo), respuesta: buscar_('cnr', c.id + '|' + per.id) };
+  },
+  // La Supervisión registra el abono recibido (por omisión, el anticipo; o la cantidad que ella escriba) o deja una nota
   cnsMarcar: (yo, d) => {
     soloMesa_(yo);
     const c = buscar_('cns', d.id);
@@ -4752,7 +4779,12 @@ Object.assign(ACCIONES, {
     const r = buscar_('cnr', id) || { id: id, consulta: c.id, persona: per.id, nombre: per.n, respuestas: {}, datos: {}, fecha: '', veces: '0' };
     r.datos = r.datos && typeof r.datos === 'object' && !Array.isArray(r.datos) ? r.datos : {};
     // con el anticipo marcado se guarda cuánto era, por si después la persona cambia de platillo
-    if (d.pagado != null) { r.datos.pagado = !!d.pagado; r.datos.pagadoMonto = d.pagado ? Math.round((r.datos.cuentas || []).reduce((t, x) => t + (x.anticipo || 0), 0) * 100) / 100 : 0; }
+    const antic = Math.round((r.datos.cuentas || []).reduce((t, x) => t + (x.anticipo || 0), 0) * 100) / 100;
+    if (d.monto != null && d.monto !== '') {   // abono personalizado (0 = quitar el abono)
+      const m = cnsNum_(d.monto, 0, 1e6);
+      r.datos.pagado = m > 0; r.datos.pagadoMonto = m;
+    } else if (d.pagado != null) { r.datos.pagado = !!d.pagado; r.datos.pagadoMonto = d.pagado ? antic : 0; }
+    if (r.datos.pagado) r.datos.pagadoFecha = ahora_(); else delete r.datos.pagadoFecha;
     if (d.nota != null) r.datos.nota = cnsTxt_(d.nota, 300);
     r.actualizado = ahora_();
     guardar_('cnr', r);
