@@ -1959,7 +1959,7 @@ function cmpInicio() {
   const ses = CMP.ses.slice().sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
   $('#vista').innerHTML = `
   <div class="titulo-vista"><h1>Revisión en campo</h1>
-    <div class="acciones">${S.offline ? '' : `<button class="boton sec" data-cg="guias">${ico('i-lapiz')}Guías</button><button class="boton sec" data-cg="resultados">${ico('i-graf')}Resultados</button><button class="boton sec" data-cg="registro">${ico('i-seg')}Registro de visitas</button>${esMesa() ? `<button class="boton sec" data-cg="programar">${ico('i-cal')}Programar visitas</button>` : ''}`}<a class="boton sec" href="./?campo">📱 App de visitas</a><button class="boton sec" id="cm-ate">${ico('i-mas')}Visita de atención</button><button class="boton terra" id="cm-nueva">${ico('i-mas')}Nueva revisión</button></div></div>
+    <div class="acciones">${S.offline ? '' : `<button class="boton sec" data-cg="guias">${ico('i-lapiz')}Guías</button><button class="boton sec" data-cg="resultados">${ico('i-graf')}Resultados</button><button class="boton sec" data-cg="registro">${ico('i-seg')}Registro de visitas</button>${esMesa() ? `<button class="boton sec" data-cg="programar">${ico('i-cal')}Programar visitas</button>` : ''}`}<a class="boton sec" href="./?campo${cfg && cfg.s && cfg.k && !cfg.demo ? '#s=' + encodeURIComponent(cfg.s) + '&k=' + encodeURIComponent(cfg.k) : ''}">📱 App de visitas</a><button class="boton sec" id="cm-ate">${ico('i-mas')}Visita de atención</button><button class="boton terra" id="cm-nueva">${ico('i-mas')}Nueva revisión</button></div></div>
   <div class="tarjeta pad cmp-estado">
     <div><span class="chip ${cmpEnLinea() ? 'ok' : 'aviso'}">${cmpEnLinea() ? 'En línea' : 'Sin conexión'}</span>
       <span class="peq mudo">${paq ? 'Datos para trabajar sin internet guardados el ' + esc(fechaHora(paq.fecha)) : 'Aún no se guardan los datos para trabajar sin internet'}</span></div>
@@ -2032,6 +2032,19 @@ function tqDispositivo() {
   };
 }
 const tqEnlacePropio = () => cfg && cfg.s && cfg.k ? location.origin + location.pathname + '#s=' + encodeURIComponent(cfg.s) + '&k=' + encodeURIComponent(cfg.k) : '';
+// App de visitas (?campo): el acceso personal queda en la dirección y en el manifiesto, para que el ícono
+// «Visitas» instalado (sobre todo en iPhone/iPad, que no comparte lo guardado en Safari) abra ya con su cuenta.
+function campoConAcceso() {
+  if (!MODO_CAMPO || !cfg || !cfg.s || !cfg.k || cfg.demo) return;
+  const e = location.origin + location.pathname + '?campo#s=' + encodeURIComponent(cfg.s) + '&k=' + encodeURIComponent(cfg.k);
+  try { history.replaceState(null, '', e.slice(location.origin.length)); } catch (x) {}
+  try {
+    const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    const m = { name: 'Tequio · Visitas a escuelas', short_name: 'Visitas', start_url: e, id: base + '?campo', scope: base, display: 'standalone', background_color: '#FBF6EC', theme_color: '#1F3A6B', lang: 'es-MX',
+      icons: [{ src: base + 'img/tequio-logo-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'img/tequio-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] };
+    document.getElementById('l-manifest').href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
+  } catch (x) {}
+}
 // En iPhone/iPad el ícono instalado no comparte lo guardado en Safari: se deja el enlace personal en la dirección
 // y en el manifiesto para que el ícono abra Tequio ya con su acceso.
 function tqPrepararIOS() {
@@ -17437,6 +17450,7 @@ async function ayuSolicitar(i, btn) {
 try { ayuMontar(); } catch (e) {}
 
 cfg = leerCfg();
+campoConAcceso();
 if (cfg && cfg.docente) docentePagina(); else if (cfg && cfg.vencido) invitacionTerminada(); else if (cfg) cargar(); else portada('');
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('hashchange', () => { const c = leerCfg(); if (c && c.vencido) invitacionTerminada(); else if (c) { cfg = c; S = null; cargar(); } });
