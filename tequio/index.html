@@ -1006,6 +1006,10 @@ const AVISOS = {
 
 let cfg = null;          // { s: url del servidor, k: llave personal } o { demo: true }
 let S = null;            // datos: yo, act, seg, dir, usr, cuota, reu, acu, cum (checklist de acuerdos)
+/* Lo que llega al compartir desde WhatsApp u otra app (Android, con Tequio instalado): se abre «Responder mensajes» con el texto */
+const RSP_COMPARTIDO = (() => { try { const u = new URL(location.href), t = ['titulo', 'texto', 'enlace'].map(x => u.searchParams.get(x)).filter(Boolean).join('\n').trim();
+  if (!t) return ''; u.searchParams.delete('titulo'); u.searchParams.delete('texto'); u.searchParams.delete('enlace'); history.replaceState(null, '', u.pathname + u.search + u.hash);
+  localStorage.setItem('tequio.tab', 'responder'); return t; } catch (e) { return ''; } })();
 let vista = { tab: (() => { try { return localStorage.getItem('tequio.tab') || 'agenda'; } catch (e) { return 'agenda'; } })(), mes: null, dia: null, escuela: null, filtroEsc: '', filtroResp: '', verCanceladas: false, buscar: '', municipio: '', acuReu: '', acuEsc: null, atp: null };
 
 /* ---------------- Utilidades ---------------- */
@@ -1261,6 +1265,7 @@ function pestanasTodas() {
   if (esAdmin()) l.push(['correos', 'Correo de la Supervisión', 'i-correo']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
   if (esMesa()) l.push(['consultas', 'Consultas', 'i-chk']);
+  if (esAdmin()) l.push(['responder', 'Responder mensajes', 'i-wa']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
 }
@@ -1268,7 +1273,7 @@ function pestanasTodas() {
    Las secciones se agrupan por para qué sirven. Un grupo con una sola sección
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
-  ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas', 'consultas']],
+  ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas', 'consultas', 'responder']],
   ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'seguimiento', 'campo', 'visitas', 'evidencias', 'cte', 'minutas', 'asistencia']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
   ['oficios', 'Oficios y trámites', 'i-lapiz', ['oficios', 'correos', 'tramites', 'informe']],
@@ -1363,7 +1368,7 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; if (vista.tab === 'consultas') { CNS = null; vista.cnsVer = null; vista.cnsRes = null; } pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas, consultas: vConsultas, informe: vInforme, tramites: vTramites, norma: vNorma })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas, consultas: vConsultas, responder: vResponder, informe: vInforme, tramites: vTramites, norma: vNorma })[vista.tab]();
   pintarBandaVid(); vidVigilar(); pintarBandaAsi();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
@@ -7060,6 +7065,109 @@ async function cnsExcel(c, resp) {
   descargarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), (c.titulo + ' ' + hoy() + '.xlsx').replace(/[\\/:*?"<>|]+/g, ' '));
 }
 
+
+/* ---------------- Responder mensajes (solo la Supervisión) ----------------
+   Pega (o comparte desde WhatsApp) lo que le escriben; Tlami propone la respuesta con lo que sabe de las apps de la zona
+   y avisa si algo no lo puede resolver o no le corresponde. Usted la edita y la manda por WhatsApp. Requiere el servidor v81. */
+const RSP_VER = 81;
+let RSP = null;   // { msg, de, tel, fotos: [{ tipo, data }], resp, tema, aviso, puede, id, ajuste }
+let RSP_HIST = null, rspCompartidoUsado = false;
+function rspGuardarLocal() { try { const o = Object.assign({}, RSP, { fotos: [] }); localStorage.setItem('tequio.rsp', JSON.stringify(o)); } catch (e) {} }
+function rspNuevo() { RSP = { msg: '', de: '', tel: '', fotos: [], resp: '', tema: '', aviso: '', puede: true, id: '', ajuste: '' }; rspGuardarLocal(); }
+function rspTelWa(t) { let d = String(t || '').replace(/\D/g, ''); if (d.length === 10) d = '52' + d; return d.length >= 11 ? d : ''; }
+const rspWa = () => 'https://wa.me/' + rspTelWa(RSP.tel) + '?text=' + encodeURIComponent(RSP.resp || '');
+async function rspFoto(file) {   // captura → JPEG de hasta 1600 px (pesa poco y Gemini la lee bien)
+  const url = URL.createObjectURL(file);
+  try { const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error('No se pudo abrir la imagen.')); i.src = url; });
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return { tipo: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.85).split(',')[1] }; }
+  finally { URL.revokeObjectURL(url); }
+}
+async function rspHistCargar() {
+  try { const r = await api('dudLista', {}); RSP_HIST = { lista: r.mensajes || [] }; } catch (e) { RSP_HIST = { error: e.message }; }
+  if (vista.tab === 'responder') vResponder();
+}
+function vResponder() {
+  const cab = `<div class="titulo-vista"><h1>Responder mensajes</h1><div class="acciones"><button class="boton sec" id="rs-nuevo">${ico('i-mas')}Nuevo mensaje</button></div></div>`;
+  if (!(cfg && cfg.demo) && (S.version || 0) < RSP_VER) {
+    $('#vista').innerHTML = cab + `<div class="tarjeta pad"><p style="margin-top:0"><b>Falta actualizar el servidor de Tequio</b> (versión ${RSP_VER}).</p><a class="boton" href="instalacion.html#actualizar">Ver cómo actualizar el servidor</a></div>`;
+    return;
+  }
+  if (!RSP) { try { RSP = JSON.parse(localStorage.getItem('tequio.rsp') || 'null'); } catch (e) {} if (!RSP) rspNuevo(); RSP.fotos = RSP.fotos || []; }
+  if (RSP_COMPARTIDO && !rspCompartidoUsado) { rspCompartidoUsado = true; rspNuevo(); RSP.msg = RSP_COMPARTIDO; rspGuardarLocal(); }
+  if (!RSP_HIST) rspHistCargar();
+  const r = RSP, hay = !!r.resp;
+  const hist = !RSP_HIST ? '<p class="peq mudo">Cargando…</p>' : RSP_HIST.error ? `<p class="peq">${esc(RSP_HIST.error)}</p>` : !RSP_HIST.lista.length ? '<p class="peq mudo" style="margin:0">Aquí quedarán los mensajes que conteste.</p>'
+    : `<div class="rs-hist">${RSP_HIST.lista.slice(0, 60).map(m => `<button class="rs-it" data-rsh="${esc(m.id)}"><span><b>${esc(m.de || 'Sin nombre')}</b>${m.tema ? ' · ' + esc(m.tema) : ''}<small>${esc(String(m.mensaje || '').slice(0, 110))}</small></span><span class="chip ${m.estado === 'enviado' ? 'ok' : ''}">${m.estado === 'enviado' ? 'Enviado' : 'Borrador'}</span><span class="peq mudo">${esc(fechaCorta(String(m.fecha).slice(0, 10)))}</span></button>`).join('')}</div>`;
+  $('#vista').innerHTML = cab + `
+  <style>.rs-fotos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.rs-fotos span{position:relative}.rs-fotos img{width:74px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--linea)}
+  .rs-fotos button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--tinta,#1B2740);color:#fff;cursor:pointer}
+  .rs-hist{display:grid;gap:6px}.rs-it{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;text-align:left;width:100%;padding:10px 12px;border:1px solid var(--linea);border-radius:10px;background:var(--papel,#fff);font:inherit;color:inherit;cursor:pointer}
+  .rs-it small{display:block;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}.rs-resp{width:100%;min-height:220px;font:inherit;font-size:16px;line-height:1.45}
+  .rs-botones{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rs-botones .boton{flex:1 1 150px;justify-content:center}</style>
+  <div class="tarjeta pad" style="margin-bottom:14px">
+    <h2 style="margin:0 0 6px;font-size:19px">1. Mensaje que le mandaron</h2>
+    <p class="peq mudo" style="margin:0 0 8px">Péguelo aquí, adjunte la captura de pantalla, o en WhatsApp mantenga presionado el mensaje → <b>Compartir</b> → <b>Tequio</b> (Android, con Tequio instalado).</p>
+    <div class="campo"><textarea id="rs-msg" rows="5" placeholder="Pegue aquí el mensaje de WhatsApp…">${esc(r.msg)}</textarea></div>
+    <div class="rs-fotos">${r.fotos.map((f, i) => `<span><img alt="Captura ${i + 1}" src="data:${f.tipo};base64,${f.data}"><button data-rsfx="${i}" aria-label="Quitar captura">×</button></span>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+      <div class="campo"><label for="rs-de">¿Quién le escribe? <span class="mudo" style="font-weight:400">(opcional)</span></label><input id="rs-de" value="${esc(r.de)}" placeholder="Mtra. Ana López · Escuela…"></div>
+      <div class="campo"><label for="rs-tel">Su WhatsApp <span class="mudo" style="font-weight:400">(opcional, para mandárselo directo)</span></label><input id="rs-tel" inputmode="tel" value="${esc(r.tel)}" placeholder="10 dígitos"></div>
+    </div>
+    <div class="rs-botones"><label class="boton sec" style="cursor:pointer">Adjuntar captura<input type="file" id="rs-file" accept="image/*" multiple hidden></label><button class="boton" id="rs-gen">${ico('i-tlm')}${hay ? 'Volver a generar' : 'Generar respuesta con Tlami'}</button></div>
+  </div>
+  ${hay ? `<div class="tarjeta pad" style="margin-bottom:14px">
+    <h2 style="margin:0 0 6px;font-size:19px">2. Respuesta${r.tema ? ` <span class="chip" style="vertical-align:middle">${esc(r.tema)}</span>` : ''}</h2>
+    ${r.aviso || !r.puede ? `<div class="aviso-caja" style="margin:6px 0 10px"><b>${r.puede ? 'Revise antes de enviar' : 'Tlami no puede resolverlo todo'}:</b> ${esc(r.aviso || 'Complete o confirme la respuesta.')}</div>` : ''}
+    <p class="peq mudo" style="margin:0 0 6px">Edítela como guste; lo que envía es lo que quede aquí.</p>
+    <textarea id="rs-resp" class="rs-resp">${esc(r.resp)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="rs-aj" style="flex:1 1 220px" value="${esc(r.ajuste || '')}" placeholder="Pídale a Tlami un ajuste: más corta, más formal, agregue…"><button class="boton sec" id="rs-ajb">Ajustar</button></div>
+    <div class="rs-botones"><a class="boton wa" id="rs-wa" target="_blank" rel="noopener" href="${esc(rspWa())}">${ico('i-wa')}Enviar por WhatsApp</a><button class="boton sec" id="rs-cop">${ico('i-copiar')}Copiar</button><button class="boton sec" id="rs-guar">Guardar</button></div>
+    <p class="peq mudo" style="margin:8px 0 0">${rspTelWa(r.tel) ? 'Se abrirá el chat de ese número con la respuesta escrita; usted solo da enviar.' : 'Sin número: WhatsApp le pedirá elegir el chat. También puede copiarla y pegarla en la conversación.'}</p>
+  </div>` : ''}
+  <div class="tarjeta pad"><h2 style="margin:0 0 10px;font-size:19px">Historial</h2>${hist}</div>`;
+  const leer = () => { r.msg = $('#rs-msg').value; r.de = $('#rs-de').value.trim(); r.tel = $('#rs-tel').value.trim(); if ($('#rs-resp')) r.resp = $('#rs-resp').value; if ($('#rs-aj')) r.ajuste = $('#rs-aj').value; rspGuardarLocal(); };
+  ['#rs-msg', '#rs-de', '#rs-tel', '#rs-resp', '#rs-aj'].forEach(id => { const e = $(id); if (e) e.oninput = () => { leer(); if ($('#rs-wa')) $('#rs-wa').href = rspWa(); }; });
+  $('#rs-nuevo').onclick = () => { rspNuevo(); vResponder(); };
+  const agregar = async files => { for (const f of files) { if (!/^image\//.test(f.type)) continue; if (r.fotos.length >= 4) { aviso('Máximo 4 capturas.', 'mal'); break; } try { r.fotos.push(await rspFoto(f)); } catch (e) { aviso(e.message, 'mal'); } } leer(); vResponder(); };
+  $('#rs-file').onchange = e => agregar([...e.target.files]);
+  $('#rs-msg').onpaste = e => { const fs = [...(e.clipboardData || {}).files || []].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); agregar(fs); } };
+  $$('[data-rsfx]').forEach(b => b.onclick = () => { r.fotos.splice(+b.dataset.rsfx, 1); vResponder(); });
+  const generar = async (ajustar, btn) => {
+    leer();
+    if (!r.msg.trim() && !r.fotos.length) return aviso('Pegue el mensaje o adjunte la captura.', 'mal');
+    if (ajustar && !r.ajuste.trim()) return aviso('Escriba qué ajuste quiere.', 'mal');
+    btn.disabled = true; const t0 = btn.innerHTML; btn.textContent = 'Tlami está escribiendo…';
+    try {
+      const x = await api('dudBorrador', { mensaje: r.msg, de: r.de, archivos: r.fotos, anterior: ajustar ? r.resp : '', instruccion: ajustar ? r.ajuste : '' });
+      const b = x.borrador; r.resp = b.respuesta; r.tema = b.tema || r.tema; r.aviso = b.aviso; r.puede = b.puede; if (!r.de && b.de) r.de = b.de; if (ajustar) r.ajuste = '';
+      rspGuardarLocal(); vResponder(); const e = $('#rs-resp'); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) { aviso(esc(e.message), 'mal', 8000); btn.disabled = false; btn.innerHTML = t0; }
+  };
+  $('#rs-gen').onclick = () => generar(false, $('#rs-gen'));
+  if ($('#rs-ajb')) $('#rs-ajb').onclick = () => generar(true, $('#rs-ajb'));
+  const guardarSrv = async estado => {
+    leer();
+    const x = await api('dudGuardar', { id: r.id, mensaje: r.msg, respuesta: r.resp, de: r.de, telefono: r.tel, tema: r.tema, aviso: r.aviso, estado });
+    r.id = x.mensaje.id; rspGuardarLocal();
+    if (RSP_HIST && RSP_HIST.lista) { const L = RSP_HIST.lista, i = L.findIndex(m => m.id === r.id); if (i >= 0) L[i] = x.mensaje; else L.unshift(x.mensaje); }
+  };
+  if ($('#rs-cop')) $('#rs-cop').onclick = () => { leer(); copiar(r.resp, 'Respuesta copiada'); };
+  if ($('#rs-guar')) $('#rs-guar').onclick = async () => { try { await guardarSrv('borrador'); aviso('Guardado en el historial.', 'ok', 2500); vResponder(); } catch (e) { aviso(esc(e.message), 'mal'); } };
+  // Al enviar por WhatsApp se abre el chat y queda en el historial como enviado
+  if ($('#rs-wa')) $('#rs-wa').onclick = () => { leer(); $('#rs-wa').href = rspWa(); guardarSrv('enviado').then(() => { if (vista.tab === 'responder') vResponder(); }).catch(e => aviso('Se abrió WhatsApp, pero no se guardó en el historial: ' + esc(e.message), 'mal')); };
+  $$('[data-rsh]').forEach(b => b.onclick = () => {
+    const m = RSP_HIST.lista.find(x => x.id === b.dataset.rsh); if (!m) return;
+    modal(esc(m.de || 'Mensaje'), `<p class="peq mudo" style="margin-top:0">${esc(String(m.fecha).replace('T', ' ').slice(0, 16))}${m.tema ? ' · ' + esc(m.tema) : ''} · ${m.estado === 'enviado' ? 'Enviado' : 'Borrador'}</p>
+      <h3 style="margin:8px 0 4px;font-size:15px">Mensaje</h3><div style="white-space:pre-wrap;background:var(--arena-2,#f3eee3);border-radius:8px;padding:10px">${esc(m.mensaje || '(captura)')}</div>
+      <h3 style="margin:12px 0 4px;font-size:15px">Respuesta</h3><div style="white-space:pre-wrap;border:1px solid var(--linea);border-radius:8px;padding:10px">${esc(m.respuesta || '')}</div>`,
+      `<button class="boton sec" id="rs-h-del">Borrar</button><button class="boton sec" id="rs-h-cop">${ico('i-copiar')}Copiar respuesta</button><button class="boton" id="rs-h-ab">Abrir para editar</button>`);
+    $('#rs-h-cop').onclick = () => copiar(m.respuesta || '', 'Respuesta copiada');
+    $('#rs-h-ab').onclick = () => { RSP = { msg: m.mensaje || '', de: m.de || '', tel: m.telefono || '', fotos: [], resp: m.respuesta || '', tema: m.tema || '', aviso: m.aviso || '', puede: true, id: m.id, ajuste: '' }; rspGuardarLocal(); cerrarModal(); vResponder(); window.scrollTo(0, 0); };
+    $('#rs-h-del').onclick = async () => { if (!confirm('¿Borrar este mensaje del historial?')) return; try { await api('dudBorrar', { id: m.id }); RSP_HIST.lista = RSP_HIST.lista.filter(x => x.id !== m.id); if (RSP.id === m.id) RSP.id = ''; cerrarModal(); vResponder(); } catch (e) { aviso(esc(e.message), 'mal'); } };
+  });
+}
+
 /* ---------------- Vista: Claves de la RELweb (Supervisión y Mesa Técnica) ----------------
    El usuario de cada escuela es su clave de centro de trabajo; la contraseña cambia cada ciclo.
    Cada ATP captura y actualiza las de sus escuelas y solo ve esas; la Supervisión las ve todas.
@@ -11790,6 +11898,11 @@ const Demo = (() => {
   const nada = t => ({ tipo: t, ok: true, mensaje: 'Demostración: aquí se enviaría ' + ({ aviso: 'el aviso por correo', cambio: 'el aviso de cambio', cancelada: 'el aviso de cancelación', minuta: 'la minuta por correo', calendario: 'la invitación de Google Calendar' }[t] || 'el correo') + '.' });
   const copia = o => JSON.parse(JSON.stringify(o));
   const A = {
+    // Responder mensajes: respuestas de ejemplo (no usa la IA)
+    dudLista: () => { if (!D.dud) D.dud = [{ id: 'dud-demo1', fecha: ahora(), de: 'Mtra. Laura Medina', telefono: '', mensaje: '¿Cómo descargo mi planeación en Tlamatini Aula?', respuesta: '¡Buenos días, maestra! Abra su proyecto, toque *Imprimir* y en Destino elija *Guardar como PDF*.', tema: 'Descargar planeación', aviso: '', estado: 'enviado', actualizado: ahora() }]; return { mensajes: copia(D.dud) }; },
+    dudBorrador: d => ({ borrador: { respuesta: '¡Buenos días' + (d.de ? ', ' + d.de.split(' ').slice(0, 2).join(' ') : '') + '! Con gusto le explico:\n\n1. Abra su proyecto en *Planeación*.\n2. Toque *Imprimir* (arriba a la derecha).\n3. En *Destino*, elija *Guardar como PDF* y toque *Guardar*.\n\nLa rúbrica viene al final de la planeación. Cualquier duda, aquí estoy.' + (d.instruccion ? '\n\n(Ajustado: ' + d.instruccion + ')' : ''), tema: 'Ejemplo de respuesta', de: '', puede: true, aviso: 'Demostración: la respuesta es de ejemplo; con su servidor la redacta Tlami a partir del mensaje.' } }),
+    dudGuardar: d => { if (!D.dud) A.dudLista(); let o = D.dud.find(x => x.id === d.id); if (!o) { o = { id: 'dud-' + Math.random().toString(36).slice(2, 10), fecha: ahora() }; D.dud.unshift(o); } Object.assign(o, { mensaje: d.mensaje, respuesta: d.respuesta, de: d.de, telefono: d.telefono, tema: d.tema, aviso: d.aviso, estado: d.estado || 'borrador', actualizado: ahora() }); return { mensaje: copia(o) }; },
+    dudBorrar: d => { D.dud = (D.dud || []).filter(x => x.id !== d.id); return { ok: true }; },
     finDatos: () => { if (!D.fin) D.fin = finDemo(); return { fin: copia(cfg.dir ? D.fin.filter(x => x.cct === '02DPR0684N' && x.activo !== false) : D.fin) }; },
     finGuardar: d => { if (!D.fin) D.fin = finDemo(); const o = finArmarDemo(D.fin, d, cfg.dir ? { id: 'u-d-02DPR0684N', nombre: 'Dirección (demostración)' } : D.yo); poner(D.fin, o); return { fin: copia(o) }; },
     finEliminar: d => { const o = D.fin.find(x => x.id === d.id); o.activo = false; o.historial = (o.historial || []).concat([{ f: ahora(), por: D.yo.id, nom: cfg.dir ? 'Dirección (demostración)' : D.yo.nombre, a: 'elimino' }]); return { fin: copia(o) }; },
