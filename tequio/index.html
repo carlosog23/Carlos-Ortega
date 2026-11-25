@@ -13327,7 +13327,9 @@ const REC_CAT = {
 const REC_SECC = [['resumen', 'Resumen'], ['conta', 'Contabilidad'], ['acts', 'Actividades']];
 const REC_SUB = [['resumen', 'Resumen'], ['clientes', 'Escuelas'], ['proveedor', 'Proveedor'], ['gastos', 'Gastos e ingresos'], ['datos', 'Datos y productos']];
 
-const recActivos = () => (S.rec || []).filter(x => x.activo !== false);
+// Quién ve cada actividad: si la Supervisión eligió ATP (datos.ver), solo ellos y la Supervisión
+const recPuedeVer = a => !a || esAdmin() || !((a.datos || {}).ver || []).length || a.datos.ver.includes(S.yo.id);
+const recActivos = () => { const l = (S.rec || []).filter(x => x.activo !== false), oc = new Set(l.filter(x => x.tipo === 'act' && !recPuedeVer(x)).map(x => x.id)); return l.filter(x => !oc.has(x.tipo === 'act' ? x.id : x.act)); };
 const recActs = () => recActivos().filter(x => x.tipo === 'act').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
 const recAct = id => recActivos().find(x => x.tipo === 'act' && x.id === id) || null;
 const recDe = (act, tipo) => recActivos().filter(x => x.act === act && (!tipo || x.tipo === tipo)).sort(finOrden);
@@ -13422,7 +13424,7 @@ function recResumen(r) {
   const cobrar = cs.reduce((t, [, c]) => t + c.nosDeben, 0), pagar = cs.reduce((t, [, c]) => t + c.debemos, 0);
   const ult = recLibro().slice(-8).reverse();
   $('#rec-cuerpo').innerHTML = `
-  <p class="peq pen-intro">Fondos de la Supervisión por actividades recaudatorias. Solo los ven usted y los ATP. Los abonos de las escuelas y los pagos al proveedor entran solos a la contabilidad.</p>
+  <p class="peq pen-intro">Fondos de la Supervisión por actividades recaudatorias. Solo los ven usted y los ATP que elija en cada actividad. Los abonos de las escuelas y los pagos al proveedor entran solos a la contabilidad.</p>
   <div class="fin-botones">
     <button class="boton terra" id="rr-act">${ico('i-mas')}Nueva actividad</button>
     <button class="boton sec" data-rmov="ingreso">Registrar ingreso</button>
@@ -13556,7 +13558,7 @@ function recVerAct(r) {
   <p class="peq mudo" style="margin:0 0 10px">Proveedor: ${esc(a.datos.proveedor || 'sin capturar')}${a.datos.contacto ? ' · ' + esc(a.datos.contacto) : ''} · desde ${fechaCorta(a.fecha)}</p>
   <nav class="fin-secc" aria-label="Actividad">${REC_SUB.map(([k, t]) => `<button data-rsub="${k}" aria-current="${r.sub === k}">${t}</button>`).join('')}</nav>
   <div class="fin-botones">
-    <button class="boton terra" data-rnew="pedido">${ico('i-mas')}Pedido de escuela</button>
+    <button class="boton terra" data-rnew="pedido">${ico('i-mas')}Entrega a escuela</button>
     <button class="boton terra" data-rnew="abono">${ico('i-mas')}Abono de escuela</button>
     <button class="boton sec" data-rnew="compra">Entrega del proveedor</button>
     <button class="boton sec" data-rnew="pago">Pago al proveedor</button>
@@ -13589,12 +13591,17 @@ function recActResumen(r, a, c) {
       ${inv.some(p => p.comprado - p.pedido < 0) ? '<p class="peq" style="padding:0 14px;color:var(--terra-d)">En rojo: se ha pedido más de lo que ha entregado el proveedor.</p>' : ''}` : '<div class="vacio peq">Capture los productos en «Datos y productos».</div>'}</div>
   </div>`;
 }
+// Piezas que se ha llevado una escuela (p. ej. «8 cajas»)
+function recPiezas(a, key) {
+  const n = recDe(a.id, 'pedido').filter(o => o.datos.cliente === key).reduce((s, o) => s + (o.datos.lineas || []).reduce((t, l) => t + finN(l.cant), 0), 0);
+  return n + (n === 1 ? ' pieza entregada' : ' piezas entregadas');
+}
 function recActClientes(r, a, c) {
   const l = Object.values(c.cli).sort((x, y) => y.saldo - x.saldo || x.nombre.localeCompare(y.nombre, 'es'));
   const sinPed = directores().filter(e => !c.cli[e.cct]);
   $('#ra-cuerpo').innerHTML = `<div class="tarjeta"><div class="seccion-t">Lo que debe cada escuela · toque una para ver su estado de cuenta</div>
-    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Pedido</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
-    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${x.ult ? `<div class="ayuda">Último abono ${fechaCorta(x.ult)}</div>` : ''}</td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="5" class="mudo" style="text-align:center;padding:18px">Aún no hay pedidos. Use «Pedido de escuela».</td></tr>'}</tbody>
+    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Entregado</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${(escuelaDe(x.key) || {}).nombre ? `<div class="ayuda">${esc(escuelaDe(x.key).nombre)}</div>` : ''}<div class="ayuda">${recPiezas(a, x.key)}${x.ult ? ' · último abono ' + fechaCorta(x.ult) : ''}</div></td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="5" class="mudo" style="text-align:center;padding:18px">Aún no hay entregas. Use «Entrega a escuela».</td></tr>'}</tbody>
     ${l.length ? `<tfoot><tr><td>Total</td><td class="d">${finM(c.ventas)}</td><td class="d">${finM(c.cobrado)}</td><td class="d">${finM(c.nosDeben)}</td><td></td></tr></tfoot>` : ''}</table></div>
     ${sinPed.length && l.length ? `<p class="peq mudo" style="padding:0 14px 10px">Sin pedido: ${sinPed.map(e => esc(e.escuela)).join(', ')}.</p>` : ''}</div>`;
   $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
@@ -13648,7 +13655,7 @@ function recEstadoCuenta(a, key) {
     <p class="peq mudo" style="margin-top:0">${esc(a.datos.nombre)}</p>
     <div class="fin-det-monto">${finM(s)}<span class="ayuda">${s > 0 ? 'saldo pendiente' : s < 0 ? 'saldo a favor de la escuela' : 'liquidado'}</span></div>
     <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
-    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Pedido: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
       <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('')}</tbody></table>`,
     `<button class="boton sec" id="ec-pdf" style="margin-right:auto">Estado de cuenta (PDF)</button><button class="boton sec" id="ec-ped">Nuevo pedido</button><button class="boton terra" id="ec-ab">${ico('i-mas')}Registrar abono</button>`);
   $$('[data-rdet]', $('#velo')).forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
@@ -13661,7 +13668,7 @@ function recEstadoCuenta(a, key) {
 function recDetalle(id) {
   const o = (S.rec || []).find(x => x.id === id); if (!o) return;
   const a = o.act ? recAct(o.act) : null, d = o.datos;
-  const titulo = { pedido: 'Pedido', abono: 'Abono · folio ' + (d.folio || ''), compra: 'Entrega del proveedor', pago: 'Pago al proveedor', mov: d.clase === 'traspaso' ? 'Traspaso caja ↔ banco' : d.clase === 'ingreso' ? 'Ingreso' : 'Gasto o egreso' }[o.tipo];
+  const titulo = { pedido: 'Entrega a escuela' + (d.folio ? ' · folio ' + d.folio : ''), abono: 'Abono · folio ' + (d.folio || ''), compra: 'Entrega del proveedor', pago: 'Pago al proveedor', mov: d.clase === 'traspaso' ? 'Traspaso caja ↔ banco' : d.clase === 'ingreso' ? 'Ingreso' : 'Gasto o egreso' }[o.tipo];
   const monto = o.tipo === 'pedido' ? recTotal(d.lineas, 'precio') : o.tipo === 'compra' ? recTotal(d.lineas, 'costo') : finN(d.monto);
   const lins = (d.lineas || []).filter(l => finN(l.cant));
   modal(esc(titulo) + ' · ' + fechaCorta(o.fecha), `<div class="fin-det">
@@ -13670,13 +13677,13 @@ function recDetalle(id) {
     <div class="peq mudo">${a ? esc(a.datos.nombre) + ' · ' : ''}${d.cat ? esc(d.cat) + ' · ' : ''}${d.forma ? esc(d.forma) + ' · ' : ''}${d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Del banco a caja' : 'De caja al banco') : d.medio ? (d.medio === 'banco' ? 'Banco' : 'Caja') : ''}${d.ref ? ' · Ref. ' + esc(d.ref) : ''}</div>
     ${lins.length ? `<table class="fin-tabla" style="margin-top:10px"><tbody>${lins.map(l => `<tr><td>${finN(l.cant)} × ${esc(l.nombre)}</td><td class="d">${finM(l[o.tipo === 'compra' ? 'costo' : 'precio'])}</td><td class="d">${finM(finN(l.cant) * finN(l[o.tipo === 'compra' ? 'costo' : 'precio']))}</td></tr>`).join('')}</tbody></table>` : ''}
     ${d.obs ? `<p class="peq" style="margin-top:8px"><b>Observaciones:</b> ${esc(d.obs)}</p>` : ''}${finHistorial(o)}</div>`,
-    `<button class="boton peligro" id="rx-del" style="margin-right:auto">Eliminar</button>${o.tipo === 'abono' ? '<button class="boton sec" id="rx-rec">Recibo (PDF)</button>' : ''}<button class="boton terra" id="rx-ed">${ico('i-lapiz')}Editar</button>`);
+    `<button class="boton peligro" id="rx-del" style="margin-right:auto">Eliminar</button>${o.tipo === 'abono' ? '<button class="boton sec" id="rx-rec">Recibo (PDF)</button>' : o.tipo === 'pedido' ? '<button class="boton sec" id="rx-rec">Recibo de entrega (PDF)</button>' : ''}<button class="boton terra" id="rx-ed">${ico('i-lapiz')}Editar</button>`);
   $('#rx-ed').onclick = () => {
     if (o.tipo === 'mov') return recFormMov(o);
     if (!a) return aviso('La actividad de este registro está eliminada.', 'mal');
     ({ pedido: recFormPedido, abono: recFormAbono, compra: recFormCompra, pago: recFormPago })[o.tipo](a, o);
   };
-  if ($('#rx-rec')) $('#rx-rec').onclick = () => recRecibo(o);
+  if ($('#rx-rec')) $('#rx-rec').onclick = () => o.tipo === 'pedido' ? recReciboEntrega(o) : recRecibo(o);
   $('#rx-del').onclick = () => recEliminar(o, 'este registro de ' + finM(monto));
 }
 
@@ -13716,6 +13723,9 @@ function recFormAct(prev) {
     <div class="campo"><span class="et">Productos y precios</span><div class="ayuda" style="margin-bottom:6px">Costo: lo que nos cobra el proveedor por pieza. Precio: lo que paga la escuela por pieza.</div>
       <div class="fin-lin rec-lin3 ayuda" style="margin-bottom:2px"><span>Producto</span><span>Costo</span><span>Precio</span><span></span></div>
       <div id="ra-prods"></div><button class="enlace" id="ra-mas">+ Agregar producto</button></div>
+    <div class="campo"><label for="ra-dest">Destino de los fondos (aparece en los recibos)</label><input id="ra-dest" maxlength="200" value="${esc(d.destino || '')}" placeholder="Ej. Apoyo a la creación de software y mantenimiento de plataformas"></div>
+    ${esAdmin() ? `<div class="campo"><span class="et">¿Qué ATP pueden verla y capturar?</span><div class="ayuda" style="margin-bottom:6px">Si no marca a nadie, la ven todos los ATP. Usted siempre la ve.</div>
+      <div class="checklist">${atps().map(u => `<label class="chk-fila"><input type="checkbox" data-rver="${esc(u.id)}" ${(d.ver || []).includes(u.id) ? 'checked' : ''}> ${esc(u.nombre)}</label>`).join('') || '<span class="ayuda">No hay ATP registrados.</span>'}</div></div>` : ''}
     <div class="campo"><label for="rf-obs">Notas</label><textarea id="rf-obs" rows="2">${esc(d.obs || '')}</textarea></div>`, recPie());
   const pintar = () => {
     $('#ra-prods').innerHTML = d.productos.map((p, i) => `<div class="fin-lin rec-lin3"><input data-pn="${i}" value="${esc(p.nombre)}" placeholder="Ej. Guía 3.er grado" aria-label="Producto"><input class="d" data-pc="${i}" inputmode="decimal" value="${esc(p.costo)}" placeholder="0.00" aria-label="Costo"><input class="d" data-pp="${i}" inputmode="decimal" value="${esc(p.precio)}" placeholder="0.00" aria-label="Precio"><button class="icono-btn" data-px="${i}" aria-label="Quitar">${ico('i-x')}</button></div>`).join('');
@@ -13731,7 +13741,8 @@ function recFormAct(prev) {
   pintar();
   $('#ra-mas').onclick = () => { d.productos.push({ id: 'p' + Date.now().toString(36), nombre: '', costo: '', precio: '' }); pintar(); };
   recPieEnlazar(() => {
-    d.nombre = recVal('ra-nom').trim(); d.proveedor = recVal('ra-prov').trim(); d.contacto = recVal('ra-cont').trim(); d.obs = recVal('rf-obs').trim();
+    d.nombre = recVal('ra-nom').trim(); d.proveedor = recVal('ra-prov').trim(); d.contacto = recVal('ra-cont').trim(); d.obs = recVal('rf-obs').trim(); d.destino = recVal('ra-dest').trim();
+    if (esAdmin()) d.ver = $$('[data-rver]').filter(e => e.checked).map(e => e.dataset.rver);
     d.productos = d.productos.filter(p => p.nombre.trim()).map(p => ({ id: p.id, nombre: p.nombre.trim(), costo: String(finN(p.costo)), precio: String(finN(p.precio)) }));
     if (!d.nombre) return aviso('Escriba el nombre de la actividad.', 'mal');
     recGuardar({ id: prev ? prev.id : '', tipo: 'act', fecha: recVal('rf-fecha'), datos: d }, prev ? 'Actividad actualizada.' : 'Actividad creada.', o => { if (!prev) { vista.fin.rec.act = o.id; vista.fin.rec.sub = d.productos.length ? 'resumen' : 'datos'; vFinanzas(); } });
@@ -13762,7 +13773,36 @@ function recFormLineas(a, prev, k, titulo, extra, alGuardar) {
   });
 }
 function recFormPedido(a, prev, base) {
-  recFormLineas(a, prev, 'precio', prev ? 'Editar pedido' : 'Pedido de escuela', base || {}, (d, f) => recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'pedido', fecha: f, datos: d }, 'Pedido registrado: ' + recCliNom(d) + ' debe ' + finM(recTotal(d.lineas, 'precio')) + ' más.'));
+  recFormLineas(a, prev, 'precio', prev ? 'Editar entrega a escuela' : 'Entrega a escuela', base || {}, (d, f) => {
+    const e = escuelaDe(d.cliente); if (e) d.director = e.nombre || '';
+    recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'pedido', fecha: f, datos: d }, 'Entrega registrada: ' + recCliNom(d) + ' debe ' + finM(recTotal(d.lineas, 'precio')) + ' más.', o => { if (!prev) recAvisoEntrega(o); });
+  });
+}
+function recAvisoEntrega(o) {
+  modal('Entrega registrada' + (o.datos.folio ? ' · folio ' + esc(o.datos.folio) : ''), `<div class="fin-det-monto">${finM(recTotal(o.datos.lineas, 'precio'))}<span class="ayuda">${esc(recCliNom(o.datos))}</span></div><p>¿Descarga el recibo de entrega para que lo firme la dirección?</p>`,
+    '<button class="boton sec" id="ra-no">Ahora no</button><button class="boton terra" id="ra-si">Recibo de entrega (PDF)</button>');
+  $('#ra-no').onclick = cerrarModal; $('#ra-si').onclick = () => { recReciboEntrega(o); cerrarModal(); };
+}
+// Recibo de lo que se lleva la escuela: lo firma la dirección (original para la escuela y copia para la Supervisión)
+function recReciboEntrega(o) {
+  const a = recAct(o.act) || { datos: { nombre: '' } }, d = o.datos, l = recMovsCli(a, d.cliente), i = l.findIndex(f => f.o.id === o.id);
+  const tot = recTotal(d.lineas, 'precio'), despues = i >= 0 ? l[i].s : tot, antes = recR(despues - tot);
+  const esc1 = !String(d.cliente).startsWith('p:'), e = esc1 ? escuelaDe(d.cliente) : null, dir = (e && e.nombre) || d.director || '';
+  const lins = (d.lineas || []).filter(x => finN(x.cant));
+  const uno = tag => `<div class="rec">
+    <div><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Recibo de entrega · ${esc(a.datos.nombre)}</div></div>
+    <div class="fol">Folio<b>${esc(d.folio || o.id.slice(-6).toUpperCase())}</b>${esc(finFechaTxt(o.fecha))}</div>
+    <table style="margin-top:20px"><tbody>
+      <tr><td style="width:130px">Recibe</td><td><b>${esc(recCliNom(d))}</b>${esc1 ? ' · CCT ' + esc(d.cliente) : ''}${dir ? '<br>' + esc(dir) : ''}</td></tr>
+      ${a.datos.destino ? `<tr><td>Destino de los fondos</td><td>${esc(a.datos.destino)}</td></tr>` : ''}</tbody></table>
+    <table style="margin-top:8px"><thead><tr><th>Cantidad</th><th>Producto</th><th class="d">Precio c/u</th><th class="d">Importe</th></tr></thead>
+      <tbody>${lins.map(x => `<tr><td>${finN(x.cant)}</td><td>${esc(x.nombre)}</td><td class="d">${finM(x.precio)}</td><td class="d">${finM(finN(x.cant) * finN(x.precio))}</td></tr>`).join('')}</tbody></table>
+    <table style="margin-top:8px;width:62%;margin-left:auto"><tbody>${antes ? `<tr><td>Adeudo anterior</td><td class="d">${finM(antes)}</td></tr>` : ''}<tr><td>Esta entrega</td><td class="d">${finM(tot)}</td></tr>
+      <tr><td><b>Total a cubrir</b></td><td class="d"><b>${finM(despues)}</b></td></tr></tbody></table>
+    ${d.obs ? `<div style="margin-top:6px;font-size:11px">Obs.: ${esc(d.obs)}</div>` : ''}
+    <div style="display:flex;gap:40px;margin-top:34px;font-size:11px;text-align:center"><div style="flex:1;border-top:1px solid #222;padding-top:4px">Recibí de conformidad<br><b>${esc(dir || 'Nombre y firma')}</b></div><div style="flex:1;border-top:1px solid #222;padding-top:4px">Entregó<br><b>${esc(o.creadoNombre || 'Supervisión Escolar')}</b></div></div>
+    <div class="tag">${tag}</div></div>`;
+  recPdf(`<div style="padding:40px 48px">${uno('Original · escuela')}<div class="corte"><span>✂ cortar aquí</span></div>${uno('Copia · Supervisión')}</div>`, 'Recibo de entrega ' + (d.folio || '') + ' ' + recCliNom(d));
 }
 function recFormCompra(a, prev) {
   recFormLineas(a, prev, 'costo', prev ? 'Editar entrega del proveedor' : 'Entrega del proveedor', null, (d, f) => recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'compra', fecha: f, datos: d }, 'Entrega registrada. Se suma a lo que le debemos al proveedor.'));
@@ -13874,7 +13914,7 @@ function recHtmlEstado(a, key, nom, l) {
   return `<div style="padding:44px 52px"><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Estado de cuenta · ${esc(a.datos.nombre)} · al ${esc(finFechaTxt(hoy()))}</div>
     <p style="margin:18px 0 10px"><b>${esc(nom)}</b>${!String(key).startsWith('p:') ? ' · CCT ' + esc(key) : ''}</p>
     <table><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
-    <tbody>${l.map(f => `<tr><td>${esc(f.o.fecha.split('-').reverse().join('/'))}</td><td>${f.o.tipo === 'pedido' ? 'Pedido: ' + esc((f.o.datos.lineas || []).map(x => finN(x.cant) + ' × ' + x.nombre + ' a ' + finM(x.precio)).join('; ')) : 'Abono, folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+    <tbody>${l.map(f => `<tr><td>${esc(f.o.fecha.split('-').reverse().join('/'))}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).map(x => finN(x.cant) + ' × ' + x.nombre + ' a ' + finM(x.precio)).join('; ')) : 'Abono, folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
       <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d">${finM(f.s)}</td></tr>`).join('')}</tbody></table>
     <p style="text-align:right;font-size:15px;margin-top:16px"><b>${s > 0 ? 'Saldo pendiente' : s < 0 ? 'Saldo a favor' : 'Liquidado'}: ${finM(Math.abs(s))}</b></p></div>`;
 }
@@ -13897,9 +13937,10 @@ async function recPdf(html, nombre) {
 function recArmarDemo(lista, d, yo) {
   const prev = d.id ? lista.find(x => x.id === d.id) : null, ah = new Date().toISOString().slice(0, 19), fecha = d.fecha || hoy(), datos = d.datos || {};
   const id = prev ? prev.id : 'rec-' + Math.random().toString(36).slice(2, 12);
-  if (d.tipo === 'abono') {
+  if (d.tipo === 'abono' || d.tipo === 'pedido') {
+    const F = d.tipo === 'abono' ? 'AR-' : 'EN-';
     if (prev && prev.datos.folio) { datos.folio = prev.datos.folio; datos.folioN = prev.datos.folioN; }
-    else { const y = fecha.slice(0, 4), n = lista.filter(x => x.tipo === 'abono' && String(x.datos.folio || '').startsWith('AR-' + y + '-')).reduce((m, x) => Math.max(m, +x.datos.folioN || 0), 0) + 1; datos.folioN = String(n); datos.folio = 'AR-' + y + '-' + String(n).padStart(4, '0'); }
+    else { const y = fecha.slice(0, 4), n = lista.filter(x => x.tipo === d.tipo && String(x.datos.folio || '').startsWith(F + y + '-')).reduce((m, x) => Math.max(m, +x.datos.folioN || 0), 0) + 1; datos.folioN = String(n); datos.folio = F + y + '-' + String(n).padStart(4, '0'); }
   }
   return { id, act: d.tipo === 'act' ? id : (d.act || ''), tipo: d.tipo, fecha, datos, activo: true, creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre,
     creado: prev ? prev.creado : ah, actualizado: ah, actualizadoPor: yo.id, historial: ((prev && prev.historial) || []).concat([{ f: ah, por: yo.id, nom: yo.nombre, a: prev ? 'edito' : 'creo' }]) };

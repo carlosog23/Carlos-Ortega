@@ -254,7 +254,7 @@ const NOMBRES = { tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Diná
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas' };
-const VERSION = 78;
+const VERSION = 79;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -1432,7 +1432,9 @@ const ACCIONES = {
   recDatos: (yo, d) => {
     soloMesa_(yo);
     const l = leer_('rec');
-    return { rec: yo.rol === 'admin' ? l : l.filter(x => x.activo) };
+    if (yo.rol === 'admin') return { rec: l };
+    const oc = {}; l.forEach(x => { if (x.tipo === 'act' && !recPuedeVer_(yo, x)) oc[x.id] = 1; });
+    return { rec: l.filter(x => x.activo && !oc[x.tipo === 'act' ? x.id : x.act]) };
   },
   // Crea o edita un registro. Los abonos llevan folio consecutivo de seguimiento (AR-año-0001) que no cambia al editarse.
   recGuardar: (yo, d) => {
@@ -1450,7 +1452,21 @@ const ACCIONES = {
     const id = prev ? prev.id : 'rec-' + Utilities.getUuid().slice(0, 10);
     let act = tipo === 'act' ? id : String(d.act || '');
     if (tipo !== 'act' && tipo !== 'mov' && !todos.some(x => x.tipo === 'act' && x.id === act && x.activo)) throw new Error('La actividad no existe o está eliminada.');
+    const laAct = todos.find(x => x.tipo === 'act' && x.id === act);
+    if (laAct && laAct.id !== id && !recPuedeVer_(yo, laAct)) throw new Error('No tiene acceso a esta actividad.');
+    if (prev && tipo === 'act' && !recPuedeVer_(yo, prev)) throw new Error('No tiene acceso a esta actividad.');
+    // Solo la Supervisión elige qué ATP ven la actividad
+    if (tipo === 'act') { if (yo.rol === 'admin') datos.ver = Array.isArray(datos.ver) ? datos.ver.map(String).slice(0, 30) : []; else datos.ver = prev ? ((prev.datos || {}).ver || []) : []; }
     if (tipo === 'mov' && act && !todos.some(x => x.tipo === 'act' && x.id === act)) act = '';
+    if (tipo === 'pedido') {
+      // Folio de los recibos de entrega (EN-año-0001)
+      if (prev && (prev.datos || {}).folio) { datos.folio = prev.datos.folio; datos.folioN = prev.datos.folioN; }
+      else {
+        const anio = fecha.slice(0, 4), n = todos.filter(x => x.tipo === 'pedido' && String((x.datos || {}).folio || '').indexOf('EN-' + anio + '-') === 0)
+          .reduce((m, x) => Math.max(m, parseInt(x.datos.folioN, 10) || 0), 0) + 1;
+        datos.folioN = String(n); datos.folio = 'EN-' + anio + '-' + ('000' + n).slice(-4);
+      }
+    }
     if (tipo === 'abono') {
       if (prev && (prev.datos || {}).folio) { datos.folio = prev.datos.folio; datos.folioN = prev.datos.folioN; }
       else {
@@ -1469,6 +1485,8 @@ const ACCIONES = {
     soloMesa_(yo);
     const o = buscar_('rec', String(d.id || ''));
     if (!o) throw new Error('No se encontró el registro.');
+    const laAct = buscar_('rec', o.tipo === 'act' ? o.id : String(o.act || ''));
+    if (laAct && !recPuedeVer_(yo, laAct)) throw new Error('No tiene acceso a esta actividad.');
     o.activo = false; o.actualizado = ahora_(); o.actualizadoPor = yo.id;
     o.historial = (o.historial || []).concat([{ f: ahora_(), por: yo.id, nom: yo.nombre, a: 'elimino' }]).slice(-40);
     guardar_('rec', o);
@@ -5720,6 +5738,12 @@ function nuevoEnlace_(id) {
   guardar_('usr', u);
   const s = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL') || ScriptApp.getService().getUrl();
   return PAGINA + '#s=' + encodeURIComponent(s) + '&k=' + k;
+}
+
+// Actividades recaudatorias: si la Supervisión eligió ATP (datos.ver), solo ellos y la Supervisión la ven
+function recPuedeVer_(yo, act) {
+  const v = (act && act.datos && act.datos.ver) || [];
+  return yo.rol === 'admin' || !v.length || v.indexOf(yo.id) >= 0;
 }
 
 function sha_(s) {
