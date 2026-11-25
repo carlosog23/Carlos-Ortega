@@ -7137,7 +7137,7 @@ function vResponder() {
     leer();
     if (!r.msg.trim() && !r.fotos.length) return aviso('Pegue el mensaje o adjunte la captura.', 'mal');
     if (ajustar && !r.ajuste.trim()) return aviso('Escriba qué ajuste quiere.', 'mal');
-    btn.disabled = true; const t0 = btn.innerHTML; btn.textContent = 'Tlami está escribiendo…';
+    btn.disabled = true; const t0 = btn.innerHTML; btn.textContent = 'Tlami está escribiendo… (tarda de 30 segundos a un minuto)';
     try {
       const x = await api('dudBorrador', { mensaje: r.msg, de: r.de, archivos: r.fotos, anterior: ajustar ? r.resp : '', instruccion: ajustar ? r.ajuste : '' });
       const b = x.borrador; r.resp = b.respuesta; r.tema = b.tema || r.tema; r.aviso = b.aviso; r.puede = b.puede; if (!r.de && b.de) r.de = b.de; if (ajustar) r.ajuste = '';
