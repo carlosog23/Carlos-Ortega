@@ -599,15 +599,15 @@ async function accesoSup() {
   if (!e) return "no"; if (e.anulado || e.gen !== A.generacion) return "anulado"; if (e.vence < hoy()) return "vencido";
   if (!(e.rol === "supervisor" || (e.apps || []).includes("ulamasup"))) return "rol"; return "ok"; }
 function vAccesoSup() { if (ACC_SUP === "revisando") return `<main class="wrap"><section class="portada">${marca()}<h1>Comprobando su acceso…</h1></section></main>`;
-  const T = { sin: ["Espacio de acceso por invitación", "Este espacio se abre con el enlace personal que le envió la Supervisión Escolar Zona 050. Ábralo desde su correo o péguelo aquí abajo."],
-    vencido: ["Su enlace ya venció", "Pida a la Supervisión Escolar Zona 050 que lo renueve. Sus datos siguen guardados en este dispositivo."],
+  const T = { sin: ["Espacio de acceso por invitación", "Este espacio se abre con el enlace personal que le envió su desarrollador, el Mtro. Carlos Gabriel Ortega Gutiérrez. Ábralo desde su correo o péguelo aquí abajo."],
+    vencido: ["Su enlace ya venció", "Pida que se lo renueven al correo de abajo. Sus datos siguen guardados en este dispositivo."],
     anulado: ["Este enlace ya no es válido", "Fue reemplazado por uno nuevo. Use el más reciente que le enviaron. Sus datos siguen guardados en este dispositivo."],
     no: ["Este enlace no está registrado", "Revise que lo haya copiado completo o pida uno nuevo."],
     rol: ["Este enlace es de otra herramienta", "El espacio de supervisión se abre solo con un enlace de supervisor."],
     sinred: ["Necesita internet esta primera vez", "Conéctese una vez para comprobar su enlace; después el espacio funciona sin conexión."] }[ACC_SUP] || ["Acceso", ""];
   return `<main class="wrap"><section class="portada">${marca()}<h1>${T[0]}</h1><p>${T[1]}</p></section>
   <section class="card mt"><label class="campo"><span>Su enlace de acceso</span><input id="aTok" type="url" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="https://…/supervision/#acceso=…"></label><div class="fila fin"><button class="btn p" id="aOk">Entrar</button></div></section>
-  <section class="card mt"><h3>¿No tiene enlace?</h3><p class="small muted">Solicítelo a la Supervisión Escolar Zona 050: <b>cortegagutierrez@bcedu.mx</b> o WhatsApp <b>661 850 1585</b>.</p><p class="small mt"><button class="btn s" id="aSup">${ic("sup")} Soy la Supervisión Zona 050</button></p></section></main>`; }
+  <section class="card mt"><h3>¿No tiene enlace?</h3><p class="small muted">Solicítelo al desarrollador, Mtro. Carlos Gabriel Ortega Gutiérrez: <b>cortegagutierrez@bcedu.mx</b> o WhatsApp <b>661 850 1585</b>.</p><p class="small mt"><button class="btn s" id="aSup">${ic("sup")} Soy el desarrollador</button></p></section></main>`; }
 function enlAccesoSup() { const ok = $("#aOk"); if (!ok) return;
   ok.onclick = async () => { const t = String(val("aTok") || "").replace(/\s+/g, "").replace(/%23/gi, "#").replace(/%3D/gi, "="), m = t.match(/acceso=([A-Za-z0-9_-]{10,})/) || t.match(/^([A-Za-z0-9_-]{10,})$/);
     if (!m) return toast("Pegue el enlace completo, que termina en «#acceso=…»."); D.tok = m[1]; guardar(); ACC_SUP = await accesoSup(); pintar(); if (ACC_SUP === "ok") toast("¡Bienvenido!"); };
