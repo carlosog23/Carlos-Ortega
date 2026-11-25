@@ -238,6 +238,7 @@ dd{margin:0;min-width:0;overflow-wrap:anywhere}
       <span><b>Centro de Apps</b><span>Mtro. Carlos Gabriel Ortega Gutiérrez</span></span>
     </button>
     <button class="btn" id="instalar" hidden style="padding:7px 12px">Instalar app</button>
+    <a class="btn" id="genEnl" href="enlaces.html" hidden style="padding:7px 12px;text-decoration:none">Generador de enlaces</a>
     <div class="seg" id="seg" hidden>
       <button data-m="use" aria-pressed="false">Usar</button>
       <button data-m="admin" aria-pressed="false">Administrar</button>
@@ -454,7 +455,7 @@ let mode="gate", adminOk=false, sel="tlamatini";
 document.getElementById("today").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 const saludo=()=>{const h=new Date().getHours();return h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"};
 
-function setSeg(){seg.hidden=mode==="gate"||mode==="pin";seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode))}
+function setSeg(){seg.hidden=mode==="gate"||mode==="pin";document.getElementById("genEnl").hidden=seg.hidden;seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode))}
 seg.onclick=e=>{const m=e.target.dataset?.m;if(m==="use")renderUse();if(m==="admin")adminOk?renderAdmin():renderPin()};
 document.getElementById("home").onclick=renderGate;
 

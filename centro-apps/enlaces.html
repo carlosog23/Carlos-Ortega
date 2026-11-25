@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Generador de enlaces · Supervisión Zona 050</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<!-- © 2026 Mtro. Carlos Gabriel Ortega Gutiérrez · Supervisión Escolar Zona 050 (ISEP), Baja California.
+     Generador de enlaces: un solo lugar para crear, renovar y anular los enlaces personales de todas las apps.
+     - Tlamatini (y Tlamatini Aula), Ulama y Ulama · Supervisión: los enlaces viven en su acceso.json del repositorio,
+       que guarda solo la huella SHA-256 de cada enlace. Se escriben con la clave de la Supervisión (token de GitHub).
+     - Tequio: los enlaces viven en su servidor; se usan la llave de Tequio guardada en este equipo y sus usuarios. -->
+<style>
+:root{--bg:#f2f4f7;--panel:#fff;--panel-2:#e9edf2;--ink:#0d1a2b;--muted:#5a6779;--line:#d9dfe7;--accent:#1b4fb8;--ok:#1f7a4d;--ok-bg:#e3f3ea;--warn:#9a5b00;--warn-bg:#fdf0d9;--bad:#b3261e;--bad-bg:#fbe5e3;
+ --f-display:"Schibsted Grotesk","Segoe UI",system-ui,sans-serif;--f-body:"Inter","Segoe UI",system-ui,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--r:16px}
+@media (prefers-color-scheme:dark){:root{--bg:#0a111b;--panel:#111b28;--panel-2:#172333;--ink:#e7edf5;--muted:#93a3b8;--line:#223146;--accent:#6f9cff;--ok:#5cc596;--ok-bg:#12291f;--warn:#f0b35a;--warn-bg:#2b2112;--bad:#ff8a80;--bad-bg:#2e1514;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-bottom:40px}
+h1,h2,h3{font-family:var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1040px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
+.top img{width:38px;height:38px;border-radius:11px}.top .t b{display:block;font:800 17px/1.15 var(--f-display)}.top .t span{font-size:12.5px;color:var(--muted)}
+.top .der{margin-left:auto;display:flex;gap:6px}
+.tabs{display:flex;gap:4px;background:var(--panel-2);padding:4px;border-radius:12px}.tabs button{border:0;background:none;padding:7px 13px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}.tabs button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px #0002}
+main{max-width:1040px;margin:0 auto;padding:20px 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}.card+.card{margin-top:14px}
+.paso{display:flex;align-items:center;gap:10px;margin:22px 0 10px}.paso i{font:700 13px/1 var(--f-mono);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-style:normal}.paso h2{font-size:18px}
+.apps{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.app{display:flex;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--panel);border-radius:14px;padding:12px;cursor:pointer}
+.app img{width:44px;height:44px;border-radius:12px;flex:none;background:#fff;object-fit:contain}.app b{display:block;font:700 15.5px/1.2 var(--f-display)}.app small{color:var(--muted);font-size:12.5px;line-height:1.3;display:block}
+.app[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.roles{display:flex;flex-wrap:wrap;gap:8px}.rol{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 15px;font-weight:600;cursor:pointer}.rol[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--accent)}
+.rol:disabled{opacity:.4;cursor:not-allowed}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+label.campo{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+label.campo input,label.campo select,label.campo textarea,.filtros input,.filtros select{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 11px;font-size:15px;font-weight:400;color:var(--ink);width:100%}
+label.campo small{font-weight:400}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:9px 15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--ink);font-size:14.5px}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}.btn.wa{background:#1f8f4e;border-color:#1f8f4e;color:#fff}.btn.r{color:var(--bad)}.btn.chico{padding:6px 11px;font-size:13px;border-radius:9px}.btn:disabled{opacity:.55;cursor:wait}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.fin{justify-content:flex-end}.mt{margin-top:14px}.muted{color:var(--muted)}.small{font-size:13px}
+.aviso{background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:11px 14px;font-size:14px}
+.okc{background:var(--ok-bg);color:var(--ok);border-radius:12px;padding:11px 14px;font-size:14px}
+.enlace{font:500 13.5px/1.45 var(--f-mono);background:var(--panel-2);border-radius:10px;padding:11px 13px;word-break:break-all;user-select:all}
+.listo{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}@media (max-width:680px){.listo{grid-template-columns:1fr}}
+#qr{background:#fff;padding:10px;border-radius:12px;width:180px}#qr img,#qr canvas{width:160px!important;height:160px!important;display:block}
+textarea.msj{width:100%;min-height:150px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel);font-size:14px;resize:vertical}
+.filtros{display:grid;gap:8px;grid-template-columns:2fr 1fr 1fr 1fr;margin-bottom:12px}@media (max-width:700px){.filtros{grid-template-columns:1fr 1fr}}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}td b{font-weight:600}td .small{display:block}
+.chip{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}.chip.vigente{background:var(--ok-bg);color:var(--ok)}.chip.vencido{background:var(--warn-bg);color:var(--warn)}.chip.anulado{background:var(--bad-bg);color:var(--bad)}.chip.app{background:var(--panel-2);color:var(--ink)}
+.acc{display:flex;gap:5px;flex-wrap:nowrap;justify-content:flex-end}td:last-child{white-space:nowrap}
+@media (max-width:700px){thead{display:none}tr{display:block;border-bottom:1px solid var(--line);padding:8px 0}td{display:block;border:0;padding:3px 4px}.acc{justify-content:flex-start}}
+.ctl{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.ctl .card{margin:0}.ctl h3{font-size:16px;display:flex;align-items:center;gap:9px}.ctl h3 img{width:28px;height:28px;border-radius:8px;background:#fff}
+.sw{display:flex;align-items:center;gap:10px;margin:10px 0}.sw input{width:20px;height:20px}
+.velo{position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:20;padding:16px}.dlg{background:var(--panel);border-radius:18px;padding:20px;max-width:460px;width:100%;max-height:90vh;overflow:auto}.dlg h3{margin-bottom:8px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none;z-index:30;font-size:14px;max-width:92vw}.toast.ver{opacity:1;transform:translateX(-50%)}
+.vacio{text-align:center;color:var(--muted);padding:26px}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a href="./" title="Centro de Apps"><img src="icon-192.png" alt="Centro de Apps"></a>
+  <div class="t"><b>Generador de enlaces</b><span>Supervisión Escolar Zona 050 · Todas las apps</span></div>
+  <div class="der"><div class="tabs" id="tabs" hidden><button data-t="nuevo" aria-pressed="true">Nuevo enlace</button><button data-t="lista" aria-pressed="false">Enlaces</button><button data-t="control" aria-pressed="false">Control</button></div></div>
+</div></header>
+<main id="vista"></main>
+<div class="toast" id="toast" role="status"></div>
+<script src="qrcode.min.js"></script>
+<script>
+"use strict";
+const REPO = { owner: "carlosog23", repo: "carlos-ortega", branch: "main" };
+const BASE = new URL("../", location.href).href; // raíz del sitio en GitHub Pages
+const FIN_CICLO = "2027-07-06", CONTACTO = "cortegagutierrez@bcedu.mx · WhatsApp 661 850 1585";
+const ROLES = { maestro: "Maestro(a)", director: "Director(a)", atp: "ATP", supervisor: "Supervisor(a)", escuela: "Escuela completa" };
+const APPS = [
+  { id: "tlamatini", nombre: "Tlamatini", sub: "Gestión escolar · también abre Tlamatini Aula", icono: "../formatos-ppie/img/tlamatini-icono-192.png", archivo: "formatos-ppie/formatos/acceso.json", url: "formatos-ppie/", extra: [["Tlamatini Aula", "tlamatini-aula/"]], roles: ["maestro", "director", "atp", "supervisor", "escuela"],
+    desc: "la plataforma de gestión escolar de la Supervisión Escolar Zona 050 (formatos del PPIE, laborales y pedagógicos)" },
+  { id: "ulama", nombre: "Ulama", sub: "Educación Física · para maestros", icono: "../educacion-fisica/img/ulama-icono-192.png", archivo: "educacion-fisica/acceso.json", url: "educacion-fisica/", roles: ["maestro", "supervisor"],
+    desc: "la herramienta para planear, pasar lista y evaluar las clases de Educación Física" },
+  { id: "ulamasup", nombre: "Ulama · Supervisión", sub: "Espacio del supervisor de Educación Física", icono: "../educacion-fisica/supervision/img/sup-icono-192.png", archivo: "educacion-fisica/acceso.json", url: "educacion-fisica/supervision/", roles: ["supervisor"],
+    desc: "su espacio de supervisión de Educación Física (visitas, horarios, cronograma, permisos e incidencias)" },
+  { id: "tequio", nombre: "Tequio", sub: "Asesoría y seguimiento · directores y ATP", icono: "../tequio/img/tequio-logo-192.png", servidor: true, url: "tequio/", roles: ["director", "atp"],
+    desc: "la agenda de asesoría y seguimiento de la Supervisión Escolar Zona 050" }
+];
+const appDe = id => APPS.find(a => a.id === id);
+/* a qué app pertenece cada enlace de un archivo */
+const appDeEnlace = (archivo, e) => archivo === "educacion-fisica/acceso.json" ? ((e.app === "ulamasup" || (e.apps || []).includes("ulamasup")) ? "ulamasup" : "ulama") : "tlamatini";
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"), hoy = () => iso(new Date());
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const fechaLarga = f => { if (!f) return ""; const [a, m, d] = f.split("-").map(Number); return `${d} de ${MESES[m - 1]} de ${a}`; };
+const masDias = n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+function toast(t, ms = 2800) { const x = $("#toast"); x.innerHTML = t; x.classList.add("ver"); clearTimeout(toast.t); toast.t = setTimeout(() => x.classList.remove("ver"), ms); }
+function dlg(html, alAbrir) { cerrarDlg(); const v = document.createElement("div"); v.className = "velo"; v.id = "velo"; v.innerHTML = `<div class="dlg" role="dialog" aria-modal="true">${html}</div>`; v.onclick = e => { if (e.target === v) cerrarDlg(); }; document.body.appendChild(v); alAbrir && alAbrir(v); }
+const cerrarDlg = () => { const v = $("#velo"); v && v.remove(); };
+async function copiar(t, msg) { try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); } toast(msg || "Copiado"); }
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); if (v == null) return d; try { return JSON.parse(v); } catch (e) { return v; } } catch (e) { return d; } };
+const ghTok = () => lsGet("gh-token", "");
+const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, "0")).join("");
+const nuevoToken = () => { const a = new Uint8Array(18); crypto.getRandomValues(a); return btoa(String.fromCharCode(...a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+const estado = (e, gen) => e.anulado || e.gen !== gen ? "anulado" : e.vence < hoy() ? "vencido" : "vigente";
+const trato = (rol, gen) => rol === "escuela" ? "" : gen === "f" ? (rol === "supervisor" ? "Mtra." : "Mtra.") : "Mtro.";
+
+/* ---------- GitHub: archivos de acceso ---------- */
+const ghHdr = () => ({ Authorization: "Bearer " + ghTok(), Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" });
+const ghURL = p => `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents/${p}`;
+const b64enc = s => btoa(unescape(encodeURIComponent(s))), b64dec = s => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
+const ARCH = {}; // ruta → { d, sha }
+async function leer(p) { const r = await fetch(ghURL(p) + "?ref=" + REPO.branch + "&t=" + Date.now(), { headers: ghHdr(), cache: "no-store" });
+  if (r.status === 404) return (ARCH[p] = { d: { activo: true, generacion: 1, actualizado: hoy(), enlaces: [] }, sha: null });
+  if (!r.ok) { const e = new Error("http " + r.status); e.status = r.status; throw e; } const j = await r.json(); return (ARCH[p] = { d: JSON.parse(b64dec(j.content)), sha: j.sha }); }
+async function guardar(p, cambio, msg) { for (let k = 0; k < 3; k++) { const A = await leer(p); cambio(A.d); A.d.actualizado = hoy();
+    const body = { message: msg, content: b64enc(JSON.stringify(A.d, null, 2) + "\n"), branch: REPO.branch }; if (A.sha) body.sha = A.sha;
+    const r = await fetch(ghURL(p), { method: "PUT", headers: Object.assign(ghHdr(), { "Content-Type": "application/json" }), body: JSON.stringify(body) });
+    if (r.ok) { A.sha = (await r.json()).content.sha; return A.d; } if (r.status !== 409 && r.status !== 422) throw new Error("http " + r.status); } throw new Error("conflicto"); }
+const archivos = () => [...new Set(APPS.filter(a => a.archivo).map(a => a.archivo))];
+async function leerTodos() { await Promise.all(archivos().map(leer)); }
+
+/* ---------- Tequio: su servidor ---------- */
+const tqCfg = () => { const c = lsGet("tequio.cfg", null); return c && c.s && c.k ? c : null; };
+async function tq(accion, datos) { const c = tqCfg(); if (!c) throw new Error("sin-tequio");
+  const r = await (await fetch(c.s, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ k: c.k, accion, datos: datos || {} }) })).json();
+  if (!r.ok) throw new Error(r.mensaje || "Error del servidor de Tequio"); return r; }
+let TQ = null; // { usr, dir, zona }
+async function tqCargar(forzar) { if (TQ && !forzar) return TQ; const r = await tq("datos"); TQ = { usr: r.usr || [], dir: r.dir || [], yo: r.yo }; return TQ; }
+const tqRol = u => u.rol === "director" ? "director" : u.rol === "atp" ? "atp" : u.rol === "admin" ? "supervisor" : u.rol;
+
+/* ---------- estado de la pantalla ---------- */
+let T = "nuevo", N = { app: "", rol: "" }, F = { q: "", app: "", rol: "", est: "vigente" }, LISTO = null;
+function pintar() { cerrarDlg();
+  if (!ghTok()) { $("#tabs").hidden = true; $("#vista").innerHTML = vClave(); enlClave(); return; }
+  $("#tabs").hidden = false; $$("#tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === T));
+  $("#vista").innerHTML = T === "nuevo" ? (LISTO ? vListo() : vNuevo()) : T === "lista" ? vLista() : vControl();
+  ({ nuevo: LISTO ? enlListo : enlNuevo, lista: enlLista, control: enlControl })[T](); }
+$$("#tabs button").forEach(b => b.onclick = () => { T = b.dataset.t; if (T !== "nuevo") LISTO = null; pintar(); if (T !== "nuevo") cargarLista(); });
+
+/* ---------- clave de la Supervisión ---------- */
+const vClave = () => `<section class="card" style="max-width:520px;margin:30px auto"><h2>Solo Supervisión</h2><p class="muted">Para generar y controlar los enlaces, entre con la clave de la Supervisión (el token de GitHub, la misma de Tlamatini y Ulama). Se guarda solo en este equipo.</p>
+  <label class="campo mt"><span>Clave de acceso</span><input type="password" id="kT" autocomplete="off" spellcheck="false"></label><div class="fila fin mt"><button class="btn p" id="kOk">Entrar</button></div><div id="kM"></div></section>`;
+function enlClave() { $("#kOk").onclick = async () => { const t = $("#kT").value.trim(); if (!t) return; $("#kM").innerHTML = `<p class="small muted">Verificando…</p>`;
+  try { const r = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}`, { headers: { Authorization: "Bearer " + t } }); if (!r.ok) throw 0; localStorage.setItem("gh-token", JSON.stringify(t)); pintar(); }
+  catch (e) { $("#kM").innerHTML = `<div class="aviso mt">La clave no es válida o no hay internet.</div>`; } }; }
+
+/* ---------- 1. Nuevo enlace ---------- */
+function vNuevo() { const a = appDe(N.app);
+  return `<div class="paso"><i>1</i><h2>¿Para qué app es el enlace?</h2></div>
+  <div class="apps">${APPS.map(x => `<button class="app" data-app="${x.id}" aria-pressed="${x.id === N.app}"><img src="${x.icono}" alt=""><span><b>${x.nombre}</b><small>${x.sub}</small></span></button>`).join("")}</div>
+  ${a ? `<div class="paso"><i>2</i><h2>¿Para quién es?</h2></div>
+  <div class="roles">${Object.keys(ROLES).map(r => `<button class="rol" data-rol="${r}" aria-pressed="${r === N.rol}" ${a.roles.includes(r) ? "" : "disabled title='No aplica para esta app'"}>${r === "maestro" && a.id.startsWith("ulama") ? "Maestro(a) de E. F." : ROLES[r]}</button>`).join("")}</div>` : ""}
+  ${a && N.rol ? (a.servidor ? `<div class="paso"><i>3</i><h2>Elija a la persona</h2></div><div id="tqSel" class="card"><p class="muted">Cargando los usuarios de Tequio…</p></div>` : vDatos(a)) : ""}`; }
+function vDatos(a) { const esc_ = N.rol === "escuela";
+  return `<div class="paso"><i>3</i><h2>Datos de ${esc_ ? "la escuela" : "la persona"}</h2></div>
+  <section class="card"><div class="grid">
+    ${esc_ ? `<label class="campo"><span>Escuela</span><input id="nE" placeholder="Nombre de la escuela"></label><label class="campo"><span>Director(a) que lo recibe</span><input id="nN" placeholder="Nombre completo"></label>`
+    : `<label class="campo"><span>Trato</span><select id="nG"><option value="m">Mtro.</option><option value="f">Mtra.</option></select></label>
+       <label class="campo"><span>Nombre completo</span><input id="nN" placeholder="Sin «Mtro.»: se agrega solo"></label>
+       <label class="campo"><span>Escuela, zona o adscripción</span><input id="nE" placeholder="${a.id === "ulamasup" ? "Zona Escolar 041" : "Escuela o zona"}"></label>`}
+    <label class="campo"><span>Correo</span><input id="nC" type="email" placeholder="usuario@bcedu.mx"></label>
+    <label class="campo"><span>WhatsApp (opcional)</span><input id="nW" inputmode="tel" placeholder="10 dígitos"><small>Solo para enviarle el mensaje; no se guarda.</small></label>
+    <label class="campo"><span>Vigente hasta</span><select id="nV"><option value="${FIN_CICLO}">Fin del ciclo (${fechaLarga(FIN_CICLO)})</option><option value="${masDias(30)}">Un mes</option><option value="${masDias(91)}">Tres meses</option><option value="otra">Otra fecha…</option></select><input id="nVo" type="date" hidden></label>
+    <label class="campo" style="grid-column:1/-1"><span>Nota (solo la ve la Supervisión)</span><input id="nT" placeholder="Por ejemplo: Supervisor de Educación Física · Zona 041"></label>
+  </div><div class="fila fin mt"><button class="btn p" id="nOk">Generar enlace</button></div></section>`; }
+function enlNuevo() {
+  $$("[data-app]").forEach(b => b.onclick = () => { N = { app: b.dataset.app, rol: "" }; const a = appDe(N.app); if (a.roles.length === 1) N.rol = a.roles[0]; pintar(); });
+  $$("[data-rol]").forEach(b => b.onclick = () => { N.rol = b.dataset.rol; pintar(); });
+  const a = appDe(N.app); if (!a || !N.rol) return;
+  if (a.servidor) return tqSeleccion();
+  $("#nV").onchange = () => { $("#nVo").hidden = $("#nV").value !== "otra"; };
+  $("#nOk").onclick = async ev => { const nom = $("#nN").value.trim(), escu = $("#nE").value.trim();
+    if (!nom && N.rol !== "escuela") return toast("Escriba el nombre."); if (N.rol === "escuela" && !escu) return toast("Escriba la escuela.");
+    const vence = $("#nV").value === "otra" ? $("#nVo").value : $("#nV").value; if (!vence || vence < hoy()) return toast("Elija una fecha de vigencia válida.");
+    const g = N.rol === "escuela" ? "" : $("#nG").value, tr = trato(N.rol, g), nombre = N.rol === "escuela" ? (nom ? "Mtro(a). " + nom.replace(/^(mtr[oa]|profr?a?|maestr[oa])\.?\s+/i, "") : escu) : tr + " " + nom.replace(/^(mtr[oa]|profr?a?|maestr[oa]|dr|dra)\.?\s+/i, "");
+    const b = ev.currentTarget; b.disabled = true; b.textContent = "Generando…";
+    try { const r = await crear(a, { nombre, rol: N.rol, escuela: escu, correo: $("#nC").value.trim(), nota: $("#nT").value.trim(), vence, g });
+      LISTO = Object.assign(r, { whatsapp: $("#nW").value.replace(/\D/g, "") }); pintar(); window.scrollTo(0, 0); }
+    catch (e) { b.disabled = false; b.textContent = "Generar enlace"; toast(e.status === 401 || e.status === 403 ? "La clave de la Supervisión ya no es válida." : "No se pudo guardar. Revise su internet e intente de nuevo.", 4500); } };
+}
+/* Crea el enlace en el acceso.json de la app. Devuelve los datos para enviarlo (el código solo se ve ahora). */
+async function crear(a, p) { const tok = nuevoToken(), h = await sha256(tok), creado = new Date().toISOString();
+  await guardar(a.archivo, d => { d.enlaces = d.enlaces || [];
+    const e = a.id === "tlamatini" ? { h, tipo: p.rol === "escuela" ? "escuela" : "persona", rol: p.rol, nombre: p.nombre, escuela: p.escuela || "", correo: p.correo || "", vence: p.vence, nota: p.nota || "", creado, gen: d.generacion, por: "generador" }
+      : { h, rol: p.rol, app: a.id, apps: [a.id], nombre: p.nombre, usuario: "", correo: p.correo || "", vence: p.vence, nota: p.nota || p.escuela || "", creado, gen: d.generacion, por: "generador" };
+    d.enlaces.push(e); }, `Generador de enlaces: ${a.nombre} · ${p.nombre}`);
+  return { app: a.id, nombre: p.nombre, rol: p.rol, correo: p.correo, vence: p.vence, g: p.g, enlace: BASE + a.url + "#acceso=" + tok, extras: (a.extra || []).map(([n, u]) => [n, BASE + u + "#acceso=" + tok]) }; }
+
+/* Tequio: personas que ya existen en su Directorio */
+async function tqSeleccion() { const box = $("#tqSel");
+  if (!tqCfg()) { box.innerHTML = `<div class="aviso">Tequio guarda sus enlaces en su propio servidor. Para manejarlos desde aquí, abra Tequio una vez en este equipo con su enlace de Supervisión.</div><div class="fila mt"><a class="btn" href="${BASE}tequio/" target="_blank" rel="noopener">Abrir Tequio</a></div>`; return; }
+  try { await tqCargar(); } catch (e) { box.innerHTML = `<div class="aviso">No se pudo conectar con el servidor de Tequio. ${esc(e.message)}</div>`; return; }
+  const L = TQ.usr.filter(u => tqRol(u) === N.rol && u.activo !== false && u.id !== (TQ.yo || {}).id).sort((x, y) => x.nombre.localeCompare(y.nombre, "es"));
+  box.innerHTML = L.length ? `<p class="small muted" style="margin-top:0">Si la persona ya tiene enlace, el anterior deja de funcionar al generar uno nuevo. ¿No aparece? Agréguela en el Directorio de Tequio.</p>
+    <table><tbody>${L.map(u => `<tr><td><b>${esc(u.nombre)}</b><span class="small muted">${esc(tqLugar(u))}</span></td><td>${u.conEnlace ? '<span class="chip vigente">Con enlace</span>' : '<span class="chip app">Sin enlace</span>'}</td><td><div class="acc"><button class="btn p chico" data-tqg="${u.id}">${u.conEnlace ? "Generar nuevo" : "Generar enlace"}</button></div></td></tr>`).join("")}</tbody></table>`
+    : `<p class="muted">No hay ${N.rol === "atp" ? "ATP" : "directores"} en Tequio. Agréguelos en el Directorio de Tequio («Enlaces» → «Actualizar desde el Directorio»).</p>`;
+  $$("[data-tqg]").forEach(b => b.onclick = () => tqGenerar(b.dataset.tqg)); }
+const tqLugar = u => { if (u.rol !== "director") return u.rol === "atp" ? "Mesa Técnica" : ""; const c = (TQ.dir || []).find(x => x.id === u.contacto) || {}; return [c.escuela || c.nombreEscuela, c.cct].filter(Boolean).join(" · "); };
+async function tqGenerar(id) { const u = TQ.usr.find(x => x.id === id); if (!u) return;
+  if (u.conEnlace && !confirm(`Se generará un enlace nuevo para ${u.nombre} y el anterior dejará de funcionar. ¿Continuar?`)) return;
+  try { const r = await tq("enlaceUsuario", { id }); u.conEnlace = true;
+    LISTO = { app: "tequio", nombre: u.nombre, rol: tqRol(u), correo: String(u.correo || "").split(",")[0], whatsapp: String(u.whatsapp || "").replace(/\D/g, "").slice(-10), vence: "", enlace: r.enlace, extras: [] }; T = "nuevo"; pintar(); window.scrollTo(0, 0); }
+  catch (e) { toast(esc(e.message), 4500); } }
+
+/* ---------- enlace listo ---------- */
+function mensaje(L) { const a = appDe(L.app), saludo = L.rol === "escuela" ? `Estimado(a) director(a)` : `Estimado(a) ${L.nombre}`;
+  return `${saludo}:\n\nLe comparto su enlace ${L.rol === "escuela" ? "de acceso para su escuela" : "personal de acceso"} a *${a.nombre}*, ${a.desc}:\n\n${L.enlace}\n` +
+    (L.extras || []).map(([n, u]) => `\nCon el mismo enlace también entra a *${n}*:\n${u}\n`).join("") +
+    `\nÁbralo desde su celular, tableta o computadora y, si lo desea, instale la app desde ahí.${L.vence ? ` Su acceso está vigente hasta el ${fechaLarga(L.vence)}.` : ""} El enlace es ${L.rol === "escuela" ? "para el personal de su escuela" : "personal"}; por favor no lo comparta.\n\nAtentamente,\nMtro. Carlos Gabriel Ortega Gutiérrez\nSupervisor Escolar · Zona Escolar 050 · ISEP\n_Responsabilidad y superación_`; }
+function vListo() { const L = LISTO, a = appDe(L.app);
+  return `<section class="card"><div class="okc"><b>Enlace generado</b> para ${esc(L.nombre)} · ${esc(a.nombre)} · ${esc(ROLES[L.rol] || L.rol)}. ${L.vence ? `Vigente hasta el ${fechaLarga(L.vence)}.` : ""} Por seguridad, este enlace no se vuelve a mostrar: si se pierde, genere otro.</div>
+  <div class="listo mt"><div><label class="campo"><span>Enlace</span></label><div class="enlace">${esc(L.enlace)}</div>
+   ${(L.extras || []).map(([n, u]) => `<label class="campo mt"><span>${esc(n)}</span></label><div class="enlace">${esc(u)}</div>`).join("")}
+   <label class="campo mt"><span>Mensaje (puede editarlo antes de enviarlo)</span><textarea class="msj" id="lM">${esc(mensaje(L))}</textarea></label>
+   <div class="fila mt"><button class="btn" id="lC">Copiar enlace</button><button class="btn" id="lCm">Copiar mensaje</button>
+    <button class="btn wa" id="lW">Enviar por WhatsApp</button><button class="btn" id="lE">Enviar por correo</button></div></div>
+   <div><div id="qr"></div><p class="small muted" style="text-align:center;width:180px">Para abrirlo con la cámara</p></div></div>
+  <div class="fila fin mt"><button class="btn p" id="lOtro">Generar otro enlace</button></div></section>`; }
+function enlListo() { const L = LISTO, a = appDe(L.app);
+  try { new QRCode($("#qr"), { text: L.enlace, width: 160, height: 160, colorDark: "#0d1a2b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {}
+  $("#lC").onclick = () => copiar(L.enlace, "Enlace copiado"); $("#lCm").onclick = () => copiar($("#lM").value, "Mensaje copiado");
+  $("#lW").onclick = () => { const n = (L.whatsapp || "").replace(/\D/g, ""), t = encodeURIComponent($("#lM").value); window.open(n ? `https://wa.me/52${n.slice(-10)}?text=${t}` : `https://wa.me/?text=${t}`, "_blank", "noopener"); };
+  $("#lE").onclick = () => { location.href = `mailto:${encodeURIComponent(L.correo || "")}?subject=${encodeURIComponent(a.nombre + " · Su enlace de acceso")}&body=${encodeURIComponent($("#lM").value.replace(/[*_]/g, ""))}`; };
+  $("#lOtro").onclick = () => { LISTO = null; N = { app: "", rol: "" }; pintar(); }; }
+
+/* ---------- 2. Todos los enlaces ---------- */
+let FILAS = null, CARGA = "";
+async function cargarLista(forzar) { if (FILAS && !forzar) return;
+  CARGA = "Cargando…"; if (T !== "nuevo") pintar();
+  try { await leerTodos(); FILAS = []; for (const p of archivos()) { const d = ARCH[p].d; (d.enlaces || []).forEach(e => FILAS.push({ p, e, app: appDeEnlace(p, e), est: estado(e, d.generacion) })); }
+    if (tqCfg()) { try { await tqCargar(forzar); TQ.usr.filter(u => u.rol !== "admin").forEach(u => FILAS.push({ tq: u, app: "tequio", est: u.conEnlace ? "vigente" : "sin", e: { nombre: u.nombre, rol: tqRol(u), nota: tqLugar(u), correo: u.correo || "" } })); } catch (e) {} }
+    CARGA = ""; } catch (e) { CARGA = e.status === 401 || e.status === 403 ? "La clave de la Supervisión ya no es válida." : "No se pudieron leer los enlaces. Revise su internet."; }
+  if (T !== "nuevo") pintar(); }
+const rolDe = e => e.rol || (e.tipo === "escuela" ? "escuela" : "");
+function vLista() { if (CARGA || !FILAS) return `<div class="card vacio">${esc(CARGA || "Cargando…")}</div>`;
+  const q = F.q.toLowerCase(), L = FILAS.filter(f => (!F.app || f.app === F.app) && (!F.rol || rolDe(f.e) === F.rol) && (F.est === "todos" || f.est === F.est || (F.est === "vigente" && f.tq && f.est === "sin" && false)) && (!q || [f.e.nombre, f.e.escuela, f.e.nota, f.e.correo].join(" ").toLowerCase().includes(q)))
+    .sort((x, y) => (y.e.creado || "").localeCompare(x.e.creado || "") || String(x.e.nombre || x.e.escuela).localeCompare(String(y.e.nombre || y.e.escuela), "es"));
+  const cuenta = s => FILAS.filter(f => (!F.app || f.app === F.app) && f.est === s).length;
+  return `<div class="filtros"><input id="fQ" placeholder="Buscar por nombre, escuela o correo" value="${esc(F.q)}">
+   <select id="fA"><option value="">Todas las apps</option>${APPS.map(a => `<option value="${a.id}" ${F.app === a.id ? "selected" : ""}>${a.nombre}</option>`).join("")}</select>
+   <select id="fR"><option value="">Todos los roles</option>${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${F.rol === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+   <select id="fE">${[["vigente", `Vigentes (${cuenta("vigente")})`], ["vencido", `Vencidos (${cuenta("vencido")})`], ["anulado", `Anulados (${cuenta("anulado")})`], ["sin", "Tequio sin enlace"], ["todos", "Todos"]].map(([k, v]) => `<option value="${k}" ${F.est === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+  <section class="card" style="padding:6px 12px">${L.length ? `<table><thead><tr><th>Persona</th><th>App</th><th>Rol</th><th>Vigencia</th><th></th></tr></thead><tbody>${L.map((f, i) => fila(f, FILAS.indexOf(f))).join("")}</tbody></table>` : `<div class="vacio">No hay enlaces con estos filtros.</div>`}</section>
+  <div class="fila fin mt"><button class="btn chico" id="fRec">Actualizar</button></div>`; }
+function fila(f, i) { const e = f.e, a = appDe(f.app);
+  const chip = f.tq ? (f.est === "vigente" ? '<span class="chip vigente">Con enlace</span>' : '<span class="chip app">Sin enlace</span>') : `<span class="chip ${f.est}">${{ vigente: "Vigente", vencido: "Vencido", anulado: "Anulado" }[f.est]}</span>`;
+  const acc = f.tq ? `<button class="btn chico" data-tqn="${i}">${f.est === "vigente" ? "Nuevo enlace" : "Generar"}</button>${f.est === "vigente" ? `<button class="btn chico r" data-tqa="${i}">Anular</button>` : ""}`
+    : f.est === "anulado" ? `<button class="btn chico" data-re="${i}">Nuevo enlace</button>`
+    : `<button class="btn chico" data-ren="${i}">Renovar</button><button class="btn chico" data-re="${i}">Nuevo enlace</button><button class="btn chico r" data-an="${i}">Anular</button>`;
+  return `<tr><td><b>${esc(e.nombre || e.escuela || "Sin nombre")}</b><span class="small muted">${esc([e.nombre ? e.escuela : "", e.nota].filter(Boolean).join(" · "))}${e.correo ? (e.escuela || e.nota ? " · " : "") + esc(e.correo) : ""}</span></td>
+   <td><span class="chip app">${esc(a.nombre)}</span></td><td>${esc(ROLES[rolDe(e)] || "—")}</td>
+   <td>${chip}${e.vence ? `<span class="small muted">${f.est === "anulado" && e.anulado ? "Anulado el " + fechaLarga(e.anulado) : "Hasta el " + fechaLarga(e.vence)}</span>` : ""}</td><td><div class="acc">${acc}</div></td></tr>`; }
+function enlLista() { if (!FILAS) return;
+  const q = $("#fQ"); if (q) { q.oninput = () => { F.q = q.value; const pos = q.selectionStart; pintar(); const n = $("#fQ"); n.focus(); n.setSelectionRange(pos, pos); }; }
+  [["#fA", "app"], ["#fR", "rol"], ["#fE", "est"]].forEach(([s, k]) => { const x = $(s); if (x) x.onchange = () => { F[k] = x.value; pintar(); }; });
+  $("#fRec") && ($("#fRec").onclick = () => cargarLista(true));
+  $$("[data-ren]").forEach(b => b.onclick = () => renovar(FILAS[b.dataset.ren]));
+  $$("[data-an]").forEach(b => b.onclick = () => anular(FILAS[b.dataset.an]));
+  $$("[data-re]").forEach(b => b.onclick = () => reemplazar(FILAS[b.dataset.re]));
+  $$("[data-tqn]").forEach(b => b.onclick = () => { N = { app: "tequio", rol: tqRol(FILAS[b.dataset.tqn].tq) }; T = "nuevo"; tqGenerar(FILAS[b.dataset.tqn].tq.id); });
+  $$("[data-tqa]").forEach(b => b.onclick = async () => { const u = FILAS[b.dataset.tqa].tq; if (!confirm(`¿Anular el enlace de ${u.nombre}? Ya no podrá entrar a Tequio hasta que le genere uno nuevo.`)) return;
+    try { await tq("anularUsuario", { id: u.id }); toast("Enlace anulado."); cargarLista(true); } catch (e) { toast(esc(e.message), 4500); } }); }
+function renovar(f) { dlg(`<h3>Renovar el enlace</h3><p class="small muted">${esc(f.e.nombre)} · ${esc(appDe(f.app).nombre)}. El mismo enlace sigue funcionando con la nueva fecha; no hay que volver a enviarlo.</p>
+  <label class="campo mt"><span>Vigente hasta</span><input type="date" id="rV" value="${f.e.vence > FIN_CICLO ? f.e.vence : FIN_CICLO}" min="${hoy()}"></label><div class="fila fin mt"><button class="btn" id="rX">Cancelar</button><button class="btn p" id="rOk">Guardar</button></div>`, v => {
+  v.querySelector("#rX").onclick = cerrarDlg;
+  v.querySelector("#rOk").onclick = async () => { const nv = v.querySelector("#rV").value; if (!nv || nv < hoy()) return toast("Elija una fecha válida.");
+    try { await guardar(f.p, d => { const e = d.enlaces.find(x => x.h === f.e.h); if (e) e.vence = nv; }, `Generador de enlaces: renovar ${f.e.nombre}`); cerrarDlg(); toast("Vigencia actualizada."); cargarLista(true); } catch (e) { toast("No se pudo guardar.", 4000); } }; }); }
+async function anular(f) { if (!confirm(`¿Anular el enlace de ${f.e.nombre} en ${appDe(f.app).nombre}? Dejará de funcionar de inmediato. Sus datos en su dispositivo no se borran.`)) return;
+  try { await guardar(f.p, d => { const e = d.enlaces.find(x => x.h === f.e.h); if (e) e.anulado = hoy(); }, `Generador de enlaces: anular ${f.e.nombre}`); toast("Enlace anulado."); cargarLista(true); } catch (e) { toast("No se pudo guardar.", 4000); } }
+async function reemplazar(f) { const a = appDe(f.app); if (!confirm(`Se generará un enlace nuevo para ${f.e.nombre} en ${a.nombre}${f.est === "anulado" ? "" : " y el actual dejará de funcionar"}. ¿Continuar?`)) return;
+  try { const tok = nuevoToken(), h = await sha256(tok), creado = new Date().toISOString(); let vence = f.e.vence < hoy() ? FIN_CICLO : f.e.vence;
+    await guardar(f.p, d => { const v = d.enlaces.find(x => x.h === f.e.h); if (v && !v.anulado) v.anulado = hoy(); const n = Object.assign({}, f.e, { h, vence, creado, gen: d.generacion, por: "generador" }); delete n.anulado; d.enlaces.push(n); }, `Generador de enlaces: nuevo enlace de ${f.e.nombre}`);
+    LISTO = { app: f.app, nombre: f.e.nombre, rol: rolDe(f.e), correo: f.e.correo, vence, enlace: BASE + a.url + "#acceso=" + tok, extras: (a.extra || []).map(([n, u]) => [n, BASE + u + "#acceso=" + tok]) }; FILAS = null; T = "nuevo"; pintar(); window.scrollTo(0, 0); }
+  catch (e) { toast("No se pudo guardar.", 4000); } }
+
+/* ---------- 3. Control por app ---------- */
+function vControl() { if (CARGA || !FILAS) return `<div class="card vacio">${esc(CARGA || "Cargando…")}</div>`;
+  const tarjeta = p => { const d = ARCH[p].d, apps = APPS.filter(a => a.archivo === p), vig = FILAS.filter(f => f.p === p && f.est === "vigente").length;
+    return `<section class="card"><h3>${apps.map(a => `<img src="${a.icono}" alt="">`).join("")}${apps.map(a => a.nombre).join(" y ")}</h3>
+     <label class="sw"><input type="checkbox" data-act="${p}" ${d.activo ? "checked" : ""}><span><b>Control de acceso ${d.activo ? "encendido" : "apagado"}</b><br><span class="small muted">${d.activo ? "Solo entra quien tiene un enlace vigente." : "Cualquiera con la dirección puede entrar."}</span></span></label>
+     <p class="small muted">${vig} enlace(s) vigente(s) · generación ${d.generacion} · actualizado el ${fechaLarga(d.actualizado)}${p === "formatos-ppie/formatos/acceso.json" ? `<br>Demostración abierta: ${d.demoVence === "nunca" ? "siempre" : d.demoVence ? "hasta el " + fechaLarga(String(d.demoVence).slice(0, 10)) : "cerrada"}` : ""}</p>
+     <button class="btn chico r" data-todos="${p}">Anular todos los enlaces</button></section>`; };
+  return `<p class="muted" style="margin-top:0">Cada app guarda sus enlaces aparte. Ulama y Ulama · Supervisión comparten el mismo archivo.</p><div class="ctl">${archivos().map(tarjeta).join("")}
+   <section class="card"><h3><img src="${appDe("tequio").icono}" alt="">Tequio</h3><p class="small muted">Sus enlaces están en el servidor de Tequio. ${tqCfg() ? "Desde aquí puede generar y anular los de directores y ATP." : "Abra Tequio una vez en este equipo con su enlace de Supervisión para manejarlos desde aquí."}</p><a class="btn chico" href="${BASE}tequio/" target="_blank" rel="noopener">Abrir Tequio</a></section></div>`; }
+function enlControl() {
+  $$("[data-act]").forEach(c => c.onchange = async () => { const p = c.dataset.act, on = c.checked;
+    if (!on && !confirm("Si apaga el control, cualquiera con la dirección podrá entrar a esta app. ¿Continuar?")) { c.checked = true; return; }
+    try { await guardar(p, d => { d.activo = on; }, `Generador de enlaces: control de acceso ${on ? "encendido" : "apagado"}`); toast(on ? "Control encendido." : "Control apagado."); cargarLista(true); } catch (e) { c.checked = !on; toast("No se pudo guardar.", 4000); } });
+  $$("[data-todos]").forEach(b => b.onclick = () => { const p = b.dataset.todos;
+    dlg(`<h3>Anular todos los enlaces</h3><p class="small">Todos los enlaces de ${APPS.filter(a => a.archivo === p).map(a => a.nombre).join(" y ")} dejarán de funcionar de inmediato y tendrá que generar nuevos. Escriba <b>ANULAR</b> para confirmar.</p><label class="campo"><input id="tC" autocomplete="off"></label><div class="fila fin mt"><button class="btn" id="tX">Cancelar</button><button class="btn p" id="tOk" style="background:var(--bad);border-color:var(--bad)">Anular todos</button></div>`, v => {
+      v.querySelector("#tX").onclick = cerrarDlg;
+      v.querySelector("#tOk").onclick = async () => { if (v.querySelector("#tC").value.trim().toUpperCase() !== "ANULAR") return toast("Escriba ANULAR para confirmar.");
+        try { await guardar(p, d => { d.generacion = (d.generacion || 1) + 1; }, "Generador de enlaces: anular todos"); cerrarDlg(); toast("Todos los enlaces fueron anulados."); cargarLista(true); } catch (e) { toast("No se pudo guardar.", 4000); } }; }); }); }
+
+pintar();
+</script>
+</body>
+</html>

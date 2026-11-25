@@ -87,7 +87,7 @@ function ir(v, p = {}, reemplazar) { if (!reemplazar) { PILA.push(S); history.pu
 function atras() { S = PILA.pop() || { v: "inicio" }; pintar(); window.scrollTo(0, 0); }
 window.addEventListener("popstate", () => { if (PILA.length || S.v !== "inicio") atras(); });
 const VISTAS = {}, ENLAZAR = {};
-function pintar() { cerrarDlg(); camStop(); if (!D.cfg.listo && S.v !== "bienvenida") S = { v: "bienvenida" };
+function pintar() { cerrarDlg(); camStop(); if (ACC_SUP !== "ok") { $("#app").innerHTML = vAccesoSup(); enlAccesoSup(); return; } if (!D.cfg.listo && S.v !== "bienvenida") S = { v: "bienvenida" };
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = f(); (ENLAZAR[S.v] || (() => {}))(); const b = $("#atras"); if (b) b.onclick = () => history.back(); }
 const re = () => { const y = scrollY; pintar(); scrollTo(0, y); };
 const barra = (eb, t, der = "") => `<header class="top"><div class="top-in"><button class="back" id="atras" aria-label="Regresar">${ic("atras")}</button><div style="min-width:0"><div class="eb">${eb}</div><h1>${t}</h1></div><div class="der">${der}</div></div></header>`;
@@ -583,13 +583,46 @@ ENLAZAR.ajustes = () => { $("#yOk").onclick = () => { Object.assign(D.yo, { trat
   $("#yRes").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], { type: "application/json" })); a.download = `respaldo-ulama-supervision-${hoy()}.json`; a.click(); };
   $("#yCar2").onclick = () => $("#fRes").click(); $("#fRes").onchange = async e => { try { const x = JSON.parse(await e.target.files[0].text()); if (!x.v || !x.yo) throw 0; if (!(await confirmar("Se reemplazarán los datos de este dispositivo por los del respaldo.", "Cargar"))) return; D = Object.assign(VACIO(), x); guardar(); ir("inicio", {}, true); toast("Respaldo cargado."); } catch (er) { toast("El archivo no es un respaldo de Ulama · Supervisión."); } }; };
 
+
+/* =================================================================== ACCESO POR INVITACIÓN
+   El espacio se abre con el enlace personal que genera la Supervisión Escolar Zona 050 (Generador de enlaces).
+   Se usa el mismo archivo de accesos de Ulama (../acceso.json, solo huellas SHA-256) y el enlace debe ser de rol
+   «supervisor». Ese mismo código sirve para enviar los informes por correo. La Supervisión entra con su clave. */
+let ACC_SUP = window.ULAMA_SUP_DEMO ? "ok" : (() => { try { return localStorage.getItem("gh-token") ? "ok" : "revisando"; } catch (e) { return "revisando"; } })();
+const sha256S = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, "0")).join("");
+async function accesoSup() {
+  if (window.ULAMA_SUP_DEMO) return "ok"; try { if (localStorage.getItem("gh-token")) return "ok"; } catch (e) {}
+  let A = null; try { const r = await fetch("../acceso.json?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { A = await r.json(); localStorage.setItem("ulama-sup-acc", JSON.stringify(A)); } } catch (e) {}
+  if (!A) try { A = JSON.parse(localStorage.getItem("ulama-sup-acc") || "null"); } catch (e) {}
+  if (!A) return D.tok ? "sinred" : "sin"; if (!A.activo) return "ok"; if (!D.tok) return "sin";
+  const h = await sha256S(D.tok), e = (A.enlaces || []).find(x => x.h === h);
+  if (!e) return "no"; if (e.anulado || e.gen !== A.generacion) return "anulado"; if (e.vence < hoy()) return "vencido";
+  if (!(e.rol === "supervisor" || (e.apps || []).includes("ulamasup"))) return "rol"; return "ok"; }
+function vAccesoSup() { if (ACC_SUP === "revisando") return `<main class="wrap"><section class="portada">${marca()}<h1>Comprobando su acceso…</h1></section></main>`;
+  const T = { sin: ["Espacio de acceso por invitación", "Este espacio se abre con el enlace personal que le envió la Supervisión Escolar Zona 050. Ábralo desde su correo o péguelo aquí abajo."],
+    vencido: ["Su enlace ya venció", "Pida a la Supervisión Escolar Zona 050 que lo renueve. Sus datos siguen guardados en este dispositivo."],
+    anulado: ["Este enlace ya no es válido", "Fue reemplazado por uno nuevo. Use el más reciente que le enviaron. Sus datos siguen guardados en este dispositivo."],
+    no: ["Este enlace no está registrado", "Revise que lo haya copiado completo o pida uno nuevo."],
+    rol: ["Este enlace es de otra herramienta", "El espacio de supervisión se abre solo con un enlace de supervisor."],
+    sinred: ["Necesita internet esta primera vez", "Conéctese una vez para comprobar su enlace; después el espacio funciona sin conexión."] }[ACC_SUP] || ["Acceso", ""];
+  return `<main class="wrap"><section class="portada">${marca()}<h1>${T[0]}</h1><p>${T[1]}</p></section>
+  <section class="card mt"><label class="campo"><span>Su enlace de acceso</span><input id="aTok" type="url" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="https://…/supervision/#acceso=…"></label><div class="fila fin"><button class="btn p" id="aOk">Entrar</button></div></section>
+  <section class="card mt"><h3>¿No tiene enlace?</h3><p class="small muted">Solicítelo a la Supervisión Escolar Zona 050: <b>cortegagutierrez@bcedu.mx</b> o WhatsApp <b>661 850 1585</b>.</p><p class="small mt"><button class="btn s" id="aSup">${ic("sup")} Soy la Supervisión Zona 050</button></p></section></main>`; }
+function enlAccesoSup() { const ok = $("#aOk"); if (!ok) return;
+  ok.onclick = async () => { const t = String(val("aTok") || "").replace(/\s+/g, "").replace(/%23/gi, "#").replace(/%3D/gi, "="), m = t.match(/acceso=([A-Za-z0-9_-]{10,})/) || t.match(/^([A-Za-z0-9_-]{10,})$/);
+    if (!m) return toast("Pegue el enlace completo, que termina en «#acceso=…»."); D.tok = m[1]; guardar(); ACC_SUP = await accesoSup(); pintar(); if (ACC_SUP === "ok") toast("¡Bienvenido!"); };
+  $("#aSup").onclick = () => dlg(`<h3>Clave de la Supervisión</h3><label class="campo"><span>Clave (token de GitHub)</span><input type="password" id="aK" autocomplete="off"></label><div class="fila fin"><button class="btn" id="aKx">Cancelar</button><button class="btn p" id="aKo">Entrar</button></div><div id="aKm"></div>`, v => {
+    v.querySelector("#aKx").onclick = cerrarDlg;
+    v.querySelector("#aKo").onclick = async () => { const k = val("aK").trim(); if (!k) return; try { const r = await fetch("https://api.github.com/repos/carlosog23/carlos-ortega", { headers: { Authorization: "Bearer " + k } }); if (!r.ok) throw 0; localStorage.setItem("gh-token", JSON.stringify(k)); ACC_SUP = "ok"; pintar(); } catch (e) { $("#aKm").innerHTML = `<p class="small mt">La clave no es válida o no hay internet.</p>`; } }; }); }
+
 /* =================================================================== ARRANQUE */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (function () { const m = (location.hash || "").match(/[#&]c=([A-Za-z0-9]{6})/), t = (location.hash || "").match(/[#&]acceso=([A-Za-z0-9_-]{10,})/);
   if (t) { D.tok = t[1]; guardar(); }
   if (m || t) try { history.replaceState(null, "", location.pathname); } catch (e) {}
   pintar();
-  if (m && D.cfg.listo) setTimeout(() => { if (visAct()) return dlgIniciar(); bajarCodigo(m[1]); }, 200);
-  else if (m) D.cfg.pend = m[1]; })();
+  accesoSup().then(st => { const antes = ACC_SUP; ACC_SUP = st; if (antes !== st || st !== "ok") pintar(); if (st !== "ok") return;
+    if (m && D.cfg.listo) setTimeout(() => { if (visAct()) return dlgIniciar(); bajarCodigo(m[1]); }, 200);
+    else if (m) D.cfg.pend = m[1]; }); })();
 /* si la app ya estaba abierta y se escanea otro QR con la cámara del celular */
 window.addEventListener("hashchange", () => { const m = (location.hash || "").match(/[#&]c=([A-Za-z0-9]{6})/); if (!m) return; try { history.replaceState(null, "", location.pathname); } catch (e) {} if (!D.cfg.listo) { D.cfg.pend = m[1]; return; } if (visAct()) return dlgIniciar(); bajarCodigo(m[1]); });
