@@ -61,9 +61,9 @@ const TIPOS_V = ["Seguimiento formativo", "Acompañamiento en clase", "Asesoría
 const semDot = (s, t = 14) => `<span class="sem-dot" style="width:${t}px;height:${t}px;background:${s ? SEM[s].c : "#D8D0C2"}"></span>`;
 
 /* ---------------- datos ---------------- */
-const VACIO = () => ({ v: 1, yo: { trato: "Mtro.", nombre: "", cargo: "Supervisor(a) de Educación Física", zona: "", correo: "", tel: "", firma: "" }, tok: "", escuelas: [], maestros: [], visitas: [], cfg: {} });
+const VACIO = () => ({ v: 1, yo: { trato: "Mtro.", nombre: "Luis René Medrano Bernal", cargo: "Supervisor de Educación Física", zona: "041", correo: "", tel: "", firma: "" }, tok: "", escuelas: [], maestros: [], visitas: [], cfg: {} });
 let D = cargar();
-function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) return Object.assign(VACIO(), x); } catch (e) {} return VACIO(); }
+function cargar() { try { const x = JSON.parse(localStorage.getItem(CLAVE) || "null"); if (x && x.v) { const d = Object.assign(VACIO(), x), b = VACIO().yo; /* espacio personalizado: Supervisor de E. F. de la Zona 041 */ ["nombre", "zona"].forEach(k => { if (!d.yo[k]) d.yo[k] = b[k]; }); if (!d.yo.cargo || d.yo.cargo === "Supervisor(a) de Educación Física") d.yo.cargo = b.cargo; return d; } } catch (e) {} return VACIO(); }
 function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) { toast("<b>No se pudo guardar.</b> El dispositivo no tiene espacio."); } }
 const yoNombre = () => [D.yo.trato, D.yo.nombre].filter(Boolean).join(" ");
 const escDe = id => D.escuelas.find(e => e.id === id), maeDe = id => D.maestros.find(m => m.id === id), visDe = id => D.visitas.find(v => v.id === id);

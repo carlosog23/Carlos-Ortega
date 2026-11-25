@@ -21,7 +21,7 @@
   // Primera vez: el catálogo real (16 escuelas y 18 maestros de Educación Física) ya cargado
   if (!localStorage.getItem("ulama-sup")) {
     try { const x = new XMLHttpRequest(); x.open("GET", "zona041.json?t=" + Date.now(), false); x.send(); const c = JSON.parse(x.responseText);
-      localStorage.setItem("ulama-sup", JSON.stringify({ v: 1, yo: { trato: "Mtro.", nombre: "Invitado(a)", cargo: "Supervisor(a) de Educación Física", zona: c.zona || "", correo: "", tel: "", firma: "" },
+      localStorage.setItem("ulama-sup", JSON.stringify({ v: 1, yo: { trato: "Mtro.", nombre: "Luis René Medrano Bernal", cargo: "Supervisor de Educación Física", zona: c.zona || "", correo: "", tel: "", firma: "" },
         tok: "", escuelas: c.escuelas || [], maestros: c.maestros || [], visitas: [], permisos: [], cfg: { listo: true, demo: true } }));
     } catch (e) {}
   }

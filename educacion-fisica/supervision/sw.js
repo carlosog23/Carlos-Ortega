@@ -1,6 +1,6 @@
 /* Ulama · Supervisión · trabajador de servicio: instalar la app y usarla sin internet.
    La página se pide primero a internet; sin conexión (o con señal débil) se usa la copia guardada. Al publicar cambios, subir VERSION. */
-const VERSION = "ulama-sup-2026-11-24d";
+const VERSION = "ulama-sup-2026-11-24e";
 const BASE = "ulama-sup-base-" + VERSION, EXTRA = "ulama-sup-extra";
 const NUCLEO = ["./", "index.html", "sup.js", "permisos.js", "ciclo.js", "registros.js", "adm.js", "jsQR.js", "zona041.json", "manifest.webmanifest", "img/sup-icono.svg", "img/sup-icono-180.png", "img/sup-icono-192.png", "img/sup-icono-512.png", "../firma-autor.svg", "../../formatos-ppie/img/isep.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(BASE).then(c => Promise.all(NUCLEO.map(u => c.add(u).catch(() => {}))))); self.skipWaiting(); });
