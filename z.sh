@@ -38,8 +38,7 @@ echo "  1) Core 2 Duo (cualquier marca): MAESTROS y ALUMNOS, versión ligera" >$
 echo "  2) iMac (Apple): para MAESTROS" >$T
 echo "     Tlamatini, Tlamatini Aula, oficina, PDF, videollamadas, impresora" >$T
 echo "  3) i5 (cualquier marca, no iMac): MAESTROS y ALUMNOS" >$T
-echo "     Es la más potente: se recomienda como SERVIDOR de la escuela," >$T
-echo "     y como servidora instala además la Wikipedia en español sin internet" >$T
+echo "     Es la más potente: se recomienda como SERVIDOR de la escuela" >$T
 echo >$T
 echo "  En la 1 y la 3 hay dos cuentas: «Maestro» con clave (sus apps, oficina y PDF)" >$T
 echo "  y «Alumno» (pantalla Aula Zona 050, juegos, YouTube restringido; se limpia sola)." >$T
@@ -71,11 +70,14 @@ if [ "$TIPO" != 2 ]; then
   echo "¿Esta será la computadora SERVIDOR de la escuela?" >$T
   [ "$TIPO" = 3 ] && echo "(Si la escuela tiene una i5, conviene que esa sea la servidora.)" >$T
   echo "Guarda la biblioteca sin internet para todas las demás. Solo UNA por escuela." >$T
+  echo "Si tiene espacio suficiente (15 GB libres), también instala la Wikipedia en español." >$T
   read -rp "Escribe s (sí) o n (no) y presiona Enter: " SRV <$T
   case "$SRV" in
     s|S|si|SI|sí|Sí)
-      if [ "$TIPO" = 3 ]; then ARGS+=(--servidor --wikipedia); ve "Se instalará también la Wikipedia en español sin internet (necesita unos 15 GB libres)."
-      else ARGS+=(--servidor); fi ;;
+      ARGS+=(--servidor --wikipedia)
+      LIBRE=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)
+      if [ "${LIBRE:-0}" -ge 15 ]; then ve "Hay ${LIBRE} GB libres: se instalará también la Wikipedia en español sin internet."
+      else ro "Solo hay ${LIBRE:-0} GB libres (se necesitan 15): esta computadora no soporta la Wikipedia y se omitirá."; fi ;;
   esac
 fi
 
