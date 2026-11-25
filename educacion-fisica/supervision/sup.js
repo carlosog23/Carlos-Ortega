@@ -115,9 +115,9 @@ const maestrosDe = eId => D.maestros.filter(m => (m.escuelas || []).includes(eId
 const escNom = e => e ? `${e.nombre}${e.turno ? " (" + e.turno.slice(0, 3).toLowerCase() + ".)" : ""}` : "";
 
 /* =================================================================== BIENVENIDA */
-VISTAS.bienvenida = () => `<main class="wrap"><section class="portada">${marca()}<h1>Visitas de supervisión, con evidencias</h1>
-  <p>Revise a sus maestros de Educación Física: con el código QR de Ulama ve sus planeaciones, evaluación, listas y gráficas; sin Ulama, revisa con indicadores. Semáforo por aspecto, fotos de evidencia, firma e informe al correo del maestro.</p></section>
-  <section class="card mt"><h3>Sus datos</h3><p class="small muted mb">Aparecen en los informes de visita.</p>
+VISTAS.bienvenida = () => `<main class="wrap"><section class="portada">${marca()}<h1>${D.yo.nombre ? `Bienvenido, ${esc(yoNombre())}` : "Su espacio de supervisión"}</h1>
+  <p>Su espacio de trabajo como supervisor de Educación Física${D.yo.zona ? ` de la Zona ${esc(D.yo.zona)}` : ""}: horarios de sus maestros, agenda del ciclo, entrega de planeaciones, hojas de visita, incidencias, permisos económicos y reporte mensual, cada uno con su formato para imprimir. Además, revisiones con semáforo, evidencias e informe al correo del maestro.</p></section>
+  <section class="card mt"><h3>Sus datos</h3><p class="small muted mb">Revise que estén bien: aparecen en todos sus formatos e informes. Todo se guarda solo en este dispositivo.</p>
    <div class="dos"><label class="campo"><span>Tratamiento</span><select id="yTr">${["Mtro.", "Mtra.", "Profr.", "Profra.", "Lic.", "Dr.", "Dra."].map(x => `<option ${x === D.yo.trato ? "selected" : ""}>${x}</option>`).join("")}</select></label><label class="campo"><span>Nombre completo</span><input id="yNom" value="${esc(D.yo.nombre)}" autocomplete="name"></label></div>
    <div class="dos"><label class="campo"><span>Cargo</span><input id="yCar" value="${esc(D.yo.cargo)}"></label><label class="campo"><span>Zona escolar</span><input id="yZon" value="${esc(D.yo.zona || "041")}" inputmode="numeric"></label></div>
    <label class="campo"><span>Correo institucional</span><input id="yCor" type="email" value="${esc(D.yo.correo)}" placeholder="nombre@bcedu.mx"></label>
