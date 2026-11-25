@@ -25,7 +25,7 @@
 #     sudo bash instalar.sh --clave-maestro CLAVE
 #     sudo bash instalar.sh --clave-maestro CLAVE --impresora 192.168.1.50
 #     sudo bash instalar.sh --clave-maestro CLAVE --servidor              (solo en UNA computadora)
-#     sudo bash instalar.sh --clave-maestro CLAVE --servidor --wikipedia  (además Wikipedia en español)
+#     sudo bash instalar.sh --clave-maestro CLAVE --wikipedia             (Wikipedia en español si cabe; también sin --servidor)
 #  Se puede volver a correr sin problema: no duplica nada.
 # =====================================================================
 set -uo pipefail
@@ -52,7 +52,7 @@ while [ $# -gt 0 ]; do
       [ ${#CLAVE_MAESTRO} -ge 4 ] || { rojo "La clave de la cuenta Maestro debe tener al menos 4 caracteres."; exit 1; } ;;
     --impresora) IP_IMPRESORA="${2:-}"; shift 2 ;;
     --servidor) SERVIDOR=1; shift ;;
-    --wikipedia) WIKIPEDIA=1; SERVIDOR=1; shift ;;
+    --wikipedia) WIKIPEDIA=1; shift ;;
     -h|--help|--ayuda) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) rojo "Opción no reconocida: $1"; exit 1 ;;
   esac
@@ -399,53 +399,6 @@ if [ "$SERVIDOR" = 1 ]; then
   printf 'Carpeta de la escuela\n\nTodo lo que pongas aquí (videos .mp4, libros en PDF, audios .mp3, imágenes) lo ven los alumnos\nen la Biblioteca sin internet de todas las computadoras, aunque no haya internet.\n' > /srv/aula/compartido/LEEME.txt
   if id maestro >/dev/null 2>&1; then chown -R maestro:maestro /srv/aula/compartido; fi
   chmod -R a+rX /srv/aula
-  # Kiwix: enciclopedia, diccionario y simulaciones de ciencias para consultar sin internet
-  instalar kiwix-tools
-  if ! command -v kiwix-serve >/dev/null 2>&1; then
-    T=$(mktemp -d)
-    if wget -q -T 30 -t 2 -O "$T/k.tgz" https://download.kiwix.org/release/kiwix-tools/kiwix-tools_linux-x86_64.tar.gz; then
-      tar xzf "$T/k.tgz" -C "$T" && install -m 755 "$T"/kiwix-tools*/kiwix-serve /usr/local/bin/ && echo "  + kiwix-serve"
-    fi
-    rm -rf "$T"
-  fi
-  ultimo() { # carpeta patrón → nombre del archivo .zim más reciente
-    wget -q -T 30 -t 2 -O - "https://download.kiwix.org/zim/$1/" 2>/dev/null | grep -o "$2_[0-9-]*\.zim" | sort -u | tail -1; }
-  bajar_zim() { # carpeta patrón descripción
-    local f; f=$(ultimo "$1" "$2")
-    [ -n "$f" ] || { amarillo "  ! no encontré $3"; return; }
-    [ -f "/srv/aula/kiwix/$f" ] && { echo "  = $3 ya estaba"; return; }
-    echo "  Descargando $3 ($f)…"
-    if wget -q -c -T 60 -t 5 -O "/srv/aula/kiwix/$f.parte" "https://download.kiwix.org/zim/$1/$f"; then
-      mv "/srv/aula/kiwix/$f.parte" "/srv/aula/kiwix/$f"; echo "  + $3"
-      for v in /srv/aula/kiwix/"$2"_*.zim; do [ "$v" = "/srv/aula/kiwix/$f" ] || rm -f "$v"; done
-    else amarillo "  ! no se pudo descargar $3 (se puede volver a correr el instalador)"; fi; }
-  LIBRE_GB=$(df -BG --output=avail /srv | tail -1 | tr -dc 0-9)
-  bajar_zim vikidia vikidia_es_all "Vikidia, enciclopedia para niños"
-  bajar_zim phet phet_es_all "simulaciones de ciencias y matemáticas (PhET)"
-  bajar_zim wiktionary wiktionary_es_all_nopic "diccionario (Wikcionario)"
-  bajar_zim wikibooks wikibooks_es_all_nopic "libros de texto libres (Wikilibros)"
-  if [ "$WIKIPEDIA" = 1 ]; then
-    if [ "${LIBRE_GB:-0}" -ge 15 ]; then bajar_zim wikipedia wikipedia_es_all_mini "Wikipedia en español (resumida)"
-    else amarillo "  ! No hay espacio suficiente para Wikipedia (se necesitan 15 GB libres)."; fi
-  fi
-  chmod -R a+rX /srv/aula/kiwix
-  KS=$(command -v kiwix-serve || true)
-  if [ -n "$KS" ]; then
-    cat > /etc/systemd/system/aula-kiwix.service <<KIWIX
-[Unit]
-Description=Aula Zona 050 · enciclopedia y libros sin internet (Kiwix, puerto 8051)
-After=network.target
-[Service]
-ExecStart=/bin/sh -c 'ls /srv/aula/kiwix/*.zim >/dev/null 2>&1 && exec $KS --port 8051 /srv/aula/kiwix/*.zim || exec sleep infinity'
-Restart=always
-DynamicUser=yes
-[Install]
-WantedBy=multi-user.target
-KIWIX
-    systemctl daemon-reload; systemctl enable aula-kiwix.service >/dev/null 2>&1; systemctl restart aula-kiwix.service >/dev/null 2>&1
-  else
-    amarillo "  ! No se pudo instalar Kiwix; la enciclopedia quedará pendiente."
-  fi
   # Kolibri: videos y ejercicios de Khan Academy y otros canales, sin internet (puerto 8080)
   if ! dpkg -s kolibri >/dev/null 2>&1; then
     echo "  Instalando Kolibri…"
@@ -471,6 +424,64 @@ KIWIX
     chmod 755 "$ESC/carpeta-escuela.desktop"; chown maestro:maestro "$ESC/carpeta-escuela.desktop"
   fi
   verde "Esta computadora es el servidor de la escuela (aula-servidor). Déjala encendida mientras los alumnos trabajan."
+fi
+
+# ---------- enciclopedia sin internet (Kiwix) ----------
+# En el servidor: Vikidia, diccionario, PhET, Wikilibros y (si cabe) Wikipedia.
+# En las demás computadoras (con --wikipedia): solo la Wikipedia, si la computadora tiene espacio.
+if [ "$SERVIDOR" = 1 ] || [ "$WIKIPEDIA" = 1 ]; then
+  paso "Enciclopedia sin internet"
+  mkdir -p /srv/aula/kiwix
+  # Kiwix: enciclopedia, diccionario y simulaciones de ciencias para consultar sin internet
+  instalar kiwix-tools
+  if ! command -v kiwix-serve >/dev/null 2>&1; then
+    T=$(mktemp -d)
+    if wget -q -T 30 -t 2 -O "$T/k.tgz" https://download.kiwix.org/release/kiwix-tools/kiwix-tools_linux-x86_64.tar.gz; then
+      tar xzf "$T/k.tgz" -C "$T" && install -m 755 "$T"/kiwix-tools*/kiwix-serve /usr/local/bin/ && echo "  + kiwix-serve"
+    fi
+    rm -rf "$T"
+  fi
+  ultimo() { # carpeta patrón → nombre del archivo .zim más reciente
+    wget -q -T 30 -t 2 -O - "https://download.kiwix.org/zim/$1/" 2>/dev/null | grep -o "$2_[0-9-]*\.zim" | sort -u | tail -1; }
+  bajar_zim() { # carpeta patrón descripción
+    local f; f=$(ultimo "$1" "$2")
+    [ -n "$f" ] || { amarillo "  ! no encontré $3"; return; }
+    [ -f "/srv/aula/kiwix/$f" ] && { echo "  = $3 ya estaba"; return; }
+    echo "  Descargando $3 ($f)…"
+    if wget -q -c -T 60 -t 5 -O "/srv/aula/kiwix/$f.parte" "https://download.kiwix.org/zim/$1/$f"; then
+      mv "/srv/aula/kiwix/$f.parte" "/srv/aula/kiwix/$f"; echo "  + $3"
+      for v in /srv/aula/kiwix/"$2"_*.zim; do [ "$v" = "/srv/aula/kiwix/$f" ] || rm -f "$v"; done
+    else amarillo "  ! no se pudo descargar $3 (se puede volver a correr el instalador)"; fi; }
+  LIBRE_GB=$(df -BG --output=avail /srv | tail -1 | tr -dc 0-9)
+  if [ "$SERVIDOR" = 1 ]; then
+    bajar_zim vikidia vikidia_es_all "Vikidia, enciclopedia para niños"
+    bajar_zim phet phet_es_all "simulaciones de ciencias y matemáticas (PhET)"
+    bajar_zim wiktionary wiktionary_es_all_nopic "diccionario (Wikcionario)"
+    bajar_zim wikibooks wikibooks_es_all_nopic "libros de texto libres (Wikilibros)"
+  fi
+  if [ "$WIKIPEDIA" = 1 ]; then
+    if [ "${LIBRE_GB:-0}" -ge 15 ]; then bajar_zim wikipedia wikipedia_es_all_mini "Wikipedia en español (resumida)"
+    else amarillo "  ! Esta computadora no tiene espacio para la Wikipedia (se necesitan 15 GB libres): se omite."; fi
+  fi
+  chmod -R a+rX /srv/aula/kiwix
+  KS=$(command -v kiwix-serve || true)
+  if [ -n "$KS" ]; then
+    cat > /etc/systemd/system/aula-kiwix.service <<KIWIX
+[Unit]
+Description=Aula Zona 050 · enciclopedia y libros sin internet (Kiwix, puerto 8051)
+After=network.target
+[Service]
+ExecStart=/bin/sh -c 'ls /srv/aula/kiwix/*.zim >/dev/null 2>&1 && exec $KS --port 8051 /srv/aula/kiwix/*.zim || exec sleep infinity'
+Restart=always
+DynamicUser=yes
+[Install]
+WantedBy=multi-user.target
+KIWIX
+    systemctl daemon-reload; systemctl enable aula-kiwix.service >/dev/null 2>&1; systemctl restart aula-kiwix.service >/dev/null 2>&1
+  else
+    amarillo "  ! No se pudo instalar Kiwix; la enciclopedia quedará pendiente."
+  fi
+  systemctl restart zona050-red.service >/dev/null 2>&1 || true
 fi
 
 # ---------- Firefox: YouTube ligero, sin publicidad, sin datos guardados ----------

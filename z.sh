@@ -70,15 +70,14 @@ if [ "$TIPO" != 2 ]; then
   echo "¿Esta será la computadora SERVIDOR de la escuela?" >$T
   [ "$TIPO" = 3 ] && echo "(Si la escuela tiene una i5, conviene que esa sea la servidora.)" >$T
   echo "Guarda la biblioteca sin internet para todas las demás. Solo UNA por escuela." >$T
-  echo "Si tiene espacio suficiente (15 GB libres), también instala la Wikipedia en español." >$T
   read -rp "Escribe s (sí) o n (no) y presiona Enter: " SRV <$T
-  case "$SRV" in
-    s|S|si|SI|sí|Sí)
-      ARGS+=(--servidor --wikipedia)
-      LIBRE=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)
-      if [ "${LIBRE:-0}" -ge 15 ]; then ve "Hay ${LIBRE} GB libres: se instalará también la Wikipedia en español sin internet."
-      else ro "Solo hay ${LIBRE:-0} GB libres (se necesitan 15): esta computadora no soporta la Wikipedia y se omitirá."; fi ;;
-  esac
+  case "$SRV" in s|S|si|SI|sí|Sí) ARGS+=(--servidor) ;; esac
+  # Wikipedia sin internet: en cada computadora que la soporte (15 GB libres)
+  ARGS+=(--wikipedia)
+  LIBRE=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)
+  echo >$T
+  if [ "${LIBRE:-0}" -ge 15 ]; then ve "Hay ${LIBRE} GB libres: se instalará la Wikipedia en español sin internet en esta computadora."
+  else ro "Solo hay ${LIBRE:-0} GB libres (se necesitan 15): esta computadora no soporta la Wikipedia y se omitirá."; fi
 fi
 
 echo >$T

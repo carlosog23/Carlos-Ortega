@@ -45,12 +45,15 @@ const CAND = [...new Set(["http://aula-servidor.local:8050", "http://aula-servid
   let srv = "", host = "";
   for (const s of CAND) { try { const c = new AbortController(), t = setTimeout(() => c.abort(), 2500); const r = await fetch(s + "/api/ping", { signal: c.signal }); clearTimeout(t); const j = await r.json(); if (j.ok && j.servidor) { srv = s; host = new URL(s).hostname; break; } } catch (e) {} }
   const n = document.getElementById("nSrv");
-  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eKol", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); return; }
+  // ¿Esta misma computadora tiene la enciclopedia instalada? Entonces se usa la suya (no necesita al servidor).
+  let local = 0; try { local = ((await (await fetch(location.origin + "/api/biblioteca")).json()).kiwix || []).length; } catch (e) {}
+  const ponLocal = () => { if (!local) return false; const a = document.getElementById("cKiwix"); a.href = `http://${location.hostname}:8051/`; a.classList.remove("off"); const s = document.getElementById("eKiwix"); s.textContent = "Instalada en esta computadora"; s.classList.add("ok"); return true; };
+  if (!srv) { n.textContent = "No se encontró el servidor de la escuela. Debe estar encendido y conectado a la misma red (cable o módem)."; ["eKiwix", "eComp", "eKol", "eAj"].forEach(i => document.getElementById(i).textContent = "Sin conexión"); ponLocal(); return; }
   n.textContent = "Conectado al servidor de la escuela.";
   let b = {}; try { b = await (await fetch(srv + "/api/biblioteca")).json(); } catch (e) {}
   const pon = (c, e, url, txt, ok) => { const a = document.getElementById(c); a.href = url; a.classList.toggle("off", !ok); const s = document.getElementById(e); s.textContent = txt; s.classList.toggle("ok", ok); };
   const nk = (b.kiwix || []).length;
-  pon("cKiwix", "eKiwix", `http://${host}:8051/`, nk ? `${nk} libro${nk === 1 ? "" : "s"} disponible${nk === 1 ? "" : "s"}` : "Aún no se cargan", nk > 0);
+  if (!(local && nk <= local) || !ponLocal()) pon("cKiwix", "eKiwix", `http://${host}:8051/`, nk ? `${nk} libro${nk === 1 ? "" : "s"} disponible${nk === 1 ? "" : "s"}` : "Aún no se cargan", nk > 0);
   pon("cComp", "eComp", srv + "/compartido/", b.compartido ? `${b.compartido} archivo${b.compartido === 1 ? "" : "s"}` : "Vacía por ahora", true);
   pon("cAj", "eAj", "/ajedrez/", "Disponible", true);
   try { const c = new AbortController(), t = setTimeout(() => c.abort(), 3000); await fetch(`http://${host}:8080/`, { mode: "no-cors", signal: c.signal }); clearTimeout(t); pon("cKol", "eKol", `http://${host}:8080/`, "Disponible", true); }
