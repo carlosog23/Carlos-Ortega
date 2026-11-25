@@ -152,7 +152,8 @@ instalar firefox firefox-locale-es language-pack-es language-pack-gnome-es \
   libavcodec-extra ffmpeg i965-va-driver va-driver-all \
   zram-tools cups cups-filters printer-driver-all hplip system-config-printer \
   avahi-daemon libnss-mdns python3 \
-  gbrainy gnome-sudoku klavaro kgeography stellarium mesa-utils
+  gbrainy gnome-sudoku klavaro kgeography stellarium mesa-utils \
+  xournalpp pdfarranger xreader
 verde "Programas instalados."
 
 # Quita programas que no usan los alumnos y gastan memoria
@@ -380,6 +381,8 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   acceso word "Documentos (Word)" "libreoffice --writer" libreoffice-writer
   acceso excel "Hojas de cálculo (Excel)" "libreoffice --calc" libreoffice-calc
   acceso powerpoint "Presentaciones (PowerPoint)" "libreoffice --impress" libreoffice-impress
+  acceso pdf-firmar "PDF: llenar y firmar" "xournalpp" com.github.xournalpp.xournalpp
+  acceso pdf-unir "PDF: unir y ordenar" "pdfarranger" com.github.jeromerobert.pdfarranger
   chown -R maestro:maestro /home/maestro
   verde "Cuenta Maestro lista (con la clave que escribiste)."
 else
