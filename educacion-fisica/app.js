@@ -318,6 +318,7 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
     return `<button class="hoy-i" data-g="${g.id}"><span class="gr">${g.grado}°${esc(g.grupo || "")}</span><span class="tx"><b>${esc(e.nombre)}</b><small>${s ? `Sesión ${s.n}: ${esc(s.ses.t)}` : "Sin planeación pendiente"} · ${activos(g).length} alumnos</small></span>${ya ? `<span class="tag">Dada</span>` : `<span class="tag m">${ic("play", 14)}</span>`}</button>`; }).join("")}</div>
     <div class="fila mt"><button class="btn s" id="bNoDio">${ic("reloj", 16)} Hoy no se pudo dar alguna clase</button></div>` : ""}
   ${evHoy.length ? `<h2 class="sec-t">En su agenda hoy</h2><div class="lista">${evHoy.map(e => evItem(e, k)).join("")}</div>` : ""}
+  ${typeof ppieBotonInicio === "function" ? ppieBotonInicio() : ""}
   ${avisoRespaldoHTML()}
   <h2 class="sec-t">Su trabajo</h2><div class="puertas">
    <button class="puerta" data-v="planes" style="--c:var(--anil);--c-s:var(--anil-s)"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.length} planeaciones · juegos, sesiones e instrumentos</span></button>
@@ -328,7 +329,7 @@ VISTAS.inicio = () => { const k = hoy(), d = dF(k), sc = sinClase(k), ag = agend
    <button class="puerta" data-v="listas" style="--c:var(--barro);--c-s:var(--barro-s)"><span class="ic">${ic("impr")}</span><b>Listas de asistencia</b><span>Imprimir por mes, en blanco o con sus registros</span></button>
    <button class="puerta" data-v="ajustes" style="--c:var(--gris);--c-s:var(--hilo2)"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, trimestres, enlace y copia de seguridad</span></button>
   </div><p class="pie">Ulama · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p></main>`; };
-ENLAZAR.inicio = () => { enlazarAvisoRespaldo();
+ENLAZAR.inicio = () => { enlazarAvisoRespaldo(); typeof ppieEnlazarInicio === "function" && ppieEnlazarInicio();
   $("#bNoDio") && ($("#bNoDio").onclick = dlgHoyNoSeDio); $("#bClase").onclick = () => ir("clase", { paso: 1, c: nuevaClase() }); $("#bPlanN").onclick = () => ir("planNueva", {}); $("#bInstI") && ($("#bInstI").onclick = instalarApp);
   $$(".puerta").forEach(b => b.onclick = () => ir(b.dataset.v)); $$("[data-ev]").forEach(b => b.onclick = () => dlgEvento(b.dataset.ev)); $$(".hoy-i").forEach(b => b.onclick = () => { const g = grDe(b.dataset.g), c = nuevaClase(); c.escId = g.escId; c.grupoId = g.id; prepararAsis(c); ir("clase", { paso: 3, c }); }); };
 

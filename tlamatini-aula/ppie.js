@@ -46,6 +46,15 @@
   document.head.appendChild(st);
 })();
 
+/* Capa para usar el apartado en otras apps (Ulama define window.PPA con su escuela, alumnos y servidor) */
+const ppA = () => window.PPA || null;
+const ppTLM = () => (ppA() && ppA().tlm) || (typeof TLM !== "undefined" ? TLM : "../formatos-ppie/");
+const ppDemo = () => ppA() ? !!ppA().demo : (typeof DEMO !== "undefined" && DEMO);
+const ppPie = () => ppA() ? (ppA().pie ? ppA().pie() : "") : (typeof pie === "function" ? pie() : "");
+const ppDocente = () => ppA() ? ppA().docente() : yo().nombre;
+const ppPost = (a, d, ms) => ppA() ? ppA().post(a, d) : aulaPost(a, d, ms);
+const ppRe = () => { const y = scrollY; pintar(); scrollTo(0, y); };
+const ppNrm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 const PP_Q = { doc: "Le toca a usted", dir: "Dirección", sup: "Supervisión", todos: "Todos" };
 const ppD = () => { D.ppie = D.ppie || []; return D.ppie; };
 const ppProt = id => PPIE.find(p => p.id === id);
@@ -59,7 +68,7 @@ const ppDig = n => String(n || "").replace(/\D/g, "");
 const ppTelHref = n => { const d = ppDig(n); return d.length <= 3 ? "tel:" + d : "tel:" + (d.length === 10 ? "+52" + d : d); };
 
 /* ---------- escuela del grupo activo: municipio, Dirección y Supervisión ---------- */
-function ppEscuela() {
+function ppEscuela() { if (ppA()) return ppA().escuela();
   const g = gAct(), yoT = LS("tlm-yo") || {}, per = LS("ppie-perfil") || {};
   const es = (yoT.escuelas || []).find(e => g && g.cct && e.cct === g.cct) || (yoT.escuelas || [])[0] || {};
   const tels = D.ppieTel || {};
@@ -86,6 +95,7 @@ VISTAS.ppie = () => { const ab = ppAbiertos(), cer = ppD().filter(c => c.cerrado
   const op = p => `<button class="pp-op${p.emergencia ? " em" : ""}" data-pp="${p.id}" style="--c:${p.c}"><span class="e">${p.e}</span><b>${esc(p.t)}</b><small>${esc(p.d)}</small></button>`;
   return barra("Protección escolar · PPIE", "¿Qué está pasando?") + `<main class="wrap">
    <a class="pp-911 mt" href="tel:911">📞 Llamar al 911</a>
+   ${ppA() && ppA().escuelas && ppA().escuelas().length > 1 ? `<p class="small mt" style="margin-bottom:6px"><b>¿En qué escuela está pasando?</b></p><div class="chips">${ppA().escuelas().map(e => `<button class="chip" data-pesc="${esc(e.id)}" aria-pressed="${e.id === ppEscuela().id}">${esc(e.nombre)}</button>`).join("")}</div>` : ""}
    ${ab.length ? `<h2 class="sec-t">Casos abiertos</h2><div class="lista">${ab.map(c => { const p = ppProt(c.prot), k = ppCaso(c), h = Object.keys(c.hechos || {}).length;
       return `<button class="it" data-pc="${c.id}" style="text-align:left;border-left:6px solid ${p.c}"><span style="font-size:24px">${p.e}</span><span class="tx"><b>${esc(p.t)}${p.casos.length > 1 ? " · " + esc(k.t) : ""}</b><small>${ppFH(c.inicio)} · ${h} de ${k.pasos.length} pasos</small></span>${ic("sig", 18)}</button>`; }).join("")}</div>` : ""}
    <h2 class="sec-t" style="color:#B91C1C">Emergencia</h2><div class="pp-grid">${em.map(op).join("")}</div>
@@ -93,8 +103,9 @@ VISTAS.ppie = () => { const ab = ppAbiertos(), cer = ppD().filter(c => c.cerrado
    <section class="card mt"><p class="small" style="margin:0"><b>¿Cómo funciona?</b> Elija la situación y siga los pasos del Programa de Protección Integral Escolar 2026. Cada paso dice quién lo hace, a quién llamar y qué anexo se llena; los anexos se abren en Tlamatini ya con los datos de su escuela.</p>
     <p class="small muted" style="margin:8px 0 0">Al activar un protocolo, la Dirección y la Supervisión reciben un aviso con la situación, la escuela, su nombre y la hora, y después cuántos pasos lleva. <b>No se envían nombres de alumnos ni lo que usted escriba</b>: eso se queda en su celular.</p></section>
    ${cer.length ? `<h2 class="sec-t">Cerrados recientemente</h2><div class="lista">${cer.map(c => { const p = ppProt(c.prot), k = ppCaso(c); return `<button class="it" data-pc="${c.id}" style="text-align:left;opacity:.85"><span style="font-size:22px">${p.e}</span><span class="tx"><b>${esc(p.t)}${p.casos.length > 1 ? " · " + esc(k.t) : ""}</b><small>${ppFH(c.inicio)} · cerrado ${ppFH(c.cerrado)}</small></span>${ic("sig", 18)}</button>`; }).join("")}</div>` : ""}
-   ${pie()}</main>`; };
+   ${ppPie()}</main>`; };
 ENLAZAR.ppie = () => { ppReintentar();
+  $$("[data-pesc]").forEach(b => b.onclick = () => { ppA().elegir(b.dataset.pesc); ppRe(); });
   $$("[data-pc]").forEach(b => b.onclick = () => ir("ppieCaso", { pid: b.dataset.pc }));
   $$("[data-pp]").forEach(b => b.onclick = () => { const p = ppProt(b.dataset.pp); if (p.casos.length === 1) return ppIniciar(p, p.casos[0]);
     dlg(`<h3>${p.e} ${esc(p.t)}</h3><p class="mb">${esc(p.pregunta || "¿Cuál es el caso?")}</p><div class="lista">${p.casos.map(k => `<button class="it" data-pk="${k.id}" style="text-align:left"><span class="tx"><b>${esc(k.t)}</b></span>${ic("sig", 18)}</button>`).join("")}</div>
@@ -111,11 +122,11 @@ async function ppEnviar(c) {
   if (!c || c.enviando) return; const p = ppProt(c.prot), k = ppCaso(c); c.enviando = true;
   try {
     if (!c.aviso.id) {
-      const r = await aulaPost("ppieAviso", { prot: c.prot, protT: p.t, caso: c.caso, casoT: p.casos.length > 1 ? k.t : "", emergencia: !!(p.emergencia || p.urgente), cct: c.cct, escuela: c.escuela, grupo: c.grupo, inicio: c.inicio, total: k.pasos.length }, 30000);
+      const r = await ppPost("ppieAviso", { prot: c.prot, protT: p.t, caso: c.caso, casoT: p.casos.length > 1 ? k.t : "", emergencia: !!(p.emergencia || p.urgente), cct: c.cct, escuela: c.escuela, grupo: c.grupo, inicio: c.inicio, total: k.pasos.length }, 30000);
       c.aviso = { id: r.id, f: new Date().toISOString(), a: r.avisados || "" };
     }
     if (c.aviso.id && c.aviso.pendAv) {
-      await aulaPost("ppieAvance", { id: c.aviso.id, hechos: Object.keys(c.hechos).length, total: k.pasos.length, cerrado: c.cerrado || "" }, 30000);
+      await ppPost("ppieAvance", { id: c.aviso.id, hechos: Object.keys(c.hechos).length, total: k.pasos.length, cerrado: c.cerrado || "" }, 30000);
       c.aviso.pendAv = false;
     }
     c.aviso.pend = false; c.aviso.error = "";
@@ -127,7 +138,7 @@ window.addEventListener("online", () => setTimeout(ppReintentar, 1500));
 let ppTmr = null;
 function ppAvance(c) { c.aviso = c.aviso || {}; c.aviso.pendAv = true; guardar(); clearTimeout(ppTmr); ppTmr = setTimeout(() => ppEnviar(c), 2500); }
 function ppAvisoHTML(c) { const a = c.aviso || {};
-  if (DEMO) return `<div class="pp-aviso" id="ppAviso">Demostración: en uso real, aquí se confirma el aviso a la Dirección y a la Supervisión.</div>`;
+  if (ppDemo()) return `<div class="pp-aviso" id="ppAviso">Demostración: en uso real, aquí se confirma el aviso a la Dirección y a la Supervisión.</div>`;
   if (a.id && !a.pend) return `<div class="pp-aviso" id="ppAviso">✅ La Dirección y la Supervisión ya fueron avisadas (${ppHora(a.f)}).${a.pendAv ? " Enviando avance…" : ""}</div>`;
   return `<div class="pp-aviso mal" id="ppAviso">${c.enviando ? "Avisando a la Dirección y a la Supervisión…" : `⏳ El aviso a la Dirección y a la Supervisión está pendiente${a.error ? ` (${esc(a.error)})` : ""}; se enviará solo cuando haya internet. <button class="btn s" id="ppReAv" style="margin-left:6px">Reintentar</button>`}</div>`; }
 
@@ -155,7 +166,7 @@ function ppAnexo(c, L) {
   if (L === "C" || L === "F" || L === "G" || L === "H") Object.assign(vals, { fecha: hoyK });
   const abrir = (nuevo) => { if (nuevo) try { localStorage.setItem("ppie-draft-" + L, JSON.stringify({ vals, step: 0 })); } catch (e) {}
     c.anexos = c.anexos || {}; c.anexos[L] = new Date().toISOString(); guardar();
-    window.open(TLM + "#ir=" + L, "_blank", "noopener"); };
+    window.open(ppTLM() + "#ir=" + L, "_blank", "noopener"); };
   let previo = null; try { previo = JSON.parse(localStorage.getItem("ppie-draft-" + L) || "null"); } catch (e) {}
   const lleno = previo && previo.vals && Object.values(previo.vals).some(v => v && (typeof v === "string" ? v.trim() : (v.sel || []).length || v.otro));
   if (!lleno) return abrir(true);
@@ -163,29 +174,29 @@ function ppAnexo(c, L) {
     <div class="fila fin"><button class="btn" id="axSeg">Continuar el que tenía</button><button class="btn p" id="axNue">Empezar uno nuevo</button></div>`, w => {
     w.querySelector("#axSeg").onclick = () => { cerrarDlg(); abrir(false); }; w.querySelector("#axNue").onclick = () => { cerrarDlg(); abrir(true); }; });
 }
-function ppWhats(c) { const p = ppProt(c.prot), k = ppCaso(c), E = ppEscuela(), y = yo();
-  const txt = `${E.dir ? "Buen día, " + corto(E.dir.replace(/^(Mtr[oa]\.|Profr?a?\.)\s*/, "")) + ". " : ""}Le informo que se presentó una situación de *${p.t.toLowerCase()}*${p.casos.length > 1 ? " (" + k.t.toLowerCase() + ")" : ""}${c.grupo ? " en " + c.grupo : ""} a las ${ppHora(c.inicio)}. Ya activé el protocolo del PPIE y le entrego el informe por escrito. ${y.nombre ? "\n" + y.nombre : ""}`;
+function ppWhats(c) { const p = ppProt(c.prot), k = ppCaso(c), E = ppEscuela(), yn = ppDocente();
+  const txt = `${E.dir ? "Buen día, " + corto(E.dir.replace(/^(Mtr[oa]\.|Profr?a?\.)\s*/, "")) + ". " : ""}Le informo que se presentó una situación de *${p.t.toLowerCase()}*${p.casos.length > 1 ? " (" + k.t.toLowerCase() + ")" : ""}${c.grupo ? " en " + c.grupo : ""} a las ${ppHora(c.inicio)}. Ya activé el protocolo del PPIE y le entrego el informe por escrito. ${yn ? "\n" + yn : ""}`;
   const d = ppDig(E.dirTel); window.open("https://wa.me/" + (d ? (d.length === 10 ? "52" + d : d) : "") + "?text=" + encodeURIComponent(txt), "_blank", "noopener"); }
-function ppPadres() { const g = gAct(), L = activos(g);
-  const fila = a => { const x = typeof expDe === "function" ? expDe(a).dat : {}, t = [[x.tutor, x.tel], [x.tutor2, x.tel2], [x.emerg, x.telE]].filter(z => z[1]);
+function ppPadres() { const L = ppA() ? ppA().alumnos() : activos(gAct()).map(a => { const x = typeof expDe === "function" ? expDe(a).dat : {}; return { nombre: a.nombre, tels: [[x.tutor, x.tel], [x.tutor2, x.tel2], [x.emerg, x.telE]] }; });
+  const fila = a => { const t = (a.tels || []).filter(z => z[1]);
     return `<div class="it" style="align-items:flex-start"><span class="tx"><b>${esc(a.nombre)}</b>${t.length ? `<span class="fila" style="gap:6px;margin-top:6px">${t.map(z => `<a class="pp-c" href="${ppTelHref(z[1])}" style="min-height:38px">📞 ${esc(z[0] || "Teléfono")} · ${esc(z[1])}</a>`).join("")}</span>` : `<small>Sin teléfono registrado en su expediente.</small>`}</span></div>`; };
-  dlg(`<h3>👪 Llamar a la familia</h3><p class="small muted mb">Teléfonos registrados en el expediente de cada alumno (Mi grupo › alumno › Expediente).</p><input id="ppBus" placeholder="Buscar alumno…" style="width:100%;margin-bottom:10px">
+  dlg(`<h3>👪 Llamar a la familia</h3><p class="small muted mb">${esc(ppA() && ppA().notaAlumnos || "Teléfonos registrados en el expediente de cada alumno (Mi grupo › alumno › Expediente).")}</p><input id="ppBus" placeholder="Buscar alumno…" style="width:100%;margin-bottom:10px">
     <div class="lista" id="ppPL">${L.map(fila).join("") || "<p>No hay alumnos en el grupo.</p>"}</div><div class="fila fin mt"><button class="btn" id="ppPC">Cerrar</button></div>`, w => {
     w.querySelector("#ppPC").onclick = cerrarDlg;
-    w.querySelector("#ppBus").oninput = e => { const q = nrm(e.target.value); w.querySelector("#ppPL").innerHTML = L.filter(a => nrm(a.nombre).includes(q)).map(fila).join(""); }; }); }
+    w.querySelector("#ppBus").oninput = e => { const q = ppNrm(e.target.value); w.querySelector("#ppPL").innerHTML = L.filter(a => ppNrm(a.nombre).includes(q)).map(fila).join(""); }; }); }
 function ppPedirTel(k) { const E = ppEscuela();
   dlg(`<h3>📞 Teléfono de la ${k === "dir" ? "Dirección" : "Supervisión"}</h3><p class="small muted mb">Se guarda en este celular para llamar con un toque la próxima vez.</p>
     <input id="ppTel" inputmode="tel" placeholder="10 dígitos" value="${esc(k === "dir" ? E.dirTel : E.supTel)}" style="width:100%">
     <div class="fila fin mt"><button class="btn" id="ptNo">Cancelar</button><button class="btn p" id="ptSi">Guardar y llamar</button></div>`, w => {
     w.querySelector("#ptNo").onclick = cerrarDlg;
     w.querySelector("#ptSi").onclick = () => { const v = w.querySelector("#ppTel").value.trim(); if (ppDig(v).length < 7) return toast("Escriba el teléfono completo.");
-      D.ppieTel = D.ppieTel || {}; D.ppieTel[k] = v; guardar(); cerrarDlg(); re(); location.href = ppTelHref(v); }; }); }
+      D.ppieTel = D.ppieTel || {}; D.ppieTel[k] = v; guardar(); cerrarDlg(); ppRe(); location.href = ppTelHref(v); }; }); }
 function ppInfo(k) { const x = PPIE_TEL[k] || {}, E = ppEscuela();
   dlg(`<h3>${esc(x.t || "")}</h3>${E.mun ? `<p class="mb">No hay un teléfono de esta institución para ${esc(E.mun)} en el directorio del PPIE.</p>` : `<p class="mb">Indique el municipio de su escuela para mostrar el teléfono que corresponde.</p>
     <select id="ppMun" style="width:100%">${["", "San Quintín", "Ensenada", "Playas de Rosarito", "Tijuana", "Tecate", "Mexicali", "San Felipe"].map(m => `<option>${m}</option>`).join("")}</select>`}
     ${x.mail ? `<p>Correo: <a href="mailto:${esc(x.mail)}">${esc(x.mail)}</a></p>` : ""}${x.wa ? `<p><a class="pp-c wa" href="https://wa.me/52${ppDig(x.wa)}" target="_blank" rel="noopener">💬 WhatsApp ${esc(x.wa)}</a></p>` : ""}
     <p class="small muted">Si es una emergencia, llame al 911.</p><div class="fila fin mt"><a class="btn" href="tel:911" style="background:#B91C1C;color:#fff">📞 911</a><button class="btn p" id="piOk">Listo</button></div>`, w => {
-    w.querySelector("#piOk").onclick = () => { const m = w.querySelector("#ppMun"); if (m && m.value) { D.ppieTel = D.ppieTel || {}; D.ppieTel.mun = m.value; guardar(); } cerrarDlg(); re(); }; }); }
+    w.querySelector("#piOk").onclick = () => { const m = w.querySelector("#ppMun"); if (m && m.value) { D.ppieTel = D.ppieTel || {}; D.ppieTel.mun = m.value; guardar(); } cerrarDlg(); ppRe(); }; }); }
 
 /* ---------- el caso: pasos para palomear con hora ---------- */
 VISTAS.ppieCaso = () => { const c = ppDe(S.pid); if (!c) return VISTAS.ppie(); const p = ppProt(c.prot), k = ppCaso(c), E = ppEscuela(), hechos = c.hechos || {};
@@ -193,7 +204,7 @@ VISTAS.ppieCaso = () => { const c = ppDe(S.pid); if (!c) return VISTAS.ppie(); c
   if (emg) return barra("Emergencia · PPIE", `${p.e} ${esc(p.t)}`) + `<main class="wrap"><section class="pp-em mt"><h2>${esc(k.t !== p.t ? k.t : p.t)}</h2>
      <a class="pp-911" href="tel:911">📞 LLAMAR AL 911</a><ol>${(p.clave || []).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
      ${p.id === "tirador" ? `<div class="pp-atice">${PPIE_ATICE.map(([l, t, d]) => `<div style="color:#1E2A40"><b class="l">${l}</b><span><b>${t}.</b> ${esc(d)}</span></div>`).join("")}</div>` : ""}
-     <button class="btn mt" id="ppVer" style="width:100%;background:#fff;color:#7F1D1D;font-weight:800">Ver todos los pasos del protocolo</button></section>${ppAvisoHTML(c)}${pie()}</main>`;
+     <button class="btn mt" id="ppVer" style="width:100%;background:#fff;color:#7F1D1D;font-weight:800">Ver todos los pasos del protocolo</button></section>${ppAvisoHTML(c)}${ppPie()}</main>`;
   let fase = "";
   const pasos = k.pasos.map((x, i) => { const h = hechos[i], mio = x.q === "doc" || x.q === "todos";
     const fz = x.fase && x.fase !== fase ? (fase = x.fase, `<div class="pp-fase">${esc(x.fase)}</div>`) : "";
@@ -215,7 +226,7 @@ VISTAS.ppieCaso = () => { const c = ppDe(S.pid); if (!c) return VISTAS.ppie(); c
    <div class="lista" id="ppNotas">${(c.notas || []).map(x => `<div class="pp-nota"><small>${ppFH(x.f)}</small>${esc(x.t).replace(/\n/g, "<br>")}</div>`).join("") || `<p class="small muted">Anote lo que vio o escuchó, con las palabras del alumno entre comillas. Le servirá para llenar los anexos.</p>`}</div>
    ${!c.cerrado ? `<textarea id="ppNT" rows="3" placeholder="Escriba una nota…" style="width:100%;margin-top:8px"></textarea><div class="fila"><button class="btn s" id="ppNG">${ic("mas", 15)} Agregar nota</button><button class="btn s" id="ppCop">${ic("doc", 15)} Copiar cronología</button></div>` : `<div class="fila"><button class="btn s" id="ppCop">${ic("doc", 15)} Copiar cronología</button></div>`}
    <div class="fila mt" style="justify-content:space-between">${c.cerrado ? `<button class="btn" id="ppReab">Reabrir el caso</button>` : `<button class="btn p" id="ppCerrar">${ic("check", 16)} Cerrar el caso</button>`}<button class="btn r" id="ppBor">${ic("basura", 15)} Borrar</button></div>
-   ${pie()}</main>`; };
+   ${ppPie()}</main>`; };
 function ppCronologia(c) { const p = ppProt(c.prot), k = ppCaso(c);
   const L = [`${p.t}${p.casos.length > 1 ? " · " + k.t : ""} — ${c.escuela || ""}${c.grupo ? ", " + c.grupo : ""}`, `Inicio: ${ppFH(c.inicio)}`];
   const ev = [];
@@ -226,15 +237,15 @@ function ppCronologia(c) { const p = ppProt(c.prot), k = ppCaso(c);
   return L.join("\n"); }
 ENLAZAR.ppieCaso = () => { const c = ppDe(S.pid); if (!c) return; const k = ppCaso(c);
   if (c.aviso && (c.aviso.pend || c.aviso.pendAv) && !c.enviando) ppEnviar(c);
-  const v = $("#ppVer"); if (v) v.onclick = () => { S.verPasos = 1; re(); };
+  const v = $("#ppVer"); if (v) v.onclick = () => { S.verPasos = 1; ppRe(); };
   $$("[data-ph]").forEach(b => b.onclick = () => { if (c.cerrado) return toast("El caso está cerrado. Reábralo para cambiarlo.");
-    const i = b.dataset.ph; c.hechos = c.hechos || {}; if (c.hechos[i]) delete c.hechos[i]; else c.hechos[i] = new Date().toISOString(); ppAvance(c); re(); });
-  const ng = $("#ppNG"); if (ng) ng.onclick = () => { const t = $("#ppNT").value.trim(); if (!t) return toast("Escriba la nota."); c.notas = c.notas || []; c.notas.push({ f: new Date().toISOString(), t }); guardar(); re(); };
+    const i = b.dataset.ph; c.hechos = c.hechos || {}; if (c.hechos[i]) delete c.hechos[i]; else c.hechos[i] = new Date().toISOString(); ppAvance(c); ppRe(); });
+  const ng = $("#ppNG"); if (ng) ng.onclick = () => { const t = $("#ppNT").value.trim(); if (!t) return toast("Escriba la nota."); c.notas = c.notas || []; c.notas.push({ f: new Date().toISOString(), t }); guardar(); ppRe(); };
   if ($("#ppCop")) $("#ppCop").onclick = () => { const t = ppCronologia(c); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast("<b>Cronología copiada.</b> Péguela en la descripción del anexo.")).catch(() => dlg(`<h3>Cronología</h3><textarea rows="12" style="width:100%">${esc(t)}</textarea><div class="fila fin mt"><button class="btn p" onclick="cerrarDlg()">Listo</button></div>`)); };
   const ce = $("#ppCerrar"); if (ce) ce.onclick = async () => { const n = Object.keys(c.hechos || {}).length;
     if (!(await confirmar(n < k.pasos.length ? `Lleva ${n} de ${k.pasos.length} pasos. ¿Cerrar el caso de todos modos? (Los pasos de la Dirección y la Supervisión pueden quedar a cargo de ellas.)` : "¿Cerrar el caso?", "Sí, cerrar"))) return;
-    c.cerrado = new Date().toISOString(); ppAvance(c); re(); };
-  const ra = $("#ppReab"); if (ra) ra.onclick = () => { c.cerrado = ""; ppAvance(c); re(); };
+    c.cerrado = new Date().toISOString(); ppAvance(c); ppRe(); };
+  const ra = $("#ppReab"); if (ra) ra.onclick = () => { c.cerrado = ""; ppAvance(c); ppRe(); };
   if ($("#ppBor")) $("#ppBor").onclick = async () => { if (!(await confirmar("Se borrará este caso de su celular (con sus notas). El aviso que ya recibieron la Dirección y la Supervisión no se borra.", "Sí, borrar"))) return;
     D.ppie = ppD().filter(x => x !== c); guardar(); ir("ppie", {}, true); };
 };
@@ -249,4 +260,4 @@ function ppClick(e) { if (S.v !== "ppieCaso") return;
   if (b.dataset.pinfo) return ppInfo(b.dataset.pinfo); }
 document.addEventListener("click", ppClick);
 /* Si la pantalla de inicio se pintó antes de cargar este archivo, se vuelve a pintar para que aparezca el botón */
-setTimeout(() => { try { if (S && S.v === "inicio" && $("#app") && !$("#bSOS") && !$("#velo")) re(); } catch (e) {} }, 0);
+setTimeout(() => { try { if (S && S.v === "inicio" && $("#app") && !$("#bSOS") && !$("#velo")) ppRe(); } catch (e) {} }, 0);
