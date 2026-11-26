@@ -1,6 +1,6 @@
 /* Protocolos PPIE · funciona sin internet: la página, los pasos y los formatos oficiales en PDF quedan guardados. */
-const VERSION = "ppie-2026-11-25b", BASE = "ppie-base-" + VERSION;
-const NUCLEO = ["./", "index.html", "app.js", "estilo.css", "manifest.webmanifest", "img/icono.svg", "img/icono-192.png",
+const VERSION = "ppie-2026-11-25c", BASE = "ppie-base-" + VERSION;
+const NUCLEO = ["./", "index.html", "app.js", "estilo.css", "manifest.webmanifest", "img/icono.svg", "img/icono-192.png", "../formatos-ppie/firma-autor.svg",
   "../tlamatini-aula/ppie-datos.js", "../tlamatini-aula/ppie.js",
   ...["B", "C", "D", "E", "F", "G", "H", "I", "S"].map(l => "../formatos-ppie/formatos/" + l + ".pdf")];
 self.addEventListener("install", e => { e.waitUntil(caches.open(BASE).then(c => Promise.all(NUCLEO.map(u => c.add(u).catch(() => {}))))); self.skipWaiting(); });

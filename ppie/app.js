@@ -43,7 +43,7 @@ function dlg(html, alAbrir) { cerrarDlg(); const v = document.createElement("div
 function cerrarDlg() { const v = $("#velo"); if (v) v.remove(); document.body.style.overflow = ""; }
 function confirmar(msg, si = "Sí, continuar") { return new Promise(ok => dlg(`<h3>¿Seguro?</h3><p class="mb">${esc(msg)}</p><div class="fila fin"><button class="btn" id="qNo">Cancelar</button><button class="btn r" id="qSi">${esc(si)}</button></div>`, v => {
   v.querySelector("#qNo").onclick = () => { cerrarDlg(); ok(false); }; v.querySelector("#qSi").onclick = () => { cerrarDlg(); ok(true); }; })); }
-const pie = () => `<p class="pie privado">${ic("check", 14)} Lo que registra aquí se queda en su celular.</p><p class="pie">Programa de Protección Integral Escolar 2026 · SE / ISEP Baja California<br>App de la Supervisión Escolar Zona 050 · ISEP</p>`;
+const pie = () => `<p class="pie privado">${ic("check", 14)} Lo que registra aquí se queda en su celular.</p><p class="pie">Programa de Protección Integral Escolar 2026 · SE / ISEP Baja California<br>App de la Supervisión Escolar Zona 050 · ISEP</p><div class="firma-autor"><span>Desarrollada por</span><img src="${TLM}firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65"></div>`;
 
 /* ---------------- enlace de la Zona 050 (si el celular ya tiene Tlamatini) ---------------- */
 const tok050 = () => LS("tlp-token") || LS("acc-token") || LS("ulama-tok") || "";
@@ -51,7 +51,7 @@ const yo050 = () => { const t = LS("tlm-yo"); return t && t.escuelas && t.escuel
 async function servidor050() { try { const r = await fetch(TLM + "formatos/acceso.json?t=" + Date.now(), { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j.tequio) { localStorage.setItem("ppie-srv", JSON.stringify(j.tequio)); return j.tequio; } } } catch (e) {} return LS("ppie-srv") || ""; }
 
 window.PPA = {
-  tlm: TLM, demo: false,
+  tlm: TLM, demo: false, pie: () => pie(),
   docente: () => D.yo.nombre || ((yo050() && yo050().persona) ? [yo050().persona.trato, yo050().persona.nombre].filter(Boolean).join(" ") : ""),
   escuelas: () => { const t = yo050(); return t && t.escuelas.length > 1 ? t.escuelas.map(e => ({ id: e.cct, nombre: e.nombre })) : []; },
   elegir: id => { D.esc050 = id; guardar(); },
