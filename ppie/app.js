@@ -69,6 +69,32 @@ window.PPA = {
     const j = await r.json(); if (!j || !j.ok) throw new Error((j && (j.mensaje || j.error)) || "El servidor no respondió."); return j; }
 };
 
+/* ---------------- instalar en el celular ----------------
+   Android (Chrome): botón de instalar. iPhone y iPad: Apple no permite instalar con un botón; se hace desde Safari
+   con «Agregar a inicio». Por eso en iPhone se muestran los pasos ilustrados. */
+const UA = navigator.userAgent || "";
+const esIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const esIPad = /iPad/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const enApp = () => !!(window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches);
+const enOtraApp = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|MicroMessenger|GSA\//i.test(UA);
+const iosSafari = esIOS && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(UA) && !enOtraApp;
+const IC_COMP = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#0C4DA2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="botón Compartir"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 00-1 1v8a1 1 0 001 1h14a1 1 0 001-1v-8a1 1 0 00-1-1h-1"/></svg>';
+const IC_MAS = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#13202B" stroke-width="2" stroke-linecap="round" aria-label="Agregar"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+function guiaInstalar() {
+  if (!esIOS && instEv) { instEv.prompt(); instEv.userChoice.finally(() => { instEv = null; re(); }); return; }
+  const paso = (n, t, extra) => `<li class="pa-paso"><span class="pa-n">${n}</span><div>${t}${extra || ""}</div></li>`;
+  const ios = esIOS ? `<ol class="pa-pasos">
+      ${!iosSafari ? paso(1, `<b>Ábrala en Safari.</b> ${enOtraApp ? "La abrió desde WhatsApp u otra app: toque <b>⋯</b> o el ícono de la brújula y elija <b>«Abrir en Safari»</b>." : "Si usa Chrome en el iPhone también se puede: siga los mismos pasos con su botón Compartir."}`, `<button class="btn s mt" id="gCopiar">Copiar el enlace</button>`) : ""}
+      ${paso(iosSafari ? 1 : 2, `Toque el botón <b>Compartir</b> ${IC_COMP} ${esIPad ? "arriba, a la derecha de la dirección." : "en la barra de abajo de Safari."}`)}
+      ${paso(iosSafari ? 2 : 3, `Deslice hacia abajo y toque <b>«Agregar a inicio»</b> ${IC_MAS}`, `<p class="small muted" style="margin:4px 0 0">Si no aparece, toque «Editar acciones» al final de la lista y actívelo.</p>`)}
+      ${paso(iosSafari ? 3 : 4, `Toque <b>«Agregar»</b>, arriba a la derecha. Listo: queda el ícono rojo de Protocolos PPIE en su pantalla, como cualquier app, y funciona sin internet.`)}</ol>`
+    : `<ol class="pa-pasos">${paso(1, "Abra este enlace en <b>Chrome</b>.")}${paso(2, "Toque el menú <b>⋮</b> (arriba a la derecha).")}${paso(3, "Elija <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.")}${paso(4, "Confirme con <b>«Instalar»</b>. Queda el ícono rojo en su pantalla.")}</ol>`;
+  dlg(`<h3>📲 Instalar en ${esIOS ? (esIPad ? "su iPad" : "su iPhone") : "su celular"}</h3>${ios}<div class="fila fin mt"><button class="btn p" id="gOk">Entendido</button></div>`, w => {
+    w.querySelector("#gOk").onclick = cerrarDlg;
+    const c = w.querySelector("#gCopiar"); if (c) c.onclick = () => { (navigator.clipboard ? navigator.clipboard.writeText(location.origin + location.pathname) : Promise.reject()).then(() => toast("Enlace copiado. Péguelo en Safari.")).catch(() => toast(location.origin + location.pathname, 6000)); }; });
+}
+const bandaInstalar = () => (enApp() || D.ocultarInst) ? "" : `<div class="pa-inst"><span class="ico">📲</span><div><b>${esIOS ? "Instálela en su iPhone" : "Instálela en su celular"}</b><span>${esIOS ? "En iPhone se agrega desde Safari en 3 toques. Así la tiene a la mano, aun sin internet." : "Queda como app y funciona sin internet."}</span></div><button class="btn p" id="bInstB">${esIOS ? "Ver cómo" : "Instalar"}</button><button class="cerrar" id="bInstX" aria-label="Ocultar">✕</button></div>`;
+
 /* ---------------- inicio ---------------- */
 const PA_GRUPOS = [["k-rojo", "Emergencia", ["tirador", "armas", "bomba", "amenaza"]], ["k-verde", "Auxilio y salud", ["accidente", "suicida"]],
   ["k-amar", "Convivencia y conducta", ["violencia", "acoso", "drogas", "omision", "trabajador"]], ["k-azul", "Protección de derechos", ["sexual", "maltrato", "digital"]]];
@@ -79,20 +105,23 @@ VISTAS.inicio = () => { const E = ppEscuela(), faltan = !E.z050 && ppFaltaContac
    <header class="pa-head"><img src="img/icono.svg" alt=""><div><b>Protocolos PPIE</b><span>Protección Integral Escolar 2026, Baja California</span></div></header>
    <button class="pa-sos" id="bSOS"><span class="ic">${PA_SOS}</span><span><strong>¿Qué está pasando?</strong><span class="t">Toque aquí y siga los pasos del protocolo</span></span>${ab.length ? `<span class="n">${ab.length} caso${ab.length > 1 ? "s" : ""} abierto${ab.length > 1 ? "s" : ""}</span>` : ""}</button>
    <div class="pa-lineas"><a class="pa-tel rojo" href="tel:911"><b>911</b><small>Emergencias</small></a><a class="pa-tel verde" href="tel:075"><b>075</b><small>Apoyo psicológico</small></a><a class="pa-tel azul" href="tel:089"><b>089</b><small>Denuncia anónima</small></a></div>
+   ${bandaInstalar()}
    ${PA_GRUPOS.map(([k, t, ids]) => `<section class="pa-grupo ${k}"><h2><i></i>${t}</h2><div class="pa-tiles">${ids.map(id => { const p = ppProt(id); return `<button class="pa-tile ${k}${k === "k-rojo" ? " em" : ""}" data-pa="${id}"><span class="e">${p.e}</span>${esc(p.t)}</button>`; }).join("")}</div></section>`).join("")}
    <section class="pa-prep"><h2 class="sec-t" style="margin:0 2px 2px">Antes de que se necesite</h2>
     <button class="it" id="iCont" style="text-align:left;--k:${faltan ? "var(--amar-s)" : "var(--verde-s)"}"><span style="font-size:24px">📇</span><span class="tx"><b>A quién avisar</b><small>${esc(contTxt)}</small></span>${ic("sig", 18)}</button>
     <button class="it" id="iYo" style="text-align:left;--k:var(--azul-s)"><span style="font-size:24px">🙋</span><span class="tx"><b>Mis datos</b><small>${esc([D.yo.nombre, D.yo.cargo].filter(Boolean).join(", ") || "Su nombre va en los mensajes de WhatsApp")}</small></span>${ic("sig", 18)}</button>
-    <button class="it" id="iInst" style="text-align:left;--k:var(--tinta-s)${window.matchMedia("(display-mode: standalone)").matches ? ";display:none" : ""}"><span style="font-size:24px">📲</span><span class="tx"><b>Instalar en el celular</b><small>Queda a un toque y funciona sin internet</small></span>${ic("bajar", 18)}</button></section>
+    <button class="it" id="iInst" style="text-align:left;--k:var(--tinta-s)${enApp() ? ";display:none" : ""}"><span style="font-size:24px">📲</span><span class="tx"><b>Instalar en el celular</b><small>Queda a un toque y funciona sin internet</small></span>${ic("bajar", 18)}</button></section>
    ${pie()}</main>`; };
 let instEv = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); instEv = e; });
+window.addEventListener("appinstalled", () => { instEv = null; re(); });
 ENLAZAR.inicio = () => { ppieEnlazarInicio(); $("#iCont").onclick = () => ir("ppieContactos");
   $$("[data-pa]").forEach(b => b.onclick = () => { const id = b.dataset.pa; ir("ppie"); setTimeout(() => { const x = $(`[data-pp="${id}"]`); if (x) x.click(); }, 0); });
   $("#iYo").onclick = () => dlg(`<h3>🙋 Mis datos</h3><label class="campo"><span>Nombre</span><input id="yN" value="${esc(D.yo.nombre)}" autocomplete="name" placeholder="Mtro(a). …"></label>
     <label class="campo"><span>Cargo</span><input id="yC" value="${esc(D.yo.cargo)}" placeholder="Docente de 4.° A, director(a), intendente…"></label><div class="fila fin mt"><button class="btn" id="yNo">Cancelar</button><button class="btn p" id="ySi">Guardar</button></div>`, w => {
     w.querySelector("#yNo").onclick = cerrarDlg; w.querySelector("#ySi").onclick = () => { D.yo.nombre = w.querySelector("#yN").value.trim(); D.yo.cargo = w.querySelector("#yC").value.trim(); guardar(); cerrarDlg(); re(); }; });
-  $("#iInst").onclick = async () => { if (instEv) { instEv.prompt(); instEv = null; return; }
-    dlg(`<h3>📲 Instalar en el celular</h3><p><b>Android (Chrome):</b> menú ⋮ › «Agregar a la pantalla principal» o «Instalar app».</p><p><b>iPhone (Safari):</b> botón Compartir › «Agregar a inicio».</p><div class="fila fin mt"><button class="btn p" id="iOk">Listo</button></div>`, w => w.querySelector("#iOk").onclick = cerrarDlg); }; };
+  $("#iInst").onclick = guiaInstalar;
+  if ($("#bInstB")) $("#bInstB").onclick = guiaInstalar;
+  if ($("#bInstX")) $("#bInstX").onclick = () => { D.ocultarInst = true; guardar(); re(); }; };
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("load", () => pintar());
