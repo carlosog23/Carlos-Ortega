@@ -13576,6 +13576,8 @@ function finEstilos() {
 .fin-tabla tr.clic{cursor:pointer}.fin-tabla tr.clic:hover td{background:var(--crema)}
 .fin-tabla tr.ini td{background:var(--arena-2)}
 .fin-tabla tfoot td{font-weight:700;border-top:2px solid var(--borde)}
+.rec-cli td{vertical-align:middle}.rec-cli .rec-hist{line-height:1.35;margin-top:2px}
+.rec-acc{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-width:200px}
 .fin-mov{width:100%;background:none;border:0;border-top:1px dashed var(--borde);font:inherit;color:inherit;cursor:pointer;align-items:center;gap:12px}
 .fin-mov:first-child{border-top:0}.fin-mov:hover{background:var(--crema)}
 .fin-f{display:flex;flex-direction:column;align-items:center;min-width:38px;font-size:11px;text-transform:uppercase;color:var(--gris)}.fin-f b{font-size:18px;color:var(--tinta);line-height:1}
@@ -14078,15 +14080,40 @@ function recPiezas(a, key) {
   return n + (n === 1 ? ' pieza entregada' : ' piezas entregadas');
 }
 function recActClientes(r, a, c) {
-  if (recMulti(a)) return recActClientesConc(r, a, c);
-  const l = Object.values(c.cli).sort((x, y) => y.saldo - x.saldo || x.nombre.localeCompare(y.nombre, 'es'));
-  const sinPed = directores().filter(e => !c.cli[e.cct]);
-  $('#ra-cuerpo').innerHTML = `<div class="tarjeta"><div class="seccion-t">Lo que debe cada escuela · toque una para ver su estado de cuenta</div>
-    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Entregado</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
-    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${(escuelaDe(x.key) || {}).nombre ? `<div class="ayuda">${esc(escuelaDe(x.key).nombre)}</div>` : ''}<div class="ayuda">${recPiezas(a, x.key)}${x.ult ? ' · último abono ' + fechaCorta(x.ult) : ''}</div></td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="5" class="mudo" style="text-align:center;padding:18px">Aún no hay entregas. Use «Entrega a escuela».</td></tr>'}</tbody>
-    ${l.length ? `<tfoot><tr><td>Total</td><td class="d">${finM(c.ventas)}</td><td class="d">${finM(c.cobrado)}</td><td class="d">${finM(c.nosDeben)}</td><td></td></tr></tfoot>` : ''}</table></div>
-    ${sinPed.length && l.length ? `<p class="peq mudo" style="padding:0 14px 10px">Sin pedido: ${sinPed.map(e => esc(e.escuela)).join(', ')}.</p>` : ''}</div>`;
-  $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
+  const ps = a.datos.productos || [];
+  if (!ps.length) { $('#ra-cuerpo').innerHTML = '<div class="tarjeta vacio">Primero capture los productos y sus precios en «Datos y productos».</div>'; return; }
+  const metas = a.datos.metas || {}, multi = ps.length > 1;
+  // todas las escuelas y la Mesa Técnica, aunque no tengan entregas; además, las personas con movimientos o cajas por vender
+  const keys = new Set(directores().map(e => e.cct).concat(recMesa().map(m => m.key), Object.keys(c.cli), Object.keys(metas)));
+  const orden = recOrdenClaves(a, [...keys]);
+  const fila = (k, p) => {
+    const y = ((c.cli[k] || {}).p || {})[p.id] || { cargo: 0, abono: 0, cant: 0, saldo: 0, ult: '' };
+    const ent = recDe(a.id, 'pedido').filter(o => o.datos.cliente === k).map(o => ({ f: o.fecha, n: (o.datos.lineas || []).filter(l => l.prod === p.id).reduce((t, l) => t + finN(l.cant), 0) })).filter(x => x.n);
+    const abs = recDe(a.id, 'abono').filter(o => o.datos.cliente === k && recProdDe(a, o) === p.id);
+    const meta = finN((metas[k] || {})[p.id]), e = recEstado(y), dir = !String(k).startsWith('p:') ? ((escuelaDe(k) || {}).nombre || '') : ((recMesa().find(m => m.key === k) || {}).cargo || '');
+    const cajasPag = finN(p.precio) > 0 ? Math.floor(recR(y.abono / finN(p.precio)) + 1e-9) : 0;
+    return `<tr><td><b>${esc(recNomClave(a, k))}</b>${dir ? `<div class="ayuda">${esc(dir)}</div>` : ''}</td>
+      ${meta || Object.keys(metas).length ? `<td class="d">${meta || ''}</td>` : ''}
+      <td class="d"><b style="font-size:16px">${y.cant || 0}</b>${ent.length ? `<div class="ayuda rec-hist">${ent.map(x => `${fechaCorta(x.f)}: ${x.n}`).join('<br>')}</div>` : ''}</td>
+      <td class="d">${finM(y.abono)}${y.abono ? `<div class="ayuda">${abs.length} abono${abs.length === 1 ? '' : 's'}${cajasPag ? ' · ≈' + cajasPag + ' caja' + (cajasPag === 1 ? '' : 's') : ''}${y.ult ? '<br>último ' + fechaCorta(y.ult) : ''}</div>` : ''}</td>
+      <td class="d"><b style="font-size:16px;color:var(--${y.saldo > 0 ? 'terra-d' : 'tinta'})">${finM(y.saldo)}</b><div><span class="chip ${e[1]}" style="font-size:11px">${y.cargo <= 0 && y.abono <= 0 ? 'Sin entrega' : e[0]}</span></div></td>
+      <td><div class="rec-acc"><button class="boton terra chico" data-rab="${esc(k)}" data-rp="${esc(p.id)}">${ico('i-mas')}Abonar / pagar</button>
+        <button class="boton sec chico" data-rent="${esc(k)}">Entregar cajas</button>
+        <button class="boton sec chico" data-rhis="${esc(k)}">Historial</button></div></td></tr>`;
+  };
+  const tabla = p => {
+    const conMeta = Object.keys(metas).length > 0;
+    const T = orden.reduce((t, k) => { const y = ((c.cli[k] || {}).p || {})[p.id] || {}; t.meta += finN((metas[k] || {})[p.id]); t.cant += finN(y.cant); t.abono += finN(y.abono); t.saldo += Math.max(0, finN(y.saldo)); return t; }, { meta: 0, cant: 0, abono: 0, saldo: 0 });
+    return `<div class="tarjeta"><div class="seccion-t">${esc(p.nombre)} · ${finM(p.precio)} c/u</div>
+    <div class="fin-tabla-caja"><table class="fin-tabla rec-cli"><thead><tr><th>Escuela o persona</th>${conMeta ? '<th class="d">Por vender</th>' : ''}<th class="d">Cajas entregadas</th><th class="d">Pagado</th><th class="d">Saldo</th><th></th></tr></thead>
+    <tbody>${orden.map(k => fila(k, p)).join('')}</tbody>
+    <tfoot><tr><td>Total${multi ? ' ' + esc(p.nombre) : ''}</td>${conMeta ? `<td class="d">${T.meta}</td>` : ''}<td class="d">${T.cant}</td><td class="d">${finM(recR(T.abono))}</td><td class="d">${finM(recR(T.saldo))}</td><td></td></tr></tfoot></table></div></div>`;
+  };
+  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Todas las escuelas con las cajas que se les han entregado (debajo, la fecha de cada entrega), lo que han pagado y su saldo. Con «Abonar / pagar» registra el pago en pesos o por número de cajas; «Historial» muestra todas las entregas y abonos con su folio.${multi ? ' Cada concepto lleva su propia cuenta.' : ''}</p>
+    ${ps.map(tabla).join('')}`;
+  $$('[data-rab]').forEach(b => b.onclick = () => recFormAbono(a, null, { cliente: b.dataset.rab, clienteNombre: recNomClave(a, b.dataset.rab), prod: b.dataset.rp }));
+  $$('[data-rent]').forEach(b => b.onclick = () => recFormPedido(a, null, { cliente: b.dataset.rent, clienteNombre: recNomClave(a, b.dataset.rent) }));
+  $$('[data-rhis]').forEach(b => b.onclick = () => recEstadoCuenta(a, b.dataset.rhis));
 }
 // Nombre de una escuela o persona por su clave (aunque todavía no tenga entregas)
 function recNomClave(a, k) {
@@ -14099,23 +14126,6 @@ function recOrdenClaves(a, keys) {
   return keys.sort((x, y) => g(x) - g(y) || (g(x) === 1 ? mesa.indexOf(x) - mesa.indexOf(y) : recNomClave(a, x).localeCompare(recNomClave(a, y), 'es')));
 }
 // Escuelas con la cuenta separada por concepto (cada concepto con su total)
-function recActClientesConc(r, a, c) {
-  const metas = a.datos.metas || {};
-  const tabla = p => {
-    const keys = new Set();
-    Object.keys(metas).forEach(k => { if (finN((metas[k] || {})[p.id]) > 0) keys.add(k); });
-    Object.values(c.cli).forEach(x => { const y = x.p[p.id]; if (y && (y.cargo || y.abono || y.cant)) keys.add(x.key); });
-    const l = recOrdenClaves(a, [...keys]).map(k => { const y = ((c.cli[k] || {}).p || {})[p.id] || { cargo: 0, abono: 0, cant: 0, saldo: 0, ult: '' }; return Object.assign({ key: k, nombre: recNomClave(a, k), meta: finN((metas[k] || {})[p.id]) }, y); });
-    const T = l.reduce((t, x) => { t.meta += x.meta; t.cant += x.cant; t.cargo += x.cargo; t.abono += x.abono; t.saldo += Math.max(0, x.saldo); return t; }, { meta: 0, cant: 0, cargo: 0, abono: 0, saldo: 0 });
-    return `<div class="tarjeta"><div class="seccion-t">${esc(p.nombre)} · ${finM(p.precio)} c/u</div>
-    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Por vender</th><th class="d">Entregadas</th><th class="d">Debe</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
-    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${x.ult ? `<div class="ayuda">último abono ${fechaCorta(x.ult)}</div>` : ''}</td><td class="d">${x.meta || ''}</td><td class="d">${x.cant || ''}</td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${x.cargo <= 0 && x.abono <= 0 ? 'Sin entrega' : e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="7" class="mudo" style="text-align:center;padding:18px">Sin cajas por vender ni entregas en este concepto.</td></tr>'}</tbody>
-    ${l.length ? `<tfoot><tr><td>Total ${esc(p.nombre)}</td><td class="d">${T.meta}</td><td class="d">${T.cant}</td><td class="d">${finM(T.cargo)}</td><td class="d">${finM(T.abono)}</td><td class="d">${finM(T.saldo)}</td><td></td></tr></tfoot>` : ''}</table></div></div>`;
-  };
-  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Cada concepto lleva su propia cuenta y su total. «Por vender» viene de la pestaña «Por vender»; el adeudo se genera con cada «Entrega a escuela» y baja con cada abono del mismo concepto. Toque una fila para ver el estado de cuenta.</p>
-    ${(a.datos.productos || []).map(tabla).join('')}`;
-  $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
-}
 // Cajas que venderá cada escuela (y la Mesa Técnica) por concepto: editable y sin dinero
 function recActMetas(r, a) {
   const ps = a.datos.productos || [];
@@ -14188,7 +14198,7 @@ function recEstadoCuenta(a, key) {
     <p class="peq mudo" style="margin-top:0">${esc(a.datos.nombre)}</p>
     <div class="fin-det-monto">${finM(s)}<span class="ayuda">${s > 0 ? 'saldo pendiente' : s < 0 ? 'saldo a favor de la escuela' : 'liquidado'}</span></div>
     <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
-    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + (recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, f.o))) : '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono' + (finN(f.o.datos.cajas) ? ' de ' + finN(f.o.datos.cajas) + ' caja' + (finN(f.o.datos.cajas) === 1 ? '' : 's') : '') + ' · folio ' + esc(f.o.datos.folio || '') + (recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, f.o))) : '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
       <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('')}</tbody></table>`,
     `<button class="boton sec" id="ec-pdf" style="margin-right:auto">Estado de cuenta (PDF)</button><button class="boton sec" id="ec-ped">Nuevo pedido</button><button class="boton terra" id="ec-ab">${ico('i-mas')}Registrar abono</button>`);
   $$('[data-rdet]', $('#velo')).forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
@@ -14362,7 +14372,8 @@ function recFormAbono(a, prev, base) {
   const c = recCuenta(a), multi = recMulti(a);
   modal(prev ? 'Editar abono · folio ' + esc(d.folio || '') : 'Abono de escuela', `${recCampoCliente(d)}
     ${multi ? `<div class="campo"><label for="rf-prod">Concepto del abono</label><select id="rf-prod">${a.datos.productos.map(p => `<option value="${esc(p.id)}" ${recProdDe(a, { datos: d }) === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>` : ''}<div class="ayuda" id="rf-saldo" style="margin:-6px 0 12px"></div>
-    <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-monto">Monto del abono</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div></div>
+    <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-cajas">Cajas que paga (opcional)</label><input id="rf-cajas" inputmode="numeric" value="${esc(d.cajas || '')}" placeholder="0"><div class="ayuda" id="rf-cajas-ay"></div></div></div>
+    <div class="campo"><label for="rf-monto">Monto del abono</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div>
     <div class="fila">${recCampoMedio(d)}${recCampoForma(d)}</div>
     <div class="campo"><label for="rf-ref">Referencia (núm. de transferencia, depósito…)</label><input id="rf-ref" value="${esc(d.ref || '')}"></div>${recCampoObs(d)}
     ${prev ? '' : '<div class="ayuda">Al guardar se le asigna un folio de seguimiento y puede descargar el recibo.</div>'}`, recPie(prev ? 'Guardar' : 'Guardar abono'));
@@ -14371,11 +14382,15 @@ function recFormAbono(a, prev, base) {
     const y = x && pid ? x.p[pid] : x, mismo = prev && x && prev.datos.cliente === x.key && (!pid || recProdDe(a, prev) === pid);
     $('#rf-saldo').textContent = v ? (y ? 'Saldo pendiente' + (pid ? ' de «' + recProdNom(a, pid) + '»' : '') + ': ' + finM(y.saldo + (mismo ? finN(prev.datos.monto) : 0)) : (pid ? 'No tiene entregas de este concepto.' : 'Esta escuela no tiene pedidos en la actividad.')) : '';
   };
-  recClienteEnlazar(); $('#rf-cli').addEventListener('change', saldo); if (multi) $('#rf-prod').addEventListener('change', saldo); if ($('#rf-per')) $('#rf-per').addEventListener('input', saldo); saldo();
+  // pagar por cajas: el monto se calcula con el precio de la caja del concepto
+  const precio = () => finN((a.datos.productos.find(p => p.id === (multi ? recVal('rf-prod') : recProdDe(a, { datos: d }))) || {}).precio);
+  const porCajas = () => { const n = finN(recVal('rf-cajas')), pr = precio(); $('#rf-cajas-ay').textContent = pr ? finM(pr) + ' por caja' : ''; if (n > 0 && pr) $('#rf-monto').value = recR(n * pr).toFixed(2); };
+  $('#rf-cajas').oninput = porCajas; $('#rf-monto').addEventListener('input', () => { $('#rf-cajas').value = ''; }); porCajas();
+  recClienteEnlazar(); $('#rf-cli').addEventListener('change', saldo); if (multi) $('#rf-prod').addEventListener('change', () => { saldo(); porCajas(); }); if ($('#rf-per')) $('#rf-per').addEventListener('input', saldo); saldo();
   recPieEnlazar(() => {
     if (!recLeerCliente(d)) return;
     if (multi) d.prod = recVal('rf-prod');
-    d.monto = String(finN(recVal('rf-monto'))); d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
+    d.monto = String(finN(recVal('rf-monto'))); d.cajas = finN(recVal('rf-cajas')) > 0 ? String(finN(recVal('rf-cajas'))) : ''; d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
     if (finN(d.monto) <= 0) return aviso('Escriba el monto del abono.', 'mal');
     recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'abono', fecha: recVal('rf-fecha'), datos: d }, prev ? 'Abono actualizado.' : 'Abono registrado.', o => { if (!prev) recAvisoRecibo(o); });
   });
