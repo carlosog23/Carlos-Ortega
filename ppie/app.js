@@ -70,19 +70,24 @@ window.PPA = {
 };
 
 /* ---------------- inicio ---------------- */
-VISTAS.inicio = () => { const E = ppEscuela(), faltan = !E.z050 && ppFaltaContactos();
-  return `<main class="wrap"><section class="portada"><div class="marca"><img src="img/icono.svg" alt=""><div><div class="mk-n">Protocolos <b>PPIE</b></div><div class="mk-l">Protección Integral Escolar</div></div></div>
-    <h1>Protección escolar</h1><p>Los pasos del Programa de Protección Integral Escolar 2026, a quién llamar y qué formato llenar, en el momento.</p>
-    <a class="pp-911" href="tel:911" style="margin-top:14px">📞 Llamar al 911</a></section>
-   ${ppieBotonInicio()}
-   <div class="lista mt">
-    <button class="it" id="iCont" style="text-align:left;${faltan ? "border:2px solid var(--maiz)" : ""}"><span style="font-size:24px">📇</span><span class="tx"><b>A quién avisar</b><small>${E.z050 ? "Zona 050 · " + esc(E.escuela) + " · aviso automático a la Dirección y a la Supervisión" : faltan ? "Capture una vez los teléfonos de su Dirección y Supervisión" : esc([E.escuela, E.dir, E.supNomP].filter(Boolean).join(" · ") || "Contactos guardados")}</small></span>${ic("sig", 18)}</button>
-    <button class="it" id="iYo" style="text-align:left"><span style="font-size:24px">🙋</span><span class="tx"><b>Mis datos</b><small>${esc([D.yo.nombre, D.yo.cargo].filter(Boolean).join(" · ") || "Su nombre aparece en los mensajes de WhatsApp")}</small></span>${ic("sig", 18)}</button>
-    <button class="it" id="iInst" style="text-align:left${window.matchMedia("(display-mode: standalone)").matches ? ";display:none" : ""}"><span style="font-size:24px">📲</span><span class="tx"><b>Instalar en el celular</b><small>Para tenerla a un toque, aunque no haya internet</small></span>${ic("bajar", 18)}</button></div>
-   ${faltan ? `<div class="aviso mt"><span>📇</span><span class="small"><b>Antes de que se necesite:</b> capture en «A quién avisar» los teléfonos de su Dirección y su Supervisión. Así, en una emergencia, les avisa con un solo toque.</span></div>` : ""}
+const PA_GRUPOS = [["k-rojo", "Emergencia", ["tirador", "armas", "bomba", "amenaza"]], ["k-verde", "Auxilio y salud", ["accidente", "suicida"]],
+  ["k-amar", "Convivencia y conducta", ["violencia", "acoso", "drogas", "omision", "trabajador"]], ["k-azul", "Protección de derechos", ["sexual", "maltrato", "digital"]]];
+const PA_SOS = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5L44 41H4z" fill="#C8102E"/><rect x="21.6" y="17" width="4.8" height="14" rx="2.4" fill="#fff"/><circle cx="24" cy="35.5" r="2.7" fill="#fff"/></svg>';
+VISTAS.inicio = () => { const E = ppEscuela(), faltan = !E.z050 && ppFaltaContactos(), ab = ppAbiertos();
+  const contTxt = E.z050 ? E.escuela + ": la Dirección y la Supervisión reciben un aviso automático" : faltan ? "Capture una vez los teléfonos de su Dirección y su Supervisión" : [E.escuela, E.dir, E.supNomP].filter(Boolean).join(", ") || "Contactos guardados";
+  return `<main class="wrap">
+   <header class="pa-head"><img src="img/icono.svg" alt=""><div><b>Protocolos PPIE</b><span>Protección Integral Escolar 2026, Baja California</span></div></header>
+   <button class="pa-sos" id="bSOS"><span class="ic">${PA_SOS}</span><span><strong>¿Qué está pasando?</strong><span class="t">Toque aquí y siga los pasos del protocolo</span></span>${ab.length ? `<span class="n">${ab.length} caso${ab.length > 1 ? "s" : ""} abierto${ab.length > 1 ? "s" : ""}</span>` : ""}</button>
+   <div class="pa-lineas"><a class="pa-tel rojo" href="tel:911"><b>911</b><small>Emergencias</small></a><a class="pa-tel verde" href="tel:075"><b>075</b><small>Apoyo psicológico</small></a><a class="pa-tel azul" href="tel:089"><b>089</b><small>Denuncia anónima</small></a></div>
+   ${PA_GRUPOS.map(([k, t, ids]) => `<section class="pa-grupo ${k}"><h2><i></i>${t}</h2><div class="pa-tiles">${ids.map(id => { const p = ppProt(id); return `<button class="pa-tile ${k}${k === "k-rojo" ? " em" : ""}" data-pa="${id}"><span class="e">${p.e}</span>${esc(p.t)}</button>`; }).join("")}</div></section>`).join("")}
+   <section class="pa-prep"><h2 class="sec-t" style="margin:0 2px 2px">Antes de que se necesite</h2>
+    <button class="it" id="iCont" style="text-align:left;--k:${faltan ? "var(--amar-s)" : "var(--verde-s)"}"><span style="font-size:24px">📇</span><span class="tx"><b>A quién avisar</b><small>${esc(contTxt)}</small></span>${ic("sig", 18)}</button>
+    <button class="it" id="iYo" style="text-align:left;--k:var(--azul-s)"><span style="font-size:24px">🙋</span><span class="tx"><b>Mis datos</b><small>${esc([D.yo.nombre, D.yo.cargo].filter(Boolean).join(", ") || "Su nombre va en los mensajes de WhatsApp")}</small></span>${ic("sig", 18)}</button>
+    <button class="it" id="iInst" style="text-align:left;--k:var(--tinta-s)${window.matchMedia("(display-mode: standalone)").matches ? ";display:none" : ""}"><span style="font-size:24px">📲</span><span class="tx"><b>Instalar en el celular</b><small>Queda a un toque y funciona sin internet</small></span>${ic("bajar", 18)}</button></section>
    ${pie()}</main>`; };
 let instEv = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); instEv = e; });
 ENLAZAR.inicio = () => { ppieEnlazarInicio(); $("#iCont").onclick = () => ir("ppieContactos");
+  $$("[data-pa]").forEach(b => b.onclick = () => { const id = b.dataset.pa; ir("ppie"); setTimeout(() => { const x = $(`[data-pp="${id}"]`); if (x) x.click(); }, 0); });
   $("#iYo").onclick = () => dlg(`<h3>🙋 Mis datos</h3><label class="campo"><span>Nombre</span><input id="yN" value="${esc(D.yo.nombre)}" autocomplete="name" placeholder="Mtro(a). …"></label>
     <label class="campo"><span>Cargo</span><input id="yC" value="${esc(D.yo.cargo)}" placeholder="Docente de 4.° A, director(a), intendente…"></label><div class="fila fin mt"><button class="btn" id="yNo">Cancelar</button><button class="btn p" id="ySi">Guardar</button></div>`, w => {
     w.querySelector("#yNo").onclick = cerrarDlg; w.querySelector("#ySi").onclick = () => { D.yo.nombre = w.querySelector("#yN").value.trim(); D.yo.cargo = w.querySelector("#yC").value.trim(); guardar(); cerrarDlg(); re(); }; });
