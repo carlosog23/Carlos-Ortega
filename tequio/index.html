@@ -13566,6 +13566,7 @@ function finEstilos() {
 .fin-apart{max-width:520px}
 .rec-lin3{grid-template-columns:minmax(0,1fr) 110px 110px 36px!important}
 @media (max-width:640px){.rec-lin3{grid-template-columns:minmax(0,1fr) 74px 90px 30px!important}}
+.rec-meta{width:72px;text-align:right;padding:6px 8px}
 .fin-botones{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .fin-tabla-caja{overflow-x:auto}
 .fin-tabla{width:100%;border-collapse:collapse;font-size:14px}
@@ -13797,7 +13798,7 @@ const REC_CAT = {
   egreso: ['Flete o envío', 'Copias e impresiones', 'Papelería', 'Combustible y viáticos', 'Alimentos', 'Comisión bancaria', 'Compra para un evento', 'Otro gasto']
 };
 const REC_SECC = [['resumen', 'Resumen'], ['conta', 'Contabilidad'], ['acts', 'Actividades']];
-const REC_SUB = [['resumen', 'Resumen'], ['clientes', 'Escuelas'], ['proveedor', 'Proveedor'], ['gastos', 'Gastos e ingresos'], ['datos', 'Datos y productos']];
+const REC_SUB = [['resumen', 'Resumen'], ['metas', 'Por vender'], ['clientes', 'Escuelas'], ['proveedor', 'Proveedor'], ['gastos', 'Gastos e ingresos'], ['datos', 'Datos y productos']];
 
 // Quién ve cada actividad: si la Supervisión eligió ATP (datos.ver), solo ellos y la Supervisión
 const recPuedeVer = a => !a || esAdmin() || !((a.datos || {}).ver || []).length || a.datos.ver.includes(S.yo.id);
@@ -13808,6 +13809,13 @@ const recDe = (act, tipo) => recActivos().filter(x => x.act === act && (!tipo ||
 const recTotal = (lineas, k) => Math.round((lineas || []).reduce((s, l) => s + finN(l.cant) * finN(l[k]), 0) * 100) / 100;
 const recCliNom = d => d.cliente && !String(d.cliente).startsWith('p:') ? nombreEscuela(d.cliente) : (d.clienteNombre || String(d.cliente || '').slice(2));
 const recR = x => Math.round(x * 100) / 100;
+// Conceptos de una actividad = sus productos (p. ej. «Cajas para plataformas» y «Cajas para la posada»): cada uno lleva su cuenta y su total
+const recMulti = a => ((a && a.datos.productos) || []).length > 1;
+const recProdDe = (a, o) => { const ps = (a && a.datos.productos) || [], p = (o.datos || {}).prod; return ps.some(x => x.id === p) ? p : (ps[0] || {}).id || ''; };
+const recProdNom = (a, id) => (((a && a.datos.productos) || []).find(p => p.id === id) || {}).nombre || '';
+// Mesa Técnica (Supervisión y ATP) como «personas» de la actividad; la clave es la misma que si se capturara a mano
+const recClaveP = n => 'p:' + String(n || '').trim().replace(/\s+/g, ' ').toUpperCase();
+const recMesa = () => (S.usr || []).filter(u => (u.rol === 'admin' || u.rol === 'atp') && u.activo !== false && u.nombre).sort((a, b) => (a.rol === 'admin' ? 0 : 1) - (b.rol === 'admin' ? 0 : 1) || a.nombre.localeCompare(b.nombre, 'es')).map(u => ({ key: recClaveP(u.nombre), nombre: u.nombre, cargo: u.rol === 'admin' ? 'Supervisión' : 'ATP' }));
 function recRecibir(o) { if (!S.rec) S.rec = []; poner(S.rec, o); }
 async function recCargar(forzar) {
   if (S.rec && !forzar) return true;
@@ -13847,11 +13855,12 @@ function recCuenta(a) {
   prods.forEach(p => c.inv[p.id] = { nombre: p.nombre, comprado: 0, pedido: 0 });
   compras.forEach(o => { c.compras += recTotal(o.datos.lineas, 'costo'); (o.datos.lineas || []).forEach(l => { if (c.inv[l.prod]) c.inv[l.prod].comprado += finN(l.cant); }); });
   pagos.forEach(o => c.pagos += finN(o.datos.monto));
-  const cli = k => c.cli[k] || (c.cli[k] = { key: k, cargo: 0, abono: 0, n: 0, ult: '' });
-  pedidos.forEach(o => { const t = recTotal(o.datos.lineas, 'precio'), x = cli(o.datos.cliente); x.nombre = recCliNom(o.datos); x.cargo += t; x.n++; c.ventas += t; (o.datos.lineas || []).forEach(l => { if (c.inv[l.prod]) c.inv[l.prod].pedido += finN(l.cant); }); });
-  abonos.forEach(o => { const x = cli(o.datos.cliente); x.nombre = x.nombre || recCliNom(o.datos); x.abono += finN(o.datos.monto); x.ult = o.fecha > x.ult ? o.fecha : x.ult; c.cobrado += finN(o.datos.monto); });
+  const cli = k => c.cli[k] || (c.cli[k] = { key: k, cargo: 0, abono: 0, n: 0, ult: '', p: {} });
+  const cp = (x, pid) => x.p[pid] || (x.p[pid] = { cargo: 0, abono: 0, cant: 0, ult: '' });
+  pedidos.forEach(o => { const t = recTotal(o.datos.lineas, 'precio'), x = cli(o.datos.cliente); x.nombre = recCliNom(o.datos); x.cargo += t; x.n++; c.ventas += t; (o.datos.lineas || []).forEach(l => { if (c.inv[l.prod]) c.inv[l.prod].pedido += finN(l.cant); const y = cp(x, l.prod); y.cargo += finN(l.cant) * finN(l.precio); y.cant += finN(l.cant); }); });
+  abonos.forEach(o => { const x = cli(o.datos.cliente), y = cp(x, recProdDe(a, o)); x.nombre = x.nombre || recCliNom(o.datos); x.abono += finN(o.datos.monto); x.ult = o.fecha > x.ult ? o.fecha : x.ult; y.abono += finN(o.datos.monto); y.ult = o.fecha > y.ult ? o.fecha : y.ult; c.cobrado += finN(o.datos.monto); });
   movs.forEach(o => { if (o.datos.clase === 'egreso') c.gastos += finN(o.datos.monto); else if (o.datos.clase === 'ingreso') c.otros += finN(o.datos.monto); });
-  Object.values(c.cli).forEach(x => { x.cargo = recR(x.cargo); x.abono = recR(x.abono); x.saldo = recR(x.cargo - x.abono); });
+  Object.values(c.cli).forEach(x => { x.cargo = recR(x.cargo); x.abono = recR(x.abono); x.saldo = recR(x.cargo - x.abono); Object.values(x.p).forEach(y => { y.cargo = recR(y.cargo); y.abono = recR(y.abono); y.saldo = recR(y.cargo - y.abono); }); });
   ['compras', 'pagos', 'ventas', 'cobrado', 'gastos', 'otros'].forEach(k => c[k] = recR(c[k]));
   c.debemos = recR(c.compras - c.pagos);
   c.nosDeben = recR(Object.values(c.cli).reduce((s, x) => s + Math.max(0, x.saldo), 0));
@@ -14044,7 +14053,7 @@ function recVerAct(r) {
     if ((t === 'pedido' || t === 'compra') && !(a.datos.productos || []).length) { aviso('Primero capture los productos y sus precios en «Datos y productos».', 'mal', 5000); r.sub = 'datos'; return recVerAct(r); }
     ({ pedido: recFormPedido, abono: recFormAbono, compra: recFormCompra, pago: recFormPago })[t](a, null);
   });
-  ({ resumen: recActResumen, clientes: recActClientes, proveedor: recActProveedor, gastos: recActGastos, datos: recActDatos })[r.sub](r, a, c);
+  ({ resumen: recActResumen, metas: recActMetas, clientes: recActClientes, proveedor: recActProveedor, gastos: recActGastos, datos: recActDatos })[r.sub](r, a, c);
 }
 function recActResumen(r, a, c) {
   const inv = Object.values(c.inv);
@@ -14069,6 +14078,7 @@ function recPiezas(a, key) {
   return n + (n === 1 ? ' pieza entregada' : ' piezas entregadas');
 }
 function recActClientes(r, a, c) {
+  if (recMulti(a)) return recActClientesConc(r, a, c);
   const l = Object.values(c.cli).sort((x, y) => y.saldo - x.saldo || x.nombre.localeCompare(y.nombre, 'es'));
   const sinPed = directores().filter(e => !c.cli[e.cct]);
   $('#ra-cuerpo').innerHTML = `<div class="tarjeta"><div class="seccion-t">Lo que debe cada escuela · toque una para ver su estado de cuenta</div>
@@ -14077,6 +14087,56 @@ function recActClientes(r, a, c) {
     ${l.length ? `<tfoot><tr><td>Total</td><td class="d">${finM(c.ventas)}</td><td class="d">${finM(c.cobrado)}</td><td class="d">${finM(c.nosDeben)}</td><td></td></tr></tfoot>` : ''}</table></div>
     ${sinPed.length && l.length ? `<p class="peq mudo" style="padding:0 14px 10px">Sin pedido: ${sinPed.map(e => esc(e.escuela)).join(', ')}.</p>` : ''}</div>`;
   $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
+}
+// Nombre de una escuela o persona por su clave (aunque todavía no tenga entregas)
+function recNomClave(a, k) {
+  if (!String(k).startsWith('p:')) return nombreEscuela(k);
+  return (recMesa().find(m => m.key === k) || {}).nombre || (a.datos.metasNom || {})[k] || String(k).slice(2);
+}
+// Orden: primero las escuelas (por nombre), luego la Mesa Técnica y al final otras personas
+function recOrdenClaves(a, keys) {
+  const mesa = recMesa().map(m => m.key), g = k => !String(k).startsWith('p:') ? 0 : mesa.includes(k) ? 1 : 2;
+  return keys.sort((x, y) => g(x) - g(y) || (g(x) === 1 ? mesa.indexOf(x) - mesa.indexOf(y) : recNomClave(a, x).localeCompare(recNomClave(a, y), 'es')));
+}
+// Escuelas con la cuenta separada por concepto (cada concepto con su total)
+function recActClientesConc(r, a, c) {
+  const metas = a.datos.metas || {};
+  const tabla = p => {
+    const keys = new Set();
+    Object.keys(metas).forEach(k => { if (finN((metas[k] || {})[p.id]) > 0) keys.add(k); });
+    Object.values(c.cli).forEach(x => { const y = x.p[p.id]; if (y && (y.cargo || y.abono || y.cant)) keys.add(x.key); });
+    const l = recOrdenClaves(a, [...keys]).map(k => { const y = ((c.cli[k] || {}).p || {})[p.id] || { cargo: 0, abono: 0, cant: 0, saldo: 0, ult: '' }; return Object.assign({ key: k, nombre: recNomClave(a, k), meta: finN((metas[k] || {})[p.id]) }, y); });
+    const T = l.reduce((t, x) => { t.meta += x.meta; t.cant += x.cant; t.cargo += x.cargo; t.abono += x.abono; t.saldo += Math.max(0, x.saldo); return t; }, { meta: 0, cant: 0, cargo: 0, abono: 0, saldo: 0 });
+    return `<div class="tarjeta"><div class="seccion-t">${esc(p.nombre)} · ${finM(p.precio)} c/u</div>
+    <div class="fin-tabla-caja"><table class="fin-tabla"><thead><tr><th>Escuela o persona</th><th class="d">Por vender</th><th class="d">Entregadas</th><th class="d">Debe</th><th class="d">Abonado</th><th class="d">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>${l.map(x => { const e = recEstado(x); return `<tr class="clic" data-rcli="${esc(x.key)}"><td><b>${esc(x.nombre)}</b>${x.ult ? `<div class="ayuda">último abono ${fechaCorta(x.ult)}</div>` : ''}</td><td class="d">${x.meta || ''}</td><td class="d">${x.cant || ''}</td><td class="d">${finM(x.cargo)}</td><td class="d">${finM(x.abono)}</td><td class="d"><b>${finM(x.saldo)}</b></td><td><span class="chip ${e[1]}">${x.cargo <= 0 && x.abono <= 0 ? 'Sin entrega' : e[0]}</span></td></tr>`; }).join('') || '<tr><td colspan="7" class="mudo" style="text-align:center;padding:18px">Sin cajas por vender ni entregas en este concepto.</td></tr>'}</tbody>
+    ${l.length ? `<tfoot><tr><td>Total ${esc(p.nombre)}</td><td class="d">${T.meta}</td><td class="d">${T.cant}</td><td class="d">${finM(T.cargo)}</td><td class="d">${finM(T.abono)}</td><td class="d">${finM(T.saldo)}</td><td></td></tr></tfoot>` : ''}</table></div></div>`;
+  };
+  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Cada concepto lleva su propia cuenta y su total. «Por vender» viene de la pestaña «Por vender»; el adeudo se genera con cada «Entrega a escuela» y baja con cada abono del mismo concepto. Toque una fila para ver el estado de cuenta.</p>
+    ${(a.datos.productos || []).map(tabla).join('')}`;
+  $$('[data-rcli]').forEach(t => t.onclick = () => recEstadoCuenta(a, t.dataset.rcli));
+}
+// Cajas que venderá cada escuela (y la Mesa Técnica) por concepto: editable y sin dinero
+function recActMetas(r, a) {
+  const ps = a.datos.productos || [];
+  if (!ps.length) { $('#ra-cuerpo').innerHTML = '<div class="tarjeta vacio">Primero capture los productos o conceptos en «Datos y productos».</div>'; return; }
+  const m = a.datos.metas || {};
+  const escs = directores().map(e => ({ key: e.cct, nombre: e.escuela, sub: e.nombre || '' }));
+  const mesa = recMesa().map(u => ({ key: u.key, nombre: u.nombre, sub: u.cargo }));
+  const otros = Object.keys(m).filter(k => !escs.some(x => x.key === k) && !mesa.some(x => x.key === k)).map(k => ({ key: k, nombre: recNomClave(a, k), sub: '' }));
+  const fila = x => `<tr><td><b>${esc(x.nombre)}</b>${x.sub ? `<div class="ayuda">${esc(x.sub)}</div>` : ''}</td>${ps.map(p => `<td class="d"><input class="rec-meta" data-mk="${esc(x.key)}" data-mp="${esc(p.id)}" inputmode="numeric" value="${finN((m[x.key] || {})[p.id]) || ''}" placeholder="0" aria-label="${esc(p.nombre)} · ${esc(x.nombre)}"></td>`).join('')}</tr>`;
+  const grupo = (t, l) => l.length ? `<tr class="ini"><td colspan="${ps.length + 1}"><b>${t}</b></td></tr>${l.map(fila).join('')}` : '';
+  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Cajas que venderá cada escuela en el ciclo, separadas por concepto. Aquí no hay dinero: el adeudo se genera al registrar la «Entrega a escuela». Puede cambiar las cantidades cuando quiera.</p>
+  <div class="tarjeta"><div class="fin-tabla-caja"><table class="fin-tabla">
+    <thead><tr><th>Escuela o persona</th>${ps.map(p => `<th class="d">${esc(p.nombre)}</th>`).join('')}</tr></thead>
+    <tbody>${grupo('Escuelas', escs)}${grupo('Mesa Técnica', mesa)}${grupo('Otras personas', otros)}</tbody>
+    <tfoot><tr><td>Total</td>${ps.map(p => `<td class="d" data-mt="${esc(p.id)}"></td>`).join('')}</tr></tfoot></table></div>
+    <div class="fin-botones" style="margin:12px 14px"><button class="boton terra" id="rm-ok">Guardar cambios</button><span class="ayuda" id="rm-est"></span></div></div>`;
+  const leer = () => { const out = {}; $$('[data-mk]').forEach(e => { const n = Math.max(0, Math.round(finN(e.value))); if (n) (out[e.dataset.mk] || (out[e.dataset.mk] = {}))[e.dataset.mp] = n; }); return out; };
+  const totales = () => { const o = leer(); ps.forEach(p => { $(`[data-mt="${p.id}"]`).textContent = Object.values(o).reduce((t, x) => t + (x[p.id] || 0), 0); }); };
+  $$('[data-mk]').forEach(e => e.oninput = () => { totales(); $('#rm-est').textContent = 'Hay cambios sin guardar.'; });
+  totales();
+  $('#rm-ok').onclick = () => recGuardar({ id: a.id, tipo: 'act', fecha: a.fecha, datos: Object.assign({}, a.datos, { metas: leer() }) }, 'Cajas por vender guardadas.');
 }
 function recActProveedor(r, a, c) {
   let s = 0;
@@ -14115,10 +14175,11 @@ function recActDatos(r, a) {
 }
 
 /* ---------- Estado de cuenta de una escuela ---------- */
-function recMovsCli(a, key) {
+function recMovsCli(a, key, pid) {
   let s = 0;
-  return recDe(a.id).filter(o => ['pedido', 'abono'].includes(o.tipo) && o.datos.cliente === key).map(o => {
-    const x = o.tipo === 'pedido' ? recTotal(o.datos.lineas, 'precio') : -finN(o.datos.monto); s = recR(s + x); return { o, x, s };
+  const deP = o => !pid || (o.tipo === 'abono' ? recProdDe(a, o) === pid : (o.datos.lineas || []).some(l => l.prod === pid && finN(l.cant)));
+  return recDe(a.id).filter(o => ['pedido', 'abono'].includes(o.tipo) && o.datos.cliente === key && deP(o)).map(o => {
+    const x = o.tipo === 'pedido' ? recTotal((o.datos.lineas || []).filter(l => !pid || l.prod === pid), 'precio') : -finN(o.datos.monto); s = recR(s + x); return { o, x, s };
   });
 }
 function recEstadoCuenta(a, key) {
@@ -14127,7 +14188,7 @@ function recEstadoCuenta(a, key) {
     <p class="peq mudo" style="margin-top:0">${esc(a.datos.nombre)}</p>
     <div class="fin-det-monto">${finM(s)}<span class="ayuda">${s > 0 ? 'saldo pendiente' : s < 0 ? 'saldo a favor de la escuela' : 'liquidado'}</span></div>
     <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
-    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+    <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono · folio ' + esc(f.o.datos.folio || '') + (recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, f.o))) : '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
       <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('')}</tbody></table>`,
     `<button class="boton sec" id="ec-pdf" style="margin-right:auto">Estado de cuenta (PDF)</button><button class="boton sec" id="ec-ped">Nuevo pedido</button><button class="boton terra" id="ec-ab">${ico('i-mas')}Registrar abono</button>`);
   $$('[data-rdet]', $('#velo')).forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
@@ -14145,7 +14206,7 @@ function recDetalle(id) {
   const lins = (d.lineas || []).filter(l => finN(l.cant));
   modal(esc(titulo) + ' · ' + fechaCorta(o.fecha), `<div class="fin-det">
     <div class="fin-det-monto">${finM(monto)}<span class="ayuda">${esc(finLetra(monto))}</span></div>
-    <p style="margin:8px 0">${['pedido', 'abono'].includes(o.tipo) ? '<b>' + esc(recCliNom(d)) + '</b>' : esc(d.concepto || (a ? a.datos.proveedor : '') || '')}</p>
+    <p style="margin:8px 0">${['pedido', 'abono'].includes(o.tipo) ? '<b>' + esc(recCliNom(d)) + '</b>' + (o.tipo === 'abono' && recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, o))) : '') : esc(d.concepto || (a ? a.datos.proveedor : '') || '')}</p>
     <div class="peq mudo">${a ? esc(a.datos.nombre) + ' · ' : ''}${d.cat ? esc(d.cat) + ' · ' : ''}${d.forma ? esc(d.forma) + ' · ' : ''}${d.clase === 'traspaso' ? (d.direccion === 'retiro' ? 'Del banco a caja' : 'De caja al banco') : d.medio ? (d.medio === 'banco' ? 'Banco' : 'Caja') : ''}${d.ref ? ' · Ref. ' + esc(d.ref) : ''}</div>
     ${lins.length ? `<table class="fin-tabla" style="margin-top:10px"><tbody>${lins.map(l => `<tr><td>${finN(l.cant)} × ${esc(l.nombre)}</td><td class="d">${finM(l[o.tipo === 'compra' ? 'costo' : 'precio'])}</td><td class="d">${finM(finN(l.cant) * finN(l[o.tipo === 'compra' ? 'costo' : 'precio']))}</td></tr>`).join('')}</tbody></table>` : ''}
     ${d.obs ? `<p class="peq" style="margin-top:8px"><b>Observaciones:</b> ${esc(d.obs)}</p>` : ''}${finHistorial(o)}</div>`,
@@ -14281,8 +14342,9 @@ function recFormCompra(a, prev) {
 }
 // Escuela o persona
 function recCampoCliente(d) {
-  const esP = String(d.cliente || '').startsWith('p:');
+  const mesa = recMesa(), esP = String(d.cliente || '').startsWith('p:') && !mesa.some(m => m.key === d.cliente);
   return `<div class="campo"><label for="rf-cli">Escuela</label><select id="rf-cli"><option value="">Elija…</option>${directores().map(e => `<option value="${e.cct}" ${d.cliente === e.cct ? 'selected' : ''}>${esc(e.escuela)}</option>`).join('')}
+    ${mesa.length ? `<optgroup label="Mesa Técnica">${mesa.map(m => `<option value="${esc(m.key)}" ${d.cliente === m.key ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}</optgroup>` : ''}
     <option value="p:" ${esP ? 'selected' : ''}>Otra persona (maestro, padre de familia…)</option></select></div>
     <div class="campo" id="rf-percaja" ${esP ? '' : 'hidden'}><label for="rf-per">Nombre de la persona</label><input id="rf-per" value="${esc(esP ? (d.clienteNombre || d.cliente.slice(2)) : '')}"></div>`;
 }
@@ -14291,21 +14353,28 @@ function recLeerCliente(d) {
   const v = recVal('rf-cli');
   if (!v) { aviso('Elija la escuela.', 'mal'); return false; }
   if (v === 'p:') { const n = recVal('rf-per').trim().replace(/\s+/g, ' '); if (!n) { aviso('Escriba el nombre de la persona.', 'mal'); return false; } d.cliente = 'p:' + n.toUpperCase(); d.clienteNombre = n; }
+  else if (v.startsWith('p:')) { d.cliente = v; d.clienteNombre = (recMesa().find(m => m.key === v) || {}).nombre || v.slice(2); }
   else { d.cliente = v; d.clienteNombre = nombreEscuela(v); }
   return true;
 }
 function recFormAbono(a, prev, base) {
   const d = JSON.parse(JSON.stringify(prev ? prev.datos : Object.assign({ cliente: '', monto: '', medio: 'caja', forma: 'Efectivo', ref: '', obs: '' }, base || {})));
-  const c = recCuenta(a);
-  modal(prev ? 'Editar abono · folio ' + esc(d.folio || '') : 'Abono de escuela', `${recCampoCliente(d)}<div class="ayuda" id="rf-saldo" style="margin:-6px 0 12px"></div>
+  const c = recCuenta(a), multi = recMulti(a);
+  modal(prev ? 'Editar abono · folio ' + esc(d.folio || '') : 'Abono de escuela', `${recCampoCliente(d)}
+    ${multi ? `<div class="campo"><label for="rf-prod">Concepto del abono</label><select id="rf-prod">${a.datos.productos.map(p => `<option value="${esc(p.id)}" ${recProdDe(a, { datos: d }) === p.id ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>` : ''}<div class="ayuda" id="rf-saldo" style="margin:-6px 0 12px"></div>
     <div class="fila">${recCampoFecha(prev ? prev.fecha : hoy())}<div class="campo"><label for="rf-monto">Monto del abono</label><input id="rf-monto" inputmode="decimal" value="${esc(d.monto)}" placeholder="0.00"></div></div>
     <div class="fila">${recCampoMedio(d)}${recCampoForma(d)}</div>
     <div class="campo"><label for="rf-ref">Referencia (núm. de transferencia, depósito…)</label><input id="rf-ref" value="${esc(d.ref || '')}"></div>${recCampoObs(d)}
     ${prev ? '' : '<div class="ayuda">Al guardar se le asigna un folio de seguimiento y puede descargar el recibo.</div>'}`, recPie(prev ? 'Guardar' : 'Guardar abono'));
-  const saldo = () => { const v = recVal('rf-cli'), x = c.cli[v === 'p:' ? 'p:' + recVal('rf-per').trim().replace(/\s+/g, ' ').toUpperCase() : v]; $('#rf-saldo').textContent = v ? (x ? 'Saldo pendiente: ' + finM(x.saldo + (prev && prev.datos.cliente === x.key ? finN(prev.datos.monto) : 0)) : 'Esta escuela no tiene pedidos en la actividad.') : ''; };
-  recClienteEnlazar(); $('#rf-cli').addEventListener('change', saldo); if ($('#rf-per')) $('#rf-per').addEventListener('input', saldo); saldo();
+  const saldo = () => {
+    const v = recVal('rf-cli'), x = c.cli[v === 'p:' ? 'p:' + recVal('rf-per').trim().replace(/\s+/g, ' ').toUpperCase() : v], pid = multi ? recVal('rf-prod') : '';
+    const y = x && pid ? x.p[pid] : x, mismo = prev && x && prev.datos.cliente === x.key && (!pid || recProdDe(a, prev) === pid);
+    $('#rf-saldo').textContent = v ? (y ? 'Saldo pendiente' + (pid ? ' de «' + recProdNom(a, pid) + '»' : '') + ': ' + finM(y.saldo + (mismo ? finN(prev.datos.monto) : 0)) : (pid ? 'No tiene entregas de este concepto.' : 'Esta escuela no tiene pedidos en la actividad.')) : '';
+  };
+  recClienteEnlazar(); $('#rf-cli').addEventListener('change', saldo); if (multi) $('#rf-prod').addEventListener('change', saldo); if ($('#rf-per')) $('#rf-per').addEventListener('input', saldo); saldo();
   recPieEnlazar(() => {
     if (!recLeerCliente(d)) return;
+    if (multi) d.prod = recVal('rf-prod');
     d.monto = String(finN(recVal('rf-monto'))); d.medio = recVal('rf-medio'); d.forma = recVal('rf-forma'); d.ref = recVal('rf-ref').trim(); d.obs = recVal('rf-obs').trim();
     if (finN(d.monto) <= 0) return aviso('Escriba el monto del abono.', 'mal');
     recGuardar({ id: prev ? prev.id : '', act: a.id, tipo: 'abono', fecha: recVal('rf-fecha'), datos: d }, prev ? 'Abono actualizado.' : 'Abono registrado.', o => { if (!prev) recAvisoRecibo(o); });
@@ -14365,7 +14434,7 @@ const REC_PDF_CSS = `.rp{font-family:Arial,Helvetica,sans-serif;color:#111;font-
 .rp .cant{font-size:20px;font-weight:700}.rp .corte{border-top:1.4px dashed #777;margin:22px 0;position:relative}.rp .corte span{position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:9.5px;color:#777}
 .rp .tag{position:absolute;left:22px;bottom:12px;font-size:9.5px;color:#666;text-transform:uppercase;letter-spacing:.08em}`;
 function recRecibo(o) {
-  const a = recAct(o.act) || { datos: { nombre: '' } }, d = o.datos, l = recMovsCli(a, d.cliente), i = l.findIndex(f => f.o.id === o.id);
+  const a = recAct(o.act) || { datos: { nombre: '' } }, d = o.datos, pid = recMulti(a) ? recProdDe(a, o) : '', l = recMovsCli(a, d.cliente, pid), i = l.findIndex(f => f.o.id === o.id);
   const despues = i >= 0 ? l[i].s : 0, antes = recR(despues + finN(d.monto));
   const uno = tag => `<div class="rec">
     <div><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Recibo de abono · Actividad recaudatoria</div></div>
@@ -14373,7 +14442,7 @@ function recRecibo(o) {
     <table style="margin-top:22px"><tbody>
       <tr><td style="width:150px">Recibimos de</td><td><b>${esc(recCliNom(d))}</b>${!String(d.cliente).startsWith('p:') ? ' · CCT ' + esc(d.cliente) : ''}</td></tr>
       <tr><td>La cantidad de</td><td><span class="cant">${finM(d.monto)}</span><br>(${esc(finLetra(d.monto))})</td></tr>
-      <tr><td>Por concepto de</td><td>Abono a «${esc(a.datos.nombre)}»</td></tr>
+      <tr><td>Por concepto de</td><td>Abono a «${esc(a.datos.nombre)}»${pid ? ' · ' + esc(recProdNom(a, pid)) : ''}</td></tr>
       <tr><td>Forma de pago</td><td>${esc(d.forma || '')}${d.ref ? ' · Ref. ' + esc(d.ref) : ''}</td></tr></tbody></table>
     <table style="margin-top:14px;width:60%;margin-left:auto"><tbody><tr><td>Saldo anterior</td><td class="d">${finM(antes)}</td></tr><tr><td>Este abono</td><td class="d">−${finM(d.monto)}</td></tr>
       <tr><td><b>Saldo pendiente</b></td><td class="d"><b>${finM(despues)}</b></td></tr></tbody></table>
@@ -14386,7 +14455,7 @@ function recHtmlEstado(a, key, nom, l) {
   return `<div style="padding:44px 52px"><h1>SUPERVISIÓN ESCOLAR ZONA ${esc(String(ZONA.numero))}</h1><div class="sub">Estado de cuenta · ${esc(a.datos.nombre)} · al ${esc(finFechaTxt(hoy()))}</div>
     <p style="margin:18px 0 10px"><b>${esc(nom)}</b>${!String(key).startsWith('p:') ? ' · CCT ' + esc(key) : ''}</p>
     <table><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
-    <tbody>${l.map(f => `<tr><td>${esc(f.o.fecha.split('-').reverse().join('/'))}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).map(x => finN(x.cant) + ' × ' + x.nombre + ' a ' + finM(x.precio)).join('; ')) : 'Abono, folio ' + esc(f.o.datos.folio || '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
+    <tbody>${l.map(f => `<tr><td>${esc(f.o.fecha.split('-').reverse().join('/'))}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).map(x => finN(x.cant) + ' × ' + x.nombre + ' a ' + finM(x.precio)).join('; ')) : 'Abono, folio ' + esc(f.o.datos.folio || '') + (recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, f.o))) : '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
       <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d">${finM(f.s)}</td></tr>`).join('')}</tbody></table>
     <p style="text-align:right;font-size:15px;margin-top:16px"><b>${s > 0 ? 'Saldo pendiente' : s < 0 ? 'Saldo a favor' : 'Liquidado'}: ${finM(Math.abs(s))}</b></p></div>`;
 }
