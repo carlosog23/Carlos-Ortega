@@ -2775,7 +2775,7 @@ function cmpAtencion() {
       <div class="campo"><label for="ca-con">Conclusión ${cerrada ? '' : '<span class="mudo" style="font-weight:400">(al cerrar la visita)</span>'}</label><textarea id="ca-con" data-a="conclusion" placeholder="Cómo quedó el asunto">${esc(a.conclusion)}</textarea></div>
     </div>
     ${cerrada ? `<div class="tarjeta pad" style="margin-top:12px;border:1.5px solid var(--ambar)"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>Informe de la visita</b>
-      <div class="peq mudo">${a.sucio ? 'Para generarlo, primero se sube la visita a Tequio (necesita internet).' : 'PDF con logos, lo que se hizo, los acuerdos, la conclusión y las firmas. Descárguelo o envíelo por WhatsApp o correo.'}${a.informe && a.informe.f ? ' Último: ' + esc(fechaHora(a.informe.f)) + ((a.informe.envios || []).length ? ' · enviado por correo' : '') + '.' : ''}</div></div>
+      <div class="peq mudo">${a.sucio ? 'Para generarlo, primero se sube la visita a Tequio (necesita internet).' : 'PDF con logos, lo que se hizo, las fotos, los acuerdos, la conclusión y las firmas. Descárguelo o envíelo por WhatsApp o correo.'}${a.informe && a.informe.f ? ' Último: ' + esc(fechaHora(a.informe.f)) + ((a.informe.envios || []).length ? ' · enviado por correo' : '') + '.' : ''}</div></div>
       <button class="boton terra" id="ca-informe">${ico('i-lapiz')}${a.sucio ? 'Subir y generar informe' : 'Generar informe'}</button></div></div>` : ''}
     <div class="cmp-pie"><button class="boton peligro chico" id="ca-borrar">Quitar del dispositivo</button>
       <div>${cerrada ? '<button class="boton sec" id="ca-reabrir">Reabrir</button>' : '<button class="boton terra" id="ca-cerrar">Cerrar la visita</button>'}</div></div>
@@ -2880,12 +2880,15 @@ const IV_CSS = `
 .iv-sem{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .iv-txt{white-space:pre-line;text-align:justify;margin:0 0 6px}
 .iv-fir{display:grid;gap:40px 50px;margin-top:26px;break-inside:avoid}.iv-fir .la-fir{padding-top:60px}
-.iv-folio{text-align:right;font-size:7.5px;color:#777;margin-top:10px}`;
+.iv-folio{text-align:right;font-size:7.5px;color:#777;margin-top:10px}
+.iv-fts{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:4px 0 8px}
+.iv-fg{margin:0;break-inside:avoid;page-break-inside:avoid}.iv-fg img{width:100%;display:block;border:.6px solid #c9c0b0;border-radius:3px}
+.iv-fg figcaption{font-size:8.5px;color:#444;margin-top:3px;line-height:1.3;text-align:center}`;
 
 // Datos del informe de una visita de supervisión (Visita N de una escuela)
 function ivDeSup(cct, n) {
   const v = visDe(cct, n), c = escuelaDe(cct); if (!v) return null;
-  const temas = visTemas(v, n).map(t => { const it = visItem(v, t.k); return { t: t.t, est: it.estado || '', obs: it.obs || '' }; });
+  const temas = visTemas(v, n).map(t => { const it = visItem(v, t.k); return { k: t.k, t: t.t, est: it.estado || '', obs: it.obs || '' }; });
   const seg = (S.seg || []).find(s => s.id === v.segId);
   const nom = visNombre(n, v), esc_ = c ? c.escuela : nombreEscuela(cct);
   return { tipo: 'sup', id: v.id, cct, informe: v.informe, titulo: 'INFORME DE VISITA DE SUPERVISIÓN', subt: nom.toUpperCase() + ' · CICLO ESCOLAR ' + (v.ciclo || cicloVis()),
@@ -2894,6 +2897,7 @@ function ivDeSup(cct, n) {
     intro: `Por medio del presente se informa el resultado de la ${nom.replace(/^Visita/, 'visita')} de asesoría y acompañamiento realizada a la escuela ${esc_}, C.C.T. ${cct}, como parte del seguimiento que la Supervisión Escolar brinda a las escuelas de la zona.`,
     temas, comentario: v.resumen || '', acuerdos: ((seg && seg.acuerdos) || []).filter(a => String(a.texto || '').trim()), conclusion: '',
     fotos: temas.length ? ((v.items || []).reduce((s, x) => s + (x.fotos || []).length, 0)) : 0, quien: v.cerradaPor || '',
+    fotosLoc: (v.items || []).flatMap(x => (x.fotos || []).map(f => Object.assign({ k: x.k }, f))),
     dest: c ? { nombre: c.nombre, sub: c.escuela, correos: correos(c), tels: telefonos(c.whatsapp) } : null,
     asunto: 'Informe de la ' + nom.replace(/^Visita/, 'visita') + ' · ' + esc_, };
 }
@@ -2906,11 +2910,12 @@ function ivDeAte(a) {
       ['HORARIO', a.horaIni ? a.horaIni + (a.horaFin ? ' a ' + a.horaFin + ' h' : ' h') : '—'], ['REALIZÓ', a.creadoNombre || (S.yo && S.yo.nombre) || '—']].concat(a.cct ? [['MOTIVO', tipo]] : []),
     intro: `Por medio del presente se informa lo realizado en la visita de atención${a.cct ? ` a la escuela ${lugar}, C.C.T. ${a.cct}` : ` en ${lugar}`}, con motivo de: ${tipo.toLowerCase()}.`,
     atendieron: a.atendieron || '', desarrollo: a.descripcion || '', temas: [], comentario: '', acuerdos: (a.acuerdos || []).filter(x => String(x.texto || '').trim()), conclusion: a.conclusion || '',
-    fotos: (a.fotos || []).length, quien: a.creadoNombre || '',
+    fotos: (a.fotos || []).length, quien: a.creadoNombre || '', fotosLoc: (a.fotos || []).slice(),
     dest: c ? { nombre: c.nombre, sub: c.escuela, correos: correos(c), tels: telefonos(c.whatsapp) } : null,
     asunto: 'Informe de visita de atención · ' + (a.asunto || '') + (a.cct ? ' · ' + lugar : '') };
 }
-function ivHtml(o, firma) {
+function ivHtml(o, firma, fotos) {
+  fotos = fotos || [];
   const x = s => esc(s == null ? '' : String(s)), nl = s => x(s).replace(/\n/g, '<br>');
   const d = o.datos, filas = []; for (let i = 0; i < d.length; i += 2) filas.push([d[i], d[i + 1]]);
   const cuenta = k => o.temas.filter(t => t.est === k).length;
@@ -2933,23 +2938,58 @@ function ivHtml(o, firma) {
     ${o.acuerdos.length ? `<table class="iv-dat"><colgroup><col style="width:5%"><col style="width:57%"><col style="width:22%"><col style="width:16%"></colgroup><tr><th>No.</th><th>ACUERDO</th><th>RESPONSABLE</th><th>REVISIÓN</th></tr>
       ${o.acuerdos.map((a, i) => `<tr><td>${i + 1}</td><td>${nl(a.texto)}</td><td>${x(a.responsable || '—')}</td><td>${x(/^\d{4}-\d{2}-\d{2}$/.test(a.revision || '') ? fechaCorta(a.revision) : '—')}</td></tr>`).join('')}</table>` : '<p>Sin acuerdos registrados.</p>'}
     ${o.conclusion ? `<div class="iv-h">CONCLUSIÓN</div><p class="iv-txt">${nl(o.conclusion)}</p>` : ''}
-    ${o.fotos ? `<p style="color:#555;font-size:10px">Evidencia fotográfica: ${o.fotos} foto${o.fotos === 1 ? '' : 's'}, resguardada${o.fotos === 1 ? '' : 's'} en el Drive de la Supervisión Escolar.</p>` : ''}
+    ${fotos.length ? `<div class="iv-h">EVIDENCIA FOTOGRÁFICA</div><div class="iv-fts">${fotos.map((f, i) => `<figure class="iv-fg"><img src="${f.src}" alt=""><figcaption>Foto ${i + 1}${f.pie ? ' · ' + x(f.pie) : ''}</figcaption></figure>`).join('')}</div>
+      <p style="color:#555;font-size:9.5px">Las fotos originales quedan resguardadas en el Drive de la Supervisión Escolar.</p>`
+      : o.fotos ? `<p style="color:#555;font-size:10px">Evidencia fotográfica: ${o.fotos} foto${o.fotos === 1 ? '' : 's'}, resguardada${o.fotos === 1 ? '' : 's'} en el Drive de la Supervisión Escolar.</p>` : ''}
     <p style="margin-top:10px">Sin otro particular, la Supervisión Escolar queda a sus órdenes para continuar con el acompañamiento.</p>
     <p style="text-align:center;font-weight:700;margin-top:14px">A T E N T A M E N T E<br><span style="font-weight:400;font-style:italic;color:#1E3A6B">«${x(ZONA.lemaZona)}»</span></p>
     <div class="iv-fir" style="grid-template-columns:${firmas.map(() => '1fr').join(' ')}">${firmas.map(([n, c, f]) => `<div class="la-fir">${f ? `<img src="data:image/png;base64,${f}" alt="Firma">` : ''}<div class="r">${x(n)}</div><div class="c">${x(c)}</div></div>`).join('')}</div>
     <div class="iv-folio">Tequio · ${esc(ZONA.nombre)} · Generado el ${x(fechaLarga(hoy()))}</div></div>`;
 }
-async function ivPdf(o) {
+// Ajusta la foto a un marco 4:3 sin recortarla (html2canvas no respeta object-fit)
+function ivMarco(src) {
+  return new Promise(ok => { const im = new Image(); im.onload = () => { const W = 900, H = 675, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'), k = Math.min(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k;
+    g.fillStyle = '#f4f1ea'; g.fillRect(0, 0, W, H); g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h); ok(cv.toDataURL('image/jpeg', 0.85)); };
+    im.onerror = () => ok(''); im.src = src; });
+}
+const IVF_VER = 88;   // servidor que entrega las fotos de la visita para el informe
+// Junta las fotos de la visita: primero las que están en este dispositivo (campo), luego las del Drive (servidor v88)
+async function ivTraerFotos(o) {
+  const pieK = {}; (o.temas || []).forEach(t => { pieK[t.k] = t.t; });
+  const out = [], hechos = {}, avisos = [];
+  for (const f of o.fotosLoc || []) {
+    let src = f.u && /^data:image/.test(f.u) ? f.u : '';
+    if (!src && f.lid) { try { const b = await CDB.get('foto', f.lid); if (b) src = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.onerror = () => r(''); fr.readAsDataURL(b); }); } catch (e) {} }
+    if (src) { const m = await ivMarco(src); if (m) { out.push({ src: m, pie: pieK[f.k] || '' }); if (f.id) hechos[f.id] = 1; } }
+  }
+  const enLinea = navigator.onLine !== false && !S.offline;
+  if (!(cfg && cfg.demo) && enLinea && S.version >= IVF_VER) {
+    let desde = 0, vueltas = 0;
+    while (desde >= 0 && vueltas++ < 15) {
+      const r = await api('visFotosDatos', { tipo: o.tipo, id: o.id, desde });
+      for (const f of r.fotos || []) {
+        if (hechos[f.id]) continue; hechos[f.id] = 1;
+        if (f.error || !f.datos) { avisos.push(f.id); continue; }
+        const m = await ivMarco('data:' + (f.mime || 'image/jpeg') + ';base64,' + f.datos);
+        if (m) out.push({ src: m, pie: f.pie || pieK[f.k] || '' });
+      }
+      desde = r.sig;
+    }
+  } else if (!(cfg && cfg.demo) && (o.fotos || 0) > out.length) avisos.push(enLinea ? 'version' : 'offline');
+  return { fotos: out, avisos };
+}
+async function ivPdf(o, fotos) {
   const firma = esAdmin() ? (await laFirma().catch(() => '')) || '' : '';
   await cargarScript('lib/html2pdf.bundle.min.js');
   const caja = document.createElement('div');
   caja.style.cssText = 'position:fixed;left:-12000px;top:0;width:730px;background:#fff';
-  caja.innerHTML = `<style>${LA_CSS}${IV_CSS}</style>${ivHtml(o, firma)}`;
+  caja.innerHTML = `<style>${LA_CSS}${IV_CSS}</style>${ivHtml(o, firma, fotos)}`;
   document.body.appendChild(caja);
   try {
     await Promise.all($$('img', caja).map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })));
     return await window.html2pdf().set({ margin: [0.45, 0.39, 0.5, 0.39], image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.iv-fir', '.iv-h'] } }).from(caja.querySelector('.iv-doc')).outputPdf('blob');
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.iv-fir', '.iv-h', '.iv-fg'] } }).from(caja.querySelector('.iv-doc')).outputPdf('blob');
   } finally { caja.remove(); }
 }
 const ivArchivo = o => (o.archivo.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)) + '.pdf';
@@ -2963,8 +3003,25 @@ function ivTextoWa(o) {
 // Ventana del informe: descargar, WhatsApp o correo. «alListo» recibe el registro actualizado (vis o ate) cuando se guarda en el Drive.
 function ivAbrir(o, alListo) {
   if (S.version && S.version < IV_VER && !(cfg && cfg.demo)) aviso('Para guardar el informe en el Drive y enviarlo por correo, el servidor de Tequio debe estar en la versión ' + IV_VER + '. Mientras, puede descargarlo y mandarlo por WhatsApp.', 'aviso', 8000);
-  let blob = null;
-  const generar = async () => { if (!blob) blob = await conCarga(() => ivPdf(o)); return blob; };
+  let blob = null, fotosIv = null;
+  const conFotos = () => !$('#iv-fotos') || $('#iv-fotos').checked;
+  const generar = async () => {
+    if (blob) return blob;
+    blob = await conCarga(async () => {
+      let fotos = [];
+      if (conFotos()) {
+        if (!fotosIv) fotosIv = await ivTraerFotos(o).catch(e => ({ fotos: [], avisos: ['error:' + e.message] }));
+        fotos = fotosIv.fotos;
+        const av = fotosIv.avisos || [];
+        if (av.includes('offline')) aviso('Sin internet solo se incluyeron las fotos guardadas en este dispositivo.', 'aviso', 7000);
+        else if (av.includes('version')) aviso('Para incluir las fotos del Drive, el servidor de Tequio debe estar en la versión ' + IVF_VER + '.', 'aviso', 7000);
+        else if (av.some(a => /^error:/.test(a))) aviso('No se pudieron traer las fotos; el informe salió sin ellas.', 'aviso', 7000);
+        else if (av.length) aviso(av.length + ' foto' + (av.length === 1 ? '' : 's') + ' no se pudo abrir y quedó fuera del informe.', 'aviso', 6000);
+      }
+      return ivPdf(o, fotos);
+    });
+    return blob;
+  };
   const sirveServidor = () => (cfg && cfg.demo) || (S.version >= IV_VER && navigator.onLine !== false && !S.offline);
   const guardarDrive = async (extra) => {
     if (!sirveServidor()) return null;
@@ -2976,11 +3033,12 @@ function ivAbrir(o, alListo) {
   const env = (o.informe && o.informe.envios) || [];
   const de = esAdmin() ? `<div class="campo"><label for="iv-de">Enviar desde</label><select id="iv-de"><option value="${esc(ZONA.correoSupervision)}">${esc(ZONA.correoSupervision)} (cuenta de la Supervisión)</option><option value="${esc(ZONA.correoInstitucional)}">${esc(ZONA.correoInstitucional)} (mi correo institucional)</option></select></div>` : '';
   modal('Informe de la visita', `
-    <p class="peq" style="margin-top:0">El informe sale en PDF tamaño carta, con los logos de ISEP y de la ${esc(ZONA.nombre)}, los datos de la visita, ${o.temas.length ? 'los aspectos revisados con su semáforo, ' : 'lo que se hizo, '}los acuerdos y las firmas. Al descargarlo o enviarlo por correo queda una copia en el Drive de la Supervisión.</p>
+    <p class="peq" style="margin-top:0">El informe sale en PDF tamaño carta, con los logos de ISEP y de la ${esc(ZONA.nombre)}, los datos de la visita, ${o.temas.length ? 'los aspectos revisados con su semáforo, ' : 'lo que se hizo, '}las fotos, los acuerdos y las firmas. Al descargarlo o enviarlo por correo queda una copia en el Drive de la Supervisión.</p>
     ${o.informe && o.informe.id && !/^demo/.test(o.informe.id) ? `<div class="aviso-caja peq">Último informe: ${esc(fechaHora(o.informe.f))}${o.informe.por ? ' · ' + esc(nombreCorto(o.informe.por)) : ''} · <a href="${urlArchivo(o.informe.id)}" target="_blank" rel="noopener">abrir en el Drive</a>${env.length ? '<br>Enviado por correo a: ' + esc(env[env.length - 1].a) + ' (' + esc(fechaHora(env[env.length - 1].f)) + ')' : ''}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px">
       <button class="boton terra" id="iv-pdf">${ico('i-carpeta')}Descargar PDF</button>
       <button class="boton wa" id="iv-wa">${ico('i-wa')}Enviar por WhatsApp</button></div>
+    ${o.fotos || (o.fotosLoc || []).length || o.tipo === 'sup' ? `<label class="peq" style="display:flex;gap:8px;align-items:center;margin:-6px 0 14px;cursor:pointer"><input type="checkbox" id="iv-fotos" checked> Incluir las fotos de la visita en el informe${o.tipo === 'sup' ? ' (las de cada aspecto y las de la revisión en campo)' : ''}</label>` : ''}
     <div class="seccion-t" style="padding:0 0 6px">Enviar por correo (con el PDF adjunto)</div>
     <div class="campo"><label for="iv-para">Para</label><input id="iv-para" value="${esc(((o.dest && o.dest.correos) || []).join(', '))}" placeholder="correo@ejemplo.com, otro@ejemplo.com"><div class="ayuda">${o.dest ? 'Se llenó con el correo de la dirección. ' : ''}Puede agregar otros, separados por coma.</div></div>
     <div class="campo"><label for="iv-asu">Asunto</label><input id="iv-asu" value="${esc(o.asunto)}"></div>
@@ -2988,6 +3046,7 @@ function ivAbrir(o, alListo) {
     ${de}`,
     '<button class="boton sec" id="iv-no">Cerrar</button><button class="boton terra" id="iv-mail">' + ico('i-correo') + 'Enviar por correo</button>');
   $('#iv-no').onclick = cerrarModal;
+  if ($('#iv-fotos')) $('#iv-fotos').onchange = () => { blob = null; };
   $('#iv-pdf').onclick = async () => {
     const b = await generar(); if (!b) return;
     descargarBlob(b, ivArchivo(o));
@@ -3942,7 +4001,7 @@ function vEditorVisita() {
   ${mesa && !cerrada ? `<div style="margin:-2px 0 14px"><button class="boton sec" id="v-tema">${ico('i-mas')}Agregar tema</button></div>
     <div class="tarjeta pad"><div class="campo"><label for="v-res">Comentario general de la visita</label><textarea id="v-res" placeholder="Fortalezas, aspectos a acompañar, acuerdos generales…">${esc(D.resumen)}</textarea></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="boton sec" id="v-guardar">Guardar avance</button><button class="boton terra" id="v-cerrar">${ico('i-chk')}Cerrar visita</button></div></div>`
-    : mesa && cerrada ? `<div class="tarjeta pad" style="margin-bottom:12px;border:1.5px solid var(--ambar)"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>Informe de la visita</b><div class="peq mudo">PDF con logos, lo revisado con su semáforo, los acuerdos y las firmas. Descárguelo o envíelo por WhatsApp o correo.${v.informe && v.informe.f ? ' Último: ' + esc(fechaHora(v.informe.f)) + ((v.informe.envios || []).length ? ' · enviado por correo' : '') + '.' : ''}</div></div>
+    : mesa && cerrada ? `<div class="tarjeta pad" style="margin-bottom:12px;border:1.5px solid var(--ambar)"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>Informe de la visita</b><div class="peq mudo">PDF con logos, lo revisado con su semáforo, las fotos, los acuerdos y las firmas. Descárguelo o envíelo por WhatsApp o correo.${v.informe && v.informe.f ? ' Último: ' + esc(fechaHora(v.informe.f)) + ((v.informe.envios || []).length ? ' · enviado por correo' : '') + '.' : ''}</div></div>
         <button class="boton terra" id="v-informe">${ico('i-lapiz')}Generar informe</button></div></div>
       <div class="tarjeta pad">${v.resumen ? `<p style="white-space:pre-line;margin-top:0">${esc(v.resumen)}</p>` : ''}<button class="boton sec" id="v-reabrir">Reabrir la visita</button></div>`
     : ''}`;

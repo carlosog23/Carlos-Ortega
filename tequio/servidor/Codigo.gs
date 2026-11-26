@@ -258,7 +258,7 @@ const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimie
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 87;
+const VERSION = 88;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -600,7 +600,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['ppieLista', 'ppieMarcar', 'minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos', 'visFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -2227,6 +2227,42 @@ const ACCIONES = {
     }
     guardar_(tipo === 'ate' ? 'ate' : 'vis', o);
     return tipo === 'ate' ? { ate: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota } : { vis: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota };
+  },
+
+  /* ---- Fotos de una visita para el informe en PDF (servidor v88) ----
+     Junta las fotos de la visita: en la de supervisión, las de cada aspecto (k) y las de la revisión en campo
+     (con la persona y la pregunta); en la de atención, las de la visita. Las entrega por tandas (desde) para no pasar el límite. */
+  visFotosDatos: (yo, d) => {
+    soloMesa_(yo);
+    const tipo = d.tipo === 'ate' ? 'ate' : 'sup';
+    const o = buscar_(tipo === 'ate' ? 'ate' : 'vis', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la visita.');
+    if (tipo === 'ate' && !visible_(yo, o)) throw new Error('Sin permiso para esta visita.');
+    const lista = [], vistos = {};
+    const poner = (id, k, pie) => { id = String(id || ''); if (!id || /^demo/.test(id) || vistos[id]) return; vistos[id] = 1; lista.push({ id: id, k: k || '', pie: String(pie || '').slice(0, 200) }); };
+    if (tipo === 'ate') (o.fotos || []).forEach(f => poner(f.id, '', ''));
+    else {
+      (o.items || []).forEach(it => (it.fotos || []).forEach(f => poner(f.id, it.k, '')));
+      const cues = {};
+      leer_('rev').filter(r => r.cct === o.cct && r.ciclo === o.ciclo && String(r.visita) === String(o.numero)).forEach(r => {
+        const cue = cues[r.cueId] || (cues[r.cueId] = buscar_('cue', r.cueId) || { preguntas: [] });
+        const pq = {}; (cue.preguntas || []).forEach(p => { pq[p.k] = p.t; });
+        const quien = r.personaNombre || (r.persona === 'direccion' || !r.persona ? 'Dirección' : r.persona);
+        Object.keys(r.respuestas || {}).forEach(k => ((r.respuestas[k] || {}).fotos || []).forEach(f => poner(f.id, '', quien + (r.grupo ? ' (' + r.grupo + ')' : '') + (pq[k] ? ' · ' + pq[k] : ''))));
+      });
+    }
+    const max = Math.min(60, lista.length), fotos = [];
+    let i = Math.max(0, +d.desde || 0), bytes = 0;
+    for (; i < max && fotos.length < 6 && bytes < 7 * 1024 * 1024; i++) {
+      const x = lista[i];
+      try {
+        const b = DriveApp.getFileById(x.id).getBlob(), m = b.getContentType() || '';
+        if (!/^image\//.test(m)) continue;
+        const by = b.getBytes(); bytes += by.length;
+        fotos.push({ id: x.id, k: x.k, pie: x.pie, mime: m, datos: Utilities.base64Encode(by) });
+      } catch (e) { fotos.push({ id: x.id, k: x.k, pie: x.pie, error: true }); }
+    }
+    return { total: max, sig: i < max ? i : -1, fotos: fotos };
   },
 
   /* ---- Protocolos PPIE activados desde Tlamatini Aula (v83) ---- */
