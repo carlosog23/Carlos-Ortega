@@ -2,7 +2,7 @@
    La página se pide primero a internet (para recibir mejoras); sin conexión se usa la copia guardada.
    Las librerías de Tlamatini (lector de PDF y de fotos) se guardan al usarse la primera vez.
    Al publicar cambios grandes, subir el número de VERSION. */
-const VERSION = "ulama-2026-11-25q";
+const VERSION = "ulama-2026-11-25r";
 const BASE = "ulama-base-" + VERSION, EXTRA = "ulama-extra";
 const NUCLEO = ["./", "index.html", "app.js", "cuenta.js", "registro.js", "imprimir-clases.js", "bitacora.js", "anexo-d.js", "visita.js", "ppie-ulama.js", "../tlamatini-aula/ppie-datos.js", "../tlamatini-aula/ppie.js", "qrcode.min.js", "ef-datos.js", "juegos-comunidad.js", "planear-mas.js", "acceso.json", "manifest.webmanifest", "img/ulama-icono.svg", "img/ulama-icono-180.png", "img/ulama-icono-192.png", "img/ulama-icono-512.png",
   "../formatos-ppie/img/isep.png", "../formatos-ppie/lib/pdf.min.js", "../formatos-ppie/lib/pdf.worker.min.js", "../formatos-ppie/lib/pdf-lib.min.js", "../formatos-ppie/formatos/D.pdf"];

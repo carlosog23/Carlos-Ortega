@@ -80,7 +80,7 @@ function ppEscBase() { if (ppA()) return ppA().escuela();
     mun: es.mun || per.municipio || "", dir: es.dir || per.director || "", dirTel: es.dirTel || "",
     supTel: (yoT.sup && yoT.sup.tel) || "", supNom: (yoT.sup && yoT.sup.nombre) || "", grupo: g ? grNom(g) : "" };
 }
-const ppEsc050 = b => !!(b && b.cct && PPIE_050.includes(String(b.cct).toUpperCase()));
+const ppEsc050 = b => !!(b && !b.sinZona && b.cct && PPIE_050.includes(String(b.cct).toUpperCase()));  // sinZona: la app no entra en la regla (Ulama)
 /* Contactos que captura el usuario (por escuela) */
 function ppContDe(b) { D.ppieCont = D.ppieCont || {}; const k = (b && (b.id || b.cct)) || "u"; D.ppieCont[k] = D.ppieCont[k] || { otros: [], inst: {} }; return D.ppieCont[k]; }
 function ppEscuela() { const b = ppEscBase(), z = ppEsc050(b), k = ppContDe(b);
@@ -106,8 +106,8 @@ VISTAS.ppieContactos = () => { const E = ppEscuela(), b = ppEscBase(), k = ppCon
    <section class="card mt"><p class="small" style="margin:0">${E.z050 ? "Su escuela es de la <b>Zona 050</b>: la Dirección y la Supervisión reciben un aviso automático cuando activa un protocolo. Aquí puede corregir los teléfonos o agregar otros contactos." : "Capture a quién debe avisar cuando pase algo. Con estos datos funcionan los botones de <b>llamar</b> y <b>WhatsApp</b>. Se guardan solo en este celular."}</p></section>
    ${sinEsc ? `<h2 class="sec-t">Su escuela</h2><section class="card">${campo("ckEsc", "Escuela", k.esc, "Ej. Esc. Prim. Benito Juárez")}${campo("ckCct", "Clave (CCT, opcional)", k.cct, "02DPR…")}</section>` : ""}
    <h2 class="sec-t">Municipio<small>Para los teléfonos de las instituciones</small></h2><section class="card"><label class="campo"><span>Municipio de la escuela</span><select id="ckMun" ${b.mun ? "disabled" : ""}>${["", ...PP_MUNIS].map(m => `<option ${m === (b.mun || k.mun) ? "selected" : ""}>${m}</option>`).join("")}</select></label></section>
-   <h2 class="sec-t">Dirección</h2><section class="card"><div class="dos">${campo("ckDirN", "Nombre del director(a)", k.dirN || (E.z050 ? b.dir : ""), "Mtro(a). …")}${campo("ckDirT", "Celular o WhatsApp", k.dirTel || (E.z050 ? b.dirTel : ""), "10 dígitos", "tel")}</div></section>
-   <h2 class="sec-t">Supervisión</h2><section class="card"><div class="dos">${campo("ckSupN", "Nombre del supervisor(a)", k.supN || (E.z050 ? b.supNom : ""), "Mtro(a). …")}${campo("ckSupT", "Teléfono o WhatsApp", k.supTel || (E.z050 ? b.supTel : ""), "10 dígitos", "tel")}</div></section>
+   <h2 class="sec-t">Dirección</h2><section class="card"><div class="dos">${campo("ckDirN", "Nombre del director(a)", k.dirN || b.dir, "Mtro(a). …")}${campo("ckDirT", "Celular o WhatsApp", k.dirTel || (E.z050 ? b.dirTel : ""), "10 dígitos", "tel")}</div></section>
+   <h2 class="sec-t">Supervisión</h2><section class="card"><div class="dos">${campo("ckSupN", "Nombre del supervisor(a)", k.supN || b.supNom, "Mtro(a). …")}${campo("ckSupT", "Teléfono o WhatsApp", k.supTel || (E.z050 ? b.supTel : ""), "10 dígitos", "tel")}</div></section>
    <h2 class="sec-t">Otros contactos<small>ATP, subdirección, comité de seguridad…</small></h2><section class="card"><div id="ckOtros">${(k.otros || []).concat([{}]).map((o, i) => `<div class="dos" data-ko="${i}">${campo("ckON" + i, "Nombre o cargo", o.t, "Ej. ATP de la escuela")}${campo("ckOT" + i, "Teléfono", o.n, "10 dígitos", "tel")}</div>`).join("")}</div>
      <button class="btn s" id="ckMas">${ic("mas", 15)} Otro contacto</button></section>
    <h2 class="sec-t">Instituciones<small>Opcional: si conoce un número más cercano</small></h2><section class="card"><p class="small muted" style="margin-top:0">Si lo deja vacío se usa el del directorio del PPIE para su municipio.</p>

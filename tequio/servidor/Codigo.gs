@@ -258,7 +258,7 @@ const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimie
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 85;
+const VERSION = 86;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -6282,7 +6282,7 @@ function ppieAvance_(q) {
 }
 /** Quién usa Tlamatini Aula: enlace personal (tlp), enlace de acceso de Tlamatini (acc) o enlace de Tequio (k). Con tope por hora. */
 function aulaQuien_(q, tope, que) {
-  const d = q.datos || {}, u = usuario_(q.k), tl = u ? null : (tlpVigente_(d.tok) || tlmEnlace_(d.tok) || (/^ppie/.test(que) ? ulamaEnlace_(d.tok) : null));  // Ulama también activa protocolos PPIE
+  const d = q.datos || {}, u = usuario_(q.k), tl = u ? null : (tlpVigente_(d.tok) || tlmEnlace_(d.tok));
   if (!u && !tl) throw new Error('Su enlace no está vigente. Pida uno nuevo a la Supervisión.');
   const limpio = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n), p = d.quien || {};
   const huella = sha_(String(u ? 'k|' + u.id : 't|' + d.tok)).slice(0, 20);

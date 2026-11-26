@@ -1,5 +1,5 @@
 /* Tlamatini Aula · trabajador de servicio: instalar la app y usarla sin internet. Al publicar cambios, subir VERSION. */
-const VERSION = "aula-2026-11-25q";
+const VERSION = "aula-2026-11-25r";
 const BASE = "aula-base-" + VERSION, EXTRA = "aula-extra";
 const NUCLEO = ["./", "index.html", "aula.js", "examenes.js", "estudio-banco.js", "estudio-banco2.js", "estudio-banco3.js", "estudio-banco4.js", "estudio-banco5.js", "estudio-gen.js", "estudio-docs.js", "estudio.js", "expediente.js", "avance.js", "cap.js", "ppie-datos.js", "ppie.js", "dinamicas.js", "dinamicas-sec.js", "qrcode.min.js", "manifest.webmanifest", "img/aula-icono.svg", "img/aula-icono-180.png", "img/aula-icono-192.png", "img/aula-icono-512.png",
   "../formatos-ppie/formatos/pda.json", "../formatos-ppie/formatos/pda-sec.json", "../formatos-ppie/formatos/calendario.json", "../formatos-ppie/img/isep.png", "../formatos-ppie/firma-autor.svg", "../formatos-ppie/vinculo.js?v=2026-11-21a"];
