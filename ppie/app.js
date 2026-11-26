@@ -98,7 +98,7 @@ const bandaInstalar = () => (enApp() || D.ocultarInst) ? "" : `<div class="pa-in
 /* ---------------- inicio ---------------- */
 const PA_GRUPOS = [["k-rojo", "Emergencia", ["tirador", "armas", "bomba", "amenaza"]], ["k-verde", "Auxilio y salud", ["accidente", "suicida"]],
   ["k-amar", "Convivencia y conducta", ["violencia", "acoso", "drogas", "omision", "trabajador"]], ["k-azul", "Protección de derechos", ["sexual", "maltrato", "digital"]]];
-const PA_SOS = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5L44 41H4z" fill="#C8102E"/><rect x="21.6" y="17" width="4.8" height="14" rx="2.4" fill="#fff"/><circle cx="24" cy="35.5" r="2.7" fill="#fff"/></svg>';
+const PA_SOS = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5L44 41H4z" style="fill:var(--sos1,#C8102E)"/><rect x="21.6" y="17" width="4.8" height="14" rx="2.4" fill="#fff"/><circle cx="24" cy="35.5" r="2.7" fill="#fff"/></svg>';
 VISTAS.inicio = () => { const E = ppEscuela(), faltan = !E.z050 && ppFaltaContactos(), ab = ppAbiertos();
   const contTxt = E.z050 ? E.escuela + ": la Dirección y la Supervisión reciben un aviso automático" : faltan ? "Capture una vez los teléfonos de su Dirección y su Supervisión" : [E.escuela, E.dir, E.supNomP].filter(Boolean).join(", ") || "Contactos guardados";
   return `<main class="wrap">
@@ -111,6 +111,7 @@ VISTAS.inicio = () => { const E = ppEscuela(), faltan = !E.z050 && ppFaltaContac
     <button class="it" id="iCont" style="text-align:left;--k:${faltan ? "var(--amar-s)" : "var(--verde-s)"}"><span style="font-size:24px">📇</span><span class="tx"><b>A quién avisar</b><small>${esc(contTxt)}</small></span>${ic("sig", 18)}</button>
     <button class="it" id="iYo" style="text-align:left;--k:var(--azul-s)"><span style="font-size:24px">🙋</span><span class="tx"><b>Mis datos</b><small>${esc([D.yo.nombre, D.yo.cargo].filter(Boolean).join(", ") || "Su nombre va en los mensajes de WhatsApp")}</small></span>${ic("sig", 18)}</button>
     <button class="it" id="iInst" style="text-align:left;--k:var(--tinta-s)${enApp() ? ";display:none" : ""}"><span style="font-size:24px">📲</span><span class="tx"><b>Instalar en el celular</b><small>Queda a un toque y funciona sin internet</small></span>${ic("bajar", 18)}</button></section>
+   ${ppColorHTML()}
    ${pie()}</main>`; };
 let instEv = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); instEv = e; });
 window.addEventListener("appinstalled", () => { instEv = null; re(); });

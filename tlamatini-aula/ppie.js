@@ -11,10 +11,12 @@
 (function () {
   const st = document.createElement("style");
   st.textContent = `
-.sos{display:flex;align-items:center;gap:14px;width:100%;margin-top:14px;padding:16px 18px;border-radius:22px;border:0;background:linear-gradient(135deg,#B91C1C,#7F1D1D);color:#fff;text-align:left;box-shadow:0 10px 26px rgba(127,29,29,.28);cursor:pointer}
+.sos{display:flex;align-items:center;gap:14px;width:100%;margin-top:14px;padding:16px 18px;border-radius:22px;border:0;background:linear-gradient(135deg,var(--sos1,#B91C1C),var(--sos2,#7F1D1D));color:#fff;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.22);cursor:pointer}
+.pp-cols{display:flex;flex-wrap:wrap;gap:8px}.pp-cols button{display:inline-flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;border:2px solid transparent;background:var(--card,#fff);box-shadow:0 0 0 1px rgba(0,0,0,.12);font:inherit;font-size:14px;font-weight:600;color:inherit;cursor:pointer;min-height:40px}
+.pp-cols button i{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--b));flex:none}.pp-cols button[aria-pressed=true]{border-color:var(--a);box-shadow:none}.pp-cols button[aria-pressed=true]::after{content:"✓";color:var(--a);font-weight:800}
 .sos .ico{flex:0 0 auto;width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:28px}
 .sos b{display:block;font-size:19px;line-height:1.15}.sos span{font-size:13.5px;opacity:.9}
-.sos .n{margin-left:auto;background:#fff;color:#B91C1C;font-weight:800;border-radius:999px;padding:4px 10px;font-size:13px;white-space:nowrap}
+.sos .n{margin-left:auto;background:#fff;color:var(--sos1,#B91C1C);font-weight:800;border-radius:999px;padding:4px 10px;font-size:13px;white-space:nowrap}
 .pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .pp-op{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid var(--hilo);border-left:6px solid var(--c);background:var(--hoja);border-radius:18px;padding:12px 12px 12px 12px;cursor:pointer;min-height:96px}
 .pp-op .e{font-size:26px;line-height:1}.pp-op b{font-size:15.5px;line-height:1.2}.pp-op small{color:var(--gris);font-size:12.5px;line-height:1.3}
@@ -123,6 +125,19 @@ ENLAZAR.ppieContactos = () => { const b = ppEscBase(), k = ppContDe(b), v = id =
 function ppFaltaContactos() { const E = ppEscuela(); return !E.dirTel && !E.supTel; }
 
 /* ---------- botón de inicio ---------- */
+/* Color del botón «¿Qué está pasando?»: el rojo incomoda a algunas personas. Se guarda en el dispositivo y vale para
+   Tlamatini Aula, Ulama y la app de Protocolos (comparten el sitio). */
+const PP_COLORES = [["rojo", "Rojo", "#E2283F", "#B91C1C", "#7F1D1D"], ["azul", "Azul", "#3B82F6", "#1D4ED8", "#1E3A8A"], ["verde", "Verde", "#22C55E", "#15803D", "#14532D"],
+  ["morado", "Morado", "#A855F7", "#7E22CE", "#4C1D95"], ["naranja", "Naranja", "#FB923C", "#C2410C", "#7C2D12"], ["gris", "Gris", "#64748B", "#334155", "#0F172A"]];
+function ppColor() { let k = ""; try { k = localStorage.getItem("pp-color") || ""; } catch (e) {} return PP_COLORES.find(c => c[0] === k) || PP_COLORES[0]; }
+function ppColorAplicar() { const c = ppColor(), r = document.documentElement.style; r.setProperty("--sos0", c[2]); r.setProperty("--sos1", c[3]); r.setProperty("--sos2", c[4]); }
+ppColorAplicar();
+function ppColorHTML() { const k = ppColor()[0];
+  return `<section class="card mt"><h3 style="margin:0 0 4px">Color del botón «¿Qué está pasando?»</h3><p class="small muted" style="margin:0 0 10px">Elija el color que le resulte más cómodo. Se guarda en este dispositivo.</p>
+   <div class="pp-cols" role="group" aria-label="Color del botón">${PP_COLORES.map(c => `<button type="button" data-ppcol="${c[0]}" aria-pressed="${c[0] === k}" style="--a:${c[3]};--b:${c[4]}"><i></i>${c[1]}</button>`).join("")}</div></section>`; }
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-ppcol]"); if (!b) return;
+  try { localStorage.setItem("pp-color", b.dataset.ppcol); } catch (x) {} ppColorAplicar();
+  document.querySelectorAll("[data-ppcol]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
 function ppieBotonInicio() { const ab = ppAbiertos();
   return `<button class="sos" id="bSOS"><span class="ico">🆘</span><span><b>¿Qué está pasando?</b><span>Protocolos de protección escolar (PPIE): qué hacer paso a paso y a quién llamar</span></span>${ab.length ? `<span class="n">${ab.length} abierto${ab.length > 1 ? "s" : ""}</span>` : ""}</button>`; }
 function ppieEnlazarInicio() { const b = $("#bSOS"); if (b) b.onclick = () => { const ab = ppAbiertos(); if (ab.length === 1 && Date.now() - new Date(ab[0].inicio).getTime() < 6 * 3600e3) return ir("ppieCaso", { pid: ab[0].id }); ir("ppie"); }; }
@@ -141,6 +156,7 @@ VISTAS.ppie = () => { const ab = ppAbiertos(), cer = ppD().filter(c => c.cerrado
    <section class="card mt"><p class="small" style="margin:0"><b>¿Cómo funciona?</b> Elija la situación y siga los pasos del Programa de Protección Integral Escolar 2026. Cada paso dice quién lo hace, a quién llamar y qué anexo se llena; ${ppA() && ppA().anexo ? "los anexos abren el formato oficial para llenarlo." : "los anexos se abren en Tlamatini ya con los datos de su escuela."}</p>
     <p class="small muted" style="margin:8px 0 0">${ppEscuela().z050 ? "Escuelas de la Zona 050: al activar un protocolo, la Dirección y la Supervisión reciben un aviso con la situación, la escuela, su nombre y la hora, y después cuántos pasos lleva. <b>No se envían nombres de alumnos ni lo que usted escriba</b>: eso se queda en su celular." : "Lo que registre se queda en su celular. Para avisar a su Dirección y Supervisión use los botones de llamar y WhatsApp con los contactos que capture en «A quién avisar»."}</p></section>
    ${cer.length ? `<h2 class="sec-t">Cerrados recientemente</h2><div class="lista">${cer.map(c => { const p = ppProt(c.prot), k = ppCaso(c); return `<button class="it" data-pc="${c.id}" style="text-align:left;opacity:.85"><span style="font-size:22px">${p.e}</span><span class="tx"><b>${esc(p.t)}${p.casos.length > 1 ? " · " + esc(k.t) : ""}</b><small>${ppFH(c.inicio)} · cerrado ${ppFH(c.cerrado)}</small></span>${ic("sig", 18)}</button>`; }).join("")}</div>` : ""}
+   ${ppColorHTML()}
    ${ppPie()}</main>`; };
 ENLAZAR.ppie = () => { ppReintentar(); const pc = $("#ppCont"); if (pc) pc.onclick = () => ir("ppieContactos");
   $$("[data-pesc]").forEach(b => b.onclick = () => { ppA().elegir(b.dataset.pesc); ppRe(); });
