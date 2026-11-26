@@ -73,6 +73,7 @@ VISTAS.espInicio = () => { const E = espD(), y = yo(), k = hoy(), hoyA = E.agend
   return `<main class="wrap"><section class="portada">${marca()}<h1>Hola, ${esc(corto((D.docente.nombre || y.nombre || "maestra(o)").replace(/^(Mtr[oa]\.|C\.)\s*/, "")))}</h1>
    <p>${esc(E.nombre || ESP_SERV[E.servicio])} · ${esc(ESP_FUN[E.fun] || "")}<br>${DSEM_L[new Date().getDay()][0].toUpperCase() + DSEM_L[new Date().getDay()].slice(1)} ${fLarga(k)}${visitas.length ? ` · hoy: <b>${visitas.map(e => esc(e.nombre.replace(/^Escuela\s+(Primaria|Secundaria)\s*/i, ""))).join(", ")}</b>` : ""}</p>
    <div class="fila"><button class="btn m" id="xAg">${ic("mas")} Registrar actividad</button><button class="btn sec" id="xAl">${ic("persona")} Agregar alumno</button>${enApp() ? "" : `<button class="btn sec" id="bInst">${ic("bajar")} Instalar app</button>`}</div></section>
+  ${typeof ppieBotonInicio === "function" ? ppieBotonInicio() : ""}
   ${typeof estTarjeta === "function" ? estTarjeta() : ""}
   <h2 class="sec-t">Hoy<small>${hoyA.length ? hoyA.length + " actividades" : "Sin actividades registradas"}</small></h2>
   ${hoyA.length ? `<div class="lista">${hoyA.map(a => espItemAg(a)).join("")}</div>` : `<div class="vacio">Registre aquí lo que hace en el día: así el reporte mensual se arma solo.</div>`}
@@ -90,7 +91,7 @@ VISTAS.espInicio = () => { const E = espD(), y = yo(), k = hoy(), hoyA = E.agend
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR</span></button>
    <button class="puerta" data-v="espAjustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Mi servicio y respaldo</b><span>Datos del servicio, grupo del CAM y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites</span></a></div>${pie()}</main>`; };
-ENLAZAR.espInicio = () => { $("#xAg").onclick = () => espDlgAg({}); $("#xAl").onclick = () => espDlgAl({}); $("#bInst") && ($("#bInst").onclick = instalar);
+ENLAZAR.espInicio = () => { typeof ppieEnlazarInicio === "function" && ppieEnlazarInicio(); $("#xAg").onclick = () => espDlgAg({}); $("#xAl").onclick = () => espDlgAl({}); $("#bInst") && ($("#bInst").onclick = instalar);
   $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v)); $$("[data-ag]").forEach(b => b.onclick = () => espDlgAg(espD().agenda.find(x => x.id === b.dataset.ag)));
   typeof estEnlazar === "function" && estEnlazar(); };
 VISTAS.espAjustes = () => { const E = espD(); return barra("Educación especial", "Mi servicio y respaldo") + `<main class="wrap">

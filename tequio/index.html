@@ -1254,7 +1254,7 @@ function pestanas() {
     .filter(t => t[0] !== 'herramientas' || ['admin', 'atp', 'director'].includes(S.yo.rol));
 }
 function pestanasTodas() {
-  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['visitas', 'Visitas', 'i-seg'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm'], ['asistencia', 'Asistencia', 'i-chk']];
+  if (esDirector()) return [['agenda', 'Agenda', 'i-cal'], ['acuerdos', 'Mi escuela', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['visitas', 'Visitas', 'i-seg'], ['ppie', 'Protocolos PPIE', 'i-pend'], ['personal', 'Personal', 'i-dir'], ['oficios', 'Oficios', 'i-lapiz'], ['finanzas', 'Recursos financieros', 'i-pesos'], ['herramientas', 'Herramientas', 'i-tlm'], ['asistencia', 'Asistencia', 'i-chk']];
   const l = [['agenda', 'Agenda', 'i-cal'], ['videollamadas', 'Videollamadas', 'i-video'], ['pendientes', 'Tablón', 'i-pend'], ['acuerdos', 'Acuerdos', 'i-chk'], ['evidencias', 'Evidencias', 'i-carpeta'], ['sisat', 'SisAT', 'i-graf'], ['eia', 'EIA', 'i-eia'], ['insumos', 'Insumos para Tlamatini', 'i-tlm'], ['cte', 'CTE', 'i-cte'], ['minutas', 'Minutas', 'i-lapiz'], ['seguimiento', 'Seguimiento', 'i-seg'], ['asistencia', 'Asistencia', 'i-chk'], ['campo', 'Revisión en campo', 'i-cam'], ['directorio', 'Directorio', 'i-dir']];
   l.push(['personal', 'Personal', 'i-dir']);
   l.push(['oficios', 'Oficios', 'i-lapiz']);
@@ -1265,6 +1265,7 @@ function pestanasTodas() {
   if (esAdmin()) l.push(['correos', 'Correo de la Supervisión', 'i-correo']);
   if (esAdmin()) l.push(['permisos', 'Permisos', 'i-reloj']);
   if (esMesa()) l.push(['consultas', 'Consultas', 'i-chk']);
+  l.push(['ppie', 'Protocolos PPIE', 'i-pend']);
   if (esAdmin()) l.push(['responder', 'Responder mensajes', 'i-wa']);
   if (esAdmin()) l.push(['enlaces', 'Enlaces', 'i-llave']);
   return l;
@@ -1274,7 +1275,7 @@ function pestanasTodas() {
    se muestra como enlace directo; el Tablón y Enlaces van como íconos en la barra. */
 const LAT_GRUPOS = [
   ['agenda', 'Agenda', 'i-cal', ['agenda', 'videollamadas', 'consultas', 'responder']],
-  ['seguimiento', 'Seguimiento', 'i-seg', ['acuerdos', 'seguimiento', 'campo', 'visitas', 'evidencias', 'cte', 'minutas', 'asistencia']],
+  ['seguimiento', 'Seguimiento', 'i-seg', ['ppie', 'acuerdos', 'seguimiento', 'campo', 'visitas', 'evidencias', 'cte', 'minutas', 'asistencia']],
   ['resultados', 'Resultados', 'i-graf', ['sisat', 'eia', 'insumos']],
   ['oficios', 'Oficios y trámites', 'i-lapiz', ['oficios', 'correos', 'tramites', 'informe']],
   ['personal', 'Personal', 'i-dir', ['personal', 'permisos']],
@@ -1368,8 +1369,9 @@ function pintar() {
   $$('[data-tab]').forEach(b => b.onclick = () => { vista.tab = b.dataset.tab; try { localStorage.setItem('tequio.tab', vista.tab); } catch (e) {} vista.escuela = null; vista.acuEsc = null; vista.vis = null; vista.visD = null; vista.acl = false; vista.cteSes = null; vista.ctv = null; vista.ctvD = null; vista.ctvLista = false; vista.prmPer = null; vista.prmAnul = false; vista.cmp = null; REL = null; relVistas.clear(); if (vista.tab === 'asistencia') ASI = null; vista.min = null; vista.minEd = null; MIN = null; MIN_PROP = null; if (vista.tab === 'consultas') { CNS = null; vista.cnsVer = null; vista.cnsRes = null; } pintar(); window.scrollTo(0, 0); });
   $('#b-inicio').onclick = e => { e.preventDefault(); vista.tab = 'agenda'; try { localStorage.setItem('tequio.tab', 'agenda'); } catch (e) {} vista.escuela = null; pintar(); };
   if ($('#b-salir-demo')) $('#b-salir-demo').onclick = () => { cfg = null; S = null; portada(''); };
-  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas, consultas: vConsultas, responder: vResponder, informe: vInforme, tramites: vTramites, norma: vNorma })[vista.tab]();
+  ({ herramientas: vHerramientas, agenda: vAgenda, pendientes: vTablon, acuerdos: vAcuerdos, evidencias: vEvidencias, seguimiento: vSeguimiento, directorio: vDirectorio, oficios: vOficios, enlaces: vEnlaces, sisat: vSisat, eia: vEia, cte: vCte, visitas: vVisitasDir, personal: vPersonal, permisos: vPermisos, finanzas: vFinanzas, asistencia: vAsistencia, videollamadas: vVideollamadas, campo: vCampo, correos: vCorreos, insumos: vInsumos, relweb: vRelweb, minutas: vMinutas, consultas: vConsultas, ppie: vPpie, responder: vResponder, informe: vInforme, tramites: vTramites, norma: vNorma })[vista.tab]();
   pintarBandaVid(); vidVigilar(); pintarBandaAsi();
+  if (vista.tab === 'agenda') ppieBanda();
   if (vista.tab === 'agenda') { const b = bandaPendientes(); if (b) { $('#vista').insertAdjacentHTML('afterbegin', b); $('#pn-banda').onclick = () => { vista.tab = 'pendientes'; vista.penF = { est: esAdmin() ? 'nuevo' : 'abiertos', prio: '', atp: '', cct: '' }; pintar(); window.scrollTo(0, 0); }; } }
 }
 // Número junto a la pestaña del tablón: pendientes sin ver (Supervisión) o urgentes abiertos (Mesa Técnica)
@@ -6872,6 +6874,62 @@ function cnsPoner(c) { const i = CNS.lista.findIndex(x => x.id === c.id); if (i 
 const cnsCuando = c => [c.fecha ? fechaLarga(c.fecha) : '', c.hora ? c.hora + ' h' : '', c.lugar || ''].filter(Boolean).join(' · ');
 function cnsMensajeWa(c) {
   return `*${c.titulo}*${cnsCuando(c) ? '\n' + cnsCuando(c) : ''}\n\nPor favor, entre a este enlace, elija su nombre y conteste${c.cierre ? ' antes del ' + fechaLarga(c.cierre) : ''}. Su respuesta es privada: solo la ve la Supervisión.\n\n${c.enlace}`;
+}
+
+/* =========================================================
+   Protocolos PPIE (servidor v83)
+   Los activa un docente desde Tlamatini Aula («¿Qué está pasando?»). Aquí se ven al momento: situación, escuela, grupo,
+   docente, hora y cuántos pasos lleva. Nunca llegan nombres de alumnos ni las notas del docente.
+   La Supervisión y los ATP ven toda la zona; cada dirección, los de su escuela.
+   ========================================================= */
+const PPIE_VER = 83;
+let PPC = null;
+async function ppieCargar(silencio) {
+  if ((S.version || 0) < PPIE_VER && !(cfg && cfg.demo)) { PPC = { lista: [], viejo: true }; return; }
+  try { const r = cfg && cfg.demo ? { ppie: ppieDemo() } : await api('ppieLista', {}); PPC = { lista: r.ppie || [], f: Date.now() }; }
+  catch (e) { PPC = { lista: [], error: e.message }; }
+  if (vista.tab === 'ppie' && !silencio) vPpie();
+  if (vista.tab === 'agenda') ppieBanda();
+}
+function ppieDemo() { const h = new Date(Date.now() - 25 * 60000).toISOString(), d = ((S && S.dir) || []).find(x => x.tipo === 'director') || {};
+  return [{ id: 'ppie-demo1', cct: d.cct || '', escuela: d.escuela || 'Escuela de ejemplo', grupo: '4.° A', prot: 'violencia', protT: 'Violencia entre alumnos', casoT: '', maestro: 'Mtra. Laura Ejemplo Ruiz', inicio: h, recibido: h, hechos: 3, total: 9, cerrado: '', visto: '', avisados: 'Dirección y Supervisión' }]; }
+const ppieFH = x => { const d = new Date(x); return isNaN(d) ? fechaHora(x) : fechaHora(iso(d) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes())); };
+const ppieAbierto = o => !o.cerrado;
+const ppieReciente = o => Date.now() - new Date(o.inicio).getTime() < 72 * 3600e3;
+function ppieBanda() {
+  const z = $('#ppie-banda'); if (z) z.remove();
+  if (!PPC || (PPC.f && Date.now() - PPC.f > 120000)) { const ya = PPC; ppieCargar(true); if (!ya) return; }
+  const l = (PPC.lista || []).filter(o => ppieAbierto(o) && ppieReciente(o) && !o.visto); if (!l.length || !$('#vista')) return;
+  const u = l.filter(o => o.emergencia).length;
+  $('#vista').insertAdjacentHTML('afterbegin', `<button class="pen-banda urg" id="ppie-banda" style="background:#B91C1C;border-color:#B91C1C;color:#fff">${ico('i-pend')}<span><b>${l.length === 1 ? 'Se activó un protocolo del PPIE' : 'Se activaron ' + l.length + ' protocolos del PPIE'}</b> · ${esc(l[0].protT)} en ${esc(l[0].escuela || l[0].cct)}${u ? ' · emergencia' : ''}</span><span class="chip" style="background:#fff;color:#B91C1C">Ver</span></button>`);
+  $('#ppie-banda').onclick = () => { vista.tab = 'ppie'; pintar(); window.scrollTo(0, 0); };
+}
+function vPpie() {
+  const cab = `<div class="titulo-vista"><h1>Protocolos PPIE</h1><div class="acciones"><button class="boton sec" id="pp-act">${ico('i-reloj')}Actualizar</button></div></div>`;
+  if (!PPC) { $('#vista').innerHTML = cab + '<div class="tarjeta vacio">Cargando…</div>'; ppieCargar(); return; }
+  if (PPC.viejo) { $('#vista').innerHTML = cab + `<div class="tarjeta pad"><b>Falta actualizar el servidor de Tequio</b> (versión ${PPIE_VER}) para recibir los protocolos que activan los docentes.</div>`; return; }
+  const filtro = vista.ppF || 'abiertos', L = (PPC.lista || []).filter(o => filtro === 'todos' || (filtro === 'abiertos' ? ppieAbierto(o) : !ppieAbierto(o)));
+  const fila = o => { const pct = o.total ? Math.round(100 * (+o.hechos || 0) / o.total) : 0;
+    return `<div class="tarjeta pad" style="margin-bottom:12px;border-left:6px solid ${o.emergencia ? '#B91C1C' : ppieAbierto(o) ? 'var(--ambar)' : '#9AA0A6'}">
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:220px">
+        <b style="font-size:17px">${esc(o.protT)}${o.casoT ? ' · ' + esc(o.casoT) : ''}</b> ${o.emergencia ? '<span class="chip mal">Emergencia</span>' : ''} ${ppieAbierto(o) ? '<span class="chip aviso">Abierto</span>' : '<span class="chip ok">Cerrado</span>'} ${o.visto ? '<span class="chip">Visto</span>' : ''}
+        <div class="peq" style="margin-top:4px">${esc(o.escuela || nombreEscuela(o.cct))}${o.cct ? ' · ' + esc(o.cct) : ''}${o.grupo ? ' · ' + esc(o.grupo) : ''}</div>
+        <div class="peq mudo">Activó: ${esc(o.maestro || '—')} · ${esc(ppieFH(o.inicio))}${o.cerrado ? ' · cerró ' + esc(ppieFH(o.cerrado)) : ''}${o.avisados ? ' · avisados: ' + esc(o.avisados) : ''}</div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px"><div style="flex:1;max-width:260px;height:8px;border-radius:9px;background:var(--linea,#e2d8c6);overflow:hidden"><i style="display:block;height:100%;width:${pct}%;background:#1E8E5A"></i></div><span class="peq">${+o.hechos || 0} de ${o.total || '?'} pasos</span></div>
+        ${o.nota ? `<div class="peq" style="margin-top:6px;white-space:pre-line">📝 ${esc(o.nota)}</div>` : ''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${!o.visto ? `<button class="boton chico" data-ppv="${esc(o.id)}">${ico('i-chk')}Enterado</button>` : ''}<button class="boton sec chico" data-ppn="${esc(o.id)}">${ico('i-lapiz')}Nota</button>${ppieAbierto(o) && esMesa() ? `<button class="boton sec chico" data-ppc="${esc(o.id)}">Cerrar</button>` : ''}</div></div></div>`; };
+  $('#vista').innerHTML = cab + `<p class="peq mudo" style="margin-top:0">Los activan los docentes desde Tlamatini Aula con «¿Qué está pasando?». Por protección de los alumnos, aquí solo llegan la situación, la escuela, el grupo, el docente, la hora y el avance; los detalles los integra la Dirección en el expediente con los anexos del PPIE.${PPC.error ? ' <b>' + esc(PPC.error) + '</b>' : ''}</p>
+    <div class="filtros" style="display:flex;gap:6px;margin:8px 0 12px">${[['abiertos', 'Abiertos'], ['cerrados', 'Cerrados'], ['todos', 'Todos']].map(([k, t]) => `<button class="boton ${filtro === k ? '' : 'sec'} chico" data-ppf="${k}">${t}</button>`).join('')}</div>
+    ${L.length ? L.map(fila).join('') : `<div class="tarjeta vacio">${filtro === 'abiertos' ? 'No hay protocolos abiertos.' : 'Sin registros.'}</div>`}`;
+  $('#pp-act').onclick = () => { PPC = null; vPpie(); };
+  $$('[data-ppf]').forEach(b => b.onclick = () => { vista.ppF = b.dataset.ppf; vPpie(); });
+  const marcar = async (id, d) => { if (cfg && cfg.demo) { const o = PPC.lista.find(x => x.id === id); Object.assign(o, d.visto ? { visto: ahora() } : {}, d.nota != null ? { nota: d.nota } : {}, d.cerrar ? { cerrado: ahora() } : {}); return vPpie(); }
+    const r = await conCarga(() => api('ppieMarcar', Object.assign({ id }, d))); if (!r) return; const i = PPC.lista.findIndex(x => x.id === id); if (i >= 0) PPC.lista[i] = r.caso; vPpie(); };
+  $$('[data-ppv]').forEach(b => b.onclick = () => marcar(b.dataset.ppv, { visto: true }));
+  $$('[data-ppc]').forEach(b => b.onclick = () => marcar(b.dataset.ppc, { cerrar: true, visto: true }));
+  $$('[data-ppn]').forEach(b => b.onclick = () => { const o = PPC.lista.find(x => x.id === b.dataset.ppn);
+    modal('Nota del caso', `<p class="peq mudo" style="margin-top:0">Para el seguimiento de la Mesa Técnica y la Dirección (no escriba nombres de alumnos).</p><textarea id="pp-nt" style="min-height:110px">${esc(o.nota || '')}</textarea>`, '<button class="boton sec" id="pp-no">Cancelar</button><button class="boton" id="pp-si">Guardar</button>');
+    $('#pp-no').onclick = cerrarModal; $('#pp-si').onclick = () => { const t = $('#pp-nt').value; cerrarModal(); marcar(o.id, { nota: t }); }; });
 }
 
 function vConsultas() {

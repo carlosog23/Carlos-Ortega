@@ -203,6 +203,8 @@ const HOJAS = {
   // Visitas de atención: las que se hacen por un tema puntual (queja o problema, capacitación, apoyo…), fuera de las visitas con guía.
   // Al cerrarse quedan en el seguimiento de la escuela con sus acuerdos (segId).
   // Si no fue en una escuela (capacitación, congreso, reunión fuera…), cct va vacío y el lugar se escribe en «lugar».
+  // Protocolos PPIE activados desde Tlamatini Aula (v83): solo datos generales; nunca nombres de alumnos ni notas del docente
+  ppie: ['id', 'cct', 'escuela', 'grupo', 'prot', 'protT', 'caso', 'casoT', 'emergencia', 'maestro', 'huella', 'inicio', 'recibido', 'hechos', 'total', 'cerrado', 'actualizado', 'visto', 'vistoPor', 'nota', 'avisados'],
   ate: ['id', 'cct', 'tipo', 'asunto', 'fecha', 'horaIni', 'horaFin', 'atendieron', 'descripcion', 'fotos', 'acuerdos', 'conclusion', 'estado', 'confidencial',
         'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor', 'lugar', 'informe'],
   // Correo de la Supervisión (solo la Supervisión). id = id del mensaje de Gmail. urgencia: urgente, pronto, normal o info.
@@ -252,11 +254,11 @@ const HOJAS = {
   tra: ['id', 'tipo', 'asunto', 'persona', 'cct', 'instancia', 'oficioId', 'folio', 'fechaInicio', 'estado', 'proxima', 'responsable', 'notas', 'historial', 'creadoPor', 'creado', 'actualizado', 'cerrado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
-const NOMBRES = { tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
+const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 82;
+const VERSION = 83;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -557,6 +559,11 @@ function doPost(e) {
     // Ulama · visita del supervisor: el docente sube su paquete de revisión (dura 6 h) y el supervisor lo baja con el código o el QR
     if (q.accion === 'ulamaRevSubir') return json_(Object.assign({ ok: true }, ulamaRevSubir_(q)));
     if (q.accion === 'ulamaRevBajar') return json_(Object.assign({ ok: true }, ulamaRevBajar_(q)));
+    // Tlamatini Aula · «¿Qué está pasando?»: el docente activa un protocolo del PPIE; se avisa a la Dirección y a la Supervisión
+    if (q.accion === 'ppieAviso' || q.accion === 'ppieAvance') {
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try { return json_(Object.assign({ ok: true }, q.accion === 'ppieAviso' ? ppieAviso_(q) : ppieAvance_(q))); } finally { lock.releaseLock(); }
+    }
     // Tlamatini Aula: Tlami (IA) para el trabajo en el aula y dinámicas compartidas de la zona (sin bloqueo la IA, porque Gemini tarda)
     if (q.accion === 'aulaIA') return json_(Object.assign({ ok: true }, aulaIA_(q)));
     if (q.accion === 'aulaDinLista') return json_(Object.assign({ ok: true }, aulaDinLista_(q)));
@@ -588,7 +595,7 @@ function doPost(e) {
 }
 
 // Lo único que puede hacer un enlace de dirección
-const SOLO_DIRECTOR = ['minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
+const SOLO_DIRECTOR = ['ppieLista', 'ppieMarcar', 'minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
@@ -2218,6 +2225,22 @@ const ACCIONES = {
     }
     guardar_(tipo === 'ate' ? 'ate' : 'vis', o);
     return tipo === 'ate' ? { ate: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota } : { vis: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota };
+  },
+
+  /* ---- Protocolos PPIE activados desde Tlamatini Aula (v83) ---- */
+  ppieLista: (yo) => {
+    let l = leer_('ppie').map(o => { const x = Object.assign({}, o); delete x.huella; return x; });
+    if (yo.rol === 'director') l = l.filter(o => o.cct === cctDe_(yo));
+    l.sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
+    return { ppie: l.slice(0, 300) };
+  },
+  ppieMarcar: (yo, d) => {
+    const o = buscar_('ppie', String(d.id || '')); if (!o) throw new Error('No se encontró el caso.');
+    if (yo.rol === 'director' && o.cct !== cctDe_(yo)) throw new Error('Sin permiso para este caso.');
+    if (d.visto) { o.visto = ahora_(); o.vistoPor = yo.nombre; }
+    if (d.nota != null) o.nota = String(d.nota).slice(0, 600);
+    if (d.cerrar) o.cerrado = o.cerrado || ahora_();
+    guardar_('ppie', o); const x = Object.assign({}, o); delete x.huella; return { caso: x };
   },
 
   /* ---- Revisión en campo ---- */
@@ -6040,10 +6063,10 @@ function tlpPerfil_(d) {
   const escuelas = pl.filter(p => !vistos[p.cct + p.turno] && (vistos[p.cct + p.turno] = 1)).map(p => {
     const c = dir.find(r => r.cct === p.cct && (!p.turno || !r.turno || r.turno === p.turno)) || dir.find(r => r.cct === p.cct) || {};
     return { nombre: String(c.escuela || '').replace(/^(escuela\s+primaria|esc\.?\s*prim\.?)\s+/i, ''), cct: p.cct, mun: c.municipio || '', loc: c.localidad || '', dom: c.domicilio || '',
-      dir: c.nombre || '', cargo: c.cargo || '', turno: p.turno || c.turno || '', funcion: p.funcion || '', grupo: p.grupo || '', clave: p.clave || '' }; });
+      dir: c.nombre || '', dirTel: c.whatsapp || '', cargo: c.cargo || '', turno: p.turno || c.turno || '', funcion: p.funcion || '', grupo: p.grupo || '', clave: p.clave || '' }; });
   x.usado = new Date().toISOString(); tlpProps_().setProperty('tlpT-' + id, JSON.stringify(x));
   return { persona: { nombre: tlpNombre_(t), trato: tlpTrato_(t), sexo: t.sexo || '', curp: t.curp || '', rfc: t.rfc || '', correo: t.correoInst || '', celular: t.celular || '',
-      fechaIngreso: t.fechaIngreso || '', estudios: t.estudios || '', afiliacion: t.afiliacion || '' }, escuelas: escuelas, zona: zonaPublica_().numero, fecha: new Date().toISOString() };
+      fechaIngreso: t.fechaIngreso || '', estudios: t.estudios || '', afiliacion: t.afiliacion || '' }, escuelas: escuelas, zona: zonaPublica_().numero, sup: { nombre: Z().supervisor || '', tel: Z().telefono || '' }, fecha: new Date().toISOString() };
 }
 function tlpCorreoArmar_(t, tok) {
   const z = Z(), nombre = tlpNombre_(t), url = TLP_URL + '#t=' + tok, esc = escuelasTlp_(t), zn = z.numero ? ' Zona ' + z.numero : '';
@@ -6219,6 +6242,42 @@ function tlpVigente_(tok) {
   if (!x || x.anulado) return null;
   const t = leer_('trb').find(r => r.id === id);
   return t && t.estado !== 'baja' ? { id: id, nombre: tlpNombre_(t) } : null;
+}
+/* ---------- Protocolos PPIE (Tlamatini Aula) ----------
+   El docente elige la situación en su celular y sigue los pasos. Aquí solo llegan datos generales para que la Dirección y
+   la Supervisión se enteren al momento y vean el avance: situación, escuela, grupo, docente, hora y cuántos pasos lleva. */
+function ppieCorreosDir_(cct) {
+  const l = [];
+  leer_('dir').filter(c => c.cct === cct && c.activo !== false && /director|encargad/i.test(String(c.tipo) + ' ' + String(c.cargo))).forEach(c => [c.correo1, c.correo2].forEach(m => { m = String(m || '').trim(); if (/@/.test(m) && l.indexOf(m) < 0) l.push(m); }));
+  return l;
+}
+function ppieAviso_(q) {
+  const qn = aulaQuien_(q, 30, 'ppie'), d = q.datos || {}, t = (x, n) => String(x || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const cct = t(d.cct, 12).toUpperCase(), dirs = cct ? leer_('dir').filter(c => c.cct === cct) : [], esc = t(d.escuela, 120) || (dirs[0] && dirs[0].escuela) || '';
+  const o = { id: 'ppie-' + Utilities.getUuid().slice(0, 13), cct: cct, escuela: esc, grupo: t(d.grupo, 60), prot: t(d.prot, 20), protT: t(d.protT, 60), caso: t(d.caso, 20), casoT: t(d.casoT, 80),
+    emergencia: d.emergencia ? 'sí' : '', maestro: qn.nombre, huella: qn.huella, inicio: t(d.inicio, 30) || ahora_(), recibido: ahora_(), hechos: 0, total: +d.total || 0,
+    cerrado: '', actualizado: ahora_(), visto: '', vistoPor: '', nota: '', avisados: '' };
+  const dirCorreos = cct ? ppieCorreosDir_(cct) : [], adm = String(Z().correosAdmin || '').split(',').map(x => x.trim()).filter(x => /@/.test(x));
+  const para = dirCorreos.concat(adm.filter(x => dirCorreos.indexOf(x) < 0));
+  const h = new Date(o.inicio), hora = isNaN(h) ? '' : Utilities.formatDate(h, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  const sit = o.protT + (o.casoT ? ' · ' + o.casoT : ''), asunto = (o.emergencia ? '🚨 URGENTE · ' : '⚠️ ') + 'Protocolo PPIE activado: ' + sit + (esc ? ' · ' + esc : '');
+  const fila = (a, b) => b ? '<tr><td style="padding:4px 10px 4px 0;color:#6A5C4C">' + a + '</td><td style="padding:4px 0"><b>' + esc_(b) + '</b></td></tr>' : '';
+  const cuerpo = '<p>Desde Tlamatini Aula se activó el protocolo del Programa de Protección Integral Escolar:</p>' +
+    '<table style="font-size:15px;border-collapse:collapse">' + fila('Situación', sit) + fila('Escuela', esc + (cct ? ' (' + cct + ')' : '')) + fila('Grupo', o.grupo) + fila('Docente', o.maestro) + fila('Hora', hora) + '</table>' +
+    '<p>' + (o.emergencia ? '<b style="color:#B91C1C">Es una situación de emergencia.</b> ' : '') + 'El docente está siguiendo los pasos del protocolo en su celular. Comuníquese con la escuela para acompañar el caso; el avance se ve en Tequio › Seguimiento › Protocolos PPIE.</p>' +
+    '<p style="font-size:13px;color:#6A5C4C">Por protección de los alumnos, este aviso no incluye nombres ni detalles del caso: esos los integra la Dirección en el expediente (anexos del PPIE).</p>';
+  if (para.length) {
+    try { MailApp.sendEmail({ to: para.join(','), subject: asunto, htmlBody: plantilla_(asunto, cuerpo + boton_(PAGINA, 'Abrir Tequio'), true), name: REMITENTE, replyTo: CORREO_SUPERVISION });
+      o.avisados = (dirCorreos.length ? 'Dirección y ' : '') + 'Supervisión'; } catch (e) { o.avisados = 'No se pudo enviar el correo: ' + e.message; }
+  }
+  guardar_('ppie', o);
+  return { id: o.id, avisados: o.avisados };
+}
+function ppieAvance_(q) {
+  const qn = aulaQuien_(q, 120, 'ppieAv'), d = q.datos || {}, o = buscar_('ppie', String(d.id || ''));
+  if (!o || o.huella !== qn.huella) throw new Error('No se encontró el caso.');
+  o.hechos = Math.max(0, Math.min(+d.hechos || 0, 99)); o.total = +d.total || o.total; o.cerrado = String(d.cerrado || '').slice(0, 30); o.actualizado = ahora_();
+  guardar_('ppie', o); return {};
 }
 /** Quién usa Tlamatini Aula: enlace personal (tlp), enlace de acceso de Tlamatini (acc) o enlace de Tequio (k). Con tope por hora. */
 function aulaQuien_(q, tope, que) {
