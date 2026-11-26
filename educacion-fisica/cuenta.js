@@ -250,4 +250,5 @@ if ("serviceWorker" in navigator && location.protocol === "https:") navigator.se
 (async () => { const admin = /[#&]admin\b/.test(location.hash || ""); $("#app").innerHTML = `<main class="wrap"><p class="muted" style="margin-top:40vh;text-align:center">Abriendo Ulama…</p></main>`;
   await verificarAcceso(); gPrecargar(); history.replaceState({ n: 0 }, "", location.pathname + location.search);
   if (ACCESO_OK && !enApp() && !ghTok()) recordarEnlaceAlInstalar(lsGet("ulama-tok", ""));
+  if (ACCESO_OK && S.v === "acceso") S = { v: "inicio" };  // si algo la pintó antes de comprobar el enlace
   if (admin) S = { v: "admin" }; pintar(); })();

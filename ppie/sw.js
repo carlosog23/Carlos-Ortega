@@ -1,5 +1,5 @@
 /* Protocolos PPIE · funciona sin internet: la página, los pasos y los formatos oficiales en PDF quedan guardados. */
-const VERSION = "ppie-2026-11-25f", BASE = "ppie-base-" + VERSION;
+const VERSION = "ppie-2026-11-25g", BASE = "ppie-base-" + VERSION;
 const NUCLEO = ["./", "../formatos-ppie/dictado.js?v=2026-11-25a", "index.html", "app.js", "estilo.css", "diseno.css", "manifest.webmanifest", "img/icono.svg", "img/icono-192.png", "../formatos-ppie/firma-autor.svg",
   "../tlamatini-aula/ppie-datos.js", "../tlamatini-aula/ppie.js",
   ...["B", "C", "D", "E", "F", "G", "H", "I", "S"].map(l => "../formatos-ppie/formatos/" + l + ".pdf")];

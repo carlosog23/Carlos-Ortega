@@ -295,4 +295,5 @@ function ppClick(e) { if (S.v !== "ppieCaso") return;
   if (b.dataset.pinfo) return ppInfo(b.dataset.pinfo); }
 document.addEventListener("click", ppClick);
 /* Si la pantalla de inicio se pintó antes de cargar este archivo, se vuelve a pintar para que aparezca el botón */
-setTimeout(() => { try { if (S && S.v === "inicio" && $("#app") && !$("#bSOS") && !$("#velo")) ppRe(); } catch (e) {} }, 0);
+// (no en Ulama mientras todavía comprueba el enlace de acceso: repintar antes de tiempo la mandaba a la pantalla de «Acceso»)
+setTimeout(() => { try { if (typeof ACCESO_OK !== "undefined" && !ACCESO_OK) return; if (S && S.v === "inicio" && $("#app") && !$("#bSOS") && !$("#velo")) ppRe(); } catch (e) {} }, 0);
