@@ -258,7 +258,7 @@ const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimie
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 84;
+const VERSION = 85;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -6254,6 +6254,7 @@ function ppieCorreosDir_(cct) {
 function ppieAviso_(q) {
   const qn = aulaQuien_(q, 30, 'ppie'), d = q.datos || {}, t = (x, n) => String(x || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const cct = t(d.cct, 12).toUpperCase(), dirs = cct ? leer_('dir').filter(c => c.cct === cct) : [], esc = t(d.escuela, 120) || (dirs[0] && dirs[0].escuela) || '';
+  if (!dirs.length) throw new Error('El aviso automático es solo para escuelas de la zona. Avise a su Dirección y Supervisión con los botones de llamar o WhatsApp.');
   const o = { id: 'ppie-' + Utilities.getUuid().slice(0, 13), cct: cct, escuela: esc, grupo: t(d.grupo, 60), prot: t(d.prot, 20), protT: t(d.protT, 60), caso: t(d.caso, 20), casoT: t(d.casoT, 80),
     emergencia: d.emergencia ? 'sí' : '', maestro: qn.nombre, huella: qn.huella, inicio: t(d.inicio, 30) || ahora_(), recibido: ahora_(), hechos: 0, total: +d.total || 0,
     cerrado: '', actualizado: ahora_(), visto: '', vistoPor: '', nota: '', avisados: '' };
