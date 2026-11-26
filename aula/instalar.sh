@@ -152,12 +152,24 @@ instalar firefox firefox-locale-es language-pack-es language-pack-gnome-es \
   libavcodec-extra ffmpeg i965-va-driver va-driver-all \
   zram-tools cups cups-filters printer-driver-all hplip system-config-printer \
   avahi-daemon libnss-mdns python3 \
-  gbrainy gnome-sudoku klavaro kgeography stellarium mesa-utils \
+  gbrainy gnome-sudoku klavaro stellarium mesa-utils \
   xournalpp pdfarranger xreader
 verde "Programas instalados."
 
+# ---------- todo en español ----------
+# Toda la computadora queda en español de México, aunque Linux Mint se haya instalado en inglés:
+# así los juegos (GCompris, TuxMath, Tux Paint, Juegos de mente, Sudoku, Mecanografía, Planetario) salen en español.
+paso "Poniendo la computadora en español"
+grep -q '^es_MX.UTF-8' /etc/locale.gen 2>/dev/null || echo 'es_MX.UTF-8 UTF-8' >> /etc/locale.gen
+sed -i 's/^# *es_MX.UTF-8 UTF-8/es_MX.UTF-8 UTF-8/' /etc/locale.gen 2>/dev/null || true
+locale-gen es_MX.UTF-8 >/dev/null 2>&1 || true
+update-locale LANG=es_MX.UTF-8 LANGUAGE=es_MX:es LC_MESSAGES=es_MX.UTF-8 >/dev/null 2>&1 || \
+  printf 'LANG=es_MX.UTF-8\nLANGUAGE=es_MX:es\nLC_MESSAGES=es_MX.UTF-8\n' > /etc/default/locale
+verde "Idioma del sistema: español de México."
+
 # Quita programas que no usan los alumnos y gastan memoria
-for p in thunderbird hexchat transmission-gtk warpinator; do
+# (KGeography no tiene traducción al español en Linux Mint: la Geografía se hace con los mapas de GCompris)
+for p in thunderbird hexchat transmission-gtk warpinator kgeography; do
   dpkg -s "$p" >/dev/null 2>&1 && $APT purge "$p" >/dev/null 2>&1 && echo "  - $p"
 done
 
@@ -307,6 +319,9 @@ cp /usr/share/applications/aula-inicio.desktop "$PL/Escritorio/aula-inicio.deskt
 chmod 755 "$PL/Escritorio/aula-inicio.desktop"
 printf '[Desktop Entry]\nHidden=true\n' > "$PL/.config/autostart/mintwelcome.desktop"
 printf '[Desktop Entry]\nHidden=true\n' > "$PL/.config/autostart/mintupdate.desktop"
+# GCompris en español y sin intentar descargar nada (funciona sin internet)
+mkdir -p "$PL/.config/gcompris"
+printf '[General]\nlocale=es_ES.UTF-8\nisAutomaticDownloadsEnabled=false\nexitConfirmation=false\n' > "$PL/.config/gcompris/gcompris-qt.conf"
 
 cat > /usr/local/sbin/aula-limpiar <<'EOF'
 #!/bin/bash
@@ -350,6 +365,13 @@ ExecStart=/usr/local/sbin/aula-limpiar alumno
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload; systemctl enable aula-limpiar.service >/dev/null 2>&1
+# La sesión del alumno (y la del maestro) en español
+for u in alumno maestro; do
+  id "$u" >/dev/null 2>&1 || continue
+  mkdir -p /var/lib/AccountsService/users; F=/var/lib/AccountsService/users/$u
+  [ -f "$F" ] || printf '[User]\n' > "$F"
+  if grep -q '^Language=' "$F"; then sed -i 's/^Language=.*/Language=es_MX.UTF-8/' "$F"; else printf 'Language=es_MX.UTF-8\n' >> "$F"; fi
+done
 verde "Al encender entra la cuenta Alumno; al terminar se borra todo lo que hizo."
 
 # ---------- cuenta del maestro ----------
