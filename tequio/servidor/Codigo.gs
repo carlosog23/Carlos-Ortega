@@ -168,7 +168,7 @@ const HOJAS = {
   per: ['id', 'nombre', 'cargo', 'institucion', 'correo', 'telefono', 'grupo', 'fuente', 'creadoPor', 'creado', 'actualizado'],
   dep: ['id', 'orden', 'municipio', 'dependencia', 'area', 'tratamiento', 'nombre', 'cargo', 'telefono', 'correo', 'domicilio', 'apoyo',
         'fuente', 'vigente', 'revisado', 'confirmar', 'activo', 'actualizado', 'actualizadoPor'],
-  vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas'],
+  vis: ['id', 'ciclo', 'cct', 'numero', 'fecha', 'estado', 'items', 'resumen', 'segId', 'carpetaId', 'creadoPor', 'creado', 'actualizado', 'cerradaPor', 'titulo', 'temas', 'informe'],
   inf: ['id', 'cct', 'fecha', 'asunto', 'cifras', 'pendientes', 'html', 'atpId', 'para', 'cc', 'enviadoPor', 'creado', 'resultado'],
   acl: ['id', 'cct', 'informeId', 'tema', 'ref', 'mensaje', 'atpId', 'estado', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'resuelto'],
   cte: ['id', 'ciclo', 'sesion', 'fecha', 'titulo', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'actualizado', 'actualizadoPor'],
@@ -204,7 +204,7 @@ const HOJAS = {
   // Al cerrarse quedan en el seguimiento de la escuela con sus acuerdos (segId).
   // Si no fue en una escuela (capacitación, congreso, reunión fuera…), cct va vacío y el lugar se escribe en «lugar».
   ate: ['id', 'cct', 'tipo', 'asunto', 'fecha', 'horaIni', 'horaFin', 'atendieron', 'descripcion', 'fotos', 'acuerdos', 'conclusion', 'estado', 'confidencial',
-        'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor', 'lugar'],
+        'segId', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'cerrada', 'cerradaPor', 'lugar', 'informe'],
   // Correo de la Supervisión (solo la Supervisión). id = id del mensaje de Gmail. urgencia: urgente, pronto, normal o info.
   // factura: datos del CFDI (emisor, receptor, total, UUID…) o {} si es factura sin XML; vacío si no es factura.
   // clasif: '' (sin revisar), sin (sin clasificar: pendiente), pimmee, ip, cpe, len, caja o personal. archivos: lo guardado en el Drive.
@@ -256,13 +256,13 @@ const NOMBRES = { tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Diná
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 81;
+const VERSION = 82;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes', 'acceso'];
+const JSON_COLS = ['informe', 'meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes', 'acceso'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -591,7 +591,7 @@ function doPost(e) {
 const SOLO_DIRECTOR = ['minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
   'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['minutaIA', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
+const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -2122,6 +2122,7 @@ const ACCIONES = {
       conclusion: String(d.conclusion || '').slice(0, 4000), estado: d.estado === 'cerrada' ? 'cerrada' : 'abierta', confidencial: yo.rol === 'admin' && !!d.confidencial,
       segId: prev ? prev.segId : '', creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre, creado: prev ? prev.creado : ahora_(), actualizado: ahora_(),
       cerrada: prev ? prev.cerrada : '', cerradaPor: prev ? prev.cerradaPor : '' };
+    if (prev && prev.informe) o.informe = prev.informe;   // el informe en PDF (v82) se conserva al corregir la visita
     let avisos = [];
     // al cerrar, la visita y sus acuerdos quedan en el seguimiento de la escuela (para darles seguimiento en Agenda y en Mi escuela)
     // (solo si fue en una escuela; las de otro lugar quedan en el registro de visitas de la Supervisión)
@@ -2159,6 +2160,64 @@ const ACCIONES = {
     const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), d.tipo || 'image/jpeg', nombre));
     f.setDescription(SUBIDO_POR + yo.nombre);
     return { foto: { id: f.getId(), n: nombre } };
+  },
+
+  /* ---- Informe de una visita ya cerrada (servidor v82) ----
+     tipo 'sup' = visita de supervisión (Seguimiento › escuela › Visita N); tipo 'ate' = visita de atención.
+     Guarda el PDF en la carpeta de la visita en el Drive de la Supervisión y, si trae correos, lo envía adjunto. */
+  visInforme: (yo, d) => {
+    soloMesa_(yo);
+    const tipo = d.tipo === 'ate' ? 'ate' : 'sup';
+    const o = buscar_(tipo === 'ate' ? 'ate' : 'vis', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la visita. Si es una visita de atención, súbala primero con «Subir a Tequio».');
+    if (tipo === 'ate' && !visible_(yo, o)) throw new Error('Sin permiso para esta visita.');
+    if (o.estado !== 'cerrada') throw new Error('El informe se genera cuando la visita ya está cerrada.');
+    const datos = String(d.pdf || '');
+    if (!datos) throw new Error('El informe llegó vacío.');
+    if (datos.length * 0.75 > 20 * 1024 * 1024) throw new Error('El informe pesa más de 20 MB.');
+    const para = String(d.para || '').split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    if (d.enviar && !para.length) throw new Error('Escriba al menos un correo válido.');
+    if (para.length && MailApp.getRemainingDailyQuota() < para.length) throw new Error('Hoy ya no quedan envíos de correo disponibles. Descargue el informe y envíelo desde su correo, o intente mañana.');
+    // carpeta: la de la visita (fotos) en el Drive de la Supervisión
+    const sub = (padre, nombre) => { const it = padre.getFoldersByName(nombre); return it.hasNext() ? it.next() : padre.createFolder(nombre); };
+    let carpeta;
+    if (tipo === 'ate') {
+      const nom = (String(o.fecha || hoy_()) + ' · ' + String(o.asunto || 'Visita')).replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 100);
+      carpeta = o.cct ? sub(sub(carpetaVisitasSup_(o.cct), 'Visitas de atención'), nom) : sub(sub(carpetaSupervision_(), 'Visitas a otros lugares'), nom);
+    } else {
+      carpeta = sub(carpetaVisitasSup_(o.cct), 'Informes de visita');
+    }
+    const nombre = (String(d.archivo || 'Informe de visita').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 150) || 'Informe de visita').replace(/\.pdf$/i, '') + '.pdf';
+    // si ya había un informe de esta visita, se manda a la papelera y queda el nuevo
+    if (o.informe && o.informe.id) { try { DriveApp.getFileById(o.informe.id).setTrashed(true); } catch (e) {} }
+    const f = carpeta.createFile(Utilities.newBlob(Utilities.base64Decode(datos), 'application/pdf', nombre));
+    f.setDescription(SUBIDO_POR + yo.nombre);
+    o.informe = Object.assign({}, o.informe || {}, { id: f.getId(), n: nombre, f: ahora_(), por: yo.nombre });
+    let de = '', nota = '';
+    if (para.length) {
+      const asunto = String(d.asunto || ('Informe de visita · ' + Z().nombre)).slice(0, 250);
+      const cuerpo = String(d.mensaje || '').trim() || 'Le hago llegar el informe de la visita. Quedo a sus órdenes.';
+      const html = '<div style="font:15px/1.6 Arial,sans-serif;color:#1E2A40">' + esc_(cuerpo).replace(/\n/g, '<br>') +
+        '<p style="margin-top:18px;color:#555">' + Z().nombre + ' · ' + Z().nivelSost + ' · ' + Z().inst + '<br>' + Z().lugar + ' · Tel. ' + Z().telefono + '</p></div>';
+      const pdf = f.getBlob().setName(nombre);
+      de = CORREO_SUPERVISION;
+      if (yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL) {
+        let alias = [];
+        try { alias = GmailApp.getAliases().map(x => x.toLowerCase()); } catch (e) {}
+        if (alias.indexOf(CORREO_INSTITUCIONAL) >= 0) {
+          GmailApp.sendEmail(para.join(','), asunto, cuerpo, { from: CORREO_INSTITUCIONAL, name: Z().supervisor, replyTo: CORREO_INSTITUCIONAL, htmlBody: html, attachments: [pdf] });
+          de = CORREO_INSTITUCIONAL;
+        } else nota = CORREO_INSTITUCIONAL + ' aún no está dada de alta en el Gmail de la Supervisión: se envió desde ' + CORREO_SUPERVISION + ' y las respuestas le llegarán a ' + CORREO_INSTITUCIONAL + '.';
+      }
+      if (de === CORREO_SUPERVISION) {
+        const inst = yo.rol === 'admin' && d.de === CORREO_INSTITUCIONAL;
+        MailApp.sendEmail({ to: para.join(','), subject: asunto, name: inst ? Z().firmaCorreo : Z().nombre, replyTo: inst ? CORREO_INSTITUCIONAL : CORREO_SUPERVISION, htmlBody: html, attachments: [pdf] });
+      }
+      o.informe.envios = (o.informe.envios || []).concat([{ f: ahora_(), por: 'correo', de: de, a: para.join(', '), u: yo.nombre }]).slice(-20);
+      bitacora_('informe de visita', o.id, para, nombre, 'enviado por ' + yo.nombre + ' desde ' + de);
+    }
+    guardar_(tipo === 'ate' ? 'ate' : 'vis', o);
+    return tipo === 'ate' ? { ate: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota } : { vis: o, cuota: MailApp.getRemainingDailyQuota(), nota: nota };
   },
 
   /* ---- Revisión en campo ---- */
