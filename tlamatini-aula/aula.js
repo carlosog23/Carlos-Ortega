@@ -21,6 +21,7 @@ const faseDe = g => g <= 2 ? 3 : g <= 4 ? 4 : 5;
 /* ---------- nivel: primaria o secundaria (Fase 6) ---------- */
 const APP_PRE = window.NIVEL_APP === "pre", APP_ESP = window.NIVEL_APP === "esp";
 const esSec = g => !!(g && g.nivel === "sec");
+const es050 = () => { try { return !APP_PRE && !esSec(gAct()); } catch (e) { return !APP_PRE; } };  // solo primaria de la Zona 050 lleva la leyenda de la zona
 const esPre = g => !!(g && g.nivel === "pre");
 const nivelTxt = g => esPre(g) ? "preescolar" : esSec(g) ? "secundaria" : "primaria";
 const DISC_SEC = [["Español", "L", "Esp."], ["Lengua Indígena como Lengua Materna", "L", "L. Ind. LM"], ["Lengua Indígena como Segunda Lengua", "L", "L. Ind. L2"], ["Inglés", "L", "Inglés"], ["Artes", "L", "Artes"],
@@ -169,14 +170,14 @@ const _libs = {};
 function cargarJS(src) { return _libs[src] || (_libs[src] = new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => { delete _libs[src]; no(new Error("No se pudo cargar " + src)); }; document.head.appendChild(s); })); }
 const enApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const marca = (claro) => `<div class="marca"><img src="img/aula-icono.svg" alt=""><div><div class="mk-n">Tlamatini <b>Aula</b>${APP_PRE || APP_ESP ? ` <small style="font-size:.6em;letter-spacing:.06em;text-transform:uppercase;opacity:.85">${APP_PRE ? "Preescolar" : "Especial"}</small>` : ""}</div><div class="mk-l">El saber, en acción</div></div></div>`;
-const pie = () => `<p class="pie privado">${ic("check", 14)} Lo que hace en Tlamatini Aula se queda en su celular o su computadora. Nadie más lo ve; usted decide si lo comparte.</p><p class="pie">Tlamatini Aula · de la familia Tlamatini · Supervisión Escolar Zona 050 · ISEP</p><div class="firma-autor"><span>Desarrollada por</span><img src="${TLM}firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65"></div>`;
+const pie = () => `<p class="pie privado">${ic("check", 14)} Lo que hace en Tlamatini Aula se queda en su celular o su computadora. Nadie más lo ve; usted decide si lo comparte.</p><p class="pie">Tlamatini Aula · de la familia Tlamatini${es050() ? " · Supervisión Escolar Zona 050 · ISEP" : ""}</p><div class="firma-autor"><span>Desarrollada por</span><img src="${TLM}firma-autor.svg" alt="Maestro Carlos Ortega" width="200" height="65"></div>`;
 
 /* =================================================================== BLOQUEO */
 VISTAS.bloqueo = () => `<main class="wrap"><section class="portada">${marca()}<h1>Su aula, con todo a la mano</h1><p>Planeación con los contenidos y PDA oficiales de su grado, su grupo, el pase de lista y un banco de dinámicas y juegos para la clase.</p></section>
   <section class="card mt"><h3>Entre con su enlace personal</h3><p class="muted mb">Tlamatini Aula usa el <b>mismo enlace personal de Tlamatini</b> que le llegó a su correo institucional. Ábralo una vez desde ese correo, o péguelo aquí.</p>
    <label class="campo"><span>Su enlace de Tlamatini</span><input id="bEnl" type="url" autocomplete="off" placeholder="https://carlosog23.github.io/…"></label>
    <div class="fila"><button class="btn p" id="bOk">Entrar</button><a class="btn" href="#demo" id="bDemo">${ic("play", 16)} Ver demostración</a></div>
-   <p class="small muted mt">¿No tiene enlace? Pídalo a la Supervisión Escolar Zona 050: supervision050sep@gmail.com</p></section>
+   <p class="small muted mt">¿No tiene enlace? Pídalo a la supervisión de su zona escolar.</p></section>
   <section class="card mt"><h3>¿Viene a revisar a un docente?</h3><p class="small muted mb">Supervisión, dirección o ATP: abra el código que le muestra el docente.</p><button class="btn" id="bRev">${ic("qr", 16)} Revisar con código</button></section>${pie()}</main>`;
 ENLAZAR.bloqueo = () => { $("#bRev").onclick = () => ir("revisar"); $("#bOk").onclick = async () => { const v = val("bEnl"), m = v.match(/[#&](t|acceso)=([A-Za-z0-9_-]{10,})/); if (!m) return toast("Pegue el enlace completo que le llegó por correo.");
     localStorage.setItem(m[1] === "t" ? "tlp-token" : "acc-token", JSON.stringify(m[2])); toast("Revisando su enlace…"); ACCESO_OK = await acceso(); if (!ACCESO_OK) return toast("Ese enlace ya no es válido. Pida uno nuevo a la Supervisión.", 4000); arrancarDatos(); pintar(); };
