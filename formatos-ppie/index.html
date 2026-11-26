@@ -2543,7 +2543,7 @@ function stepView(){if(S._stopCam){S._stopCam();S._stopCam=null}S.view="step";co
   app.querySelectorAll('#frm input[type=email]').forEach(el=>el.addEventListener("change",()=>{el.value=el.value.trim().toLowerCase()}));
   fields.filter(f=>f.type==="chars").forEach(f=>{const el=document.getElementById("f_"+f.id),m=document.getElementById("f_"+f.id+"_c");const upd=()=>{el.value=el.value.toUpperCase().replace(/\s+/g,"");const n=el.value.length,t=f.to.length;m.className="meter"+(n&&n!==t?" over":"");m.innerHTML=`<span>${n===t?"Completo":n?"Faltan "+(t-n)+" caracteres":""}</span><span>${n} de ${t}</span>`;if(f.onFull&&n===t)f.onFull(el.value)};el.addEventListener("input",upd);upd()});
   fields.filter(f=>f.type==="photo").forEach(f=>wirePhoto("f_"+f.id));
-  meters();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
+  meters();if(window.DICT)DICT.formato();window.scrollTo(0,0);const first=app.querySelector("input[type=text],textarea");if(first&&window.innerWidth>700)first.focus()}
 
 function showVal(f){const v=S.vals[f.id];
   if(f.type==="date")return v?fmtDate(v,"larga"):"";if(f.type==="time")return v?fmtTime(v,"hrs"):"";
@@ -8341,4 +8341,5 @@ if(USO.activo){window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO
   window.addEventListener("online",()=>{usoPendientes();usoTequio()});setTimeout(()=>{usoPendientes();usoTequio()},9000)}
 </script>
 
+<script>window.DICT_CAMPOS=false;</script><script src="dictado.js?v=2026-11-25a"></script>
 </body></html>

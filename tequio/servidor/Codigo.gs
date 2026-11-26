@@ -258,7 +258,7 @@ const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimie
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 86;
+const VERSION = 87;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
@@ -537,6 +537,8 @@ function doPost(e) {
     // Minuta de CTE desde Tlamatini: la IA redacta o extrae acuerdos (sin bloqueo) y la minuta se envía a Tequio
     if (q.accion === 'minutaIA') { tlamiQuien_(q, 40, 'minIA'); return json_(Object.assign({ ok: true }, minutaIA_(q.datos || {}))); }
     // Planeación de Tlamatini: el docente sube la suya y la IA la mejora respetando su formato, o hace una nueva en ese formato (sin bloqueo)
+    // Dictado por voz en Tlamatini: la IA pasa a texto lo que dijo el docente o lo acomoda en los campos del formato (no se guarda nada)
+    if (q.accion === 'dictadoIA') { tlamiQuien_(q, 40, 'dictIA'); return json_(Object.assign({ ok: true }, dictadoIA_(q.datos || {}))); }
     if (q.accion === 'planIA') { tlamiQuien_(q, 15, 'planIA'); return json_(Object.assign({ ok: true }, planIA_(q.datos || {}))); }
     if (q.accion === 'minutaEnviar') {
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -3812,6 +3814,46 @@ function archivar_(id, pdf) {
   o.actualizado = ahora_();
   guardar_('ofi', o);
   return o;
+}
+
+/* Dictado por voz (Tlamatini). modo «texto»: transcribe una grabación. modo «llenar»: con lo que el docente dictó (texto o
+   grabación) llena los campos vacíos de un formato, sin inventar datos. No se guarda nada. */
+function dictadoIA_(d) {
+  const L = (t, n) => String(t == null ? '' : t).slice(0, n);
+  const audio = d.audio && d.audio.data ? { tipo: /^audio\/[\w.+-]+$/.test(String(d.audio.tipo)) ? String(d.audio.tipo) : 'audio/webm', data: String(d.audio.data) } : null;
+  if (audio && audio.data.length > 15000000) throw new Error('La grabación es muy larga. Dicte en partes de 4 minutos o menos.');
+  const texto = L(d.texto, 15000).trim();
+  const leer = r => { try { return JSON.parse(r); } catch (e) { const m = String(r).match(/\{[\s\S]*\}/); try { return m ? JSON.parse(m[0]) : {}; } catch (_) { return {}; } } };
+  if (d.modo === 'texto') {
+    if (!audio) throw new Error('No llegó la grabación.');
+    const r = gemini_('Transcribe en español de México, fielmente y sin resumir, lo que dice esta grabación de un docente. Corrige solo la puntuación, los acentos y las mayúsculas. No agregues nada. Si no se entiende nada, devuelve texto vacío. Responde solo con JSON: {"texto":"..."}', { json: true, temperatura: 0.1, sinPensar: true, max: 4096, archivo: audio.data, tipo: audio.tipo });
+    return { texto: L(leer(r).texto, 15000).trim() };
+  }
+  if (!texto && !audio) throw new Error('No llegó lo que dictó.');
+  const campos = (Array.isArray(d.campos) ? d.campos : []).slice(0, 90).map(c => ({ id: L(c.id, 40), etiqueta: L(c.label, 160), ayuda: L(c.help, 220), tipo: L(c.tipo, 12), opciones: (Array.isArray(c.opciones) ? c.opciones : []).slice(0, 40).map(o => L(o, 140)), renglones: Math.min(40, parseInt(c.renglones, 10) || 0), yaTiene: L(c.actual, 200) }));
+  if (!campos.length) throw new Error('El formato no tiene campos para llenar.');
+  const hoy = Utilities.formatDate(new Date(), 'America/Tijuana', "yyyy-MM-dd (EEEE)");
+  const prompt = [
+    'Eres el asistente de Tlamatini que ayuda a docentes y directivos de educación básica en Baja California, México, a llenar formatos oficiales.',
+    'Formato: «' + L(d.formato, 200) + '».' + (d.uso ? ' Para qué sirve: ' + L(d.uso, 300) : ''),
+    'El docente dictó con sus propias palabras lo que pasó' + (audio ? ' (está en la grabación' + (texto ? ' y en el texto de abajo' : '') + ')' : ' (texto de abajo, viene de un dictado por voz y puede tener errores de reconocimiento)') + '.',
+    'Tu tarea: llenar los campos del formato SOLO con lo que el docente dijo.',
+    'Reglas:',
+    '- No inventes nada: ni nombres, ni fechas, ni horas, ni lugares, ni hechos. Si un dato no lo dijo, NO incluyas ese campo.',
+    '- No llenes los campos que ya tienen valor («yaTiene»).',
+    '- Campos de tipo «narracion»: redacta en tercera persona, en pasado, con lenguaje formal, claro y objetivo, como en un documento oficial escolar. Describe hechos, sin juicios, sin diagnósticos y sin culpar. Conserva entre comillas las palabras textuales que el docente citó. Extensión aproximada: 85 caracteres por renglón disponible («renglones»).',
+    '- Campos «texto»: escribe solo el dato, breve (por ejemplo un nombre completo, un lugar, un grado y grupo).',
+    '- Fechas: formato AAAA-MM-DD. Hoy es ' + hoy + '; convierte «hoy», «ayer», «el lunes pasado», etc. Horas: HH:MM en 24 horas.',
+    '- Campos «opcion»: escribe exactamente una de sus «opciones», tal cual, y solo si lo dicho lo indica con claridad.',
+    '- Corrige errores evidentes del reconocimiento de voz, pero sin cambiar el sentido.',
+    'Responde solo con JSON: {"valores": {"<id del campo>": "<valor>"}, "transcripcion": "lo que dijo el docente, limpio"}',
+    'Campos del formato (JSON): ' + JSON.stringify(campos),
+    texto ? 'Lo que dictó el docente:\n"""\n' + texto + '\n"""' : ''
+  ].join('\n');
+  const j = leer(gemini_(prompt, Object.assign({ json: true, temperatura: 0.2, sinPensar: true, max: 8192 }, audio ? { archivo: audio.data, tipo: audio.tipo } : {})));
+  const ok = {}, ids = {}; campos.forEach(c => { ids[c.id] = c; });
+  Object.keys(j.valores || {}).forEach(k => { const c = ids[k], v = j.valores[k]; if (!c || c.yaTiene || v == null || typeof v === 'object') return; const t = String(v).trim(); if (t) ok[k] = t.slice(0, 4000); });
+  return { valores: ok, texto: L(j.transcripcion, 15000) };
 }
 
 /* Gemini (Google AI Studio). La clave se guarda solo en las propiedades del servidor. */
