@@ -2241,7 +2241,7 @@ function cmpPersona() {
       ${p.tipo === 'texto' ? `<textarea data-qv="${esc(cue.id)}|${esc(p.k)}" placeholder="Respuesta">${esc(x.v || '')}</textarea>`
         : `<div class="cmp-ops">${ops.map(o => `<label class="cmp-op${semClase(o)}${x.v === o ? ' on' : ''}"><input type="radio" name="${nm}" value="${esc(o)}" data-qv="${esc(cue.id)}|${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>`}
       ${p.tipo !== 'texto' ? `<textarea class="cmp-obs" data-qo="${esc(cue.id)}|${esc(p.k)}" placeholder="Observaciones">${esc(x.obs || '')}</textarea>` : ''}
-      ${p.foto ? `<div class="cmp-fotos">${fotos}<label class="boton sec chico">${ico('i-cam')}Tomar o elegir foto<input type="file" accept="image/*" capture="environment" hidden data-qp="${esc(cue.id)}|${esc(p.k)}"></label></div>` : ''}
+      ${p.foto ? `<div class="cmp-fotos">${fotos}<label class="boton sec chico">${ico('i-cam')}Tomar o elegir fotos<input type="file" accept="image/*" multiple hidden data-qp="${esc(cue.id)}|${esc(p.k)}"></label></div>` : ''}
     </div>`;
   };
   const revs = cues.map(c => cmpRevLocal(s, c, per));
@@ -2273,9 +2273,9 @@ function cmpPersona() {
     $$('[data-qv]').forEach(el => el.addEventListener(el.tagName === 'TEXTAREA' ? 'change' : 'change', () => { const [c, k] = el.dataset.qv.split('|'); guardar(revDe(c), k, x => { x.v = el.value; });
       if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.cmp-op').classList.toggle('on', i.checked)); }));
     $$('[data-qo]').forEach(el => el.addEventListener('change', () => { const [c, k] = el.dataset.qo.split('|'); guardar(revDe(c), k, x => { x.obs = el.value; }); }));
-    $$('[data-qp]').forEach(el => el.onchange = async () => { const f = el.files[0]; if (!f) return; const [c, k] = el.dataset.qp.split('|');
-      try { const b = await cmpComprimir(f), lid = uid('f'); await CDB.put('foto', lid, b); await guardar(revDe(c), k, x => { x.fotos = (x.fotos || []).concat([{ lid, n: 'Foto ' + ((x.fotos || []).length + 1) + '.jpg' }]); }); cmpPersona(); }
-      catch (e) { aviso(esc(e.message || 'No se pudo guardar la foto.'), 'mal'); } });
+    $$('[data-qp]').forEach(el => el.onchange = async () => { const fs = [...el.files]; if (!fs.length) return; const [c, k] = el.dataset.qp.split('|');
+      try { for (const f of fs) { const b = await cmpComprimir(f), lid = uid('f'); await CDB.put('foto', lid, b); await guardar(revDe(c), k, x => { x.fotos = (x.fotos || []).concat([{ lid, n: 'Foto ' + ((x.fotos || []).length + 1) + '.jpg' }]); }); } cmpPersona(); }
+      catch (e) { aviso(esc(e.message || 'No se pudo guardar la foto.'), 'mal'); cmpPersona(); } });
     $$('[data-qf]').forEach(b => b.onclick = async () => { const [c, k, i] = b.dataset.qf.split('|'); if (!confirm('¿Quitar esta foto?')) return;
       await guardar(revDe(c), k, x => { const f = x.fotos.splice(+i, 1)[0]; if (f && f.lid) CDB.del('foto', f.lid); }); cmpPersona(); });
   };
@@ -2767,7 +2767,7 @@ function cmpAtencion() {
       <div class="campo"><label for="ca-at">¿Quiénes atendieron o participaron?</label><input id="ca-at" data-a="atendieron" value="${esc(a.atendieron)}" placeholder="Directora, docentes de 1.° y 2.°, padres de familia…"></div>
       <div class="campo"><label for="ca-de">¿Qué se hizo? (situación, lo que se revisó o se trató)</label><textarea id="ca-de" data-a="descripcion" style="min-height:120px">${esc(a.descripcion)}</textarea></div>
       <div class="campo"><span class="et">Fotos</span><div class="cmp-fotos">${(a.fotos || []).map((f, i) => `<span class="cmp-foto">${f.id ? `<a href="${urlArchivo(f.id)}" target="_blank" rel="noopener">📷</a>` : `<img src="${f._url || ''}" alt="Foto ${i + 1}">`}<button type="button" class="enlace" data-af="${i}" aria-label="Quitar foto">×</button></span>`).join('')}
-        <label class="boton sec chico">${ico('i-cam')}Tomar o elegir foto<input type="file" accept="image/*" capture="environment" hidden id="ca-foto"></label></div></div>
+        <label class="boton sec chico">${ico('i-cam')}Tomar o elegir fotos<input type="file" accept="image/*" multiple hidden id="ca-foto"></label></div></div>
       <div class="campo"><span class="et">Acuerdos</span><div id="ca-acs">${(a.acuerdos || []).map((x, i) => `<div class="cmp-ped" data-ai="${i}"><div class="fila" style="grid-template-columns:1fr 36px"><textarea data-ak="texto" placeholder="Acuerdo">${esc(x.texto)}</textarea><button type="button" class="icono-btn" data-aq="${i}" aria-label="Quitar acuerdo">${ico('i-x')}</button></div>
         <div class="fila"><input data-ak="responsable" placeholder="Responsable" value="${esc(x.responsable || '')}"><input type="date" data-ak="revision" value="${esc(x.revision || '')}" aria-label="Fecha para revisarlo"></div></div>`).join('')}</div>
         <button type="button" class="boton sec chico" id="ca-mas">${ico('i-mas')}Agregar acuerdo</button><div class="ayuda">${a.cct || !(a.otroLugar || a.lugar) ? 'Al cerrar la visita, los acuerdos quedan en el seguimiento de la escuela, con su fecha de revisión.' : 'Los acuerdos quedan en el registro de esta visita.'}</div></div>
@@ -2789,9 +2789,9 @@ function cmpAtencion() {
     $$('[data-ak]').forEach(el => el.onchange = () => { const i = +el.closest('[data-ai]').dataset.ai; a.acuerdos[i][el.dataset.ak] = el.value; marcar(); });
     $$('[data-aq]').forEach(b => b.onclick = () => { a.acuerdos.splice(+b.dataset.aq, 1); marcar(); pintarA(); });
     $('#ca-mas').onclick = () => { a.acuerdos.push({ texto: '', responsable: '', revision: '', estado: 'pendiente' }); marcar(); pintarA(); $$('#ca-acs textarea').pop().focus(); };
-    $('#ca-foto').onchange = async e => { const f = e.target.files[0]; if (!f) return;
-      try { const b = await cmpComprimir(f), lid = uid('f'); await CDB.put('foto', lid, b); a.fotos.push({ lid, n: 'Foto ' + (a.fotos.length + 1) + '.jpg', _url: URL.createObjectURL(b) }); urls.push(a.fotos[a.fotos.length - 1]._url); marcar(); pintarA(); }
-      catch (er) { aviso('No se pudo guardar la foto.', 'mal'); } };
+    $('#ca-foto').onchange = async e => { const fs = [...e.target.files]; if (!fs.length) return;
+      try { for (const f of fs) { const b = await cmpComprimir(f), lid = uid('f'); await CDB.put('foto', lid, b); a.fotos.push({ lid, n: 'Foto ' + (a.fotos.length + 1) + '.jpg', _url: URL.createObjectURL(b) }); urls.push(a.fotos[a.fotos.length - 1]._url); } marcar(); pintarA(); }
+      catch (er) { aviso('No se pudo guardar la foto.', 'mal'); marcar(); pintarA(); } };
     $$('[data-af]').forEach(b => b.onclick = () => { if (!confirm('¿Quitar esta foto?')) return; const f = a.fotos.splice(+b.dataset.af, 1)[0]; if (f && f.lid) CDB.del('foto', f.lid); marcar(); pintarA(); });
     if ($('#ca-cerrar')) $('#ca-cerrar').onclick = () => {
       if (!a.cct && !String(a.lugar || '').trim()) return aviso(a.otroLugar ? 'Escriba dónde fue la visita.' : 'Elija la escuela o el lugar.', 'mal'); if (!String(a.asunto).trim()) return aviso('Escriba el asunto.', 'mal');
@@ -3183,7 +3183,7 @@ async function docentePagina() {
         ${p.tipo === 'texto' ? `<textarea data-dv="${esc(p.k)}" placeholder="Escriba aquí su respuesta">${esc(x.v || '')}</textarea>`
           : `<div class="dz-ops" role="radiogroup">${ops.map(o => `<label class="dz-op${opClase(o)}${x.v === o ? ' on' : ''}"><input type="radio" name="d-${esc(p.k)}" value="${esc(o)}" data-dv="${esc(p.k)}" ${x.v === o ? 'checked' : ''}>${esc(o)}</label>`).join('')}</div>
              <textarea class="dz-obs" data-do="${esc(p.k)}" placeholder="Comentario (opcional)">${esc(x.obs || '')}</textarea>`}
-        ${p.foto ? `<div class="dz-foto">${(x.fotos || []).map((f, j) => `<span class="dz-fok">📷 Foto ${j + 1} enviada</span>`).join('')}<label class="dz-btnf${p.foto === 2 && !(x.fotos || []).length ? ' obl' : ''}">📷 ${p.foto === 2 ? 'Tomar foto (obligatoria)' : 'Agregar foto (opcional)'}<input type="file" accept="image/*" capture="environment" hidden data-dp="${esc(p.k)}"></label></div>` : ''}
+        ${p.foto ? `<div class="dz-foto">${(x.fotos || []).map((f, j) => `<span class="dz-fok">📷 Foto ${j + 1} enviada</span>`).join('')}<label class="dz-btnf${p.foto === 2 && !(x.fotos || []).length ? ' obl' : ''}">📷 ${p.foto === 2 ? 'Tomar o elegir foto (obligatoria)' : 'Agregar foto (opcional)'}<input type="file" accept="image/*" multiple hidden data-dp="${esc(p.k)}"></label></div>` : ''}
       </section>`; }).join('')}
     <div class="dz-pie-env"><button class="dz-env" id="dc-env">${d.enviado ? 'Volver a enviar mis respuestas' : 'Enviar mis respuestas'}</button><div class="dz-guard" id="dz-guard">Lo que contesta se guarda en este teléfono mientras termina.</div></div>`);
     const contar = () => { const m = P.filter(hecha).length; $('#dz-cnt').textContent = m + ' de ' + P.length + ' contestadas'; $('#dz-pb').style.width = (P.length ? m / P.length * 100 : 0) + '%';
@@ -3191,10 +3191,10 @@ async function docentePagina() {
     $$('[data-dv]').forEach(el => el.addEventListener(el.tagName === 'TEXTAREA' ? 'input' : 'change', () => { (res[el.dataset.dv] = res[el.dataset.dv] || {}).v = el.value; guardarB();
       if (el.type === 'radio') $$(`input[name="${el.name}"]`).forEach(i => i.closest('.dz-op').classList.toggle('on', i.checked)); contar(); }));
     $$('[data-do]').forEach(el => el.addEventListener('input', () => { (res[el.dataset.do] = res[el.dataset.do] || {}).obs = el.value; guardarB(); }));
-    $$('[data-dp]').forEach(el => el.onchange = async () => { const f = el.files[0]; if (!f) return; cargando(true);
-      try { const b = await cmpComprimir(f), r = await api('revPubFoto', { codigo: cfg.docente, k: el.dataset.dp, datos: await cmpB64(b), tipo: 'image/jpeg', nombre: d.persona + ' - ' + el.dataset.dp + '.jpg' });
-        const x = res[el.dataset.dp] = res[el.dataset.dp] || {}; x.fotos = (x.fotos || []).concat([r.foto]); guardarB(); aviso('Foto enviada.', 'ok'); const y = scrollY; pintarForm(); scrollTo(0, y); }
-      catch (e) { aviso(esc(e.message), 'mal'); } finally { cargando(false); } });
+    $$('[data-dp]').forEach(el => el.onchange = async () => { const fs = [...el.files]; if (!fs.length) return; cargando(true); const y = scrollY;
+      try { for (const f of fs) { const b = await cmpComprimir(f), r = await api('revPubFoto', { codigo: cfg.docente, k: el.dataset.dp, datos: await cmpB64(b), tipo: 'image/jpeg', nombre: d.persona + ' - ' + el.dataset.dp + '.jpg' });
+        const x = res[el.dataset.dp] = res[el.dataset.dp] || {}; x.fotos = (x.fotos || []).concat([r.foto]); guardarB(); } aviso(fs.length > 1 ? fs.length + ' fotos enviadas.' : 'Foto enviada.', 'ok'); }
+      catch (e) { aviso(esc(e.message), 'mal'); } finally { cargando(false); pintarForm(); scrollTo(0, y); } });
     $('#dc-env').onclick = async () => {
       const sinResp = P.filter(p => !hecha(p)), sinFoto = P.filter(p => p.foto === 2 && !((res[p.k] || {}).fotos || []).length);
       if (sinResp.length || sinFoto.length) {
