@@ -128,7 +128,8 @@ function ppFaltaContactos() { const E = ppEscuela(); return !E.dirTel && !E.supT
 /* Color del botón «¿Qué está pasando?»: el rojo incomoda a algunas personas. Se guarda en el dispositivo y vale para
    Tlamatini Aula, Ulama y la app de Protocolos (comparten el sitio). */
 const PP_COLORES = [["rojo", "Rojo", "#E2283F", "#B91C1C", "#7F1D1D"], ["azul", "Azul", "#3B82F6", "#1D4ED8", "#1E3A8A"], ["verde", "Verde", "#22C55E", "#15803D", "#14532D"],
-  ["morado", "Morado", "#A855F7", "#7E22CE", "#4C1D95"], ["naranja", "Naranja", "#FB923C", "#C2410C", "#7C2D12"], ["gris", "Gris", "#64748B", "#334155", "#0F172A"]];
+  ["morado", "Morado", "#A855F7", "#7E22CE", "#4C1D95"], ["naranja", "Naranja", "#FB923C", "#C2410C", "#7C2D12"], ["gris", "Gris", "#64748B", "#334155", "#0F172A"],
+  ["salvia", "Verde suave", "#A7C4B5", "#6F9A86", "#557A69"], ["lavanda", "Azul suave", "#B4C2DC", "#7E92B8", "#62759A"]];
 function ppColor() { let k = ""; try { k = localStorage.getItem("pp-color") || ""; } catch (e) {} return PP_COLORES.find(c => c[0] === k) || PP_COLORES[0]; }
 function ppColorAplicar() { const c = ppColor(), r = document.documentElement.style; r.setProperty("--sos0", c[2]); r.setProperty("--sos1", c[3]); r.setProperty("--sos2", c[4]); }
 ppColorAplicar();
