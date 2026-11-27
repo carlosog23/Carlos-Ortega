@@ -5976,7 +5976,8 @@ async function vTlp() {
   const f = T.f || (T.f = 'todos'), q = (T.q || '').trim().toLowerCase();
   const sinCorreo = t => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t.correoInst || '').trim());
   const cuenta = k => act.filter(t => k === 'sinCorreo' ? sinCorreo(t) : ((est[t.id] || {}).estado || 'sin') === k).length;
-  const pasa = t => (f === 'todos' || (f === 'sinCorreo' ? sinCorreo(t) : ((est[t.id] || {}).estado || 'sin') === f)) && (!q || perNombre(t).toLowerCase().includes(q));
+  const pasa = t => (f === 'todos' || (f === 'sinCorreo' ? sinCorreo(t) : ((est[t.id] || {}).estado || 'sin') === f)) && (!q || perNombre(t).toLowerCase().includes(q)) && (!T.esc || perActivas(t).some(p => p.cct === T.esc));
+  const escOps = [...new Set(act.flatMap(t => perActivas(t).map(p => p.cct)).filter(Boolean))].map(c => [c, perCentro(c).escuela || c]).sort((x, y) => String(x[1]).localeCompare(String(y[1]), 'es'));
   const lista = act.filter(pasa);
   const chip = e => !e || e.estado === 'sin' ? '<span class="chip">Sin enlace</span>' : e.estado === 'enviado' ? `<span class="chip ok">Enviado ${esc(fechaCorta(e.enviado.slice(0, 10)))}</span>` : e.estado === 'pendiente' ? '<span class="chip aviso">Pendiente de enviar</span>' : '<span class="chip mal">Anulado</span>';
   const nSel = Object.keys(T.sel).filter(k => T.sel[k]).length;
@@ -5991,6 +5992,7 @@ async function vTlp() {
   <div class="pen-cifras per-cifras">${[['todos', act.length, 'personas'], ['sin', cuenta('sin'), 'sin enlace'], ['pendiente', cuenta('pendiente'), 'pendientes'], ['enviado', cuenta('enviado'), 'enviados'], ['anulado', cuenta('anulado'), 'anulados'], ['sinCorreo', cuenta('sinCorreo'), 'sin correo institucional']]
     .map(c => `<button class="tarjeta pen-cifra ${f === c[0] ? 'sel' : ''}" data-tlf="${c[0]}"><b>${c[1]}</b><span>${c[2]}</span></button>`).join('')}</div>
   <div class="filtros"><input type="search" id="tl-q" placeholder="Buscar nombre…" value="${esc(T.q || '')}">
+    <select id="tl-esc" aria-label="Filtrar por escuela"><option value="">Todas las escuelas</option>${escOps.map(([c, n]) => `<option value="${esc(c)}" ${T.esc === c ? 'selected' : ''}>${esc(n)} (${esc(c)})</option>`).join('')}</select>
     <button class="boton sec chico" id="tl-todos">Elegir los ${lista.length} de la lista</button><button class="boton sec chico" id="tl-ning">Quitar selección</button></div>
   <div class="tarjeta"><div class="matriz-caja"><table class="matriz per-tabla"><thead><tr><th></th><th class="esc-col">Nombre</th><th>Escuela(s)</th><th>Correo institucional</th><th>Enlace</th><th></th></tr></thead><tbody>
   ${lista.map(t => { const e = est[t.id], pl = perActivas(t), doble = perDoble(t);
@@ -6006,6 +6008,7 @@ async function vTlp() {
   $$('[data-tlf]').forEach(b => b.onclick = () => { T.f = b.dataset.tlf; vTlp(); });
   let tq; $('#tl-q').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { T.q = e.target.value; vTlp(); const i = $('#tl-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 300); };
   $$('[data-tls]').forEach(c => c.onchange = () => { T.sel[c.dataset.tls] = c.checked; vTlp(); });
+  $('#tl-esc').onchange = e => { T.esc = e.target.value; vTlp(); };
   $('#tl-todos').onclick = () => { lista.forEach(t => { if (!sinCorreo(t)) T.sel[t.id] = true; }); vTlp(); };
   $('#tl-ning').onclick = () => { T.sel = {}; vTlp(); };
   $$('[data-tlc]').forEach(b => b.onclick = async () => { const e = est[b.dataset.tlc]; if (e && e.url) return copiar(e.url, 'Enlace personal copiado: mándelo solo a esa persona');
