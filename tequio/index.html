@@ -18178,5 +18178,37 @@ setInterval(() => { if (cfg && cfg.invitado && invitacionVencida(cfg)) invitacio
   window.goatcounter={no_onload:true,endpoint:`https://${USO_CODIGO}.goatcounter.com/count`};const s=document.createElement("script");s.async=true;s.src="https://gc.zgo.at/count.js";
   s.onload=()=>{try{window.goatcounter.count({path:/demo/i.test(location.search+location.hash)?"/tequio/demo":"/tequio/",title:"Tequio · abrir"})}catch(e){}};document.head.appendChild(s)})();
 </script>
+<script>
+/* Mi libreta (bitácora informal de notas rápidas y recordatorios) para la Supervisión, la Mesa Técnica y las direcciones.
+   Es la misma de Tlamatini Aula y Ulama. Se guarda solo en este dispositivo, separada por usuario; no se sube a Tequio. */
+function tqLibretaClave() {
+  const y = typeof S !== 'undefined' && S && S.yo ? (S.yo.id || S.yo.nombre || 'yo') : 'anon';
+  const demo = typeof cfg !== 'undefined' && cfg && (cfg.demo || cfg.lectura || cfg.invitado) ? 'demo.' : '';
+  return 'tequio.libreta.' + demo + y;
+}
+window.NOTAS_CFG = {
+  boton: false,
+  tipos: [['pend', '📌', 'Pendiente'], ['llamar', '📞', 'Llamar o avisar'], ['esc', '🏫', 'Escuela'], ['pers', '👥', 'Personal'], ['idea', '💡', 'Idea']],
+  ejemplo: '¿Qué quiere anotar? Ej.: Llamar a la dirección por el oficio · Revisar con el ATP lo del CTE',
+  privado: 'Se queda en este dispositivo y solo usted la ve: no se sube a Tequio ni la ven los demás usuarios.',
+  leer: () => { try { return JSON.parse(localStorage.getItem(tqLibretaClave()) || '[]'); } catch (e) { return []; } },
+  escribir: L => { try { localStorage.setItem(tqLibretaClave(), JSON.stringify(L)); } catch (e) { aviso('No se pudo guardar la nota: el dispositivo no tiene espacio.', 'mal'); } },
+  alCambiar: n => { const b = document.getElementById('b-libreta'); if (!b) return; const x = b.querySelector('.pest-n'); if (x) x.remove(); if (n) b.insertAdjacentHTML('beforeend', ` <span class="pest-n">${n}</span>`); }
+};
+</script>
+<script src="../tlamatini-aula/notas.js?v=2026-11-27a"></script>
+<script>
+(function () {
+  if (!window.Notas) return;
+  const boton = () => { const n = Notas.pendientes(); return `<button id="b-libreta" title="Mi libreta: notas rápidas y recordatorios" aria-label="Mi libreta: notas rápidas y recordatorios">${Notas.ICONO}${n ? ` <span class="pest-n">${n}</span>` : ''}</button>`; };
+  const orig = barraIconos;
+  barraIconos = function (tabs) {
+    const html = orig.apply(this, arguments);
+    return html ? html.replace('<div class="barra-ico">', '<div class="barra-ico">' + boton()) : `<div class="barra-ico">${boton()}</div>`;
+  };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#b-libreta'); if (b) { e.preventDefault(); Notas.abrir(); } });
+  const bi = document.querySelector('.barra-ico'); if (bi && !document.getElementById('b-libreta')) bi.insertAdjacentHTML('afterbegin', boton());
+})();
+</script>
 </body>
 </html>
