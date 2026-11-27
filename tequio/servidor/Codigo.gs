@@ -250,21 +250,29 @@ const HOJAS = {
   cnr: ['id', 'consulta', 'persona', 'nombre', 'respuestas', 'datos', 'fecha', 'actualizado', 'veces'],
   // Responder mensajes (solo la Supervisión): lo que le escriben por WhatsApp, el borrador de Tlami y la respuesta que envió
   dud: ['id', 'fecha', 'de', 'telefono', 'mensaje', 'respuesta', 'tema', 'aviso', 'estado', 'actualizado'],
+  // Comité de Planeación y Evaluación del PMC (LGE art. 109; Lineamientos del CTE, arts. 18 y 19). cpe: uno por escuela y ciclo (id = ciclo|CCT).
+  // integrantes: [{ id, n, cargo, funcion (coord | secre | vocal), correo, cel, trb, alertas }]; datos: { fecha, sesion, seguimiento, fuentes, comunicacion, notas }.
+  // cpa: las acciones del PMC que el comité sigue. tipo: unica (una fecha) | periodo (del inicio al fin) | permanente (todo el ciclo, se evalúa cada «frecuencia»).
+  // responsables: ids de integrantes ('todos' = todo el colectivo). evals: [{ id, f, sem (v | a | r), ej (si | parcial | no), nota, evid, por, porN, creado }].
+  // avisos: lo que ya se avisó por correo ({ prox, venc, vencN, per }). Nada se borra: eliminar la deja inactiva.
+  cpe: ['id', 'ciclo', 'cct', 'integrantes', 'datos', 'actualizado', 'actualizadoPor', 'actualizadoNombre'],
+  cpa: ['id', 'ciclo', 'cct', 'ambito', 'objetivo', 'meta', 'accion', 'responsables', 'tipo', 'inicio', 'fin', 'frecuencia', 'evidencia', 'estado', 'evals', 'avisos',
+        'activo', 'origen', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'actualizadoNombre'],
   // Trámites en seguimiento ante la DAP, la Jefatura y otras instancias (licencias, interinatos, solicitudes…). historial: [{ f, por, texto }]
   tra: ['id', 'tipo', 'asunto', 'persona', 'cct', 'instancia', 'oficioId', 'folio', 'fechaInicio', 'estado', 'proxima', 'responsable', 'notas', 'historial', 'creadoPor', 'creado', 'actualizado', 'cerrado'],
   pen: ['id', 'titulo', 'detalle', 'prioridad', 'categoria', 'cct', 'limite', 'estado', 'confidencial', 'respuestas', 'creadoPor', 'creadoNombre', 'creado', 'actualizado', 'atendido', 'atendidoPor', 'visto', 'editado']
 };
-const NOMBRES = { ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
+const NOMBRES = { cpe: 'Comité PMC · Integrantes', cpa: 'Comité PMC · Acciones', ppie: 'Protocolos PPIE activados', tra: 'Trámites en seguimiento', adn: 'Tlamatini Aula · Dinámicas compartidas', rcd: 'Recordatorios de Mi agenda (Tlamatini)', min: 'Minutas CTE y CTZ', act: 'Actividades', seg: 'Seguimiento', dir: 'Directorio', usr: 'Usuarios', log: 'Bitácora de envíos',
   reu: 'Reuniones', acu: 'Acuerdos de reuniones', cum: 'Cumplimiento por escuela', evi: 'Evidencias en Drive', eve: 'Evidencias · Revisión', trb: 'Personal de la zona', ofi: 'Oficios',
   sis: 'SisAT · Resultados', sic: 'SisAT · Observaciones', sia: 'SisAT · Alumnos',
   eig: 'EIA · Resultados por grupo', eia: 'EIA · Alumnos', per: 'Directorio de oficios', dep: 'Directorio de dependencias', vis: 'Visitas de supervisión', inf: 'Informes de seguimiento', acl: 'Aclaraciones de informes', ctr: 'CTE · Revisión y felicitaciones', pen: 'Pendientes para la Supervisión', rel: 'RELweb · Claves de acceso', prm: 'Permisos y facilidades', cte: 'CTE · Sesiones', cta: 'CTE · Archivos de las escuelas', ctv: 'CTE · Visitas de la Mesa Técnica', fin: 'Recursos financieros · Ingresos propios', rec: 'Actividades recaudatorias', vid: 'Videollamadas', cue: 'Revisión · Guías', rev: 'Revisión · Respuestas', ate: 'Visitas de atención', cor: 'Correo de la Supervisión', pmc: 'PMC de las escuelas', tla: 'Tlamatini · Insumos publicados', uso: 'Tlamatini · Uso por persona', ust: 'Tequio · Uso por usuario', sol: 'Tlamatini · Solicitudes a Tlami', agr: 'Asistencia · Grupos de las escuelas', asj: 'Asistencia · Solicitudes del día', asr: 'Asistencia · Captura por escuela', cns: 'Consultas', cnr: 'Consultas · Respuestas', dud: 'Responder mensajes' };
-const VERSION = 88;
+const VERSION = 89;
 
 // Carpeta principal del Drive de evidencias de la zona, con una subcarpeta por escuela
 const CARPETA_EVIDENCIAS = Z().carpetaEvidencias;
 // Carpetas con datos personales: solo se cuentan archivos, no se guardan nombres
 const CARPETAS_PRIVADAS = /^01-Expedientes/i;
-const JSON_COLS = ['informe', 'meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes', 'acceso'];
+const JSON_COLS = ['integrantes', 'evals', 'informe', 'meses', 'apartados', 'anexos', 'datos', 'obs', 'plazas', 'historial', 'escuelas', 'destinatarios', 'responsables', 'avisos', 'enviado', 'acuerdos', 'recientes', 'envios', 'lec', 'tex', 'cal', 'tip', 'comp', 'cr', 'rz', 'v', 'items', 'temas', 'cifras', 'pendientes', 'respuestas', 'presentacion', 'cuadernillo', 'insumos', 'evid', 'prod', 'nv', 'niv', 'aspectos', 'fotos', 'conectados', 'preguntas', 'respuestas', 'factura', 'adjuntos', 'archivos', 'pa', 'grupos', 'equipo', 'participantes', 'acceso'];
 const BOOL_COLS = ['confidencial', 'minutaEnviada', 'multigrado', 'activo', 'firma', 'sello', 'confirmar', 'descuenta', 'expediente'];
 
 /* El directorio inicial (ESCUELAS y ATPS) está en el archivo Directorio.gs,
@@ -598,7 +606,7 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['ppieLista', 'ppieMarcar', 'minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar', 'cpeDatos', 'cpeGuardar', 'cpaGuardar', 'cpaEvaluar', 'cpaEliminar', 'cpaImportar', 'cpeAvisar'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
 const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos', 'visFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
@@ -606,9 +614,75 @@ const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado',
 const MAX_MB = 20;
 
 // Módulos que el Supervisor puede encender o apagar (agenda, directorio y enlaces siempre están)
-const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb', 'asistencia', 'consultas'];
+const MODULOS_VALIDOS = ['pendientes', 'acuerdos', 'evidencias', 'sisat', 'eia', 'cte', 'seguimiento', 'personal', 'oficios', 'permisos', 'herramientas', 'finanzas', 'videollamadas', 'campo', 'correos', 'relweb', 'asistencia', 'consultas', 'comite'];
 
 const ACCIONES = {
+  /* ---- Comité de Planeación y Evaluación del PMC: la dirección lo lleva; la Mesa Técnica lo ve y puede apoyar en sus escuelas ---- */
+  cpeDatos: (yo, d) => {
+    const mias = asiEscuelas_(yo), ciclo = cpeCiclo_(d.ciclo);
+    const pmc = leer_('pmc').filter(x => x.ciclo === ciclo && mias.indexOf(x.cct) >= 0 && x.datos && Array.isArray(x.datos.acciones) && x.datos.acciones.length)
+      .map(x => ({ cct: x.cct, acciones: x.datos.acciones, objetivos: x.datos.objetivos || [], metas: x.datos.metas || [] }));
+    return { ciclo: ciclo, escuelas: mias, hoy: hoy_(), cpe: leer_('cpe').filter(x => x.ciclo === ciclo && mias.indexOf(x.cct) >= 0),
+      cpa: leer_('cpa').filter(x => x.ciclo === ciclo && mias.indexOf(x.cct) >= 0 && x.activo !== false), pmc: pmc };
+  },
+  cpeGuardar: (yo, d) => {
+    const cct = cpeCct_(yo, d.cct), ciclo = cpeCiclo_(d.ciclo), t = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+    const FUN = ['coord', 'secre', 'vocal'];
+    const integ = (Array.isArray(d.integrantes) ? d.integrantes : []).slice(0, 30).map(x => ({ id: t(x.id, 40) || 'i-' + Utilities.getUuid().slice(0, 8), n: t(x.n, 140), cargo: t(x.cargo, 60),
+      funcion: FUN.indexOf(x.funcion) >= 0 ? x.funcion : 'vocal', correo: /@/.test(String(x.correo || '')) ? t(x.correo, 120).toLowerCase() : '', cel: t(x.cel, 20).replace(/[^\d]/g, '').slice(-10), trb: t(x.trb, 40), alertas: x.alertas !== false })).filter(x => x.n);
+    if (!integ.length) throw new Error('Agregue al menos a un integrante del comité.');
+    const g = d.datos || {}, f = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+    const o = { id: ciclo + '|' + cct, ciclo: ciclo, cct: cct, integrantes: integ,
+      datos: { fecha: f(g.fecha), sesion: t(g.sesion, 80), seguimiento: t(g.seguimiento, 400), fuentes: t(g.fuentes, 600), comunicacion: t(g.comunicacion, 600), notas: t(g.notas, 1000) },
+      actualizado: ahora_(), actualizadoPor: yo.id, actualizadoNombre: yo.nombre };
+    guardar_('cpe', o);
+    return { cpe: o };
+  },
+  cpaGuardar: (yo, d) => {
+    const prev = d.id ? buscar_('cpa', String(d.id)) : null;
+    if (d.id && !prev) throw new Error('No se encontró la acción.');
+    const cct = cpeCct_(yo, prev ? prev.cct : d.cct), o = cpaLimpiar_(d, prev, yo, cct);
+    guardar_('cpa', o);
+    return { cpa: o };
+  },
+  cpaImportar: (yo, d) => {
+    const cct = cpeCct_(yo, d.cct), l = (Array.isArray(d.acciones) ? d.acciones : []).slice(0, 80).map(x => cpaLimpiar_(Object.assign({}, x, { ciclo: d.ciclo, origen: 'pmc' }), null, yo, cct));
+    if (!l.length) throw new Error('No hay acciones para agregar.');
+    guardarVarios_('cpa', l);
+    return { cpa: l };
+  },
+  cpaEvaluar: (yo, d) => {
+    const o = buscar_('cpa', String(d.id || ''));
+    if (!o || o.activo === false) throw new Error('No se encontró la acción.');
+    cpeCct_(yo, o.cct);
+    const sem = ['v', 'a', 'r'].indexOf(d.sem) >= 0 ? d.sem : '', ej = ['si', 'parcial', 'no'].indexOf(d.ej) >= 0 ? d.ej : '';
+    if (!sem) throw new Error('Elija el color del semáforo.');
+    const t = (v, n) => String(v == null ? '' : v).trim().slice(0, n), ev = Array.isArray(o.evals) ? o.evals : [];
+    const f = /^\d{4}-\d{2}-\d{2}$/.test(String(d.f || '')) ? d.f : hoy_();
+    if (d.eid) { const i = ev.findIndex(x => x.id === d.eid); if (i < 0) throw new Error('No se encontró la evaluación.'); if (d.quitar) ev.splice(i, 1); else Object.assign(ev[i], { f: f, sem: sem, ej: ej, nota: t(d.nota, 1500), evid: t(d.evid, 400), por: yo.id, porN: yo.nombre }); }
+    else ev.push({ id: 'e-' + Utilities.getUuid().slice(0, 8), f: f, sem: sem, ej: ej, nota: t(d.nota, 1500), evid: t(d.evid, 400), por: yo.id, porN: yo.nombre, creado: ahora_() });
+    ev.sort((a, b) => String(a.f + a.creado).localeCompare(String(b.f + b.creado)));
+    o.evals = ev.slice(-60);
+    const ult = o.evals[o.evals.length - 1];
+    if (o.tipo !== 'permanente') o.estado = ult && ult.ej === 'si' && ult.sem === 'v' ? 'realizada' : (o.estado === 'cancelada' ? 'cancelada' : 'pendiente');
+    o.actualizado = ahora_(); o.actualizadoNombre = yo.nombre;
+    guardar_('cpa', o);
+    return { cpa: o };
+  },
+  cpaEliminar: (yo, d) => {
+    const o = buscar_('cpa', String(d.id || ''));
+    if (!o) throw new Error('No se encontró la acción.');
+    cpeCct_(yo, o.cct);
+    o.activo = false; o.actualizado = ahora_(); o.actualizadoNombre = yo.nombre;
+    guardar_('cpa', o);
+    return { ok: true };
+  },
+  // Manda ahora mismo al comité el resumen de lo vencido, lo que está por vencer y lo que falta evaluar
+  cpeAvisar: (yo, d) => {
+    const cct = cpeCct_(yo, d.cct), r = cpeAvisarEscuela_(cct, cpeCiclo_(d.ciclo), true);
+    if (!r.enviados) throw new Error(r.mensaje || 'No se pudo enviar el aviso.');
+    return { mensaje: r.mensaje };
+  },
   // Ayudante de Tequio: conversa con Gemini sobre cómo usar Tequio (sin bloqueo, porque Gemini tarda)
   ayudante: (yo, d) => ayudante_(yo, d),
   // Trámites en seguimiento (Mesa Técnica). Cada guardado agrega su movimiento al historial.
@@ -5148,6 +5222,7 @@ function tareaDiaria() {
   try { asegurarCorreos_(); revisarCorreos_({}); resumenCorreos_(); } catch (e) { bitacora_('correos', '', [], 'Correo de la Supervisión', 'error: ' + e.message); }
   try { asegurarRecordatorios_(); } catch (e) {}
   try { asegurarInformeSemanal_(); } catch (e) { bitacora_('informe semanal', '', [], 'Programar informe semanal', 'error: ' + e.message); }
+  try { cpeAlertasDiarias_(); } catch (e) { bitacora_('comite', '', [], 'Alertas del Comité de Planeación y Evaluación', 'error: ' + e.message); }
   const hoy = hoy_(), manana = sumarDias_(hoy, 1), pasado = sumarDias_(hoy, 2);
   const acts = leer_('act');
   acts.forEach(a => {
@@ -6670,3 +6745,111 @@ function vinFin_(d) {
   return { fin: true };
 }
 const VIN_ACCIONES = { vinCrear: vinCrear_, vinUnir: vinUnir_, vinSubir: vinSubir_, vinBajar: vinBajar_, vinFin: vinFin_ };
+
+
+/* ===================== Comité de Planeación y Evaluación del PMC ===================== */
+// LGE art. 109: cada CTE cuenta con un Comité de Planeación y Evaluación que formula el programa de mejora continua.
+// Lineamientos del CTE (Acuerdo 05/04/24), art. 19: coordina la formulación y evaluación del PMC, acuerda con el colectivo la
+// estrategia de seguimiento (tiempos, responsables y fuentes de información) e informa periódicamente a la comunidad.
+const CPE_FREC = { semanal: 7, quincenal: 15, mensual: 31, cte: 31, bimestral: 62, trimestral: 92 };
+const CPE_FUN = { coord: 'Coordinación', secre: 'Secretaría', vocal: 'Integrante' };
+function cpeCiclo_(c) { return /^\d{4}-\d{4}$/.test(String(c || '')) ? String(c) : cicloActual_(); }
+function cpeCct_(yo, cct) {
+  cct = String(cct || '').trim().toUpperCase();
+  const mias = asiEscuelas_(yo);
+  if (yo.rol === 'director') return mias[0] || (function () { throw new Error('Su usuario no está ligado a una escuela.'); })();
+  if (mias.indexOf(cct) < 0) throw new Error(yo.rol === 'admin' ? 'La escuela no está en el Directorio.' : 'Solo puede trabajar con el comité de las escuelas que tiene a su cargo.');
+  return cct;
+}
+function cpaLimpiar_(d, prev, yo, cct) {
+  const t = (v, n) => String(v == null ? '' : v).trim().slice(0, n), f = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+  const accion = t(d.accion, 600);
+  if (!accion) throw new Error('Escriba la acción.');
+  const tipo = ['unica', 'periodo', 'permanente'].indexOf(d.tipo) >= 0 ? d.tipo : 'unica';
+  let inicio = f(d.inicio), fin = f(d.fin);
+  if (tipo === 'unica') { fin = fin || inicio; inicio = fin; if (!fin) throw new Error('Ponga la fecha en que se debe realizar «' + accion.slice(0, 60) + '».'); }
+  if (tipo === 'periodo') { if (!inicio || !fin) throw new Error('Ponga el inicio y el fin de «' + accion.slice(0, 60) + '».'); if (fin < inicio) { const x = inicio; inicio = fin; fin = x; } }
+  if (tipo === 'permanente' && !inicio) inicio = hoy_();
+  const cambioFecha = prev && (prev.fin !== fin || prev.tipo !== tipo || prev.frecuencia !== d.frecuencia);
+  return { id: prev ? prev.id : 'cpa-' + Utilities.getUuid().slice(0, 8), ciclo: prev ? prev.ciclo : cpeCiclo_(d.ciclo), cct: cct,
+    ambito: t(d.ambito, 120), objetivo: t(d.objetivo, 500), meta: t(d.meta, 500), accion: accion,
+    responsables: (Array.isArray(d.responsables) ? d.responsables : []).map(x => t(x, 40)).filter(Boolean).slice(0, 30),
+    tipo: tipo, inicio: inicio, fin: tipo === 'permanente' ? f(d.fin) : fin, frecuencia: tipo === 'permanente' ? (CPE_FREC[d.frecuencia] ? d.frecuencia : 'mensual') : '',
+    evidencia: t(d.evidencia, 400), estado: prev ? (d.estado === 'cancelada' ? 'cancelada' : prev.estado === 'cancelada' && d.estado === 'pendiente' ? 'pendiente' : prev.estado) : 'pendiente',
+    evals: prev ? prev.evals : [], avisos: prev && !cambioFecha ? prev.avisos : {}, activo: true, origen: prev ? prev.origen : t(d.origen, 10),
+    creadoPor: prev ? prev.creadoPor : yo.id, creadoNombre: prev ? prev.creadoNombre : yo.nombre, creado: prev ? prev.creado : ahora_(),
+    actualizado: ahora_(), actualizadoNombre: yo.nombre };
+}
+// Situación de una acción a una fecha: realizada, cancelada, vencida, porvencer, sineval (permanente sin evaluar en su periodo), encurso o porinicar
+function cpaSituacion_(a, hoy) {
+  if (a.estado === 'cancelada') return 'cancelada';
+  const ev = Array.isArray(a.evals) ? a.evals : [], ult = ev[ev.length - 1];
+  if (a.tipo === 'permanente') {
+    if (a.inicio && a.inicio > hoy) return 'porini';
+    if (a.fin && a.fin < hoy) return 'concluida';
+    const dias = CPE_FREC[a.frecuencia] || 31, base = ult ? ult.f : a.inicio;
+    return base && sumarDias_(base, dias) < hoy ? 'sineval' : 'encurso';
+  }
+  if (a.estado === 'realizada') return 'realizada';
+  if (a.fin && a.fin < hoy) return 'vencida';
+  if (a.fin && a.fin <= sumarDias_(hoy, 3)) return 'porvencer';
+  return a.inicio && a.inicio > hoy ? 'porini' : 'encurso';
+}
+function cpeCorreos_(cpe, cct, dir) {
+  const l = (cpe && cpe.integrantes || []).filter(x => x.alertas !== false && /@/.test(x.correo || '')).map(x => x.correo);
+  const e = dir.find(c => c.tipo === 'director' && c.cct === cct);
+  if (e) [e.correo1, e.correo2].forEach(m => { if (/@/.test(String(m || ''))) l.push(String(m).trim().toLowerCase()); });
+  return l.filter((m, i) => l.indexOf(m) === i);
+}
+// Un solo correo por escuela con todo lo que hay que atender. manual: lo pidió alguien desde Tequio (manda aunque ya se haya avisado).
+function cpeAvisarEscuela_(cct, ciclo, manual, dir, cpes, cpas) {
+  dir = dir || leer_('dir'); const hoy = hoy_();
+  const cpe = (cpes || leer_('cpe')).find(x => x.id === ciclo + '|' + cct);
+  const acc = (cpas || leer_('cpa')).filter(x => x.cct === cct && x.ciclo === ciclo && x.activo !== false);
+  const nom = id => { if (id === 'todos') return 'Todo el colectivo'; const p = (cpe && cpe.integrantes || []).find(x => x.id === id); return p ? p.n : ''; };
+  const grupos = { vencida: [], porvencer: [], sineval: [] }, cambios = [];
+  acc.forEach(a => {
+    const s = cpaSituacion_(a, hoy); if (!grupos[s]) return;
+    const av = a.avisos && typeof a.avisos === 'object' && !Array.isArray(a.avisos) ? a.avisos : {};
+    let toca = manual;
+    if (!manual) {
+      if (s === 'porvencer') toca = av.prox !== a.fin;
+      if (s === 'vencida') { const n = +av.vencN || 0; toca = av.venc !== a.fin ? true : n < 3 && av.vencF && sumarDias_(av.vencF, 7) <= hoy; }
+      if (s === 'sineval') { const ev = a.evals || [], base = ev.length ? ev[ev.length - 1].f : a.inicio; toca = av.per !== base; }
+    }
+    if (!toca) return;
+    grupos[s].push(a);
+    if (s === 'porvencer') av.prox = a.fin;
+    if (s === 'vencida') { av.vencN = av.venc === a.fin ? (+av.vencN || 0) + 1 : 1; av.venc = a.fin; av.vencF = hoy; }
+    if (s === 'sineval') { const ev = a.evals || []; av.per = ev.length ? ev[ev.length - 1].f : a.inicio; }
+    a.avisos = av; cambios.push(a);
+  });
+  const n = grupos.vencida.length + grupos.porvencer.length + grupos.sineval.length;
+  if (!n) return { enviados: 0, mensaje: manual ? 'No hay acciones vencidas, por vencer ni pendientes de evaluar. ¡Van al día!' : '' };
+  const para = cpeCorreos_(cpe, cct, dir);
+  if (!para.length) return { enviados: 0, mensaje: 'Ningún integrante del comité tiene correo registrado.' };
+  const esc = (dir.find(c => c.tipo === 'director' && c.cct === cct) || {}).escuela || cct;
+  const fila = (a, extra) => '<div style="border:1px solid #E4D8C3;border-left:5px solid ' + extra[1] + ';border-radius:8px;padding:10px 12px;margin:8px 0;background:#fff">' +
+    '<div style="font-weight:bold">' + esc_(a.accion) + '</div>' +
+    '<div style="font-size:13px;color:#6A5C4C;margin-top:4px">' + (a.ambito ? esc_(a.ambito) + ' · ' : '') + extra[0] +
+    ((a.responsables || []).length ? ' · Responsable: ' + esc_((a.responsables || []).map(nom).filter(Boolean).join(', ')) : '') + '</div></div>';
+  const sec = (t, l, f) => l.length ? '<h3 style="color:#24427A;font-size:16px;margin:16px 0 4px">' + t + ' (' + l.length + ')</h3>' + l.map(a => fila(a, f(a))).join('') : '';
+  const cuerpo = '<p>Este es un aviso para el <b>Comité de Planeación y Evaluación</b> de la escuela <b>' + esc_(esc) + '</b> sobre las acciones de su Programa de Mejora Continua:</p>' +
+    sec('Acciones que no se realizaron en tiempo', grupos.vencida, a => ['Debía realizarse a más tardar el ' + fechaLarga_(a.fin), '#B3261E']) +
+    sec('Acciones por vencer', grupos.porvencer, a => ['Fecha límite: ' + fechaLarga_(a.fin), '#C98A12']) +
+    sec('Acciones permanentes sin evaluar en su periodo', grupos.sineval, a => ['Se evalúa ' + ({ semanal: 'cada semana', quincenal: 'cada quincena', mensual: 'cada mes', cte: 'en cada sesión de CTE', bimestral: 'cada dos meses', trimestral: 'cada trimestre' }[a.frecuencia] || 'cada mes'), '#24427A']) +
+    '<p style="margin-top:16px">Cuando realicen una acción, la dirección (o quien lleve el registro) la evalúa en Tequio con el semáforo: <b style="color:#1E7A46">verde</b> se realizó, <b style="color:#B7791F">amarillo</b> en proceso o con ajustes, <b style="color:#B3261E">rojo</b> no se realizó. Si una fecha ya no es posible, conviene reprogramarla en lugar de dejarla vencida.</p>';
+  const asunto = 'Comité del PMC · ' + esc + ' · ' + [grupos.vencida.length ? grupos.vencida.length + ' sin realizar en tiempo' : '', grupos.porvencer.length ? grupos.porvencer.length + ' por vencer' : '', grupos.sineval.length ? grupos.sineval.length + ' por evaluar' : ''].filter(Boolean).join(', ');
+  const r = enviarCorreo_(para, asunto, plantilla_('Seguimiento del Programa de Mejora Continua', cuerpo), 'comite', cct);
+  if (r.ok && cambios.length) guardarVarios_('cpa', cambios);
+  return { enviados: r.ok ? para.length : 0, mensaje: r.ok ? 'Se avisó al comité (' + para.length + ' correo' + (para.length > 1 ? 's' : '') + ').' : r.mensaje };
+}
+// Tarea diaria: avisa a cada comité lo que no se hizo en tiempo, lo que vence en 3 días y lo permanente sin evaluar. No se envía en vacaciones ni en fin de semana.
+function cpeAlertasDiarias_() {
+  const hoy = hoy_(), dia = +Utilities.formatDate(new Date(), TZ, 'u');
+  if (dia >= 6 || enVacaciones_(hoy)) return;
+  const ciclo = cicloActual_(), cpas = leer_('cpa').filter(x => x.ciclo === ciclo && x.activo !== false);
+  if (!cpas.length) return;
+  const dir = leer_('dir'), cpes = leer_('cpe');
+  cpas.map(x => x.cct).filter((c, i, l) => l.indexOf(c) === i).forEach(cct => { try { cpeAvisarEscuela_(cct, ciclo, false, dir, cpes, cpas); } catch (e) { bitacora_('comite', cct, [], 'Aviso del comité', 'error: ' + e.message); } });
+}
