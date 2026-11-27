@@ -735,6 +735,7 @@ button.fila-av:hover,a.fila-av:hover{background:var(--arena-2)}
 .migas-sec svg{width:13px;height:13px}
 .migas-sec b{color:var(--tinta);font-weight:600}
 .barra-ico{display:flex;align-items:center;gap:4px;margin-left:12px}
+.rec-ent-ed{border:0;background:none;padding:2px 0;font:inherit;color:var(--indigo,#24427A);text-decoration:underline dotted;cursor:pointer}.rec-ent-ed:hover{color:var(--terra-d,#A64B2A)}
 .barra-ico button{position:relative;background:none;border:0;color:#E9D8BA;width:40px;height:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .barra-ico button:hover,.barra-ico button[aria-current="true"]{background:rgba(255,255,255,.14);color:#fff}
 .barra-ico svg{width:21px;height:21px}
@@ -14119,13 +14120,13 @@ function recActClientes(r, a, c) {
   const orden = recOrdenClaves(a, [...keys]);
   const fila = (k, p) => {
     const y = ((c.cli[k] || {}).p || {})[p.id] || { cargo: 0, abono: 0, cant: 0, saldo: 0, ult: '' };
-    const ent = recDe(a.id, 'pedido').filter(o => o.datos.cliente === k).map(o => ({ f: o.fecha, n: (o.datos.lineas || []).filter(l => l.prod === p.id).reduce((t, l) => t + finN(l.cant), 0) })).filter(x => x.n);
+    const ent = recDe(a.id, 'pedido').filter(o => o.datos.cliente === k).map(o => ({ id: o.id, f: o.fecha, n: (o.datos.lineas || []).filter(l => l.prod === p.id).reduce((t, l) => t + finN(l.cant), 0) })).filter(x => x.n);
     const abs = recDe(a.id, 'abono').filter(o => o.datos.cliente === k && recProdDe(a, o) === p.id);
     const meta = finN((metas[k] || {})[p.id]), e = recEstado(y), dir = !String(k).startsWith('p:') ? ((escuelaDe(k) || {}).nombre || '') : ((recMesa().find(m => m.key === k) || {}).cargo || '');
     const cajasPag = finN(p.precio) > 0 ? Math.floor(recR(y.abono / finN(p.precio)) + 1e-9) : 0;
     return `<tr><td><b>${esc(recNomClave(a, k))}</b>${dir ? `<div class="ayuda">${esc(dir)}</div>` : ''}</td>
       ${meta || Object.keys(metas).length ? `<td class="d">${meta || ''}</td>` : ''}
-      <td class="d"><b style="font-size:16px">${y.cant || 0}</b>${ent.length ? `<div class="ayuda rec-hist">${ent.map(x => `${fechaCorta(x.f)}: ${x.n}`).join('<br>')}</div>` : ''}</td>
+      <td class="d"><b style="font-size:16px">${y.cant || 0}</b>${ent.length ? `<div class="ayuda rec-hist">${ent.map(x => `<button type="button" class="rec-ent-ed" data-red="${esc(x.id)}" title="Corregir o eliminar esta entrega">${fechaCorta(x.f)}: ${x.n} ✏️</button>`).join('<br>')}</div>` : ''}</td>
       <td class="d">${finM(y.abono)}${y.abono ? `<div class="ayuda">${abs.length} abono${abs.length === 1 ? '' : 's'}${cajasPag ? ' · ≈' + cajasPag + ' caja' + (cajasPag === 1 ? '' : 's') : ''}${y.ult ? '<br>último ' + fechaCorta(y.ult) : ''}</div>` : ''}</td>
       <td class="d"><b style="font-size:16px;color:var(--${y.saldo > 0 ? 'terra-d' : 'tinta'})">${finM(y.saldo)}</b><div><span class="chip ${e[1]}" style="font-size:11px">${y.cargo <= 0 && y.abono <= 0 ? 'Sin entrega' : e[0]}</span></div></td>
       <td><div class="rec-acc"><button class="boton terra chico" data-rab="${esc(k)}" data-rp="${esc(p.id)}">${ico('i-mas')}Abonar / pagar</button>
@@ -14140,11 +14141,20 @@ function recActClientes(r, a, c) {
     <tbody>${orden.map(k => fila(k, p)).join('')}</tbody>
     <tfoot><tr><td>Total${multi ? ' ' + esc(p.nombre) : ''}</td>${conMeta ? `<td class="d">${T.meta}</td>` : ''}<td class="d">${T.cant}</td><td class="d">${finM(recR(T.abono))}</td><td class="d">${finM(recR(T.saldo))}</td><td></td></tr></tfoot></table></div></div>`;
   };
-  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Todas las escuelas con las cajas que se les han entregado (debajo, la fecha de cada entrega), lo que han pagado y su saldo. Con «Abonar / pagar» registra el pago en pesos o por número de cajas; «Historial» muestra todas las entregas y abonos con su folio.${multi ? ' Cada concepto lleva su propia cuenta.' : ''}</p>
+  $('#ra-cuerpo').innerHTML = `<p class="peq pen-intro">Todas las escuelas con las cajas que se les han entregado (debajo, la fecha de cada entrega), lo que han pagado y su saldo. <b>Para corregir o eliminar una entrega, toque su fecha</b> (✏️). Con «Abonar / pagar» registra el pago en pesos o por número de cajas; «Historial» muestra todas las entregas y abonos con su folio.${multi ? ' Cada concepto lleva su propia cuenta.' : ''}</p>
     ${ps.map(tabla).join('')}`;
   $$('[data-rab]').forEach(b => b.onclick = () => recFormAbono(a, null, { cliente: b.dataset.rab, clienteNombre: recNomClave(a, b.dataset.rab), prod: b.dataset.rp }));
   $$('[data-rent]').forEach(b => b.onclick = () => recFormPedido(a, null, { cliente: b.dataset.rent, clienteNombre: recNomClave(a, b.dataset.rent) }));
   $$('[data-rhis]').forEach(b => b.onclick = () => recEstadoCuenta(a, b.dataset.rhis));
+  $$('[data-red]').forEach(b => b.onclick = () => recEditarEntrega(b.dataset.red));
+}
+// Corregir una entrega de cajas: abre el formulario ya lleno, con la opción de eliminarla
+function recEditarEntrega(id) {
+  const o = (S.rec || []).find(x => x.id === id); if (!o) return aviso('No se encontró la entrega.', 'mal');
+  const a = recAct(o.act); if (!a) return aviso('La actividad de esta entrega está eliminada.', 'mal');
+  recFormPedido(a, o);
+  const pie = $('#velo .modal-pie');
+  if (pie && !$('#rf-delent')) { pie.insertAdjacentHTML('afterbegin', '<button class="boton peligro" id="rf-delent" style="margin-right:auto">Eliminar entrega</button>'); $('#rf-delent').onclick = () => recEliminar(o, 'esta entrega de ' + finM(recTotal(o.datos.lineas, 'precio'))); }
 }
 // Nombre de una escuela o persona por su clave (aunque todavía no tenga entregas)
 function recNomClave(a, k) {
@@ -14228,11 +14238,13 @@ function recEstadoCuenta(a, key) {
   modal('Estado de cuenta · ' + esc(nom), `
     <p class="peq mudo" style="margin-top:0">${esc(a.datos.nombre)}</p>
     <div class="fin-det-monto">${finM(s)}<span class="ayuda">${s > 0 ? 'saldo pendiente' : s < 0 ? 'saldo a favor de la escuela' : 'liquidado'}</span></div>
-    <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th></tr></thead>
+    <table class="fin-tabla" style="margin-top:10px"><thead><tr><th>Fecha</th><th>Movimiento</th><th class="d">Cargo</th><th class="d">Abono</th><th class="d">Saldo</th><th></th></tr></thead>
     <tbody>${l.map(f => `<tr class="clic" data-rdet="${f.o.id}"><td>${fechaCorta(f.o.fecha)}</td><td>${f.o.tipo === 'pedido' ? 'Entrega: ' + esc((f.o.datos.lineas || []).filter(x => finN(x.cant)).map(x => finN(x.cant) + ' ' + x.nombre).join(', ')) : 'Abono' + (finN(f.o.datos.cajas) ? ' de ' + finN(f.o.datos.cajas) + ' caja' + (finN(f.o.datos.cajas) === 1 ? '' : 's') : '') + ' · folio ' + esc(f.o.datos.folio || '') + (recMulti(a) ? ' · ' + esc(recProdNom(a, recProdDe(a, f.o))) : '') + ' (' + esc(f.o.datos.forma || '') + ')'}</td>
-      <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td></tr>`).join('')}</tbody></table>`,
+      <td class="d">${f.x > 0 ? finM(f.x) : ''}</td><td class="d">${f.x < 0 ? finM(-f.x) : ''}</td><td class="d"><b>${finM(f.s)}</b></td><td><button class="boton sec chico" data-ecd="${f.o.id}">${ico('i-lapiz')}Editar</button></td></tr>`).join('')}</tbody></table>
+    <p class="peq mudo">Toque «Editar» para corregir cantidades, fecha o escuela. Para eliminar un registro, toque el renglón y elija «Eliminar».</p>`,
     `<button class="boton sec" id="ec-pdf" style="margin-right:auto">Estado de cuenta (PDF)</button><button class="boton sec" id="ec-ped">Nuevo pedido</button><button class="boton terra" id="ec-ab">${ico('i-mas')}Registrar abono</button>`);
   $$('[data-rdet]', $('#velo')).forEach(b => b.onclick = () => recDetalle(b.dataset.rdet));
+  $$('[data-ecd]', $('#velo')).forEach(b => b.onclick = e => { e.stopPropagation(); const o = (S.rec || []).find(x => x.id === b.dataset.ecd); if (!o) return; if (o.tipo === 'pedido') return recEditarEntrega(o.id); recFormAbono(a, o); });
   $('#ec-ab').onclick = () => recFormAbono(a, null, { cliente: key, clienteNombre: nom });
   $('#ec-ped').onclick = () => recFormPedido(a, null, { cliente: key, clienteNombre: nom });
   $('#ec-pdf').onclick = () => recPdf(recHtmlEstado(a, key, nom, l), 'Estado de cuenta ' + nom + ' ' + a.datos.nombre);
