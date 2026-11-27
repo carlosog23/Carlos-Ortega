@@ -134,14 +134,45 @@ function ppColor() { let k = ""; try { k = localStorage.getItem("pp-color") || "
 function ppColorAplicar() { const c = ppColor(), r = document.documentElement.style; r.setProperty("--sos0", c[2]); r.setProperty("--sos1", c[3]); r.setProperty("--sos2", c[4]); }
 ppColorAplicar();
 function ppColorHTML() { const k = ppColor()[0];
-  return `<section class="card mt"><h3 style="margin:0 0 4px">Color del botón «¿Qué está pasando?»</h3><p class="small muted" style="margin:0 0 10px">Elija el color que le resulte más cómodo. Se guarda en este dispositivo.</p>
+  return `<section class="card mt"><h3 style="margin:0 0 4px">Color del botón de protocolos (la sirena)</h3><p class="small muted" style="margin:0 0 10px">Elija el color que le resulte más cómodo. Se guarda en este dispositivo.</p>
    <div class="pp-cols" role="group" aria-label="Color del botón">${PP_COLORES.map(c => `<button type="button" data-ppcol="${c[0]}" aria-pressed="${c[0] === k}" style="--a:${c[3]};--b:${c[4]}"><i></i>${c[1]}</button>`).join("")}</div></section>`; }
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-ppcol]"); if (!b) return;
   try { localStorage.setItem("pp-color", b.dataset.ppcol); } catch (x) {} ppColorAplicar();
   document.querySelectorAll("[data-ppcol]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
-function ppieBotonInicio() { const ab = ppAbiertos();
-  return `<button class="sos" id="bSOS"><span class="ico">🆘</span><span><b>¿Qué está pasando?</b><span>Protocolos de protección escolar (PPIE): qué hacer paso a paso y a quién llamar</span></span>${ab.length ? `<span class="n">${ab.length} abierto${ab.length > 1 ? "s" : ""}</span>` : ""}</button>`; }
-function ppieEnlazarInicio() { const b = $("#bSOS"); if (b) b.onclick = () => { const ab = ppAbiertos(); if (ab.length === 1 && Date.now() - new Date(ab[0].inicio).getTime() < 6 * 3600e3) return ir("ppieCaso", { pid: ab[0].id }); ir("ppie"); }; }
+/* En Tlamatini Aula y Ulama el botón grande del Inicio estorbaba: ahora es un botón pequeño y discreto, fijo del lado
+   derecho, con una sirena. La app de Protocolos conserva su botón grande (usa su propio botón). */
+function ppieBotonInicio() { return ""; }
+const PP_SIRENA = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18v-6a5 5 0 0 1 10 0v6" fill="currentColor" fill-opacity=".18"/><path d="M5 21a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1z"/><path d="M21 12h1M2 12h1M12 2v1M18.5 5.5l.7-.7M4.8 4.8l.7.7M12 12v3"/></svg>`;
+function ppAbrirDesdeBoton() { const ab = ppAbiertos(); if (ab.length === 1 && Date.now() - new Date(ab[0].inicio).getTime() < 6 * 3600e3) return ir("ppieCaso", { pid: ab[0].id }); ir("ppie"); }
+(function () {
+  if (document.body.classList.contains("pa") || typeof pintar !== "function") return; /* la app de Protocolos tiene su propio botón */
+  const st = document.createElement("style");
+  st.textContent = `.pp-fab{position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:60;width:48px;height:48px;border-radius:50%;
+    border:1px solid rgba(0,0,0,.10);background:var(--hoja,#fff);color:var(--sos1,#B91C1C);display:grid;place-items:center;cursor:pointer;padding:0;
+    box-shadow:0 6px 16px -8px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.12);opacity:.92;transition:transform .15s,opacity .15s}
+  .pp-fab:hover,.pp-fab:focus-visible{opacity:1}.pp-fab:active{transform:scale(.92)}
+  .pp-fab[hidden]{display:none}
+  .pp-fab .n{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--sos1,#B91C1C);color:#fff;font:800 11px/18px system-ui,sans-serif;text-align:center;padding:0 4px;border:2px solid var(--hoja,#fff)}
+  body:has(.fijo) .pp-fab{bottom:calc(92px + env(safe-area-inset-bottom))}
+  @media print{.pp-fab{display:none!important}}`;
+  document.head.appendChild(st);
+  const b = document.createElement("button");
+  b.className = "pp-fab"; b.id = "ppFab"; b.type = "button";
+  b.title = "¿Qué está pasando? Activar un protocolo de protección escolar (PPIE)";
+  b.setAttribute("aria-label", "Activar protocolo de protección escolar (PPIE)");
+  b.onclick = ppAbrirDesdeBoton;
+  document.body.appendChild(b);
+  const pintarOrig = pintar;
+  pintar = function () { pintarOrig.apply(this, arguments); ppFabVer(); };
+  ppFabVer();
+})();
+function ppFabVer() {
+  const b = document.getElementById("ppFab"); if (!b) return;
+  let n = 0; try { n = ppAbiertos().length; } catch (e) {}
+  b.innerHTML = PP_SIRENA + (n ? `<span class="n">${n}</span>` : "");
+  b.hidden = ["ppie", "ppieCaso", "ppieContactos", "registro", "registroListo", "acceso", "admin", "bienvenida", "bloqueo"].includes(S.v) || (typeof ACCESO_OK !== "undefined" && !ACCESO_OK);
+}
+function ppieEnlazarInicio() { const b = $("#bSOS"); if (b) b.onclick = ppAbrirDesdeBoton; }
 
 /* ---------- elegir la situación ---------- */
 VISTAS.ppie = () => { const ab = ppAbiertos(), cer = ppD().filter(c => c.cerrado).slice(-5).reverse(), em = PPIE.filter(p => p.emergencia), resto = PPIE.filter(p => !p.emergencia);
