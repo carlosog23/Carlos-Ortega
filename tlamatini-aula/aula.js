@@ -153,7 +153,7 @@ window.addEventListener("popstate", () => { if ($("#clase")) return cerrarClase(
 const VISTAS = {}, ENLAZAR = {};
 let ACCESO_OK = false;
 function pintar() { cerrarDlg(); if (!ACCESO_OK && S.v !== "revisar") S = { v: "bloqueo" }; else if (ACCESO_OK && S.v === "bloqueo") S = { v: "inicio" }; else if (ACCESO_OK && APP_ESP) { if (typeof espListo === "function" && !espListo() && !["espAlta", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "espAlta" }; }
-  else if (ACCESO_OK && !D.grupos.length && !["grupoForm", "ajustes", "revisar", "admin"].includes(S.v)) S = { v: "bienvenida" };
+  else if (ACCESO_OK && !D.grupos.length && S.v === "bienvenida") S = { v: "inicio" };   /* ya no se obliga a registrar el grupo para entrar */
   const f = VISTAS[S.v] || VISTAS.inicio; $("#app").innerHTML = (CAP ? `<div class="banda-demo">Capacitación · datos ficticios · puede usar todo <button id="dReini">Reiniciar datos</button> <button id="dSalir">Salir</button></div>` : DEMO ? `<div class="banda-demo">Demostración con datos ficticios · puede usar todo <button id="dSalir">Salir</button></div>` : "") + f(); (ENLAZAR[S.v] || (() => {}))();
   const b = $("#atras"); if (b) b.onclick = volver; const dr = $("#dReini"); if (dr) dr.onclick = async () => { if (!(await confirmar("Se borrará lo que se haya practicado y se volverán a cargar los datos de capacitación.", "Reiniciar"))) return; try { localStorage.removeItem(CLAVE); indexedDB.deleteDatabase((APP_PRE ? "aula-pre" : APP_ESP ? "aula-esp" : "aula") + "-cap"); } catch (e) {} location.reload(); };
   const ds = $("#dSalir"); if (ds) ds.onclick = () => { try { sessionStorage.removeItem("aula-cap"); sessionStorage.removeItem("aula-demo"); localStorage.removeItem("aula-demo"); } catch (e) {} location.href = location.pathname; }; }
@@ -239,7 +239,7 @@ VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio(
   const prox = []; D.planes.filter(p => p.gid === (g && g.id)).forEach(p => p.sesiones.forEach((s, i) => { if (s.fecha > k && !s.hecho) prox.push({ p, s, i }); })); prox.sort((a, b) => a.s.fecha.localeCompare(b.s.fecha));
   return `<main class="wrap"><section class="portada">${marca()}<h1>Hola, ${esc(corto(y.nombre.replace(/^(Mtr[oa]\.|C\.)\s*/, "")) || "maestro(a)")}</h1>
    <p>${DSEM_L[d.getDay()][0].toUpperCase() + DSEM_L[d.getDay()].slice(1)} ${fLarga(k)}${sc ? ` · <b>${esc(sc)}</b>` : ""}</p>
-   ${D.grupos.length > 1 ? `<div class="chips mt">${D.grupos.map(x => `<button class="chip osc" data-ga="${x.id}" aria-pressed="${x === g}">${esc(grNom(x))} · ${esc(String(x.escuela).replace(/^Escuela Primaria\s*/i, ""))}</button>`).join("")}</div>` : `<p class="small" style="margin-top:6px;opacity:.85">${esc(grNom(g))} · ${esc(g.escuela)} · ${activos(g).length} alumnos</p>`}
+   ${D.grupos.length > 1 ? `<div class="chips mt">${D.grupos.map(x => `<button class="chip osc" data-ga="${x.id}" aria-pressed="${x === g}">${esc(grNom(x))} · ${esc(String(x.escuela).replace(/^Escuela Primaria\s*/i, ""))}</button>`).join("")}</div>` : g ? `<p class="small" style="margin-top:6px;opacity:.85">${esc(grNom(g))} · ${esc(g.escuela)} · ${activos(g).length} alumnos</p>` : `<p class="small" style="margin-top:6px;opacity:.85">Puede usar la app desde ya. Su grupo y sus alumnos los registra cuando quiera; para planear o pasar lista solo se le pedirá el grado.</p>`}
    <div class="fila"><button class="btn m" id="bLista">${ic("lista")} Pasar lista</button><button class="btn sec" id="bPlanN">${ic("mas")} Nueva planeación</button>${enApp() ? "" : `<button class="btn sec" id="bInst">${ic("bajar")} Instalar app</button>`}</div></section>
   ${typeof ppieBotonInicio === "function" ? ppieBotonInicio() : ""}
   ${typeof estTarjeta === "function" ? estTarjeta() : ""}${lecRecordatorioHTML(g)}
@@ -249,7 +249,7 @@ VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio(
    <button class="puerta" data-v="planes" style="--c:#24427A;--c-s:#E6ECF6"><span class="ic">${ic("plan")}</span><b>Planeación</b><span>${D.planes.filter(p => p.gid === (g && g.id)).length} proyectos · contenidos y PDA oficiales de su grado</span></button>
    ${typeof avResumen === "function" && avAplica(g) ? (() => { const A = avResumen(g); return `<button class="puerta" data-v="avance" style="--c:#1E8E5A;--c-s:#DDF1E6"><span class="ic">${ic("check")}</span><b>Avance del programa</b><span>${A ? `${A.pct}% · ${A.ok} de ${A.n} contenidos trabajados` : "Contenidos del programa trabajados en el ciclo"}</span>${A ? `<span class="barra-p"><i style="width:${A.pct}%"></i></span>` : ""}</button>`; })() : ""}
    <button class="puerta" data-v="dinamicas" style="--c:#C2603A;--c-s:#F7E3D8"><span class="ic">${ic("juego")}</span><b>Dinámicas y juegos</b><span>${todasDin().filter(d => nivelOK(g, d)).length} actividades para iniciar, activar, jugar y cerrar</span></button>
-   <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${activos(g).length} alumnos · altas, bajas y lista de RELweb</span></button>
+   <button class="puerta" data-v="grupo" style="--c:#1B7560;--c-s:#DBEFE8"><span class="ic">${ic("grupo")}</span><b>Mi grupo</b><span>${g ? `${activos(g).length} alumnos · altas, bajas y lista de RELweb` : "Opcional · registre su grupo y sus alumnos cuando quiera"}</span></button>
    <button class="puerta" data-v="evaluacion" style="--c:#6B3F7A;--c-s:#EEE3F2"><span class="ic">${ic("eval")}</span><b>${esPre(g) ? "Evaluación cualitativa" : "Evaluación y boletas"}</b><span>${esPre(g) ? "Listas de cotejo, observaciones por campo formativo y redacción con IA" : `Calificación por ${areaTxt(g)}, valoración e informes del trimestre`}</span></button>
    ${esPre(g) ? "" : `<button class="puerta" data-v="examenes" style="--c:#A94C2A;--c-s:#F7E3D8"><span class="ic">${ic("doc")}</span><b>Exámenes</b><span>${(D.exams || []).filter(e => e.gid === (g && g.id)).length} · diagnósticos, parciales, trimestrales, finales y por contenido</span></button>`}
    <button class="puerta" data-v="asistencia" style="--c:#8A5A08;--c-s:#FAEBCB"><span class="ic">${ic("agenda")}</span><b>Asistencia del mes</b><span>Concentrado para imprimir</span></button>
@@ -258,8 +258,8 @@ VISTAS.inicio = () => { if (APP_ESP) return VISTAS.espInicio ? VISTAS.espInicio(
    <button class="puerta" data-v="visita" style="--c:#1F3A6B;--c-s:#E6ECF6"><span class="ic">${ic("qr")}</span><b>Visita de acompañamiento</b><span>Comparta su trabajo con un código QR, o revise a un docente</span></button>
    <button class="puerta" data-v="ajustes" style="--c:#6A5C4C;--c-s:#EFE6D6"><span class="ic">${ic("ajustes")}</span><b>Ajustes y respaldo</b><span>Sus datos, sus grupos y copia de seguridad</span></button>
    <a class="puerta" href="${TLM}" style="--c:#1F3A6B;--c-s:#F4E1C1;text-decoration:none;color:inherit"><span class="ic">${ic("doc")}</span><b>Tlamatini</b><span>Formatos, documentos y trámites de la escuela</span></a></div>${pie()}</main>`; };
-ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espInicio(); typeof ppieEnlazarInicio === "function" && ppieEnlazarInicio(); lecRecordatorioCablear(gAct()); $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => ir("lista"); $("#bPlanN").onclick = () => lecRecordar(gAct(), () => ir("planNueva"));
-  $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
+ENLAZAR.inicio = () => { if (APP_ESP) return ENLAZAR.espInicio && ENLAZAR.espInicio(); typeof ppieEnlazarInicio === "function" && ppieEnlazarInicio(); lecRecordatorioCablear(gAct()); $$("[data-ga]").forEach(b => b.onclick = () => { D.gact = b.dataset.ga; guardar(); re(); }); $("#bLista").onclick = () => conGrado(() => ir("lista")); $("#bPlanN").onclick = () => conGrado(() => lecRecordar(gAct(), () => ir("planNueva")));
+  $("#bInst") && ($("#bInst").onclick = instalar); $$(".puerta[data-v]").forEach(b => b.onclick = () => { const v = b.dataset.v; if (v === "grupo" && !gAct()) return ir("grupoForm"); if (VISTAS_CON_GRUPO.includes(v)) return conGrado(() => ir(v)); ir(v); });
   $$("[data-ses]").forEach(b => b.onclick = () => { const [pid, i] = b.dataset.ses.split("|"); abrirClase(pid, +i); });
   typeof estEnlazar === "function" && estEnlazar(); };
 let PROMPT_INST = null; window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); PROMPT_INST = e; const b = $("#invInst"), q = $("#invPasos"); if (b) b.style.display = ""; if (q) q.style.display = "none"; });
@@ -280,6 +280,24 @@ function invitarInstalar() {
     v.querySelector("#invInst").onclick = async () => { if (!PROMPT_INST) { v.querySelector("#invPasos").style.display = ""; return; } const pr = PROMPT_INST; PROMPT_INST = null; pr.prompt(); try { const r = await pr.userChoice; if (r && r.outcome === "accepted") cerrarDlg(); else { v.querySelector("#invInst").style.display = "none"; v.querySelector("#invPasos").style.display = ""; } } catch (e) {} }; }); }
 function instalar() { if (PROMPT_INST) { PROMPT_INST.prompt(); PROMPT_INST = null; return; }
   dlg(`<h3>Instalar Tlamatini Aula${APP_PRE ? " Preescolar" : APP_ESP ? " Especial" : ""}</h3><p class="mb">En <b>iPhone o iPad</b> (Safari): Compartir → «Agregar a pantalla de inicio».<br>En <b>Android</b> (Chrome): menú ⋮ → «Instalar app».<br>En <b>computadora</b> (Chrome o Edge): el ícono de instalar en la barra de direcciones.</p><div class="fila fin"><button class="btn p" id="iX">Entendido</button></div>`, v => v.querySelector("#iX").onclick = cerrarDlg); }
+
+/* Entrar sin registrar grupo ni alumnos: lo que de verdad necesita un grupo (planear, pasar lista, evaluar…)
+   solo pregunta el grado con un toque y crea un grupo sencillo, sin alumnos; lo demás se completa cuando el docente quiera. */
+const VISTAS_CON_GRUPO = ["planes", "avance", "evaluacion", "examenes", "asistencia", "visita", "lista", "planNueva"];
+function conGrado(seguir) {
+  if (gAct()) return seguir();
+  const grs = APP_PRE ? [1, 2, 3] : [1, 2, 3, 4, 5, 6], e = escuelasMias()[0];
+  dlg(`<h3>¿Qué grado atiende?</h3><p class="small muted mb">Solo para mostrarle los contenidos de su grado. No necesita registrar alumnos; si quiere, los agrega después en «Mi grupo».</p>
+    <div class="chips" id="cgG">${grs.map(n => `<button type="button" class="chip" data-cg="${n}">${n}.°${APP_PRE ? "" : " grado"}</button>`).join("")}</div>
+    <div class="fila mt" style="justify-content:space-between"><button class="btn" id="cgCompleto">${APP_PRE ? "Registro completo" : "Multigrado, secundaria o registro completo"}</button><button class="btn" id="cgNo">Cancelar</button></div>`, w => {
+    w.querySelector("#cgNo").onclick = cerrarDlg;
+    w.querySelector("#cgCompleto").onclick = () => { cerrarDlg(); ir("grupoForm"); };
+    w.querySelectorAll("[data-cg]").forEach(b => b.onclick = () => {
+      const g = { id: uid(), alumnos: [], cct: e ? e.cct : "", escuela: e ? e.nombre : "", turno: e ? e.turno : "", grados: [+b.dataset.cg], grupo: "", dir: e ? e.dir : "", cargoDir: e ? e.cargoDir : "", loc: e ? e.loc : "", mun: e ? e.mun : "" };
+      if (APP_PRE) g.nivel = "pre";
+      D.grupos.push(g); D.gact = g.id; const y = yo(); if (!D.docente.nombre) D.docente.nombre = y.nombre; if (!D.docente.correo) D.docente.correo = y.correo; guardar();
+      cerrarDlg(); seguir(); }); });
+}
 
 /* =================================================================== MI GRUPO */
 VISTAS.grupo = () => { const g = grDe(S.id) || gAct(); if (!g) return VISTAS.inicio(); const al = activos(g), bajas = (g.alumnos || []).filter(a => a.baja);
