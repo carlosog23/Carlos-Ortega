@@ -6894,7 +6894,12 @@ async function minPdf(m) {
    La Supervisión elige en cada consulta qué ATP pueden verla y darle seguimiento, y cuáles además llevar el control
    (editarla, cerrarla, archivarla y marcar anticipos). Requiere el servidor versión 66. */
 const CNS_VER = 66, CNS_ABONO_VER = 80;   // v80: abono personalizado y captura de respuestas por la Supervisión
-const CNS_TIPOS = { asistencia: 'Asistencia (Sí / No)', menu: 'Menú con precios (servicio y anticipo)', opcion: 'Opción única', varias: 'Varias opciones', sino: 'Sí o No', texto: 'Respuesta abierta' };
+const CNS_TIPOS = { asistencia: 'Asistencia (Sí / No)', menu: 'Menú con precios (servicio y anticipo)', opcion: 'Opción única', varias: 'Varias opciones', sino: 'Sí o No', texto: 'Respuesta abierta', numero: 'Cantidad (con botón «Validar»)' };
+/* Cantidad con botón «Validar»: en el servidor se guarda como respuesta abierta cuya clave empieza con «num_»
+   (así funciona con cualquier versión del servidor). En la página de la consulta se escribe el número (0 si no hay) y se valida. */
+const cnsEsNum = p => p.tipo === 'numero' || (p.tipo === 'texto' && /^num_/.test(p.k || ''));
+const cnsPregServidor = l => l.map(p => p.tipo !== 'numero' ? p : Object.assign({}, p, { tipo: 'texto', req: true, k: /^num_/.test(p.k || '') ? p.k : ('num_' + String(p.k || Date.now().toString(36)).replace(/[^\w-]/g, '')).slice(0, 20) }));
+const cnsNum = v => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return String(v == null ? '' : v).trim() !== '' && isFinite(n) ? n : null; };
 const cnsPesos = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cnsR2 = n => Math.round(n * 100) / 100;
 let CNS = null;
@@ -6920,6 +6925,12 @@ const CNS_PLANTILLAS = [
         { t: 'Pechuga Mar y Tierra', p: 445, d: 'Rellena de camarones salteados, espinacas y queso crema, sobre espejo de salsa de vino blanco con limón y perejil. Con puré de papa rústico y verduras al vapor.' },
         { t: 'Pechuga del Valle', p: 445, d: 'Rellena de champiñones y cebolla caramelizada, sobre espejo de crema de ajo rostizado, con camarones salteados, puré de papa y verduras al vapor.' },
         { t: 'Pechuga Toscana', p: 445, d: 'Rellena de verduras salteadas con tocino, bañada en salsa cremosa de queso parmesano. Con puré de papa y verduras al vapor.' }] }] }) },
+  { id: 'compus', zona: '050', nombre: 'Computadoras antiguas en las escuelas', desc: 'Cada escuela escribe cuántas tiene (0 si no tiene) y pulsa «Validar»', base: () => ({
+    titulo: 'Inventario de computadoras antiguas', participantes: cnsPersonasEscuelas(),
+    descripcion: 'Escriba cuántas computadoras antiguas tiene su escuela (de escritorio o portátiles, aunque no se usen) para programarlas y enviarlas a la Supervisión. Si no tiene ninguna, deje 0 y solo pulse «Validar».',
+    preguntas: [
+      { k: 'num_compus', t: '¿Cuántas computadoras antiguas tiene su escuela?', tipo: 'numero', req: true },
+      { k: 'marcas', t: 'Marca, modelo o estado de las computadoras', tipo: 'texto', req: false }] }) },
   { id: 'evento', nombre: 'Asistencia a un evento', desc: 'Solo confirmar si asiste', base: () => ({ titulo: '', preguntas: [{ k: 'asiste', t: '¿Asistirá?', tipo: 'asistencia', req: true }] }) },
   { id: 'blanco', nombre: 'Consulta en blanco', desc: 'Usted arma las preguntas', base: () => ({ titulo: '', preguntas: [{ k: 'p1', t: '', tipo: 'opcion', req: true, op: [] }] }) }
 ];
@@ -7064,9 +7075,11 @@ function cnsElegirPlantilla() {
   const pl = CNS_PLANTILLAS.filter(p => !p.zona || String(ZONA.numero) === p.zona);
   modal('Nueva consulta', `<p class="peq mudo" style="margin-top:0">Elija cómo empezar. Todo se puede cambiar antes de guardar.</p>
     <div class="tlm-rejilla">${pl.map(p => `<button class="tarjeta tlm-sec" data-cnpl="${p.id}"><b>${esc(p.nombre)}</b><span>${esc(p.desc)}</span></button>`).join('')}</div>`);
-  $$('[data-cnpl]').forEach(b => b.onclick = () => { const p = CNS_PLANTILLAS.find(x => x.id === b.dataset.cnpl); formConsulta(null, Object.assign(p.base(), { participantes: cnsPersonasZona() })); });
+  $$('[data-cnpl]').forEach(b => b.onclick = () => { const p = CNS_PLANTILLAS.find(x => x.id === b.dataset.cnpl); formConsulta(null, Object.assign({ participantes: cnsPersonasZona() }, p.base())); });
 }
 // Directores (y encargados de despacho), ATP y la Supervisión, sin repetir nombres
+// Una persona por escuela: su director(a) o encargado(a) de despacho
+function cnsPersonasEscuelas() { return directores().filter(c => c.activo !== false && c.nombre).map(c => ({ n: c.nombre, d: c.escuela })); }
 function cnsPersonasZona() {
   const l = [], vistos = new Set();
   const poner = (n, d) => { const k = String(n || '').toLowerCase().replace(/^(mtr[oa]\.|profr?a?\.|lic\.|dra?\.)\s*/, '').replace(/\s+/g, ' ').trim(); if (!k || vistos.has(k)) return; vistos.add(k); l.push({ n: n.trim(), d }); };
@@ -7079,7 +7092,7 @@ function cnsPersonasZona() {
 /* --- Formulario de la consulta --- */
 function formConsulta(c, base) {
   const o = c || Object.assign({ titulo: '', descripcion: '', fecha: '', hora: '', lugar: '', cierre: '', preguntas: [], participantes: [] }, base || {});
-  let preg = JSON.parse(JSON.stringify(o.preguntas || []));
+  let preg = JSON.parse(JSON.stringify(o.preguntas || [])).map(p => cnsEsNum(p) ? Object.assign(p, { tipo: 'numero', req: true }) : p);
   const yaResp = c && c.respondieron;
   const lineasOp = p => (p.op || []).map(x => p.tipo === 'menu' ? [x.t, x.p, x.d].filter((v, i) => i < 2 || v).join(' | ') : x.t).join('\n');
   const bloque = (p, i) => `<div class="tarjeta pad" style="margin-bottom:10px;box-shadow:none" data-cnp="${i}">
@@ -7094,7 +7107,7 @@ function formConsulta(c, base) {
         <div class="campo"><label>Anticipo (% del total)</label><input data-f="ant" type="number" min="0" max="100" step="1" value="${p.ant == null ? 50 : p.ant}"></div>
         <div class="campo"><label>Fecha para entregar el anticipo</label><input data-f="antFecha" type="date" value="${esc(p.antFecha || '')}"></div></div>
       <div class="campo"><label>Nota del anticipo</label><input data-f="antNota" maxlength="300" value="${esc(p.antNota || '')}"></div>` : ''}
-    ${p.tipo === 'asistencia' ? '<div class="ayuda">Si la persona contesta que no asistirá, ya no se le hacen las demás preguntas.</div>' : `<label class="casilla"><input type="checkbox" data-f="req"${p.req !== false ? ' checked' : ''}>Obligatoria</label>`}
+    ${p.tipo === 'numero' ? '<div class="ayuda">Quien contesta escribe un número entero (0 si no tiene) y lo confirma con el botón «Validar». Sin validar no puede enviar. En los resultados se suma el total.</div>' : p.tipo === 'asistencia' ? '<div class="ayuda">Si la persona contesta que no asistirá, ya no se le hacen las demás preguntas.</div>' : `<label class="casilla"><input type="checkbox" data-f="req"${p.req !== false ? ' checked' : ''}>Obligatoria</label>`}
   </div>`;
   const leerPreg = () => {
     $$('[data-cnp]').forEach(el => {
@@ -7166,7 +7179,7 @@ function formConsulta(c, base) {
       return { id: ant ? ant.id : '', n, d: d.join(' | ') };
     });
     const datos = { id: c ? c.id : '', titulo: $('#cn-tit').value.trim(), descripcion: $('#cn-des').value.trim(), fecha: $('#cn-fec').value, hora: $('#cn-hor').value,
-      cierre: $('#cn-cie').value, lugar: $('#cn-lug').value.trim(), preguntas: preg, participantes,
+      cierre: $('#cn-cie').value, lugar: $('#cn-lug').value.trim(), preguntas: cnsPregServidor(preg), participantes,
       acceso: $$('[data-cnac][data-niv="ver"]').filter(x => x.checked).map(x => ({ id: x.dataset.cnac, nivel: $(`[data-cnac="${x.dataset.cnac}"][data-niv="control"]`).checked ? 'control' : 'ver' })) };
     if (!datos.titulo) return aviso('Escriba el nombre de la consulta.', 'mal');
     const sinTexto = preg.findIndex(p => !p.t);
@@ -7250,6 +7263,18 @@ function vConsultaRes(id) {
       </div></div>`;
     setTimeout(() => { const b = $('#cn-ped-' + p.k); if (b) b.onclick = () => copiar(`*${c.titulo}*\n${cnsCuando(c)}\n\nPedido (${cuentas.length} personas):\n${pedido.join('\n') || 'Sin platillos'}`, 'Pedido copiado'); });
   });
+  // Cantidades validadas: total y lo que contestó cada quien (de mayor a menor)
+  c.preguntas.filter(cnsEsNum).forEach(p => {
+    const l = resp.map(f => ({ n: f.p.n, d: f.p.d, v: cnsNum(f.r.respuestas[p.k]) })).filter(x => x.v != null).sort((a, b) => b.v - a.v);
+    const tot = l.reduce((a, x) => a + x.v, 0), ceros = l.filter(x => !x.v).length;
+    h += `<div class="tarjeta pad" style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><h2 style="flex:1;margin:0;font-size:19px">${esc(p.t)}</h2>
+      <button class="boton sec chico" id="cn-num-${esc(p.k)}">${ico('i-copiar')}Copiar resumen</button></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">${kpi(tot, 'en total', 'color:var(--indigo)')}${kpi(l.length + ' de ' + filas.length, 'validaron su cantidad')}${kpi(ceros, 'contestaron 0')}</div>
+      <div class="cns-caja"><table class="cns-t"><tr><th>Escuela / persona</th><th class="d">Cantidad</th></tr>
+      ${l.map(x => `<tr${x.v ? '' : ' style="color:var(--gris)"'}><td>${esc(x.d || x.n)}${x.d ? `<div class="ayuda">${esc(x.n)}</div>` : ''}</td><td class="d"><b>${x.v}</b></td></tr>`).join('') || '<tr><td colspan="2" class="mudo">Nadie ha validado todavía.</td></tr>'}
+      ${sin.length ? `<tr><td colspan="2" class="peq mudo">Sin validar: ${sin.map(f => esc(f.p.d || f.p.n)).join(' · ')}</td></tr>` : ''}</table></div></div>`;
+    setTimeout(() => { const b = $('#cn-num-' + p.k); if (b) b.onclick = () => copiar(`*${c.titulo}*\n${p.t}\nTotal: ${tot}\n\n${l.map(x => '• ' + (x.d || x.n) + ': ' + x.v).join('\n')}${sin.length ? '\n\nSin validar: ' + sin.map(f => f.p.d || f.p.n).join(', ') : ''}`, 'Resumen copiado'); });
+  });
   // Opción, varias, sí/no: conteos
   c.preguntas.filter(p => ['opcion', 'varias', 'sino'].includes(p.tipo)).forEach(p => {
     const ops = p.tipo === 'sino' ? ['Sí', 'No'] : (p.op || []).map(o => o.t), cnt = ops.map(() => 0), quien = asisP ? van : resp;
@@ -7312,6 +7337,7 @@ function cnsCaptura(c, f) {
     if (p.tipo === 'asistencia' || p.tipo === 'sino') return `<div class="campo"><label for="${id}">${esc(p.t)}</label><select id="${id}"><option value="">—</option>${['Sí', 'No'].map(o => `<option${v === o ? ' selected' : ''}>${o}</option>`).join('')}</select></div>`;
     if (p.tipo === 'menu' || p.tipo === 'opcion') return `<div class="campo" data-cnva="1"><label for="${id}">${esc(p.t)}</label><select id="${id}"><option value="">—</option>${(p.op || []).map((o, i) => `<option value="${i}"${v === i ? ' selected' : ''}>${esc(o.t)}${p.tipo === 'menu' ? ' · ' + cnsPesos(o.p) : ''}</option>`).join('')}</select></div>`;
     if (p.tipo === 'varias') return `<div class="campo" data-cnva="1"><label>${esc(p.t)}</label>${(p.op || []).map((o, i) => `<label class="casilla"><input type="checkbox" data-cnvar="${p.k}" value="${i}"${(v || []).indexOf(i) >= 0 ? ' checked' : ''}>${esc(o.t)}</label>`).join('')}</div>`;
+    if (cnsEsNum(p)) return `<div class="campo" data-cnva="1"><label for="${id}">${esc(p.t)}</label><input id="${id}" type="number" inputmode="numeric" min="0" step="1" value="${esc(v == null ? '' : v)}" placeholder="0"></div>`;
     return `<div class="campo" data-cnva="1"><label for="${id}">${esc(p.t)}</label><input id="${id}" value="${esc(v || '')}"></div>`;
   };
   modal(f ? 'Respuesta de ' + esc(f.p.n) : 'Agregar persona', `${f ? '' : `<div class="campo"><label for="cn-cp-n">Nombre</label><input id="cn-cp-n" placeholder="Mtro. Nombre Apellido"></div>
@@ -7328,6 +7354,7 @@ function cnsCaptura(c, f) {
       const e = $('#cn-cp-' + p.k);
       if (p.tipo === 'varias') resp[p.k] = $$(`[data-cnvar="${p.k}"]`).filter(x => x.checked).map(x => +x.value);
       else if (p.tipo === 'menu' || p.tipo === 'opcion') resp[p.k] = e.value === '' ? null : +e.value;
+      else if (cnsEsNum(p)) resp[p.k] = String(Math.max(0, Math.round(Number(e.value) || 0)));
       else resp[p.k] = e.value;
     });
     const datos = { id: c.id, respuestas: resp };

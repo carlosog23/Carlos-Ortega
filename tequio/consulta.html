@@ -31,6 +31,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   select,textarea{width:100%;font:inherit;padding:12px;border:1px solid #CDBFA8;border-radius:10px;background:#fff;color:inherit}
   .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .btn-op{border:2px solid var(--borde);border-radius:12px;padding:13px;font:inherit;font-weight:600;background:#fff;color:inherit;cursor:pointer;text-align:center}
+  .num{display:flex;gap:10px;align-items:stretch}.num input{flex:1;min-width:0;font:inherit;font-size:24px;font-weight:700;text-align:center;padding:10px;border:1px solid #CDBFA8;border-radius:10px;background:#fff;color:inherit}.num .btn-op{min-width:130px}
   .btn-op.on{border-color:var(--indigo);background:#EEF2F9;color:var(--indigo)}
   .btn-op.no.on{border-color:var(--alerta);background:var(--alerta-f);color:var(--alerta)}
   .ops{display:grid;gap:9px}
@@ -110,6 +111,8 @@ async function iniciar() {
   pintar();
 }
 
+// Cantidad con botón «Validar» (respuesta abierta cuya clave empieza con «num_»)
+const esNum = p => p.tipo === 'numero' || (p.tipo === 'texto' && /^num_/.test(p.k || ''));
 const asisP = () => C.preguntas.find(p => p.tipo === 'asistencia');
 const va = () => { const a = asisP(); return !a || R[a.k] === 'Sí'; };
 
@@ -131,7 +134,9 @@ function pintar() {
   C.preguntas.forEach((p, i) => {
     if (p.tipo === 'asistencia') return;
     h += `<div class="card"><div class="paso">Paso ${n++}</div><h2>${esc(p.t)}${p.req ? '' : ' <span class="det">(opcional)</span>'}</h2>`;
-    if (p.tipo === 'texto') h += `<textarea rows="3" maxlength="2000" data-txt="${esc(p.k)}"></textarea>`;
+    if (esNum(p)) h += `<div class="num"><input type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-num="${esc(p.k)}" aria-label="Cantidad"><button type="button" class="btn-op" data-val="${esc(p.k)}">Validar</button></div>
+      <div class="det" style="margin-top:8px" id="nv-${esc(p.k)}">Escriba la cantidad y pulse «Validar». Si no tiene, deje 0 y solo pulse «Validar».</div>`;
+    else if (p.tipo === 'texto') h += `<textarea rows="3" maxlength="2000" data-txt="${esc(p.k)}"></textarea>`;
     else if (p.tipo === 'sino') h += `<div class="dos"><button type="button" class="btn-op" data-sn="${esc(p.k)}" data-v="Sí">Sí</button><button type="button" class="btn-op" data-sn="${esc(p.k)}" data-v="No">No</button></div>`;
     else {
       const multi = p.tipo === 'varias';
@@ -152,6 +157,12 @@ function pintar() {
   $('#persona').onchange = revisar;
   $$('[data-asi]').forEach(b => b.onclick = () => { $$('[data-asi]').forEach(x => x.classList.toggle('on', x === b)); R[a.k] = b.dataset.asi; $('#resto').classList.toggle('hide', !va()); revisar(); });
   $$('[data-sn]').forEach(b => b.onclick = () => { $$(`[data-sn="${b.dataset.sn}"]`).forEach(x => x.classList.toggle('on', x === b)); R[b.dataset.sn] = b.dataset.v; revisar(); });
+  $$('[data-num]').forEach(t => t.oninput = () => { const k = t.dataset.num; delete R[k]; const b = $(`[data-val="${k}"]`); b.classList.remove('on'); b.textContent = 'Validar';
+    $('#nv-' + k).textContent = 'Pulse «Validar» para confirmar la cantidad.'; revisar(); });
+  $$('[data-val]').forEach(b => b.onclick = () => { const k = b.dataset.val, t = $(`[data-num="${k}"]`), raw = t.value.trim(), n = raw === '' ? 0 : Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 100000) { $('#nv-' + k).textContent = 'Escriba un número entero (0, 1, 2…).'; return; }
+    t.value = n; R[k] = String(n); b.classList.add('on'); b.textContent = '✓ Validado';
+    $('#nv-' + k).textContent = n === 0 ? 'Validado: su escuela no tiene (0).' : 'Validado: ' + n + '. Si se equivocó, cambie el número y valide de nuevo.'; revisar(); });
   $$('[data-txt]').forEach(t => t.oninput = () => { R[t.dataset.txt] = t.value; revisar(); });
   $$('.op').forEach(l => l.querySelector('input').onchange = () => {
     const p = C.preguntas.find(x => x.k === l.dataset.pk);
@@ -187,6 +198,8 @@ function falta() {
   const a = asisP();
   if (a && !R[a.k]) return 'Indique si asistirá.';
   if (!va()) return '';
+  const pn = C.preguntas.find(p => esNum(p) && (R[p.k] == null || R[p.k] === ''));
+  if (pn) return 'Falta validar: ' + pn.t;
   const p = C.preguntas.find(p => p.tipo !== 'asistencia' && p.req && (R[p.k] == null || R[p.k] === '' || (Array.isArray(R[p.k]) && !R[p.k].length) || (p.tipo === 'texto' && !String(R[p.k]).trim())));
   return p ? 'Falta: ' + p.t : '';
 }
