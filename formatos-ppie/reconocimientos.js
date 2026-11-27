@@ -570,6 +570,7 @@ async function rkPintaPrevia(){const box=document.getElementById("rk_pv");if(!bo
 
 /* --- pantalla principal --- */
 async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar("");OUT=null;if(!RK)RK=rkInit();rkCSS();const v=RK;
+  let rkLimpio=false;if(v.hecho){v.personas=[];v.verIdx=0;v.hecho=false;rkLimpio=true;try{localStorage.setItem(RK_KEY,JSON.stringify(RK))}catch(e){}}
   const g=id=>document.getElementById(id);const fondo=rkFondoGet();const mis=store.get(RK_MIS_KEY,[]);
   const opt=(arr,val)=>arr.map(o=>{const[k,t]=Array.isArray(o)?o:[o,o];return`<option value="${esc(k)}" ${String(val)===String(k)?"selected":""}>${esc(t)}</option>`}).join("");
   const chk=(id,on,txt)=>`<label class="opt ${on?"on":""}"><input type="checkbox" id="${id}" ${on?"checked":""}>${txt}</label>`;
@@ -641,6 +642,13 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
      <input type="text" id="rk_nn" placeholder="Nombre completo" autocomplete="off">
      <div class="row2"><input type="text" id="rk_nm" placeholder="Motivo (opcional)" autocomplete="off"><input type="text" id="rk_nl" list="rk_lugares" placeholder="Lugar (opcional)" autocomplete="off"></div>
      <button type="button" class="btn primary" id="rk_add">Agregar a la lista</button></div></div>
+    <div class="field"><label>Reconocimiento al maestro(a) encargado(a) de la actividad</label><p class="help">Para quien preparó y acompañó a los alumnos (fútbol, escolta, concurso…). Se agrega a la lista con su propio motivo y sin grado ni grupo.</p>
+     <button type="button" class="btn ghost" id="rk_docB">+ Reconocer al maestro(a) encargado(a)</button>
+     <div id="rk_docBox" hidden style="display:grid;gap:6px;margin-top:8px">
+      <input type="text" id="rk_dn" placeholder="Nombre del maestro(a)" value="${esc(String(perfil.minombre||"").trim())}" autocomplete="off">
+      <input type="text" id="rk_da" placeholder="Actividad (ej. el torneo de fútbol de la zona)" autocomplete="off">
+      <div class="opts">${chk("rk_dm",true,"Mtro.")}${chk("rk_df",false,"Mtra.")}</div>
+      <button type="button" class="btn primary" id="rk_dOk">Agregar al maestro(a)</button></div></div>
     <div class="field"><label>O cargar la lista completa</label><p class="help">Excel, Word, PDF o una foto de la lista (escrita a máquina o en computadora). Si trae columnas de <b>motivo</b> y <b>lugar</b>, también se leen. La foto se lee en este equipo, sin enviarse a ningún lado.</p>
      <div class="rkbar"><label class="btn primary" style="display:flex;align-items:center;cursor:pointer">Subir archivo<input type="file" id="rk_file" accept=".xlsx,.csv,.docx,.pdf,.txt,image/*" multiple hidden></label>
       <label class="btn ghost" style="display:flex;align-items:center;cursor:pointer">Tomar foto de la lista<input type="file" id="rk_cam" accept="image/*" capture="environment" hidden></label>
@@ -742,6 +750,14 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
   /* lista */
   const agregarUno=()=>{const n=g("rk_nn").value.trim();if(!n){g("rk_nn").focus();return}const r=rkAgregar([{nombre:n,motivo:g("rk_nm").value.trim(),lugar:g("rk_nl").value.trim()}]);
     if(!r.n){msg("Ese nombre ya está en la lista.");return}v.verIdx=v.personas.length-1;rkGuardar();rkView();setTimeout(()=>{const x=g("rk_nn");if(x){x.scrollIntoView({block:"center"});x.focus()}},30)};
+  g("rk_docB").onclick=()=>{const b=g("rk_docBox");b.hidden=!b.hidden;if(!b.hidden)(g("rk_dn").value?g("rk_da"):g("rk_dn")).focus()};
+  g("rk_dm").onchange=()=>{if(g("rk_dm").checked)g("rk_df").checked=false};g("rk_df").onchange=()=>{if(g("rk_df").checked)g("rk_dm").checked=false};
+  g("rk_dOk").onclick=()=>{let n=g("rk_dn").value.trim().replace(/^(mtr[oa]|profr?a?|lic|dr[a]?)\.?\s+/i,"");if(!n){g("rk_dn").focus();return}
+    const tit=g("rk_df").checked?"Mtra.":g("rk_dm").checked?"Mtro.":"",act=g("rk_da").value.trim();
+    const mot=act?`Por su compromiso, dedicación y entusiasmo al preparar y acompañar a nuestros alumnos en ${act.replace(/^en\s+/i,"").replace(/\.+$/,"")}.`:"Por su compromiso, dedicación y entusiasmo al preparar y acompañar a nuestros alumnos.";
+    const nombre=(tit?tit+" ":"")+rkCaso(n,v.caso==="mayus"?"mayus":"titulo");
+    if(v.personas.some(p=>rkN(p.nombre)===rkN(nombre))){msg("Ese nombre ya está en la lista.");return}
+    v.personas.push({nombre,motivo:mot,lugar:"",grado:"",grupo:"",doc:1,fijo:1});v.verIdx=v.personas.length-1;rkGuardar();rkView()};
   g("rk_add").onclick=agregarUno;g("rk_nn").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();agregarUno()}};g("rk_nm").onkeydown=g("rk_nl").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();agregarUno()}};
   const subir=async files=>{const out=[];for(const f of files){msg(`Leyendo «${esc(f.name)}»…`,true);
       try{const r=await rkLeerArchivo(f,t=>msg(esc(t),true));const a=rkAgregar(r.lista,r.ocr);out.push(`«${esc(f.name)}» (${r.fuente}): <b>${a.n}</b> agregado${a.n===1?"":"s"}${a.rep?`, ${a.rep} ya estaba${a.rep===1?"":"n"}`:""}.`)}
@@ -777,7 +793,12 @@ async function rkView(){S.view="rk";S.sec="reconocimientos";S.letra=null;setBar(
   if(g("rk_apI"))g("rk_apI").onclick=()=>{v.personas.forEach(p=>{if(p.apF){p.nombre=rkApellidosAlInicio(p.nombre);p.apF=0}});re()};
   app.querySelectorAll("[data-ord]").forEach(b=>b.onclick=()=>{const p=v.personas[+b.dataset.ord];if(p.apF){p.nombre=rkApellidosAlInicio(p.nombre);p.apF=0}else{p.nombre=rkApellidosAlFinal(p.nombre);p.apF=1}v.verIdx=+b.dataset.ord;re()});
   if(g("rk_vac"))g("rk_vac").onclick=()=>{if(confirm(`¿Quitar los ${v.personas.length} nombres de la lista?`)){v.personas=[];v.verIdx=0;re()}};
-  app.querySelectorAll(".act").forEach(b=>b.onclick=()=>accion(b.dataset.act,b));
+  app.querySelectorAll(".act").forEach(b=>b.onclick=async()=>{await accion(b.dataset.act,b);
+    if(OUT&&OUT.letra==="rk"&&v.personas.length){v.hecho=true;try{localStorage.setItem(RK_KEY,JSON.stringify(RK))}catch(e){}
+      let h=g("rk_hecho");if(!h){h=document.createElement("div");h.id="rk_hecho";g("rk_res").after(h)}
+      h.innerHTML=`<div class="alert" style="margin-top:10px">Cuando termine de imprimir o enviar, empiece otra lista: los nombres se borran y se conserva el diseño. Si sale y vuelve a entrar, la lista ya aparecerá vacía. Lo que generó queda en «Mis documentos».</div><button type="button" class="btn primary" id="rk_otra" style="margin-top:8px">Empezar otra lista</button>`;
+      g("rk_otra").onclick=()=>{v.personas=[];v.verIdx=0;v.hecho=false;rkGuardar();rkView();setTimeout(()=>{const x=g("rk_nn");if(x){x.scrollIntoView({block:"center"});x.focus()}},60)}}});
+  if(rkLimpio){const r=g("rk_lista");if(r)r.insertAdjacentHTML("afterbegin",`<p class="rkmini">La lista anterior se borró porque ya la había generado. Puede volver a verla en «Mis documentos».</p>`)}
   g("salir").onclick=()=>{S.sec=null;home()};resumen();rkPrevia(true);rkMiniaturas()}
 
 /* =========================================================

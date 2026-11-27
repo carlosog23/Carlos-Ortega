@@ -2825,7 +2825,7 @@ function edCicloView(){S.view="edades";S.letra=null;setBar("");
 const EDADES=[5,6,7,8,9,10,11,12,13,14,15];
 let _libs={};
 /* Reconocimientos y diplomas: el módulo se carga solo al entrar */
-const RK_JS="reconocimientos.js?v=2026-11-18a";
+const RK_JS="reconocimientos.js?v=2026-11-27a";
 const CRQ_JS="croquis.js?v=2026-11-06b";
 const BX_JS="banxico.js?v=2026-11-11a";
 async function bxAbrir(){S.view="bxcarga";S.sec="banxico";setBar("");
@@ -5920,6 +5920,13 @@ const CA_PAR=["Madre","Padre","Tutor(a)","Abuelo(a)","Tío(a)","Hermano(a)"];
 let CAS=null;
 (function(){const d=store.get("ppie-constancia",null);if(d&&d.motivo)CAS=d})();
 const caSave=()=>store.set("ppie-constancia",CAS);
+/* Después de generar una constancia, los datos del padre y del alumno se limpian para la siguiente
+   (se conservan el motivo, la fecha y los datos de la escuela y la dirección). */
+function caLimpiar(){Object.assign(CAS,{tutor:"",parentesco:"Madre",aluId:"",alumno:"",grado:"",grupo:"",hIni:"",hFin:"",detalle:"",folio:"",enBlanco:false,hecha:false});caSave()}
+function caHecha(){if(!CAS)return;CAS.hecha=true;caSave();const app0=document.getElementById("app");if(!app0||S.view!=="constancia")return;
+  let h=document.getElementById("ca_hecha");if(!h){h=document.createElement("div");h.id="ca_hecha";const t=app0.querySelector(".top");t?t.after(h):app0.prepend(h)}
+  h.innerHTML=`<div class="alert" style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px"><b>Constancia lista.</b> Para hacer la de otra persona, toque «Hacer otra»: se borran los datos del padre y del alumno y se conservan el motivo y la fecha. Si sale y vuelve a entrar, ya aparecerá limpia.</span><button type="button" class="btn primary" id="ca_otra">Hacer otra constancia</button></div>`;
+  document.getElementById("ca_otra").onclick=()=>{caLimpiar();caView();window.scrollTo(0,0)}}
 function caNuevo(){const t=yoDirectivo()?yoPartes().tit:"";
   return{tutor:"",parentesco:"Madre",aluId:"",alumno:"",grado:"",grupo:"",fecha:today(),hIni:"",hFin:"",motivo:"reunion",otro:"",detalle:"",
     dirigido:"A quien corresponda",lugar:perfil.localidad||"",fechaDoc:today(),folio:"",enBlanco:false,copia:true,usarFirma:true,
@@ -5939,7 +5946,7 @@ function caTexto(){const E=slEscuela(),fem=CAS.tit==="Mtra.",ln="_______________
   const p2=[{t:"A petición de la persona interesada y para los fines legales que a ella convengan, se extiende la presente constancia en "+(CAS.lugar||perfil.localidad||"__________")+", Baja California, a los "+d.d+" días del mes de "+MESES[d.m-1]+" de "+d.y+"."}];
   return[p1,p2]}
 
-function caView(){S.view="constancia";S.letra=null;setBar("");if(!CAS)CAS=caNuevo();
+function caView(){S.view="constancia";S.letra=null;setBar("");if(!CAS)CAS=caNuevo();if(CAS.hecha)caLimpiar();
   const g=id=>document.getElementById(id);const v=(id,ph,tipo)=>`<input type="${tipo||"text"}" id="${id}" value="${esc(CAS[id.slice(3)]||"")}" ${ph?`placeholder="${esc(ph)}"`:""} autocomplete="off">`;
   app.innerHTML=`<div class="top"><button class="back" id="salir" aria-label="Regresar">←</button><div style="min-width:0"><div class="eyebrow">Comunicación con familias</div><h2>Constancia de asistencia</h2></div></div>
    <p class="muted">Justificante para que el padre, madre o tutor compruebe en su trabajo que acudió a la escuela. Sale con los logos institucionales y los datos de la escuela y de la dirección.</p>
@@ -6044,7 +6051,7 @@ async function caPDF(btn){const t0=btn.textContent;btn.disabled=true;btn.textCon
     const pie=clean([e5?e5[4]:E.lugar,"Supervisión Escolar Zona No. "+E.zona].filter(Boolean).join(" · "));
     pg.drawLine({start:{x:M,y:Y(PH-58)},end:{x:PW-M,y:Y(PH-58)},thickness:0.5,color:C.gold});
     ctr(pg,pie,PH-46,7.6,F.h,C.gray);
-    const blob=new Blob([await doc.save()],{type:"application/pdf"});await entregarPDF(blob,caFile("pdf"))}
+    const blob=new Blob([await doc.save()],{type:"application/pdf"});await entregarPDF(blob,caFile("pdf"));caHecha()}
   catch(e){alert("No se pudo generar el PDF: "+(e.message||e))}
   finally{btn.disabled=false;btn.textContent=t0}}
 
@@ -6063,7 +6070,7 @@ async function caWord(){const E=slEscuela(),IL=await instLogoData(),L0=logoGet()
    <p style="text-align:justify;text-indent:36px;line-height:1.6">${html2(p1)}</p><p style="text-align:justify;text-indent:36px;line-height:1.6">${html2(p2)}</p>
    <p style="text-align:center;margin-top:30px"><b>A T E N T A M E N T E</b></p>
    <p style="text-align:center;margin-top:8px">${F0?`<img src="${F0}" style="height:44px"><br>`:"<br><br><br>"}______________________________<br><b>${esc(CAS.tit+" "+CAS.director)}</b><br><span style="color:#555">${esc(caCargo()+" de la escuela")}</span></p></body></html>`;
-  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=caFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  const blob=new Blob(["﻿"+html],{type:"application/msword"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=caFile("doc");document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);caHecha()}
 
 /* ---------- Formatos de inventario (ISEP · Dirección de Recursos Materiales y Servicios) ---------- */
 /* La plantilla es el formato oficial tal cual (formatos/inventarios.pdf, una página por trámite); la app solo escribe los datos encima. */
