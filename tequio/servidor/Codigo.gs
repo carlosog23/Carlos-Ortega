@@ -606,9 +606,9 @@ function doPost(e) {
 
 // Lo único que puede hacer un enlace de dirección
 const SOLO_DIRECTOR = ['ppieLista', 'ppieMarcar', 'minutaIA', 'minutaDatos', 'minutaGuardar', 'minutaAcuerdo', 'minutaEliminar', 'personal', 'firmaLista', 'datos', 'verInforme', 'crearAclaracion', 'responderAclaracion', 'subirArchivo', 'visitaFoto', 'quitarFotoVisita', 'prepararVisita', 'sisatComentar', 'sisatGuardar', 'sisatArchivos', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar',
-  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar', 'cpeDatos', 'cpeGuardar', 'cpaGuardar', 'cpaEvaluar', 'cpaEliminar', 'cpaImportar', 'cpeAvisar'];
+  'eiaGuardar', 'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'tlaDatos', 'leerDirectorio', 'finDatos', 'finGuardar', 'finEliminar', 'vidEstado', 'vidConectar', 'ayudante', 'asiDatos', 'asiGrupos', 'asiCapturar', 'cpeDatos', 'cpeGuardar', 'cpaGuardar', 'cpaEvaluar', 'cpaEliminar', 'cpaImportar', 'cpeAvisar', 'cpeLeer'];
 // Acciones que tardan (Drive); se bloquean solo al escribir en la hoja
-const SIN_BLOQUEO = ['minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos', 'visFotosDatos',
+const SIN_BLOQUEO = ['cpeLeer', 'minutaIA', 'visInforme', 'ayudante', 'norma', 'vidEstado', 'moverSueltos', 'revFoto', 'ateFoto', 'subirAnexoOficio', 'quitarCarpeta', 'enviarInforme', 'firmaLista', 'visitaFoto', 'quitarFotoVisita', 'leerDirectorio', 'revisarEvidencias', 'subirArchivo', 'crearCarpeta', 'redactarOficio', 'enviarOficio', 'archivarOficio', 'configOficios', 'recursosOficio', 'analizarOficioRecibido', 'numeroOficio', 'sisatArchivos', 'sisatLeer', 'sisatBajar', 'sisatSubir', 'sisatAlumnos', 'inscripcionArchivos', 'cteDatos', 'cteSubir', 'cteQuitar', 'cteSubirInsumo', 'cteQuitarInsumo', 'cteVisitaFoto', 'cteVisitaQuitarFoto', 'cteVisitaFotosDatos', 'visFotosDatos',
   'eiaArchivos', 'eiaBajar', 'eiaSubir', 'eiaAlumnos', 'corRevisar', 'corClasificar', 'pmcBuscar', 'pmcLeer'];
 // Tamaño máximo por archivo que se sube desde la página (el servidor de Google acepta envíos de hasta ~50 MB)
 const MAX_MB = 20;
@@ -676,6 +676,47 @@ const ACCIONES = {
     o.activo = false; o.actualizado = ahora_(); o.actualizadoNombre = yo.nombre;
     guardar_('cpa', o);
     return { ok: true };
+  },
+  // Lee con Gemini una foto, PDF, Word o Excel: los integrantes del comité, las acciones del PMC o el PMC completo. No guarda nada:
+  // la página muestra lo leído para que la dirección lo revise y lo corrija antes de guardarlo.
+  cpeLeer: (yo, d) => {
+    cpeCct_(yo, d.cct);
+    const que = ['integrantes', 'acciones', 'pmc'].indexOf(d.que) >= 0 ? d.que : 'pmc';
+    const texto = String(d.texto || '').slice(0, 200000);
+    let op = { json: true, temperatura: 0.1, max: 32768 };
+    const l = (Array.isArray(d.archivos) ? d.archivos : d.archivo ? [{ data: d.archivo, tipo: d.tipo }] : []).slice(0, 12)
+      .map(x => ({ data: String(x.data || ''), tipo: String(x.tipo || 'application/pdf') })).filter(x => x.data);
+    if (!texto && !l.length) throw new Error('Falta el archivo.');
+    if (l.length) {
+      if (l.some(x => !/^(application\/pdf|image\/(png|jpeg|webp|heic|heif))$/.test(x.tipo))) throw new Error('Suba el documento en PDF, Word, Excel o como foto (JPG o PNG).');
+      if (l.reduce((n, x) => n + x.data.length * 0.75, 0) > 18 * 1024 * 1024) throw new Error('Los archivos pesan más de 18 MB en total. Súbalos en partes.');
+      op.archivos = l;
+    }
+    const ciclo = cpeCiclo_(d.ciclo), a1 = ciclo.slice(0, 4), a2 = ciclo.slice(5);
+    const prompt = [
+      'Eres un asistente de una supervisión escolar de primaria en Baja California, México. Lee el documento (puede ser una foto, un PDF escaneado, un Word o una tabla de Excel) ' +
+      (que === 'integrantes' ? 'con los integrantes del Comité de Planeación y Evaluación de una escuela.' : que === 'acciones' ? 'con las acciones del Programa de Mejora Continua (PMC) de una escuela.' : 'que es el Programa de Mejora Continua (PMC) de una escuela, y saca lo que necesita su Comité de Planeación y Evaluación.'),
+      'Ciclo escolar ' + ciclo + ' (de agosto de ' + a1 + ' a julio de ' + a2 + '). Hoy es ' + hoy_() + '.',
+      'Responde SOLO un JSON con esta forma:',
+      '{"integrantes":[{"n":"","cargo":"","funcion":""}],"acciones":[{"ambito":"","objetivo":"","meta":"","accion":"","responsables":[""],"tipo":"","inicio":"","fin":"","frecuencia":"","evidencia":"","periodoTexto":""}],"datos":{"fecha":"","sesion":"","seguimiento":"","fuentes":"","comunicacion":""}}',
+      'Reglas:',
+      '- integrantes: ' + (que === 'acciones' ? 'déjalo vacío salvo que el documento traiga la lista del comité.' : 'cada persona del comité. n = nombre completo con su título si lo trae (Mtro., Mtra., Profr.). cargo: uno de "Director(a)", "Encargado(a) de despacho", "Subdirector(a)", "Docente frente a grupo", "Docente de Educación Física", "Docente de apoyo (USAER)", "Otro". funcion: "coord" (presidente, coordinador o responsable del comité), "secre" (secretario) o "vocal" (los demás). Si el documento no dice función, el director es "coord".'),
+      '- acciones: ' + (que === 'integrantes' ? 'déjalo vacío salvo que el documento traiga acciones.' : 'una por cada acción concreta (si una celda trae varias acciones separadas, sepáralas). Copia la acción tal como viene, sin inventar. ambito: el más cercano de estos 8 (escríbelo exacto): ' + ['Aprovechamiento académico y asistencia de los alumnos', 'Prácticas docentes y directivas', 'Formación docente', 'Avance de los planes y programas educativos', 'Participación de la comunidad', 'Desempeño de la autoridad escolar', 'Infraestructura y equipamiento', 'Carga administrativa'].join('; ') + '. objetivo y meta: los que correspondan a esa acción si el documento los relaciona; si no, vacío. responsables: lista de nombres o de figuras tal como vienen (ej. "Director", "Docentes de 1.° y 2.°", "Todo el colectivo").'),
+      '- Fechas en formato AAAA-MM-DD dentro del ciclo escolar (de septiembre a diciembre es ' + a1 + '; de enero a julio es ' + a2 + '). tipo: "unica" si es una fecha o un mes concreto (si solo dice el mes, usa el último día hábil de ese mes en fin y en inicio), "periodo" si va de una fecha o mes a otro (inicio = primer día, fin = último día), "permanente" si dice todo el ciclo, diario, semanal, mensual, permanente, cada CTE, durante el ciclo o no trae fecha. Para permanente, frecuencia: "semanal", "quincenal", "mensual", "cte", "bimestral" o "trimestral" según lo que diga (si no dice, "mensual"); inicio = la fecha de inicio si la trae, si no vacío. periodoTexto: lo que dice el documento sobre cuándo se hace, tal cual.',
+      '- evidencia: el instrumento, producto o indicador con que se valora la acción, si lo trae.',
+      '- datos: solo si el documento lo dice: fecha en que se conformó el comité, sesión (ej. "Fase intensiva del CTE"), cada cuándo se reúne o da seguimiento, fuentes de información para evaluar y cómo se comunica el avance a la comunidad. Si no, vacío.',
+      '- No escribas nombres de alumnos. No inventes datos que no estén en el documento.'
+    ].join('\n') + (texto ? '\n\nCONTENIDO DEL DOCUMENTO (texto extraído; las columnas de las tablas van separadas por tabuladores):\n' + texto : '');
+    const r = gemini_(prompt, op);
+    let j;
+    try { j = JSON.parse(r.replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { throw new Error('La IA no pudo leer bien el documento. Intente con una foto más clara, un archivo con menos páginas o súbalo por partes.'); }
+    const t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n), f = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+    const integrantes = (Array.isArray(j.integrantes) ? j.integrantes : []).map(x => ({ n: t(x.n || x.nombre, 140), cargo: t(x.cargo, 60), funcion: ['coord', 'secre', 'vocal'].indexOf(x.funcion) >= 0 ? x.funcion : 'vocal' })).filter(x => x.n).slice(0, 30);
+    const acciones = (Array.isArray(j.acciones) ? j.acciones : []).map(x => { const tipo = ['unica', 'periodo', 'permanente'].indexOf(x.tipo) >= 0 ? x.tipo : 'permanente';
+      return { ambito: t(x.ambito, 120), objetivo: t(x.objetivo, 500), meta: t(x.meta, 500), accion: t(x.accion, 600), responsables: (Array.isArray(x.responsables) ? x.responsables : String(x.responsables || '').split(/[,;]| y /)).map(r => t(r, 120)).filter(Boolean).slice(0, 10),
+        tipo: tipo, inicio: f(x.inicio), fin: f(x.fin), frecuencia: CPE_FREC[x.frecuencia] ? x.frecuencia : 'mensual', evidencia: t(x.evidencia, 400), periodoTexto: t(x.periodoTexto, 200) }; }).filter(x => x.accion).slice(0, 80);
+    const g = j.datos || {};
+    return { integrantes: integrantes, acciones: acciones, datos: { fecha: f(g.fecha), sesion: t(g.sesion, 80), seguimiento: t(g.seguimiento, 400), fuentes: t(g.fuentes, 600), comunicacion: t(g.comunicacion, 600) } };
   },
   // Manda ahora mismo al comité el resumen de lo vencido, lo que está por vencer y lo que falta evaluar
   cpeAvisar: (yo, d) => {
@@ -6773,7 +6814,7 @@ function cpaLimpiar_(d, prev, yo, cct) {
   const cambioFecha = prev && (prev.fin !== fin || prev.tipo !== tipo || prev.frecuencia !== d.frecuencia);
   return { id: prev ? prev.id : 'cpa-' + Utilities.getUuid().slice(0, 8), ciclo: prev ? prev.ciclo : cpeCiclo_(d.ciclo), cct: cct,
     ambito: t(d.ambito, 120), objetivo: t(d.objetivo, 500), meta: t(d.meta, 500), accion: accion,
-    responsables: (Array.isArray(d.responsables) ? d.responsables : []).map(x => t(x, 40)).filter(Boolean).slice(0, 30),
+    responsables: (Array.isArray(d.responsables) ? d.responsables : []).map(x => t(x, 140)).filter(Boolean).slice(0, 30),
     tipo: tipo, inicio: inicio, fin: tipo === 'permanente' ? f(d.fin) : fin, frecuencia: tipo === 'permanente' ? (CPE_FREC[d.frecuencia] ? d.frecuencia : 'mensual') : '',
     evidencia: t(d.evidencia, 400), estado: prev ? (d.estado === 'cancelada' ? 'cancelada' : prev.estado === 'cancelada' && d.estado === 'pendiente' ? 'pendiente' : prev.estado) : 'pendiente',
     evals: prev ? prev.evals : [], avisos: prev && !cambioFecha ? prev.avisos : {}, activo: true, origen: prev ? prev.origen : t(d.origen, 10),

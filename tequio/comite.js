@@ -60,7 +60,7 @@ function comBarra(r) {
   const p = k => (100 * r[k] / r.n).toFixed(2) + '%';
   return `<div class="com-barra" role="img" aria-label="${r.v} en verde, ${r.a} en amarillo, ${r.r} en rojo y ${r.s} sin evaluar"><i class="v" style="width:${p('v')}"></i><i class="a" style="width:${p('a')}"></i><i class="r" style="width:${p('r')}"></i><i class="s" style="width:${p('s')}"></i></div>`;
 }
-const comNomResp = (cct, ids) => (ids || []).map(id => id === 'todos' ? 'Todo el colectivo' : ((comCpe(cct) || { integrantes: [] }).integrantes.find(p => p.id === id) || {}).n).filter(Boolean);
+const comNomResp = (cct, ids) => (ids || []).map(id => id === 'todos' ? 'Todo el colectivo' : /^txt:/.test(id) ? id.slice(4) : ((comCpe(cct) || { integrantes: [] }).integrantes.find(p => p.id === id) || {}).n).filter(Boolean);
 function comCuando(a) {
   if (a.tipo === 'permanente') return `Permanente · ${(COM_FREC[a.frecuencia] || COM_FREC.mensual)[0].toLowerCase()}${a.fin ? ' · hasta ' + fechaCorta(a.fin) : ''}`;
   if (a.tipo === 'periodo') return `Del ${fechaCorta(a.inicio)} al ${fechaCorta(a.fin)}`;
@@ -174,7 +174,7 @@ function vComiteEscuela(cct, cab) {
   const pmc = COM.pmc.find(x => x.cct === cct);
   const intCard = cp ? `<div class="tarjeta pad">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="font-size:19px">Integrantes del comité</h2>
-        ${puede ? `<button class="boton sec chico" id="cm-ed" style="margin-left:auto">${ico('i-lapiz')}Cambiar</button>` : ''}</div>
+        ${puede ? `<button class="boton sec chico" id="cm-subir" style="margin-left:auto">${ico('i-cam')}Subir foto o archivo</button><button class="boton sec chico" id="cm-ed">${ico('i-lapiz')}Cambiar</button>` : ''}</div>
       <div class="com-int">${cp.integrantes.slice().sort((a, b) => ['coord', 'secre', 'vocal'].indexOf(a.funcion) - ['coord', 'secre', 'vocal'].indexOf(b.funcion)).map(p => `<div class="p"><div><b>${esc(p.n)}</b><small>${esc(COM_FUN[p.funcion] || '')}${p.cargo ? ' · ' + esc(p.cargo) : ''}${p.alertas === false ? ' · sin alertas' : !p.correo ? ' · sin correo' : ''}</small></div>
         ${p.cel ? `<a class="icono-btn" style="width:32px;height:32px" href="${waUrl(p.cel, comTextoPersona(cct, p))}" target="_blank" rel="noopener" title="Avisarle por WhatsApp sus acciones pendientes" aria-label="WhatsApp a ${esc(p.n)}">${ico('i-wa')}</a>` : ''}</div>`).join('')}</div>
       ${cp.datos && (cp.datos.fecha || cp.datos.seguimiento || cp.datos.fuentes || cp.datos.comunicacion) ? `<details style="margin-top:10px"><summary class="peq"><b>Acuerdos del comité</b> (conformación, seguimiento y comunicación)</summary><div class="peq" style="margin-top:6px">
@@ -191,7 +191,8 @@ function vComiteEscuela(cct, cab) {
       </div></div>`
     : `<div class="tarjeta pad" style="border-color:var(--terra)"><h2 style="font-size:19px;margin-bottom:6px">Registre a su comité</h2>
       <p class="peq" style="margin:0 0 10px">El Comité de Planeación y Evaluación se conforma (o se ratifica) en la Fase Intensiva del CTE, con personal directivo y docentes que propone el colectivo. Regístrelo para que a sus integrantes les lleguen los avisos de las acciones del PMC.</p>
-      ${puede ? `<button class="boton" id="cm-ed">${ico('i-mas')}Registrar a los integrantes</button>` : '<p class="peq mudo" style="margin:0">La escuela todavía no registra a su comité.</p>'}</div>`;
+      ${puede ? `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="boton terra" id="cm-subir">${ico('i-cam')}Subir el PMC o la lista (foto, PDF, Word o Excel)</button><button class="boton sec" id="cm-ed">${ico('i-mas')}Registrar a mano</button></div>
+        <p class="ayuda" style="margin:8px 0 0">Suba el PMC completo, el acta del comité o la tabla de acciones: Tequio lo lee, acomoda a los integrantes y las acciones con sus fechas, y usted lo revisa antes de guardar.</p>` : '<p class="peq mudo" style="margin:0">La escuela todavía no registra a su comité.</p>'}</div>`;
   const cif = (n, t, color, f) => `<button class="com-cif" data-cmf="${f}" aria-pressed="${vista.comF === f}"><b${color ? ` style="color:${color}"` : ''}>${n}</b><span>${t}</span></button>`;
   const cifras = acc.length ? `<div class="com-cifras">
       ${cif(r.n, 'acciones', '', '')}${cif(r.v, 'en verde', '#1E7A46', 'v')}${cif(r.a, 'en amarillo', '#B7791F', 'a')}${cif(r.r, 'en rojo', '#B3261E', 'r')}
@@ -206,6 +207,7 @@ function vComiteEscuela(cct, cab) {
   if ($('#cm-vol')) $('#cm-vol').onclick = () => { vista.comEsc = null; vista.comF = ''; vComite(); };
   if ($('#cm-nueva')) $('#cm-nueva').onclick = () => cp ? comFormAccion(cct) : (aviso('Primero registre a los integrantes del comité.', 'aviso', 4000), comFormComite(cct));
   if ($('#cm-ed')) $('#cm-ed').onclick = () => comFormComite(cct);
+  $$('#cm-subir, #cm-subir2').forEach(b => b.onclick = () => comSubir(cct));
   if ($('#cm-avisar')) $('#cm-avisar').onclick = () => accion('cpeAvisar', { cct, ciclo: COM.ciclo }, x => aviso(esc(x.mensaje || 'Aviso enviado.'), 'ok', 6000));
   if ($('#cm-wa')) $('#cm-wa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(comTextoResumen(cct)), '_blank');
   if ($('#cm-ics')) $('#cm-ics').onclick = () => comIcs(cct);
@@ -237,7 +239,7 @@ function comListaHTML(cct, puede, pmc) {
       <div class="bt">${puede && s !== 'cancelada' ? `<button class="boton chico" data-cmev="${a.id}">Evaluar</button>` : ''}${puede ? `<button class="boton sec chico" data-cmac="${a.id}" aria-label="Cambiar la acción">${ico('i-lapiz')}</button>` : ''}</div></div>`;
   };
   const vacio = !comAcc(cct).length;
-  return `${puede && (pmc || vacio) ? `<div class="aviso-caja" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${pmc ? `<span>Tequio ya leyó el PMC que la escuela subió al Drive: puede traer sus acciones y solo ponerles fechas.</span><button class="boton sec chico" id="cm-imp-pmc" style="margin-left:auto">Traer las acciones del PMC</button>` : '<span>Agregue las acciones de su PMC con «Nueva acción»: a cada una póngale fecha, periodo o déjela como permanente, y a sus responsables.</span>'}</div>` : ''}
+  return `${puede && (pmc || vacio) ? `<div class="aviso-caja" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${pmc ? `<span>Tequio ya leyó el PMC que la escuela subió al Drive: puede traer sus acciones y solo ponerles fechas.</span><button class="boton sec chico" id="cm-imp-pmc" style="margin-left:auto">Traer las acciones del PMC</button>` : '<span>Agregue las acciones de su PMC con «Nueva acción», o súbalas en foto, PDF, Word o Excel y Tequio las acomoda con sus fechas y responsables.</span>'}<button class="boton sec chico" id="cm-subir2"${pmc ? '' : ' style="margin-left:auto"'}>${ico('i-cam')}Subir foto o archivo</button></div>` : ''}
   ${f ? `<p class="peq" style="margin:0 0 8px">Mostrando solo: <b>${esc({ v: 'en verde', a: 'en amarillo', r: 'en rojo', venc: 'no realizadas en tiempo', prox: 'por vencer o por evaluar' }[f])}</b> · <a href="#" id="cm-quitaf">ver todas</a></p>` : ''}
   <div class="tarjeta">${l.length ? amb.map(m => `<div class="com-amb">${esc(m)}</div>` + l.filter(a => (a.ambito || 'Sin ámbito') === m).sort((x, y) => orden[comSit(x)] - orden[comSit(y)] || String(x.fin || x.inicio).localeCompare(String(y.fin || y.inicio))).map(fila).join('')).join('')
     : `<div class="vacio">${vacio ? 'Todavía no hay acciones registradas.' : 'No hay acciones con ese filtro.'}</div>`}</div>`;
@@ -404,7 +406,8 @@ function comFormAccion(cct, id) {
     <div class="campo"><span class="et">¿Cuándo se realiza?</span><div class="com-subs" style="margin:0" role="radiogroup">${Object.entries(COM_TIPO).map(([k, t]) => `<button type="button" data-catipo="${k}" aria-pressed="${o.tipo === k}">${t}</button>`).join('')}</div></div>
     <div class="fila" style="grid-template-columns:1fr 1fr" id="ca-fechas"></div>
     <div class="campo"><span class="et">Responsables</span><div class="casillas">${cp.integrantes.map(p => `<label class="casilla"><input type="checkbox" value="${esc(p.id)}"${(o.responsables || []).includes(p.id) ? ' checked' : ''}> ${esc(p.n)}</label>`).join('')}
-      <label class="casilla"><input type="checkbox" value="todos"${(o.responsables || []).includes('todos') ? ' checked' : ''}> Todo el colectivo</label></div>
+      <label class="casilla"><input type="checkbox" value="todos"${(o.responsables || []).includes('todos') ? ' checked' : ''}> Todo el colectivo</label>
+      ${(o.responsables || []).filter(x => /^txt:/.test(x)).map(x => `<label class="casilla"><input type="checkbox" value="${esc(x)}" checked> ${esc(x.slice(4))}</label>`).join('')}</div>
       <span class="ayuda">Les llega el aviso si la acción no se realiza en tiempo (a quienes tengan correo y avisos activos).</span></div>
     <div class="campo"><label for="ca-ev">Evidencia o indicador para evaluarla (opcional)</label><input id="ca-ev" maxlength="400" value="${esc(o.evidencia || '')}" placeholder="Ej. Listas de cotejo, fotos, registro de asistencia de familias"></div>
     ${a ? `<label class="casilla"><input type="checkbox" id="ca-can"${a.estado === 'cancelada' ? ' checked' : ''}> El colectivo decidió cancelar esta acción</label>` : ''}`,
@@ -481,6 +484,128 @@ function comFormImportar(cct) {
     const sinF = l.filter(x => x.tipo !== 'permanente' && !x.fin);
     if (sinF.length) return aviso(`Falta la fecha en ${sinF.length} acción${sinF.length > 1 ? 'es' : ''}. Póngala o déjela como permanente.`, 'mal', 5000);
     accion('cpaImportar', { cct, ciclo: COM.ciclo, acciones: l }, r => { r.cpa.forEach(x => poner(COM.cpa, x)); cerrarModal(); vComite(); aviso(`Se agregaron ${r.cpa.length} acciones. Asigne a sus responsables con el lápiz.`, 'ok', 6000); });
+  };
+}
+
+/* ---------------- Subir foto, PDF, Word o Excel: la IA lee y acomoda; la dirección revisa antes de guardar ---------------- */
+function comSubir(cct) {
+  let que = comCpe(cct) ? (comAcc(cct).length ? 'acciones' : 'pmc') : 'pmc';
+  const OP = [['pmc', 'El PMC completo', 'Integrantes, acciones con sus fechas y acuerdos del comité'], ['integrantes', 'La lista del comité', 'El acta de conformación o una lista con los integrantes'], ['acciones', 'Las acciones', 'La tabla de acciones, responsables y fechas']];
+  modal('Subir foto o archivo', `
+    <p class="peq" style="margin-top:0">Puede subir una o varias <b>fotos</b> (por ejemplo, cada hoja del PMC), un <b>PDF</b>, un <b>Word</b> o un <b>Excel</b>. Tequio lo lee con inteligencia artificial y le muestra lo que encontró para que lo revise y corrija antes de guardarlo.</p>
+    <div class="campo"><span class="et">¿Qué va a subir?</span><div class="com-semsel" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${OP.map(([k, t, d]) => `<button type="button" data-cmque="${k}" aria-pressed="${que === k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div></div>
+    <label class="boton terra" style="cursor:pointer;width:100%;justify-content:center">${ico('i-cam')}Elegir foto o archivo<input type="file" id="cs-arch" multiple accept="application/pdf,.pdf,.docx,.doc,.xlsx,.xls,.csv,.ods,image/*" style="display:none"></label>
+    <p class="ayuda" style="margin:8px 0 0">En el celular puede tomar la foto en ese momento. Procure buena luz y que se lea toda la hoja. No suba documentos con nombres de alumnos.</p>`,
+    '<button class="boton sec" id="cs-x">Cancelar</button>');
+  $$('[data-cmque]').forEach(b => b.onclick = () => { que = b.dataset.cmque; $$('[data-cmque]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $('#cs-x').onclick = cerrarModal;
+  $('#cs-arch').onchange = async e => {
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    cerrarModal(); cargando(true);
+    try {
+      const datos = await comPrepararArchivos(files);
+      aviso('Leyendo el documento con IA… puede tardar hasta un minuto.', '', 60000);
+      const r = await api('cpeLeer', Object.assign({ cct, ciclo: COM.ciclo, que }, datos));
+      $('#avisos') && ($('#avisos').innerHTML = '');
+      if (!(r.integrantes || []).length && !(r.acciones || []).length) throw new Error('No se encontraron integrantes ni acciones en el documento. Intente con una foto más clara o con otro archivo.');
+      comRevisarLeido(cct, r, datos.avisos);
+    } catch (er) { aviso(esc(/desconocida/i.test(er.message) ? 'El servidor de Tequio necesita actualizarse para leer documentos. Avise a la Supervisión.' : er.message), 'mal', 9000); }
+    finally { cargando(false); }
+  };
+}
+// Word y Excel se convierten a texto en el dispositivo; PDF y fotos van como archivo (las fotos se reducen)
+async function comPrepararArchivos(files) {
+  const textos = [], archivos = [], avisos = []; let peso = 0;
+  for (const f of files) {
+    const n = f.name.toLowerCase();
+    try {
+      if (f.size > 15 * 1024 * 1024) throw new Error('«' + f.name + '» pesa más de 15 MB.');
+      if (/\.(xlsx|xls|csv|ods)$/.test(n)) textos.push('ARCHIVO ' + f.name + '\n' + (await filasDeExcel(f)).map(r => r.join('\t')).join('\n'));
+      else if (/\.docx$/.test(n)) textos.push('ARCHIVO ' + f.name + '\n' + await textoDeWord(f));
+      else if (/\.doc$/.test(n)) throw new Error('«' + f.name + '» es un Word antiguo (.doc). Ábralo y guárdelo como .docx o PDF.');
+      else if (/\.pdf$/.test(n) || f.type === 'application/pdf') { archivos.push({ data: await blobAB64(f), tipo: 'application/pdf' }); peso += f.size; }
+      else if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/.test(n)) { const j = await fotoParaIA(f), b = j || f; archivos.push({ data: await blobAB64(b), tipo: j ? 'image/jpeg' : (f.type || 'image/heic') }); peso += b.size; }
+      else throw new Error('«' + f.name + '»: use PDF, Word (.docx), Excel o una foto.');
+    } catch (e) { avisos.push(e.message); }
+  }
+  if (peso > 18 * 1024 * 1024) throw new Error('Los archivos pesan demasiado juntos. Súbalos en partes.');
+  if (!textos.length && !archivos.length) throw new Error(avisos.join(' ') || 'No se pudo leer ningún archivo.');
+  return { texto: textos.join('\n\n').slice(0, 200000), archivos, avisos };
+}
+const comNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\b(mtr[oa]|profr?a?|lic|dra?|prof|maestr[oa])\b\.?/g, ' ').replace(/[^a-zñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+function comMismaPersona(a, b) {
+  const x = comNorm(a).split(' ').filter(w => w.length > 2), y = comNorm(b).split(' ').filter(w => w.length > 2);
+  if (!x.length || !y.length) return false;
+  const [c, l] = x.length <= y.length ? [x, y] : [y, x];
+  return c.filter(w => l.includes(w)).length >= Math.min(2, c.length);
+}
+// «Director», «Docentes», «Todo el colectivo», un nombre… → id del integrante, 'todos' o 'txt:texto'
+function comResolverResp(nombres, integ) {
+  const out = [];
+  (nombres || []).forEach(n => {
+    const t = comNorm(n);
+    if (!t) return;
+    if (/^(todos|todo el|colectivo|personal docente|docentes$|los docentes|todo el personal|comunidad escolar|cte)/.test(t) || t === 'docentes') { out.push('todos'); return; }
+    const p = integ.find(x => comMismaPersona(x.n, n)) || (/^(director|directora|direccion)$/.test(t) && integ.find(x => /director|encargad/i.test(x.cargo || ''))) || (/^subdirector/.test(t) && integ.find(x => /subdirector/i.test(x.cargo || '')));
+    out.push(p ? p.id : 'txt:' + String(n).trim().slice(0, 120));
+  });
+  return out.filter((x, i) => out.indexOf(x) === i);
+}
+function comRevisarLeido(cct, r, avisosArch) {
+  const cp = comCpe(cct), previos = cp ? cp.integrantes.map(x => Object.assign({}, x)) : [], per = comPersonal(cct);
+  const nuevos = (r.integrantes || []).filter(x => !previos.some(p => comMismaPersona(p.n, x.n))).map(x => {
+    const p = per.find(y => comMismaPersona(y.n, x.n));
+    return { id: uid('i'), n: x.n, cargo: COM_CARGOS.includes(x.cargo) ? x.cargo : (p ? comCargoDe(p.f) : 'Docente frente a grupo') || 'Docente frente a grupo', funcion: previos.some(y => y.funcion === 'coord') && x.funcion === 'coord' ? 'vocal' : x.funcion, correo: p ? p.correo : '', cel: p ? p.cel : '', trb: p ? p.id : '', alertas: true, usar: true };
+  });
+  const ya = comAcc(cct).map(a => comNorm(a.accion));
+  const acc = (r.acciones || []).map(a => Object.assign({}, a, { usar: !ya.includes(comNorm(a.accion)), repetida: ya.includes(comNorm(a.accion)), ambito: COM_AMB().includes(a.ambito) ? a.ambito : (COM_AMB().find(m => comNorm(m).startsWith(comNorm(a.ambito).slice(0, 12))) || a.ambito) }));
+  const g = r.datos || {}, gp = (cp && cp.datos) || {}, datosNuevos = ['fecha', 'sesion', 'seguimiento', 'fuentes', 'comunicacion'].filter(k => g[k] && !gp[k]);
+  const filaInt = (x, i) => `<div class="com-imp" data-ii="${i}"><input type="checkbox" data-k="usar"${x.usar ? ' checked' : ''} aria-label="Agregar" style="width:20px;height:20px;margin-top:10px">
+    <div class="op" style="margin:0"><input data-k="n" value="${esc(x.n)}" maxlength="140" style="flex:2 1 200px" aria-label="Nombre">
+      <select data-k="cargo" aria-label="Cargo">${COM_CARGOS.map(c => `<option${x.cargo === c ? ' selected' : ''}>${c}</option>`).join('')}</select>
+      <select data-k="funcion" aria-label="Función">${Object.entries(COM_FUN).map(([k, t]) => `<option value="${k}"${x.funcion === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      <input data-k="correo" type="email" value="${esc(x.correo)}" placeholder="Correo" style="flex:1 1 170px" aria-label="Correo"><input data-k="cel" value="${esc(x.cel)}" placeholder="Celular" inputmode="tel" style="width:120px" aria-label="Celular"></div></div>`;
+  const filaAcc = (a, i) => `<div class="com-imp" data-ai="${i}"><input type="checkbox" data-k="usar"${a.usar ? ' checked' : ''} aria-label="Agregar esta acción" style="width:20px;height:20px;margin-top:4px">
+    <div><textarea data-k="accion" maxlength="600" rows="2" style="width:100%;border:1px solid var(--borde);border-radius:8px;padding:6px 8px;font:inherit;font-weight:600" aria-label="Acción">${esc(a.accion)}</textarea>
+      <div class="ayuda">${a.repetida ? '<b>Ya está registrada.</b> ' : ''}${a.periodoTexto ? 'En el documento: «' + esc(a.periodoTexto) + '»' : ''}${(a.responsables || []).length ? ' · Responsables: ' + esc(a.responsables.join(', ')) : ''}${a.meta ? ' · Meta: ' + esc(a.meta) : ''}</div>
+      <div class="op"><select data-k="ambito" aria-label="Ámbito" style="max-width:100%"><option value="">Ámbito…</option>${COM_AMB().concat(a.ambito && !COM_AMB().includes(a.ambito) ? [a.ambito] : []).map(m => `<option${a.ambito === m ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select>
+        <select data-k="tipo" aria-label="Cuándo">${Object.entries(COM_TIPO).map(([k, t]) => `<option value="${k}"${a.tipo === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+        <input type="date" data-k="inicio" value="${esc(a.inicio)}" aria-label="Inicia"${a.tipo === 'periodo' ? '' : ' hidden'}>
+        <input type="date" data-k="fin" value="${esc(a.fin)}" aria-label="Fecha"${a.tipo === 'permanente' ? ' hidden' : ''}>
+        <select data-k="frecuencia" aria-label="Cada cuánto se evalúa"${a.tipo === 'permanente' ? '' : ' hidden'}>${Object.entries(COM_FREC).map(([k, v]) => `<option value="${k}"${a.frecuencia === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select></div></div></div>`;
+  modal('Revise lo que leyó Tequio', `
+    ${(avisosArch || []).length ? `<div class="aviso-caja peq">${avisosArch.map(esc).join('<br>')}</div>` : ''}
+    <p class="peq" style="margin-top:0">Corrija lo que haga falta y quite la palomita a lo que no quiera guardar. ${acc.some(a => a.tipo !== 'permanente' && !a.fin) ? '<b>Las acciones sin fecha deben llevarla o quedar como permanentes.</b>' : ''}</p>
+    ${nuevos.length ? `<div class="seccion-t" style="padding-left:0">Integrantes del comité (${nuevos.length}${previos.length ? ' nuevos' : ''})</div><div id="cr-int">${nuevos.map(filaInt).join('')}</div>` : (r.integrantes || []).length ? '<p class="peq mudo">Los integrantes que trae el documento ya estaban registrados.</p>' : ''}
+    ${datosNuevos.length ? `<div class="seccion-t" style="padding-left:0">Acuerdos del comité</div><label class="casilla"><input type="checkbox" id="cr-datos" checked> Guardar también: ${datosNuevos.map(k => ({ fecha: 'fecha de conformación', sesion: 'sesión', seguimiento: 'cuándo se reúne', fuentes: 'fuentes de información', comunicacion: 'cómo se informa a la comunidad' }[k])).join(', ')}</label>` : ''}
+    ${acc.length ? `<div class="seccion-t" style="padding-left:0">Acciones del PMC (${acc.length})</div><div id="cr-acc">${acc.map(filaAcc).join('')}</div>` : ''}
+    <p class="ayuda" style="margin-bottom:0">Los responsables se ligan a los integrantes del comité por su nombre; los que no coincidan quedan escritos tal como vienen y se pueden cambiar después con el lápiz.</p>`,
+    `<button class="boton sec" id="cr-x">Cancelar</button><button class="boton" id="cr-ok">Guardar lo marcado</button>`);
+  $$('#cr-acc [data-k="tipo"]').forEach(sl => sl.onchange = () => { const d = sl.closest('.com-imp'); d.querySelector('[data-k="inicio"]').hidden = sl.value !== 'periodo'; d.querySelector('[data-k="fin"]').hidden = sl.value === 'permanente'; d.querySelector('[data-k="frecuencia"]').hidden = sl.value !== 'permanente'; });
+  $('#cr-x').onclick = cerrarModal;
+  $('#cr-ok').onclick = async () => {
+    const v = (d, k) => d.querySelector(`[data-k="${k}"]`).value;
+    const ints = $$('#cr-int .com-imp').filter(d => d.querySelector('[data-k="usar"]').checked).map(d => Object.assign({}, nuevos[+d.dataset.ii], { n: v(d, 'n').trim(), cargo: v(d, 'cargo'), funcion: v(d, 'funcion'), correo: v(d, 'correo').trim(), cel: v(d, 'cel').replace(/\D/g, '').slice(-10) })).filter(x => x.n);
+    const accs = $$('#cr-acc .com-imp').filter(d => d.querySelector('[data-k="usar"]').checked).map(d => { const a = acc[+d.dataset.ai], tipo = v(d, 'tipo');
+      return { ambito: v(d, 'ambito'), objetivo: a.objetivo, meta: a.meta, accion: v(d, 'accion').trim(), evidencia: a.evidencia, tipo, inicio: tipo === 'unica' ? v(d, 'fin') : tipo === 'periodo' ? v(d, 'inicio') : (v(d, 'inicio') || comHoy()), fin: tipo === 'permanente' ? '' : v(d, 'fin'), frecuencia: v(d, 'frecuencia'), resp: a.responsables }; }).filter(a => a.accion);
+    if (!ints.length && !accs.length && !($('#cr-datos') && $('#cr-datos').checked)) return aviso('No marcó nada para guardar.', 'mal', 3500);
+    const sinF = accs.filter(a => (a.tipo !== 'permanente' && !a.fin) || (a.tipo === 'periodo' && !a.inicio));
+    if (sinF.length) return aviso(`Falta la fecha en ${sinF.length} acción${sinF.length > 1 ? 'es' : ''}. Póngala o déjela como permanente.`, 'mal', 6000);
+    if (ints.some(x => x.correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x.correo))) return aviso('Revise los correos: alguno no está bien escrito.', 'mal', 5000);
+    const todos = previos.concat(ints.map(x => { const o = Object.assign({}, x); delete o.usar; return o; }));
+    if (!todos.length && accs.length) return aviso('El documento no trae a los integrantes del comité. Regístrelos primero (a mano o subiendo el acta) y después suba las acciones.', 'mal', 8000);
+    cerrarModal(); cargando(true);
+    try {
+      if (ints.length || ($('#cr-datos') && $('#cr-datos').checked) || !cp) {
+        const datos = Object.assign({}, gp); if (datosNuevos.length) datosNuevos.forEach(k => { datos[k] = g[k]; });
+        const r1 = await api('cpeGuardar', { cct, ciclo: COM.ciclo, integrantes: todos, datos }); poner(COM.cpe, r1.cpe);
+      }
+      const integ = (comCpe(cct) || { integrantes: todos }).integrantes;
+      if (accs.length) { const r2 = await api('cpaImportar', { cct, ciclo: COM.ciclo, acciones: accs.map(a => { const o = Object.assign({}, a, { responsables: comResolverResp(a.resp, integ) }); delete o.resp; return o; }) }); r2.cpa.forEach(x => poner(COM.cpa, x)); }
+      vista.comSub = 'acciones'; vComite();
+      aviso(`Listo: ${ints.length ? ints.length + ' integrante' + (ints.length > 1 ? 's' : '') : ''}${ints.length && accs.length ? ' y ' : ''}${accs.length ? accs.length + ' accion' + (accs.length > 1 ? 'es' : '') : ''} guardado${ints.length + accs.length > 1 ? 's' : ''}.${integ.some(p => !p.correo) ? ' Agregue el correo de los integrantes que no lo tienen para que les lleguen los avisos.' : ''}`, 'ok', 7000);
+    } catch (e) { aviso(esc(e.message), 'mal', 9000); }
+    finally { cargando(false); }
   };
 }
 
@@ -573,6 +698,11 @@ ${cp && cp.datos && cp.datos.comunicacion ? `<h2>Comunicación de avances</h2><p
     cpaEvaluar: d => { const o = M.cpa.find(x => x.id === d.id); o.evals = (o.evals || []).concat([{ id: uid('e'), f: d.f || hoy(), sem: d.sem, ej: d.ej, nota: d.nota, evid: d.evid, porN: yo(), creado: ahora() }]).sort((a, b) => a.f.localeCompare(b.f));
       if (o.tipo !== 'permanente') o.estado = d.ej === 'si' && d.sem === 'v' ? 'realizada' : 'pendiente'; return { cpa: cl(o) }; },
     cpaEliminar: d => { const o = M.cpa.find(x => x.id === d.id); if (o) o.activo = false; return { ok: true }; },
+    cpeLeer: d => ({ integrantes: [{ n: 'Mtra. Laura Méndez Ruiz', cargo: 'Director(a)', funcion: 'coord' }, { n: 'Mtro. Ricardo Vega Ortiz', cargo: 'Docente frente a grupo', funcion: 'secre' }, { n: 'Mtra. Sofía Navarro León', cargo: 'Docente frente a grupo', funcion: 'vocal' }],
+      acciones: [{ ambito: COM_AMB()[0], objetivo: '', meta: 'Que el 80 % de los alumnos lea con fluidez al cierre del ciclo.', accion: 'Lectura diaria de 20 minutos en todos los grupos.', responsables: ['Docentes'], tipo: 'permanente', inicio: '', fin: '', frecuencia: 'mensual', evidencia: 'Registro de lectura', periodoTexto: 'Todo el ciclo escolar' },
+        { ambito: COM_AMB()[4], objetivo: '', meta: '', accion: 'Feria de lectura con madres y padres de familia.', responsables: ['Mtra. Sofía Navarro'], tipo: 'unica', inicio: dd(25), fin: dd(25), frecuencia: 'mensual', evidencia: 'Fotos y lista de asistencia', periodoTexto: 'Diciembre' },
+        { ambito: COM_AMB()[2], objetivo: '', meta: '', accion: 'Taller sobre evaluación formativa en CTE.', responsables: ['Director'], tipo: 'periodo', inicio: dd(40), fin: dd(70), frecuencia: 'mensual', evidencia: '', periodoTexto: 'Enero a febrero' }],
+      datos: { fecha: '', sesion: 'Fase intensiva del CTE', seguimiento: 'Cada mes, antes de la sesión de CTE', fuentes: '', comunicacion: '' } }),
     cpeAvisar: () => ({ mensaje: 'Demostración: en Tequio real se mandaría el aviso por correo a los integrantes del comité.' })
   });
 })();
