@@ -18,7 +18,7 @@ Este repositorio reúne las apps y páginas que desarrollan el **Mtro. Carlos Ga
 - Documentos institucionales: **logo de ISEP + logo de la Zona 050** (lema «Responsabilidad y superación»). Nunca los logos del Gobierno del Estado ni de la SE («Con el corazón por delante»). Excepción: los formatos de Recursos Financieros (ingresos propios) del Gobierno del Estado se dejan tal cual, con sus logos y textos originales.
 - Los formatos oficiales del PPIE no se modifican: deben quedar idénticos al oficial.
 - Títulos: «Mtro. Carlos Gabriel Ortega Gutiérrez» (nunca «Dr.»). Todos los directores y encargados de despacho van como **Mtro./Mtra.**
-- Logos, firma («Firma sin fondo.png») y sello de la supervisión («Sello_Supervision_ZE050_alta.png») están en el Google Drive de carlosog23@gmail.com; los logos de cada escuela, en `formatos-ppie/img/escuelas/` (por CCT) y en el Drive. No dejar documentos sin logo.
+- Logos, firma («Firma sin fondo.png») y sello de la supervisión («Sello_Supervision_ZE050_alta.png») están en el Google Drive de carlosog23@gmail.com, carpeta «Identidad Zona 050 (logos, firma y sello)», compartida como lectura con supervision050sep@gmail.com; los logos de cada escuela, en `formatos-ppie/img/escuelas/` (por CCT) y en el Drive. No dejar documentos sin logo.
 - Oficios de la Supervisión: tomar el número consecutivo que sigue en Tequio y guardar el oficio en el Drive.
 - Firma de autor («Camino de la costa», leyenda «Maestro») en las apps: archivos `firma-autor.svg` / `firma-autor-blanca.svg`. No va en Misioneros del Inglés, Control de Poker ni Red de apoyo.
 - Diseño: claro, profesional, cuidado en los detalles.
