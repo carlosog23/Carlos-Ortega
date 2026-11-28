@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compu-Tini: computadoras que vuelven a la vida · Zona Escolar 050</title>
+<meta name="description" content="Compu-Tini es el software de la Supervisión Escolar Zona 050 que rescata computadoras antiguas para que alumnos y maestros las vuelvan a usar, incluso sin internet.">
+<meta name="author" content="Supervisión Escolar Zona 050 (ISEP)">
+<meta name="theme-color" content="#0B2E4A">
+<meta property="og:title" content="Compu-Tini: computadoras que vuelven a la vida">
+<meta property="og:description" content="El software de la Zona Escolar 050 que convierte computadoras antiguas en herramientas para alumnos y maestros, también sin internet.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://carlosog23.github.io/Carlos-Ortega/zona050/proyectos/img/compu-tini/pantalla-alumno.jpg">
+<link rel="icon" type="image/png" href="../img/icono-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{--azul:#1798E8;--azul-d:#0E78BC;--marino:#0B2E4A;--tinta:#15222D;--gris:#5A6875;--cielo:#F1F7FC;--linea:#DCE6EE;--gis:#FFC93A;--naranja:#E8772E;--compu:#1F5AA8;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;--texto:"Figtree","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;font-family:var(--texto);font-size:18px;line-height:1.65;color:var(--tinta);background:#fff;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:var(--azul-d)}
+h1,h2,h3{font-family:var(--display);color:var(--marino);margin:0;text-wrap:balance}
+:focus-visible{outline:3px solid var(--gis);outline-offset:3px;border-radius:6px}
+.barra{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--linea)}
+.barra div{max-width:1100px;margin:0 auto;padding:0 22px;min-height:66px;display:flex;align-items:center;gap:14px}
+.marca{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--marino)}
+.marca img{width:40px;height:40px}
+.marca b{font-family:var(--display);font-weight:800;font-size:18px}
+.volver{margin-left:auto;font-weight:600;font-size:15px;text-decoration:none}
+
+.cabeza{background:linear-gradient(135deg,#0B2E4A 0%,#123E66 55%,#1F5AA8 100%);color:#DCE9F4;padding:52px 22px 0;overflow:hidden}
+.cabeza .caja{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:40px;align-items:end}
+.cabeza .txt{padding-bottom:52px}
+.sello{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.sello img{width:64px;height:64px;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.etiqueta{display:inline-block;background:var(--gis);color:var(--marino);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+.cabeza h1{color:#fff;font-size:clamp(34px,5vw,52px);font-weight:800;letter-spacing:-.025em;line-height:1.05;margin:0 0 14px}
+.cabeza p{font-size:19px;color:#C9DCEB;margin:0}
+.monitor{position:relative;margin-bottom:-6px}
+.monitor .pantalla{background:#0d1b28;border-radius:16px 16px 0 0;padding:12px 12px 0;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.monitor .pantalla img{border-radius:6px 6px 0 0;width:100%;aspect-ratio:16/9;object-fit:cover;object-position:top}
+
+.cifras{background:var(--cielo);border-bottom:1px solid var(--linea)}
+.cifras ul{max-width:1100px;margin:0 auto;padding:22px;list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.cifras b{display:block;font-family:var(--display);font-size:clamp(26px,3.4vw,36px);color:var(--compu);line-height:1.1}
+.cifras span{font-size:15.5px;color:var(--gris);line-height:1.35;display:block;margin-top:4px}
+
+article{max-width:1100px;margin:0 auto;padding:18px 22px 10px}
+.lectura{max-width:760px}
+article p{margin:0 0 18px}
+article h2{font-size:clamp(28px,3.6vw,38px);font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:48px 0 14px}
+article h3{font-size:22px;font-weight:800;line-height:1.15;margin:0 0 8px}
+.destacado{background:var(--cielo);border-left:5px solid var(--compu);border-radius:0 14px 14px 0;padding:18px 22px;margin:24px 0;font-size:19px;color:var(--marino)}
+.equipos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:22px 0}
+.equipos section{border:1px solid var(--linea);border-radius:14px;padding:16px 18px}
+.equipos p{font-size:16px;margin:0;color:#33424F}
+
+.cuenta{display:flex;align-items:center;gap:14px;margin:56px 0 6px}
+.cuenta .ico{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:28px}
+.cuenta h2{margin:0}
+.cuenta.alumno .ico{background:#FFE7D1}
+.cuenta.maestro .ico{background:#DCE9F7}
+.intro{font-size:19px;color:#33424F;max-width:760px}
+
+.bloque{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:34px;align-items:center;margin:34px 0}
+.bloque.inv{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+.bloque.inv figure{order:2}
+.bloque figure{margin:0}
+.bloque figure img,.ancho img{width:100%;border-radius:12px;border:1px solid var(--linea);box-shadow:0 10px 30px rgba(11,46,74,.12)}
+figcaption{font-size:14.5px;color:var(--gris);margin-top:8px}
+.bloque p{font-size:17.5px;margin:0 0 12px}
+.bloque ul{margin:0;padding-left:20px;font-size:17px}
+.bloque li{margin-bottom:6px}
+.ancho{margin:30px 0}
+.ancho figure{margin:0}
+
+.accesos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:22px 0}
+.accesos section{border:1px solid var(--linea);border-radius:14px;padding:16px 18px;background:#fff}
+.accesos h3{font-size:18px;margin-bottom:8px;color:var(--compu)}
+.accesos ul{margin:0;padding:0;list-style:none;font-size:16px}
+.accesos li{padding:5px 0;border-top:1px solid #EDF2F6}
+.accesos li:first-child{border-top:0}
+
+ol.pasos{list-style:none;padding:0;margin:20px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;counter-reset:p}
+ol.pasos li{counter-increment:p;background:var(--cielo);border-radius:14px;padding:18px 18px 18px 64px;position:relative;font-size:17px}
+ol.pasos li::before{content:counter(p);position:absolute;left:18px;top:16px;width:34px;height:34px;border-radius:50%;background:var(--compu);color:#fff;font-weight:700;display:grid;place-items:center;font-family:var(--display)}
+.cierre{background:var(--marino);color:#DCE9F4;border-radius:18px;padding:28px 30px;margin:40px 0 50px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.cierre p{margin:0;font-size:18px;flex:1 1 420px}
+.cierre a{background:var(--gis);color:var(--marino);font-weight:700;text-decoration:none;padding:12px 18px;border-radius:12px;white-space:nowrap}
+
+footer{background:var(--marino);color:#C9DCEB;text-align:center;font-size:15px;padding:30px 22px}
+footer b{color:#fff}
+footer a{color:#fff}
+
+@media (max-width:900px){
+  .cabeza .caja{grid-template-columns:1fr;gap:10px}
+  .cabeza .txt{padding-bottom:10px}
+  .cifras ul{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bloque,.bloque.inv{grid-template-columns:1fr;gap:16px}
+  .bloque.inv figure{order:0}
+  .accesos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .equipos,ol.pasos{grid-template-columns:1fr}
+}
+@media (max-width:520px){.accesos{grid-template-columns:1fr}.cifras ul{gap:14px}}
+</style>
+</head>
+<body>
+<header class="barra"><div><a class="marca" href="../"><img src="../img/zona050.png" alt=""><b>Zona Escolar 050</b></a><a class="volver" href="../#proyectos">← Proyectos de la zona</a></div></header>
+
+<div class="cabeza"><div class="caja">
+  <div class="txt">
+    <div class="sello"><img src="../img/compu-tini.svg" alt="Logo de Compu-Tini"><span class="etiqueta">Proyecto de la Supervisión</span></div>
+    <h1>Compu-Tini: computadoras que vuelven a la vida</h1>
+    <p>Las computadoras que las escuelas ya daban por perdidas se convierten otra vez en herramientas para aprender y para trabajar, aunque la escuela no tenga internet.</p>
+  </div>
+  <div class="monitor"><div class="pantalla"><img src="img/compu-tini/pantalla-alumno.jpg" alt="Pantalla de inicio del alumno en Compu-Tini, con botones de GCompris, Pintar, Matemáticas, Teclado, Biblioteca, Aprende a programar, Retos Zona 050, El camino del saber, Ajedrez y más"></div></div>
+</div></div>
+
+<section class="cifras" aria-label="Compu-Tini en cifras">
+  <ul>
+    <li><b>3 tipos</b><span>de equipo: Core 2 Duo, iMac de 2008 a 2012 e i5 de segunda generación</span></li>
+    <li><b>$0</b><span>en licencias: todo el software es libre</span></li>
+    <li><b>Sin internet</b><span>funciona en la red de la escuela, sin conexión</span></li>
+    <li><b>2 cuentas</b><span>una para el alumno y otra, con clave, para el maestro</span></li>
+  </ul>
+</section>
+
+<article>
+  <div class="lectura">
+    <h2>Por qué rescatar las computadoras</h2>
+    <p>En muchas escuelas hay computadoras guardadas porque ya no sirven como antes: tienen Windows 7, poca memoria o procesadores de hace más de diez años. Se volvieron lentas, ya no reciben actualizaciones y nadie se anima a usarlas.</p>
+    <p>La Mesa Técnica de la Supervisión desarrolló <b>Compu-Tini</b>: un sistema ligero (Linux Mint) con programas educativos en español, preparado para que esas mismas computadoras arranquen rápido y sean útiles otra vez en el aula. No hay que comprar equipo nuevo ni pagar licencias.</p>
+    <div class="destacado">Que funcione sin internet es lo más importante. Varias escuelas de la zona no tienen conexión o la tienen muy limitada: las computadoras se conectan solo para prepararlas y después trabajan en la red de la escuela.</div>
+  </div>
+
+  <div class="equipos">
+    <section><h3>Core 2 Duo</h3><p>Computadoras de escritorio de cualquier marca (Dell, HP y otras) con 2 GB de memoria y Windows 7.</p></section>
+    <section><h3>iMac</h3><p>Modelos de 2008 a 2012, que ya no reciben actualizaciones de Apple.</p></section>
+    <section><h3>i5 de 2.ª generación</h3><p>Equipos un poco más nuevos, con espacio para guardar también la Wikipedia en español.</p></section>
+  </div>
+
+  <!-- ================= ALUMNOS ================= -->
+  <div class="cuenta alumno"><span class="ico" aria-hidden="true">🎒</span><h2>Lo que pueden hacer los alumnos</h2></div>
+  <p class="intro">Al encender la computadora entra sola la cuenta <b>Alumno</b> con la pantalla de Compu-Tini: botones grandes, todo en español y ordenado por secciones.</p>
+
+  <div class="bloque">
+    <figure><img src="img/compu-tini/pantalla-alumno.jpg" alt="Pantalla de inicio de Compu-Tini con las secciones Aprender jugando y Sin internet" loading="lazy"><figcaption>La pantalla del alumno, tal como aparece al encender la computadora.</figcaption></figure>
+    <div>
+      <h3>Aprender jugando</h3>
+      <p>Programas educativos reconocidos, en español y sin anuncios:</p>
+      <ul>
+        <li><b>GCompris</b>: lectura, números, ciencias y más de cien actividades.</li>
+        <li><b>Pintar</b> con Tux Paint, <b>Matemáticas</b> con un juego de operaciones y <b>Teclado</b> para aprender a escribir.</li>
+        <li>Juegos de mente, sudoku, <b>geografía</b> de México y del mundo, <b>mecanografía</b> y un <b>planetario</b> para conocer el cielo.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="bloque inv">
+    <figure><img src="img/compu-tini/retos-lectura.jpg" alt="Reto de comprensión lectora: una carta a la directora y la pregunta ¿Quién escribe la carta?" loading="lazy"><figcaption>Un reto de comprensión lectora de 4.° grado.</figcaption></figure>
+    <div>
+      <h3>Retos Zona 050</h3>
+      <p>Práctica diaria de diez preguntas, según el grado del alumno: <b>cálculo mental, tablas de multiplicar, problemas, fracciones, ortografía y comprensión lectora</b>, con lecturas para cada grado.</p>
+      <p>El alumno escribe su nombre, su grado y su grupo, y su avance queda guardado para que el maestro lo revise.</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <figure><img src="img/compu-tini/programar.jpg" alt="Actividad Laberinto: el alumno arrastra bloques de avanzar para llevar el carrito a la meta" loading="lazy"><figcaption>Aprende a programar: el Laberinto, nivel 1.</figcaption></figure>
+    <div>
+      <h3>Aprende a programar</h3>
+      <p>Con bloques en español que se arrastran, los alumnos dan órdenes a la computadora: en el <b>Laberinto</b> llevan el carrito hasta la meta y con <b>la tortuga que dibuja</b> trazan figuras, estrellas y patrones.</p>
+      <p>Cada actividad tiene ocho niveles que se desbloquean al resolver el anterior. Se puede trabajar en parejas: uno arrastra los bloques y el otro explica qué hará el programa.</p>
+    </div>
+  </div>
+
+  <div class="bloque inv">
+    <figure><img src="img/compu-tini/ajedrez.jpg" alt="Tablero de ajedrez en una partida del alumno contra la computadora" loading="lazy"><figcaption>Partida contra la computadora en nivel medio.</figcaption></figure>
+    <div>
+      <h3>Ajedrez, también en red</h3>
+      <p>Los alumnos juegan contra la computadora (fácil, medio o difícil), con un compañero en la misma máquina o <b>con otra computadora de la escuela</b>, sin internet. También hay una sección para aprender cómo se mueve cada pieza.</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <figure><img src="img/compu-tini/camino-del-saber.jpg" alt="Pantalla de inicio de El camino del saber, con Tlami y los modos Aventura, Duelo en el salón y Reto del maestro" loading="lazy"><figcaption>El camino del saber, el juego de Tlamatini.</figcaption></figure>
+    <div>
+      <h3>El camino del saber</h3>
+      <p>Tlami acompaña a los alumnos en una <b>aventura</b> por cinco lugares de Baja California, con retos de su grado. El grupo completo puede jugar un <b>duelo por equipos</b> proyectado en el pizarrón.</p>
+    </div>
+  </div>
+
+  <div class="bloque inv">
+    <figure><img src="img/compu-tini/a-movernos.jpg" alt="Actividad ¡A movernos!: circuito de seis ejercicios con botón Empezar" loading="lazy"><figcaption>¡A movernos!, para Educación Física dentro del salón.</figcaption></figure>
+    <div>
+      <h3>Educación Física en el salón</h3>
+      <p>Para los días de lluvia o de frío: circuitos con tiempo, el dado del movimiento, Simón dice y ejercicios de relajación, por ciclo escolar y sin internet. Con conexión hay además pausas activas, bailes y yoga para niños.</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <figure><img src="img/compu-tini/pantalla-alumno-2.jpg" alt="Más secciones de la pantalla del alumno: Internet, Educación Física en el salón y Mis trabajos" loading="lazy"><figcaption>Más abajo: sitios de internet, Educación Física y Mis trabajos.</figcaption></figure>
+    <div>
+      <h3>Internet seguro y sus trabajos</h3>
+      <ul>
+        <li>Cuando hay conexión: YouTube en modo restringido, los libros de texto de la SEP, Khan Academy y una enciclopedia para niños.</li>
+        <li><b>Mis trabajos</b>: escribir textos y hacer presentaciones (como Word y PowerPoint) y una calculadora.</li>
+        <li>Al tocar <b>«Terminar y borrar todo»</b> la computadora queda limpia para el siguiente alumno. Los trabajos se imprimen o se guardan en una memoria USB.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= MAESTROS ================= -->
+  <div class="cuenta maestro"><span class="ico" aria-hidden="true">👩‍🏫</span><h2>Lo que puede hacer el maestro</h2></div>
+  <p class="intro">Con el botón <b>«Soy maestro»</b> se pasa a la cuenta Maestro, que se abre con una clave. Ahí el docente tiene sus plataformas, programas de oficina y las herramientas para acompañar a sus alumnos.</p>
+
+  <div class="ancho"><figure><img src="img/compu-tini/escritorio-maestro.jpg" alt="Fondo de escritorio de la cuenta Maestro con la identidad de la Zona Escolar 050, Tlamatini y Tequio" loading="lazy"><figcaption>El escritorio de la cuenta Maestro, con la imagen de la Zona Escolar 050.</figcaption></figure></div>
+
+  <div class="accesos">
+    <section><h3>Plataformas de la zona</h3><ul><li>Tlamatini</li><li>Tlamatini Aula</li><li>Misioneros del Inglés</li><li>RELweb</li></ul></section>
+    <section><h3>Trabajo en línea</h3><ul><li>Gmail y Drive</li><li>Classroom</li><li>Meet (videollamadas)</li><li>Asistente de inteligencia artificial</li></ul></section>
+    <section><h3>Oficina y PDF</h3><ul><li>Documentos (como Word)</li><li>Hojas de cálculo (como Excel)</li><li>Presentaciones (como PowerPoint)</li><li>Llenar, firmar, unir y ordenar PDF</li><li>Impresora de la dirección en red</li></ul></section>
+    <section><h3>Para la clase</h3><ul><li>La pantalla del alumno, para proyectarla</li><li>Biblioteca sin internet</li><li>Aprende a programar</li><li>Avance de los Retos</li><li>YouTube</li></ul></section>
+  </div>
+
+  <div class="bloque">
+    <figure><img src="img/compu-tini/tablero-maestro.jpg" alt="Entrada al tablero del maestro de Retos Zona 050, que pide la clave de la cuenta Maestro" loading="lazy"><figcaption>El tablero de los Retos se abre con la misma clave de la cuenta Maestro.</figcaption></figure>
+    <div>
+      <h3>El avance de sus alumnos</h3>
+      <p>En el tablero de <b>Retos Zona 050</b> el maestro ve cuántos alumnos practicaron, cuántos retos completaron, el porcentaje de aciertos por tema y quiénes <b>necesitan apoyo</b>. Así sabe qué reforzar en clase.</p>
+    </div>
+  </div>
+
+  <div class="bloque inv">
+    <figure><img src="img/compu-tini/biblioteca.jpg" alt="Biblioteca sin internet con Retos Zona 050, Aprende a programar, Ajedrez y Educación Física en el salón" loading="lazy"><figcaption>La biblioteca sin internet de cada computadora.</figcaption></figure>
+    <div>
+      <h3>La biblioteca de la escuela</h3>
+      <p>Una computadora de la escuela funciona como <b>servidor</b>: guarda los resultados de los retos, organiza el ajedrez en red y comparte con todas las demás:</p>
+      <ul>
+        <li>La <b>carpeta de la escuela</b>, donde el maestro deja videos, libros en PDF y audios para sus grupos.</li>
+        <li>Enciclopedia, diccionario y simulaciones de ciencias sin internet.</li>
+        <li>Kolibri: videos y ejercicios de Khan Academy en español, cuentos ilustrados y experimentos.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================= CÓMO LLEGA ================= -->
+  <div class="lectura">
+    <h2>Cómo llega a cada escuela</h2>
+    <p>La Supervisión prepara las computadoras sin costo para la escuela:</p>
+  </div>
+  <ol class="pasos">
+    <li>La escuela envía a la Supervisión el inventario de sus computadoras antiguas.</li>
+    <li>La Supervisión instala Compu-Tini en cada equipo, según su tipo.</li>
+    <li>Las computadoras regresan a la escuela: una para el maestro y las demás para los alumnos, conectadas en red.</li>
+  </ol>
+
+  <div class="cierre">
+    <p>Compu-Tini se presentó a los directivos en la tercera sesión del Consejo Técnico de Zona, con una computadora HP rescatada funcionando.</p>
+    <a href="../noticias/ctz-tercera-sesion-2026.html">Leer la nota →</a>
+  </div>
+</article>
+
+<footer><b>Supervisión Escolar Zona 050</b> · Primaria Federalizada · ISEP<br>Camalú, San Quintín, B.C. · «Responsabilidad y superación»<br><a href="../">Volver a la página de la zona</a></footer>
+</body>
+</html>
