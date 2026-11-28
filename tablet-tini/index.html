@@ -109,6 +109,30 @@ th{color:#0e5a66}
 input[type=text]{font-size:20px;padding:10px;border:2px solid #d9e2ea;border-radius:12px;width:100%}
 .msg{text-align:center;font-size:24px;font-weight:bold;min-height:34px;margin-top:8px}
 .msg.ok{color:#3aa655}.msg.bad{color:#e5533d}
+
+/* ajedrez */
+.cAj{background:#6b4a33;background:-webkit-linear-gradient(top,#80593d,#553926);background:linear-gradient(#80593d,#553926)}
+.aj{-webkit-box-align:start;-webkit-align-items:flex-start;align-items:flex-start}
+.tab{-webkit-flex:none;flex:none;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;border:6px solid #5a3c27;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin-right:16px;overflow:hidden}
+.cas{width:12.5%;height:12.5%;position:relative}
+.cas svg{position:absolute;left:6%;top:4%;width:88%;height:88%}
+.cla{background:#f0dcb4}.osc{background:#b5855a}
+.cas.sel{background:#f4d35e!important}
+.cas.ult{box-shadow:inset 0 0 0 999px rgba(255,214,0,.30)}
+.cas.jaque{background:#e5533d!important}
+.punto{position:absolute;left:37%;top:37%;width:26%;height:26%;border-radius:50%;background:rgba(14,90,102,.55)}
+.come{position:absolute;left:4%;top:4%;right:4%;bottom:4%;border-radius:50%;border:5px solid rgba(14,90,102,.55)}
+.cr,.cf{position:absolute;font-size:11px;color:rgba(60,40,20,.75);font-weight:bold}
+.cr{left:3px;top:2px}.cf{right:4px;bottom:1px}
+.lado{min-width:220px}
+.ajEst{font-size:22px;line-height:1.3}
+.ajJug{font-size:17px;margin-top:8px;color:#33424f}
+.fila-com{min-height:30px;margin-top:6px}
+.mini{display:inline-block;width:28px;height:28px}
+.velo{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:60;padding-top:20%}
+.velo .card{max-width:420px;margin:0 auto}
+.prom{width:76px;height:76px;margin:6px;border:3px solid #d9e2ea;border-radius:16px;background:#f0dcb4}
+@media (max-width:760px){.aj{display:block}.tab{margin:0 auto 12px}}
 /* bienvenida */
 #splash{position:fixed;left:0;top:0;right:0;bottom:0;z-index:50;background:#0b4a55;background:-webkit-radial-gradient(center,circle,#16909e,#0a3f49);background:radial-gradient(circle at center,#16909e,#0a3f49);color:#fff;text-align:center;-webkit-transition:opacity .5s;transition:opacity .5s;overflow:hidden}
 #splash .in{position:absolute;left:0;right:0;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%)}
@@ -210,6 +234,7 @@ function registrar(area, aciertos, total){
 
 /* navegación */
 function go(screen, arg, noPush){
+  if (typeof pararAJ === "function" && screen !== TableroAJ) pararAJ();
   if (current && !noPush) history.push(current);
   current = { s: screen, a: arg };
   window.scrollTo(0, 0);
@@ -240,6 +265,11 @@ var IC = {
   bc: '<svg viewBox="0 0 48 48"><circle cx="31" cy="15" r="8" fill="#ffd36b"/><path d="M3 30c5-4 9-4 14 0s9 4 14 0 9-4 14 0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M3 39c5-4 9-4 14 0s9 4 14 0 9-4 14 0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/></svg>',
   his: '<svg viewBox="0 0 48 48"><path d="M9 6v38" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="11" y="8" width="10" height="20" fill="#3aa655"/><rect x="21" y="8" width="10" height="20" fill="#fff"/><rect x="31" y="8" width="10" height="20" fill="#e5533d"/><circle cx="26" cy="18" r="3" fill="#8b5a2b"/></svg>',
   ing: '<svg viewBox="0 0 48 48"><path d="M6 8h36a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H20l-9 8v-8H6a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3z" fill="#fff"/><text x="24" y="27" font-size="15" font-weight="bold" text-anchor="middle" fill="#c8920c" font-family="Arial">Hi!</text></svg>',
+  aj: '<svg viewBox="0 0 45 45"><g fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"><path d="M14 36c0-7 2.5-10.5 7-14-3.5.5-6.5 2.5-9 .5 1-6.5 6.5-12 13-13l2.5-3.5 2 4.5c5.5 3.5 6.5 11 5.5 25.5z"/><path d="M10 40h25v-4.5H10z"/></g></svg>',
+  robot: '<svg viewBox="0 0 48 48"><rect x="9" y="14" width="30" height="22" rx="6" fill="#fff"/><circle cx="18" cy="25" r="3.5" fill="#2276bb"/><circle cx="30" cy="25" r="3.5" fill="#2276bb"/><path d="M24 14V7" stroke="#fff" stroke-width="3"/><circle cx="24" cy="6" r="3" fill="#ffd36b"/><rect x="17" y="38" width="14" height="5" rx="2" fill="#fff"/></svg>',
+  dos: '<svg viewBox="0 0 48 48"><circle cx="16" cy="15" r="7" fill="#fff"/><path d="M4 40c0-9 5-14 12-14s12 5 12 14z" fill="#fff"/><circle cx="33" cy="15" r="7" fill="#fff" opacity=".7"/><path d="M21 40c0-9 5-14 12-14s12 5 12 14z" fill="#fff" opacity=".7"/></svg>',
+  escuela: '<svg viewBox="0 0 48 48"><path d="M24 6L4 18h40z" fill="#fff"/><rect x="8" y="18" width="32" height="22" fill="#fff" opacity=".85"/><rect x="20" y="28" width="8" height="12" fill="#0a6670"/><rect x="12" y="22" width="6" height="5" fill="#0a6670"/><rect x="30" y="22" width="6" height="5" fill="#0a6670"/></svg>',
+  mundo: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18" fill="none" stroke="#fff" stroke-width="3.5"/><ellipse cx="24" cy="24" rx="8" ry="18" fill="none" stroke="#fff" stroke-width="3"/><path d="M6 24h36M9 15h30M9 33h30" stroke="#fff" stroke-width="3"/></svg>',
   tab: '<svg viewBox="0 0 48 48"><g fill="#fff"><rect x="5" y="5" width="11" height="11" rx="3"/><rect x="19" y="5" width="11" height="11" rx="3" opacity=".75"/><rect x="33" y="5" width="11" height="11" rx="3" opacity=".55"/><rect x="5" y="19" width="11" height="11" rx="3" opacity=".75"/><rect x="5" y="33" width="11" height="11" rx="3" opacity=".55"/></g><path d="M23 23l16 16M39 23L23 39" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>'
 };
 
@@ -368,6 +398,7 @@ function MenuGrado(){
     { id: "tBC", c: "cBC", i: IC.bc, t: "Mi Baja California", s: "Conoce tu estado", min: 3, f: function(){ go(Quiz, { area: "Mi Baja California", gen: banco(BAJACALIFORNIA) }); } },
     { id: "tHis", c: "cHis", i: IC.his, t: "Historia de México", s: "Fechas y personajes", min: 3, f: function(){ go(Quiz, { area: "Historia de México", gen: banco(HISTORIA) }); } },
     { id: "tIng", c: "cIng", i: IC.ing, t: "Inglés", s: "Palabras básicas", f: function(){ go(Quiz, { area: "Inglés", gen: banco(INGLES) }); } },
+    { id: "tAj", c: "cAj", i: IC.aj, t: "Ajedrez", s: "Contra la tablet o en línea", f: function(){ go(Ajedrez); } },
     { id: "tMem", c: "cMem", i: IC.mem, t: "Memorama", s: "Encuentra las parejas", f: function(){ go(Memorama); } },
     { id: "tPal", c: "cPal", i: IC.pal, t: "Adivina la palabra", s: "Letra por letra", f: function(){ go(Palabra); } },
     { id: "tRel", c: "cRel", i: IC.rel, t: "El reloj", s: "¿Qué hora es?", f: function(){ go(Quiz, { area: "Reloj", gen: genReloj }); } },
@@ -761,6 +792,460 @@ function Dibujo(){
   on("limpiar", function(){ ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, hh); });
 }
 
+/* ---------- ajedrez (motor propio en ES5, sin internet) ---------- */
+var AJ = (function(){
+  var FILAS = "abcdefgh";
+  function blanca(p){ return p !== "" && p === p.toUpperCase(); }
+  function colorDe(p){ return p === "" ? "" : (blanca(p) ? "w" : "b"); }
+  function nuevo(){
+    var b = [], ini = "rnbqkbnrpppppppp", i;
+    for (i = 0; i < 64; i++) b.push("");
+    for (i = 0; i < 16; i++){ b[i] = ini.charAt(i); b[63 - i] = ini.charAt(i).toUpperCase(); }
+    /* corrige orden de las blancas (la fila 1 va al revés) */
+    var f1 = "RNBQKBNR"; for (i = 0; i < 8; i++){ b[56 + i] = f1.charAt(i); b[48 + i] = "P"; }
+    return { b: b, t: "w", cr: "KQkq", ep: -1 };
+  }
+  function nombre(i){ return FILAS.charAt(i % 8) + (8 - Math.floor(i / 8)); }
+  function indice(s){ return (8 - parseInt(s.charAt(1), 10)) * 8 + FILAS.indexOf(s.charAt(0)); }
+  function dentro(r, f){ return r >= 0 && r < 8 && f >= 0 && f < 8; }
+  var CAB = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+  var REY = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  var DIAG = [[-1,-1],[-1,1],[1,-1],[1,1]], RECT = [[-1,0],[1,0],[0,-1],[0,1]];
+  function atacada(P, sq, por){
+    var b = P.b, r = Math.floor(sq / 8), f = sq % 8, i, rr, ff, p, d;
+    var w = por === "w";
+    /* peones */
+    rr = r + (w ? 1 : -1);
+    for (d = -1; d <= 1; d += 2){ ff = f + d; if (dentro(rr, ff)){ p = b[rr * 8 + ff]; if (p === (w ? "P" : "p")) return true; } }
+    for (i = 0; i < 8; i++){ rr = r + CAB[i][0]; ff = f + CAB[i][1]; if (dentro(rr, ff) && b[rr * 8 + ff] === (w ? "N" : "n")) return true; }
+    for (i = 0; i < 8; i++){ rr = r + REY[i][0]; ff = f + REY[i][1]; if (dentro(rr, ff) && b[rr * 8 + ff] === (w ? "K" : "k")) return true; }
+    function rayos(dirs, a, c){
+      for (var k = 0; k < dirs.length; k++){
+        var y = r + dirs[k][0], x = f + dirs[k][1];
+        while (dentro(y, x)){ var q = b[y * 8 + x]; if (q !== ""){ if (q === a || q === c) return true; break; } y += dirs[k][0]; x += dirs[k][1]; }
+      }
+      return false;
+    }
+    if (rayos(DIAG, w ? "B" : "b", w ? "Q" : "q")) return true;
+    if (rayos(RECT, w ? "R" : "r", w ? "Q" : "q")) return true;
+    return false;
+  }
+  function rey(P, c){ var k = c === "w" ? "K" : "k"; for (var i = 0; i < 64; i++) if (P.b[i] === k) return i; return -1; }
+  function enJaque(P, c){ var k = rey(P, c); return k >= 0 && atacada(P, k, c === "w" ? "b" : "w"); }
+  function pseudo(P){
+    var b = P.b, c = P.t, M = [], i, j, r, f, p, rr, ff, q;
+    function add(a, t, x){ M.push({ f: a, t: t, pr: x && x.pr || "", fl: x && x.fl || "", cap: b[t] !== "" || (x && x.fl === "e") }); }
+    for (i = 0; i < 64; i++){
+      p = b[i]; if (p === "" || colorDe(p) !== c) continue;
+      r = Math.floor(i / 8); f = i % 8;
+      var t = p.toLowerCase();
+      if (t === "p"){
+        var dir = c === "w" ? -1 : 1, ini = c === "w" ? 6 : 1, ult = c === "w" ? 0 : 7;
+        rr = r + dir;
+        if (dentro(rr, f) && b[rr * 8 + f] === ""){
+          if (rr === ult){ each(["q", "r", "b", "n"], function(x){ add(i, rr * 8 + f, { pr: x }); }); }
+          else { add(i, rr * 8 + f); if (r === ini && b[(r + 2 * dir) * 8 + f] === "") add(i, (r + 2 * dir) * 8 + f, { fl: "d" }); }
+        }
+        for (j = -1; j <= 1; j += 2){
+          ff = f + j; if (!dentro(rr, ff)) continue;
+          var s = rr * 8 + ff;
+          if (b[s] !== "" && colorDe(b[s]) !== c){ if (rr === ult){ (function(s2){ each(["q", "r", "b", "n"], function(x){ add(i, s2, { pr: x }); }); })(s); } else add(i, s); }
+          else if (s === P.ep) add(i, s, { fl: "e" });
+        }
+      } else if (t === "n" || t === "k"){
+        var L = t === "n" ? CAB : REY;
+        for (j = 0; j < 8; j++){ rr = r + L[j][0]; ff = f + L[j][1]; if (!dentro(rr, ff)) continue; q = b[rr * 8 + ff]; if (q === "" || colorDe(q) !== c) add(i, rr * 8 + ff); }
+        if (t === "k"){
+          var o = c === "w" ? "b" : "w", e = c === "w" ? 60 : 4;
+          if (i === e && !atacada(P, e, o)){
+            if (P.cr.indexOf(c === "w" ? "K" : "k") >= 0 && b[e + 1] === "" && b[e + 2] === "" && b[e + 3] === (c === "w" ? "R" : "r") && !atacada(P, e + 1, o) && !atacada(P, e + 2, o)) add(i, e + 2, { fl: "k" });
+            if (P.cr.indexOf(c === "w" ? "Q" : "q") >= 0 && b[e - 1] === "" && b[e - 2] === "" && b[e - 3] === "" && b[e - 4] === (c === "w" ? "R" : "r") && !atacada(P, e - 1, o) && !atacada(P, e - 2, o)) add(i, e - 2, { fl: "q" });
+          }
+        }
+      } else {
+        var dirs = t === "b" ? DIAG : t === "r" ? RECT : DIAG.concat(RECT);
+        for (j = 0; j < dirs.length; j++){
+          rr = r + dirs[j][0]; ff = f + dirs[j][1];
+          while (dentro(rr, ff)){ q = b[rr * 8 + ff]; if (q === ""){ add(i, rr * 8 + ff); } else { if (colorDe(q) !== c) add(i, rr * 8 + ff); break; } rr += dirs[j][0]; ff += dirs[j][1]; }
+        }
+      }
+    }
+    return M;
+  }
+  function aplicar(P, m){
+    var b = P.b.slice(), c = P.t, p = b[m.f];
+    b[m.t] = m.pr ? (c === "w" ? m.pr.toUpperCase() : m.pr) : p; b[m.f] = "";
+    if (m.fl === "e") b[m.t + (c === "w" ? 8 : -8)] = "";
+    if (m.fl === "k"){ b[m.t - 1] = b[m.t + 1]; b[m.t + 1] = ""; }
+    if (m.fl === "q"){ b[m.t + 1] = b[m.t - 2]; b[m.t - 2] = ""; }
+    var cr = P.cr;
+    function quita(x){ cr = cr.replace(x, ""); }
+    if (p === "K"){ quita("K"); quita("Q"); } if (p === "k"){ quita("k"); quita("q"); }
+    if (m.f === 63 || m.t === 63) quita("K"); if (m.f === 56 || m.t === 56) quita("Q");
+    if (m.f === 7 || m.t === 7) quita("k"); if (m.f === 0 || m.t === 0) quita("q");
+    return { b: b, t: c === "w" ? "b" : "w", cr: cr, ep: m.fl === "d" ? (m.f + m.t) / 2 : -1 };
+  }
+  function legales(P){ var R = [], M = pseudo(P), c = P.t; for (var i = 0; i < M.length; i++){ if (!enJaque(aplicar(P, M[i]), c)) R.push(M[i]); } return R; }
+  function soloReyes(P){ for (var i = 0; i < 64; i++){ var p = P.b[i].toLowerCase(); if (p !== "" && p !== "k" && p !== "b" && p !== "n") return false; } var n = 0; for (i = 0; i < 64; i++){ var q = P.b[i].toLowerCase(); if (q === "b" || q === "n") n++; } return n <= 1; }
+  function estado(P){
+    var L = legales(P);
+    if (!L.length) return enJaque(P, P.t) ? "mate" : "ahogado";
+    if (soloReyes(P)) return "tablas";
+    return "";
+  }
+  /* evaluación: material + posición */
+  var VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+  var CENTRO = [0,1,2,3,3,2,1,0];
+  function evalua(P){
+    var s = 0, b = P.b;
+    for (var i = 0; i < 64; i++){
+      var p = b[i]; if (p === "") continue;
+      var t = p.toLowerCase(), w = p !== t, r = Math.floor(i / 8), f = i % 8, v = VAL[t];
+      if (t === "p") v += (w ? (6 - r) : (r - 1)) * 8 + (f >= 2 && f <= 5 ? 6 : 0);
+      else if (t === "n" || t === "b") v += (CENTRO[r] + CENTRO[f]) * 5;
+      else if (t === "q") v += (CENTRO[r] + CENTRO[f]) * 2;
+      s += w ? v : -v;
+    }
+    return s;
+  }
+  function busca(P, prof, a, be){
+    var c = P.t === "w" ? 1 : -1;
+    if (prof === 0) return c * evalua(P);
+    var M = pseudo(P), hubo = false;
+    M.sort(function(x, y){ return (y.cap ? 1 : 0) - (x.cap ? 1 : 0); });
+    for (var i = 0; i < M.length; i++){
+      var N = aplicar(P, M[i]);
+      if (enJaque(N, P.t)) continue;
+      hubo = true;
+      var v = -busca(N, prof - 1, -be, -a);
+      if (v > a) a = v;
+      if (a >= be) break;
+    }
+    if (!hubo) return enJaque(P, P.t) ? -99999 - prof : 0;
+    return a;
+  }
+  function jugadaTablet(P, nivel){
+    var L = legales(P); if (!L.length) return null;
+    if (nivel === 1 && Math.random() < 0.45) return pick(L);
+    var prof = nivel === 1 ? 1 : nivel === 2 ? 2 : 3, mejor = [], mv = -Infinity;
+    for (var i = 0; i < L.length; i++){
+      var v = -busca(aplicar(P, L[i]), prof - 1, -Infinity, Infinity) + (Math.random() * 8 - 4);
+      if (v > mv){ mv = v; mejor = [L[i]]; } else if (v === mv) mejor.push(L[i]);
+    }
+    return pick(mejor);
+  }
+  function uci(m){ return nombre(m.f) + nombre(m.t) + (m.pr || ""); }
+  function desdeUci(P, u){
+    var f = indice(u.substr(0, 2)), t = indice(u.substr(2, 2)), pr = u.charAt(4) || "", L = legales(P);
+    for (var i = 0; i < L.length; i++) if (L[i].f === f && L[i].t === t && (L[i].pr || "") === pr) return L[i];
+    return null;
+  }
+  return { nuevo: nuevo, legales: legales, aplicar: aplicar, estado: estado, enJaque: enJaque, rey: rey, jugadaTablet: jugadaTablet, uci: uci, desdeUci: desdeUci, colorDe: colorDe };
+})();
+
+/* piezas dibujadas (SVG) */
+function piezaSVG(p){
+  var w = p === p.toUpperCase(), t = p.toLowerCase();
+  var rel = w ? "#ffffff" : "#2b3640", lin = w ? "#1d2b36" : "#0b1218", det = w ? "#1d2b36" : "#e9eef2";
+  var base = '<path d="M10 40h25v-4.5H10z"/>';
+  var cuerpo = {
+    p: '<circle cx="22.5" cy="14" r="6.5"/><path d="M14.5 36c0-8 3.5-13 8-15.5 4.5 2.5 8 7.5 8 15.5z"/>',
+    r: '<path d="M12.5 15V8.5h4.5v3.5h3.5V8.5h4v3.5h3.5V8.5h4.5V15z"/><path d="M15 15h15l1.5 21h-18z"/>',
+    n: '<path d="M14 36c0-7 2.5-10.5 7-14-3.5.5-6.5 2.5-9 .5 1-6.5 6.5-12 13-13l2.5-3.5 2 4.5c5.5 3.5 6.5 11 5.5 25.5z"/><circle cx="19.5" cy="15" r="1.4" fill="' + det + '" stroke="none"/>',
+    b: '<circle cx="22.5" cy="7.5" r="2.8"/><path d="M22.5 10.5c-5 3-7.5 7.5-6.5 12.5 1 3 3.5 4.5 6.5 4.5s5.5-1.5 6.5-4.5c1-5-1.5-9.5-6.5-12.5z"/><path d="M15 36c0-5 3-8 7.5-9 4.5 1 7.5 4 7.5 9z"/><path d="M20 19l5-5" stroke="' + det + '" fill="none"/>',
+    q: '<path d="M12 36l-3-21 6.5 9.5 2.5-13 5 12 5-12 2.5 13 6.5-9.5-3 21z"/><circle cx="9" cy="13.5" r="2.4"/><circle cx="18" cy="9.5" r="2.4"/><circle cx="27" cy="9.5" r="2.4"/><circle cx="36" cy="13.5" r="2.4"/>',
+    k: '<path d="M22.5 3.5v9M18.5 7.5h8" fill="none"/><path d="M13.5 36c-4-6-6-15 1.5-17 3.5-1 6.5 2 7.5 5.5 1-3.5 4-6.5 7.5-5.5 7.5 2 5.5 11 1.5 17z"/>'
+  };
+  return '<svg viewBox="0 0 45 45" width="100%" height="100%"><g fill="' + rel + '" stroke="' + lin + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">' + cuerpo[t] + base + '</g></svg>';
+}
+
+/* conexión para jugar en línea: red de la escuela (Compu-Tini) o la zona (internet) */
+var AJ_ZONA_URL = ""; /* dirección del servidor de ajedrez de la zona (Google Apps Script); se configura en Modo maestro */
+function ajx(metodo, url, datos, cb){
+  try {
+    var x = new XMLHttpRequest();
+    x.open(metodo, url, true);
+    x.timeout = 8000;
+    x.onreadystatechange = function(){ if (x.readyState !== 4) return; var r = null; try { r = JSON.parse(x.responseText); } catch(e){} cb(r); };
+    x.ontimeout = function(){ cb(null); };
+    if (datos){ x.setRequestHeader("Content-Type", "text/plain;charset=utf-8"); x.send(JSON.stringify(datos)); } else x.send();
+  } catch(e){ cb(null); }
+}
+function enc(o){ var s = []; for (var k in o) if (o.hasOwnProperty(k)) s.push(k + "=" + encodeURIComponent(o[k])); return s.join("&"); }
+function conexion(tipo, base){
+  if (tipo === "zona"){
+    var g = function(o, cb){ ajx("GET", base + (base.indexOf("?") >= 0 ? "&" : "?") + enc(o) + "&_=" + new Date().getTime(), null, cb); };
+    return {
+      ping: function(cb){ g({ a: "ping" }, cb); },
+      listar: function(cb){ g({ a: "salas" }, cb); },
+      crear: function(n, cb){ g({ a: "crear", jugador: n }, cb); },
+      unirse: function(id, n, cb){ g({ a: "unirse", id: id, jugador: n }, cb); },
+      ver: function(id, cb){ g({ a: "sala", id: id }, cb); },
+      mover: function(id, tok, mov, num, res, cb){ g({ a: "mover", id: id, token: tok, mov: mov, num: num, resultado: res }, cb); },
+      fin: function(id, tok, res, cb){ g({ a: "fin", id: id, token: tok, resultado: res }, cb); }
+    };
+  }
+  return {
+    ping: function(cb){ ajx("GET", base + "/api/ping", null, cb); },
+    listar: function(cb){ ajx("GET", base + "/api/salas", null, cb); },
+    crear: function(n, cb){ ajx("POST", base + "/api/salas", { jugador: n }, cb); },
+    unirse: function(id, n, cb){ ajx("POST", base + "/api/salas/" + id + "/unirse", { jugador: n }, cb); },
+    ver: function(id, cb){ ajx("GET", base + "/api/salas/" + id, null, cb); },
+    mover: function(id, tok, mov, num, res, cb){ ajx("POST", base + "/api/salas/" + id + "/mover", { token: tok, mov: mov, num: num, resultado: res }, cb); },
+    fin: function(id, tok, res, cb){ ajx("POST", base + "/api/salas/" + id + "/fin", { token: tok, resultado: res }, cb); }
+  };
+}
+var ESCUELAS_ZONA = ["Belisario Domínguez", "Josefa Ortiz de Domínguez", "Niños Héroes", "13 de Septiembre", "Pte. Adolfo López Mateos", "Emiliano Zapata", "Margarita Maza de Juárez", "Maximino Virgen Flores", "José Vasconcelos", "James S. Yglesias", "Luis Donaldo Colosio Murrieta", "Narciso Mendoza", "Ignacio Allende", "José Ma. Pino Suárez"];
+
+var juegoAJ = null, sondeoAJ = null;
+function pararAJ(){ if (sondeoAJ){ clearTimeout(sondeoAJ); sondeoAJ = null; } juegoAJ = null; }
+
+function Ajedrez(){
+  pararAJ();
+  setTitle("Ajedrez");
+  el('<div class="hola" style="background:#3b2f2a;background:-webkit-linear-gradient(left,#4a3a30,#7a5a3c);background:linear-gradient(to right,#4a3a30,#7a5a3c)">' + burbujas() + '<h2>Ajedrez</h2><p>Piensa antes de mover. ¡Gana quien atrapa al rey!</p></div>' +
+    '<div class="tiles flex wrap">' +
+    '<button class="tile cuatro cMat" id="aj1">' + IC.robot + 'Contra la tablet<small>Elige el nivel</small></button>' +
+    '<button class="tile cuatro cOrt" id="aj2">' + IC.dos + 'Dos jugadores<small>En esta misma tablet</small></button>' +
+    '<button class="tile cuatro cBC" id="aj3">' + IC.escuela + 'En mi escuela<small>Con otra tablet o computadora</small></button>' +
+    '<button class="tile cuatro cRel" id="aj4">' + IC.mundo + 'En la zona<small>Con niños de otras escuelas</small></button>' +
+    '<button class="tile cuatro cIng" id="aj5">' + IC.aj + 'Aprende<small>Cómo se mueve cada pieza</small></button>' +
+    '</div>');
+  on("aj1", function(){ go(NivelAJ); });
+  on("aj2", function(){ go(TableroAJ, { modo: "dos" }); });
+  on("aj3", function(){ go(LobbyAJ, { tipo: "escuela" }); });
+  on("aj4", function(){ go(LobbyAJ, { tipo: "zona" }); });
+  on("aj5", function(){ go(AprendeAJ); });
+}
+function NivelAJ(){
+  setTitle("Ajedrez", "Contra la tablet");
+  el('<h2>¿Qué tan difícil?</h2><div class="tiles flex wrap">' +
+    '<button class="tile g4" data-n="1"><span class="num">1</span>Fácil<small>Para empezar</small></button>' +
+    '<button class="tile g2" data-n="2"><span class="num">2</span>Medio<small>Ya sé jugar</small></button>' +
+    '<button class="tile g1" data-n="3"><span class="num">3</span>Difícil<small>¡Reto!</small></button></div>' +
+    '<h2 style="margin-top:16px">¿Con qué piezas juegas?</h2><div class="flex"><button class="btn" id="cB">Blancas (empiezo yo)</button><button class="btn alt" id="cN">Negras</button></div>');
+  var nivel = 1, color = "w";
+  each($main.querySelectorAll("[data-n]"), function(b){ b.onclick = function(){ nivel = parseInt(b.getAttribute("data-n"), 10); go(TableroAJ, { modo: "tablet", nivel: nivel, yo: color }); }; });
+  on("cB", function(){ color = "w"; document.getElementById("cB").className = "btn"; document.getElementById("cN").className = "btn alt"; });
+  on("cN", function(){ color = "b"; document.getElementById("cN").className = "btn"; document.getElementById("cB").className = "btn alt"; });
+}
+
+function TableroAJ(op){
+  pararAJ();
+  var J = juegoAJ = { P: AJ.nuevo(), sel: -1, ult: null, fin: "", modo: op.modo, nivel: op.nivel || 1, yo: op.yo || op.color || "w", hist: [], comidas: { w: [], b: [] }, sala: op.sala || null, token: op.token || "", con: op.con || null, pensando: false, nom: op.nom || "" };
+  var gira = (J.modo === "tablet" || J.modo === "red") && J.yo === "b";
+  setTitle("Ajedrez", J.modo === "tablet" ? "Contra la tablet · nivel " + J.nivel : J.modo === "dos" ? "Dos jugadores" : "Partida en línea");
+  el('<div class="aj flex"><div id="tab" class="tab"></div><div class="lado grow"><div class="card" style="padding:14px"><div id="ajEst" class="ajEst"></div><div id="ajJug" class="ajJug"></div><div id="ajCom" class="ajCom"></div></div>' +
+    '<div id="ajBot"></div></div></div>');
+  function botones(){
+    var h = "";
+    if (J.modo !== "red") h += '<button class="btn alt" id="ajDes">↶ Regresar jugada</button>';
+    if (J.modo === "red" && !J.fin) h += '<button class="btn alt" id="ajRin">Rendirme</button>';
+    h += '<button class="btn" id="ajNue">' + (J.modo === "red" ? "Salir" : "Nueva partida") + '</button><button class="btn alt" id="ajGir">⇅ Girar</button>';
+    document.getElementById("ajBot").innerHTML = h;
+    on("ajDes", function(){
+      if (J.pensando || !J.hist.length) return;
+      var n = (J.modo === "tablet" && J.P.t === J.yo) ? Math.min(2, J.hist.length) : 1;
+      for (var i = 0; i < n; i++){ var h0 = J.hist.pop(); J.P = h0.P; J.comidas = h0.c; }
+      J.ult = J.hist.length ? J.hist[J.hist.length - 1].m : null; J.fin = ""; J.sel = -1; pinta();
+    });
+    on("ajRin", function(){
+      var b = document.getElementById("ajRin");
+      if (b.getAttribute("data-c") !== "1"){ b.setAttribute("data-c", "1"); b.innerHTML = "¿Seguro? Toca otra vez"; return; }
+      J.con.fin(J.sala.id, J.token, "", function(s){ if (s && !s.error){ J.sala = s; J.fin = s.resultado || "Partida terminada"; pinta(); } });
+    });
+    on("ajNue", function(){ if (J.modo === "red"){ pararAJ(); back(); } else { current = null; go(TableroAJ, op, true); } });
+    on("ajGir", function(){ gira = !gira; pinta(); });
+  }
+  function textoFin(e, quien){
+    if (e === "mate") return "¡Jaque mate! Ganan las " + (quien === "w" ? "blancas" : "negras");
+    if (e === "ahogado") return "Empate: rey ahogado";
+    if (e === "tablas") return "Empate: no hay piezas para dar mate";
+    return "";
+  }
+  function pinta(){
+    var P = J.P, L = J.fin ? [] : AJ.legales(P), destinos = {}, i;
+    if (J.sel >= 0) for (i = 0; i < L.length; i++) if (L[i].f === J.sel) destinos[L[i].t] = L[i].cap ? 2 : 1;
+    var jq = AJ.enJaque(P, P.t) ? AJ.rey(P, P.t) : -1, h = "";
+    for (var k = 0; k < 64; k++){
+      var sq = gira ? 63 - k : k, r = Math.floor(sq / 8), f = sq % 8, p = P.b[sq];
+      var cls = "cas " + ((r + f) % 2 ? "osc" : "cla");
+      if (sq === J.sel) cls += " sel";
+      if (J.ult && (sq === J.ult.f || sq === J.ult.t)) cls += " ult";
+      if (sq === jq) cls += " jaque";
+      h += '<div class="' + cls + '" data-s="' + sq + '">' + (p ? piezaSVG(p) : "") + (destinos[sq] ? '<i class="' + (destinos[sq] === 2 ? "come" : "punto") + '"></i>' : "") +
+        ((gira ? f === 7 : f === 0) ? '<b class="cr">' + (8 - r) + '</b>' : "") + ((gira ? r === 0 : r === 7) ? '<b class="cf">' + "abcdefgh".charAt(f) + '</b>' : "") + '</div>';
+    }
+    var tab = document.getElementById("tab"); if (!tab) return;
+    var lado = Math.max(260, Math.min(window.innerHeight - 96, (window.innerWidth > window.innerHeight ? $main.clientWidth * 0.62 : $main.clientWidth - 36)));
+    tab.style.width = lado + "px"; tab.style.height = lado + "px";
+    tab.innerHTML = h;
+    each(tab.querySelectorAll(".cas"), function(c){ c.onclick = function(){ toca(parseInt(c.getAttribute("data-s"), 10)); }; });
+    var est = document.getElementById("ajEst"), turno = P.t === "w" ? "blancas" : "negras";
+    if (J.fin) est.innerHTML = '<b style="color:#3aa655">' + esc(J.fin) + '</b>';
+    else if (J.modo === "red" && J.sala && J.sala.estado === "esperando") est.innerHTML = "Esperando a que alguien se una…";
+    else if (J.pensando) est.innerHTML = "La tablet está pensando…";
+    else if (J.modo === "dos") est.innerHTML = "Turno de las <b>" + turno + "</b>" + (jq >= 0 ? ' · <span style="color:#e5533d">¡Jaque!</span>' : "");
+    else est.innerHTML = (P.t === J.yo ? "<b>¡Te toca!</b>" : "Turno del rival") + (jq >= 0 ? ' · <span style="color:#e5533d">¡Jaque!</span>' : "");
+    var jug = "";
+    if (J.modo === "red" && J.sala) jug = "♔ " + esc(J.sala.blancas || "…") + "<br>♚ " + esc(J.sala.negras || "esperando rival");
+    else if (J.modo === "tablet") jug = "Tú juegas con las <b>" + (J.yo === "w" ? "blancas" : "negras") + "</b>";
+    document.getElementById("ajJug").innerHTML = jug;
+    var cm = "";
+    each(["w", "b"], function(c){ cm += '<div class="fila-com">'; each(J.comidas[c], function(p){ cm += '<span class="mini">' + piezaSVG(p) + '</span>'; }); cm += '</div>'; });
+    document.getElementById("ajCom").innerHTML = cm;
+    botones();
+  }
+  function registraJugada(m){
+    J.hist.push({ P: J.P, m: J.ult, c: { w: J.comidas.w.slice(), b: J.comidas.b.slice() } });
+    var capt = m.fl === "e" ? (J.P.t === "w" ? "p" : "P") : J.P.b[m.t];
+    if (capt) J.comidas[J.P.t].push(capt);
+    var quien = J.P.t;
+    J.P = AJ.aplicar(J.P, m); J.ult = m; J.sel = -1;
+    var e = AJ.estado(J.P);
+    if (e){
+      J.fin = textoFin(e, quien);
+      if (e === "mate" && (J.modo === "dos" || quien === J.yo)){ confeti(); beep(true); }
+      if (J.modo === "tablet") registrar("Ajedrez", e === "mate" && quien === J.yo ? 1 : 0, 1);
+    }
+    return e;
+  }
+  function toca(sq){
+    if (J.fin || J.pensando) return;
+    var P = J.P;
+    if ((J.modo === "tablet" || J.modo === "red") && P.t !== J.yo) return;
+    if (J.modo === "red" && J.sala && J.sala.estado !== "jugando") return;
+    if (J.sel >= 0){
+      var L = AJ.legales(P), cand = [];
+      for (var i = 0; i < L.length; i++) if (L[i].f === J.sel && L[i].t === sq) cand.push(L[i]);
+      if (cand.length){
+        if (cand.length > 1) return promueve(cand);
+        return hacer(cand[0]);
+      }
+    }
+    J.sel = (P.b[sq] && AJ.colorDe(P.b[sq]) === P.t && J.sel !== sq) ? sq : -1;
+    pinta();
+  }
+  function promueve(cand){
+    var c = J.P.t, h = '<div class="card" style="text-align:center"><b>¿En qué se convierte tu peón?</b><div class="flex center" style="margin-top:10px">';
+    each(cand, function(m, i){ h += '<button class="prom" data-i="' + i + '">' + piezaSVG(c === "w" ? m.pr.toUpperCase() : m.pr) + '</button>'; });
+    var v = document.createElement("div"); v.className = "velo"; v.innerHTML = h + '</div></div>';
+    document.body.appendChild(v);
+    each(v.querySelectorAll(".prom"), function(b){ b.onclick = function(){ document.body.removeChild(v); hacer(cand[parseInt(b.getAttribute("data-i"), 10)]); }; });
+  }
+  function hacer(m){
+    var e = registraJugada(m);
+    beep(true); pinta();
+    if (J.modo === "tablet" && !e){
+      J.pensando = true; pinta();
+      setTimeout(function(){
+        if (juegoAJ !== J) return;
+        var r = AJ.jugadaTablet(J.P, J.nivel); J.pensando = false;
+        if (r) registraJugada(r);
+        pinta();
+      }, 350);
+    }
+    if (J.modo === "red"){
+      J.con.mover(J.sala.id, J.token, AJ.uci(m), J.hist.length - 1, J.fin, function(s){
+        if (!s || s.error){ var h0 = J.hist.pop(); J.P = h0.P; J.comidas = h0.c; J.ult = h0.m; J.fin = ""; pinta(); alert((s && s.error) || "No hay conexión. Intenta otra vez."); }
+        else { J.sala = s; }
+      });
+    }
+  }
+  function sondea(){
+    if (juegoAJ !== J || J.modo !== "red") return;
+    J.con.ver(J.sala.id, function(s){
+      if (juegoAJ !== J) return;
+      if (s && !s.error){
+        var cambio = s.v !== J.sala.v; J.sala = s;
+        while (s.movs.length > J.hist.length){ var m = AJ.desdeUci(J.P, s.movs[J.hist.length]); if (!m) break; registraJugada(m); cambio = true; }
+        if (s.estado === "terminada" && !J.fin){ J.fin = s.resultado || "Partida terminada"; cambio = true; }
+        if (cambio) pinta();
+      }
+      if (juegoAJ === J && !J.fin) sondeoAJ = setTimeout(sondea, J.con.lento ? 3000 : 1200);
+    });
+  }
+  pinta();
+  if (J.modo === "tablet" && J.yo === "b"){ J.pensando = true; pinta(); setTimeout(function(){ var r = AJ.jugadaTablet(J.P, J.nivel); J.pensando = false; if (r) registraJugada(r); pinta(); }, 400); }
+  if (J.modo === "red") sondea();
+}
+
+function LobbyAJ(op){
+  pararAJ();
+  var tipo = op.tipo, zona = tipo === "zona";
+  setTitle("Ajedrez", zona ? "En la zona" : "En mi escuela");
+  el('<div class="card"><p class="big" style="font-size:22px">Buscando el servidor…</p></div>');
+  var lista = zona ? [store.get("ajZona", AJ_ZONA_URL)] : [store.get("ajEscuela", ""), "http://aula-servidor.local:8050", "http://aula-servidor:8050", "http://aula-servidor.lan:8050"];
+  var bases = []; each(lista, function(b){ if (b && bases.indexOf(b) < 0) bases.push(b); });
+  if (!bases.length) return sinServidor();
+  var i = 0;
+  (function prueba(){
+    if (i >= bases.length) return sinServidor();
+    var con = conexion(tipo, bases[i]); con.lento = zona;
+    con.ping(function(r){ if (r && r.ok){ op.con = con; pideNombre(); } else { i++; prueba(); } });
+  })();
+  function sinServidor(){
+    el('<div class="card"><h2>' + (zona ? "El ajedrez de la zona no está disponible" : "No se encontró el servidor de la escuela") + '</h2><p class="read" style="font-size:19px">' +
+      (zona ? "Para jugar con niños de otras escuelas, la tablet necesita internet y que la Supervisión active el servidor de ajedrez de la zona." :
+        "Para jugar con otra tablet o computadora, la computadora «servidor de la escuela» (Compu-Tini) debe estar encendida y en la misma red.") +
+      ' Mientras tanto, puedes jugar contra la tablet o con un compañero.</p><button class="btn" id="otra">Intentar de nuevo</button></div>');
+    on("otra", function(){ current = null; go(LobbyAJ, op, true); });
+  }
+  function pideNombre(){
+    var n = store.get("ajNombre", ""), esc0 = store.get("ajEsc", store.get("escuela", ""));
+    var h = '<div class="card"><h2>¿Quién va a jugar?</h2><p style="margin-bottom:6px">Tu nombre (solo el primer nombre):</p><input type="text" id="ajN" maxlength="15" value="' + esc(n) + '" placeholder="Ej. Ana">';
+    if (zona){
+      h += '<p style="margin:12px 0 6px">Tu escuela:</p><div class="flex wrap" id="ajEs">';
+      each(ESCUELAS_ZONA, function(e){ h += '<button class="btn ' + (e === esc0 ? "" : "alt") + '" style="font-size:15px;padding:8px 12px" data-e="' + esc(e) + '">' + esc(e) + '</button>'; });
+      h += '</div>';
+    }
+    h += '<div style="margin-top:14px"><button class="btn" id="ajOk">Continuar</button></div><div class="msg" id="msg"></div></div>';
+    el(h);
+    each($main.querySelectorAll("[data-e]"), function(b){ b.onclick = function(){ esc0 = b.getAttribute("data-e"); each($main.querySelectorAll("[data-e]"), function(x){ x.className = "btn alt"; }); b.className = "btn"; }; });
+    on("ajOk", function(){
+      var v = document.getElementById("ajN").value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, "").trim().split(" ")[0];
+      if (!v){ document.getElementById("msg").className = "msg bad"; document.getElementById("msg").innerHTML = "Escribe tu nombre"; return; }
+      if (zona && !esc0){ document.getElementById("msg").className = "msg bad"; document.getElementById("msg").innerHTML = "Elige tu escuela"; return; }
+      store.set("ajNombre", v); if (zona) store.set("ajEsc", esc0);
+      op.nom = v + (state.grado ? " · " + state.grado + "°" : "") + (zona ? " · " + esc0 : "");
+      sala();
+    });
+  }
+  function sala(){
+    op.con.listar(function(L){
+      if (!L){ return sinServidor(); }
+      var S = L.salas || [], esp = [], jug = [];
+      each(S, function(s){ if (s.estado === "esperando") esp.push(s); else if (s.estado === "jugando") jug.push(s); });
+      var h = '<div class="card"><div class="flex between wrap"><h2 style="margin:0">Hola, ' + esc(op.nom.split(" · ")[0]) + '</h2><div><button class="btn" id="ajCrear">+ Crear partida</button><button class="btn alt" id="ajAct">Actualizar</button></div></div></div>';
+      h += '<div class="card"><b>Esperando rival</b><div class="list" style="margin-top:8px">';
+      each(esp, function(s){ h += '<button data-u="' + s.id + '">♔ ' + esc(s.blancas) + '<small>Toca para jugar con las negras</small></button>'; });
+      if (!esp.length) h += '<p style="color:#7a8794">Nadie está esperando. ¡Crea una partida!</p>';
+      h += '</div>' + (jug.length ? '<b>Jugando ahora: ' + jug.length + ' partida' + (jug.length > 1 ? "s" : "") + '</b>' : "") + '</div>';
+      el(h);
+      on("ajAct", sala);
+      on("ajCrear", function(){ op.con.crear(op.nom, function(r){ if (!r || r.error) return alert((r && r.error) || "No se pudo crear."); entra(r); }); });
+      each($main.querySelectorAll("[data-u]"), function(b){ b.onclick = function(){ op.con.unirse(b.getAttribute("data-u"), op.nom, function(r){ if (!r || r.error){ alert((r && r.error) || "No se pudo unir."); return sala(); } entra(r); }); }; });
+      sondeoAJ = setTimeout(function(){ if (!juegoAJ && current && current.s === LobbyAJ) sala(); }, zona ? 5000 : 4000);
+    });
+  }
+  function entra(r){
+    op.con.ver(r.id, function(s){ if (!s || s.error) return alert("No se pudo abrir la partida."); go(TableroAJ, { modo: "red", yo: r.color, token: r.token, sala: s, con: op.con }); });
+  }
+}
+
+function AprendeAJ(){
+  setTitle("Ajedrez", "Aprende");
+  var L = [["K", "El rey", "Se mueve una casilla hacia cualquier lado. Si queda atrapado sin salida (jaque mate), se pierde la partida."],
+    ["Q", "La dama", "La pieza más poderosa: avanza las casillas que quiera en línea recta o en diagonal."],
+    ["R", "La torre", "Avanza las casillas que quiera en línea recta: adelante, atrás o a los lados."],
+    ["B", "El alfil", "Avanza en diagonal las casillas que quiera. Siempre se queda en casillas del mismo color."],
+    ["N", "El caballo", "Salta en forma de «L»: dos casillas en una dirección y una hacia un lado. Puede saltar sobre otras piezas."],
+    ["P", "El peón", "Avanza una casilla (dos en su primer movimiento) y come en diagonal. Si llega al final, se convierte en otra pieza."]];
+  var h = '<div class="card read" style="font-size:19px"><p><b>Objetivo:</b> dar <b>jaque mate</b>, es decir, atacar al rey del rival sin que pueda escapar. Empiezan siempre las blancas.</p></div><div class="flex wrap" style="margin:-6px">';
+  each(L, function(x){ h += '<div class="card" style="width:calc(50% - 12px);margin:6px;display:-webkit-box;display:-webkit-flex;display:flex"><span style="width:64px;height:64px;-webkit-flex:none;flex:none;margin-right:12px">' + piezaSVG(x[0]) + '</span><span><b style="font-size:20px;color:#0e5a66">' + x[1] + '</b><br><span style="font-size:16px">' + x[2] + '</span></span></div>'; });
+  el(h + '</div>');
+}
+
 /* ---------- modo maestro ---------- */
 function PinMaestro(){
   setTitle("Modo maestro", "Escribe la contraseña");
@@ -792,6 +1277,8 @@ function Maestro(){
   el('<div class="card"><h2>Avance</h2>' + (filas ? '<table><tr><th>Grado</th><th>Actividad</th><th>Veces</th><th>Aciertos</th></tr>' + filas + '</table>' : '<p>Todavía no hay actividades registradas en esta tablet.</p>') + '</div>' +
     '<div class="card"><h2>Datos de la tablet</h2><p style="margin-bottom:6px">Escuela (aparece abajo en la pantalla):</p><input type="text" id="esc" value="' + esc(store.get("escuela", "")) + '" placeholder="Nombre de la escuela">' +
     '<p style="margin:12px 0 6px">Número de tablet:</p><input type="text" id="num" value="' + esc(store.get("numero", "")) + '" placeholder="Ej. 12">' +
+    '<p style="margin:12px 0 6px">Servidor de ajedrez de la zona (dirección que da la Supervisión):</p><input type="text" id="ajz" value="' + esc(store.get("ajZona", AJ_ZONA_URL)) + '" placeholder="https://script.google.com/macros/s/.../exec">' +
+    '<p style="margin:12px 0 6px">Servidor de la escuela (déjalo vacío para buscarlo solo):</p><input type="text" id="aje" value="' + esc(store.get("ajEscuela", "")) + '" placeholder="http://192.168.1.10:8050">' +
     '<p style="margin:12px 0 6px">Nueva contraseña de maestro (déjala vacía para no cambiarla):</p><input type="text" id="npin" placeholder="Solo números">' +
     '<div style="margin-top:12px"><button class="btn" id="guardar">Guardar</button><button class="btn alt" id="borrar">Borrar avance</button></div><div class="msg" id="msg"></div></div>' +
     (window.Android ? '<div class="card"><h2>Tablet</h2><p style="margin-bottom:8px">Opciones de Android (solo para el maestro):</p>' +
@@ -805,6 +1292,8 @@ function Maestro(){
   on("guardar", function(){
     store.set("escuela", document.getElementById("esc").value.trim());
     store.set("numero", document.getElementById("num").value.trim());
+    store.set("ajZona", document.getElementById("ajz").value.trim());
+    store.set("ajEscuela", document.getElementById("aje").value.trim().replace(/\/$/, ""));
     var np = document.getElementById("npin").value.replace(/\D/g, "");
     if (np.length >= 4) store.set("pin", np);
     pie();

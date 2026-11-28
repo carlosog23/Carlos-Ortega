@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setDatabasePath(getDir("datos", MODE_PRIVATE).getPath());
         s.setAllowFileAccess(true);
+        // El ajedrez en línea consulta el servidor de la escuela o de la zona desde la página local.
+        if (android.os.Build.VERSION.SDK_INT >= 16) s.setAllowUniversalAccessFromFileURLs(true);
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
 

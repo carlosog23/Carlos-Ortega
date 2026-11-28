@@ -49,7 +49,7 @@ Este repositorio reúne las apps y páginas que desarrollan el **Mtro. Carlos Ga
 | `centro-apps/` | **Centro de Apps**: lanzador de todas las apps, modo normal o administrador, demos. |
 | `mesa-tecnica/` | App de las tabletas de la Mesa Técnica (supervisor y ATP), con PIN por persona. |
 | `aula/`, `imac/`, `z.sh` | **Compu-Tini**: software para rescatar computadoras antiguas (Core 2 Duo, iMac, i5) con Linux Mint; cuentas Maestro y Alumno, biblioteca sin internet, ajedrez en red. `z.sh` es el instalador único. Logo: monitor y ratón, fondo azul. |
-| `tablet-tini/` | **Tablet-Tini**: app para tablets Android 4.4 viejas de las escuelas; el APK se compila solo con GitHub Actions (`.github/workflows/tablet-tini.yml`). |
+| `tablet-tini/` | **Tablet-Tini**: app para tablets Android 4.4 viejas de las escuelas (todo en `index.html`, JavaScript ES5); el APK se compila solo con GitHub Actions (`.github/workflows/tablet-tini.yml`). Incluye ajedrez: contra la tablet, dos jugadores, en la red de la escuela (servidor de Compu-Tini, puerto 8050) y en la zona por internet (`tablet-tini/servidor-ajedrez/Codigo.gs`, Apps Script; sin chat, solo primer nombre, grado y escuela). |
 | `tlamatini-juego/` | Videojuego educativo de Tlamatini (en pausa). |
 | `windows/` | Personalización de Windows 11 con la imagen de la zona. |
 
