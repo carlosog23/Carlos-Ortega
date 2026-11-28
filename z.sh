@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  Zona Escolar 050 · Instalador único para las computadoras de las escuelas
+#  Compu-Tini · Zona Escolar 050 · Instalador único para las computadoras de las escuelas
 #  Sirve para cualquier marca (iMac, Dell, HP…) con Linux Mint XFCE.
 #  Pregunta qué tipo de computadora es (Core 2 Duo, iMac o i5) e instala lo adecuado.
 #
@@ -19,7 +19,7 @@ ro() { printf '\033[1;31m%s\033[0m\n' "$*" >$T; }
 
 clear >$T 2>/dev/null
 az "=========================================================="
-az "   Zona Escolar 050 · Preparar esta computadora"
+az "   Compu-Tini · Zona Escolar 050 · Preparar esta computadora"
 az "=========================================================="
 echo >$T
 echo "Equipo: $(cat /sys/class/dmi/id/sys_vendor 2>/dev/null) $(cat /sys/class/dmi/id/product_name 2>/dev/null)" >$T
@@ -41,7 +41,7 @@ echo "  3) i5 (cualquier marca, no iMac): MAESTROS y ALUMNOS" >$T
 echo "     Es la más potente: se recomienda como SERVIDOR de la escuela" >$T
 echo >$T
 echo "  En la 1 y la 3 hay dos cuentas: «Maestro» con clave (sus apps, oficina y PDF)" >$T
-echo "  y «Alumno» (pantalla Aula Zona 050, juegos, YouTube restringido; se limpia sola)." >$T
+echo "  y «Alumno» (pantalla Compu-Tini, juegos, YouTube restringido; se limpia sola)." >$T
 echo >$T
 ve "Por lo que detecté, se recomienda la opción $SUGERIDA."
 TIPO=""

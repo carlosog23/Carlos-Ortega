@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Aula Zona 050 · Pantalla de inicio del alumno (computadoras Dell y HP con Linux Mint).
+# Compu-Tini · Zona 050 · Pantalla de inicio del alumno (computadoras Dell y HP con Linux Mint).
 # Lee los botones de /var/lib/aula/aula.json (se actualiza solo desde GitHub) o, si no hay, de /usr/share/aula/aula.json.
 import json, os, shlex, shutil, subprocess, sys, time
 import gi
@@ -7,6 +7,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Pango
 
 ARCHIVOS = ['/var/lib/aula/aula.json', '/usr/share/aula/aula.json']
+LOGO = next((p for p in ['/usr/share/aula/compu-tini.png', '/usr/share/pixmaps/compu-tini.png'] if os.path.exists(p)), '/usr/share/pixmaps/compu-tini.png')
 CSS = b"""
 window { background: #F3F7FA; }
 .cabecera { background: #0F3B5F; padding: 14px 26px; }
@@ -37,7 +38,7 @@ def cargar():
                 return d
         except Exception:
             pass
-    return {'titulo': 'Aula Zona 050', 'secciones': []}
+    return {'titulo': 'Compu-Tini', 'secciones': []}
 
 def comando(texto):
     # "a|b|c": usa el primer programa que exista
@@ -57,8 +58,9 @@ def disponible(b):
 
 class Aula(Gtk.Window):
     def __init__(self):
-        super().__init__(title='Aula Zona 050')
-        self.set_icon_name('applications-education')
+        super().__init__(title='Compu-Tini · Zona 050')
+        try: self.set_icon_from_file(LOGO)
+        except Exception: self.set_icon_name('applications-education')
         self.datos = cargar()
         prov = Gtk.CssProvider(); prov.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -77,8 +79,14 @@ class Aula(Gtk.Window):
         for h in self.caja.get_children(): self.caja.remove(h)
         d = self.datos
         cab = Gtk.Box(spacing=16); cab.get_style_context().add_class('cabecera')
+        try:
+            from gi.repository import GdkPixbuf
+            logo = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(LOGO, 58, 58, True))
+            cab.pack_start(logo, False, False, 0)
+        except Exception:
+            pass
         izq = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        t = Gtk.Label(label=d.get('titulo', 'Aula Zona 050'), xalign=0); t.get_style_context().add_class('titulo')
+        t = Gtk.Label(label=d.get('titulo', 'Compu-Tini'), xalign=0); t.get_style_context().add_class('titulo')
         m = Gtk.Label(label=d.get('mensaje', ''), xalign=0); m.get_style_context().add_class('mensaje')
         izq.pack_start(t, False, False, 0); izq.pack_start(m, False, False, 0)
         der = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)

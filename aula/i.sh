@@ -7,7 +7,7 @@ set -euo pipefail
 BASE="https://carlosog23.github.io/Carlos-Ortega/aula"
 TMP="$(mktemp -d /tmp/aula-XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
-echo "Descargando el instalador de Aula Zona 050…"
+echo "Descargando el instalador de Compu-Tini · Zona 050…"
 V=$(date +%s)
 bajar() { mkdir -p "$(dirname "$TMP/$1")"; wget -q --tries=3 -O "$TMP/$1" "$BASE/$1?v=$V"; }
 bajar 'instalar.sh'
@@ -16,6 +16,9 @@ bajar 'recursos/aula-inicio'
 bajar 'recursos/aula-kolibri'
 bajar 'recursos/aula-planetario'
 bajar 'recursos/fondo-aula.png'
+bajar 'recursos/compu-tini.png'
+bajar 'recursos/compu-tini.svg'
+bajar 'recursos/web/img/compu-tini.svg'
 bajar 'recursos/zona050-red.py'
 bajar 'recursos/ef/firma-autor.svg'
 bajar 'recursos/ef/index.html'

@@ -189,8 +189,11 @@ EOF
 fi
 
 # ---------- pantalla del alumno ----------
-paso "Instalando la pantalla Aula Zona 050"
+paso "Instalando Compu-Tini (pantalla del alumno)"
 mkdir -p "$DIR_AULA" /var/lib/aula
+# Logo de Compu-Tini (ícono de la pantalla del alumno y de sus accesos)
+install -m 644 "$DIR_RECURSOS/compu-tini.png" /usr/share/pixmaps/compu-tini.png 2>/dev/null || true
+install -m 644 "$DIR_RECURSOS/compu-tini.png" "$DIR_AULA/compu-tini.png" 2>/dev/null || true
 install -m 755 "$DIR_RECURSOS/aula-inicio" /usr/local/bin/aula-inicio
 cp -f "$DIR_PAQUETE/aula.json" "$DIR_AULA/aula.json"
 cp -f "$DIR_RECURSOS/fondo-aula.png" "$DIR_AULA/fondo-aula.png"
@@ -267,10 +270,10 @@ systemctl enable --now aula-actualizar.timer >/dev/null 2>&1
 cat > /usr/share/applications/aula-inicio.desktop <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Aula Zona 050
-Comment=Pantalla de actividades para alumnos
+Name=Compu-Tini
+Comment=Pantalla de actividades para alumnos · Zona 050
 Exec=aula-inicio
-Icon=applications-education
+Icon=compu-tini
 Terminal=false
 Categories=Education;
 EOF
@@ -395,7 +398,7 @@ if [ -n "$CLAVE_MAESTRO" ]; then
   acceso meet "Meet (videollamadas)" "firefox --new-window https://meet.google.com/" camera-web
   acceso relweb "RELweb" "firefox --new-window https://rel.educacionbc.edu.mx/" x-office-document
   acceso claude "Claude (asistente de IA)" "firefox --new-window https://claude.ai/" help-browser
-  acceso aula "Aula Zona 050 (pantalla del alumno)" "aula-inicio" applications-education
+  acceso aula "Compu-Tini (pantalla del alumno)" "aula-inicio" compu-tini
   acceso youtube "YouTube" "firefox --new-window https://www.youtube.com/" multimedia-video-player
   acceso biblioteca "Biblioteca sin internet" "firefox --new-window http://localhost:8050/" accessories-dictionary
   acceso programa "Aprende a programar" "firefox --new-window http://localhost:8050/programa/" applications-development
