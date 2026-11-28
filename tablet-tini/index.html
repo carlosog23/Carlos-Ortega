@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Tablet-Tini · Zona 050</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:rgba(0,0,0,0);margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Roboto","Droid Sans",Arial,sans-serif;background:#f4f1ea;color:#23313f;font-size:18px;-webkit-user-select:none;user-select:none;overflow-x:hidden}
+.flex{display:-webkit-box;display:-webkit-flex;display:flex}
+.wrap{-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.center{-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;align-items:center}
+.between{-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;-webkit-box-align:center;-webkit-align-items:center;align-items:center}
+.grow{-webkit-box-flex:1;-webkit-flex:1;flex:1}
+#top{background:#0f5c6e;color:#fff;padding:10px 16px;min-height:58px}
+#top h1{font-size:22px;font-weight:bold;letter-spacing:.5px}
+#top .sub{font-size:13px;opacity:.85}
+#btnBack{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:10px;font-size:18px;padding:10px 16px;margin-right:12px;display:none}
+#btnHome{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:10px;font-size:16px;padding:10px 14px;margin-left:8px;display:none}
+#main{padding:16px;max-width:1100px;margin:0 auto;min-height:calc(100% - 100px)}
+#foot{font-size:12px;color:#7a8794;text-align:center;padding:10px 8px 14px}
+#foot b{color:#0f5c6e}
+button{font-family:inherit;cursor:pointer}
+.tiles{margin:-8px}
+.tile{width:calc(33.333% - 16px);margin:8px;border:0;border-radius:18px;color:#fff;padding:18px 10px;min-height:130px;font-size:22px;font-weight:bold;box-shadow:0 4px 0 rgba(0,0,0,.18);position:relative}
+.tile:active{-webkit-transform:translateY(3px);transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.tile .ico{display:block;font-size:40px;line-height:48px;margin-bottom:6px}
+.tile small{display:block;font-size:14px;font-weight:normal;opacity:.9;margin-top:4px}
+.g1{background:#e5533d}.g2{background:#f0932b}.g3{background:#d4a017}.g4{background:#3aa655}.g5{background:#2d8bd0}.g6{background:#7a55c4}
+.cMat{background:#2d8bd0}.cLec{background:#e5533d}.cJue{background:#3aa655}.cDib{background:#f0932b}.cRel{background:#7a55c4}.cMem{background:#0f8f8f}.cPal{background:#c2477a}
+h2{font-size:24px;margin:4px 0 14px;color:#0f5c6e}
+.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:14px}
+.q{font-size:34px;font-weight:bold;text-align:center;margin:10px 0 18px;line-height:1.3}
+.opts{margin:-7px}
+.opt{width:calc(50% - 14px);margin:7px;border:3px solid #d9e2ea;background:#fff;border-radius:16px;font-size:28px;font-weight:bold;padding:16px 8px;color:#23313f;min-height:76px}
+.opt.ok{background:#3aa655;border-color:#3aa655;color:#fff}
+.opt.bad{background:#e5533d;border-color:#e5533d;color:#fff}
+.opt.small{font-size:20px}
+.bar{height:14px;background:#e3e9ef;border-radius:7px;overflow:hidden;margin:6px 0 12px}
+.bar i{display:block;height:100%;background:#3aa655;width:0;-webkit-transition:width .3s;transition:width .3s}
+.stars{font-size:54px;color:#f5b301;text-align:center;letter-spacing:6px}
+.big{font-size:28px;text-align:center;margin:10px 0}
+.btn{border:0;border-radius:14px;background:#0f5c6e;color:#fff;font-size:22px;padding:14px 22px;margin:6px;font-weight:bold}
+.btn.alt{background:#e3e9ef;color:#23313f}
+.dots{font-size:40px;color:#e5533d;letter-spacing:6px;line-height:1.2}
+.read{font-size:22px;line-height:1.6}
+.read p{margin-bottom:10px}
+.read h3{font-size:26px;color:#e5533d;margin-bottom:8px}
+.list button{display:block;width:100%;text-align:left;border:0;background:#fff;border-radius:14px;padding:16px;font-size:22px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.08);color:#23313f}
+.list button small{display:block;font-size:15px;color:#7a8794}
+.memo{margin:-5px}
+.mc{width:calc(25% - 10px);margin:5px;height:90px;border:0;border-radius:14px;background:#0f8f8f;color:#0f8f8f;font-size:24px;font-weight:bold}
+.mc.open{background:#fff;color:#23313f;border:3px solid #0f8f8f}
+.mc.done{background:#dff3e4;color:#2a7a40;border:3px solid #3aa655}
+.word{font-size:40px;letter-spacing:10px;text-align:center;font-weight:bold;margin:14px 0}
+.keys{margin:-4px}
+.key{width:calc(11.111% - 8px);margin:4px;height:56px;border:0;border-radius:10px;background:#e3e9ef;font-size:24px;font-weight:bold;color:#23313f}
+.key.used{opacity:.3}
+.key.hit{background:#3aa655;color:#fff;opacity:1}
+.balloons{font-size:22px;text-align:center;color:#c2477a;margin-bottom:6px}
+.palette button{width:46px;height:46px;border-radius:23px;border:3px solid #fff;margin:4px;box-shadow:0 0 0 2px #ccd}
+.palette button.sel{box-shadow:0 0 0 4px #23313f}
+#pad{background:#fff;border-radius:14px;display:block;width:100%;touch-action:none}
+.pin{font-size:40px;letter-spacing:14px;text-align:center;height:56px}
+.numpad{max-width:360px;margin:0 auto}
+.numpad button{width:calc(33.333% - 12px);margin:6px;height:64px;font-size:28px;border:0;border-radius:14px;background:#e3e9ef;font-weight:bold;color:#23313f}
+table{width:100%;border-collapse:collapse;font-size:17px}
+td,th{border-bottom:1px solid #e3e9ef;padding:8px 6px;text-align:center}
+th{color:#0f5c6e}
+input[type=text]{font-size:20px;padding:10px;border:2px solid #d9e2ea;border-radius:10px;width:100%}
+.msg{text-align:center;font-size:24px;font-weight:bold;min-height:34px;margin-top:8px}
+.msg.ok{color:#3aa655}.msg.bad{color:#e5533d}
+@media (max-width:700px){.tile{width:calc(50% - 16px)}.q{font-size:28px}.opt{font-size:24px}.mc{height:74px;font-size:19px}.key{height:48px;font-size:20px}}
+@media (max-height:500px){.tile{min-height:100px}.tile .ico{font-size:30px;line-height:36px}}
+</style>
+</head>
+<body>
+<div id="top" class="flex between">
+  <button id="btnBack">&#8592; Atrás</button>
+  <div class="grow">
+    <h1 id="title">Tablet-Tini</h1>
+    <div class="sub" id="subtitle">Zona Escolar 050</div>
+  </div>
+  <button id="btnHome">Inicio</button>
+</div>
+<div id="main"></div>
+<div id="foot">Zona Escolar 050 · Responsabilidad y superación · <span id="footSchool"></span><br>Desarrollada por <b>Mtro. Carlos Gabriel Ortega Gutiérrez</b></div>
+
+<script>
+/* Tablet-Tini v1 · Zona Escolar 050
+   Escrito en JavaScript ES5 para que funcione en el navegador de Android 4.4.
+   No necesita internet. */
+(function(){
+"use strict";
+
+/* ---------- utilidades ---------- */
+var $main = document.getElementById("main");
+var $title = document.getElementById("title");
+var $sub = document.getElementById("subtitle");
+var $back = document.getElementById("btnBack");
+var $home = document.getElementById("btnHome");
+var history = [];
+var current = null;
+var state = { grado: 0 };
+
+function rnd(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(a){ for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function el(html){ $main.innerHTML = html; }
+function on(id, fn){ var e = document.getElementById(id); if (e) e.onclick = fn; }
+function each(list, fn){ for (var i = 0; i < list.length; i++) fn(list[i], i); }
+
+/* almacenamiento local seguro */
+var store = {
+  get: function(k, d){ try { var v = window.localStorage.getItem("mom_" + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set: function(k, v){ try { window.localStorage.setItem("mom_" + k, JSON.stringify(v)); } catch(e){} }
+};
+
+/* sonidos sencillos (si el equipo los permite) */
+var audioCtx = null;
+function beep(ok){
+  try {
+    if (!audioCtx){ var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = new AC(); }
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = ok ? 880 : 220;
+    g.gain.value = 0.08;
+    o.connect(g); g.connect(audioCtx.destination);
+    if (o.start) o.start(0); else o.noteOn(0);
+    setTimeout(function(){ try { if (o.stop) o.stop(0); else o.noteOff(0); } catch(e){} }, ok ? 140 : 260);
+  } catch(e){}
+}
+
+/* avance de los alumnos, por grado y por actividad */
+function registrar(area, aciertos, total){
+  var av = store.get("avance", {});
+  var k = state.grado + "|" + area;
+  if (!av[k]) av[k] = { veces: 0, aciertos: 0, total: 0 };
+  av[k].veces++; av[k].aciertos += aciertos; av[k].total += total;
+  store.set("avance", av);
+}
+
+/* navegación */
+function go(screen, arg, noPush){
+  if (current && !noPush) history.push(current);
+  current = { s: screen, a: arg };
+  window.scrollTo(0, 0);
+  $back.style.display = history.length ? "block" : "none";
+  $home.style.display = history.length ? "block" : "none";
+  screen(arg);
+}
+function back(){
+  var prev = history.pop();
+  if (prev){ current = null; go(prev.s, prev.a, true); }
+}
+$back.onclick = back;
+$home.onclick = function(){ history = []; current = null; go(Inicio); };
+function setTitle(t, s){ $title.innerHTML = esc(t); $sub.innerHTML = esc(s || ("Zona Escolar 050" + (state.grado ? " · " + state.grado + "° grado" : ""))); }
+
+var NOMBRES_GRADO = ["", "Primero", "Segundo", "Tercero", "Cuarto", "Quinto", "Sexto"];
+
+/* ---------- pantallas ---------- */
+function Inicio(){
+  state.grado = 0;
+  setTitle("Tablet-Tini", "Zona Escolar 050 · ¿En qué grado estás?");
+  var h = '<h2>¡Hola! Toca tu grado</h2><div class="tiles flex wrap">';
+  for (var g = 1; g <= 6; g++){
+    h += '<button class="tile g' + g + '" data-g="' + g + '"><span class="ico">' + g + '°</span>' + NOMBRES_GRADO[g] + '</button>';
+  }
+  h += '</div><div style="text-align:right;margin-top:18px"><button class="btn alt" id="bMaestro" style="font-size:16px">Maestro</button></div>';
+  el(h);
+  each($main.querySelectorAll(".tile"), function(b){
+    b.onclick = function(){ state.grado = parseInt(b.getAttribute("data-g"), 10); go(MenuGrado); };
+  });
+  on("bMaestro", function(){ go(PinMaestro); });
+}
+
+function MenuGrado(){
+  setTitle(NOMBRES_GRADO[state.grado] + " grado");
+  el('<h2>¿Qué quieres hacer?</h2><div class="tiles flex wrap">' +
+    '<button class="tile cMat" id="tMat"><span class="ico">1+2</span>Matemáticas<small>Ejercicios de tu grado</small></button>' +
+    '<button class="tile cLec" id="tLec"><span class="ico">Aa</span>Lectura<small>Lee y contesta</small></button>' +
+    '<button class="tile cMem" id="tMem"><span class="ico">? ?</span>Memorama<small>Encuentra las parejas</small></button>' +
+    '<button class="tile cPal" id="tPal"><span class="ico">_ A _</span>Adivina la palabra<small>Letra por letra</small></button>' +
+    '<button class="tile cRel" id="tRel"><span class="ico">12:00</span>El reloj<small>¿Qué hora es?</small></button>' +
+    '<button class="tile cDib" id="tDib"><span class="ico">~</span>Dibujar<small>Pizarra libre</small></button>' +
+    '</div>');
+  on("tMat", function(){ go(Quiz, { area: "Matemáticas", gen: genMate }); });
+  on("tLec", function(){ go(ListaLecturas); });
+  on("tMem", function(){ go(Memorama); });
+  on("tPal", function(){ go(Palabra); });
+  on("tRel", function(){ go(Quiz, { area: "Reloj", gen: genReloj }); });
+  on("tDib", function(){ go(Dibujo); });
+}
+
+/* ---------- cuestionario genérico (10 preguntas, 4 opciones) ---------- */
+function Quiz(cfg){
+  setTitle(cfg.area);
+  var n = 0, ok = 0, TOTAL = 10, locked = false;
+  function next(){
+    if (n >= TOTAL){ return fin(); }
+    var p = cfg.gen(state.grado);
+    locked = false;
+    var opts = shuffle(p.opts.slice());
+    var h = '<div class="card"><div class="between flex"><b>Pregunta ' + (n + 1) + ' de ' + TOTAL + '</b><b style="color:#3aa655">Aciertos: ' + ok + '</b></div>' +
+      '<div class="bar"><i style="width:' + (n * 10) + '%"></i></div>' +
+      (p.html ? p.html : '') + '<div class="q">' + p.q + '</div><div class="opts flex wrap">';
+    each(opts, function(o, i){ h += '<button class="opt' + (String(o).length > 8 ? ' small' : '') + '" data-v="' + esc(o) + '">' + esc(o) + '</button>'; });
+    h += '</div><div class="msg" id="msg"></div></div>';
+    el(h);
+    each($main.querySelectorAll(".opt"), function(b){
+      b.onclick = function(){
+        if (locked) return; locked = true;
+        var v = b.getAttribute("data-v"), bien = (v === String(p.a));
+        var m = document.getElementById("msg");
+        if (bien){ ok++; b.className += " ok"; m.className = "msg ok"; m.innerHTML = pick(["¡Muy bien!", "¡Excelente!", "¡Correcto!", "¡Así se hace!"]); }
+        else {
+          b.className += " bad"; m.className = "msg bad"; m.innerHTML = "La respuesta era: " + esc(p.a);
+          each($main.querySelectorAll(".opt"), function(x){ if (x.getAttribute("data-v") === String(p.a)) x.className += " ok"; });
+        }
+        beep(bien);
+        n++;
+        setTimeout(next, bien ? 900 : 2000);
+      };
+    });
+  }
+  function fin(){
+    registrar(cfg.area, ok, TOTAL);
+    var estrellas = ok >= 9 ? 3 : ok >= 6 ? 2 : ok >= 3 ? 1 : 0;
+    var s = ""; for (var i = 0; i < 3; i++) s += i < estrellas ? "★" : "☆";
+    el('<div class="card" style="text-align:center"><div class="stars">' + s + '</div>' +
+      '<div class="big">Tuviste <b>' + ok + '</b> de ' + TOTAL + ' aciertos</div>' +
+      '<p style="margin-bottom:14px">' + (ok >= 9 ? "¡Eres un campeón!" : ok >= 6 ? "¡Muy buen trabajo! Sigue practicando." : "Vamos a intentarlo otra vez. ¡Tú puedes!") + '</p>' +
+      '<button class="btn" id="otra">Otra vez</button><button class="btn alt" id="salir">Terminar</button></div>');
+    on("otra", function(){ n = 0; ok = 0; next(); });
+    on("salir", back);
+  }
+  next();
+}
+
+/* opciones cercanas a la respuesta correcta */
+function opciones(a, cerca, min){
+  var set = [a], tries = 0;
+  min = (min === undefined) ? 0 : min;
+  while (set.length < 4 && tries < 200){
+    tries++;
+    var d = a + rnd(-cerca, cerca);
+    if (d >= min && set.indexOf(d) < 0) set.push(d);
+  }
+  var k = 1; while (set.length < 4){ if (set.indexOf(a + k) < 0) set.push(a + k); k++; }
+  return set;
+}
+function puntos(n){ var s = ""; for (var i = 0; i < n; i++) s += "●"; return '<div class="dots" style="text-align:center">' + s + '</div>'; }
+
+/* ---------- matemáticas por grado ---------- */
+function genMate(g){
+  var a, b, r, t;
+  if (g === 1){
+    t = rnd(1, 3);
+    if (t === 1){ a = rnd(2, 10); return { html: puntos(a), q: "¿Cuántos puntos hay?", a: a, opts: opciones(a, 3, 1) }; }
+    if (t === 2){ a = rnd(1, 10); b = rnd(1, 10); return { q: a + " + " + b + " =", a: a + b, opts: opciones(a + b, 3, 0) }; }
+    a = rnd(5, 15); b = rnd(1, a); return { q: a + " − " + b + " =", a: a - b, opts: opciones(a - b, 3, 0) };
+  }
+  if (g === 2){
+    t = rnd(1, 4);
+    if (t === 1){ a = rnd(10, 60); b = rnd(5, 39); return { q: a + " + " + b + " =", a: a + b, opts: opciones(a + b, 10, 0) }; }
+    if (t === 2){ a = rnd(30, 99); b = rnd(5, a - 5); return { q: a + " − " + b + " =", a: a - b, opts: opciones(a - b, 10, 0) }; }
+    if (t === 3){ a = rnd(2, 5); b = rnd(1, 10); return { q: a + " × " + b + " =", a: a * b, opts: opciones(a * b, 5, 0) }; }
+    a = rnd(11, 99); return { q: "¿Cuántas decenas tiene el " + a + "?", a: Math.floor(a / 10), opts: opciones(Math.floor(a / 10), 3, 0) };
+  }
+  if (g === 3){
+    t = rnd(1, 4);
+    if (t <= 2){ a = rnd(2, 10); b = rnd(2, 10); return { q: a + " × " + b + " =", a: a * b, opts: opciones(a * b, 8, 0) }; }
+    if (t === 3){ a = rnd(100, 600); b = rnd(100, 399); return { q: a + " + " + b + " =", a: a + b, opts: opciones(a + b, 30, 0) }; }
+    b = rnd(2, 9); r = rnd(2, 9); return { q: (b * r) + " ÷ " + b + " =", a: r, opts: opciones(r, 3, 1) };
+  }
+  if (g === 4){
+    t = rnd(1, 4);
+    if (t === 1){ a = rnd(12, 49); b = rnd(2, 9); return { q: a + " × " + b + " =", a: a * b, opts: opciones(a * b, 20, 0) }; }
+    if (t === 2){ b = rnd(3, 9); r = rnd(11, 30); return { q: (b * r) + " ÷ " + b + " =", a: r, opts: opciones(r, 4, 1) }; }
+    if (t === 3){ a = rnd(1000, 6000); b = rnd(100, 2999); return { q: a + " − " + b + " =", a: a - b, opts: opciones(a - b, 50, 0) }; }
+    var den = pick([2, 3, 4, 5, 6, 8]); var num = rnd(1, den - 1); var tot = den * rnd(2, 6);
+    return { q: "¿Cuánto es " + num + "/" + den + " de " + tot + "?", a: tot / den * num, opts: opciones(tot / den * num, 4, 1) };
+  }
+  if (g === 5){
+    t = rnd(1, 4);
+    if (t === 1){ a = rnd(1, 9) + rnd(1, 9) / 10; b = rnd(1, 9) + rnd(1, 9) / 10; return decimales(a, b); }
+    if (t === 2){ a = rnd(21, 99); b = rnd(11, 30); return { q: a + " × " + b + " =", a: a * b, opts: opciones(a * b, 40, 0) }; }
+    if (t === 3){ var d2 = pick([2, 3, 4, 5]); var n2 = rnd(1, d2 - 1); var m = rnd(2, 4);
+      var ans = (n2 * m) + "/" + (d2 * m);
+      return { q: "¿Qué fracción es igual a " + n2 + "/" + d2 + "?", a: ans, opts: shuffle([ans, (n2 + 1) + "/" + (d2 * m), (n2 * m) + "/" + (d2 * m + 1), (n2 * m + 1) + "/" + (d2 * m)]) }; }
+    a = rnd(3, 12) * 10; b = rnd(3, 9); return { q: "Un rectángulo mide " + a + " cm por " + b + " cm. ¿Cuál es su perímetro?", a: (a + b) * 2 + " cm", opts: [(a + b) * 2 + " cm", (a * b) + " cm", (a + b) + " cm", ((a + b) * 2 + 10) + " cm"] };
+  }
+  /* sexto */
+  t = rnd(1, 4);
+  if (t === 1){ var pc = pick([10, 20, 25, 50, 75]); var base = pick([40, 80, 120, 200, 360, 400]); var res = base * pc / 100;
+    return { q: "¿Cuánto es el " + pc + "% de " + base + "?", a: res, opts: opciones(res, 15, 1) }; }
+  if (t === 2){ a = rnd(2, 9) + rnd(1, 9) / 10; b = rnd(2, 6); var p6 = Math.round(a * b * 10) / 10;
+    return { q: fmt(a) + " × " + b + " =", a: fmt(p6), opts: unicos([fmt(p6), fmt(p6 + 1), fmt(Math.round((p6 - 0.5) * 10) / 10), fmt(Math.round((p6 + 0.3) * 10) / 10)]) }; }
+  if (t === 3){ b = rnd(3, 12); r = rnd(3, 12); return { q: "Un terreno rectangular mide " + b + " m por " + r + " m. ¿Cuál es su área?", a: (b * r) + " m²", opts: [(b * r) + " m²", ((b + r) * 2) + " m²", (b * r + b) + " m²", (b + r) + " m²"] }; }
+  a = rnd(2, 9); b = rnd(2, 9); var c = rnd(2, 9);
+  return { q: a + " + " + b + " × " + c + " =", a: a + b * c, opts: unicos([a + b * c, (a + b) * c, a * b + c, a + b + c]) };
+}
+function fmt(x){ return (Math.round(x * 10) / 10).toFixed(1); }
+function unicos(arr){ var out = []; each(arr, function(x){ if (out.indexOf(x) < 0) out.push(x); }); var k = 1; while (out.length < 4){ out.push(typeof arr[0] === "number" ? arr[0] + 10 * k : arr[0] + " "); k++; } return out; }
+function decimales(a, b){ var s = Math.round((a + b) * 10) / 10; return { q: fmt(a) + " + " + fmt(b) + " =", a: fmt(s), opts: unicos([fmt(s), fmt(s + 1), fmt(s - 0.1 < 0 ? s + 0.2 : s - 0.1), fmt(s + 0.1)]) }; }
+
+/* ---------- el reloj ---------- */
+function relojSVG(h, m){
+  var s = '<svg width="220" height="220" viewBox="0 0 220 220" style="display:block;margin:0 auto">' +
+    '<circle cx="110" cy="110" r="100" fill="#fff" stroke="#7a55c4" stroke-width="8"/>';
+  for (var i = 1; i <= 12; i++){
+    var ang = (i * 30 - 90) * Math.PI / 180;
+    s += '<text x="' + (110 + 78 * Math.cos(ang)) + '" y="' + (110 + 78 * Math.sin(ang) + 8) + '" font-size="22" text-anchor="middle" fill="#23313f" font-weight="bold">' + i + '</text>';
+  }
+  var am = (m * 6 - 90) * Math.PI / 180, ah = ((h % 12) * 30 + m * 0.5 - 90) * Math.PI / 180;
+  s += '<line x1="110" y1="110" x2="' + (110 + 52 * Math.cos(ah)) + '" y2="' + (110 + 52 * Math.sin(ah)) + '" stroke="#23313f" stroke-width="8" stroke-linecap="round"/>';
+  s += '<line x1="110" y1="110" x2="' + (110 + 78 * Math.cos(am)) + '" y2="' + (110 + 78 * Math.sin(am)) + '" stroke="#e5533d" stroke-width="5" stroke-linecap="round"/>';
+  s += '<circle cx="110" cy="110" r="7" fill="#23313f"/></svg>';
+  return s;
+}
+function hora(h, m){ return h + ":" + (m < 10 ? "0" : "") + m; }
+function genReloj(g){
+  var h = rnd(1, 12), m;
+  if (g <= 1) m = 0; else if (g === 2) m = pick([0, 30]); else if (g === 3) m = pick([0, 15, 30, 45]); else m = rnd(0, 11) * 5;
+  var correcta = hora(h, m);
+  var set = [correcta];
+  var cand = [hora(h, (m + 30) % 60), hora(h % 12 + 1, m), hora(m === 0 ? 12 : (m / 5 > 12 ? 12 : (m / 5 || 12)), (h * 5) % 60), hora((h + 10) % 12 + 1, m), hora(h, (m + 15) % 60)];
+  each(shuffle(cand), function(c){ if (set.length < 4 && set.indexOf(c) < 0) set.push(c); });
+  return { html: relojSVG(h, m), q: "¿Qué hora marca el reloj?", a: correcta, opts: set };
+}
+
+/* ---------- lecturas (textos originales) ---------- */
+var LECTURAS = {
+  1: [
+    { t: "La gaviota Lupe", p: ["Lupe es una gaviota.", "Vive en la playa de Camalú.", "Lupe come peces.", "En la tarde, Lupe vuela sobre el mar."],
+      q: [["¿Quién es Lupe?", "Una gaviota", ["Un perro", "Una niña", "Un pez"]], ["¿Dónde vive Lupe?", "En la playa", ["En el bosque", "En la escuela", "En una casa"]], ["¿Qué come Lupe?", "Peces", ["Tortillas", "Fresas", "Pan"]]] },
+    { t: "El perro de Toño", p: ["Toño tiene un perro café.", "Su perro se llama Chato.", "Chato corre en el patio.", "Toño le da agua a Chato todos los días."],
+      q: [["¿De qué color es el perro?", "Café", ["Negro", "Blanco", "Gris"]], ["¿Cómo se llama el perro?", "Chato", ["Toño", "Lupe", "Max"]], ["¿Dónde corre Chato?", "En el patio", ["En el mar", "En el salón", "En la calle"]]] }
+  ],
+  2: [
+    { t: "Las fresas", p: ["Mi familia trabaja en el campo. En la mañana, mi mamá y mi papá cortan fresas rojas y dulces.", "Las fresas van en cajas. Un camión las lleva lejos, a otras ciudades.", "Los domingos, mi mamá hace agua de fresa para todos."],
+      q: [["¿Dónde trabaja la familia?", "En el campo", ["En una tienda", "En el mar", "En la escuela"]], ["¿Cómo son las fresas?", "Rojas y dulces", ["Verdes y amargas", "Azules y saladas", "Negras y duras"]], ["¿Qué hace la mamá los domingos?", "Agua de fresa", ["Tamales", "Un pastel", "Tortillas"]]] },
+    { t: "Día de lluvia", p: ["Hoy llovió en el pueblo. Las calles se llenaron de charcos.", "Ana se puso sus botas y su chamarra para ir a la escuela.", "En el salón, la maestra leyó un cuento mientras se oía la lluvia en el techo."],
+      q: [["¿Qué pasó hoy en el pueblo?", "Llovió", ["Hizo mucho calor", "Nevó", "Hubo un festival"]], ["¿Qué se puso Ana?", "Botas y chamarra", ["Traje de baño", "Sandalias", "Un disfraz"]], ["¿Qué hizo la maestra?", "Leyó un cuento", ["Cantó", "Salió al patio", "Hizo un examen"]]] }
+  ],
+  3: [
+    { t: "Las ballenas grises", p: ["Cada invierno, las ballenas grises hacen un viaje muy largo. Salen de los mares fríos del norte, cerca de Alaska, y nadan miles de kilómetros hacia el sur.", "Llegan a las lagunas tranquilas de Baja California Sur. Ahí el agua es tibia y está protegida de las olas grandes.", "En esas lagunas nacen sus crías. Cuando los ballenatos están fuertes, todas regresan juntas al norte."],
+      q: [["¿En qué época hacen su viaje las ballenas?", "En invierno", ["En verano", "En primavera", "Nunca viajan"]], ["¿De dónde salen las ballenas?", "De los mares fríos del norte", ["De un río", "De las lagunas", "Del desierto"]], ["¿Para qué llegan a las lagunas?", "Para tener a sus crías", ["Para dormir todo el año", "Para comer fresas", "Para esconderse de la lluvia"]]] },
+    { t: "La biblioteca del salón", p: ["En el grupo de tercero hicieron una biblioteca con cajas de cartón. Cada niño llevó un libro de su casa.", "Pusieron una regla: el libro se lleva a casa el lunes y se regresa el viernes.", "Ahora, cada semana, todos leen un libro diferente y luego lo platican con sus compañeros."],
+      q: [["¿Con qué hicieron la biblioteca?", "Con cajas de cartón", ["Con madera fina", "Con piedras", "Con hojas de árbol"]], ["¿Qué día se regresa el libro?", "El viernes", ["El lunes", "El miércoles", "El domingo"]], ["¿Qué hacen después de leer?", "Lo platican con sus compañeros", ["Lo tiran", "Lo venden", "Lo dibujan en la pared"]]] }
+  ],
+  4: [
+    { t: "Agua para el desierto", p: ["En Baja California llueve muy poco. Por eso el agua es un tesoro que debemos cuidar.", "En muchos campos se usa el riego por goteo: unas mangueras delgadas dejan caer el agua gota a gota, justo en la raíz de cada planta. Así no se desperdicia.", "En casa también podemos ayudar: cerrar la llave mientras nos lavamos los dientes, reparar las fugas y regar las plantas en la tarde, cuando el sol ya no evapora el agua."],
+      q: [["¿Por qué el agua es un tesoro en Baja California?", "Porque llueve muy poco", ["Porque es salada", "Porque es de color azul", "Porque llueve todos los días"]], ["¿Cómo funciona el riego por goteo?", "Deja caer el agua en la raíz de cada planta", ["Inunda todo el campo", "Riega con cubetas", "Usa agua del mar"]], ["¿Cuándo conviene regar las plantas?", "En la tarde", ["Al mediodía", "Con el sol más fuerte", "Nunca"]]] },
+    { t: "El faro", p: ["En lo alto de un acantilado hay un faro. De día parece una torre blanca y silenciosa, pero de noche gira una luz muy fuerte.", "Esa luz avisa a los barcos dónde está la costa y dónde hay rocas peligrosas. Gracias al faro, los pescadores regresan seguros a casa.", "Hoy muchos faros funcionan solos, con energía del sol que se guarda en baterías."],
+      q: [["¿Dónde está el faro?", "En lo alto de un acantilado", ["En medio del desierto", "Dentro de una cueva", "En el centro del pueblo"]], ["¿Para qué sirve la luz del faro?", "Para avisar a los barcos dónde está la costa", ["Para iluminar la playa en fiestas", "Para calentar el agua", "Para espantar a las aves"]], ["¿Con qué energía funcionan hoy muchos faros?", "Con energía del sol", ["Con leña", "Con velas", "Con gasolina de barco"]]] }
+  ],
+  5: [
+    { t: "El cardón, gigante del desierto", p: ["El cardón es uno de los cactus más grandes del mundo. Puede medir más que un edificio de cuatro pisos y vivir cientos de años.", "Crece muy despacio. Sus brazos tardan décadas en aparecer. Por dentro tiene un tejido que guarda agua, así resiste meses sin lluvia.", "Muchas aves hacen nidos en él, y sus flores alimentan a murciélagos e insectos. Por eso, cuando se corta un cardón, se pierde la casa y el alimento de muchos seres vivos."],
+      q: [["¿Qué es el cardón?", "Un cactus muy grande", ["Un árbol frutal", "Un tipo de pez", "Una montaña"]], ["¿Cómo resiste el cardón la falta de lluvia?", "Guarda agua por dentro", ["Toma agua del mar", "Se duerme bajo la tierra", "Pierde todas sus espinas"]], ["¿Por qué es importante cuidar al cardón?", "Porque es casa y alimento de muchos seres vivos", ["Porque da sombra para autos", "Porque crece muy rápido", "Porque sus espinas son de oro"]]] },
+    { t: "La cooperativa de pescadores", p: ["En un pueblo de la costa, los pescadores formaron una cooperativa. Eso quiere decir que trabajan en equipo y comparten las ganancias.", "La cooperativa respeta las vedas: son temporadas en que no se puede pescar ciertas especies para que puedan reproducirse.", "Al principio, algunos pensaban que perderían dinero. Con los años vieron que, gracias a las vedas, siempre había pesca para todos."],
+      q: [["¿Qué es una cooperativa?", "Un grupo que trabaja en equipo y comparte ganancias", ["Un barco muy grande", "Una tienda de redes", "Un tipo de pescado"]], ["¿Para qué sirven las vedas?", "Para que las especies puedan reproducirse", ["Para pescar más rápido", "Para vender más caro", "Para que los barcos descansen"]], ["¿Qué descubrieron con los años?", "Que siempre había pesca para todos", ["Que ya no había peces", "Que era mejor trabajar solos", "Que el mar se secó"]]] }
+  ],
+  6: [
+    { t: "Pinturas en la sierra", p: ["En la Sierra de San Francisco, en Baja California Sur, hay cuevas con pinturas hechas por antiguos pobladores de la península hace miles de años.", "Las figuras muestran personas, venados, ballenas y aves, pintadas en rojo y negro. Algunas son tan grandes que miden varias veces la altura de un adulto.", "En 1993 la UNESCO las declaró Patrimonio de la Humanidad. Eso significa que pertenecen a todos y que debemos protegerlas: no tocarlas, no rayarlas y visitarlas solo con guías."],
+      q: [["¿Dónde están las pinturas?", "En la Sierra de San Francisco", ["En la Ciudad de México", "En una playa de Tijuana", "En un museo de Europa"]], ["¿Qué animales aparecen en las pinturas?", "Venados, ballenas y aves", ["Leones y jirafas", "Caballos y vacas", "Elefantes y tigres"]], ["¿Qué significa que sean Patrimonio de la Humanidad?", "Que pertenecen a todos y hay que protegerlas", ["Que se pueden vender", "Que solo las puede ver el gobierno", "Que se van a pintar de nuevo"]]] },
+    { t: "Energía del viento", p: ["En la región de La Rumorosa, en Baja California, el viento sopla con mucha fuerza casi todo el año. Ahí se instalaron grandes aerogeneradores.", "Un aerogenerador es como un molino gigante: el viento mueve sus aspas y un generador convierte ese movimiento en electricidad.", "Esta energía es renovable porque el viento no se acaba, y casi no contamina el aire. Sin embargo, solo funciona bien en lugares donde sopla viento suficiente."],
+      q: [["¿Qué hay en La Rumorosa?", "Grandes aerogeneradores", ["Pozos de petróleo", "Una presa", "Minas de oro"]], ["¿Qué hace un aerogenerador?", "Convierte el movimiento del viento en electricidad", ["Produce lluvia", "Enfría el aire de las casas", "Guarda agua"]], ["¿Por qué se dice que es energía renovable?", "Porque el viento no se acaba", ["Porque es muy cara", "Porque usa carbón", "Porque funciona en cualquier lugar"]]] }
+  ]
+};
+
+function ListaLecturas(){
+  setTitle("Lectura");
+  var arr = LECTURAS[state.grado];
+  var h = '<h2>Elige una lectura</h2><div class="list">';
+  each(arr, function(l, i){ h += '<button data-i="' + i + '">' + esc(l.t) + '<small>' + l.q.length + ' preguntas</small></button>'; });
+  h += '</div>';
+  el(h);
+  each($main.querySelectorAll(".list button"), function(b){
+    b.onclick = function(){ go(Lectura, arr[parseInt(b.getAttribute("data-i"), 10)]); };
+  });
+}
+function Lectura(l){
+  setTitle("Lectura");
+  var h = '<div class="card read"><h3>' + esc(l.t) + '</h3>';
+  each(l.p, function(p){ h += '<p>' + esc(p) + '</p>'; });
+  h += '</div><div style="text-align:center"><button class="btn" id="contestar">Ya leí, quiero contestar</button></div>';
+  el(h);
+  on("contestar", function(){ go(PreguntasLectura, l); });
+}
+function PreguntasLectura(l){
+  setTitle("Lectura", l.t);
+  var n = 0, ok = 0, locked = false;
+  function next(){
+    if (n >= l.q.length){
+      registrar("Lectura", ok, l.q.length);
+      var s = ""; for (var i = 0; i < l.q.length; i++) s += i < ok ? "★" : "☆";
+      el('<div class="card" style="text-align:center"><div class="stars">' + s + '</div><div class="big">Contestaste bien <b>' + ok + '</b> de ' + l.q.length + '</div>' +
+        '<button class="btn" id="releer">Leer otra vez</button><button class="btn alt" id="salir">Terminar</button></div>');
+      on("releer", function(){ history.pop(); current = null; go(Lectura, l, true); });
+      on("salir", function(){ history.pop(); history.pop(); current = null; go(ListaLecturas, null, true); });
+      return;
+    }
+    var p = l.q[n]; locked = false;
+    var opts = shuffle([p[1]].concat(p[2]));
+    var h = '<div class="card"><b>Pregunta ' + (n + 1) + ' de ' + l.q.length + '</b><div class="q" style="font-size:26px">' + esc(p[0]) + '</div><div class="opts flex wrap">';
+    each(opts, function(o){ h += '<button class="opt small" data-v="' + esc(o) + '">' + esc(o) + '</button>'; });
+    h += '</div><div class="msg" id="msg"></div></div>';
+    el(h);
+    each($main.querySelectorAll(".opt"), function(b){
+      b.onclick = function(){
+        if (locked) return; locked = true;
+        var bien = b.getAttribute("data-v") === p[1], m = document.getElementById("msg");
+        if (bien){ ok++; b.className += " ok"; m.className = "msg ok"; m.innerHTML = "¡Muy bien!"; }
+        else { b.className += " bad"; m.className = "msg bad"; m.innerHTML = "La respuesta era: " + esc(p[1]);
+          each($main.querySelectorAll(".opt"), function(x){ if (x.getAttribute("data-v") === p[1]) x.className += " ok"; }); }
+        beep(bien); n++; setTimeout(next, bien ? 1000 : 2200);
+      };
+    });
+  }
+  next();
+}
+
+/* ---------- memorama ---------- */
+function paresMemo(g){
+  var pares = [], usados = {}, a, b, k;
+  while (pares.length < 8){
+    if (g <= 2){ a = rnd(1, g === 1 ? 9 : 20); b = rnd(1, g === 1 ? 9 : 20); k = (a + b); if (g === 1 && k > 10) continue; if (usados[k]) continue; usados[k] = 1; pares.push([a + "+" + b, String(k)]); }
+    else if (g <= 4){ a = rnd(2, 9); b = rnd(2, 9); k = a * b; if (usados[k]) continue; usados[k] = 1; pares.push([a + "×" + b, String(k)]); }
+    else { var d = pick([2, 4, 5, 10]); var n = rnd(1, d - 1); k = (n / d).toFixed(2).replace(/0+$/, "").replace(/\.$/, ""); if (usados[k]) continue; usados[k] = 1; pares.push([n + "/" + d, k]); }
+  }
+  return pares;
+}
+function Memorama(){
+  setTitle("Memorama");
+  var pares = paresMemo(state.grado), cartas = [];
+  each(pares, function(p, i){ cartas.push({ v: p[0], id: i }); cartas.push({ v: p[1], id: i }); });
+  shuffle(cartas);
+  var abiertas = [], hechas = 0, intentos = 0, bloqueo = false;
+  var h = '<div class="card"><div class="flex between"><b>Une cada operación con su resultado</b><b id="int">Intentos: 0</b></div></div><div class="memo flex wrap">';
+  each(cartas, function(c, i){ h += '<button class="mc" data-i="' + i + '">' + esc(c.v) + '</button>'; });
+  h += '</div>';
+  el(h);
+  var botones = $main.querySelectorAll(".mc");
+  each(botones, function(b){
+    b.onclick = function(){
+      var i = parseInt(b.getAttribute("data-i"), 10);
+      if (bloqueo || b.className.indexOf("open") >= 0 || b.className.indexOf("done") >= 0) return;
+      b.className = "mc open"; abiertas.push(i);
+      if (abiertas.length === 2){
+        intentos++; document.getElementById("int").innerHTML = "Intentos: " + intentos;
+        var x = abiertas[0], y = abiertas[1];
+        if (cartas[x].id === cartas[y].id){
+          botones[x].className = "mc done"; botones[y].className = "mc done"; abiertas = []; hechas++; beep(true);
+          if (hechas === pares.length){
+            registrar("Memorama", pares.length, intentos);
+            setTimeout(function(){
+              el('<div class="card" style="text-align:center"><div class="stars">★★★</div><div class="big">¡Encontraste todas las parejas en <b>' + intentos + '</b> intentos!</div><button class="btn" id="otra">Jugar otra vez</button><button class="btn alt" id="salir">Terminar</button></div>');
+              on("otra", function(){ current = null; go(Memorama, null, true); });
+              on("salir", back);
+            }, 700);
+          }
+        } else {
+          bloqueo = true;
+          setTimeout(function(){ botones[x].className = "mc"; botones[y].className = "mc"; abiertas = []; bloqueo = false; }, 1000);
+        }
+      }
+    };
+  });
+}
+
+/* ---------- adivina la palabra ---------- */
+var PALABRAS = {
+  facil: { "Animales": ["GATO", "PERRO", "PATO", "VACA", "LORO", "SAPO", "OSO", "MONO"], "Frutas": ["PERA", "UVA", "MANGO", "FRESA", "KIWI", "PIÑA", "LIMA"], "En la escuela": ["LAPIZ", "LIBRO", "MESA", "GOMA", "PATIO", "SILLA"] },
+  media: { "Animales": ["BALLENA", "GAVIOTA", "TORTUGA", "CONEJO", "CABALLO", "PELICANO"], "Frutas": ["SANDIA", "NARANJA", "PLATANO", "MANZANA", "CIRUELA"], "El mar": ["OLAS", "ARENA", "CONCHA", "BARCO", "PLAYA", "ESTRELLA"], "En la escuela": ["MAESTRA", "CUADERNO", "MOCHILA", "PIZARRON", "RECREO"] },
+  dificil: { "Naturaleza": ["DESIERTO", "CARDON", "VOLCAN", "MONTAÑA", "LAGUNA", "ACANTILADO"], "Ciencias": ["PLANETA", "ENERGIA", "MOLECULA", "VERTEBRADO", "ECOSISTEMA"], "México": ["BANDERA", "HIMNO", "CONSTITUCION", "MUNICIPIO", "PENINSULA"], "El mar": ["CORMORAN", "ARRECIFE", "PESCADOR", "MAREA", "LANGOSTA"] }
+};
+function Palabra(){
+  setTitle("Adivina la palabra");
+  var nivel = state.grado <= 2 ? "facil" : state.grado <= 4 ? "media" : "dificil";
+  var cats = Object.keys(PALABRAS[nivel]); var cat = pick(cats); var pal = pick(PALABRAS[nivel][cat]);
+  var vidas = 6, usadas = [], terminado = false;
+  var LETRAS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
+  function oculta(){ var s = ""; for (var i = 0; i < pal.length; i++) s += (usadas.indexOf(pal[i]) >= 0 ? pal[i] : "_") + " "; return s; }
+  function globos(){ var s = ""; for (var i = 0; i < 6; i++) s += i < vidas ? "● " : "○ "; return s; }
+  var h = '<div class="card"><div style="text-align:center"><b>Pista: ' + esc(cat) + '</b> · ' + pal.length + ' letras</div>' +
+    '<div class="balloons" id="vid">Oportunidades: ' + globos() + '</div><div class="word" id="w">' + oculta() + '</div><div class="msg" id="msg"></div></div><div class="keys flex wrap">';
+  each(LETRAS, function(l){ h += '<button class="key" data-l="' + l + '">' + l + '</button>'; });
+  h += '</div>';
+  el(h);
+  each($main.querySelectorAll(".key"), function(b){
+    b.onclick = function(){
+      var l = b.getAttribute("data-l");
+      if (terminado || usadas.indexOf(l) >= 0) return;
+      usadas.push(l);
+      if (pal.indexOf(l) >= 0){ b.className = "key hit"; beep(true); } else { b.className = "key used"; vidas--; beep(false); }
+      document.getElementById("w").innerHTML = oculta();
+      document.getElementById("vid").innerHTML = "Oportunidades: " + globos();
+      var gano = true; for (var i = 0; i < pal.length; i++) if (usadas.indexOf(pal[i]) < 0) gano = false;
+      var m = document.getElementById("msg");
+      if (gano || vidas <= 0){
+        terminado = true;
+        registrar("Adivina la palabra", gano ? 1 : 0, 1);
+        m.className = gano ? "msg ok" : "msg bad";
+        m.innerHTML = (gano ? "¡Lo lograste! " : "La palabra era: " + pal + ". ") + '<br><button class="btn" id="otra">Otra palabra</button>';
+        on("otra", function(){ current = null; go(Palabra, null, true); });
+      }
+    };
+  });
+}
+
+/* ---------- dibujo ---------- */
+function Dibujo(){
+  setTitle("Dibujar");
+  var colores = ["#23313f", "#e5533d", "#f0932b", "#f5d000", "#3aa655", "#2d8bd0", "#7a55c4", "#8b5a2b", "#ffffff"];
+  var h = '<div class="flex between wrap" style="margin-bottom:8px"><div class="palette flex wrap">';
+  each(colores, function(c, i){ h += '<button data-c="' + c + '" style="background:' + c + '"' + (i === 0 ? ' class="sel"' : '') + '></button>'; });
+  h += '</div><div><button class="btn alt" id="grosor">Grueso</button><button class="btn" id="limpiar">Borrar todo</button></div></div><canvas id="pad"></canvas>';
+  el(h);
+  var cv = document.getElementById("pad"), ctx = cv.getContext("2d");
+  var w = $main.clientWidth - 32, hh = Math.max(260, window.innerHeight - 240);
+  cv.width = w; cv.height = hh; cv.style.height = hh + "px";
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, hh);
+  var color = colores[0], ancho = 6, dibujando = false, lx = 0, ly = 0;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  function pos(e){ var r = cv.getBoundingClientRect(); var t = e.touches ? e.touches[0] : e; return [t.clientX - r.left, t.clientY - r.top]; }
+  function ini(e){ e.preventDefault(); dibujando = true; var p = pos(e); lx = p[0]; ly = p[1]; ctx.beginPath(); ctx.fillStyle = color; ctx.arc(lx, ly, ancho / 2, 0, Math.PI * 2); ctx.fill(); }
+  function mov(e){ if (!dibujando) return; e.preventDefault(); var p = pos(e); ctx.strokeStyle = color; ctx.lineWidth = ancho; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p[0], p[1]); ctx.stroke(); lx = p[0]; ly = p[1]; }
+  function fin(){ dibujando = false; }
+  cv.addEventListener("touchstart", ini, false); cv.addEventListener("touchmove", mov, false); cv.addEventListener("touchend", fin, false);
+  cv.addEventListener("mousedown", ini, false); cv.addEventListener("mousemove", mov, false); window.addEventListener("mouseup", fin, false);
+  each($main.querySelectorAll(".palette button"), function(b){
+    b.onclick = function(){ color = b.getAttribute("data-c"); each($main.querySelectorAll(".palette button"), function(x){ x.className = ""; }); b.className = "sel"; };
+  });
+  on("grosor", function(){ ancho = ancho === 6 ? 16 : ancho === 16 ? 2 : 6; document.getElementById("grosor").innerHTML = ancho === 16 ? "Delgado" : ancho === 2 ? "Normal" : "Grueso"; });
+  on("limpiar", function(){ ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, hh); });
+}
+
+/* ---------- modo maestro ---------- */
+function PinMaestro(){
+  setTitle("Modo maestro", "Escribe la contraseña");
+  var pin = "";
+  var h = '<div class="card"><div class="pin" id="pin"></div><div class="msg" id="msg"></div><div class="numpad flex wrap">';
+  each(["1", "2", "3", "4", "5", "6", "7", "8", "9", "Borrar", "0", "Entrar"], function(k){ h += '<button data-k="' + k + '"' + (k.length > 1 ? ' style="font-size:18px"' : '') + '>' + k + '</button>'; });
+  h += '</div></div>';
+  el(h);
+  each($main.querySelectorAll(".numpad button"), function(b){
+    b.onclick = function(){
+      var k = b.getAttribute("data-k");
+      if (k === "Borrar") pin = pin.slice(0, -1);
+      else if (k === "Entrar"){
+        if (pin === store.get("pin", "0500")){ history.pop(); current = null; go(Maestro, null, true); history = [{ s: Inicio }]; $back.style.display = "block"; $home.style.display = "block"; return; }
+        document.getElementById("msg").className = "msg bad"; document.getElementById("msg").innerHTML = "Contraseña incorrecta"; pin = "";
+      } else if (pin.length < 8) pin += k;
+      var s = ""; for (var i = 0; i < pin.length; i++) s += "●"; document.getElementById("pin").innerHTML = s;
+    };
+  });
+}
+function Maestro(){
+  setTitle("Modo maestro", "Avance de los alumnos en esta tablet");
+  var av = store.get("avance", {}), filas = "", claves = Object.keys(av).sort();
+  each(claves, function(k){
+    var p = k.split("|"), d = av[k];
+    var pct = p[1] === "Memorama" ? "—" : (d.total ? Math.round(d.aciertos * 100 / d.total) + "%" : "—");
+    filas += '<tr><td>' + p[0] + '°</td><td>' + esc(p[1]) + '</td><td>' + d.veces + '</td><td>' + pct + '</td></tr>';
+  });
+  el('<div class="card"><h2>Avance</h2>' + (filas ? '<table><tr><th>Grado</th><th>Actividad</th><th>Veces</th><th>Aciertos</th></tr>' + filas + '</table>' : '<p>Todavía no hay actividades registradas en esta tablet.</p>') + '</div>' +
+    '<div class="card"><h2>Datos de la tablet</h2><p style="margin-bottom:6px">Escuela (aparece abajo en la pantalla):</p><input type="text" id="esc" value="' + esc(store.get("escuela", "")) + '" placeholder="Nombre de la escuela">' +
+    '<p style="margin:12px 0 6px">Número de tablet:</p><input type="text" id="num" value="' + esc(store.get("numero", "")) + '" placeholder="Ej. 12">' +
+    '<p style="margin:12px 0 6px">Nueva contraseña de maestro (déjala vacía para no cambiarla):</p><input type="text" id="npin" placeholder="Solo números">' +
+    '<div style="margin-top:12px"><button class="btn" id="guardar">Guardar</button><button class="btn alt" id="borrar">Borrar avance</button></div><div class="msg" id="msg"></div></div>' +
+    (window.Android ? '<div class="card"><h2>Tablet</h2><p style="margin-bottom:8px">Opciones de Android (solo para el maestro):</p>' +
+      '<button class="btn" id="aAjustes">Ajustes de Android</button><button class="btn" id="aNav">Abrir navegador</button><button class="btn alt" id="aInicio">Dejar de ser pantalla de inicio</button></div>' : '') +
+    '<div class="card" style="font-size:15px;color:#7a8794">Tablet-Tini ' + esc(window.Android && window.Android.version ? window.Android.version() : "v1") + ' · Zona Escolar 050 · Funciona sin internet. Contraseña inicial: 0500.</div>');
+  if (window.Android){
+    on("aAjustes", function(){ window.Android.ajustes(); });
+    on("aNav", function(){ window.Android.navegador(); });
+    on("aInicio", function(){ window.Android.quitarInicio(); });
+  }
+  on("guardar", function(){
+    store.set("escuela", document.getElementById("esc").value.trim());
+    store.set("numero", document.getElementById("num").value.trim());
+    var np = document.getElementById("npin").value.replace(/\D/g, "");
+    if (np.length >= 4) store.set("pin", np);
+    pie();
+    var m = document.getElementById("msg"); m.className = "msg ok"; m.innerHTML = "Guardado" + (np.length >= 4 ? " (nueva contraseña: " + np + ")" : "");
+  });
+  on("borrar", function(){
+    var b = document.getElementById("borrar");
+    if (b.getAttribute("data-c") !== "1"){ b.setAttribute("data-c", "1"); b.innerHTML = "Toca otra vez para confirmar"; return; }
+    store.set("avance", {}); current = null; go(Maestro, null, true);
+  });
+}
+
+function pie(){
+  var e = store.get("escuela", ""), n = store.get("numero", "");
+  document.getElementById("footSchool").innerHTML = esc(e) + (n ? " · Tablet " + esc(n) : "");
+}
+
+/* botón atrás físico de la tablet (lo envía la app de Android) */
+window.ttAtras = function(){ if (history.length) back(); };
+pie();
+go(Inicio);
+})();
+</script>
+</body>
+</html>

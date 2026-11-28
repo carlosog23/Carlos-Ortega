@@ -1,0 +1,69 @@
+# Compila la app Tablet-Tini (tablets con Android 4.4) y la deja para descargar en
+# https://github.com/carlosog23/carlos-ortega/releases/tag/tablet-tini
+name: Compilar Tablet-Tini
+on:
+  push:
+    branches: [main]
+    paths: ['tablet-tini/**', '.github/workflows/tablet-tini.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: tablet-tini
+  cancel-in-progress: false
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Firma de la app: siempre la misma, para poder actualizar sin desinstalar.
+      # 1) Si existe el secreto TT_FIRMA (almacén en base64) se usa ese.
+      # 2) Si no, se guarda una firma en la caché de GitHub y se reutiliza.
+      - name: Recuperar firma guardada
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/tt-firma
+          key: tablet-tini-firma-v1
+      - name: Preparar firma
+        env:
+          TT_FIRMA: ${{ secrets.TT_FIRMA }}
+          TT_FIRMA_CLAVE: ${{ secrets.TT_FIRMA_CLAVE }}
+        run: |
+          mkdir -p ~/tt-firma
+          if [ -n "$TT_FIRMA" ]; then
+            echo "$TT_FIRMA" | base64 -d > ~/tt-firma/actual.jks
+            echo "KS_PASS=$TT_FIRMA_CLAVE" >> "$GITHUB_ENV"
+          else
+            if [ ! -f ~/tt-firma/firma.jks ]; then
+              head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' > ~/tt-firma/clave.txt
+              keytool -genkeypair -keystore ~/tt-firma/firma.jks -alias tablettini \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass "$(cat ~/tt-firma/clave.txt)" \
+                -dname "CN=Tablet-Tini, OU=Zona Escolar 050, O=Supervision Escolar, L=Camalu, ST=Baja California, C=MX"
+              echo "::notice title=Firma::Se creó una firma nueva para Tablet-Tini."
+            fi
+            cp ~/tt-firma/firma.jks ~/tt-firma/actual.jks
+            echo "KS_PASS=$(cat ~/tt-firma/clave.txt)" >> "$GITHUB_ENV"
+          fi
+          echo "KS=$HOME/tt-firma/actual.jks" >> "$GITHUB_ENV"
+
+      - name: Compilar
+        env:
+          VERSION: ${{ github.run_number }}
+        run: bash tablet-tini/android/compilar.sh
+
+      - name: Publicar para descarga
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete tablet-tini --yes --cleanup-tag 2>/dev/null || true
+          gh release create tablet-tini tablet-tini/android/build/Tablet-Tini.apk \
+            --title "Tablet-Tini 1.${{ github.run_number }}" \
+            --notes "App Tablet-Tini de la Zona Escolar 050 para tablets con Android 4.4 o más nuevo. Descarga Tablet-Tini.apk y cópiala a la microSD para instalarla." \
+            --latest=false
