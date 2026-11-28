@@ -6929,12 +6929,14 @@ const CNS_PLANTILLAS = [
         { t: 'Pechuga Mar y Tierra', p: 445, d: 'Rellena de camarones salteados, espinacas y queso crema, sobre espejo de salsa de vino blanco con limón y perejil. Con puré de papa rústico y verduras al vapor.' },
         { t: 'Pechuga del Valle', p: 445, d: 'Rellena de champiñones y cebolla caramelizada, sobre espejo de crema de ajo rostizado, con camarones salteados, puré de papa y verduras al vapor.' },
         { t: 'Pechuga Toscana', p: 445, d: 'Rellena de verduras salteadas con tocino, bañada en salsa cremosa de queso parmesano. Con puré de papa y verduras al vapor.' }] }] }) },
-  { id: 'compus', zona: '050', nombre: 'Computadoras antiguas en las escuelas', desc: 'Cada escuela escribe cuántas tiene (0 si no tiene) y pulsa «Validar»', base: () => ({
-    titulo: 'Inventario de computadoras antiguas', participantes: cnsPersonasEscuelas(),
-    descripcion: 'Escriba cuántas computadoras antiguas tiene su escuela (de escritorio o portátiles, aunque no se usen) para programarlas y enviarlas a la Supervisión. Si no tiene ninguna, deje 0 y solo pulse «Validar».',
+  { id: 'compus', zona: '050', nombre: 'Computadoras y tablets antiguas en las escuelas', desc: 'Cada escuela escribe cuántas computadoras y tablets tiene (0 si no tiene) y pulsa «Validar»', base: () => ({
+    titulo: 'Inventario de computadoras y tablets antiguas', participantes: cnsPersonasEscuelas(),
+    descripcion: 'Escriba cuántas computadoras antiguas (de escritorio o portátiles) y cuántas tablets antiguas tiene su escuela, aunque no se usen, para programarlas con el software de la Supervisión (Compu-Tini y Tablet-Tini). Si no tiene ninguna, deje 0 y solo pulse «Validar».',
     preguntas: [
       { k: 'num_compus', t: '¿Cuántas computadoras antiguas tiene su escuela?', tipo: 'numero', req: true },
-      { k: 'marcas', t: 'Marca, modelo o estado de las computadoras', tipo: 'texto', req: false }] }) },
+      { k: 'marcas', t: 'Marca, modelo o estado de las computadoras', tipo: 'texto', req: false },
+      { k: 'num_tablets', t: '¿Cuántas tablets antiguas tiene su escuela?', tipo: 'numero', req: true },
+      { k: 'marcas_tablets', t: 'Marca, modelo o estado de las tablets', tipo: 'texto', req: false }] }) },
   { id: 'evento', nombre: 'Asistencia a un evento', desc: 'Solo confirmar si asiste', base: () => ({ titulo: '', preguntas: [{ k: 'asiste', t: '¿Asistirá?', tipo: 'asistencia', req: true }] }) },
   { id: 'blanco', nombre: 'Consulta en blanco', desc: 'Usted arma las preguntas', base: () => ({ titulo: '', preguntas: [{ k: 'p1', t: '', tipo: 'opcion', req: true, op: [] }] }) }
 ];
